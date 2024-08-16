@@ -78,6 +78,10 @@ constexpr auto kDisableBluetoothClassicScanning =
 constexpr auto kEnableInstantOnLost =
     flags::Flag<bool>(kConfigPackage, "45642180", false);
 
+// When true, enable Wi-Fi Hotspot client.
+constexpr auto kEnableWifiHotspotClient =
+    flags::Flag<bool>(kConfigPackage, "45648734", true);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections

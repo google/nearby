@@ -410,6 +410,8 @@ class BasePcpHandler : public PcpHandler,
     return &serial_executor_;
   }
 
+  void StripOutWifiHotspotMedium(ConnectionInfo& connection_info);
+
   // Test only.
   int GetEndpointLostByMediumAlarmsCount() RUN_ON_PCP_HANDLER_THREAD() {
     return endpoint_lost_by_medium_alarms_.size();

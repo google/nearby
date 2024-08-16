@@ -72,6 +72,7 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
@@ -777,6 +778,14 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
   }
   connection_info.supported_mediums =
       GetSupportedConnectionMediumsByPriority(connection_options);
+
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiHotspotClient)) {
+    // Remove Wi-Fi Hotspot if WiFi LAN is available.
+    StripOutWifiHotspotMedium(connection_info);
+  }
+
   connection_info.keep_alive_interval_millis =
       connection_options.keep_alive_interval_millis;
   connection_info.keep_alive_timeout_millis =
@@ -1237,6 +1246,25 @@ mediums::WebrtcPeerId BasePcpHandler::CreatePeerIdFromAdvertisement(
   std::string seed =
       absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
   return mediums::WebrtcPeerId::FromSeed(ByteArray(std::move(seed)));
+}
+
+void BasePcpHandler::StripOutWifiHotspotMedium(
+    ConnectionInfo& connection_info) {
+  bool has_wifi_lan = false;
+  for (auto medium : connection_info.supported_mediums) {
+    if (medium == location::nearby::proto::connections::WIFI_LAN) {
+      has_wifi_lan = true;
+      break;
+    }
+  }
+
+  if (has_wifi_lan) {
+    connection_info.supported_mediums.erase(
+        std::remove(connection_info.supported_mediums.begin(),
+                    connection_info.supported_mediums.end(),
+                    Medium::WIFI_HOTSPOT),
+        connection_info.supported_mediums.end());
+  }
 }
 
 bool BasePcpHandler::HasOutgoingConnections(ClientProxy* client) const {
