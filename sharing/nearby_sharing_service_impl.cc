@@ -2627,7 +2627,10 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
               decrypted_public_certificate) {
         RunOnNearbySharingServiceThread(
             "incoming_decrypted_certificate",
-            [this, endpoint_id, advertisement_copy, placeholder_share_target_id,
+            // capture endpoint_id string_view as a std::string to ensure the
+            // data does not go out of scope.
+            [this, endpoint_id = std::string(endpoint_id), advertisement_copy,
+             placeholder_share_target_id,
              decrypted_public_certificate =
                  std::move(decrypted_public_certificate)]() {
               OnIncomingDecryptedCertificate(
