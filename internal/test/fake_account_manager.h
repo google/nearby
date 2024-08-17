@@ -39,6 +39,11 @@ class FakeAccountManager : public AccountManager {
       absl::AnyInvocable<void(Account)> login_success_callback,
       absl::AnyInvocable<void(absl::Status)> login_failure_callback) override;
 
+  void Login(
+      absl::string_view client_id, absl::string_view client_secret,
+      absl::AnyInvocable<void(Account)> login_success_callback,
+      absl::AnyInvocable<void(absl::Status)> login_failure_callback) override;
+
   void Logout(absl::AnyInvocable<void(absl::Status)> logout_callback) override;
 
   bool GetAccessToken(

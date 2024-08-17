@@ -55,11 +55,22 @@ class AccountManager {
   // Gets current active account. If no login user, return std::nullopt.
   virtual std::optional<Account> GetCurrentAccount() = 0;
 
-  // Initializes the login process for a Google account.
+  // Initializes the login process for a Google account from 1P client.
   // |login_success_callback| is called when the login succeeded. Account
   // information is passed to callback.
   // |login_failure_callback| is called when the login fails.
   virtual void Login(
+      absl::AnyInvocable<void(Account)> login_success_callback,
+      absl::AnyInvocable<void(absl::Status)> login_failure_callback) = 0;
+
+  // Initializes the login process for a Google account from an oauth client.
+  // |client_id| GCP client_id of the client
+  // |client_secret| GCP client_secret of the client
+  // |login_success_callback| is called when the login succeeded. Account
+  // information is passed to callback.
+  // |login_failure_callback| is called when the login fails.
+  virtual void Login(
+      absl::string_view client_id, absl::string_view client_secret,
       absl::AnyInvocable<void(Account)> login_success_callback,
       absl::AnyInvocable<void(absl::Status)> login_failure_callback) = 0;
 

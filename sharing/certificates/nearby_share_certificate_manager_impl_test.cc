@@ -117,8 +117,9 @@ class NearbyShareCertificateManagerImplTest
 
     fake_account_manager_.SetAccount(account);
 
-    fake_account_manager_.Login([](AccountManager::Account account) {},
-                                [](absl::Status status) {});
+    fake_account_manager_.Login(
+        "test_client_id", "test_client_secret",
+        [](AccountManager::Account account) {}, [](absl::Status status) {});
 
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
     NearbyShareCertificateStorageImpl::Factory::SetFactoryForTesting(
@@ -511,10 +512,10 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   FastForward(GetNearbyShareTestNotBefore() +
               kNearbyShareCertificateValidityPeriod * 0.5 - Now());
 
-  std::optional<NearbyShareEncryptedMetadataKey> encrypted_metadata_key_everyone
-      =
-      cert_manager_->EncryptPrivateCertificateMetadataKey(
-          DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
+  std::optional<NearbyShareEncryptedMetadataKey>
+      encrypted_metadata_key_everyone =
+          cert_manager_->EncryptPrivateCertificateMetadataKey(
+              DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
   EXPECT_EQ(GetNearbyShareTestEncryptedMetadataKey().encrypted_key(),
             encrypted_metadata_key_everyone->encrypted_key());
   EXPECT_EQ(GetNearbyShareTestEncryptedMetadataKey().salt(),

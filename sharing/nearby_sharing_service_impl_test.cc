@@ -2174,6 +2174,7 @@ TEST_F(NearbySharingServiceImplTest, ValidateLoginStateWhenSettingVisibility) {
   absl::Notification login_notification;
   account_manager().SetAccount(account);
   service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
       [&](AccountManager::Account account) {
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
@@ -4467,6 +4468,7 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
   service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
       [&](AccountManager::Account account) {
         EXPECT_EQ(account.id, kTestAccountId);
         notification.Notify();
@@ -4499,6 +4501,7 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   absl::Notification login_notification;
   account_manager().SetAccount(account);
   service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
       [&](AccountManager::Account account) {
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
@@ -4536,6 +4539,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   absl::Notification login_notification;
   account_manager().SetAccount(account);
   service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
       [&](AccountManager::Account account) {
         EXPECT_EQ(account.id, kTestAccountId);
         login_notification.Notify();
@@ -4563,6 +4567,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   absl::Notification login2_notification;
   account_manager().SetAccount(account);
   service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
       [&](AccountManager::Account account) {
         EXPECT_EQ(account.id, kTestAccountId);
         login2_notification.Notify();
@@ -4605,6 +4610,7 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
   service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
       [&](AccountManager::Account account) {
         EXPECT_EQ(account.id, kTestAccountId);
         notification.Notify();
