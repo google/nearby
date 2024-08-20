@@ -167,6 +167,7 @@ typedef struct NC_DISCOVERY_OPTIONS {
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection;
   NC_DATA fast_advertisement_service_uuid;
+  bool low_power;
 } NC_DISCOVERY_OPTIONS, *PNC_DISCOVERY_OPTIONS;
 
 typedef struct NC_CONNECTION_RESPONSE_INFO {

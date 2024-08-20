@@ -307,6 +307,7 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
         std::string(discovery_options->fast_advertisement_service_uuid.data,
                     discovery_options->fast_advertisement_service_uuid.size);
   }
+  cpp_discovery_options.low_power = discovery_options->low_power;
   cpp_discovery_options.allowed.bluetooth =
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_BLUETOOTH];
   cpp_discovery_options.allowed.ble =

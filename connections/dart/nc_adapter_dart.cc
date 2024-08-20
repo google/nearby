@@ -563,6 +563,7 @@ void StartDiscoveryDart(NC_INSTANCE instance, DataDart service_id,
       options_dart.mediums.wifi_hotspot;
   discovery_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC] =
       options_dart.mediums.web_rtc;
+  discovery_options.low_power = options_dart.low_power;
 
   NC_DISCOVERY_LISTENER listener{};
   listener.endpoint_distance_changed_callback =

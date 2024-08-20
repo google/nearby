@@ -106,7 +106,7 @@ struct DiscoveryOptionsDart {
   int64_t is_out_of_band_connection = false;
   DataDart fast_advertisement_service_uuid;
   DataDart remote_bluetooth_mac_address;
-
+  int64_t low_power;
   MediumsDart mediums;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/discovery_options.dart)
 };
