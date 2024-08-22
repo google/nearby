@@ -280,13 +280,14 @@ bool BluetoothClassic::StartDiscovery(const std::string& serviceId,
               }
             }};
 
+    AddDiscoveryCallback(serviceId, std::move(callback));
+
     if (!medium_->StartDiscovery(std::move(medium_callback))) {
       NEARBY_LOGS(INFO) << "Failed to start discovery of BT devices.";
+      RemoveDiscoveryCallback(serviceId);
       return false;
     }
   }
-
-  AddDiscoveryCallback(serviceId, std::move(callback));
 
   // Mark the fact that we're currently performing a Bluetooth scan.
   scan_info_.valid = true;
@@ -387,55 +388,53 @@ bool BluetoothClassic::StartAcceptingConnections(
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections()
   // is invoked.
-  accept_loops_runner_.Execute(
-      "bt-accept",
-      [callback = std::move(callback), server_socket = std::move(owned_socket),
-       service_id, this]() mutable {
-        while (true) {
-          BluetoothSocket client_socket = server_socket.Accept();
-          if (!client_socket.IsValid()) {
-            NEARBY_LOGS(INFO) << "Failed to accept connection for "
-                              << service_id;
-            server_socket.Close();
-            break;
-          }
-          NEARBY_LOGS(INFO) << "Accepted connection for " << service_id;
-          bool callback_called = false;
-          {
-            MutexLock lock(&mutex_);
-            if (is_multiplex_enabled_) {
-              BluetoothSocket client_socket_bak = client_socket;
-              auto physical_socket_ptr =
-                  std::make_shared<BluetoothSocket>(client_socket_bak);
-              MultiplexSocket* multiplex_socket =
-                  MultiplexSocket::CreateIncomingSocket(
-                      physical_socket_ptr, service_id);
+  accept_loops_runner_.Execute("bt-accept", [callback = std::move(callback),
+                                             server_socket =
+                                                 std::move(owned_socket),
+                                             service_id, this]() mutable {
+    while (true) {
+      BluetoothSocket client_socket = server_socket.Accept();
+      if (!client_socket.IsValid()) {
+        NEARBY_LOGS(INFO) << "Failed to accept connection for " << service_id;
+        server_socket.Close();
+        break;
+      }
+      NEARBY_LOGS(INFO) << "Accepted connection for " << service_id;
+      bool callback_called = false;
+      {
+        MutexLock lock(&mutex_);
+        if (is_multiplex_enabled_) {
+          BluetoothSocket client_socket_bak = client_socket;
+          auto physical_socket_ptr =
+              std::make_shared<BluetoothSocket>(client_socket_bak);
+          MultiplexSocket* multiplex_socket =
+              MultiplexSocket::CreateIncomingSocket(physical_socket_ptr,
+                                                    service_id);
 
-              if (multiplex_socket != nullptr &&
-                  multiplex_socket->GetVirtualSocket(service_id)) {
-                multiplex_sockets_.emplace(
-                    client_socket.GetRemoteDevice().GetMacAddress(),
-                    multiplex_socket);
-                MultiplexSocket::StopListeningForIncomingConnection(
-                    service_id, Medium::BLUETOOTH);
-                NEARBY_LOGS(INFO) << "Multiplex virtaul socket created for "
-                                  << client_socket.GetRemoteDevice().GetName();
-                if (callback) {
-                  callback(
-                      service_id,
-                      *(down_cast<BluetoothSocket*>(
-                          multiplex_socket->GetVirtualSocket(service_id))));
-                  callback_called = true;
-                }
-              }
+          if (multiplex_socket != nullptr &&
+              multiplex_socket->GetVirtualSocket(service_id)) {
+            multiplex_sockets_.emplace(
+                client_socket.GetRemoteDevice().GetMacAddress(),
+                multiplex_socket);
+            MultiplexSocket::StopListeningForIncomingConnection(
+                service_id, Medium::BLUETOOTH);
+            NEARBY_LOGS(INFO) << "Multiplex virtaul socket created for "
+                              << client_socket.GetRemoteDevice().GetName();
+            if (callback) {
+              callback(service_id,
+                       *(down_cast<BluetoothSocket*>(
+                           multiplex_socket->GetVirtualSocket(service_id))));
+              callback_called = true;
             }
           }
-          if (callback && !callback_called) {
-                NEARBY_LOGS(INFO) << "Call back triggered for physical socket.";
-            callback(service_id, std::move(client_socket));
-          }
         }
-      });
+      }
+      if (callback && !callback_called) {
+        NEARBY_LOGS(INFO) << "Call back triggered for physical socket.";
+        callback(service_id, std::move(client_socket));
+      }
+    }
+  });
 
   return true;
 }
@@ -510,8 +509,7 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
           auto* virtual_socket =
               multiplex_socket->EstablishVirtualSocket(service_id);
           // Should not happen.
-          auto* bluetooth_socket =
-              down_cast<BluetoothSocket*>(virtual_socket);
+          auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
           if (bluetooth_socket == nullptr) {
             NEARBY_LOGS(INFO)
                 << "Failed to cast to BluetoothSocket for " << service_id
@@ -593,8 +591,7 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   if (is_multiplex_enabled_) {
     // New MultiplexSocket but default disabled, should be enabled after
     // negotiated
-    auto physical_socket_ptr =
-        std::make_shared<BluetoothSocket>(socket);
+    auto physical_socket_ptr = std::make_shared<BluetoothSocket>(socket);
     MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
         std::move(physical_socket_ptr), service_id);
 

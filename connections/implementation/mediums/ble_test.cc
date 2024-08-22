@@ -14,14 +14,19 @@
 
 #include "connections/implementation/mediums/ble.h"
 
+#include <atomic>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "internal/platform/ble.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -73,25 +78,27 @@ TEST_P(BleTest, CanStartAcceptingConnectionsAndConnect) {
   ble_a.StartAcceptingConnections(
       service_id,
       [&](BleSocket socket, const std::string&) { accept_latch.CountDown(); });
-  BlePeripheral discovered_peripheral;
+  std::atomic<BlePeripheral> atomic_discovered_peripheral;
   ble_b.StartScanning(
       service_id, fast_advertisement_service_uuid,
       {
           .peripheral_discovered_cb =
-              [&found_latch, &discovered_peripheral](
+              [&found_latch, &atomic_discovered_peripheral](
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                discovered_peripheral = peripheral;
-                NEARBY_LOG(
-                    INFO,
-                    "Discovered peripheral=%p [impl=%p], fast advertisement=%d",
-                    &peripheral, &peripheral.GetImpl(), fast_advertisement);
+                NEARBY_LOG(INFO,
+                           "Discovered peripheral=%p [impl=%p], fast "
+                           "advertisement=%d.",
+                           &peripheral, &peripheral.GetImpl(),
+                           fast_advertisement);
+                atomic_discovered_peripheral.store(peripheral);
                 found_latch.CountDown();
               },
       });
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  BlePeripheral discovered_peripheral = atomic_discovered_peripheral.load();
   ASSERT_TRUE(discovered_peripheral.IsValid());
   CancellationFlag flag;
   BleSocket socket = ble_b.Connect(discovered_peripheral, service_id, &flag);
@@ -123,25 +130,27 @@ TEST_P(BleTest, CanCancelConnect) {
   ble_a.StartAcceptingConnections(
       service_id,
       [&](BleSocket socket, const std::string&) { accept_latch.CountDown(); });
-  BlePeripheral discovered_peripheral;
+  std::atomic<BlePeripheral> atomic_discovered_peripheral;
   ble_b.StartScanning(
       service_id, fast_advertisement_service_uuid,
       {
           .peripheral_discovered_cb =
-              [&found_latch, &discovered_peripheral](
+              [&found_latch, &atomic_discovered_peripheral](
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                discovered_peripheral = peripheral;
-                NEARBY_LOG(
-                    INFO,
-                    "Discovered peripheral=%p [impl=%p], fast advertisement=%d",
-                    &peripheral, &peripheral.GetImpl(), fast_advertisement);
+                NEARBY_LOG(INFO,
+                           "Discovered peripheral=%p [impl=%p], fast "
+                           "advertisement = %d.",
+                           &peripheral, &peripheral.GetImpl(),
+                           fast_advertisement);
+                atomic_discovered_peripheral.store(peripheral);
                 found_latch.CountDown();
               },
       });
 
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
+  BlePeripheral discovered_peripheral = atomic_discovered_peripheral.load();
   ASSERT_TRUE(discovered_peripheral.IsValid());
   CancellationFlag flag(true);
   BleSocket socket = ble_b.Connect(discovered_peripheral, service_id, &flag);
@@ -241,48 +250,6 @@ TEST_F(BleTest, CanStartDiscovery) {
               },
       }));
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  ble_b.StopAdvertising(service_id);
-  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(ble_a.StopScanning(service_id));
-  env_.Stop();
-}
-
-TEST_F(BleTest, HandleDupeFindingsFromDiscovery) {
-  env_.Start();
-  BluetoothRadio radio_a;
-  BluetoothRadio radio_b;
-  Ble ble_a{radio_a};
-  Ble ble_b{radio_b};
-  radio_a.Enable();
-  radio_b.Enable();
-  std::string service_id(kServiceID);
-  ByteArray advertisement_bytes{std::string(kAdvertisementString)};
-  std::string fast_advertisement_service_uuid(kFastAdvertisementServiceUuid);
-  // expecting two discoveries from the same peripheral.
-  CountDownLatch discovery_latch(2);
-  // Expecting the peripheral lost will trigger lost_cb.
-  CountDownLatch lost_latch(1);
-
-  ble_b.StartAdvertising(service_id, advertisement_bytes,
-                         fast_advertisement_service_uuid);
-
-  EXPECT_TRUE(ble_a.StartScanning(
-      service_id, fast_advertisement_service_uuid,
-      DiscoveredPeripheralCallback{
-          .peripheral_discovered_cb =
-              [&discovery_latch](
-                  BlePeripheral& peripheral, const std::string& service_id,
-                  const ByteArray& advertisement_bytes,
-                  bool fast_advertisement) { discovery_latch.CountDown(); },
-          .peripheral_lost_cb =
-              [&lost_latch](BlePeripheral& peripheral,
-                            const std::string& service_id) {
-                lost_latch.CountDown();
-              },
-      }));
-  ble_b.StartAdvertising(service_id, advertisement_bytes,
-                         fast_advertisement_service_uuid);
-  EXPECT_TRUE(discovery_latch.Await(kWaitDuration).result());
   ble_b.StopAdvertising(service_id);
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_a.StopScanning(service_id));

@@ -1112,9 +1112,11 @@ bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,
           .advertisement_found_cb =
               [this](api::ble_v2::BlePeripheral& peripheral,
                      BleAdvertisementData advertisement_data) {
-                RunOnBleThread([this, &peripheral, advertisement_data]() {
+                AssumeHeld(mutex_);
+                BleV2Peripheral proxy(medium_, peripheral);
+                RunOnBleThread([this, proxy = std::move(proxy),
+                                advertisement_data]() {
                   MutexLock lock(&mutex_);
-                  BleV2Peripheral proxy(medium_, peripheral);
                   discovered_peripheral_tracker_.ProcessFoundBleAdvertisement(
                       std::move(proxy), advertisement_data,
                       [this](BleV2Peripheral proxy, int num_slots, int psm,

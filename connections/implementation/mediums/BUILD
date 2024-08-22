@@ -126,6 +126,7 @@ cc_test(
     deps = [
         ":mediums",
         ":utils",
+        "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
         "//internal/flags:nearby_flags",
@@ -137,7 +138,9 @@ cc_test(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],

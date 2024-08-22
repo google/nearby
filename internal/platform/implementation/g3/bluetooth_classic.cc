@@ -217,6 +217,16 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
         << service_uuid;
     return {};
   }
+
+  if (cancellation_flag->Cancelled()) {
+    NEARBY_LOGS(ERROR)
+        << "G3 Bluetooth Connect: Has been cancelled after connected: "
+           "service_uuid="
+        << service_uuid;
+    socket->Close();
+    return {};
+  }
+
   NEARBY_LOGS(INFO) << "G3 ConnectToService: connected: socket="
                     << socket.get();
   return socket;
