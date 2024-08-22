@@ -495,6 +495,9 @@ message ConnectionsLog {
 
     // The wifi aware support status
     optional bool supports_wifi_aware = 7;
+
+    // The endpoint info size
+    optional int32 endpoint_info_size = 8;
   }
 
   // Some additional information to keep with the discovery phase.
