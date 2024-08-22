@@ -49,7 +49,7 @@ class LogMessage : public api::LogMessage {
   LogMessage(const LogMessage&) = delete;
   LogMessage& operator=(const LogMessage&) = delete;
 
-  void Print(const char* format, ...) override;
+  void Print(absl::string_view log) override;
 
   std::ostream& Stream() override;
 

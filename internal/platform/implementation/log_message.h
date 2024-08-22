@@ -17,10 +17,12 @@
 
 #include <iostream>
 
+#include "absl/strings/string_view.h"
+
 namespace nearby {
 namespace api {
 
-// A log message that prints to appropraite destination when ~LogMessage() is
+// A log message that prints to appropriate destination when ~LogMessage() is
 // called.
 //
 // note: the Severity enum should map (best effort) to the corresponding level
@@ -45,7 +47,7 @@ class LogMessage {
   virtual ~LogMessage() = default;
 
   // Printf like logging.
-  virtual void Print(const char* format, ...) = 0;
+  virtual void Print(absl::string_view log) = 0;
 
   // Returns a stream for std::cout like logging.
   virtual std::ostream& Stream() = 0;

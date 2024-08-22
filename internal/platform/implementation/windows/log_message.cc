@@ -16,7 +16,7 @@
 
 #include <algorithm>
 
-#include "strings/strappendv.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
 namespace windows {
@@ -45,13 +45,8 @@ LogMessage::LogMessage(const char* file, int line, Severity severity)
 
 LogMessage::~LogMessage() = default;
 
-void LogMessage::Print(const char* format, ...) {
-  va_list ap;
-  va_start(ap, format);
-  std::string result;
-  strings::StrAppendV(&result, format, ap);
-  log_streamer_.stream() << result;
-  va_end(ap);
+void LogMessage::Print(absl::string_view log) {
+  log_streamer_.stream() << log;
 }
 
 std::ostream& LogMessage::Stream() { return log_streamer_.stream(); }

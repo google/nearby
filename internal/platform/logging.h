@@ -44,6 +44,7 @@
 #endif
 #include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/platform.h"
+#include "absl/strings/str_format.h"
 
 namespace nearby {
 
@@ -95,7 +96,7 @@ class LogMessageVoidify {
 
 #define NEARBY_LOG(severity, ...) \
   NEARBY_LOG_IS_ON(severity)      \
-  ? NEARBY_LOG_MESSAGE(severity)->Print(__VA_ARGS__) : (void)0
+  ? NEARBY_LOG_MESSAGE(severity)->Print(absl::StrFormat(__VA_ARGS__)) : (void)0
 
 #ifdef NEARBY_SWIFTPM
 #define LOG(severity) NEARBY_LOGS(severity)

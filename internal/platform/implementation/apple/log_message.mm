@@ -75,10 +75,9 @@ LogMessage::LogMessage(const char* file, int line, Severity severity)
       severity_(ConvertSeverity(severity)),
       func_(ConvertFileAndLine(file, line)) {}
 
-void LogMessage::Print(const char* format, ...) {
-  va_list ap;
-  va_start(ap, format);
-  NSString *msg = [[NSString alloc] initWithFormat:@(format) arguments:ap];
+void LogMessage::Print(absl::string_view log) {
+  std::string std_msg = std::string(log);
+  NSString *msg = [NSString stringWithUTF8String:std_msg.c_str()];
   switch (severity_) {
     case kGTMLoggerLevelDebug:
       [[GTMLogger sharedLogger] logFuncDebug:func_.c_str() msg:@"%@", msg];
@@ -96,7 +95,6 @@ void LogMessage::Print(const char* format, ...) {
       // no-op
       break;
   }
-  va_end(ap);
 }
 
 std::ostream& LogMessage::Stream() { return log_streamer_.stream(); }

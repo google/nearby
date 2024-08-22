@@ -205,8 +205,8 @@ void BluetoothClassicMedium::DeviceRemoved(api::BluetoothDevice& device) {
 void BluetoothClassicMedium::DeviceAddressChanged(
     api::BluetoothDevice& device, absl::string_view old_address) {
   NEARBY_LOG(
-      VERBOSE, "BT DeviceAddressChanged; name=%p, address=%p, old_address=%p",
-      device.GetName().c_str(), device.GetMacAddress().c_str(), old_address);
+      VERBOSE, "BT DeviceAddressChanged; name=%s, address=%s, old_address=%s",
+      device.GetName(), device.GetMacAddress(), old_address);
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceAddressChanged(bt_device, old_address);

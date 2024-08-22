@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 
 #include "glog/logging.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/log_message.h"
 
 namespace nearby {
@@ -28,7 +29,7 @@ class LogMessage : public api::LogMessage {
   LogMessage(const char* file, int line, Severity severity);
   ~LogMessage() override;
 
-  void Print(const char* format, ...) override;
+  void Print(absl::string_view log) override;
 
   std::ostream& Stream() override;
 
