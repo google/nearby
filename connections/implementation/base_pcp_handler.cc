@@ -2183,8 +2183,15 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
 
   auto pair = pending_connections_.extract(it);
   BasePcpHandler::PendingConnectionInfo& connection_info = pair.mapped();
-  Medium medium =
-      channel_manager_->GetChannelForEndpoint(endpoint_id)->GetMedium();
+  std::shared_ptr<EndpointChannel> endpint_channel =
+      channel_manager_->GetChannelForEndpoint(endpoint_id);
+  if (endpint_channel == nullptr) {
+    NEARBY_LOGS(WARNING) << "No endpint channel for endpoint_id="
+                         << endpoint_id;
+    return;
+  }
+
+  Medium medium = endpint_channel->GetMedium();
 
   Status response_code;
   if (is_connection_accepted) {

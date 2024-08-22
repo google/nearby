@@ -26,7 +26,11 @@
 #include "connections/implementation/mock_device.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 
@@ -243,6 +247,7 @@ TEST_F(PcpManagerTest, InjectEndpoint) {
                                         .remote_bluetooth_mac_address =
                                             ByteArray(kFakeMacAddress),
                                     });
+  user_a.StopDiscovery();
   user_a.Stop();
   env_.Stop();
 }

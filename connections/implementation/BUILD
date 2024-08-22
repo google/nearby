@@ -239,6 +239,7 @@ cc_test(
         ":internal_test",
         "//connections:core_types",
         "//connections/v3:v3_types",
+        "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
