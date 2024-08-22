@@ -2038,15 +2038,6 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
     return;
   }
 
-  // We're scanning for other nearby devices. Don't advertise.
-  if (is_scanning_) {
-    StopAdvertising();
-    NL_VLOG(1)
-        << __func__
-        << ": Stopping advertising because we're scanning for other devices.";
-    return;
-  }
-
   if (is_transferring_) {
     StopAdvertising();
     NL_VLOG(1)
