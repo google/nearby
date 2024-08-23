@@ -30,20 +30,25 @@ class WrappedShareTargetDiscoveredCallback
  public:
   explicit WrappedShareTargetDiscoveredCallback(
       ShareTargetDiscoveredCallback* callback,
-      Advertisement::BlockedVendorId blocked_vendor_id)
-      : callback_(callback), blocked_vendor_id_(blocked_vendor_id) {}
+      Advertisement::BlockedVendorId blocked_vendor_id,
+      bool disable_wifi_hotspot)
+      : callback_(callback),
+        blocked_vendor_id_(blocked_vendor_id),
+        disable_wifi_hotspot_(disable_wifi_hotspot) {}
   void OnShareTargetDiscovered(const ShareTarget& target) override;
   void OnShareTargetUpdated(const ShareTarget& target) override;
   void OnShareTargetLost(const ShareTarget& target) override;
   const Advertisement::BlockedVendorId& BlockedVendorId() const {
     return blocked_vendor_id_;
   }
+  bool disable_wifi_hotspot() const { return disable_wifi_hotspot_; }
 
  private:
   bool ShouldBlockShareTarget(const ShareTarget& target) const;
 
   ShareTargetDiscoveredCallback* callback_;
   const Advertisement::BlockedVendorId blocked_vendor_id_;
+  const bool disable_wifi_hotspot_;
 };
 }  // namespace sharing
 }  // namespace nearby

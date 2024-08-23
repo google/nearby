@@ -477,6 +477,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     absl::Notification notification;
     service_->RegisterSendSurface(
         transfer_callback, discovery_callback, state, vendor_id,
+        /*disable_wifi_hotspot=*/false,
         [&](NearbySharingService::StatusCodes status_codes) {
           result = status_codes;
           notification.Notify();

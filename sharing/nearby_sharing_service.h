@@ -151,14 +151,20 @@ class NearbySharingService {
 
   // Registers a send surface for handling payload transfer status and device
   // discovery, with optional blocking on a specified vendor ID.
-  // |transfer_callback| is used as the main identity for the surface, so trying
+  // `transfer_callback` is used as the main identity for the surface, so trying
   // to re-register the same transfer callback with a different
-  // |discovery_callback| will result in an error delivered via the status
+  // `discovery_callback` will result in an error delivered via the status
   // callback.
+  // If `disable_wifi_hotspot` true, disables use of Wifi Hotspot for transfer
+  // if the device is currently already connected to Wifi.  This prevents
+  // interruption of connectivity on the device during transfers. If there are
+  // multiple ongoing requests, any requests with `disable_wifi_hotspot` set to
+  // true will disable use of Wifi Hotspot for the device.
   virtual void RegisterSendSurface(
       TransferUpdateCallback* transfer_callback,
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
       Advertisement::BlockedVendorId blocked_vendor_id,
+      bool disable_wifi_hotspot,
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
   // Unregisters the current send surface.

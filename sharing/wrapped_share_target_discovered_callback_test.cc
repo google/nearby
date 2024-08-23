@@ -47,7 +47,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksDiscoveryForSameVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/1);
   WrappedShareTargetDiscoveredCallback wrapped(&callback,
-                                               BlockedVendorId::kSamsung);
+                                               BlockedVendorId::kSamsung,
+                                               /*disable_wifi_hotspot=*/false);
   EXPECT_CALL(callback, OnShareTargetDiscovered(_)).Times(0);
   wrapped.OnShareTargetDiscovered(share_target);
 }
@@ -56,7 +57,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksUpdatedForSameVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/1);
   WrappedShareTargetDiscoveredCallback wrapped(&callback,
-                                               BlockedVendorId::kSamsung);
+                                               BlockedVendorId::kSamsung,
+                                               /*disable_wifi_hotspot=*/false);
   EXPECT_CALL(callback, OnShareTargetUpdated(_)).Times(0);
   wrapped.OnShareTargetUpdated(share_target);
 }
@@ -65,7 +67,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest, BlocksLostForSameVendorId) {
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/1);
   WrappedShareTargetDiscoveredCallback wrapped(&callback,
-                                               BlockedVendorId::kSamsung);
+                                               BlockedVendorId::kSamsung,
+                                               /*disable_wifi_hotspot=*/false);
   EXPECT_CALL(callback, OnShareTargetLost(_)).Times(0);
   wrapped.OnShareTargetLost(share_target);
 }
@@ -75,7 +78,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest,
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/0);
   WrappedShareTargetDiscoveredCallback wrapped(&callback,
-                                               BlockedVendorId::kSamsung);
+                                               BlockedVendorId::kSamsung,
+                                               /*disable_wifi_hotspot=*/false);
   EXPECT_CALL(callback, OnShareTargetLost(_));
   wrapped.OnShareTargetLost(share_target);
 }
@@ -85,7 +89,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest,
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/0);
   WrappedShareTargetDiscoveredCallback wrapped(&callback,
-                                               BlockedVendorId::kSamsung);
+                                               BlockedVendorId::kSamsung,
+                                               /*disable_wifi_hotspot=*/false);
   EXPECT_CALL(callback, OnShareTargetLost(_));
   wrapped.OnShareTargetLost(share_target);
 }
@@ -95,7 +100,8 @@ TEST(WrappedShareTargetDiscoveredCallbackTest,
   MockShareTargetDiscoveredCallback callback;
   ShareTarget share_target = GetShareTarget(/*vendor_id=*/0);
   WrappedShareTargetDiscoveredCallback wrapped(&callback,
-                                               BlockedVendorId::kSamsung);
+                                               BlockedVendorId::kSamsung,
+                                               /*disable_wifi_hotspot=*/false);
   EXPECT_CALL(callback, OnShareTargetLost(_));
   wrapped.OnShareTargetLost(share_target);
 }

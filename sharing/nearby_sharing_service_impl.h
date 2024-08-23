@@ -127,6 +127,7 @@ class NearbySharingServiceImpl
       TransferUpdateCallback* transfer_callback,
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
       Advertisement::BlockedVendorId blocked_vendor_id,
+      bool disable_wifi_hotspot,
       std::function<void(StatusCodes)> status_codes_callback) override;
   void UnregisterSendSurface(
       TransferUpdateCallback* transfer_callback,
@@ -252,6 +253,11 @@ class NearbySharingServiceImpl
   // always return one vendor ID, preferring a foreground surface vendor ID if
   // available.
   Advertisement::BlockedVendorId GetSendingVendorId() const;
+
+  // Returns true if any foreground send surfaces has requested to disable wifi
+  // hotspot.
+  bool GetDisableWifiHotspotState() const;
+
   bool IsVisibleInBackground(proto::DeviceVisibility visibility);
   std::optional<std::vector<uint8_t>> CreateEndpointInfo(
       proto::DeviceVisibility visibility,

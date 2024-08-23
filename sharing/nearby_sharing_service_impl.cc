@@ -404,16 +404,18 @@ void NearbySharingServiceImpl::RegisterSendSurface(
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
     std::function<void(StatusCodes)> status_codes_callback) {
   RegisterSendSurface(transfer_callback, discovery_callback, state,
-                      BlockedVendorId::kNone, std::move(status_codes_callback));
+                      BlockedVendorId::kNone, /*disable_wifi_hotspot=*/false,
+                      std::move(status_codes_callback));
 }
 void NearbySharingServiceImpl::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
-    BlockedVendorId blocked_vendor_id,
+    BlockedVendorId blocked_vendor_id, bool disable_wifi_hotspot,
     std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
       "api_register_send_surface",
       [this, transfer_callback, discovery_callback, state, blocked_vendor_id,
+       disable_wifi_hotspot,
        status_codes_callback = std::move(status_codes_callback)]() {
         if (state != SendSurfaceState::kForeground &&
             state != SendSurfaceState::kBackground) {
@@ -428,6 +430,9 @@ void NearbySharingServiceImpl::RegisterSendSurface(
                      << ": RegisterSendSurface is called with state: "
                      << (state == SendSurfaceState::kForeground ? "Foreground"
                                                                 : "Background")
+                     << ", blocked_vendor_id: "
+                     << static_cast<uint8_t>(blocked_vendor_id)
+                     << ", disable_wifi_hotspot: " << disable_wifi_hotspot
                      << ", transfer_callback: " << transfer_callback;
 
         if (foreground_send_surface_map_.contains(transfer_callback) ||
@@ -449,7 +454,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           return;
         }
         WrappedShareTargetDiscoveredCallback wrapped_callback(
-            discovery_callback, blocked_vendor_id);
+            discovery_callback, blocked_vendor_id, disable_wifi_hotspot);
 
         if (state == SendSurfaceState::kForeground) {
           // Only check this error case for foreground senders
@@ -1567,6 +1572,15 @@ BlockedVendorId NearbySharingServiceImpl::GetSendingVendorId() const {
   return BlockedVendorId::kNone;
 }
 
+bool NearbySharingServiceImpl::GetDisableWifiHotspotState() const {
+  for (const auto& it : foreground_send_surface_map_) {
+    if (it.second.disable_wifi_hotspot()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 absl::flat_hash_map<TransferUpdateCallback*, BlockedVendorId>&
 NearbySharingServiceImpl::GetReceiveCallbacksMapFromState(
     ReceiveSurfaceState state) {
@@ -2547,6 +2561,9 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   all_cancelled_share_target_ids_.clear();
 
   int64_t share_target_id = session.share_target().id;
+  // TODO(b/343281329): do not request wifi hotspot medium if
+  // disable_wifi_hotspot option has been requested and device is currently
+  // connected to Wifi.
   nearby_connections_manager_->Connect(
       std::move(endpoint_info), session.endpoint_id(),
       std::move(bluetooth_mac_address), settings_->GetDataUsage(),

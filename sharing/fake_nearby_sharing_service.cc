@@ -65,12 +65,14 @@ void FakeNearbySharingService::RegisterSendSurface(
     foreground_send_surface_map_.insert(
         {transfer_callback,
          WrappedShareTargetDiscoveredCallback(
-             discovery_callback, Advertisement::BlockedVendorId::kNone)});
+             discovery_callback, Advertisement::BlockedVendorId::kNone,
+             /*disable_wifi_hotspot=*/false)});
   } else {
     background_send_surface_map_.insert(
         {transfer_callback,
          WrappedShareTargetDiscoveredCallback(
-             discovery_callback, Advertisement::BlockedVendorId::kNone)});
+             discovery_callback, Advertisement::BlockedVendorId::kNone,
+             /*disable_wifi_hotspot=*/false)});
   }
 
   status_codes_callback(StatusCodes::kOk);
