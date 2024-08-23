@@ -47,6 +47,10 @@ class SharingPlatform {
  public:
   virtual ~SharingPlatform() = default;
 
+  // Provide a function ptr that is used to retrieve the Omaha product ID.
+  virtual void InitProductIdGetter(
+      absl::string_view (*product_id_getter)()) = 0;
+
   // This function should only be called once.
   virtual void InitLogging(absl::string_view log_file_base_name) = 0;
 
