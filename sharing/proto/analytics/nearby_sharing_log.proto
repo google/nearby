@@ -249,6 +249,11 @@ message SharingLog {
     // Exact transfer count stored on device, but when logging put the transfer
     // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
     optional int32 lifetime_transfer_count = 10;
+    // Upload Contact data according to Device consent or Quick Share consent.
+    optional location.nearby.proto.sharing.ContactAccess contact_access = 11;
+    // Phone number verification.
+    optional location.nearby.proto.sharing.IdentityVerification
+        identity_verification = 12;
   }
 
   // Used only for Nearby Share Windows app now. Here is the screenshot about
