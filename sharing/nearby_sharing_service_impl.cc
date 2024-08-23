@@ -2473,7 +2473,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
       nearby_connections_manager_->GetRawAuthenticationToken(
           session.endpoint_id());
   if (!token.has_value()) {
-    session.Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session.Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
     return;
   }
   session.RunPairedKeyVerification(
@@ -2601,7 +2601,7 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
     NL_LOG(WARNING) << __func__
                     << ": Failed to parse incoming connection from endpoint - "
                     << endpoint_id << ", disconnecting.";
-    session.Abort(TransferMetadata::Status::kDecodeAdvertisementFailed);
+    session.Abort(TransferMetadata::Status::kFailed);
     return;
   }
 
@@ -2724,8 +2724,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
         session.os_type());
     is_connecting_ = false;
     OnTransferComplete();
-  } else if (metadata.status() == TransferMetadata::Status::kMediaDownloading ||
-             metadata.status() ==
+  } else if (metadata.status() ==
                  TransferMetadata::Status::kAwaitingLocalConfirmation) {
     is_connecting_ = false;
     OnTransferStarted(/*is_incoming=*/false);
@@ -2804,7 +2803,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
     NL_LOG(WARNING) << __func__
                     << ": Failed to convert advertisement to share target for "
                        "incoming connection, disconnecting";
-    it->second.Abort(TransferMetadata::Status::kMissingShareTarget);
+    it->second.Abort(TransferMetadata::Status::kFailed);
     return;
   }
   // Remove placeholder share target since we are creating the actual share
@@ -2830,7 +2829,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           session.endpoint_id());
 
   if (!token.has_value()) {
-    session.Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session.Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
     return;
   }
   session.RunPairedKeyVerification(
@@ -2859,7 +2858,7 @@ void NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone(
           result, share_target_os_type,
           absl::bind_front(&NearbySharingServiceImpl::OnReceivedIntroduction,
                            this, share_target_id))) {
-    session->Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session->Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
   }
 }
 
@@ -2873,7 +2872,7 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
   }
 
   if (!session->ProcessKeyVerificationResult(result, share_target_os_type)) {
-    session->Abort(TransferMetadata::Status::kPairedKeyVerificationFailed);
+    session->Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
     return;
   }
 
@@ -2892,7 +2891,7 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
       })) {
     NL_LOG(WARNING) << __func__
                     << ": No payloads tied to transfer, disconnecting.";
-    session->Abort(TransferMetadata::Status::kMissingPayloads);
+    session->Abort(TransferMetadata::Status::kMediaUnavailable);
     return;
   }
   // Auto Accept if key verification is successful or skip sender confirmation.
@@ -2921,7 +2920,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   }
 
   if (!frame.has_value()) {
-    session->Abort(TransferMetadata::Status::kInvalidIntroductionFrame);
+    session->Abort(TransferMetadata::Status::kFailed);
     NL_LOG(WARNING) << __func__ << ": Invalid introduction frame";
     return;
   }

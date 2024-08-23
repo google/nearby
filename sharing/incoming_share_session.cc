@@ -79,8 +79,7 @@ void IncomingShareSession::InvokeTransferUpdateCallback(
 }
 
 bool IncomingShareSession::OnNewConnection(NearbyConnection* connection) {
-  set_disconnect_status(
-      TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed);
+  set_disconnect_status(TransferMetadata::Status::kFailed);
   return true;
 }
 
@@ -190,8 +189,7 @@ bool IncomingShareSession::ReadyForTransfer(
     return false;
   }
   ready_for_accept_ = true;
-  set_disconnect_status(
-      TransferMetadata::Status::kUnexpectedDisconnection);
+  set_disconnect_status(TransferMetadata::Status::kFailed);
 
   mutual_acceptance_timeout_ = std::make_unique<ThreadTimer>(
       service_thread(), "incoming_mutual_acceptance_timeout",

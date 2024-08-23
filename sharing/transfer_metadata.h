@@ -33,7 +33,6 @@ class TransferMetadata {
     kConnecting,
     kAwaitingLocalConfirmation,
     kAwaitingRemoteAcceptance,
-    kAwaitingRemoteAcceptanceFailed,
     kInProgress,
     kComplete,
     kFailed,
@@ -41,22 +40,11 @@ class TransferMetadata {
     kCancelled,
     kTimedOut,
     kMediaUnavailable,
-    kMediaDownloading,
     kNotEnoughSpace,
     kUnsupportedAttachmentType,
-    kExternalProviderLaunched,
-    kDecodeAdvertisementFailed,
-    kMissingShareTarget,
-    kMissingEndpointId,
-    kMissingPayloads,
-    kPairedKeyVerificationFailed,
-    kInvalidIntroductionFrame,
+    kDeviceAuthenticationFailed,
     kIncompletePayloads,
-    kFailedToCreateShareTarget,
-    kFailedToInitiateOutgoingConnection,
-    kFailedToReadOutgoingConnectionResponse,
-    kUnexpectedDisconnection,
-    kMaxValue = kUnexpectedDisconnection
+    kMaxValue = kIncompletePayloads
   };
 
   static bool IsFinalStatus(Status status);

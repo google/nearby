@@ -435,9 +435,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseEmptyResponse) {
       session_.HandleConnectionResponse(std::nullopt);
 
   ASSERT_THAT(status.has_value(), IsTrue());
-  EXPECT_THAT(
-      status.value(),
-      Eq(TransferMetadata::Status::kFailedToReadOutgoingConnectionResponse));
+  EXPECT_THAT(status.value(), Eq(TransferMetadata::Status::kFailed));
 }
 
 TEST_F(OutgoingShareSessionTest, HandleConnectionResponseRejectResponse) {

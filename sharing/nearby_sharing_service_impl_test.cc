@@ -2347,8 +2347,7 @@ TEST_F(NearbySharingServiceImplTest,
                                    const AttachmentContainer& container,
                                    TransferMetadata metadata) {
         EXPECT_TRUE(metadata.is_final_status());
-        EXPECT_EQ(TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed,
-                  metadata.status());
+        EXPECT_EQ(TransferMetadata::Status::kFailed, metadata.status());
       }));
 
   SetUpForegroundReceiveSurface(callback);
@@ -2499,8 +2498,7 @@ TEST_F(NearbySharingServiceImplTest,
                                    const AttachmentContainer& container,
                                    TransferMetadata metadata) {
         EXPECT_TRUE(metadata.is_final_status());
-        EXPECT_EQ(metadata.status(),
-                  TransferMetadata::Status::kUnexpectedDisconnection);
+        EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
       }));
 
   sharing_service_task_runner_->PostTask([this]() { connection_->Close(); });
@@ -3066,7 +3064,7 @@ TEST_F(NearbySharingServiceImplTest,
               OnTransferUpdate(
                   testing::_, testing::_,
                   nearby::sharing::HasStatus(
-                      TransferMetadata::Status::kPairedKeyVerificationFailed)));
+                      TransferMetadata::Status::kDeviceAuthenticationFailed)));
 
   service_->OnIncomingConnection(kEndpointId, CreateTestEndpointInfo(),
                                  connection_.get());
@@ -3240,7 +3238,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedToConnect) {
   ExpectTransferUpdates(
       transfer_callback, target_id,
       {TransferMetadata::Status::kConnecting,
-       TransferMetadata::Status::kFailedToInitiateOutgoingConnection},
+       TransferMetadata::Status::kFailed},
       [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
@@ -3261,7 +3259,7 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedKeyVerification) {
   ExpectTransferUpdates(
       transfer_callback, target_id,
       {TransferMetadata::Status::kConnecting,
-       TransferMetadata::Status::kPairedKeyVerificationFailed},
+       TransferMetadata::Status::kDeviceAuthenticationFailed},
       [&]() { notification.Notify(); });
 
   SetUpKeyVerification(/*is_incoming=*/false, PairedKeyResultFrame::FAIL);

@@ -168,31 +168,16 @@ AttachmentTransmissionStatus ConvertToTransmissionStatus(
     case TransferMetadata::Status::kFailed:
       return AttachmentTransmissionStatus::
           FAILED_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kAwaitingRemoteAcceptanceFailed:
-      return AttachmentTransmissionStatus::
-          AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT;
-    case TransferMetadata::Status::kFailedToInitiateOutgoingConnection:
-      return AttachmentTransmissionStatus::FAILED_NULL_CONNECTION_INIT_OUTGOING;
-    case TransferMetadata::Status::kFailedToReadOutgoingConnectionResponse:
-      return AttachmentTransmissionStatus::FAILED_UNKNOWN_REMOTE_RESPONSE;
     case TransferMetadata::Status::kIncompletePayloads:
       return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
-    case TransferMetadata::Status::kInvalidIntroductionFrame:
-      return AttachmentTransmissionStatus::FAILED_WRITE_INTRODUCTION;
     case TransferMetadata::Status::kMediaUnavailable:
       return AttachmentTransmissionStatus::MEDIA_UNAVAILABLE_ATTACHMENT;
-    case TransferMetadata::Status::kMissingEndpointId:
-      return AttachmentTransmissionStatus::FAILED_NO_SHARE_TARGET_ENDPOINT;
-    case TransferMetadata::Status::kMissingPayloads:
-      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
-    case TransferMetadata::Status::kPairedKeyVerificationFailed:
+    case TransferMetadata::Status::kDeviceAuthenticationFailed:
       return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
     case TransferMetadata::Status::kRejected:
       return AttachmentTransmissionStatus::REJECTED_ATTACHMENT;
     case TransferMetadata::Status::kTimedOut:
       return AttachmentTransmissionStatus::TIMED_OUT_ATTACHMENT;
-    case TransferMetadata::Status::kUnexpectedDisconnection:
-      return AttachmentTransmissionStatus::FAILED_NULL_CONNECTION_DISCONNECTED;
     case TransferMetadata::Status::kUnsupportedAttachmentType:
       return AttachmentTransmissionStatus::
           UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT;

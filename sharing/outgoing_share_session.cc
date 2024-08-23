@@ -88,12 +88,11 @@ bool OutgoingShareSession::OnNewConnection(NearbyConnection* connection) {
       set_disconnect_status(TransferMetadata::Status::kTimedOut);
       connection_layer_status_ = Status::kUnknown;
     } else {
-      set_disconnect_status(
-          TransferMetadata::Status::kFailedToInitiateOutgoingConnection);
+      set_disconnect_status(TransferMetadata::Status::kFailed);
     }
     return false;
   }
-  set_disconnect_status(TransferMetadata::Status::kUnexpectedDisconnection);
+  set_disconnect_status(TransferMetadata::Status::kFailed);
   return true;
 }
 
@@ -362,7 +361,7 @@ OutgoingShareSession::HandleConnectionResponse(
     NL_LOG(WARNING)
         << __func__
         << ": Failed to read a response from the remote device. Disconnecting.";
-    return TransferMetadata::Status::kFailedToReadOutgoingConnectionResponse;
+    return TransferMetadata::Status::kFailed;
   }
 
   NL_VLOG(1) << __func__
