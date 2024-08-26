@@ -73,7 +73,7 @@ Core::~Core() {
   CountDownLatch latch(1);
   router_->StopAllEndpoints(&client_, [&latch](Status) { latch.CountDown(); });
   if (!latch.Await(kWaitForDisconnect).result()) {
-    NEARBY_LOG(FATAL, "Unable to shutdown");
+    NEARBY_LOGS(FATAL) << "Unable to shutdown";
   }
 }
 
@@ -132,14 +132,13 @@ void Core::RequestConnection(absl::string_view endpoint_id,
       connection_options.keep_alive_timeout_millis == 0 ||
       connection_options.keep_alive_interval_millis >=
           connection_options.keep_alive_timeout_millis) {
-    NEARBY_LOG(
-        WARNING,
-        "Client request connection with keep-alive frame as interval=%d, "
-        "timeout=%d, which is un-expected. Change to default.",
-        connection_options.keep_alive_interval_millis,
-        connection_options.keep_alive_timeout_millis);
-    connection_options.keep_alive_interval_millis =
-        FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
+    NEARBY_LOGS(WARNING)
+        << "Client request connection with keep-alive frame as interval="
+        << connection_options.keep_alive_interval_millis
+        << ", timeout=" << connection_options.keep_alive_timeout_millis
+        << ", which is un-expected. Change to default.",
+        connection_options.keep_alive_interval_millis =
+            FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
     connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
@@ -393,12 +392,11 @@ void Core::RequestConnectionV3(const NearbyDevice& local_device,
       connection_options.keep_alive_timeout_millis == 0 ||
       connection_options.keep_alive_interval_millis >=
           connection_options.keep_alive_timeout_millis) {
-    NEARBY_LOG(
-        WARNING,
-        "Client request connection with keep-alive frame as interval=%d, "
-        "timeout=%d, which is un-expected. Change to default.",
-        connection_options.keep_alive_interval_millis,
-        connection_options.keep_alive_timeout_millis);
+    NEARBY_LOGS(WARNING)
+        << "Client request connection with keep-alive frame as interval="
+        << connection_options.keep_alive_interval_millis
+        << ", timeout=" << connection_options.keep_alive_timeout_millis
+        << ", which is un-expected. Change to default.";
     connection_options.keep_alive_interval_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
     connection_options.keep_alive_timeout_millis =
@@ -427,12 +425,11 @@ void Core::RequestConnectionV3(const NearbyDevice& remote_device,
       connection_options.keep_alive_timeout_millis == 0 ||
       connection_options.keep_alive_interval_millis >=
           connection_options.keep_alive_timeout_millis) {
-    NEARBY_LOG(
-        WARNING,
-        "Client request connection with keep-alive frame as interval=%d, "
-        "timeout=%d, which is un-expected. Change to default.",
-        connection_options.keep_alive_interval_millis,
-        connection_options.keep_alive_timeout_millis);
+    NEARBY_LOGS(WARNING)
+        << "Client request connection with keep-alive frame as interval="
+        << connection_options.keep_alive_interval_millis
+        << ", timeout=" << connection_options.keep_alive_timeout_millis
+        << ", which is un-expected. Change to default.";
     connection_options.keep_alive_interval_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis;
     connection_options.keep_alive_timeout_millis =

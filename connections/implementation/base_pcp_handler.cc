@@ -1424,7 +1424,7 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
   RunOnPcpHandlerThread(
       "reject-connection",
       [this, client, endpoint_id, &response]() RUN_ON_PCP_HANDLER_THREAD() {
-        NEARBY_LOG(INFO, "RejectConnection: id=%s", endpoint_id.c_str());
+        NEARBY_LOGS(INFO) << "RejectConnection: id=" << endpoint_id;
         if (!pending_connections_.count(endpoint_id)) {
           NEARBY_LOGS(INFO)
               << "RejectConnection: no pending connection for endpoint_id="
@@ -2369,9 +2369,8 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
                 connection_info.channel->GetFrequency(),
                 connection_info.channel->GetTryCount());
   } else {
-    NEARBY_LOG(ERROR,
-               "PendingConnectionInfo channel is null for "
-               "LogConnectionAttemptSuccess. Bail out.");
+    NEARBY_LOGS(ERROR) << "PendingConnectionInfo channel is null for "
+                          "LogConnectionAttemptSuccess. Bail out.";
     return;
   }
 
@@ -2412,7 +2411,7 @@ void BasePcpHandler::PendingConnectionInfo::SetCryptoContext(
 BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
   auto future_status = result.lock();
   if (future_status && !future_status->IsSet()) {
-    NEARBY_LOG(INFO, "Future was not set; destroying info");
+    NEARBY_LOGS(INFO) << "Future was not set; destroying info";
     future_status->Set({Status::kError});
   }
 

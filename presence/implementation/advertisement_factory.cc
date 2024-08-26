@@ -63,8 +63,8 @@ absl::Status AppendDataElement(unsigned data_type,
                                std::string& output) {
   auto header = CreateDataElementHeader(data_element.size(), data_type);
   if (!header.ok()) {
-    NEARBY_LOG(WARNING, "Can't add Data element type: %d, length: %d",
-               data_type, data_element.size());
+    NEARBY_LOGS(WARNING) << "Can't add Data element type: " << data_type
+                         << ", length: " << data_element.size();
     return header.status();
   }
   output.push_back(*header);

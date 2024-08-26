@@ -37,10 +37,10 @@ const absl::Duration kDataTransferDelay = absl::Milliseconds(500);
 }
 
 EndpointChannelManager::~EndpointChannelManager() {
-  NEARBY_LOG(INFO, "Initiating shutdown of EndpointChannelManager.");
+  NEARBY_LOGS(INFO) << "Initiating shutdown of EndpointChannelManager.";
   MutexLock lock(&mutex_);
   channel_state_.DestroyAll();
-  NEARBY_LOG(INFO, "EndpointChannelManager has shut down.");
+  NEARBY_LOGS(INFO) << "EndpointChannelManager has shut down.";
 }
 
 void EndpointChannelManager::RegisterChannelForEndpoint(
@@ -53,7 +53,7 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
   SetActiveEndpointChannel(client, endpoint_id, std::move(channel),
                            true /* enable_encryption */);
 
-  NEARBY_LOG(INFO, "Registered channel: id=%s", endpoint_id.c_str());
+  NEARBY_LOGS(INFO) << "Registered channel: id=" << endpoint_id;
 }
 
 void EndpointChannelManager::ReplaceChannelForEndpoint(

@@ -68,29 +68,28 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   if (!txt_endpoint_info_name.empty()) {
     endpoint_info_ = Base64Utils::Decode(txt_endpoint_info_name);
     if (endpoint_info_.size() > kMaxEndpointInfoLength) {
-      NEARBY_LOG(INFO,
-                 "Cannot deserialize EndpointInfo: expecting endpoint info "
-                 "max %d raw bytes, got %" PRIu64,
-                 kMaxEndpointInfoLength, endpoint_info_.size());
+      NEARBY_LOGS(INFO)
+          << "Cannot deserialize EndpointInfo: expecting endpoint info max "
+          << kMaxEndpointInfoLength << " raw bytes, got "
+          << endpoint_info_.size();
       return;
     }
   }
 
-  auto service_info_name = nsd_service_info.GetServiceName();
+  std::string service_info_name = nsd_service_info.GetServiceName();
   ByteArray service_info_bytes = Base64Utils::Decode(service_info_name);
   if (service_info_bytes.Empty()) {
-    NEARBY_LOG(
-        INFO,
-        "Cannot deserialize WifiLanServiceInfo: failed Base64 decoding of %s",
-        std::string(service_info_name).c_str());
+    NEARBY_LOGS(INFO)
+        << "Cannot deserialize WifiLanServiceInfo: failed Base64 decoding of "
+        << service_info_name;
     return;
   }
 
   if (service_info_bytes.size() < kMinLanServiceNameLength) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize WifiLanServiceInfo: expecting min %d raw "
-               "bytes, got %" PRIu64,
-               kMinLanServiceNameLength, service_info_bytes.size());
+    NEARBY_LOGS(INFO) << "Cannot deserialize WifiLanServiceInfo: expecting min "
+                      << kMinLanServiceNameLength
+                      << " raw bytes, got "
+                      << service_info_bytes.size();
     return;
   }
 
@@ -101,9 +100,9 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   version_ =
       static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV1) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize WifiLanServiceInfo: unsupported Version %d",
-               version_);
+    NEARBY_LOGS(INFO)
+        << "Cannot deserialize WifiLanServiceInfo: unsupported Version "
+        << static_cast<int>(version_);
     return;
   }
   // The lower 5 bits are supposed to be the Pcp.
@@ -114,9 +113,9 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
     case Pcp::kP2pPointToPoint:
       break;
     default:
-      NEARBY_LOG(INFO,
-                 "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP %d",
-                 pcp_);
+      NEARBY_LOGS(INFO)
+          << "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP "
+          << static_cast<int>(pcp_);
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
@@ -135,10 +134,10 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
       uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
       if (uwb_address_.Empty() ||
           uwb_address_.size() != expected_uwb_address_length) {
-        NEARBY_LOG(INFO,
-                   "Cannot deserialize WifiLanServiceInfo: expected "
-                   "uwbAddress size to be %d bytes, got %" PRIu64,
-                   expected_uwb_address_length, uwb_address_.size());
+        NEARBY_LOGS(INFO) << "Cannot deserialize WifiLanServiceInfo: expected "
+                             "uwbAddress size to be "
+                          << expected_uwb_address_length << " bytes, got "
+                          << uwb_address_.size();
         // Clear enpoint_id for validity.
         endpoint_id_.clear();
         return;

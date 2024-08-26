@@ -64,8 +64,8 @@ bool BleServerSocket::Connect(BleSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    NEARBY_LOG(ERROR,
-               "Failed to connect to Ble server socket: already connected");
+    NEARBY_LOGS(ERROR)
+        << "Failed to connect to Ble server socket: already connected";
     return true;  // already connected.
   }
   // add client socket to the pending list
@@ -126,8 +126,8 @@ BleMedium::~BleMedium() {
   StopScanning(scanning_info_.service_id);
 
   accept_loops_runner_.Shutdown();
-  NEARBY_LOG(INFO, "BleMedium dtor advertising_accept_thread_running_ = %d",
-             acceptance_thread_running_.load());
+  NEARBY_LOGS(INFO) << "BleMedium dtor advertising_accept_thread_running_ = "
+                    << acceptance_thread_running_.load();
   // If acceptance thread is still running, wait to finish.
   if (acceptance_thread_running_) {
     while (acceptance_thread_running_) {

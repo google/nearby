@@ -329,9 +329,9 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   ON_CALL(*endpoint_channel, Read(_))
       .WillByDefault([channel = endpoint_channel.get()]() {
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
-        NEARBY_LOG(INFO, "Simulate read delay: wait");
+        NEARBY_LOGS(INFO) << "Simulate read delay: wait";
         absl::SleepFor(absl::Milliseconds(100));
-        NEARBY_LOG(INFO, "Simulate read delay: done");
+        NEARBY_LOGS(INFO) << "Simulate read delay: done";
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
         return ExceptionOr<ByteArray>(ByteArray{});
       });
@@ -339,7 +339,7 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
       .WillByDefault(
           [channel = endpoint_channel.get()](DisconnectionReason reason) {
             channel->DoClose();
-            NEARBY_LOG(INFO, "Channel closed");
+            NEARBY_LOGS(INFO) << "Channel closed";
           });
   EXPECT_CALL(*endpoint_channel, Write(_, _))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));

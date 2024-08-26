@@ -63,8 +63,8 @@ class CreateSessionDescriptionObserverImpl
   }
 
   void OnFailure(webrtc::RTCError error) override {
-    NEARBY_LOG(ERROR, "Error when creating session description: %s",
-               error.message());
+    NEARBY_LOGS(ERROR) << "Error when creating session description: "
+                       << error.message();
     settable_future_.SetException({Exception::kFailed});
   }
 
@@ -136,10 +136,10 @@ ConnectionFlow::ConnectionFlow(
       local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
 
 ConnectionFlow::~ConnectionFlow() {
-  NEARBY_LOG(INFO, "~ConnectionFlow");
+  NEARBY_LOGS(INFO) << "~ConnectionFlow";
   RunOnSignalingThread([this] { CloseOnSignalingThread(); });
   shutdown_latch_.Await();
-  NEARBY_LOG(INFO, "~ConnectionFlow done");
+  NEARBY_LOGS(INFO) << "~ConnectionFlow done";
 }
 
 SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
@@ -148,14 +148,14 @@ SessionDescriptionWrapper ConnectionFlow::CreateOffer() {
   if (!RunOnSignalingThread([this, success_future] {
         CreateOfferOnSignalingThread(success_future);
       })) {
-    NEARBY_LOG(ERROR, "Failed to create offer");
+    NEARBY_LOGS(ERROR) << "Failed to create offer";
     return SessionDescriptionWrapper();
   }
   ExceptionOr<SessionDescriptionWrapper> result = success_future.Get(kTimeout);
   if (result.ok()) {
     return std::move(result.result());
   }
-  NEARBY_LOG(ERROR, "Failed to create offer: %d", result.exception());
+  NEARBY_LOGS(ERROR) << "Failed to create offer: " << result.exception();
   return SessionDescriptionWrapper();
 }
 
@@ -190,14 +190,14 @@ SessionDescriptionWrapper ConnectionFlow::CreateAnswer() {
   if (!RunOnSignalingThread([this, success_future] {
         CreateAnswerOnSignalingThread(success_future);
       })) {
-    NEARBY_LOG(ERROR, "Failed to create answer");
+    NEARBY_LOGS(ERROR) << "Failed to create answer";
     return SessionDescriptionWrapper();
   }
   ExceptionOr<SessionDescriptionWrapper> result = success_future.Get(kTimeout);
   if (result.ok()) {
     return std::move(result.result());
   }
-  NEARBY_LOG(ERROR, "Failed to create answer: %d", result.exception());
+  NEARBY_LOGS(ERROR) << "Failed to create answer: " << result.exception();
   return SessionDescriptionWrapper();
 }
 
@@ -241,8 +241,8 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   ExceptionOr<bool> result = observer->GetResult(kTimeout);
   bool success = result.ok() && result.result();
   if (!success) {
-    NEARBY_LOG(ERROR, "Failed to set local session description: %d",
-               result.exception());
+    NEARBY_LOGS(ERROR) << "Failed to set local session description: "
+                       << result.exception();
   }
   return success;
 }
@@ -274,8 +274,8 @@ bool ConnectionFlow::SetRemoteSessionDescription(SessionDescriptionWrapper sdp,
   ExceptionOr<bool> result = observer->GetResult(kTimeout);
   bool success = result.ok() && result.result();
   if (!success) {
-    NEARBY_LOG(ERROR, "Failed to set remote description: %d",
-               result.exception());
+    NEARBY_LOGS(ERROR) << "Failed to set remote description: "
+                       << result.exception();
   }
   return success;
 }
@@ -320,8 +320,8 @@ void ConnectionFlow::AddIceCandidatesOnSignalingThread(
         ice_candidates) {
   CHECK(IsRunningOnSignalingThread());
   if (state_ == State::kEnded) {
-    NEARBY_LOG(WARNING,
-               "You cannot add ice candidates to a disconnected session.");
+    NEARBY_LOGS(WARNING)
+        << "You cannot add ice candidates to a disconnected session.";
     return;
   }
   if (state_ != State::kWaitingToConnect && state_ != State::kConnected) {
@@ -334,7 +334,7 @@ void ConnectionFlow::AddIceCandidatesOnSignalingThread(
   auto pc = GetPeerConnection();
   for (auto&& ice_candidate : ice_candidates) {
     if (!pc->AddIceCandidate(ice_candidate.get())) {
-      NEARBY_LOG(WARNING, "Unable to add remote ice candidate.");
+      NEARBY_LOGS(WARNING) << "Unable to add remote ice candidate.";
     }
   }
 }
@@ -387,8 +387,8 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
   bool success = result.ok() && result.result();
   if (!success) {
     shutdown_latch_.CountDown();
-    NEARBY_LOG(ERROR, "Failed to create peer connection: %d",
-               result.exception());
+    NEARBY_LOGS(ERROR) << "Failed to create peer connection: "
+                       << result.exception();
   }
   return success;
 }
@@ -398,7 +398,7 @@ void ConnectionFlow::OnSignalingStable() {
   auto pc = GetPeerConnection();
   for (auto&& ice_candidate : cached_remote_ice_candidates_) {
     if (!pc->AddIceCandidate(ice_candidate.get())) {
-      NEARBY_LOG(WARNING, "Unable to add remote ice candidate.");
+      NEARBY_LOGS(WARNING) << "Unable to add remote ice candidate.";
     }
   }
   cached_remote_ice_candidates_.clear();
@@ -406,16 +406,15 @@ void ConnectionFlow::OnSignalingStable() {
 
 void ConnectionFlow::CreateSocketFromDataChannel(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-  NEARBY_LOG(INFO, "Creating data channel socket");
+  NEARBY_LOGS(INFO) << "Creating data channel socket";
   auto socket =
       std::make_unique<WebRtcSocket>("WebRtcSocket", std::move(data_channel));
   socket->SetSocketListener({
       .socket_ready_cb = {[this](WebRtcSocket* socket) {
         CHECK(IsRunningOnSignalingThread());
         if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
-          NEARBY_LOG(ERROR,
-                     "Data channel socket is open but connection flow was not "
-                     "in the required state");
+          NEARBY_LOGS(ERROR) << "Data channel socket is open but connection "
+                                "flow was not in the required state";
           socket->Close();
           return;
         }
@@ -438,7 +437,7 @@ void ConnectionFlow::OnIceCandidate(
 
 void ConnectionFlow::OnSignalingChange(
     webrtc::PeerConnectionInterface::SignalingState new_state) {
-  NEARBY_LOG(INFO, "OnSignalingChange: %d", new_state);
+  NEARBY_LOGS(INFO) << "OnSignalingChange: " << new_state;
   CHECK(IsRunningOnSignalingThread());
   if (new_state == webrtc::PeerConnectionInterface::SignalingState::kStable) {
     OnSignalingStable();
@@ -447,45 +446,46 @@ void ConnectionFlow::OnSignalingChange(
 
 void ConnectionFlow::OnDataChannel(
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
-  NEARBY_LOG(INFO, "OnDataChannel");
+  NEARBY_LOGS(INFO) << "OnDataChannel";
   CHECK(IsRunningOnSignalingThread());
   CreateSocketFromDataChannel(std::move(data_channel));
 }
 
 void ConnectionFlow::OnIceGatheringChange(
     webrtc::PeerConnectionInterface::IceGatheringState new_state) {
-  NEARBY_LOG(INFO, "OnIceGatheringChange: %d", new_state);
+  NEARBY_LOGS(INFO) << "OnIceGatheringChange: " << new_state;
   CHECK(IsRunningOnSignalingThread());
 }
 
 void ConnectionFlow::OnConnectionChange(
     webrtc::PeerConnectionInterface::PeerConnectionState new_state) {
-  NEARBY_LOG(INFO, "OnConnectionChange: %d", new_state);
+  NEARBY_LOGS(INFO) << "OnConnectionChange: " << static_cast<int>(new_state);
   CHECK(IsRunningOnSignalingThread());
   if (new_state == PeerConnectionState::kClosed ||
       new_state == PeerConnectionState::kFailed ||
       new_state == PeerConnectionState::kDisconnected) {
-    NEARBY_LOG(INFO, "Closing due to peer connection state change: %d",
-               new_state);
+    NEARBY_LOGS(INFO) << "Closing due to peer connection state change: "
+                      << static_cast<int>(new_state);
     CloseOnSignalingThread();
   }
 }
 
 void ConnectionFlow::OnRenegotiationNeeded() {
-  NEARBY_LOG(INFO, "OnRenegotiationNeeded");
+  NEARBY_LOGS(INFO) << "OnRenegotiationNeeded";
   CHECK(IsRunningOnSignalingThread());
 }
 
 bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   CHECK(IsRunningOnSignalingThread());
   if (current_state != state_) {
-    NEARBY_LOG(
-        WARNING,
-        "Invalid state transition to %d: current state is %d but expected %d.",
-        new_state, state_, current_state);
+    NEARBY_LOGS(WARNING) << "Invalid state transition to "
+                         << static_cast<int>(new_state) << ": current state is "
+                         << static_cast<int>(state_) << " but expected "
+                         << static_cast<int>(current_state);
     return false;
   }
-  NEARBY_LOG(INFO, "Transition: %d -> %d", state_, new_state);
+  NEARBY_LOGS(INFO) << "Transition: " << static_cast<int>(state_) << "->"
+                    << static_cast<int>(new_state);
   state_ = new_state;
   return true;
 }
@@ -504,11 +504,11 @@ bool ConnectionFlow::CloseOnSignalingThread() {
   // object.
   auto pc = GetAndResetPeerConnection();
 
-  NEARBY_LOG(INFO, "Closing WebRTC peer connection.");
+  NEARBY_LOGS(INFO) << "Closing WebRTC peer connection.";
   // NOTE: Closing the peer connection will close the data channel and thus the
   // socket implicitly.
   if (pc) pc->Close();
-  NEARBY_LOG(INFO, "Closed WebRTC peer connection.");
+  NEARBY_LOGS(INFO) << "Closed WebRTC peer connection.";
   // Prevent any already queued tasks from running on the signaling thread
   can_run_tasks_.reset();
   // If anyone was waiting for shutdown to be done let them know.
@@ -520,8 +520,8 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
   CHECK(!IsRunningOnSignalingThread());
   auto pc = GetPeerConnection();
   if (!pc) {
-    NEARBY_LOG(WARNING,
-               "Peer connection not available. Cannot schedule tasks.");
+    NEARBY_LOGS(WARNING)
+        << "Peer connection not available. Cannot schedule tasks.";
     return false;
   }
   // We are off signaling thread, so we can't use peer connection's methods
@@ -534,7 +534,8 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
         // (signaling thread). This guarantees that if the weak_ptr is valid
         // when this task starts, it will stay valid until the task ends.
         if (!can_run_tasks.lock()) {
-          NEARBY_LOG(INFO, "Peer connection already closed. Cannot run tasks.");
+          NEARBY_LOGS(INFO)
+              << "Peer connection already closed. Cannot run tasks.";
           return;
         }
         task();

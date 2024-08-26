@@ -21,6 +21,7 @@
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/platform/logging.h"
 
 // Manages the Bluetooth-specific methods needed to upgrade an {@link
 // EndpointChannel}.
@@ -44,7 +45,8 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
       upgrade_path_info.bluetooth_credentials();
   if (!bluetooth_credentials.has_service_name() ||
       !bluetooth_credentials.has_mac_address()) {
-    NEARBY_LOG(ERROR, "BluetoothBwuHandler failed to parse UpgradePathInfo.");
+    NEARBY_LOGS(ERROR)
+        << "BluetoothBwuHandler failed to parse UpgradePathInfo.";
     return nullptr;
   }
 
@@ -135,8 +137,8 @@ ByteArray BluetoothBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 void BluetoothBwuHandler::HandleRevertInitiatorStateForService(
     const std::string& upgrade_service_id) {
   bluetooth_medium_.StopAcceptingConnections(upgrade_service_id);
-  NEARBY_LOG(INFO,
-             "BluetoothBwuHandler successfully reverted all Bluetooth state.");
+  NEARBY_LOGS(INFO)
+      << "BluetoothBwuHandler successfully reverted all Bluetooth state.";
 }
 
 // Accept Connection Callback.

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "absl/strings/str_cat.h"
 #ifndef NO_WEBRTC
 
 #include "connections/implementation/webrtc_bwu_handler.h"
@@ -26,6 +27,7 @@
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
@@ -60,35 +62,33 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
   if (web_rtc_credentials.has_location_hint()) {
     location_hint = web_rtc_credentials.location_hint();
   }
-  NEARBY_LOG(INFO,
-             "WebRtcBwuHandler is attempting to connect to remote peer %s, "
-             "location hint %s",
-             peer_id.GetId().c_str(), location_hint.DebugString().c_str());
+  NEARBY_LOGS(INFO)
+      << "WebRtcBwuHandler is attempting to connect to remote peer "
+      << peer_id.GetId() << ", location hint " << absl::StrCat(location_hint);
 
   mediums::WebRtcSocketWrapper socket =
       webrtc_.Connect(service_id, peer_id, location_hint,
                       client->GetCancellationFlag(endpoint_id));
   if (!socket.IsValid()) {
-    NEARBY_LOG(ERROR,
-               "WebRtcBwuHandler failed to connect to remote peer (%s) on "
-               "endpoint %s, aborting upgrade.",
-               peer_id.GetId().c_str(), endpoint_id.c_str());
+    NEARBY_LOGS(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
+                       << peer_id.GetId() << ") on endpoint " << endpoint_id
+                       << ", aborting upgrade.";
     return nullptr;
   }
 
-  NEARBY_LOG(INFO,
-             "WebRtcBwuHandler successfully connected to remote "
-             "peer (%s) while upgrading endpoint %s.",
-             peer_id.GetId().c_str(), endpoint_id.c_str());
+  NEARBY_LOGS(INFO) << "WebRtcBwuHandler successfully connected to remote "
+                       "peer ("
+                    << peer_id.GetId() << ") while upgrading endpoint "
+                    << endpoint_id;
 
   // Create a new WebRtcEndpointChannel.
   auto channel = std::make_unique<WebRtcEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket);
   if (channel == nullptr) {
     socket.Close();
-    NEARBY_LOG(ERROR,
-               "WebRtcBwuHandler failed to create new EndpointChannel for "
-               "outgoing socket, aborting upgrade.");
+    NEARBY_LOGS(ERROR)
+        << "WebRtcBwuHandler failed to create new EndpointChannel for "
+           "outgoing socket, aborting upgrade.";
   }
 
   return channel;
@@ -117,17 +117,16 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
             upgrade_service_id, self_id, location_hint,
             absl::bind_front(&WebrtcBwuHandler::OnIncomingWebrtcConnection,
                              this, client))) {
-      NEARBY_LOG(ERROR,
-                 "WebRtcBwuHandler couldn't initiate the WEB_RTC upgrade for "
-                 "endpoint %s because it failed to start listening for "
-                 "incoming WebRTC connections.",
-                 endpoint_id.c_str());
+      NEARBY_LOGS(ERROR) << "WebRtcBwuHandler couldn't initiate the WEB_RTC "
+                            "upgrade for endpoint "
+                         << endpoint_id
+                         << " because it failed to start listening for "
+                            "incoming WebRTC connections.";
       return {};
     }
-    NEARBY_LOG(INFO,
-               "WebRtcBwuHandler successfully started listening for incoming "
-               "WebRTC connections while upgrading endpoint %s",
-               endpoint_id.c_str());
+    NEARBY_LOGS(INFO) << "WebRtcBwuHandler successfully started listening for "
+                         "incoming WebRTC connections while upgrading endpoint "
+                      << endpoint_id;
   }
 
   return parser::ForBwuWebrtcPathAvailable(self_id.GetId(), location_hint);

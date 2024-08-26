@@ -129,7 +129,7 @@ TEST_P(BluetoothClassicMediumTest, CanConnectToService) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch, &discovered_device](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
             found_latch.CountDown();
@@ -178,7 +178,7 @@ TEST_P(BluetoothClassicMediumTest, CanCancelConnect) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch, &discovered_device](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
             found_latch.CountDown();
@@ -234,7 +234,7 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch, &discovered_device](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
             found_latch.CountDown();
@@ -281,7 +281,7 @@ TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsEmpty) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch, &discovered_device](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             discovered_device = &device;
             found_latch.CountDown();
@@ -350,13 +350,13 @@ TEST_F(BluetoothClassicMediumTest, CanStartDiscovery) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             found_latch.CountDown();
           },
       .device_lost_cb =
           [this, &lost_latch](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device lost: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device lost: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             lost_latch.CountDown();
           },
@@ -379,13 +379,13 @@ TEST_F(BluetoothClassicMediumTest, CanStopDiscovery) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             found_latch.CountDown();
           },
       .device_lost_cb =
           [this, &lost_latch](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device lost: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device lost: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             lost_latch.CountDown();
           },
@@ -406,7 +406,7 @@ TEST_F(BluetoothClassicMediumTest, CanListenForService) {
   bt_a_->StartDiscovery(DiscoveryCallback{
       .device_discovered_cb =
           [this, &found_latch](BluetoothDevice& device) {
-            NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+            NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
             EXPECT_EQ(device.GetName(), adapter_b_->GetName());
             found_latch.CountDown();
           },
@@ -435,7 +435,7 @@ TEST_F(BluetoothClassicMediumTest, BluetoothPairingSuccess) {
   CountDownLatch found_latch(1);
   bt_a_->StartDiscovery(
       DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
-        NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+        NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
         EXPECT_EQ(device.GetName(), adapter_b_->GetName());
         discovered_device = &device;
         found_latch.CountDown();
@@ -507,7 +507,7 @@ TEST_F(BluetoothClassicMediumTest, BluetoothPairingFailure) {
   CountDownLatch found_latch(1);
   bt_a_->StartDiscovery(
       DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
-        NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
+        NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
         EXPECT_EQ(device.GetName(), adapter_b_->GetName());
         discovered_device = &device;
         found_latch.CountDown();
@@ -569,9 +569,9 @@ TEST_F(BluetoothClassicMediumTest, CancelBluetoothPairing) {
   CountDownLatch found_latch(1);
   bt_a_->StartDiscovery(
       DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
-        NEARBY_LOG(INFO, "Device discovered: %s", device.GetName().c_str());
-        NEARBY_LOG(INFO, "Device discovered address: %s",
-                   device.GetMacAddress().c_str());
+        NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
+        NEARBY_LOGS(INFO) << "Device discovered address: "
+                          << device.GetMacAddress();
         EXPECT_EQ(device.GetName(), adapter_b_->GetName());
         discovered_device = &device;
         found_latch.CountDown();

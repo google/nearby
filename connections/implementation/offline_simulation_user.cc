@@ -20,6 +20,7 @@
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/system_clock.h"
 
 namespace nearby {
@@ -29,9 +30,9 @@ void OfflineSimulationUser::OnConnectionInitiated(
     const std::string& endpoint_id, const ConnectionResponseInfo& info,
     bool is_outgoing) {
   if (is_outgoing) {
-    NEARBY_LOG(INFO, "RequestConnection: initiated_cb called");
+    NEARBY_LOGS(INFO) << "RequestConnection: initiated_cb called";
   } else {
-    NEARBY_LOG(INFO, "StartAdvertising: initiated_cb called");
+    NEARBY_LOGS(INFO) << "StartAdvertising: initiated_cb called";
     discovered_ = DiscoveredInfo{
         .endpoint_id = endpoint_id,
         .endpoint_info = GetInfo(),
@@ -61,7 +62,7 @@ void OfflineSimulationUser::OnEndpointDisconnect(
 void OfflineSimulationUser::OnEndpointFound(const std::string& endpoint_id,
                                             const ByteArray& endpoint_info,
                                             const std::string& service_id) {
-  NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id.c_str());
+  NEARBY_LOGS(INFO) << "Device discovered: id=" << endpoint_id;
   discovered_ = DiscoveredInfo{
       .endpoint_id = endpoint_id,
       .endpoint_info = endpoint_info,

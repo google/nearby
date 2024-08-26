@@ -107,18 +107,18 @@ class OfflineServiceControllerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOG(INFO, "EP-B: [discovered] %s",
-               user_b.GetDiscovered().endpoint_id.c_str());
+    NEARBY_LOGS(INFO) << "EP-B: [discovered] "
+                      << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connect_latch_);
     EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOG(INFO, "EP-A: [discovered] %s",
-               user_a.GetDiscovered().endpoint_id.c_str());
-    NEARBY_LOG(INFO, "Both users discovered their peers.");
+    NEARBY_LOGS(INFO) << "EP-A: [discovered] "
+                      << user_a.GetDiscovered().endpoint_id;
+    NEARBY_LOGS(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
     EXPECT_TRUE(accept_latch_.Await(kLongTimeout));
-    NEARBY_LOG(INFO, "Both users reached connected state.");
+    NEARBY_LOGS(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 

@@ -14,7 +14,6 @@
 
 #include "connections/implementation/wifi_lan_bwu_handler.h"
 
-#include <locale>
 #include <string>
 #include <utility>
 
@@ -22,6 +21,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/wifi_lan.h"
 #include "internal/platform/wifi_utils.h"
 
@@ -46,7 +46,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
       upgrade_path_info.wifi_lan_socket();
   if (!upgrade_path_info_socket.has_ip_address() ||
       !upgrade_path_info_socket.has_wifi_port()) {
-    NEARBY_LOG(ERROR, "WifiLanBwuHandler failed to parse UpgradePathInfo.");
+    NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to parse UpgradePathInfo.";
     return nullptr;
   }
 

@@ -84,7 +84,7 @@ class ReconnectManagerTest
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
     EXPECT_TRUE(accept_latch_.Await(kDefaultTimeout).result());
-    NEARBY_LOG(INFO, "Both users reached connected state.");
+    NEARBY_LOGS(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 

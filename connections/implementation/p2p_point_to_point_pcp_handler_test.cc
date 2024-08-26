@@ -77,26 +77,26 @@ class P2pPointToPointPcpHandlerTest
     : public testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
  protected:
   void SetUp() override {
-    NEARBY_LOG(INFO, "SetUp: begin");
+    NEARBY_LOGS(INFO) << "SetUp: begin";
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2,
         std::get<1>(GetParam()));
     if (advertising_options_.allowed.ble) {
-      NEARBY_LOG(INFO, "SetUp: BLE enabled");
+      NEARBY_LOGS(INFO) << "SetUp: BLE enabled";
     }
     if (advertising_options_.allowed.bluetooth) {
-      NEARBY_LOG(INFO, "SetUp: BT enabled");
+      NEARBY_LOGS(INFO) << "SetUp: BT enabled";
     }
     if (advertising_options_.allowed.wifi_lan) {
-      NEARBY_LOG(INFO, "SetUp: WifiLan enabled");
+      NEARBY_LOGS(INFO) << "SetUp: WifiLan enabled";
     }
     if (advertising_options_.allowed.wifi_hotspot) {
-      NEARBY_LOG(INFO, "SetUp: WifiLan enabled");
+      NEARBY_LOGS(INFO) << "SetUp: WifiLan enabled";
     }
     if (advertising_options_.allowed.web_rtc) {
-      NEARBY_LOG(INFO, "SetUp: WebRTC enabled");
+      NEARBY_LOGS(INFO) << "SetUp: WebRTC enabled";
     }
-    NEARBY_LOG(INFO, "SetUp: end");
+    NEARBY_LOGS(INFO) << "SetUp: end";
   }
 
   ClientProxy client_a_;
@@ -172,8 +172,8 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
                       .initiated_cb =
                           [&connect_latch](const std::string& endpoint_id,
                                            const ConnectionResponseInfo& info) {
-                            NEARBY_LOG(INFO,
-                                       "StartAdvertising: initiated_cb called");
+                            NEARBY_LOGS(INFO)
+                                << "StartAdvertising: initiated_cb called";
                             connect_latch.CountDown();
                           },
                   },
@@ -187,11 +187,10 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
                             const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
-                          NEARBY_LOG(
-                              INFO,
-                              "Device discovered: id=%s, endpoint_info=%s",
-                              endpoint_id.c_str(),
-                              std::string{endpoint_info}.c_str());
+                          NEARBY_LOGS(INFO)
+                              << "Device discovered: id=" << endpoint_id
+                              << ", endpoint_info="
+                              << endpoint_info.AsStringView();
                           discovered = {
                               .endpoint_id = endpoint_id,
                               .endpoint_info = endpoint_info,
@@ -224,7 +223,8 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
                .initiated_cb =
                    [&connect_latch](const std::string& endpoint_id,
                                     const ConnectionResponseInfo& info) {
-                     NEARBY_LOG(INFO, "RequestConnection: initiated_cb called");
+                     NEARBY_LOGS(INFO)
+                         << "RequestConnection: initiated_cb called";
                      connect_latch.CountDown();
                    },
            }},

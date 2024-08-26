@@ -125,8 +125,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
   // will retry and attempt to pick another channel.
   // If channel is deleted (no mapping), or it is still the same channel
   // (same Medium) on which we got the Exception::kIo, we terminate the loop.
-  NEARBY_LOG(INFO, "Started worker loop name=%s, endpoint=%s",
-             runnable_name.c_str(), endpoint_id.c_str());
+  NEARBY_LOGS(INFO) << "Started worker loop name=" << runnable_name
+                    << ", endpoint=" << endpoint_id;
   Medium last_failed_medium = Medium::UNKNOWN_MEDIUM;
   while (true) {
     // It's important to keep re-fetching the EndpointChannel for an endpoint
@@ -135,7 +135,7 @@ void EndpointManager::EndpointChannelLoopRunnable(
     std::shared_ptr<EndpointChannel> channel =
         channel_manager_->GetChannelForEndpoint(endpoint_id);
     if (channel == nullptr) {
-      NEARBY_LOG(INFO, "Endpoint channel is nullptr, bail out.");
+      NEARBY_LOGS(INFO) << "Endpoint channel is nullptr, bail out.";
       break;
     }
 
@@ -143,8 +143,8 @@ void EndpointManager::EndpointChannelLoopRunnable(
     // EndpointChannel for this endpoint, there's nothing more to do here.
     if ((last_failed_medium != Medium::UNKNOWN_MEDIUM) &&
         (channel->GetMedium() == last_failed_medium)) {
-      NEARBY_LOG(
-          INFO, "No new endpoint channel is found after a failure, exit loop.");
+      NEARBY_LOGS(INFO)
+          << "No new endpoint channel is found after a failure, exit loop.";
       break;
     }
 
@@ -237,8 +237,8 @@ ExceptionOr<bool> EndpointManager::HandleData(
     PacketMetaData packet_meta_data;
     ExceptionOr<ByteArray> bytes = endpoint_channel->Read(packet_meta_data);
     if (!bytes.ok()) {
-      NEARBY_LOG(INFO, "Stop reading on read-time exception: %d",
-                 bytes.exception());
+      NEARBY_LOGS(INFO) << "Stop reading on read-time exception: "
+                        << bytes.exception();
       return ExceptionOr<bool>(bytes.exception());
     }
     ExceptionOr<OfflineFrame> wrapped_frame = parser::FromBytes(bytes.result());
@@ -262,12 +262,13 @@ ExceptionOr<bool> EndpointManager::HandleData(
     if (!wrapped_frame.ok()) {
       if (wrapped_frame.GetException().Raised(
               Exception::kInvalidProtocolBuffer)) {
-        NEARBY_LOG(INFO, "Failed to decode; endpoint=%s; channel=%s; skip",
-                   endpoint_id.c_str(), endpoint_channel->GetType().c_str());
+        NEARBY_LOGS(INFO) << "Failed to decode; endpoint=" << endpoint_id
+                          << "; channel=" << endpoint_channel->GetType()
+                          << "; skip";
         continue;
       } else {
-        NEARBY_LOG(INFO, "Stop reading on parse-time exception: %d",
-                   wrapped_frame.exception());
+        NEARBY_LOGS(INFO) << "Stop reading on parse-time exception: "
+                          << wrapped_frame.exception();
         return ExceptionOr<bool>(wrapped_frame.exception());
       }
     }
@@ -280,11 +281,9 @@ ExceptionOr<bool> EndpointManager::HandleData(
       // report messages without handlers, except KEEP_ALIVE, which has
       // no explicit handler.
       if (frame_type == V1Frame::KEEP_ALIVE) {
-        NEARBY_LOG(INFO, "KeepAlive message for endpoint %s",
-                   endpoint_id.c_str());
+        NEARBY_LOGS(INFO) << "KeepAlive message for endpoint " << endpoint_id;
       } else if (frame_type == V1Frame::DISCONNECTION) {
-        NEARBY_LOG(INFO, "Disconnect message for endpoint %s",
-                   endpoint_id.c_str());
+        NEARBY_LOGS(INFO) << "Disconnect message for endpoint " << endpoint_id;
         ProcessDisconnectionFrame(client, endpoint_id, endpoint_channel, frame);
       } else {
         NEARBY_LOGS(ERROR) << "Unhandled message: endpoint_id=" << endpoint_id
@@ -425,7 +424,7 @@ EndpointManager::EndpointManager(
     : channel_manager_(manager), serial_executor_(std::move(serial_executor)) {}
 
 EndpointManager::~EndpointManager() {
-  NEARBY_LOG(INFO, "Initiating shutdown of EndpointManager.");
+  NEARBY_LOGS(INFO) << "Initiating shutdown of EndpointManager.";
   {
     MutexLock lock(&mutex_);
     is_shutdown_ = true;
@@ -433,15 +432,15 @@ EndpointManager::~EndpointManager() {
   analytics::ThroughputRecorderContainer::GetInstance().Shutdown();
   CountDownLatch latch(1);
   RunOnEndpointManagerThread("bring-down-endpoints", [this, &latch]() {
-    NEARBY_LOG(INFO, "Bringing down endpoints");
+    NEARBY_LOGS(INFO) << "Bringing down endpoints";
     endpoints_.clear();
     latch.CountDown();
   });
   latch.Await();
 
-  NEARBY_LOG(INFO, "Bringing down control thread");
+  NEARBY_LOGS(INFO) << "Bringing down control thread";
   serial_executor_->Shutdown();
-  NEARBY_LOG(INFO, "EndpointManager is down");
+  NEARBY_LOGS(INFO) << "EndpointManager is down";
 }
 
 void EndpointManager::RegisterFrameProcessor(
@@ -972,7 +971,7 @@ EndpointManager::EndpointState::~EndpointState() {
   // object (in move constructor) which prevents unregistering the channel
   // prematurely.
   if (channel_manager_) {
-    NEARBY_LOG(VERBOSE, "EndpointState destructor %s", endpoint_id_.c_str());
+    NEARBY_LOGS(VERBOSE) << "EndpointState destructor " << endpoint_id_;
     channel_manager_->UnregisterChannelForEndpoint(
         endpoint_id_, DisconnectionReason::SHUTDOWN,
         ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);

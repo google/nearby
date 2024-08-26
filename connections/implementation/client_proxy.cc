@@ -442,10 +442,9 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
   NEARBY_LOGS(INFO) << "ClientProxy [Endpoint Lost]: [enter] id=" << endpoint_id
                     << "; service=" << service_id;
   if (!IsDiscoveringServiceId(service_id)) {
-    NEARBY_LOG(INFO,
-               "ClientProxy [Endpoint Lost]: Ignoring event for id=%s because "
-               "this client is not discovering",
-               endpoint_id.c_str());
+    NEARBY_LOGS(INFO) << "ClientProxy [Endpoint Lost]: Ignoring event for id="
+                      << endpoint_id
+                      << " because this client is not discovering.";
     return;
   }
 

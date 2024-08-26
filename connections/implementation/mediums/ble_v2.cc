@@ -122,10 +122,10 @@ bool BleV2::StartAdvertising(const std::string& service_id,
   }
 
   if (advertisement_bytes.size() > kMaxAdvertisementLength) {
-    NEARBY_LOG(INFO,
-               "Refusing to start BLE advertising because the advertisement "
-               "was too long. Expected at most %d bytes but received %d.",
-               kMaxAdvertisementLength, advertisement_bytes.size());
+    NEARBY_LOGS(INFO) << "Refusing to start BLE advertising because the "
+                         "advertisement was too long. Expected at most "
+                      << kMaxAdvertisementLength << " bytes but received "
+                      << advertisement_bytes.size() << " bytes.";
     return false;
   }
 

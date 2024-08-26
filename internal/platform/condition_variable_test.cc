@@ -37,17 +37,17 @@ TEST(ConditionVariableTest, CanWakeupWaiter) {
   ConditionVariable cond{&mutex};
   bool done = false;
   bool waiting = false;
-  NEARBY_LOG(INFO, "At start; done=%d", done);
+  NEARBY_LOGS(INFO) << "At start; done=" << done;
   {
     SingleThreadExecutor executor;
     executor.Execute([&cond, &mutex, &done, &waiting]() {
       MutexLock lock(&mutex);
-      NEARBY_LOG(INFO, "Before cond.Wait(); done=%d", done);
+      NEARBY_LOGS(INFO) << "Before cond.Wait(); done=" << done;
       waiting = true;
       cond.Wait();
       waiting = false;
       done = true;
-      NEARBY_LOG(INFO, "After cond.Wait(); done=%d", done);
+      NEARBY_LOGS(INFO) << "After cond.Wait(); done=" << done;
     });
     while (true) {
       {
@@ -62,7 +62,7 @@ TEST(ConditionVariableTest, CanWakeupWaiter) {
       EXPECT_FALSE(done);
     }
   }
-  NEARBY_LOG(INFO, "After executor shutdown: done=%d", done);
+  NEARBY_LOGS(INFO) << "After executor shutdown: done=" << done;
   EXPECT_TRUE(done);
 }
 
