@@ -205,7 +205,7 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
 
   NearbyConnectionsService::ConnectionListener connection_listener;
   connection_listener.initiated_cb =
-      [&](absl::string_view endpoint_id,
+      [this](absl::string_view endpoint_id,
           const ConnectionInfo& connection_info) {
         OnConnectionInitiated(endpoint_id, connection_info);
       };
@@ -361,8 +361,10 @@ void NearbyConnectionsManagerImpl::Connect(
 
   auto timeout_timer = context_->CreateTimer();
   timeout_timer->Start(
-      kInitiateNearbyConnectionTimeout / absl::Milliseconds(1), 0,
-      [&, endpoint_id]() { OnConnectionTimedOut(endpoint_id); });
+      absl::ToInt64Milliseconds(kInitiateNearbyConnectionTimeout), /*period=*/0,
+      [this, endpoint_id = std::string(endpoint_id)]() {
+        OnConnectionTimedOut(endpoint_id);
+      });
 
   connect_timeout_timers_.emplace(endpoint_id, std::move(timeout_timer));
 
@@ -400,7 +402,7 @@ void NearbyConnectionsManagerImpl::Connect(
                         /*keep_alive_interval=*/std::nullopt,
                         /*keep_alive_timeout=*/std::nullopt),
       std::move(connection_listener),
-      [&, endpoint_id](ConnectionsStatus status) {
+      [this, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
         MutexLock lock(&mutex_);
         if (status != ConnectionsStatus::kSuccess) {
           transfer_managers_.erase(endpoint_id);
@@ -599,7 +601,8 @@ void NearbyConnectionsManagerImpl::UpgradeBandwidth(
 
   requested_bwu_endpoint_ids_.emplace(endpoint_id);
   nearby_connections_service_->InitiateBandwidthUpgrade(
-      kServiceId, endpoint_id, [&, endpoint_id](ConnectionsStatus status) {
+      kServiceId, endpoint_id,
+      [&, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
         NL_VLOG(1) << __func__ << ": Bandwidth upgrade attempted to endpoint "
                    << endpoint_id << "over Nearby Connections with result: "
                    << ConnectionsStatusToString(status);
@@ -659,7 +662,7 @@ void NearbyConnectionsManagerImpl::OnConnectionInitiated(
 
   NearbyConnectionsService::PayloadListener payload_listener;
 
-  payload_listener.payload_cb = [&](absl::string_view endpoint_id,
+  payload_listener.payload_cb = [this](absl::string_view endpoint_id,
                                     Payload payload) {
     OnPayloadReceived(endpoint_id, payload);
   };
@@ -675,7 +678,7 @@ void NearbyConnectionsManagerImpl::OnConnectionInitiated(
 
   nearby_connections_service_->AcceptConnection(
       kServiceId, endpoint_id, std::move(payload_listener),
-      [&, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
+      [endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
         NL_VLOG(1) << __func__ << ": Accept connection attempted to endpoint "
                    << endpoint_id << " over Nearby Connections with result: "
                    << ConnectionsStatusToString(status);
