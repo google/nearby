@@ -15,7 +15,9 @@
 #ifndef PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 #define PLATFORM_IMPL_WINDOWS_LOG_MESSAGE_H_
 
-#include "glog/logging.h"
+#include <ostream>
+
+#include "absl/log/log_streamer.h"
 #include "internal/platform/implementation/log_message.h"
 
 namespace nearby {

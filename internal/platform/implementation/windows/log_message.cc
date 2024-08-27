@@ -14,9 +14,13 @@
 
 #include "internal/platform/implementation/windows/log_message.h"
 
-#include <algorithm>
+#include <cstdarg>
+#include <ostream>
+#include <string>
 
 #include "strings/strappendv.h"
+#include "absl/base/log_severity.h"
+#include "internal/platform/implementation/log_message.h"
 
 namespace nearby {
 namespace windows {
