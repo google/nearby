@@ -67,71 +67,73 @@ MediumSocket* BluetoothSocket::CreateVirtualSocket(
 }
 
 BluetoothClassicMedium::~BluetoothClassicMedium() {
-  NEARBY_LOG(INFO, "~BluetoothClassicMedium: observer_list_ size: %d",
-             observer_list_.size());
+  NEARBY_LOGS(INFO) << "~BluetoothClassicMedium: observer_list_ size: "
+                    << observer_list_.size();
   if (!observer_list_.empty()) {
     impl_->RemoveObserver(this);
   }
   StopDiscovery();
-  NEARBY_LOG(INFO, "eof ~BluetoothClassicMedium");
+  NEARBY_LOGS(INFO) << "eof ~BluetoothClassicMedium";
 }
 
 BluetoothSocket BluetoothClassicMedium::ConnectToService(
     BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOG(INFO,
-             "BluetoothClassicMedium::ConnectToService: service_uuid=%p, "
-             "device=%p, [impl=%p]",
-             service_uuid.c_str(), &remote_device, &remote_device.GetImpl());
+  NEARBY_LOG_OBSOLETE(
+      INFO,
+      "BluetoothClassicMedium::ConnectToService: service_uuid=%p, "
+      "device=%p, [impl=%p]",
+      service_uuid.c_str(), &remote_device, &remote_device.GetImpl());
   return BluetoothSocket(impl_->ConnectToService(
       remote_device.GetImpl(), service_uuid, cancellation_flag));
 }
 
 bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
-  NEARBY_LOG(INFO, "BluetoothClassicMedium::StartDiscovery");
+  NEARBY_LOGS(INFO) << "BluetoothClassicMedium::StartDiscovery";
   MutexLock lock(&mutex_);
   if (discovery_enabled_) {
-    NEARBY_LOG(INFO, "BT Discovery already enabled; impl=%p", &GetImpl());
+    NEARBY_LOG_OBSOLETE(INFO, "BT Discovery already enabled; impl=%p",
+                        &GetImpl());
     return false;
   }
   bool success = impl_->StartDiscovery({
       .device_discovered_cb =
           [this](api::BluetoothDevice& device) {
-            NEARBY_LOG(VERBOSE, "BT .device_discovered_cb for %p",
-                       device.GetName().c_str());
+            NEARBY_LOGS(VERBOSE)
+                << "BT .device_discovered_cb for " << device.GetName();
             MutexLock lock(&mutex_);
             auto pair = devices_.emplace(
                 &device, std::make_unique<DeviceDiscoveryInfo>());
             auto& context = *pair.first->second;
             if (!pair.second) {
-              NEARBY_LOG(INFO, "Adding (again) device=%p, impl=%p",
-                         &context.device, &device);
+              NEARBY_LOG_OBSOLETE(INFO, "Adding (again) device=%p, impl=%p",
+                                  &context.device, &device);
               return;
             }
             context.device = BluetoothDevice(&device);
-            NEARBY_LOG(INFO, "Adding device=%p, impl=%p", &context.device,
-                       &device);
+            NEARBY_LOG_OBSOLETE(INFO, "Adding device=%p, impl=%p",
+                                &context.device, &device);
             if (!discovery_enabled_) return;
             discovery_callback_.device_discovered_cb(context.device);
           },
       .device_name_changed_cb =
           [this](api::BluetoothDevice& device) {
-            NEARBY_LOG(VERBOSE, "BT .device_name_changed_cb for %p",
-                       device.GetName().c_str());
+            NEARBY_LOGS(VERBOSE)
+                << "BT .device_name_changed_cb for " << device.GetName();
             MutexLock lock(&mutex_);
             // If the device is not already in devices_, we should not be able
             // to change its name.
             if (devices_.find(&device) == devices_.end()) return;
             auto& context = *devices_[&device];
-            NEARBY_LOG(INFO, "Renaming device=%p, impl=%p", &context.device,
-                       &device);
+            NEARBY_LOG_OBSOLETE(INFO, "Renaming device=%p, impl=%p",
+                                &context.device, &device);
             if (!discovery_enabled_) return;
             discovery_callback_.device_name_changed_cb(context.device);
           },
       .device_lost_cb =
           [this](api::BluetoothDevice& device) {
-            NEARBY_LOG(VERBOSE, "BT .device_lost_cb for %p",
-                       device.GetName().c_str());
+            NEARBY_LOGS(VERBOSE) << "BT .device_lost_cb for " <<
+                       device.GetName();
             MutexLock lock(&mutex_);
             auto item = devices_.extract(&device);
             if (!item) {
@@ -140,8 +142,8 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
               return;
             }
             auto& context = *item.mapped();
-            NEARBY_LOG(INFO, "Removing device=%p, impl=%p", &context.device,
-                       &device);
+            NEARBY_LOG_OBSOLETE(INFO, "Removing device=%p, impl=%p",
+                                &context.device, &device);
             if (!discovery_enabled_) return;
             discovery_callback_.device_lost_cb(context.device);
           },
@@ -151,52 +153,53 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
     devices_.clear();
     discovery_enabled_ = true;
   }
-  NEARBY_LOG(INFO, "BT StartDiscovery result:%d; impl=%p", success, &GetImpl());
+  NEARBY_LOG_OBSOLETE(INFO, "BT StartDiscovery result:%d; impl=%p", success,
+                      &GetImpl());
   return success;
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
-  NEARBY_LOG(INFO, "BT StopDiscovery; impl=%p", &GetImpl());
+  NEARBY_LOG_OBSOLETE(INFO, "BT StopDiscovery; impl=%p", &GetImpl());
   MutexLock lock(&mutex_);
   if (!discovery_enabled_) return true;
   discovery_enabled_ = false;
   discovery_callback_ = {};
   devices_.clear();
-  NEARBY_LOG(INFO, "BT Discovery disabled: impl=%p", &GetImpl());
+  NEARBY_LOG_OBSOLETE(INFO, "BT Discovery disabled: impl=%p", &GetImpl());
   return impl_->StopDiscovery();
 }
 
 void BluetoothClassicMedium::AddObserver(Observer* observer) {
-  NEARBY_LOG(INFO, "BT AddObserver; impl=%p", &GetImpl());
+  NEARBY_LOG_OBSOLETE(INFO, "BT AddObserver; impl=%p", &GetImpl());
   MutexLock lock(&mutex_);
   if (observer_list_.empty()) {
     impl_->AddObserver(this);
   }
   observer_list_.AddObserver(observer);
-  NEARBY_LOG(INFO, "BT AddObserver done");
+  NEARBY_LOGS(INFO) << "BT AddObserver done";
 }
 void BluetoothClassicMedium::RemoveObserver(Observer* observer) {
-  NEARBY_LOG(INFO, "BT RemoveObserver; impl=%p", &GetImpl());
+  NEARBY_LOG_OBSOLETE(INFO, "BT RemoveObserver; impl=%p", &GetImpl());
   MutexLock lock(&mutex_);
   observer_list_.RemoveObserver(observer);
   if (observer_list_.empty()) {
     impl_->RemoveObserver(this);
   }
-  NEARBY_LOG(INFO, "BT RemoveObserver done");
+  NEARBY_LOGS(INFO) << "BT RemoveObserver done";
 }
 
 // api::BluetoothClassicMedium::Observer methods
 void BluetoothClassicMedium::DeviceAdded(api::BluetoothDevice& device) {
-  NEARBY_LOG(VERBOSE, "BT DeviceAdded; name=%p, address=%p",
-             device.GetName().c_str(), device.GetMacAddress().c_str());
+  NEARBY_LOGS(VERBOSE) << "BT DeviceAdded; name=" << device.GetName()
+                       << ", address=" << device.GetMacAddress();
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceAdded(bt_device);
   }
 }
 void BluetoothClassicMedium::DeviceRemoved(api::BluetoothDevice& device) {
-  NEARBY_LOG(VERBOSE, "BT DeviceRemoved; name=%p, address=%p",
-             device.GetName().c_str(), device.GetMacAddress().c_str());
+  NEARBY_LOGS(VERBOSE) << "BT DeviceRemoved; name=" << device.GetName()
+                       << ", address=" << device.GetMacAddress();
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceRemoved(bt_device);
@@ -204,9 +207,9 @@ void BluetoothClassicMedium::DeviceRemoved(api::BluetoothDevice& device) {
 }
 void BluetoothClassicMedium::DeviceAddressChanged(
     api::BluetoothDevice& device, absl::string_view old_address) {
-  NEARBY_LOG(
-      VERBOSE, "BT DeviceAddressChanged; name=%p, address=%p, old_address=%p",
-      device.GetName().c_str(), device.GetMacAddress().c_str(), old_address);
+  NEARBY_LOGS(VERBOSE) << "BT DeviceAddressChanged; name=" << device.GetName()
+                       << ", address=" << device.GetMacAddress()
+                       << ", old_address=" << old_address;
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceAddressChanged(bt_device, old_address);
@@ -214,9 +217,9 @@ void BluetoothClassicMedium::DeviceAddressChanged(
 }
 void BluetoothClassicMedium::DevicePairedChanged(api::BluetoothDevice& device,
                                                  bool new_paired_status) {
-  NEARBY_LOG(VERBOSE, "BT DevicePairedChanged; name=%p, address=%p, status=%d",
-             device.GetName().c_str(), device.GetMacAddress().c_str(),
-             new_paired_status);
+  NEARBY_LOGS(VERBOSE) << "BT DevicePairedChanged; name=" << device.GetName()
+                       << ", address=" << device.GetMacAddress()
+                       << ", status=" << new_paired_status;
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DevicePairedChanged(bt_device, new_paired_status);
@@ -224,10 +227,10 @@ void BluetoothClassicMedium::DevicePairedChanged(api::BluetoothDevice& device,
 }
 void BluetoothClassicMedium::DeviceConnectedStateChanged(
     api::BluetoothDevice& device, bool connected) {
-  NEARBY_LOG(
-      VERBOSE,
-      "BT DeviceConnectedStateChanged: name=%p, address=%p, connected=%d",
-      device.GetName().c_str(), device.GetMacAddress().c_str(), connected);
+  NEARBY_LOGS(VERBOSE) << "BT DeviceConnectedStateChanged: name="
+                       << device.GetName()
+                       << ", address=" << device.GetMacAddress()
+                       << ", connected=" << connected;
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceConnectedStateChanged(bt_device, connected);

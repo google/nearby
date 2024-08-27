@@ -268,8 +268,8 @@ TEST_P(BluetoothClassicTest, CanConnect) {
           .device_discovered_cb =
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Discovered device=%p [impl=%p]",
+                                    &device, &device.GetImpl());
                 latch.CountDown();
               },
       }));
@@ -317,8 +317,8 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
       {
           .device_discovered_cb =
               [&latch, &discovered_device](BluetoothDevice& device) {
-                NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Discovered device=%p [impl=%p]",
+                                    &device, &device.GetImpl());
                 discovered_device = device;
                 latch.CountDown();
               },
@@ -384,8 +384,8 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
           .device_discovered_cb =
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Discovered device=%p [impl=%p]",
+                                    &device, &device.GetImpl());
                 latch.CountDown();
               },
       }));
@@ -449,8 +449,8 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
           .device_discovered_cb =
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Discovered device=%p [impl=%p]",
+                                    &device, &device.GetImpl());
                 latch.CountDown();
               },
       }));
@@ -592,22 +592,22 @@ TEST_F(BluetoothClassicTest, CanDiscoverDeviceChanges) {
           .device_discovered_cb =
               [&discovered_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Discovered device=%p [impl=%p]",
+                                    &device, &device.GetImpl());
                 discovered_latch.CountDown();
               },
           .device_name_changed_cb =
               [&rename_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Rename device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Rename device=%p [impl=%p]", &device,
+                                    &device.GetImpl());
                 rename_latch.CountDown();
               },
           .device_lost_cb =
               [&lost_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Lost device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Lost device=%p [impl=%p]", &device,
+                                    &device.GetImpl());
                 lost_latch.CountDown();
               },
       }));
@@ -638,8 +638,8 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
           .device_discovered_cb =
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
-                NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                           &device.GetImpl());
+                NEARBY_LOG_OBSOLETE(INFO, "Discovered device=%p [impl=%p]",
+                                    &device, &device.GetImpl());
                 latch.CountDown();
               },
       }));

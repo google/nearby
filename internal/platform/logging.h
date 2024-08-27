@@ -93,7 +93,8 @@ class LogMessageVoidify {
       ? (void)0                 \
       : nearby::LogMessageVoidify() & NEARBY_LOG_MESSAGE(severity)->Stream()
 
-#define NEARBY_LOG(severity, ...) \
+// DO NOT USE.  Switch to NEARBY_LOGS() instead.
+#define NEARBY_LOG_OBSOLETE(severity, ...) \
   NEARBY_LOG_IS_ON(severity)      \
   ? NEARBY_LOG_MESSAGE(severity)->Print(__VA_ARGS__) : (void)0
 

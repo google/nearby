@@ -261,11 +261,11 @@ bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
 std::unique_ptr<api::BleSocket> BleMedium::Connect(
     api::BlePeripheral& remote_peripheral, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOG(INFO,
-             "G3 Ble Connect [self]: medium=%p, adapter=%p, peripheral=%p, "
-             "service_id=%s",
-             this, &GetAdapter(), &GetAdapter().GetPeripheral(),
-             service_id.c_str());
+  NEARBY_LOG_OBSOLETE(
+      INFO,
+      "G3 Ble Connect [self]: medium=%p, adapter=%p, peripheral=%p, "
+      "service_id=%s",
+      this, &GetAdapter(), &GetAdapter().GetPeripheral(), service_id.c_str());
   // First, find an instance of remote medium, that exposed this peripheral.
   auto& adapter = static_cast<BlePeripheral&>(remote_peripheral).GetAdapter();
   auto* medium = static_cast<BleMedium*>(adapter.GetBleMedium());
@@ -273,10 +273,11 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
   if (!medium) return {};  // Can't find medium. Bail out.
 
   BleServerSocket* remote_server_socket = nullptr;
-  NEARBY_LOG(INFO,
-             "G3 Ble Connect [peer]: medium=%p, adapter=%p, peripheral=%p, "
-             "service_id=%s",
-             medium, &adapter, &remote_peripheral, service_id.c_str());
+  NEARBY_LOG_OBSOLETE(
+      INFO,
+      "G3 Ble Connect [peer]: medium=%p, adapter=%p, peripheral=%p, "
+      "service_id=%s",
+      medium, &adapter, &remote_peripheral, service_id.c_str());
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&medium->mutex_);
@@ -311,7 +312,8 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
     return {};
   }
 
-  NEARBY_LOG(INFO, "G3 Ble Connect: connected: socket=%p", socket.get());
+  NEARBY_LOG_OBSOLETE(INFO, "G3 Ble Connect: connected: socket=%p",
+                      socket.get());
   return socket;
 }
 

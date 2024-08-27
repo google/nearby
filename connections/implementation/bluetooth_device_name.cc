@@ -66,11 +66,10 @@ BluetoothDeviceName::BluetoothDeviceName(
   }
 
   if (bluetooth_device_name_bytes.size() < kMinBluetoothDeviceNameLength) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BluetoothDeviceName: expecting min %d raw "
-               "bytes, got %" PRIu64,
-               kMinBluetoothDeviceNameLength,
-               bluetooth_device_name_bytes.size());
+    NEARBY_LOGS(INFO)
+        << "Cannot deserialize BluetoothDeviceName: expecting min "
+        << kMinBluetoothDeviceNameLength << " raw bytes, got "
+        << bluetooth_device_name_bytes.size();
     return;
   }
 
@@ -81,9 +80,9 @@ BluetoothDeviceName::BluetoothDeviceName(
   version_ =
       static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV1) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BluetoothDeviceName: unsupported version=%d",
-               version_);
+    NEARBY_LOGS(INFO)
+        << "Cannot deserialize BluetoothDeviceName: unsupported version="
+        << static_cast<int>(version_);
     return;
   }
   // The lower 5 bits are supposed to be the Pcp.
@@ -94,9 +93,9 @@ BluetoothDeviceName::BluetoothDeviceName(
     case Pcp::kP2pPointToPoint:
       break;
     default:
-      NEARBY_LOG(
-          INFO, "Cannot deserialize BluetoothDeviceName: unsupported V1 PCP %d",
-          pcp_);
+      NEARBY_LOGS(INFO)
+          << "Cannot deserialize BluetoothDeviceName: unsupported V1 PCP "
+          << static_cast<int>(pcp_);
       return;
   }
 
@@ -123,10 +122,10 @@ BluetoothDeviceName::BluetoothDeviceName(
   endpoint_info_ = base_input_stream.ReadBytes(expected_endpoint_info_length);
   if (endpoint_info_.Empty() ||
       endpoint_info_.size() != expected_endpoint_info_length) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BluetoothDeviceName: expected "
-               "endpoint info to be %d bytes, got %" PRIu64,
-               expected_endpoint_info_length, endpoint_info_.size());
+    NEARBY_LOGS(INFO) << "Cannot deserialize BluetoothDeviceName: expected "
+                         "endpoint info to be "
+                      << expected_endpoint_info_length << " bytes, got "
+                      << endpoint_info_.size();
 
     // Clear endpoint_id for validity.
     endpoint_id_.clear();
@@ -144,10 +143,10 @@ BluetoothDeviceName::BluetoothDeviceName(
       uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
       if (uwb_address_.Empty() ||
           uwb_address_.size() != expected_uwb_address_length) {
-        NEARBY_LOG(INFO,
-                   "Cannot deserialize BluetoothDeviceName: "
-                   "expected uwbAddress size to be %d bytes, got %" PRIu64,
-                   expected_uwb_address_length, uwb_address_.size());
+        NEARBY_LOGS(INFO) << "Cannot deserialize BluetoothDeviceName: expected "
+                             "uwbAddress size to be "
+                          << expected_uwb_address_length << " bytes, got "
+                          << uwb_address_.size();
 
         // Clear endpoint_id for validity.
         endpoint_id_.clear();
@@ -179,11 +178,11 @@ BluetoothDeviceName::operator std::string() const {
 
   ByteArray usable_endpoint_info(endpoint_info_);
   if (endpoint_info_.size() > kMaxEndpointInfoLength) {
-    NEARBY_LOG(INFO,
-               "While serializing Advertisement, truncating Endpoint Name %s "
-               "(%lu bytes) down to %d bytes",
-               absl::BytesToHexString(endpoint_info_.data()).c_str(),
-               endpoint_info_.size(), kMaxEndpointInfoLength);
+    NEARBY_LOGS(INFO)
+        << "While serializing Advertisement, truncating Endpoint Name "
+        << absl::BytesToHexString(endpoint_info_.data()) << " ("
+        << endpoint_info_.size() << " bytes) down to " << kMaxEndpointInfoLength
+        << " bytes";
     usable_endpoint_info.SetData(endpoint_info_.data(), kMaxEndpointInfoLength);
   }
 

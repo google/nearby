@@ -74,7 +74,7 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                NEARBY_LOG(
+                NEARBY_LOG_OBSOLETE(
                     INFO,
                     "Peripheral discovered: %s, %p, fast advertisement: %d",
                     peripheral.GetName().c_str(), &peripheral,
@@ -87,8 +87,9 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
                          fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
       service_id, [&](BleSocket socket, const std::string& service_id) {
-        NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                   &socket, service_id.c_str());
+        NEARBY_LOG_OBSOLETE(INFO,
+                            "Connection accepted: socket=%p, service_id=%s",
+                            &socket, service_id.c_str());
         accepted_latch.CountDown();
       });
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
@@ -133,7 +134,7 @@ TEST_P(BleMediumTest, CanCancelConnect) {
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                NEARBY_LOG(
+                NEARBY_LOG_OBSOLETE(
                     INFO,
                     "Peripheral discovered: %s, %p, fast advertisement: %d",
                     peripheral.GetName().c_str(), &peripheral,
@@ -146,8 +147,9 @@ TEST_P(BleMediumTest, CanCancelConnect) {
                          fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
       service_id, [&](BleSocket socket, const std::string& service_id) {
-        NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                   &socket, service_id.c_str());
+        NEARBY_LOG_OBSOLETE(INFO,
+                            "Connection accepted: socket=%p, service_id=%s",
+                            &socket, service_id.c_str());
         accepted_latch.CountDown();
       });
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());

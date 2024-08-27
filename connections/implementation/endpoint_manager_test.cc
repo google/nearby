@@ -351,9 +351,9 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   auto failed_ids_2 = em_.SendPayloadAck(header.id(),
       std::vector<std::string>{endpoint_id_});
   EXPECT_EQ(failed_ids_2, std::vector<std::string>{});
-  NEARBY_LOG(INFO, "Will unregister endpoint now");
+  NEARBY_LOGS(INFO) << "Will unregister endpoint now";
   em_.UnregisterEndpoint(client_.get(), endpoint_id_);
-  NEARBY_LOG(INFO, "Will call destructors now");
+  NEARBY_LOGS(INFO) << "Will call destructors now";
 }
 
 TEST_F(EndpointManagerTest, SingleReadOnReadError) {

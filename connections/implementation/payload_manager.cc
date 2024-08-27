@@ -314,7 +314,8 @@ PayloadManager::PayloadManager(EndpointManager& endpoint_manager)
 }
 
 void PayloadManager::CancelAllPayloads() {
-  NEARBY_LOG(INFO, "PayloadManager: canceling payloads; self=%p", this);
+  NEARBY_LOG_OBSOLETE(INFO, "PayloadManager: canceling payloads; self=%p",
+                      this);
   {
     MutexLock lock(&mutex_);
     int pending_outgoing_payloads = 0;
@@ -330,9 +331,9 @@ void PayloadManager::CancelAllPayloads() {
     }
   }
   if (shutdown_barrier_) {
-    NEARBY_LOG(INFO,
-               "PayloadManager: waiting for pending outgoing payloads; self=%p",
-               this);
+    NEARBY_LOG_OBSOLETE(
+        INFO, "PayloadManager: waiting for pending outgoing payloads; self=%p",
+        this);
     shutdown_barrier_->Await();
   }
 }
@@ -344,12 +345,12 @@ void PayloadManager::DisconnectFromEndpointManager() {
 }
 
 PayloadManager::~PayloadManager() {
-  NEARBY_LOG(INFO, "PayloadManager: going down; self=%p", this);
+  NEARBY_LOG_OBSOLETE(INFO, "PayloadManager: going down; self=%p", this);
   ThroughputRecorderContainer::GetInstance().Shutdown();
   DisconnectFromEndpointManager();
   CancelAllPayloads();
-  NEARBY_LOG(INFO, "PayloadManager: turn down payload executors; self=%p",
-             this);
+  NEARBY_LOG_OBSOLETE(
+      INFO, "PayloadManager: turn down payload executors; self=%p", this);
   bytes_payload_executor_.Shutdown();
   stream_payload_executor_.Shutdown();
   file_payload_executor_.Shutdown();
@@ -360,27 +361,27 @@ PayloadManager::~PayloadManager() {
   RunOnStatusUpdateThread(
       "~payload-manager",
       [this, &stop_latch]() RUN_ON_PAYLOAD_STATUS_UPDATE_THREAD() {
-        NEARBY_LOG(INFO, "PayloadManager: stop tracking payloads; self=%p",
-                   this);
+        NEARBY_LOG_OBSOLETE(
+            INFO, "PayloadManager: stop tracking payloads; self=%p", this);
         MutexLock lock(&mutex_);
         pending_payloads_.StopTrackingAllPayloads();
         stop_latch.CountDown();
       });
   stop_latch.Await();
 
-  NEARBY_LOG(INFO, "PayloadManager: turn down notification executor; self=%p",
-             this);
+  NEARBY_LOG_OBSOLETE(
+      INFO, "PayloadManager: turn down notification executor; self=%p", this);
   // Stop all the ongoing Runnables (as gracefully as possible).
   payload_status_update_executor_.Shutdown();
 
-  NEARBY_LOG(INFO, "PayloadManager: down; self=%p", this);
+  NEARBY_LOG_OBSOLETE(INFO, "PayloadManager: down; self=%p", this);
 }
 
 bool PayloadManager::NotifyShutdown() {
   MutexLock lock(&mutex_);
   if (!shutdown_.Get()) return false;
   if (!shutdown_barrier_) return false;
-  NEARBY_LOG(INFO, "PayloadManager [shutdown mode]");
+  NEARBY_LOGS(INFO) << "PayloadManager [shutdown mode]";
   shutdown_barrier_->CountDown();
   return true;
 }
@@ -389,8 +390,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                  const EndpointIds& endpoint_ids,
                                  Payload payload) {
   if (shutdown_.Get()) return;
-  NEARBY_LOG(INFO, "SendPayload: endpoint_ids={%s}",
-             ToString(endpoint_ids).c_str());
+  NEARBY_LOGS(INFO) << "SendPayload: endpoint_ids={" << ToString(endpoint_ids)
+                    << "}";
   // Before transfer to internal payload, retrieves the Payload size for
   // analytics.
   std::int64_t payload_total_size;
@@ -662,7 +663,7 @@ PayloadManager::ControlMessageEventToPayloadStatus(
       return location::nearby::proto::connections::PayloadStatus::
           REMOTE_CANCELLATION;
     default:
-      NEARBY_LOG(INFO, "PayloadManager: unknown event=%d", event);
+      NEARBY_LOGS(INFO) << "PayloadManager: unknown event=" << event;
       return location::nearby::proto::connections::PayloadStatus::
           UNKNOWN_PAYLOAD_STATUS;
   }

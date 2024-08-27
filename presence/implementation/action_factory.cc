@@ -64,8 +64,8 @@ int GetMask(const DataElement& element) {
       return GetActionMask(ActionBit(element.GetValue()[0]));
     }
   }
-  NEARBY_LOG(WARNING, "Data Element 0x%x not supported in base advertisement",
-             type);
+  NEARBY_LOG_OBSOLETE(
+      WARNING, "Data Element 0x%x not supported in base advertisement", type);
   return kEmptyMask;
 }
 
