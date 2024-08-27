@@ -64,7 +64,8 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
   }
   NEARBY_LOGS(INFO)
       << "WebRtcBwuHandler is attempting to connect to remote peer "
-      << peer_id.GetId() << ", location hint " << absl::StrCat(location_hint);
+      << peer_id.GetId() << ", location hint "
+      << absl::StrCat(location_hint.location());
 
   mediums::WebRtcSocketWrapper socket =
       webrtc_.Connect(service_id, peer_id, location_hint,
