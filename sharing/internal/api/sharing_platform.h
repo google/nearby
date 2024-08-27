@@ -84,9 +84,9 @@ class SharingPlatform {
   virtual void CopyText(absl::string_view text,
                         std::function<void(absl::Status)> callback) = 0;
 
-  // Creates system information class. SystemInfo provides APIs to access
-  // system information.
-  virtual std::unique_ptr<nearby::api::SystemInfo> CreateSystemInfo() = 0;
+  // Get an instance of the system information class. SystemInfo provides APIs
+  // to access system information.
+  virtual nearby::api::SystemInfo& GetSystemInfo() = 0;
 
   // Creates app information class. AppInfo provides APIs to access app
   // information, such as app version.
