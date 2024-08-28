@@ -97,7 +97,7 @@ constexpr auto kEnableWebrtcMedium =
 // WARNING. The mapping of logging level to number:VERBOSE: -1, INFO: 0,
 // WARNING: 1, ERROR: 2, FATAL: 3
 constexpr auto kLoggingLevel =
-    flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
+    flags::Flag<int64_t>(kConfigPackage, "45401358", 0);
 // When true, the sender will not require confirming the ukey2 token.
 constexpr auto kSenderSkipsConfirmation =
     flags::Flag<bool>(kConfigPackage, "45411353", true);
