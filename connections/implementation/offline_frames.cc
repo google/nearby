@@ -420,6 +420,18 @@ ByteArray ForBwuSafeToClose() {
   return ToBytes(std::move(frame));
 }
 
+ByteArray ForBwuRetry(std::vector<Medium> mediums) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_RETRY);
+  v1_frame->mutable_bandwidth_upgrade_retry()->mutable_supported_medium()->Add(
+      mediums.begin(), mediums.end());
+  v1_frame->mutable_bandwidth_upgrade_retry()->set_is_request(false);
+  return ToBytes(std::move(frame));
+}
+
 ByteArray ForBwuIntroduction(const std::string& endpoint_id,
                              bool supports_disabling_encryption) {
   OfflineFrame frame;

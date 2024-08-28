@@ -181,6 +181,9 @@ class ClientProxy final {
 
   // Returns all mediums eligible for upgrade.
   BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
+  // Sets mediums eligible for upgrade for a remote device.
+  void SetUpgradeMediums(const std::string& endpoint_id,
+                         BooleanMediumSelector mediums);
   // Returns if this endpoint support 5G for WIFI.
   bool Is5GHzSupported(const std::string& endpoint_id) const;
   // Returns BSSID for this endpoint.

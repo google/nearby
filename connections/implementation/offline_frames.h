@@ -70,6 +70,7 @@ ByteArray ForControlPayloadTransfer(
 ByteArray ForPayloadAckPayloadTransfer(std::int64_t payload_id);
 
 // Builds Bandwidth Upgrade [BWU] messages.
+ByteArray ForBwuRetry(std::vector<Medium> mediums);
 ByteArray ForBwuIntroduction(const std::string& endpoint_id,
                              bool supports_disabling_encryption);
 ByteArray ForBwuIntroductionAck();

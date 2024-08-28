@@ -620,6 +620,29 @@ TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
+TEST(OfflineFramesTest, GeneratesBwuRetry) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_RETRY
+      bandwidth_upgrade_retry: <
+        supported_medium: BLUETOOTH
+        supported_medium: WIFI_HOTSPOT
+        supported_medium: BLE
+        supported_medium: WIFI_LAN
+        supported_medium: WEB_RTC
+        is_request: false
+      >
+    >)pb";
+  ByteArray bytes =
+      ForBwuRetry({Medium::BLUETOOTH, Medium::WIFI_HOTSPOT, Medium::BLE,
+                   Medium::WIFI_LAN, Medium::WEB_RTC});
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
 
 }  // namespace
 }  // namespace parser
