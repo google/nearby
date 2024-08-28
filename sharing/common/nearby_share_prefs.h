@@ -29,6 +29,7 @@ ABSL_CONST_INIT extern const char
 ABSL_CONST_INIT extern const char
     kNearbySharingBackgroundVisibilityExpirationSeconds[];
 ABSL_CONST_INIT extern const char kNearbySharingContactUploadHashName[];
+ABSL_CONST_INIT extern const char kNearbySharingContactUploadTimeName[];
 ABSL_CONST_INIT extern const char kNearbySharingCustomSavePath[];
 ABSL_CONST_INIT extern const char kNearbySharingDataUsageName[];
 ABSL_CONST_INIT extern const char kNearbySharingDeviceIdName[];
@@ -47,8 +48,6 @@ ABSL_CONST_INIT extern const char
     kNearbySharingSchedulerDownloadDeviceDataName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingSchedulerDownloadPublicCertificatesName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingSchedulerPeriodicContactUploadName[];
 ABSL_CONST_INIT extern const char
     kNearbySharingSchedulerPrivateCertificateExpirationName[];
 ABSL_CONST_INIT extern const char

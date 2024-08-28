@@ -242,8 +242,6 @@ class NearbyShareContactManagerImplTest
     size_t num_upload_notifications = contacts_uploaded_notifications_.size();
     size_t num_download_and_upload_handled_results =
         download_and_upload_scheduler()->handled_results().size();
-    size_t num_periodic_upload_handled_results =
-        periodic_upload_scheduler()->handled_results().size();
 
     manager_->DownloadContacts();
     Sync();
@@ -285,24 +283,6 @@ class NearbyShareContactManagerImplTest
       // Verify upload notification was sent on success.
       EXPECT_EQ(contacts_uploaded_notifications_.size(),
                 num_upload_notifications + (upload_success ? 1 : 0));
-      if (upload_success) {
-        // We only expect uploads to occur if contacts have changed since the
-        // last
-        // upload or if a periodic upload was requested.
-        EXPECT_TRUE(contacts_uploaded_notifications_.back()
-                        .did_contacts_change_since_last_upload ||
-                    periodic_upload_scheduler()->IsWaitingForResult());
-
-        if (periodic_upload_scheduler()->IsWaitingForResult()) {
-          EXPECT_EQ(periodic_upload_scheduler()->handled_results().size(),
-                    num_periodic_upload_handled_results + 1);
-          EXPECT_TRUE(periodic_upload_scheduler()->handled_results().back());
-          periodic_upload_scheduler()->SetIsWaitingForResult(false);
-        } else {
-          EXPECT_EQ(periodic_upload_scheduler()->handled_results().size(),
-                    num_periodic_upload_handled_results);
-        }
-      }
       // Verify that the result is sent to download/upload scheduler.
       EXPECT_EQ(download_and_upload_scheduler()->handled_results().size(),
                 num_download_and_upload_handled_results + 1);
@@ -315,18 +295,14 @@ class NearbyShareContactManagerImplTest
     }
   }
 
-  void MakePeriodicUploadRequest() {
-    periodic_upload_scheduler()->InvokeRequestCallback();
-    periodic_upload_scheduler()->SetIsWaitingForResult(true);
-    Sync();
-  }
-
   PreferenceManager& preference_manager() { return preference_manager_; }
 
   std::vector<ContactsDownloadedNotification>&
   contacts_downloaded_notifications() {
     return contacts_downloaded_notifications_;
   }
+
+  FakeContext& fake_context() { return fake_context_; }
 
  private:
   // NearbyShareContactManager::Observer:
@@ -350,12 +326,6 @@ class NearbyShareContactManagerImplTest
     return nearby_client_factory_.instances().back();
   }
 
-  FakeNearbyShareScheduler* periodic_upload_scheduler() {
-    return scheduler_factory_.pref_name_to_periodic_instance()
-        .at(prefs::kNearbySharingSchedulerPeriodicContactUploadName)
-        .fake_scheduler;
-  }
-
   FakeNearbyShareScheduler* download_and_upload_scheduler() {
     return scheduler_factory_.pref_name_to_periodic_instance()
         .at(prefs::kNearbySharingSchedulerContactDownloadAndUploadName)
@@ -373,16 +343,6 @@ class NearbyShareContactManagerImplTest
               kContactDownloadPeriod);
     EXPECT_TRUE(download_and_upload_scheduler_instance.retry_failures);
     EXPECT_TRUE(download_and_upload_scheduler_instance.require_connectivity);
-
-    FakeNearbyShareSchedulerFactory::PeriodicInstance
-        periodic_upload_scheduler_instance =
-            scheduler_factory_.pref_name_to_periodic_instance().at(
-                prefs::kNearbySharingSchedulerPeriodicContactUploadName);
-    EXPECT_TRUE(periodic_upload_scheduler_instance.fake_scheduler);
-    EXPECT_EQ(periodic_upload_scheduler_instance.request_period,
-              kContactUploadPeriod);
-    EXPECT_FALSE(periodic_upload_scheduler_instance.retry_failures);
-    EXPECT_TRUE(periodic_upload_scheduler_instance.require_connectivity);
   }
 
   void TriggerDownloadScheduler() {
@@ -460,7 +420,7 @@ TEST_F(NearbyShareContactManagerImplTest,
 }
 
 TEST_F(NearbyShareContactManagerImplTest,
-       DownloadContacts_PeriodicUploadRequest) {
+       DownloadContacts_HashExpiration) {
   std::vector<ContactRecord> contact_records =
       TestContactRecordList(/*num_contacts=*/3u);
   std::set<std::string> allowlist = TestContactIds(/*num_contacts=*/2u);
@@ -474,18 +434,44 @@ TEST_F(NearbyShareContactManagerImplTest,
                    /*upload_success=*/true,
                    /*contacts=*/contact_records);
 
-  // Because device records on the server will be removed after a few days if
-  // the device does not contact the server, we ensure that contacts are
-  // uploaded periodically. Make that request now. Contacts will be uploaded
-  // after the next contact download. It will not force a download now,
-  // however.
-  MakePeriodicUploadRequest();
+  fake_context().fake_clock()->FastForward(absl::Hours(72));
+  SetDownloadSuccessResult(contact_records);
+  SetUploadResult(true);
+  // When contacts are downloaded again, we detect that contacts have not
+  // changed, but since the hash expired, we upload again.
+  DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
+                   /*upload_success=*/true,
+                   /*contacts=*/contact_records);
+}
+
+TEST_F(NearbyShareContactManagerImplTest,
+       DownloadContacts_HashExpirationUploadFailed) {
+  std::vector<ContactRecord> contact_records =
+      TestContactRecordList(/*num_contacts=*/3u);
+  std::set<std::string> allowlist = TestContactIds(/*num_contacts=*/2u);
+
+  SetDownloadSuccessResult(contact_records);
+  SetUploadResult(true);
+
+  // Because contacts have never been uploaded, a subsequent upload is
+  // requested, which succeeds.
+  DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
+                   /*upload_success=*/true,
+                   /*contacts=*/contact_records);
+
+  fake_context().fake_clock()->FastForward(absl::Hours(72));
+  SetDownloadSuccessResult(contact_records);
+  SetUploadResult(false);
+  // When contacts are downloaded again, we detect that contacts have not
+  // changed, but since the hash expired, we upload again.
+  DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
+                   /*upload_success=*/false,
+                   /*contacts=*/contact_records);
 
   SetDownloadSuccessResult(contact_records);
   SetUploadResult(true);
   // When contacts are downloaded again, we detect that contacts have not
-  // changed. However, we expect an upload because a periodic request was
-  // made.
+  // changed, last upload failed, we upload again.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
                    /*contacts=*/contact_records);

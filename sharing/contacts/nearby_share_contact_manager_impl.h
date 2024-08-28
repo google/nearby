@@ -19,14 +19,14 @@
 
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "internal/platform/clock.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
@@ -130,9 +130,9 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
       std::vector<::nearby::sharing::proto::ContactRecord> contacts,
       uint32_t num_unreachable_contacts_filtered_out);
   void OnContactsDownloadFailure();
-  void OnPeriodicContactsUploadRequested();
   void OnContactsUploadFinished(bool did_contacts_change_since_last_upload,
                                 absl::string_view contact_upload_hash,
+                                absl::Time upload_time,
                                 bool success);
 
   // Notify the base-class and mojo observers that contacts were downloaded.
@@ -142,10 +142,10 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
 
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
+  Clock* const clock_;
   nearby::sharing::api::SharingRpcClientFactory* const nearby_client_factory_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
   NearbyShareLocalDeviceDataManager* local_device_data_manager_ = nullptr;
-  std::unique_ptr<NearbyShareScheduler> periodic_contact_upload_scheduler_;
   std::unique_ptr<NearbyShareScheduler> contact_download_and_upload_scheduler_;
 
   std::unique_ptr<TaskRunner> executor_ = nullptr;

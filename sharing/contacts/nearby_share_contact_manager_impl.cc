@@ -31,6 +31,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/crypto_cros/secure_hash.h"
+#include "internal/platform/clock.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
@@ -57,8 +58,8 @@ using ::nearby::sharing::proto::ContactRecord;
 using ::nearby::sharing::proto::ListContactPeopleRequest;
 using ::nearby::sharing::proto::ListContactPeopleResponse;
 
-constexpr absl::Duration kContactUploadPeriod = absl::Hours(24);
 constexpr absl::Duration kContactDownloadPeriod = absl::Hours(12);
+constexpr absl::Duration kMaxContactUploadInterval = absl::Hours(72);
 
 // Converts a list of ContactRecord protos, along with the allowlist, into a
 // list of Contact protos.
@@ -160,16 +161,10 @@ NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
     NearbyShareLocalDeviceDataManager* local_device_data_manager)
     : preference_manager_(preference_manager),
       account_manager_(account_manager),
+      clock_(context->GetClock()),
       nearby_client_factory_(nearby_client_factory),
       nearby_share_client_(nearby_client_factory_->CreateInstance()),
       local_device_data_manager_(local_device_data_manager),
-      periodic_contact_upload_scheduler_(
-          NearbyShareSchedulerFactory::CreatePeriodicScheduler(
-              context, preference_manager_, kContactUploadPeriod,
-              /*retry_failures=*/false,
-              /*require_connectivity=*/true,
-              prefs::kNearbySharingSchedulerPeriodicContactUploadName,
-              [&] { OnPeriodicContactsUploadRequested(); })),
       contact_download_and_upload_scheduler_(
           NearbyShareSchedulerFactory::CreatePeriodicScheduler(
               context, preference_manager_, kContactDownloadPeriod,
@@ -292,19 +287,11 @@ void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
 }
 
 void NearbyShareContactManagerImpl::OnStart() {
-  periodic_contact_upload_scheduler_->Start();
   contact_download_and_upload_scheduler_->Start();
 }
 
 void NearbyShareContactManagerImpl::OnStop() {
-  periodic_contact_upload_scheduler_->Stop();
   contact_download_and_upload_scheduler_->Stop();
-}
-
-void NearbyShareContactManagerImpl::OnPeriodicContactsUploadRequested() {
-  NL_VLOG(1) << __func__
-             << ": Periodic Nearby Share contacts upload requested. "
-             << "Upload will occur after next contacts download.";
 }
 
 void NearbyShareContactManagerImpl::OnContactsDownloadSuccess(
@@ -336,19 +323,21 @@ void NearbyShareContactManagerImpl::OnContactsDownloadSuccess(
 
   std::string last_contact_upload_hash = preference_manager_.GetString(
       prefs::kNearbySharingContactUploadHashName, "");
+  int64_t last_contact_upload_time = preference_manager_.GetInt64(
+      prefs::kNearbySharingContactUploadTimeName, 0);
+  absl::Time now = clock_->Now();
   std::string contact_upload_hash = ComputeHash(contacts_to_upload);
   bool did_contacts_change_since_last_upload =
-      contact_upload_hash != last_contact_upload_hash;
-
-  if (did_contacts_change_since_last_upload) {
-    NL_VLOG(1) << __func__ << ": Contact list or allowlist changed since last "
-               << "successful upload to the Nearby Share server.";
-  }
+      (contact_upload_hash != last_contact_upload_hash) ||
+      (now - absl::FromUnixSeconds(last_contact_upload_time) >=
+       kMaxContactUploadInterval);
 
   // Request a contacts upload if the contact list or allowlist has changed
-  // since the last successful upload. Also request an upload periodically.
-  if (did_contacts_change_since_last_upload ||
-      periodic_contact_upload_scheduler_->IsWaitingForResult()) {
+  // since the last successful upload or max upload interval has passed.
+  if (did_contacts_change_since_last_upload) {
+    NL_LOG(INFO) << __func__ << ": Contact list changed since last "
+                 << "successful upload at "
+                 << absl::FromUnixSeconds(last_contact_upload_time);
     absl::Notification notification;
     bool upload_success = false;
     local_device_data_manager_->UploadContacts(std::move(contacts_to_upload),
@@ -362,7 +351,7 @@ void NearbyShareContactManagerImpl::OnContactsDownloadSuccess(
                  << upload_success;
 
     OnContactsUploadFinished(did_contacts_change_since_last_upload,
-                             contact_upload_hash, upload_success);
+                             contact_upload_hash, now, upload_success);
     return;
   }
 
@@ -378,24 +367,19 @@ void NearbyShareContactManagerImpl::OnContactsDownloadFailure() {
 
 void NearbyShareContactManagerImpl::OnContactsUploadFinished(
     bool did_contacts_change_since_last_upload,
-    absl::string_view contact_upload_hash, bool success) {
+    absl::string_view contact_upload_hash, absl::Time upload_time,
+    bool success) {
   NL_LOG(INFO) << __func__ << ": Upload of contacts to Nearby Share server "
                << (success ? "succeeded." : "failed.")
                << " Contact upload hash: " << contact_upload_hash;
   if (success) {
-    // Only resolve the periodic upload request on success; let the
-    // download-and-upload scheduler handle any failure retries. The periodic
-    // upload scheduler will remember that it has an outstanding request even
-    // after reboot.
-    if (periodic_contact_upload_scheduler_->IsWaitingForResult()) {
-      periodic_contact_upload_scheduler_->HandleResult(success);
-    }
-
     std::string last_contact_upload_hash = preference_manager_.GetString(
         prefs::kNearbySharingContactUploadHashName, "");
 
     preference_manager_.SetString(prefs::kNearbySharingContactUploadHashName,
                                   contact_upload_hash);
+    preference_manager_.SetInt64(prefs::kNearbySharingContactUploadTimeName,
+                                 absl::ToUnixSeconds(upload_time));
 
     if (last_contact_upload_hash.empty()) {
       // If no contacts are uploaded before, set the flag to false in order to
@@ -410,7 +394,6 @@ void NearbyShareContactManagerImpl::OnContactsUploadFinished(
 
   contact_download_and_upload_scheduler_->HandleResult(success);
 }
-
 
 void NearbyShareContactManagerImpl::NotifyAllObserversContactsDownloaded(
     const std::vector<ContactRecord>& contacts,

@@ -44,6 +44,8 @@ ABSL_CONST_INIT const char
         "nearby_sharing.background_visibility_expiration_seconds";
 ABSL_CONST_INIT const char kNearbySharingContactUploadHashName[] =
     "nearby_sharing.contact_upload_hash";
+ABSL_CONST_INIT const char kNearbySharingContactUploadTimeName[] =
+    "nearby_sharing.contact_upload_time";
 ABSL_CONST_INIT const char kNearbySharingCustomSavePath[] =
     "nearby_sharing.custom_save_path";
 ABSL_CONST_INIT const char kNearbySharingDataUsageName[] =
@@ -72,8 +74,6 @@ ABSL_CONST_INIT const char kNearbySharingSchedulerDownloadDeviceDataName[] =
 ABSL_CONST_INIT const char
     kNearbySharingSchedulerDownloadPublicCertificatesName[] =
         "nearby_sharing.scheduler.download_public_certificates";
-ABSL_CONST_INIT const char kNearbySharingSchedulerPeriodicContactUploadName[] =
-    "nearby_sharing.scheduler.periodic_contact_upload";
 ABSL_CONST_INIT const char
     kNearbySharingSchedulerPrivateCertificateExpirationName[] =
         "nearby_sharing.scheduler.private_certificate_expiration";
@@ -140,7 +140,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
   preference_manager.Remove(kNearbySharingSchedulerDownloadDeviceDataName);
   preference_manager.Remove(
       kNearbySharingSchedulerDownloadPublicCertificatesName);
-  preference_manager.Remove(kNearbySharingSchedulerPeriodicContactUploadName);
   preference_manager.Remove(
       kNearbySharingSchedulerPrivateCertificateExpirationName);
   preference_manager.Remove(
@@ -159,7 +158,6 @@ void ResetSchedulers(PreferenceManager& preference_manager) {
   preference_manager.Remove(kNearbySharingSchedulerDownloadDeviceDataName);
   preference_manager.Remove(
       kNearbySharingSchedulerDownloadPublicCertificatesName);
-  preference_manager.Remove(kNearbySharingSchedulerPeriodicContactUploadName);
   preference_manager.Remove(
       kNearbySharingSchedulerPrivateCertificateExpirationName);
   preference_manager.Remove(

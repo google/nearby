@@ -1278,11 +1278,6 @@ std::string NearbySharingServiceImpl::Dump() const {
                  preference_manager_,
                  prefs::kNearbySharingSchedulerDownloadPublicCertificatesName)
           << std::endl;
-  sstream << " Upload contacts periodically: "
-          << ConvertToReadableSchedule(
-                 preference_manager_,
-                 prefs::kNearbySharingSchedulerPeriodicContactUploadName)
-          << std::endl;
   sstream
       << " Upload local device certificates: "
       << ConvertToReadableSchedule(
