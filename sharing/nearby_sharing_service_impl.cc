@@ -3562,6 +3562,9 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
     settings_->OnLocalDeviceDataChanged(/*did_device_name_change=*/true,
                                         /*did_full_name_change=*/false,
                                         /*did_icon_url_change=*/false);
+    // Set contacts visibility when logging in so the user is ready to share
+    // immediately. Notify observers as well.
+    settings_->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   }
 
   // Start services again.

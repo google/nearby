@@ -4527,6 +4527,31 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }
 
+TEST_F(NearbySharingServiceImplTest, LoginShouldSetContactsVisibility) {
+  SetConnectionType(ConnectionType::kWifi);
+
+  // Create account.
+  AccountManager::Account account;
+  account.id = kTestAccountId;
+
+  // Login user.
+  absl::Notification login_notification;
+  account_manager().SetAccount(account);
+  service_->GetAccountManager()->Login(
+      "test_client_id", "test_client_secret",
+      [&](AccountManager::Account account) {
+        EXPECT_EQ(account.id, kTestAccountId);
+        login_notification.Notify();
+      },
+      [](absl::Status status) {});
+
+  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  ASSERT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+
+  EXPECT_EQ(service_->GetSettings()->GetVisibility(),
+            DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+}
+
 TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   SetConnectionType(ConnectionType::kWifi);
 
