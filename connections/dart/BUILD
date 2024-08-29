@@ -18,7 +18,7 @@ package(default_visibility = ["//location/nearby:__subpackages__"])
 
 licenses(["notice"])
 
-# Build with --config=lexan
+# Build with --config=windows
 windows.cc_windows_dll(
     name = "nc_windows_dart",
     srcs = [

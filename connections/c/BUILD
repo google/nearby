@@ -99,7 +99,7 @@ cc_library(
     ],
 )
 
-# Build with --config=lexan
+# Build with --config=windows
 windows.cc_windows_dll(
     name = "nearby_connections",
     tags = ["windows-dll"],
