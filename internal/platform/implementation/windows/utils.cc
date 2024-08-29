@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 // Standard C/C++ headers
 #include <codecvt>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <stdexcept>
@@ -103,14 +104,76 @@ std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
   return std::string(ipv4_b, 4);
 }
 
-std::wstring string_to_wstring(std::string str) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.from_bytes(str);
+// Converts std::string to wstring
+std::wstring string_to_wstring(const std::string& str) {
+  int str_length = static_cast<int>(str.length());
+  // https://docs.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-multibytetowidechar
+  int output_length =
+      MultiByteToWideChar(CP_UTF8,      // [in] CodePage
+                          0,            // [in] dwFlags
+                          str.c_str(),  // [in] lpMultiByteStr
+                          str_length,   // [in] cbMultiByte
+                          nullptr,      // [out, optional] lpWideCharStr
+                          0);           // [in] cchWideChar
+  std::wstring wstring(output_length, '\0');
+  if (output_length != 0) {
+    SetLastError(0);
+    int result = MultiByteToWideChar(CP_UTF8, /*dwFlags=*/0, str.c_str(),
+                                     str_length, &wstring[0], output_length);
+    if (result == 0) {
+      NEARBY_LOGS(INFO) << "Error converting String to Wstring. Error code: "
+                        << GetLastError();
+    }
+  }
+  return wstring;
 }
 
-std::string wstring_to_string(std::wstring wstr) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.to_bytes(wstr);
+// Converts wstring to std::string
+std::string wstring_to_string(const std::wstring& wstr) {
+  std::string output;
+
+  if (wstr.empty()) {
+    return "";
+  }
+
+  size_t start = 0;
+  size_t index;
+  int size;
+
+  // Find the end of the first wchar_t
+  index = wstr.find(static_cast<wchar_t>(0), start);
+
+  // Iterate over the wstring buffer, chop it into wchar chunks and convert them
+  // one-by-one
+  while (index != std::wstring::npos && start < wstr.length()) {
+    std::wstring chunk = std::wstring(&wstr[start], index - start);
+    size = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &chunk[0],
+                               (int)chunk.size(), nullptr, 0, nullptr, nullptr);
+    std::string converted_chunk = std::string(size, 0);
+    WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &chunk[0],
+                        (int)chunk.size(), &converted_chunk[0],
+                        (int)converted_chunk.size(), nullptr, nullptr);
+    output.append(converted_chunk);
+    // Interleave 0x00 in between wchar because Windows uses UTF-16 le encoding
+    output.append({0});
+    start = index + 1;
+    index = wstr.find(static_cast<wchar_t>(0), start);
+  }
+
+  // If there are leftover bytes smaller than a wchar, need to convert them as
+  // well
+  if (start <= wstr.length()) {
+    std::wstring chunk = std::wstring(&wstr[start], wstr.length() - start);
+    size = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &chunk[0],
+                               (int)chunk.size(), nullptr, 0, nullptr, nullptr);
+    std::string converted_chunk = std::string(size, 0);
+    WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &chunk[0],
+                        (int)chunk.size(), &converted_chunk[0],
+                        (int)converted_chunk.size(), nullptr, nullptr);
+    output.append(converted_chunk);
+  }
+
+  return output;
 }
 
 std::vector<std::string> GetIpv4Addresses() {
@@ -182,8 +245,8 @@ Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {
   int64_t data3 = guid.Data3;
 
   int64_t msb = ((data1 >> 24) & 0xff) << 56 | ((data1 >> 16) & 0xff) << 48 |
-                ((data1 >> 8) & 0xff) << 40 | ((data1)&0xff) << 32 |
-                ((data2 >> 8) & 0xff) << 24 | ((data2)&0xff) << 16 |
+                ((data1 >> 8) & 0xff) << 40 | ((data1) & 0xff) << 32 |
+                ((data2 >> 8) & 0xff) << 24 | ((data2) & 0xff) << 16 |
                 ((data3 >> 8) & 0xff) << 8 | (data3 & 0xff);
 
   int64_t lsb =
@@ -215,7 +278,7 @@ winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid) {
 }
 
 bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
-                                     const ::winrt::guid& guid) {
+                                        const ::winrt::guid& guid) {
   return uuid == winrt_guid_to_nearby_uuid(guid);
 }
 

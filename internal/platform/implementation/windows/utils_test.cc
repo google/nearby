@@ -16,6 +16,7 @@
 
 #include <windows.h>
 
+#include <sstream>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -80,6 +81,49 @@ TEST(UtilsTests, CompareWinrtGuidAndNearbyUuidSuccessfully) {
   winrt::guid guid("123e4567-e89b-12d3-a456-426614074000");
 
   EXPECT_NE(uuid, winrt_guid_to_nearby_uuid(guid));
+}
+
+const wchar_t* const kConvertRoundtripCases[] = {
+    L"Nearby Share for Windows",
+    // "附近分享 蓝牙 无线传送 »"
+    L"\x644\x8fd1\x5206\x4eab\x0020\x84dd\x7259\x0020\x65e0\x7ebf\x4f20\x9001"
+    L"\x0020\x00bb",
+    // "近隣のシェア"
+    L"\x8fd1\x96a3\x306e\x30b7\x30a7\x30a2"
+    // "주변 공유"
+    L"\xc8fc\xbcc0\x0020\xacf5\xc720"
+    // "आस-पास साझा करें"
+    L"\x0906\x0938\x002d\x092a\x093e\x0938\x0020\x0938\x093e\x091d\x093e\x0020"
+    L"\x0915\x0930\x0947\x0902",
+    // "அருகிலுள்ள பகிர்வு"
+    L"\x0b85\x0bb0\x0bc1\x0b95\x0bbf\x0bb2\x0bc1\x0bb3\x0bcd\x0bb3\x0020\x0baa"
+    L"\x0b95\x0bbf\x0bb0\x0bcd\x0bb5\x0bc1",
+    // ?????  (Mathematical Alphanumeric Symbols (U+011d40 - U+011d44 :
+    // A,B,C,D,E)
+    L"\xd807\xdd40\xd807\xdd41\xd807\xdd42\xd807\xdd43\xd807\xdd44",
+};
+
+TEST(UtilsTests, ConvertStringAndWideString) {
+  // we round-trip all the wide strings through UTF-8 to make sure everything
+  // agrees on the conversion. This uses the stream operators to test them
+  // simultaneously.
+  for (auto* i : kConvertRoundtripCases) {
+    std::ostringstream utf8;
+    utf8 << wstring_to_string(i);
+    std::wostringstream wide;
+    wide << string_to_wstring(utf8.str());
+
+    EXPECT_EQ(i, wide.str());
+  }
+}
+
+TEST(UtilsTests, ConvertEmptyStringAndWideString) {
+  // An empty std::wstring should be converted to an empty std::string,
+  // and vice versa.
+  std::wstring wide_empty;
+  std::string empty;
+  EXPECT_EQ(empty, wstring_to_string(wide_empty));
+  EXPECT_EQ(wide_empty, string_to_wstring(empty));
 }
 
 }  // namespace windows
