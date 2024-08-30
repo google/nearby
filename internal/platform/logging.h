@@ -35,4 +35,7 @@
 #define NEARBY_DLOG(severity) DLOG(severity)
 #define NEARBY_DVLOG(severity) DVLOG(severity)
 
+
+#define TEST_DVLOG(severity) DVLOG(severity)
+
 #endif  // PLATFORM_BASE_LOGGING_H_
