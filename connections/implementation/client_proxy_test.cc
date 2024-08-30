@@ -1595,6 +1595,31 @@ TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
       false);
 }
 
+TEST_F(ClientProxyTest, TestSetUpgradeMediums) {
+  ConnectionListener advertising_connection_listener_2;
+  ClientProxy client3;
+  BooleanMediumSelector new_mediums{
+      .bluetooth = true,
+      .web_rtc = false,
+      .wifi_lan = true,
+      .wifi_hotspot = false,
+      .wifi_direct = true,
+  };
+
+  StartDiscovery(client1(), GetDiscoveryListener());
+  Endpoint advertising_endpoint_2 =
+      StartAdvertising(client2(), advertising_connection_listener_2);
+  OnDiscoveryEndpointFound(client1(), advertising_endpoint_2);
+  OnDiscoveryConnectionInitiated(client1(), advertising_endpoint_2);
+  EXPECT_EQ(
+      client1()->GetUpgradeMediums(advertising_endpoint_2.id).GetMediums(true),
+      BooleanMediumSelector().SetAll(true).GetMediums(true));
+  client1()->SetUpgradeMediums(advertising_endpoint_2.id, new_mediums);
+  EXPECT_EQ(
+      client1()->GetUpgradeMediums(advertising_endpoint_2.id).GetMediums(true),
+      new_mediums.GetMediums(true));
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby
