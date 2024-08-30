@@ -281,7 +281,6 @@ void WifiHotspotServerSocket::SocketErrorNotice(absl::string_view reason) {
 
 bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
   WSADATA wsa_data;
-  WSAEVENT socket_event;
   int flag = 1;
 
   int result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
@@ -347,7 +346,7 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
     return false;
   }
   NEARBY_LOGS(INFO) << "Hotspot Server Socket " << listen_socket_
-                    << " started to listen with socket event: " << socket_event;
+                    << " started to listen.";
 
   submittable_executor_.Execute([this]() {
     DWORD index;

@@ -167,8 +167,7 @@ bool BleGattServer::UpdateCharacteristic(
 
   for (auto& it : gatt_characteristic_datas_) {
     if (it.gatt_characteristic.uuid == characteristic.uuid) {
-      NEARBY_LOGS(VERBOSE) << __func__
-                           << ": Found the characteristic to update.";
+      NEARBY_VLOG(1) << __func__ << ": Found the characteristic to update.";
       it.data = value;
 
       // If it is in running, notify the value changed.
@@ -201,8 +200,8 @@ absl::Status BleGattServer::NotifyCharacteristicChanged(
     const ByteArray& new_value) {
   absl::MutexLock lock(&mutex_);
   // Currently, the method is not hooked up at platform layer.
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Notify characteristic="
-                       << std::string(characteristic.uuid) << " changed.";
+  NEARBY_VLOG(1) << __func__ << ": Notify characteristic="
+                 << std::string(characteristic.uuid) << " changed.";
   return absl::OkStatus();
 }
 
@@ -210,7 +209,7 @@ void BleGattServer::Stop() {
   absl::AnyInvocable<void()> close_notifier = nullptr;
   {
     absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Start to stop GATT server.";
+    NEARBY_VLOG(1) << __func__ << ": Start to stop GATT server.";
     if (gatt_service_provider_ != nullptr) {
       try {
         if (is_advertising_) {
@@ -242,8 +241,8 @@ void BleGattServer::Stop() {
 bool BleGattServer::InitializeGattServer() {
   try {
     // Create and advertise GATT service.
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Create GATT service service_uuid="
-                         << std::string(service_uuid_);
+    NEARBY_VLOG(1) << __func__ << ": Create GATT service service_uuid="
+                   << std::string(service_uuid_);
 
     if (adapter_ == nullptr) {
       NEARBY_LOGS(ERROR) << __func__ << ": Bluetooth adapter is absent.";
@@ -320,12 +319,10 @@ bool BleGattServer::InitializeGattServer() {
         is_notify_supported = true;
       }
 
-      NEARBY_LOGS(VERBOSE) << __func__
-                           << ": GATT characteristic properties: read="
-                           << is_read_supported
-                           << ",write=" << is_write_supported
-                           << ",indicate=" << is_indicate_supported
-                           << ",notify=" << is_notify_supported;
+      NEARBY_VLOG(1) << __func__ << ": GATT characteristic properties: read="
+                     << is_read_supported << ",write=" << is_write_supported
+                     << ",indicate=" << is_indicate_supported
+                     << ",notify=" << is_notify_supported;
 
       gatt_characteristic_parameters.CharacteristicProperties(properties);
       gatt_characteristic_parameters.WriteProtectionLevel(
@@ -334,10 +331,10 @@ bool BleGattServer::InitializeGattServer() {
       winrt::guid characteristic_uuid = nearby_uuid_to_winrt_guid(
           characteristic_data.gatt_characteristic.uuid);
 
-      NEARBY_LOGS(VERBOSE) << __func__
-                           << ": Create characteristic characteristic_uuid="
-                           << winrt::to_string(
-                                  winrt::to_hstring(characteristic_uuid));
+      NEARBY_VLOG(1) << __func__
+                     << ": Create characteristic characteristic_uuid="
+                     << winrt::to_string(
+                            winrt::to_hstring(characteristic_uuid));
 
       GattLocalCharacteristicResult result =
           gatt_service_provider_.Service()
@@ -356,9 +353,9 @@ bool BleGattServer::InitializeGattServer() {
 
       ::winrt::guid local_characteristic_guid =
           characteristic_data.local_characteristic.Uuid();
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Local GATT characteristic. uuid: "
-                           << winrt::to_string(
-                                  winrt::to_hstring(local_characteristic_guid));
+      NEARBY_VLOG(1) << __func__ << ": Local GATT characteristic. uuid: "
+                     << winrt::to_string(
+                            winrt::to_hstring(local_characteristic_guid));
 
       // Setup gatt local characteristic events.
       if (is_read_supported) {
@@ -408,9 +405,9 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
   absl::MutexLock lock(&mutex_);
 
   try {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": service_data="
-                         << absl::BytesToHexString(service_data.AsStringView())
-                         << ", is_connectable=" << is_connectable;
+    NEARBY_VLOG(1) << __func__ << ": service_data="
+                   << absl::BytesToHexString(service_data.AsStringView())
+                   << ", is_connectable=" << is_connectable;
 
     if (is_advertising_) {
       NEARBY_LOGS(ERROR) << ": GATT server is already in advertising.";
@@ -567,7 +564,7 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
     request.RespondWithValue(buffer);
     deferral.Complete();
 
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Sent data to remote device.";
+    NEARBY_VLOG(1) << __func__ << ": Sent data to remote device.";
     return {};
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();

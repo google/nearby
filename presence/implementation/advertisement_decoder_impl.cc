@@ -146,9 +146,9 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
         "Data element (%s) is %d bytes long. Expected at least %d",
         absl::BytesToHexString(input), input.size(), index));
   }
-  NEARBY_LOGS(VERBOSE) << "Type: " << static_cast<int>(data_type)
-                       << " length: " << static_cast<int>(length) << " DE: "
-                       << absl::BytesToHexString(input.substr(start, length));
+  NEARBY_VLOG(1) << "Type: " << static_cast<int>(data_type)
+                 << " length: " << static_cast<int>(length) << " DE: "
+                 << absl::BytesToHexString(input.substr(start, length));
   return DataElement(data_type, input.substr(start, length));
 }
 }  // namespace
@@ -244,7 +244,7 @@ absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
     return absl::OutOfRangeError("Empty advertisement");
   }
   uint8_t version = advertisement[0];
-  NEARBY_LOGS(VERBOSE) << "Version: " << version;
+  NEARBY_VLOG(1) << "Version: " << version;
   if (version != kAdvertisementVersion) {
     return absl::UnimplementedError(absl::StrFormat(
         "Advertisement version (%d) is not supported", version));

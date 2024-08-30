@@ -345,8 +345,8 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 
 std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
     api::BluetoothDevice& remote_device) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start to createPairing with device: "
-                       << remote_device.GetMacAddress();
+  NEARBY_VLOG(1) << __func__ << ": Start to createPairing with device: "
+                 << remote_device.GetMacAddress();
   try {
     winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device =
         winrt::Windows::Devices::Bluetooth::BluetoothDevice::
@@ -360,8 +360,8 @@ std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
       return std::make_unique<BluetoothPairing>(bluetooth_device,
                                                 custom_pairing);
     }
-    NEARBY_LOGS(VERBOSE) << __func__
-                         << ": Failed to get DeviceInformationCustomPairing.";
+    NEARBY_VLOG(1) << __func__
+                   << ": Failed to get DeviceInformationCustomPairing.";
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << " : Failed to create pairing. exception: "
                        << exception.what();

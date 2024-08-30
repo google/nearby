@@ -270,7 +270,7 @@ void BaseEndpointChannel::Close() {
     // In case channel is paused, resume it first thing.
     MutexLock lock(&is_paused_mutex_);
     if (is_closed_) {
-      NEARBY_LOGS(VERBOSE) << "EndpointChannel already closed";
+      NEARBY_VLOG(1) << "EndpointChannel already closed";
       return;
     }
     is_closed_ = true;

@@ -600,11 +600,11 @@ void BleMedium::AdvertisementReceivedHandler(
 
       ByteArray advertisement_data(data);
 
-      NEARBY_LOGS(VERBOSE) << "Nearby BLE Medium Advertisement discovered. "
-                              "0x16 Service data: advertisement bytes= 0x"
-                           << absl::BytesToHexString(
-                                  advertisement_data.AsStringView())
-                           << "(" << advertisement_data.size() << ")";
+      NEARBY_VLOG(1) << "Nearby BLE Medium Advertisement discovered. "
+                        "0x16 Service data: advertisement bytes= 0x"
+                     << absl::BytesToHexString(
+                            advertisement_data.AsStringView())
+                     << "(" << advertisement_data.size() << ")";
 
       std::string peripheral_name =
           uint64_to_mac_address_string(args.BluetoothAddress());

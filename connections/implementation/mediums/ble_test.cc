@@ -87,11 +87,10 @@ TEST_P(BleTest, CanStartAcceptingConnectionsAndConnect) {
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                NEARBY_LOG_OBSOLETE(INFO,
-                                    "Discovered peripheral=%p [impl=%p], fast "
-                                    "advertisement=%d.",
-                                    &peripheral, &peripheral.GetImpl(),
-                                    fast_advertisement);
+                NEARBY_LOGS(INFO)
+                    << "Discovered peripheral=" << peripheral.GetName()
+                    << ", impl=" << &peripheral.GetImpl()
+                    << ", fast advertisement=" << fast_advertisement;
                 atomic_discovered_peripheral.store(peripheral);
                 found_latch.CountDown();
               },
@@ -139,11 +138,10 @@ TEST_P(BleTest, CanCancelConnect) {
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                NEARBY_LOG_OBSOLETE(INFO,
-                                    "Discovered peripheral=%p [impl=%p], fast "
-                                    "advertisement = %d.",
-                                    &peripheral, &peripheral.GetImpl(),
-                                    fast_advertisement);
+                NEARBY_LOGS(INFO)
+                    << "Discovered peripheral=" << peripheral.GetName()
+                    << ", impl=" << &peripheral.GetImpl()
+                    << ", fast advertisement=" << fast_advertisement;
                 atomic_discovered_peripheral.store(peripheral);
                 found_latch.CountDown();
               },

@@ -124,7 +124,7 @@ BasePcpHandler::BasePcpHandler(Mediums* mediums,
       bwu_manager_(bwu_manager) {}
 
 BasePcpHandler::~BasePcpHandler() {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  NEARBY_VLOG(1) << __func__;
   Shutdown();
 }
 
@@ -630,7 +630,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
     return;
   }
 
-  NEARBY_LOGS(VERBOSE)
+  NEARBY_VLOG(1)
       << __func__
       << ": beginning authentication to the remote device as an initiator";
   ConnectionsAuthenticationTransport connections_authentication_transport =

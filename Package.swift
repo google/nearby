@@ -535,7 +535,6 @@ let package = Package(
         "internal/platform/bluetooth_connection_info_test.cc",
         "internal/platform/mutex_test.cc",
         "internal/platform/atomic_reference_test.cc",
-        "internal/platform/logging_test.cc",
         "internal/platform/multi_thread_executor_test.cc",
         "internal/platform/ble_connection_info_test.cc",
         "internal/platform/ble_test.cc",

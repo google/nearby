@@ -25,7 +25,7 @@
 namespace nearby {
 namespace windows {
 
-api::LogMessage::Severity min_log_severity_ = api::LogMessage::Severity::kInfo;
+api::LogMessage::Severity g_min_log_severity = api::LogMessage::Severity::kInfo;
 
 inline absl::LogSeverity ConvertSeverity(api::LogMessage::Severity severity) {
   switch (severity) {
@@ -65,11 +65,11 @@ std::ostream& LogMessage::Stream() { return log_streamer_.stream(); }
 namespace api {
 
 void LogMessage::SetMinLogSeverity(Severity severity) {
-  windows::min_log_severity_ = severity;
+  windows::g_min_log_severity = severity;
 }
 
 bool LogMessage::ShouldCreateLogMessage(Severity severity) {
-  return severity >= windows::min_log_severity_;
+  return severity >= windows::g_min_log_severity;
 }
 }  // namespace api
 }  // namespace nearby

@@ -24,6 +24,7 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -180,7 +181,7 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Store device name, and report it as discovered.
       info.devices.emplace(&device, name);
       if (enable_notifications_) {
-        NEARBY_LOGS(VERBOSE) << "Notify about new discovered device";
+        NEARBY_VLOG(1) << "Notify about new discovered device";
         info.callback.device_discovered_cb(device);
         for (auto& observer : observers_.GetObservers()) {
           observer->DeviceAdded(device);
@@ -204,7 +205,7 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       } else {
         // Device is in discovery mode, so we are reporting it anyway.
         if (enable_notifications_) {
-          NEARBY_LOGS(VERBOSE) << "Notify about existing discovered device";
+          NEARBY_VLOG(1) << "Notify about existing discovered device";
           info.callback.device_discovered_cb(device);
           for (auto& observer : observers_.GetObservers()) {
             observer->DeviceAdded(device);
@@ -216,7 +217,7 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Known device is turned off.
       // Erase it from the map, and report as lost.
       if (enable_notifications_) {
-        NEARBY_LOGS(VERBOSE) << "Notify about removed device";
+        NEARBY_VLOG(1) << "Notify about removed device";
         info.callback.device_lost_cb(device);
         for (auto& observer : observers_.GetObservers()) {
           observer->DeviceRemoved(device);
@@ -530,7 +531,8 @@ void MediumEnvironment::UpdateBleMediumForScanning(
                           << "; medium=" << &medium
                           << "; service_id=" << service_id
                           << "; fast_advertisement_service_uuid="
-                          << fast_advertisement_service_uuid
+                          << absl::BytesToHexString(
+                                 fast_advertisement_service_uuid)
                           << "; enabled=" << enabled;
         for (auto& medium_info : ble_mediums_) {
           auto& local_medium = medium_info.first;

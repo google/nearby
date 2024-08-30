@@ -22,6 +22,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 
@@ -91,7 +92,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     // prevent the stale data in cache.
     peripherals_.clear();
     scanning_enabled_ = true;
-    NEARBY_LOG_OBSOLETE(INFO, "Ble Scanning enabled; impl=%p", GetImpl());
+    NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
   }
   return success;
 }
@@ -106,7 +107,7 @@ bool BleV2Medium::StopScanning() {
   scanning_enabled_ = false;
   peripherals_.clear();
   scan_callback_ = {};
-  NEARBY_LOG_OBSOLETE(INFO, "Ble Scanning disabled: impl=%p", GetImpl());
+  NEARBY_LOGS(INFO) << "Ble Scanning disabled: impl=" << GetImpl();
   return impl_->StopScanning();
 }
 
@@ -114,7 +115,7 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>
 BleV2Medium::StartScanning(const Uuid& service_uuid,
                            api::ble_v2::TxPowerLevel tx_power_level,
                            api::ble_v2::BleMedium::ScanningCallback callback) {
-  NEARBY_LOG_OBSOLETE(INFO, "platform mutex: %p", &mutex_);
+  NEARBY_LOGS(INFO) << "platform mutex: " << &mutex_;
   return impl_->StartScanning(
       service_uuid, tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback{

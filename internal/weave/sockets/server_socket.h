@@ -15,10 +15,9 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_WEAVE_SOCKETS_SERVER_SOCKET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_WEAVE_SOCKETS_SERVER_SOCKET_H_
 
-#include <memory>
-
 #include "internal/weave/base_socket.h"
 #include "internal/weave/connection.h"
+#include "internal/weave/packet.h"
 #include "internal/weave/socket_callback.h"
 
 namespace nearby {

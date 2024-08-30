@@ -171,7 +171,7 @@ absl::optional<LocalCredential> BroadcastManager::SelectCredential(  // NOLINT
   }
   std::string salt = SelectSalt(*credential, broadcast_request.salt);
   if (salt != broadcast_request.salt) {
-    NEARBY_LOGS(VERBOSE) << "Changed salt";
+    NEARBY_VLOG(1) << "Changed salt";
     broadcast_request.salt = salt;
   }
   return *credential;
@@ -193,7 +193,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(  // NOLINT
     NEARBY_LOGS(WARNING) << "Can't create advertisement, reason: "
                          << advertisement.status();
     NotifyStartCallbackStatus(id, advertisement.status());
-    return absl::optional<LocalCredential>(); //NOLINT
+    return absl::optional<LocalCredential>();  // NOLINT
   }
   std::unique_ptr<AdvertisingSession> session =
       mediums_->GetBle().StartAdvertising(
@@ -205,7 +205,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(  // NOLINT
   if (!session) {
     NotifyStartCallbackStatus(id,
                               absl::InternalError("Can't start advertising"));
-    return absl::optional<LocalCredential>(); //NOLINT
+    return absl::optional<LocalCredential>();  // NOLINT
   }
   it->second.SetAdvertisingSession(std::move(session));
   return credential;
@@ -233,8 +233,8 @@ void BroadcastManager::StopBroadcast(BroadcastSessionId id) {
       "stop-broadcast", [this, id]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
         auto it = sessions_.find(id);
         if (it == sessions_.end()) {
-          NEARBY_LOGS(VERBOSE)
-              << absl::StrFormat("BroadcastSession(0x%x) not found", id);
+          NEARBY_VLOG(1) << absl::StrFormat("BroadcastSession(0x%x) not found",
+                                            id);
           return;
         }
         it->second.StopAdvertising();

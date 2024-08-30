@@ -1085,13 +1085,12 @@ void BleV2Medium::AdvertisementReceivedHandler(
 
       ByteArray advertisement_data(data);
 
-      NEARBY_LOGS(VERBOSE) << "Nearby BLE Medium "
-                           << service_uuid_.Get16BitAsString()
-                           << " Advertisement discovered. "
-                              "0x16 Service data: advertisement bytes= 0x"
-                           << absl::BytesToHexString(
-                                  advertisement_data.AsStringView())
-                           << "(" << advertisement_data.size() << ")";
+      NEARBY_VLOG(1) << "Nearby BLE Medium " << service_uuid_.Get16BitAsString()
+                     << " Advertisement discovered. "
+                        "0x16 Service data: advertisement bytes= 0x"
+                     << absl::BytesToHexString(
+                            advertisement_data.AsStringView())
+                     << "(" << advertisement_data.size() << ")";
 
       std::string bluetooth_address =
           uint64_to_mac_address_string(args.BluetoothAddress());

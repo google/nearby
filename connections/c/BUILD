@@ -93,6 +93,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:types",
         "//proto:connections_enums_cc_proto",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",

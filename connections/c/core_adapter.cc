@@ -23,7 +23,7 @@ namespace nearby::windows {
 
 Core *InitCore(connections::ServiceControllerRouter *router) {
 #if defined(LOG_SEVERITY_VERBOSE)
-  NEARBY_LOG_SET_SEVERITY(VERBOSE);
+  absl::SetGlobalVLogLevel(1);
 #endif  // LOG_SEVERITY_VERBOSE;
   return new nearby::connections::Core(router);
 }

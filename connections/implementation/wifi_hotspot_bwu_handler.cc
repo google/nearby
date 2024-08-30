@@ -14,16 +14,24 @@
 
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 
+#include <cstdint>
 #include <locale>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
+#include "connections/strategy.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
@@ -135,7 +143,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE)
+  NEARBY_VLOG(1)
       << "WifiHotspotBwuHandler successfully connected to WifiHotspot service ("
       << gateway << ":" << port << ") while upgrading endpoint " << endpoint_id;
 

@@ -207,8 +207,8 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
   while (true) {
     ExceptionOr<ByteArray> decrypted = endpoint_channel->TryDecrypt(data);
     if (decrypted.ok()) {
-      NEARBY_LOGS(VERBOSE) << "Message decrypted after "
-                           << SystemClock::ElapsedRealtime() - start_time;
+      NEARBY_VLOG(1) << "Message decrypted after "
+                     << SystemClock::ElapsedRealtime() - start_time;
       return parser::FromBytes(decrypted.result());
     }
     if (decrypted.exception() == Exception::kExecution) {
@@ -500,15 +500,14 @@ EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
 }
 
 void EndpointManager::RemoveEndpointState(const std::string& endpoint_id) {
-  NEARBY_LOGS(VERBOSE) << "EnsureWorkersTerminated for endpoint "
-                       << endpoint_id;
+  NEARBY_VLOG(1) << "EnsureWorkersTerminated for endpoint " << endpoint_id;
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
     NEARBY_LOGS(INFO) << "EndpointState found for endpoint " << endpoint_id;
     // If another instance of data and keep-alive handlers is running, it will
     // terminate soon. Removing EndpointState waits for workers to complete.
     endpoints_.erase(item);
-    NEARBY_LOGS(VERBOSE) << "Workers terminated for endpoint " << endpoint_id;
+    NEARBY_VLOG(1) << "Workers terminated for endpoint " << endpoint_id;
   } else {
     NEARBY_LOGS(INFO) << "EndpointState not found for endpoint " << endpoint_id;
   }
@@ -592,8 +591,8 @@ void EndpointManager::RegisterEndpoint(
     // (**) Wifi Hotspots can fail to notice a connection has been lost,
     // and they will happily keep writing to /dev/null. This is why we
     // listen for the pong.
-    NEARBY_LOGS(VERBOSE) << "EndpointManager enabling KeepAlive for endpoint "
-                         << endpoint_id;
+    NEARBY_VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
+                   << endpoint_id;
     endpoint_state.StartEndpointKeepAliveManager(
         [this, client, endpoint_id, keep_alive_interval, keep_alive_timeout](
             Mutex* keep_alive_waiter_mutex,
@@ -708,14 +707,14 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
     {
       MutexLock lock(&mutex_);
       if (is_shutdown_) {
-        NEARBY_LOGS(VERBOSE)
+        NEARBY_VLOG(1)
             << "DiscardEndpoint called during destruction, returning early.";
         return;
       }
     }
 
     RemoveEndpoint(client, endpoint_id,
-                   /* notify */client->IsConnectedToEndpoint(endpoint_id),
+                   /* notify */ client->IsConnectedToEndpoint(endpoint_id),
                    reason);
   });
 }
@@ -760,7 +759,7 @@ void EndpointManager::RemoveEndpoint(ClientProxy* client,
               ? ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION
               : ConnectionsLog::EstablishedConnection::UNSAFE_DISCONNECTION;
       NEARBY_LOGS(INFO) << "[safe-to-disconnect] safe_disconnect_result:"
-                        << (safe_disconnect_result? "true" : "false");
+                        << (safe_disconnect_result ? "true" : "false");
     }
   }
   if (safe_disconnect_result ==
@@ -796,8 +795,8 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
   bool is_safe_disconnection = false;
   bool send_disconnection_frame = true;
   absl::Duration timeout_millis = FeatureFlags::GetInstance()
-                               .GetFlags()
-                               .safe_to_disconnect_ack_delay_millis;
+                                      .GetFlags()
+                                      .safe_to_disconnect_ack_delay_millis;
   bool is_wait_for_ack = true;
   switch (reason) {
     case DisconnectionReason::UPGRADED:
@@ -814,10 +813,9 @@ bool EndpointManager::ApplySafeToDisconnect(const std::string& endpoint_id,
     case DisconnectionReason::REMOTE_DISCONNECTION:
       is_safe_disconnection = true;
       send_disconnection_frame = false;
-      timeout_millis =
-          FeatureFlags::GetInstance()
-              .GetFlags()
-              .safe_to_disconnect_remote_disc_delay_millis;
+      timeout_millis = FeatureFlags::GetInstance()
+                           .GetFlags()
+                           .safe_to_disconnect_remote_disc_delay_millis;
       is_wait_for_ack = false;
       break;
     default:
@@ -913,8 +911,7 @@ CountDownLatch EndpointManager::NotifyFrameProcessorsOnEndpointDisconnect(
 }
 
 std::vector<std::string> EndpointManager::SendPayloadAck(
-std::int64_t payload_id,
-      const std::vector<std::string>& endpoint_ids) {
+    std::int64_t payload_id, const std::vector<std::string>& endpoint_ids) {
   ByteArray bytes = parser::ForPayloadAckPayloadTransfer(payload_id);
   PacketMetaData packet_meta_data;
 
@@ -925,7 +922,6 @@ std::int64_t payload_id,
       PayloadTransferFrame::PacketType_Name(PayloadTransferFrame::PAYLOAD_ACK),
       packet_meta_data);
 }
-
 
 std::vector<std::string> EndpointManager::SendTransferFrameBytes(
     const std::vector<std::string>& endpoint_ids, const ByteArray& bytes,
@@ -971,7 +967,7 @@ EndpointManager::EndpointState::~EndpointState() {
   // object (in move constructor) which prevents unregistering the channel
   // prematurely.
   if (channel_manager_) {
-    NEARBY_LOGS(VERBOSE) << "EndpointState destructor " << endpoint_id_;
+    NEARBY_VLOG(1) << "EndpointState destructor " << endpoint_id_;
     channel_manager_->UnregisterChannelForEndpoint(
         endpoint_id_, DisconnectionReason::SHUTDOWN,
         ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);

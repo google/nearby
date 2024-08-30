@@ -53,9 +53,9 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   const std::string& ip_address = upgrade_path_info_socket.ip_address();
   std::int32_t port = upgrade_path_info_socket.wifi_port();
 
-  NEARBY_LOGS(VERBOSE) << "WifiLanBwuHandler is attempting to connect to "
-                       << "available WifiLan service (" << ip_address << ":"
-                       << port << ") for endpoint " << endpoint_id;
+  NEARBY_VLOG(1) << "WifiLanBwuHandler is attempting to connect to "
+                 << "available WifiLan service (" << ip_address << ":" << port
+                 << ") for endpoint " << endpoint_id;
 
   WifiLanSocket socket = wifi_lan_medium_.Connect(
       service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
@@ -67,7 +67,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE)
+  NEARBY_VLOG(1)
       << "WifiLanBwuHandler successfully connected to WifiLan service ("
       << ip_address << ":" << port << ") while upgrading endpoint "
       << endpoint_id;

@@ -234,9 +234,9 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
   } else if (incoming_sockets_.empty()) {
     // Otherwise, if we aren't restarting the BLE advertisement, then shutdown
     // the gatt server if it's not in use.
-    NEARBY_LOGS(VERBOSE) << "Aggressively stopping any pre-existing "
-                            "advertisement GATT servers "
-                            "because no incoming BLE sockets are connected.";
+    NEARBY_VLOG(1) << "Aggressively stopping any pre-existing "
+                      "advertisement GATT servers "
+                      "because no incoming BLE sockets are connected.";
     StopAdvertisementGattServerLocked();
   }
 
@@ -820,8 +820,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     if (characteristic_byte.has_value()) {
       advertisement_read_result.AddAdvertisement(
           slot, ByteArray(characteristic_byte.value()));
-      NEARBY_LOGS(VERBOSE) << "Successfully read advertisement at slot="
-                           << slot;
+      NEARBY_VLOG(1) << "Successfully read advertisement at slot=" << slot;
     } else {
       NEARBY_LOGS(WARNING) << "Can't read advertisement for slot=" << slot;
       read_success = false;
@@ -1011,7 +1010,7 @@ bool BleV2::StartGattAdvertisingLocked(
   // remote device is indefinitely connected to this device's GATT server is
   // when it has a BLE socket connection.
   if (incoming_sockets_.empty()) {
-    NEARBY_LOGS(VERBOSE)
+    NEARBY_VLOG(1)
         << "Aggressively stopping any pre-existing advertisement GATT "
            "servers because no incoming BLE sockets are connected";
     StopAdvertisementGattServerLocked();

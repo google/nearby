@@ -139,7 +139,7 @@ void BaseSocket::WritePacket(absl::StatusOr<Packet> packet) {
     NEARBY_LOGS(WARNING) << "Packet status:" << packet.status();
     return;
   }
-  CHECK(packet->SetPacketCounter(packet_counter_generator_.Next()).ok());
+  CHECK_OK(packet->SetPacketCounter(packet_counter_generator_.Next()));
   NEARBY_LOGS(INFO) << "transmitting packet";
   connection_.Transmit(packet->GetBytes());
 }

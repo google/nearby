@@ -83,13 +83,12 @@ ThreadPool::ThreadPool(PTP_POOL thread_pool,
     : thread_pool_(thread_pool),
       thread_pool_environ_(thread_pool_environ),
       max_pool_size_(max_pool_size) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                       << ") is created with size:" << max_pool_size_;
+  NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
+                 << ") is created with size:" << max_pool_size_;
 }
 
 ThreadPool::~ThreadPool() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                       << ") is released.";
+  NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this << ") is released.";
 
   if (thread_pool_ == nullptr) {
     return;
@@ -112,8 +111,8 @@ bool ThreadPool::Run(Runnable task) {
 
   PTP_WORK work;
   tasks_.push(std::move(task));
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Scheduled to run task("
-                       << &tasks_.back() << ").";
+  NEARBY_VLOG(1) << __func__ << ": Scheduled to run task(" << &tasks_.back()
+                 << ").";
 
   work = CreateThreadpoolWork(WorkCallback, this, &thread_pool_environ_);
   if (work == nullptr) {
@@ -146,19 +145,19 @@ void ThreadPool::ShutDown() {
     if (running_tasks_count_ == 0) {
       CloseThreadpool(thread_pool_);
       thread_pool_ = nullptr;
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                           << ") is shut down.";
+      NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
+                     << ") is shut down.";
       return;
     }
 
     if (shutdown_latch_ != nullptr) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                           << ") is already in shutting down.";
+      NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
+                     << ") is already in shutting down.";
       return;
     }
 
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                         << ") is shutting down.";
+    NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
+                   << ") is shutting down.";
 
     shutdown_latch_ = std::make_unique<CountDownLatch>(1);
   }
@@ -170,8 +169,7 @@ void ThreadPool::ShutDown() {
     absl::MutexLock lock(&mutex_);
     CloseThreadpool(thread_pool_);
     thread_pool_ = nullptr;
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Thread pool(" << this
-                         << ") is shut down.";
+    NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this << ") is shut down.";
   }
 }
 
@@ -185,8 +183,7 @@ void ThreadPool::RunNextTask() {
       return;
     }
     if (!tasks_.empty()) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Run task(" << &tasks_.front()
-                           << ").";
+      NEARBY_VLOG(1) << __func__ << ": Run task(" << &tasks_.front() << ").";
 
       task = std::move(tasks_.front());
       tasks_.pop();

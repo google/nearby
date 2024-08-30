@@ -15,9 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_WEAVE_SOCKETS_INITIAL_DATA_PROVIDER_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_WEAVE_SOCKETS_INITIAL_DATA_PROVIDER_H_
 
+#include <cmath>
+#include <cstdint>
 #include <string>
 
 #include "absl/random/random.h"
+#include "absl/strings/str_cat.h"
 
 namespace nearby {
 namespace weave {

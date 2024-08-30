@@ -101,7 +101,7 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       injected_bluetooth_device_store_(injected_bluetooth_device_store) {}
 
 P2pClusterPcpHandler::~P2pClusterPcpHandler() {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  NEARBY_VLOG(1) << __func__;
   Shutdown();
 }
 
@@ -1873,9 +1873,9 @@ void P2pClusterPcpHandler::StartBluetoothDiscoveryWithPause(
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
     ClientProxy* client, BluetoothEndpoint* endpoint) {
-  NEARBY_LOGS(VERBOSE) << "Client " << client->GetClientId()
-                       << " is attempting to connect to endpoint(id="
-                       << endpoint->endpoint_id << ") over Bluetooth Classic.";
+  NEARBY_VLOG(1) << "Client " << client->GetClientId()
+                 << " is attempting to connect to endpoint(id="
+                 << endpoint->endpoint_id << ") over Bluetooth Classic.";
   BluetoothDevice& device = endpoint->bluetooth_device;
 
   BluetoothSocket bluetooth_socket = bluetooth_medium_.Connect(
@@ -1894,9 +1894,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
   auto channel = std::make_unique<BluetoothEndpointChannel>(
       endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
       bluetooth_socket);
-  NEARBY_LOGS(VERBOSE) << "Client" << client->GetClientId()
-                       << " created Bluetooth endpoint channel to endpoint(id="
-                       << endpoint->endpoint_id << ").";
+  NEARBY_VLOG(1) << "Client" << client->GetClientId()
+                 << " created Bluetooth endpoint channel to endpoint(id="
+                 << endpoint->endpoint_id << ").";
   client->SetBluetoothMacAddress(endpoint->endpoint_id, device.GetMacAddress());
   return BasePcpHandler::ConnectImplResult{
       .medium = Medium::BLUETOOTH,
@@ -2096,9 +2096,9 @@ Medium P2pClusterPcpHandler::StartBleScanning(
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
     ClientProxy* client, BleEndpoint* endpoint) {
-  NEARBY_LOGS(VERBOSE) << "Client " << client->GetClientId()
-                       << " is attempting to connect to endpoint(id="
-                       << endpoint->endpoint_id << ") over BLE.";
+  NEARBY_VLOG(1) << "Client " << client->GetClientId()
+                 << " is attempting to connect to endpoint(id="
+                 << endpoint->endpoint_id << ") over BLE.";
 
   BlePeripheral& peripheral = endpoint->ble_peripheral;
 
@@ -2317,9 +2317,9 @@ Medium P2pClusterPcpHandler::StartBleV2Scanning(
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
     ClientProxy* client, BleV2Endpoint* endpoint) {
-  NEARBY_LOGS(VERBOSE) << "Client " << client->GetClientId()
-                       << " is attempting to connect to endpoint(id="
-                       << endpoint->endpoint_id << ") over BLE.";
+  NEARBY_VLOG(1) << "Client " << client->GetClientId()
+                 << " is attempting to connect to endpoint(id="
+                 << endpoint->endpoint_id << ") over BLE.";
 
   BleV2Peripheral& peripheral = endpoint->ble_peripheral;
 

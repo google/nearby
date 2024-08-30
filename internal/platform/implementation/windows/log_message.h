@@ -36,7 +36,6 @@ class LogMessage : public api::LogMessage {
 
  private:
   google::LogMessage log_streamer_;
-  static api::LogMessage::Severity min_log_severity_;
 };
 
 }  // namespace windows

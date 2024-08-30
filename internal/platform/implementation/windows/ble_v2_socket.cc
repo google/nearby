@@ -40,26 +40,26 @@ api::ble_v2::BlePeripheral* BleV2Socket::GetRemotePeripheral() {
 
 bool BleV2Socket::Connect(api::ble_v2::BlePeripheral* ble_peripheral) {
   // TODO(b/271031645): implement BLE socket using weave
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Connect to BLE peripheral="
-                       << ble_peripheral->GetAddress();
+  NEARBY_VLOG(1) << __func__ << ": Connect to BLE peripheral="
+                 << ble_peripheral->GetAddress();
   return false;
 }
 
 ExceptionOr<ByteArray> BleV2Socket::BleInputStream::Read(std::int64_t size) {
   // TODO(b/271031645): implement BLE socket using weave
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Read data size=" << size;
+  NEARBY_VLOG(1) << __func__ << ": Read data size=" << size;
   return ExceptionOr<ByteArray>(Exception::kIo);
 }
 
 Exception BleV2Socket::BleInputStream::Close() {
   // TODO(b/271031645): implement BLE socket using weave
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Close BLE input stream.";
+  NEARBY_VLOG(1) << __func__ << ": Close BLE input stream.";
   return {Exception::kSuccess};
 }
 
 Exception BleV2Socket::BleOutputStream::Write(const ByteArray& data) {
   // TODO(b/271031645): implement BLE socket using weave
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Write data size=" << data.size();
+  NEARBY_VLOG(1) << __func__ << ": Write data size=" << data.size();
   return {Exception::kIo};
 }
 

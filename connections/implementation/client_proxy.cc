@@ -1026,11 +1026,10 @@ void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
       item->second.payload_progress_cb(endpoint_id, info);
 
       if (info.status == PayloadProgressInfo::Status::kInProgress) {
-        NEARBY_LOGS(VERBOSE)
-            << "ClientProxy [reporting onPayloadProgress]: client="
-            << GetClientId() << "; endpoint_id=" << endpoint_id
-            << "; payload_id=" << info.payload_id
-            << ", payload_status=" << ToString(info.status);
+        NEARBY_VLOG(1) << "ClientProxy [reporting onPayloadProgress]: client="
+                       << GetClientId() << "; endpoint_id=" << endpoint_id
+                       << "; payload_id=" << info.payload_id
+                       << ", payload_status=" << ToString(info.status);
       } else {
         NEARBY_LOGS(INFO)
             << "ClientProxy [reporting onPayloadProgress]: client="
@@ -1133,16 +1132,16 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
   CancelClearCachedEndpointIdAlarm();
 
   if (cached_endpoint_id_.empty()) {
-    NEARBY_LOGS(VERBOSE) << "ClientProxy [There is no cached local high power "
-                            "advertising endpoint Id]: client="
-                         << GetClientId();
+    NEARBY_VLOG(1) << "ClientProxy [There is no cached local high power "
+                      "advertising endpoint Id]: client="
+                   << GetClientId();
     return;
   }
 
   if (IsFeatureUseStableEndpointIdEnabled() && HasOngoingConnection()) {
-    NEARBY_LOGS(VERBOSE) << "ClientProxy [Handle clearing cached endpoint ID "
-                            "during disconnection]: client="
-                         << GetClientId();
+    NEARBY_VLOG(1) << "ClientProxy [Handle clearing cached endpoint ID "
+                      "during disconnection]: client="
+                   << GetClientId();
     return;
   }
 

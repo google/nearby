@@ -60,8 +60,7 @@ const std::string WebRtcMedium::GetDefaultCountryCode() {
   }
   std::wstring wideGeo(systemGeoName);
   std::string systemGeoNameString(wideGeo.begin(), wideGeo.end());
-  NEARBY_LOGS(VERBOSE) << "GetUserDefaultGeoName() returns: "
-                       << systemGeoNameString;
+  NEARBY_VLOG(1) << "GetUserDefaultGeoName() returns: " << systemGeoNameString;
   return systemGeoNameString;
 }
 

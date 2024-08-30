@@ -151,8 +151,8 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
     if (!result.ok()) {
       return result;
     }
-    NEARBY_LOGS(VERBOSE) << "Unencrypted advertisement payload "
-                         << absl::BytesToHexString(unencrypted);
+    NEARBY_VLOG(1) << "Unencrypted advertisement payload "
+                   << absl::BytesToHexString(unencrypted);
     absl::StatusOr<std::string> encrypted =
         EncryptDataElements(*credential, request.salt, unencrypted);
     if (!encrypted.ok()) {

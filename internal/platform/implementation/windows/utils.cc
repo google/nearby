@@ -15,18 +15,20 @@
 #include "internal/platform/implementation/windows/utils.h"
 
 #include <windows.h>
+#include <winsock2.h>
 
 // Standard C/C++ headers
 #include <codecvt>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <locale>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 // Third party headers
 #include "absl/strings/ascii.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 
 // Nearby connections headers
@@ -182,8 +184,8 @@ Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {
   int64_t data3 = guid.Data3;
 
   int64_t msb = ((data1 >> 24) & 0xff) << 56 | ((data1 >> 16) & 0xff) << 48 |
-                ((data1 >> 8) & 0xff) << 40 | ((data1)&0xff) << 32 |
-                ((data2 >> 8) & 0xff) << 24 | ((data2)&0xff) << 16 |
+                ((data1 >> 8) & 0xff) << 40 | ((data1) & 0xff) << 32 |
+                ((data2 >> 8) & 0xff) << 24 | ((data2) & 0xff) << 16 |
                 ((data3 >> 8) & 0xff) << 8 | (data3 & 0xff);
 
   int64_t lsb =
@@ -215,7 +217,7 @@ winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid) {
 }
 
 bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
-                                     const ::winrt::guid& guid) {
+                                        const ::winrt::guid& guid) {
   return uuid == winrt_guid_to_nearby_uuid(guid);
 }
 
@@ -242,7 +244,7 @@ bool InspectableReader::ReadBoolean(IInspectable inspectable) {
   return property_value.GetBoolean();
 }
 
-uint16 InspectableReader::ReadUint16(IInspectable inspectable) {
+uint16_t InspectableReader::ReadUint16(IInspectable inspectable) {
   if (inspectable == nullptr) {
     return 0;
   }
@@ -260,7 +262,7 @@ uint16 InspectableReader::ReadUint16(IInspectable inspectable) {
   return property_value.GetUInt16();
 }
 
-uint32 InspectableReader::ReadUint32(IInspectable inspectable) {
+uint32_t InspectableReader::ReadUint32(IInspectable inspectable) {
   if (inspectable == nullptr) {
     return 0;
   }
@@ -316,7 +318,7 @@ std::vector<std::string> InspectableReader::ReadStringArray(
   winrt::com_array<winrt::hstring> strings;
   property_value.GetStringArray(strings);
 
-  for (winrt::hstring str : strings) {
+  for (const winrt::hstring& str : strings) {
     result.push_back(winrt::to_string(str));
   }
   return result;

@@ -606,11 +606,11 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
 
   // Check if the advertisement header contains a service ID we're tracking.
   if (!IsInterestingAdvertisementHeader(advertisement_header)) {
-    NEARBY_LOGS(VERBOSE) << "Ignoring BLE advertisement header="
-                         << absl::BytesToHexString(
-                                ByteArray(advertisement_header).data())
-                         << " because it does not contain any service IDs "
-                            "we're interested in.";
+    NEARBY_VLOG(1) << "Ignoring BLE advertisement header="
+                   << absl::BytesToHexString(
+                          ByteArray(advertisement_header).data())
+                   << " because it does not contain any service IDs "
+                      "we're interested in.";
     return;
   }
 
@@ -633,14 +633,14 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableGattQueryInThread)) {
-      NEARBY_LOGS(VERBOSE) << ": Handle GATT advertisement "
-                           << absl::BytesToHexString(
-                                  ByteArray(advertisement_header).data())
-                           << " in thread";
+      NEARBY_VLOG(1) << ": Handle GATT advertisement "
+                     << absl::BytesToHexString(
+                            ByteArray(advertisement_header).data())
+                     << " in thread";
 
       if (!fetching_advertisements_.insert(advertisement_header).second) {
-        NEARBY_LOGS(VERBOSE) << ": Ignore the advertisement header due to it "
-                                "is already in fetching.";
+        NEARBY_VLOG(1) << ": Ignore the advertisement header due to it "
+                          "is already in fetching.";
         return;
       }
 
@@ -829,10 +829,10 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
                                 /*service_uuid=*/{});
     UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
     fetching_advertisements_.erase(advertisement_header);
-    NEARBY_LOGS(VERBOSE) << ": Completed to handle GATT advertisement "
-                         << absl::BytesToHexString(
-                                ByteArray(advertisement_header).data())
-                         << " in thread";
+    NEARBY_VLOG(1) << ": Completed to handle GATT advertisement "
+                   << absl::BytesToHexString(
+                          ByteArray(advertisement_header).data())
+                   << " in thread";
   }
 }
 

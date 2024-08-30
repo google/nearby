@@ -27,7 +27,9 @@
 #include "absl/container/btree_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/payload_type.h"
+#include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/error_code_params.h"
@@ -37,6 +39,7 @@
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
+#include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
 namespace analytics {
@@ -492,9 +495,9 @@ void AnalyticsRecorder::OnConnectionClosed(const std::string &endpoint_id,
   }
 
   if (current_strategy_session_ == nullptr) {
-    NEARBY_LOGS(VERBOSE)
-        << "AnalyticsRecorder CanRecordAnalytics Unexpected call " << __func__
-        << " since current_strategy_session_ is required.";
+    NEARBY_VLOG(1) << "AnalyticsRecorder CanRecordAnalytics Unexpected call "
+                   << __func__
+                   << " since current_strategy_session_ is required.";
     return;
   }
 
@@ -708,9 +711,8 @@ void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
         connections_log.set_version(kVersion);
         connections_log.set_allocated_error_code(error_code);
 
-        NEARBY_LOGS(VERBOSE)
-            << "AnalyticsRecorder LogErrorCode connections_log="
-            << connections_log.DebugString();
+        NEARBY_VLOG(1) << "AnalyticsRecorder LogErrorCode connections_log="
+                       << connections_log.DebugString();  // NOLINT
 
         event_logger_->Log(connections_log);
       });
@@ -772,16 +774,15 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
 
 bool AnalyticsRecorder::CanRecordAnalyticsLocked(
     absl::string_view method_name) {
-  NEARBY_LOGS(VERBOSE) << "AnalyticsRecorder LogEvent " << method_name
-                       << " is calling.";
+  NEARBY_VLOG(1) << "AnalyticsRecorder LogEvent " << method_name
+                 << " is calling.";
   if (event_logger_ == nullptr) {
     return false;
   }
 
   if (session_was_logged_) {
-    NEARBY_LOGS(VERBOSE)
-        << "AnalyticsRecorder CanRecordAnalytics Unexpected call "
-        << method_name << " after session has already been logged.";
+    NEARBY_VLOG(1) << "AnalyticsRecorder CanRecordAnalytics Unexpected call "
+                   << method_name << " after session has already been logged.";
     return false;
   }
 
@@ -797,9 +798,8 @@ void AnalyticsRecorder::LogClientSessionLocked() {
         connections_log.set_allocated_client_session(client_session.release());
         connections_log.set_version(kVersion);
 
-        NEARBY_LOGS(VERBOSE)
-            << "AnalyticsRecorder LogClientSession connections_log="
-            << connections_log.DebugString();
+        NEARBY_VLOG(1) << "AnalyticsRecorder LogClientSession connections_log="
+                       << connections_log.DebugString();  // NOLINT
 
         event_logger_->Log(connections_log);
       });
@@ -812,8 +812,8 @@ void AnalyticsRecorder::LogEvent(EventType event_type) {
     connections_log.set_event_type(event_type);
     connections_log.set_version(kVersion);
 
-    NEARBY_LOGS(VERBOSE) << "AnalyticsRecorder LogEvent connections_log="
-                         << connections_log.DebugString();
+    NEARBY_VLOG(1) << "AnalyticsRecorder LogEvent connections_log="
+                   << connections_log.DebugString();  // NOLINT
 
     event_logger_->Log(connections_log);
   });

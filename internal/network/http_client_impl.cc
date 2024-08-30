@@ -155,7 +155,7 @@ absl::StatusOr<HttpResponse> NearbyHttpClient::InternalGetResponse(
     request_stream << std::endl;
     request_stream << "body size: " << request.GetBody().GetRawData().size()
                    << std::endl;
-    NEARBY_LOGS(VERBOSE) << request_stream.str();
+    NEARBY_VLOG(1) << request_stream.str();
   }
 
   absl::StatusOr<api::WebResponse> web_response =
@@ -176,7 +176,7 @@ absl::StatusOr<HttpResponse> NearbyHttpClient::InternalGetResponse(
     }
     response_stream << std::endl;
     response_stream << "body size: " << web_response->body.size() << std::endl;
-    NEARBY_LOGS(VERBOSE) << response_stream.str();
+    NEARBY_VLOG(1) << response_stream.str();
   }
 
   HttpResponse response;

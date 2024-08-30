@@ -31,6 +31,7 @@ cc_library(
         "//internal/weave",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
     ],
 )
 

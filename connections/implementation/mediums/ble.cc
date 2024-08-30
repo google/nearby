@@ -22,6 +22,7 @@
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/utils.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
@@ -91,7 +92,7 @@ bool Ble::StartAdvertising(const std::string& service_id,
                     << advertisement_bytes.size() << ")"
                     << ", service id=" << service_id
                     << ", fast advertisement service uuid="
-                    << fast_advertisement_service_uuid;
+                    << absl::BytesToHexString(fast_advertisement_service_uuid);
 
   // Wrap the connections advertisement to the medium advertisement.
   const bool fast_advertisement = !fast_advertisement_service_uuid.empty();

@@ -499,7 +499,6 @@ cc_test(
         "crypto_test.cc",
         "direct_executor_test.cc",
         "future_test.cc",
-        "logging_test.cc",
         "multi_thread_executor_test.cc",
         "mutex_test.cc",
         "scheduled_executor_test.cc",

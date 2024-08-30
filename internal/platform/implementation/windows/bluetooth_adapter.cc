@@ -40,6 +40,7 @@
 #include "absl/strings/str_format.h"
 #include "third_party/json/src/json.hpp"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
@@ -347,8 +348,8 @@ void BluetoothAdapter::RestoreRadioNameIfNecessary() {
       return;
     }
 
-    NEARBY_LOGS(VERBOSE) << __func__
-                         << ": loaded settings: " << local_settings.dump();
+    NEARBY_VLOG(1) << __func__
+                   << ": loaded settings: " << local_settings.dump();
 
     LocalSettings settings = local_settings.get<LocalSettings>();
 
@@ -391,8 +392,8 @@ void BluetoothAdapter::StoreRadioNames(absl::string_view original_radio_name,
 
     json encoded_local_settings;
     to_json(encoded_local_settings, local_settings);
-    NEARBY_LOGS(VERBOSE) << __func__ << ": saved settings: "
-                         << encoded_local_settings.dump();
+    NEARBY_VLOG(1) << __func__
+                   << ": saved settings: " << encoded_local_settings.dump();
 
     ByteArray data(encoded_local_settings.dump());
 

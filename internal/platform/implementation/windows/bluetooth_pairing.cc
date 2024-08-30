@@ -54,8 +54,7 @@ BluetoothPairing::BluetoothPairing(
     BluetoothDevice bluetooth_device,
     DeviceInformationCustomPairing custom_pairing)
     : bluetooth_device_(bluetooth_device), custom_pairing_(custom_pairing) {
-  NEARBY_LOGS(VERBOSE) << __func__
-                       << ": BluetoothPairing is created for device.";
+  NEARBY_VLOG(1) << __func__ << ": BluetoothPairing is created for device.";
 }
 
 BluetoothPairing::~BluetoothPairing() {
@@ -64,19 +63,17 @@ BluetoothPairing::~BluetoothPairing() {
         std::exchange(pairing_requested_token_, {}));
   }
   CancelPairing();
-  NEARBY_LOGS(VERBOSE) << __func__
-                       << ": BluetoothPairing is destroyed for device.";
+  NEARBY_VLOG(1) << __func__ << ": BluetoothPairing is destroyed for device.";
 }
 
 bool BluetoothPairing::InitiatePairing(
     api::BluetoothPairingCallback pairing_cb) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start to initiate pairing process.";
+  NEARBY_VLOG(1) << __func__ << ": Start to initiate pairing process.";
   try {
     pairing_requested_token_ = custom_pairing_.PairingRequested(
         {this, &BluetoothPairing::OnPairingRequested});
     if (!pairing_requested_token_) {
-      NEARBY_LOGS(VERBOSE) << __func__
-                           << " Failed to registered pairing callback.";
+      NEARBY_VLOG(1) << __func__ << " Failed to registered pairing callback.";
       return false;
     }
     pairing_callback_ = std::move(pairing_cb);
@@ -107,14 +104,14 @@ bool BluetoothPairing::InitiatePairing(
 
 bool BluetoothPairing::FinishPairing(
     std::optional<absl::string_view> pin_code) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "Start to finish pairing.";
+  NEARBY_VLOG(1) << __func__ << "Start to finish pairing.";
   try {
     if (!pairing_requested_) {
-      NEARBY_LOGS(VERBOSE) << __func__ << "No pairing requested.";
+      NEARBY_VLOG(1) << __func__ << "No pairing requested.";
       return false;
     }
     if (!pairing_deferral_) {
-      NEARBY_LOGS(VERBOSE) << __func__ << "No ongoing pairing process.";
+      NEARBY_VLOG(1) << __func__ << "No ongoing pairing process.";
       return false;
     }
     if (expecting_pin_code_) {
@@ -129,7 +126,7 @@ bool BluetoothPairing::FinishPairing(
       pairing_requested_.Accept();
     }
     pairing_deferral_.Complete();
-    NEARBY_LOGS(VERBOSE) << "Successfully finished pairing.";
+    NEARBY_VLOG(1) << "Successfully finished pairing.";
     return true;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to finish pairing. exception: "
@@ -146,11 +143,10 @@ bool BluetoothPairing::FinishPairing(
 }
 
 bool BluetoothPairing::CancelPairing() {
-  NEARBY_LOGS(VERBOSE) << __func__
-                       << " Start to cancel ongoing pairing process.";
+  NEARBY_VLOG(1) << __func__ << " Start to cancel ongoing pairing process.";
   try {
     if (!pairing_deferral_) {
-      NEARBY_LOGS(VERBOSE) << __func__ << "No ongoing pairing process.";
+      NEARBY_VLOG(1) << __func__ << "No ongoing pairing process.";
       return true;
     }
     // There is no way to explicitly cancel an in-progress pairing on Windows as
@@ -161,7 +157,7 @@ bool BluetoothPairing::CancelPairing() {
     // deferral is completed, will know that cancellation was the actual result.
     was_cancelled_ = true;
     pairing_deferral_.Close();
-    NEARBY_LOGS(VERBOSE) << __func__ << "Canceled ongoing pairing process.";
+    NEARBY_VLOG(1) << __func__ << "Canceled ongoing pairing process.";
     return true;
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__ << ": Failed to cancel ongoing pairing "
@@ -178,20 +174,19 @@ bool BluetoothPairing::CancelPairing() {
 }
 
 bool BluetoothPairing::Unpair() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start to unpair with remote device.";
+  NEARBY_VLOG(1) << __func__ << ": Start to unpair with remote device.";
   try {
     if (!IsPaired()) {
-      NEARBY_LOGS(VERBOSE) << __func__ << " : Remote device Was not paired.";
+      NEARBY_VLOG(1) << __func__ << " : Remote device Was not paired.";
       return true;
     }
     DeviceUnpairingResult unpairing_result =
         bluetooth_device_.DeviceInformation().Pairing().UnpairAsync().get();
     if (unpairing_result.Status() == DeviceUnpairingResultStatus::Unpaired) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Unpaired with remote device.";
+      NEARBY_VLOG(1) << __func__ << ": Unpaired with remote device.";
       return true;
     }
-    NEARBY_LOGS(VERBOSE) << __func__
-                         << ": Failed to unpaired with remote device.";
+    NEARBY_VLOG(1) << __func__ << ": Failed to unpaired with remote device.";
   } catch (std::exception exception) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": Failed to unpaired with device. exception: "
@@ -229,7 +224,7 @@ bool BluetoothPairing::IsPaired() {
 void BluetoothPairing::OnPairingRequested(
     DeviceInformationCustomPairing custom_pairing,
     DevicePairingRequestedEventArgs pairing_requested) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "Requested to pair.";
+  NEARBY_VLOG(1) << __func__ << "Requested to pair.";
   try {
     DevicePairingKinds pairing_kind = pairing_requested.PairingKind();
     pairing_requested_ = pairing_requested;
