@@ -87,7 +87,8 @@ class MockSharingPlatform : public SharingPlatform {
                std::function<void(absl::Status)> callback),
               (override));
 
-  MOCK_METHOD(nearby::api::SystemInfo&, GetSystemInfo, (), (override));
+  MOCK_METHOD(std::unique_ptr<nearby::api::SystemInfo>, CreateSystemInfo, (),
+              (override));
 
   MOCK_METHOD(std::unique_ptr<nearby::api::AppInfo>, CreateAppInfo, (),
               (override));
