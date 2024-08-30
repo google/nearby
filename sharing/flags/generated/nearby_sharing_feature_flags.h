@@ -41,25 +41,9 @@ constexpr auto kEnableBleForTransfer =
 // Enable/disable certificates dump
 constexpr auto kEnableCertificatesDump =
     flags::Flag<bool>(kConfigPackage, "45409184", false);
-// Enable/disable components refactor.
-constexpr auto kEnableComponentsRefactor =
-    flags::Flag<bool>(kConfigPackage, "45412090", true);
 // Enable/disable dumping feature flags
 constexpr auto kEnableDumpingFeatureFlags =
     flags::Flag<bool>(kConfigPackage, "45415713", true);
-// Disable/Enable estimated time remaining UI in Nearby Share app.
-constexpr auto kEnableEstimatedTimeRemainingUi =
-    flags::Flag<bool>(kConfigPackage, "45408998", true);
-// Enable/disable NL_LOG(FATAL) from crashing the app. If set to false then
-// fatal logs do not crash and only result in a regular log.
-constexpr auto kEnableFatalLog =
-    flags::Flag<bool>(kConfigPackage, "45411907", false);
-// Enable/disable logging battery usage
-constexpr auto kEnableLoggingBatteryUsage =
-    flags::Flag<bool>(kConfigPackage, "45409353", false);
-// Enable/disable logging for foreground receiving
-constexpr auto kEnableLoggingForegroundReceiving =
-    flags::Flag<bool>(kConfigPackage, "45409411", false);
 // Enable/disable logging additional system info metrics
 constexpr auto kEnableLoggingSystemInfoMetrics =
     flags::Flag<bool>(kConfigPackage, "45412418", true);
@@ -69,18 +53,9 @@ constexpr auto kEnableMediumWebRtc =
 // Enable/disable WifiLan medium in Nearby Share
 constexpr auto kEnableMediumWifiLan =
     flags::Flag<bool>(kConfigPackage, "45418906", true);
-// Enable/disable Nearby Sharing functionality
-constexpr auto kEnableNearbySharing =
-    flags::Flag<bool>(kConfigPackage, "45418903", true);
-// Replace std::async with platform thread
-constexpr auto kEnablePlatformThreadToNearbyClient =
-    flags::Flag<bool>(kConfigPackage, "45411213", true);
 // Enable/disable retry/resume transfer for partial files.
 constexpr auto kEnableRetryResumeTransfer =
     flags::Flag<bool>(kConfigPackage, "45411589", false);
-// Enable/disable self share feature in Nearby Share
-constexpr auto kEnableSelfShare =
-    flags::Flag<bool>(kConfigPackage, "45418907", true);
 // Enable/disable self share UI in Nearby Share
 constexpr auto kEnableSelfShareUi =
     flags::Flag<bool>(kConfigPackage, "45418908", false);
@@ -101,16 +76,9 @@ constexpr auto kLoggingLevel =
 // When true, the sender will not require confirming the ukey2 token.
 constexpr auto kSenderSkipsConfirmation =
     flags::Flag<bool>(kConfigPackage, "45411353", true);
-// Share Zwieback ID between Phenotype and Clearcut client in Nearby Share for
-// Rasta metrics
-constexpr auto kShareZwiebackBtwPhenotypeAndClearcut =
-    flags::Flag<bool>(kConfigPackage, "45419546", false);
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
-// Suppress Fast Initiation HUN by switching from kNotify to kSilent
-constexpr auto kSuppressFastInitHun =
-    flags::Flag<bool>(kConfigPackage, "45409586", true);
 // When true, we only upgrade the bandwidth after accepting a connection.
 constexpr auto kUpgradeBandwidthAfterAccept =
     flags::Flag<bool>(kConfigPackage, "45627824", true);
@@ -135,27 +103,17 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45627826, kDeleteUnexpectedReceivedFile},
       {45427466, kEnableBleForTransfer},
       {45409184, kEnableCertificatesDump},
-      {45412090, kEnableComponentsRefactor},
       {45415713, kEnableDumpingFeatureFlags},
-      {45408998, kEnableEstimatedTimeRemainingUi},
-      {45411907, kEnableFatalLog},
-      {45409353, kEnableLoggingBatteryUsage},
-      {45409411, kEnableLoggingForegroundReceiving},
       {45412418, kEnableLoggingSystemInfoMetrics},
       {45418905, kEnableMediumWebRtc},
       {45418906, kEnableMediumWifiLan},
-      {45418903, kEnableNearbySharing},
-      {45411213, kEnablePlatformThreadToNearbyClient},
       {45411589, kEnableRetryResumeTransfer},
-      {45418907, kEnableSelfShare},
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
       {45429881, kEnableTransferCancellationOptimization},
       {45411620, kEnableWebrtcMedium},
       {45411353, kSenderSkipsConfirmation},
-      {45419546, kShareZwiebackBtwPhenotypeAndClearcut},
       {45409033, kShowAutoUpdateSetting},
-      {45409586, kSuppressFastInitHun},
       {45627824, kUpgradeBandwidthAfterAccept},
       {45630055, kUseGrpcClient},
       {45417647, kEnableQrCodeUi},
