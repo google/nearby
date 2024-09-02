@@ -47,7 +47,6 @@
 #include "internal/platform/implementation/windows/file.h"
 #include "internal/platform/implementation/windows/file_path.h"
 #include "internal/platform/implementation/windows/http_loader.h"
-#include "internal/platform/implementation/windows/log_message.h"
 #include "internal/platform/implementation/windows/mutex.h"
 #include "internal/platform/implementation/windows/preferences_manager.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
@@ -224,12 +223,6 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
   }
 
   return windows::IOFile::CreateOutputFile(file_path);
-}
-
-// TODO(b/184975123): replace with real implementation.
-std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
-    const char* file, int line, LogMessage::Severity severity) {
-  return std::make_unique<windows::LogMessage>(file, line, severity);
 }
 
 std::unique_ptr<SubmittableExecutor>

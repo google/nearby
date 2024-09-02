@@ -18,7 +18,6 @@ cc_library(
     name = "types",
     srcs = [
         "device_info.cc",
-        "log_message.cc",
         "timer.cc",
     ],
     hdrs = [
@@ -31,7 +30,6 @@ cc_library(
         "future.h",
         "input_file.h",
         "listenable_future.h",
-        "log_message.h",
         "mutex.h",
         "output_file.h",
         "preferences_manager.h",

@@ -34,7 +34,6 @@
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
-#include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/scheduled_executor.h"
@@ -115,9 +114,6 @@ class ImplementationPlatform {
   static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
 
   static std::unique_ptr<OutputFile> CreateOutputFile(const std::string&);
-
-  static std::unique_ptr<LogMessage> CreateLogMessage(
-      const char* file, int line, LogMessage::Severity severity);
 
   // Java-like Executors
   static std::unique_ptr<SubmittableExecutor> CreateSingleThreadExecutor();

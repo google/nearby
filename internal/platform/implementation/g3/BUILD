@@ -17,7 +17,6 @@ cc_library(
     name = "types",
     testonly = True,
     srcs = [
-        "log_message.cc",
         "preferences_manager.cc",
         "scheduled_executor.cc",
         "system_clock.cc",
@@ -27,7 +26,6 @@ cc_library(
         "atomic_reference.h",
         "condition_variable.h",
         "device_info.h",
-        "log_message.h",
         "multi_thread_executor.h",
         "mutex.h",
         "preferences_manager.h",

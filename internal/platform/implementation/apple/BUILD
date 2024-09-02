@@ -25,7 +25,6 @@ objc_library(
     srcs = [
         "crypto.mm",
         "device_info.mm",
-        "log_message.mm",
         "multi_thread_executor.mm",
         "platform.mm",
         "preferences_manager.mm",
@@ -35,7 +34,6 @@ objc_library(
     ],
     hdrs = [
         "device_info.h",
-        "log_message.h",
         "multi_thread_executor.h",
         "preferences_manager.h",
         "scheduled_executor.h",

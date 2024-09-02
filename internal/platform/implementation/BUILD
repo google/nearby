@@ -47,7 +47,6 @@ cc_library(
         "future.h",
         "input_file.h",
         "listenable_future.h",
-        "log_message.h",
         "mutex.h",
         "output_file.h",
         "preferences_manager.h",

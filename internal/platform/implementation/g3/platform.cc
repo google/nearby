@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
-#include "internal/platform/implementation/log_message.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
@@ -49,7 +48,6 @@
 #include "internal/platform/implementation/g3/condition_variable.h"
 #include "internal/platform/implementation/g3/credential_storage_impl.h"
 #include "internal/platform/implementation/g3/device_info.h"
-#include "internal/platform/implementation/g3/log_message.h"
 #include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/mutex.h"
 #include "internal/platform/implementation/g3/preferences_manager.h"
@@ -146,11 +144,6 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     const std::string& file_path) {
   return shared::IOFile::CreateOutputFile(file_path);
-}
-
-std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
-    const char* file, int line, LogMessage::Severity severity) {
-  return std::make_unique<g3::LogMessage>(file, line, severity);
 }
 
 std::unique_ptr<BluetoothClassicMedium>
