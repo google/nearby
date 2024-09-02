@@ -40,12 +40,12 @@ let package = Package(
   dependencies: [
     // Dependencies declare other packages that this package depends on.
     .package(
-      url: "https://github.com/bourdakos1/abseil-cpp-SwiftPM.git",
-      branch: "cxx17-test"
+      url: "https://github.com/monzo/abseil-cpp-SwiftPM.git",
+      exact: "0.20240902.0"
     ),
     .package(
-      url: "https://github.com/firebase/boringssl-SwiftPM.git",
-      "0.7.1"..<"0.8.0"
+      url: "https://github.com/monzo/boringssl-SwiftPM.git",
+      exact: "0.7.3"
     ),
   ],
   targets: [
@@ -241,7 +241,10 @@ let package = Package(
         "json/wsjcpp.yml",
       ],
       sources: ["EmptySwiftPackageManagerFile.cpp"],
-      publicHeadersPath: "json/include"
+      publicHeadersPath: "json/include",
+      cxxSettings: [
+        .headerSearchPath("json/include")
+      ]
     ),
     .target(
       name: "protobuf",

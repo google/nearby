@@ -19,6 +19,7 @@
 #import "GNCDiscoveryDelegate.h"
 #import "GNCDiscoveryOptions.h"
 #import "GNCError.h"
+#import "GNCException.h"
 #import "GNCFlags.h"
 #import "GNCPayload.h"
 #import "GNCPayloadDelegate.h"
