@@ -23,6 +23,7 @@
 #else                                    // defined(NEARBY_CHROMIUM)
 // IWYU pragma: begin_exports
 #include "absl/log/check.h"  // nogncheck
+#include "absl/log/globals.h"  // nogncheck
 #include "absl/log/log.h"    // nogncheck
 // IWYU pragma: end_exports
 #endif                                   // defined(NEARBY_CHROMIUM)
