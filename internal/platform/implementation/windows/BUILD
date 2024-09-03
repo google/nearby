@@ -18,7 +18,6 @@ cc_library(
     name = "types",
     srcs = [
         "device_info.cc",
-        "log_message.cc",
         "timer.cc",
     ],
     hdrs = [
@@ -31,7 +30,6 @@ cc_library(
         "future.h",
         "input_file.h",
         "listenable_future.h",
-        "log_message.h",
         "mutex.h",
         "output_file.h",
         "preferences_manager.h",
@@ -63,7 +61,6 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
@@ -241,7 +238,6 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

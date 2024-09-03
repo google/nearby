@@ -14,7 +14,10 @@
 
 #include "internal/platform/implementation/apple/count_down_latch.h"
 
+#include <atomic>
+
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "thread/fiber/fiber.h"
 
 namespace nearby {
@@ -56,11 +59,11 @@ TEST(CountDownLatchTest, LatchAwaitWithTimeoutCanExpire) {
 
   auto response = latch.Await(absl::Milliseconds(100));
 
-  EXPECT_TRUE(response.ok());
+  EXPECT_FALSE(response.ok());
   EXPECT_FALSE(response.result());
 }
 
-TEST(CountDownLatchTest, InitialCountZero_AwaitDoesNotBlock) {
+TEST(CountDownLatchTest, InitialCountZeroAwaitDoesNotBlock) {
   CountDownLatch latch(0);
 
   auto response = latch.Await();
@@ -68,7 +71,7 @@ TEST(CountDownLatchTest, InitialCountZero_AwaitDoesNotBlock) {
   EXPECT_TRUE(response.Ok());
 }
 
-TEST(CountDownLatchTest, InitialCountNegative_AwaitDoesNotBlock) {
+TEST(CountDownLatchTest, InitialCountNegativeAwaitDoesNotBlock) {
   CountDownLatch latch(-1);
 
   auto response = latch.Await();
