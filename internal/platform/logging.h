@@ -19,7 +19,7 @@
 // Chromium does not use absl log.  Forward to Chromium native log macros.
 #include "base/check.h"
 #include "base/check_op.h"
-#include "glog/logging.h"
+#include "base/logging.h"
 #else                                    // defined(NEARBY_CHROMIUM)
 // IWYU pragma: begin_exports
 #include "absl/log/check.h"  // nogncheck
