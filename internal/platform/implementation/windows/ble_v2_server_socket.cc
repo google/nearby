@@ -18,7 +18,6 @@
 #include <exception>
 #include <memory>
 
-#include "absl/log/check.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "internal/platform/exception.h"

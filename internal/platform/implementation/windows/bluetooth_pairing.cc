@@ -21,7 +21,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/implementation/bluetooth_classic.h"

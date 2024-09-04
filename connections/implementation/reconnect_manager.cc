@@ -22,13 +22,6 @@
 #include "securegcm/ukey2_handshake.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
-#ifndef NEARBY_CHROMIUM
-#ifndef NEARBY_SWIFTPM
-#include "absl/log/check.h"  // nogncheck
-#endif
-#endif
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/bluetooth_endpoint_channel.h"
@@ -49,6 +42,8 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
