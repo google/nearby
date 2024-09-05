@@ -21,8 +21,10 @@
 #include "base/check_op.h"
 #include "base/logging.h"
 #else  // defined(NEARBY_CHROMIUM)
+// IWYU pragma: begin_exports
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+// IWYU pragma: end_exports
 #endif  // defined(NEARBY_CHROMIUM)
 
 // Public APIs
