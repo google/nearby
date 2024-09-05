@@ -57,7 +57,6 @@ cc_library(
         "//internal/platform:uuid",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/windows/generated:types",
-        "//strings:strappendv",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
