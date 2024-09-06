@@ -46,6 +46,7 @@ cc_test(
     timeout = "short",
     srcs = [
         "encode_test.cc",
+        "mime_test.cc",
     ],
     shard_count = 8,
     deps = [
