@@ -68,11 +68,6 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
     return observer_list_.HasObserver(observer);
   }
 
-  void JoinNetwork(absl::string_view ssid, absl::string_view password,
-                   std::function<void(absl::Status)> callback) override {
-    callback(absl::OkStatus());
-  }
-
   // Mock OS Wi-Fi adapter presence state changed events
   void ReceivedAdapterPresentChangedFromOs(bool present) {
     num_present_received_ += 1;

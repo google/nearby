@@ -164,13 +164,6 @@ class NearbySharingServiceImpl
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
   bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
-  void Open(ShareTarget share_target,
-            std::unique_ptr<AttachmentContainer> attachment_container,
-            std::function<void(StatusCodes status_codes)> status_codes_callback)
-      override;
-  void CopyText(absl::string_view text) override;
-  void JoinWifiNetwork(absl::string_view ssid,
-                       absl::string_view password) override;
   void SetVisibility(
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;

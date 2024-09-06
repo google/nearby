@@ -108,15 +108,6 @@ class FakeNearbySharingService : public NearbySharingService {
   // |share_target|.
   bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
 
-  // Opens attachments from the remote |share_target|.
-  void Open(ShareTarget share_target,
-            std::unique_ptr<AttachmentContainer> attachment_container,
-            std::function<void(StatusCodes status_codes)> status_codes_callback)
-      override;
-
-  // Copies text to cache/clipboard.
-  void CopyText(absl::string_view text) override;
-
   std::string Dump() const override;
 
   NearbyShareSettings* GetSettings() override;

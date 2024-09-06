@@ -247,7 +247,6 @@ cc_library(
         "nearby_connections_stream_buffer_manager.cc",
         "nearby_share_profile_info_provider_impl.cc",
         "nearby_sharing_service.cc",
-        "nearby_sharing_service_extension.cc",
         "nearby_sharing_service_factory.cc",
         "nearby_sharing_service_impl.cc",
         "nearby_sharing_settings.cc",

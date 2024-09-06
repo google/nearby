@@ -78,10 +78,6 @@ class WifiAdapter {
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;
   virtual bool HasObserver(Observer* observer) = 0;
-
-  // Requests to join a Wi-Fi network.
-  virtual void JoinNetwork(absl::string_view ssid, absl::string_view password,
-                           std::function<void(absl::Status)> callback) = 0;
 };
 
 }  // namespace api

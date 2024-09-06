@@ -20,9 +20,6 @@
 #include <memory>
 #include <utility>
 
-#include "absl/status/status.h"
-#include "absl/strings/string_view.h"
-#include "internal/network/url.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/clock_impl.h"
 #include "internal/platform/task_runner.h"
@@ -32,7 +29,6 @@
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/connectivity_manager_impl.h"
@@ -51,11 +47,6 @@ Clock* ContextImpl::GetClock() const { return clock_.get(); }
 
 std::unique_ptr<Timer> ContextImpl::CreateTimer() {
   return std::make_unique<TimerImpl>();
-}
-
-void ContextImpl::OpenUrl(const nearby::network::Url& url,
-                          std::function<void(absl::Status)> callback) {
-  platform_.LaunchDefaultBrowserFromURL(url.GetUrlPath(), std::move(callback));
 }
 
 ConnectivityManager* ContextImpl::GetConnectivityManager() const {
@@ -84,15 +75,6 @@ std::unique_ptr<TaskRunner> ContextImpl::CreateConcurrentTaskRunner(
   std::unique_ptr<TaskRunner> task_runner =
       std::make_unique<TaskRunnerImpl>(concurrent_count);
   return task_runner;
-}
-
-api::Shell& ContextImpl::GetShell() const {
-  return platform_.GetShell();
-}
-
-void ContextImpl::CopyText(absl::string_view text,
-                           std::function<void(absl::Status)> callback) {
-  platform_.CopyText(text, callback);
 }
 
 TaskRunner* ContextImpl::GetTaskRunner() {

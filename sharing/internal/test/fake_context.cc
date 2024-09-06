@@ -20,9 +20,6 @@
 #include <memory>
 #include <utility>
 
-#include "absl/status/status.h"
-#include "absl/strings/string_view.h"
-#include "internal/network/url.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
@@ -31,13 +28,11 @@
 #include "internal/test/fake_timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
-#include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/test/fake_bluetooth_adapter.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_fast_initiation_manager.h"
-#include "sharing/internal/test/fake_shell.h"
 #include "sharing/internal/test/fake_wifi_adapter.h"
 
 namespace nearby {
@@ -49,27 +44,12 @@ FakeContext::FakeContext()
       fake_wifi_adapter_(std::make_unique<FakeWifiAdapter>()),
       fake_fast_initiation_manager_(
           std::make_unique<FakeFastInitiationManager>()),
-      fake_shell_(std::make_unique<FakeShell>()),
       executor_(std::make_unique<FakeTaskRunner>(fake_clock_.get(), 5)) {}
 
 Clock* FakeContext::GetClock() const { return fake_clock_.get(); }
 
 std::unique_ptr<Timer> FakeContext::CreateTimer() {
   return std::make_unique<FakeTimer>(fake_clock_.get());
-}
-
-void FakeContext::OpenUrl(const nearby::network::Url& url,
-                          std::function<void(absl::Status)> callback) {
-  // OpenUrl is an interface that depends on platform API. In a mock method, it
-  // returns OK to avoid breaking test cases in the Nearby Sharing SDK.
-  std::move(callback)(absl::OkStatus());
-}
-
-void FakeContext::CopyText(const absl::string_view text,
-                           std::function<void(absl::Status)> callback) {
-  // CopyText is an interface that depends on platform API. In a mock method, it
-  // returns OK to avoid breaking test cases in the Nearby Sharing SDK.
-  std::move(callback)(absl::OkStatus());
 }
 
 ConnectivityManager* FakeContext::GetConnectivityManager() const {
@@ -100,8 +80,6 @@ std::unique_ptr<TaskRunner> FakeContext::CreateConcurrentTaskRunner(
       std::make_unique<FakeTaskRunner>(fake_clock_.get(), concurrent_count);
   return task_runner;
 }
-
-api::Shell& FakeContext::GetShell() const { return *fake_shell_; }
 
 TaskRunner* FakeContext::GetTaskRunner() { return executor_.get(); }
 

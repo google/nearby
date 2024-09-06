@@ -223,8 +223,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       settings_(std::make_unique<NearbyShareSettings>(
           context_, context_->GetClock(), device_info_, preference_manager_,
           local_device_data_manager_.get(), analytics_recorder_.get())),
-      service_extension_(std::make_unique<NearbySharingServiceExtension>(
-          context_, settings_.get())),
+      service_extension_(std::make_unique<NearbySharingServiceExtension>()),
       file_handler_(sharing_platform),
       app_info_(sharing_platform.CreateAppInfo()) {
   NL_DCHECK(nearby_connections_manager_);
@@ -986,41 +985,6 @@ bool NearbySharingServiceImpl::DidLocalUserCancelTransfer(
     int64_t share_target_id) {
   return absl::c_linear_search(locally_cancelled_share_target_ids_,
                                share_target_id);
-}
-
-void NearbySharingServiceImpl::Open(
-    ShareTarget share_target,
-    std::unique_ptr<AttachmentContainer> attachment_container,
-    std::function<void(StatusCodes status_codes)> status_codes_callback) {
-  RunOnAnyThread(
-      "api_open", [this, share_target = std::move(share_target),
-                   attachment_container = std::move(attachment_container),
-                   status_codes_callback = std::move(status_codes_callback)]() {
-        if (!attachment_container || !attachment_container->HasAttachments()) {
-          status_codes_callback(StatusCodes::kInvalidArgument);
-          return;
-        }
-        NL_LOG(INFO) << __func__ << ": Open is called for share_target: "
-                     << share_target.ToString();
-        // Log analytics event of opening received attachments.
-        analytics_recorder_->NewOpenReceivedAttachments(*attachment_container,
-                                                        /*session_id=*/0);
-        status_codes_callback(service_extension_->Open(*attachment_container));
-      });
-}
-
-void NearbySharingServiceImpl::CopyText(absl::string_view text) {
-  RunOnAnyThread("api_copy_text", [this, text = std::string(text)]() {
-    service_extension_->CopyText(text);
-  });
-}
-
-void NearbySharingServiceImpl::JoinWifiNetwork(absl::string_view ssid,
-                                               absl::string_view password) {
-  RunOnAnyThread("api_join_wifi_network", [this, ssid = std::string(ssid),
-                                           password = std::string(password)]() {
-    service_extension_->JoinWifiNetwork(ssid, password);
-  });
 }
 
 void NearbySharingServiceImpl::SetVisibility(
