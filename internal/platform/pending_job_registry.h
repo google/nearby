@@ -42,9 +42,9 @@ class PendingJobRegistry {
   std::string CreateKey(const std::string& name, absl::Time post_time);
 
   Mutex mutex_;
-  absl::flat_hash_map<const std::string, absl::Time> pending_jobs_
+  absl::flat_hash_map<std::string, absl::Time> pending_jobs_
       ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<const std::string, absl::Time> running_jobs_
+  absl::flat_hash_map<std::string, absl::Time> running_jobs_
       ABSL_GUARDED_BY(mutex_);
   absl::Time list_jobs_time_ ABSL_GUARDED_BY(mutex_) = absl::UnixEpoch();
 };
