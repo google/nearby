@@ -428,7 +428,8 @@ std::string BluetoothAdapter::GetName() const {
   HKEY hKey;
 
   // Retrieve the size required
-  size_t registry_query_size = absl::SNPrintF(nullptr,                // output
+  char empty[0];
+  size_t registry_query_size = absl::SNPrintF(empty,                  // output
                                               0,                      // size
                                               REGISTRY_QUERY_FORMAT,  // format
                                               instance_id.c_str());   // args
@@ -599,8 +600,9 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
   // Convert the P&P instance id, to one that CreateFileA expects
   find_and_replace(instance_id_modified.data(), "\\", "#");
 
+  char empty[0];
   size_t file_name_size =
-      absl::SNPrintF(nullptr, 0, "\\\\.\\%s#%s", instance_id_modified.c_str(),
+      absl::SNPrintF(empty, 0, "\\\\.\\%s#%s", instance_id_modified.c_str(),
                      guid_str.c_str());
 
   std::string file_name;
@@ -636,7 +638,7 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
   // Change radio module local name in registry
   HKEY hKey;
   size_t buffer_size =
-      absl::SNPrintF(nullptr, 0, REGISTRY_QUERY_FORMAT, instance_id);
+      absl::SNPrintF(empty, 0, REGISTRY_QUERY_FORMAT, instance_id);
 
   std::string local_name_key;
   local_name_key.reserve(buffer_size + 1);
