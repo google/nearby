@@ -143,8 +143,9 @@ cc_library(
         "//sharing/internal/public:logging",
         "//sharing/proto:wire_format_cc_proto",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:span",
     ],
 )
 
