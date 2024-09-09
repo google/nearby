@@ -15,9 +15,11 @@
 #include "internal/platform/byte_utils.h"
 
 #include <cstdlib>
+#include <string>
 
 #include "absl/strings/str_format.h"
 #include "internal/platform/base_input_stream.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 

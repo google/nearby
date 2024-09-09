@@ -15,9 +15,15 @@
 #include "internal/platform/bluetooth_utils.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <string>
 
+#include "absl/strings/ascii.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 

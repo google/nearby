@@ -15,6 +15,7 @@
 #ifndef PLATFORM_BASE_BYTE_UTILS_H_
 #define PLATFORM_BASE_BYTE_UTILS_H_
 
+#include <string>
 #include "internal/platform/byte_array.h"
 
 namespace nearby {

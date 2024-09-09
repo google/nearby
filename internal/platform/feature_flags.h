@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 
@@ -45,7 +46,7 @@ class FeatureFlags {
     bool enable_send_payload_offset = true;
     // Provide better bookkeeping for bandwidth upgrade initiation. This is
     // necessary to properly support multiple BWU mediums, multiple service, and
-    // multiple endpionts.
+    // multiple endpoints.
     bool support_multiple_bwu_mediums = true;
     // Allows the code to change the bluetooth radio state
     bool enable_set_radio_state = false;
@@ -53,7 +54,7 @@ class FeatureFlags {
     // create connection with remote device in a duration.
     bool enable_connection_timeout = true;
     // Controls enable or disable to track the status of Bluetooth classic
-    // conncetion.
+    // connection.
     bool enable_bluetooth_connection_status_track = true;
     // Controls enable or disable BLE scan advertisement for fast pair
     // service uuid 0x2cfe

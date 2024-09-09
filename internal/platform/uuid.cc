@@ -28,7 +28,9 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/implementation/crypto.h"
+#include "internal/platform/byte_array.h"
+#include <openssl/base.h>
+#include <openssl/digest.h>
 
 namespace nearby {
 namespace {
@@ -39,6 +41,21 @@ std::ostream& write_hex(std::ostream& os, absl::string_view data) {
   }
   return os;
 }
+
+ByteArray Hash(absl::string_view input, const EVP_MD* algo) {
+  unsigned int md_out_size = EVP_MAX_MD_SIZE;
+  uint8_t digest_buffer[EVP_MAX_MD_SIZE];
+  if (input.empty()) return {};
+
+  if (!EVP_Digest(input.data(), input.size(), digest_buffer, &md_out_size, algo,
+                  nullptr))
+    return {};
+
+  return ByteArray{reinterpret_cast<char*>(digest_buffer), md_out_size};
+}
+
+ByteArray Md5(absl::string_view input) { return Hash(input, EVP_md5()); }
+
 }  // namespace
 
 // Based on the Java implementation
@@ -87,7 +104,7 @@ std::optional<Uuid> Uuid::FromString(absl::string_view data) {
 Uuid::Uuid(absl::string_view data) {
   // Based on the Java counterpart at
   // http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#162.
-  std::string md5_data(Crypto::Md5(data));
+  std::string md5_data(Md5(data));
   md5_data[6] &= 0x0f;  // Clear version.
   md5_data[6] |= 0x30;  // Set to version 3.
   md5_data[8] &= 0x3f;  // Clear variant.
