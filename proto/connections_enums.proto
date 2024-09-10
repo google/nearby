@@ -683,6 +683,8 @@ enum OperationResultCode {
   CLIENT_USB_DUPLICATE_DISCOVERING = 2027;
   // Client not allowed to advertise or discover
   CLIENT_PERMISSION_FAILURE = 2028;
+  // Client doesn't listen BLE
+  CLIENT_BLE_NO_LISTENING = 2029;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -715,6 +717,10 @@ enum OperationResultCode {
   MISCELLEANEOUS_WEB_RTC_FAILED_TO_RECEIVE_MESSAGE = 2513;
   // Failed to change the device name for advertising
   MISCELLEANEOUS_BLUETOOTH_CHANGE_DEVICE_NAME_FAILURE = 2514;
+  // Failed to get the ICE server
+  MISCELLEANEOUS_WEB_RTC_ICE_SERVER_NULL = 2515;
+  // Failed to get the work source
+  MISCELLEANEOUS_WORK_SOURCE_NULL = 2516;
 
   // Section of CATEGORY_IO_ERROR, from 3000 to 3499
   // Incoming payloads failure due to file opening error
@@ -991,6 +997,8 @@ enum OperationResultCode {
   CONNECTIVITY_AUTO_RESUME_FAILURE = 3599;
   // Timeout when listening instant connection
   CONNECTIVITY_INSTANT_CONNECTION_LISTENING_TIMEOUT = 3600;
+  // Invalid credential for connection
+  CONNECTIVITY_MEDIUM_INVALID_CREDENTIAL = 3601;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -1178,6 +1186,34 @@ enum OperationResultCode {
   NEARBY_BLUETOOTH_NO_CLIENT_REGISTER_FOR_SCAN = 4585;
   // TX Advertisement on a wrong connectivity info.
   NEARBY_INSTANT_CONNECTION_WRONG_CONNECTIVITY_INFO = 4586;
+  // Need to override method
+  NEARBY_NEED_METHOD_OVERRIDE = 4587;
+  // Incoming payloads creation failure
+  NEARBY_GENERIC_INCOMING_PAYLOAD_CREATION_FAILURE = 4588;
+  // No listening peer found
+  NEARBY_WEB_RTC_NO_LISTENING_PEER_FOUND = 4589;
+  // Current medium not in upgrade available mediums
+  NEARBY_UPGRADE_PATH_ON_WRONG_MEDIUM = 4590;
+  // Connect to all medium failure
+  NEARBY_CONNECT_TO_ALL_MEDIUMS_FAILURE = 4591;
+  // MAC address null when reconnect to bluetooth
+  NEARBY_BLUETOOTH_RECONNECT_MAC_NULL = 4592;
+  // Connection info null when reconnect to wifi lan
+  NEARBY_LAN_RECONNECT_CONNECTION_INFO_NULL = 4593;
+  // Ip address null when reconnect to wifi lan
+  NEARBY_LAN_RECONNECT_IP_NULL = 4594;
+  // Meta data null when reconnect to wifi Direct
+  NEARBY_WIFI_DIRECT_RECONNECT_META_DATA_NULL = 4595;
+  // Connect meta data null when reconnect to wifi Direct
+  NEARBY_WIFI_DIRECT_RECONNECT_CONNECT_META_DATA_NULL = 4596;
+  // Meta data null when reconnect to wifi Hotspot
+  NEARBY_WIFI_HOTSPOT_RECONNECT_META_DATA_NULL = 4597;
+  // Connect meta data null when reconnect to wifi Hotspot
+  NEARBY_WIFI_HOTSPOT_RECONNECT_CONNECT_META_DATA_NULL = 4598;
+  // Peer id null when reconnect to Web RTC
+  NEARBY_WEB_RTC_RECONNECT_PEER_ID_NULL = 4599;
+  // Meta data null when reconnect to wifi Aware
+  NEARBY_WIFI_AWARE_RECONNECT_META_DATA_NULL = 4600;
 }
 
 enum StopAdvertisingReason {
