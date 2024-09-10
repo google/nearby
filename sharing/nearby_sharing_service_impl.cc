@@ -1670,43 +1670,6 @@ void NearbySharingServiceImpl::HandleEndpointDiscovered(
 
   std::unique_ptr<Advertisement> advertisement =
       DecodeAdvertisement(endpoint_info);
-  OnOutgoingAdvertisementDecoded(endpoint_id, endpoint_info,
-                                 std::move(advertisement));
-}
-
-void NearbySharingServiceImpl::HandleEndpointLost(
-    absl::string_view endpoint_id) {
-  NL_VLOG(1) << __func__ << ": endpoint_id=" << endpoint_id;
-
-  if (!is_scanning_) {
-    NL_VLOG(1) << __func__
-               << ": Ignoring lost endpoint because we're no longer scanning";
-    FinishEndpointDiscoveryEvent();
-    return;
-  }
-
-  discovered_advertisements_to_retry_map_.erase(endpoint_id);
-  discovered_advertisements_retried_set_.erase(endpoint_id);
-  RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
-  FinishEndpointDiscoveryEvent();
-}
-
-void NearbySharingServiceImpl::FinishEndpointDiscoveryEvent() {
-  NL_DCHECK(!endpoint_discovery_events_.empty());
-  NL_DCHECK(endpoint_discovery_events_.front() == nullptr);
-  endpoint_discovery_events_.pop();
-
-  // Handle the next queued up endpoint discovered/lost event.
-  if (!endpoint_discovery_events_.empty()) {
-    NL_DCHECK(endpoint_discovery_events_.front() != nullptr);
-    auto discovery_event = std::move(endpoint_discovery_events_.front());
-    discovery_event();
-  }
-}
-
-void NearbySharingServiceImpl::OnOutgoingAdvertisementDecoded(
-    absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
-    std::unique_ptr<Advertisement> advertisement) {
   if (!advertisement) {
     NL_LOG(WARNING) << __func__
                     << ": Failed to parse discovered advertisement.";
@@ -1749,6 +1712,36 @@ void NearbySharingServiceImpl::OnOutgoingAdvertisementDecoded(
                   decrypted_public_certificate);
             });
       });
+}
+
+void NearbySharingServiceImpl::HandleEndpointLost(
+    absl::string_view endpoint_id) {
+  NL_VLOG(1) << __func__ << ": endpoint_id=" << endpoint_id;
+
+  if (!is_scanning_) {
+    NL_VLOG(1) << __func__
+               << ": Ignoring lost endpoint because we're no longer scanning";
+    FinishEndpointDiscoveryEvent();
+    return;
+  }
+
+  discovered_advertisements_to_retry_map_.erase(endpoint_id);
+  discovered_advertisements_retried_set_.erase(endpoint_id);
+  RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
+  FinishEndpointDiscoveryEvent();
+}
+
+void NearbySharingServiceImpl::FinishEndpointDiscoveryEvent() {
+  NL_DCHECK(!endpoint_discovery_events_.empty());
+  NL_DCHECK(endpoint_discovery_events_.front() == nullptr);
+  endpoint_discovery_events_.pop();
+
+  // Handle the next queued up endpoint discovered/lost event.
+  if (!endpoint_discovery_events_.empty()) {
+    NL_DCHECK(endpoint_discovery_events_.front() != nullptr);
+    auto discovery_event = std::move(endpoint_discovery_events_.front());
+    discovery_event();
+  }
 }
 
 void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(

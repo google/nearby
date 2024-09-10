@@ -272,9 +272,6 @@ class NearbySharingServiceImpl
                                 absl::Span<const uint8_t> endpoint_info);
   void HandleEndpointLost(absl::string_view endpoint_id);
   void FinishEndpointDiscoveryEvent();
-  void OnOutgoingAdvertisementDecoded(
-      absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
-      std::unique_ptr<Advertisement> advertisement);
   void OnOutgoingDecryptedCertificate(
       absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
       const Advertisement& advertisement,
