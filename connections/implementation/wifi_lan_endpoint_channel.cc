@@ -16,6 +16,7 @@
 
 #include <string>
 
+#include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_lan.h"
 
@@ -40,6 +41,13 @@ void WifiLanEndpointChannel::CloseImpl() {
         << "Failed to close underlying socket for WifiLanEndpointChannel "
         << GetName() << " : exception = " << status.value;
   }
+}
+
+bool WifiLanEndpointChannel::EnableMultiplexSocket() {
+  NEARBY_LOGS(INFO) << "WifiLanEndpointChannel MultiplexSocket will be "
+                       "enabled if the WifiLan MultiplexSocket is valid";
+  socket_.EnableMultiplexSocket();
+  return true;
 }
 
 }  // namespace connections

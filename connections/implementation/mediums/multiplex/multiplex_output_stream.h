@@ -65,7 +65,7 @@ class MultiplexOutputStream {
 
   MultiplexOutputStream(OutputStream* physical_writer,
                         AtomicBoolean& is_enabled);
-  ~MultiplexOutputStream() { Shutdown(); }
+  ~MultiplexOutputStream() = default;
 
   // Writes the connection request frame to the physical output stream.
   bool WriteConnectionRequestFrame(const std::string& service_id,

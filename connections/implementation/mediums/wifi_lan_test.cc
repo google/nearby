@@ -15,16 +15,22 @@
 #include "connections/implementation/mediums/wifi_lan.h"
 
 #include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_lan.h"
+#include "internal/platform/base64_utils.h"
 
 namespace nearby {
 namespace connections {
@@ -104,6 +110,71 @@ TEST_P(WifiLanTest, CanConnect) {
   EXPECT_TRUE(socket_for_server.IsValid());
   EXPECT_TRUE(socket_for_client.IsValid());
   env_.Stop();
+}
+
+TEST_P(WifiLanTest, CanConnectWithMultiplex) {
+  bool is_multiplex_enabled = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  WifiLan wifi_lan_client;
+  WifiLan wifi_lan_server;
+  std::string service_id(kServiceID);
+  std::string service_info_name(kServiceInfoName);
+  std::string endpoint_info_name(kEndpointName);
+  CountDownLatch discovered_latch(1);
+  CountDownLatch accept_latch(1);
+
+  WifiLanSocket socket_for_server;
+  EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
+      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
+      }));
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(service_info_name);
+  nsd_service_info.SetTxtRecord(std::string(kEndpointInfoKey),
+                                endpoint_info_name);
+  wifi_lan_server.StartAdvertising(service_id, nsd_service_info);
+
+  WifiLanSocket socket_for_client;
+  SingleThreadExecutor client_executor;
+  client_executor.Execute([&]() {
+  NsdServiceInfo discovered_service_info;
+  wifi_lan_client.StartDiscovery(
+      service_id,
+      {
+          .service_discovered_cb =
+              [&discovered_latch, &discovered_service_info](
+                  NsdServiceInfo service_info, const std::string& service_id) {
+                NEARBY_LOGS(INFO)
+                    << "Discovered service_info=" << &service_info;
+                discovered_service_info = service_info;
+                discovered_latch.CountDown();
+              },
+      });
+  discovered_latch.Await(kWaitDuration).result();
+  ASSERT_TRUE(discovered_service_info.IsValid());
+
+  CancellationFlag flag;
+  socket_for_client =
+      wifi_lan_client.Connect(service_id, discovered_service_info, &flag);
+    Base64Utils::WriteInt(&socket_for_client.GetOutputStream(), 4);
+  });
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
+  EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));
+  EXPECT_TRUE(socket_for_server.IsValid());
+  EXPECT_TRUE(socket_for_client.IsValid());
+  env_.Stop();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      is_multiplex_enabled);
 }
 
 TEST_P(WifiLanTest, CanCancelConnect) {

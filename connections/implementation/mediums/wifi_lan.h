@@ -16,13 +16,18 @@
 #define CORE_INTERNAL_MEDIUMS_WIFI_LAN_H_
 
 #include <cstdint>
-#include <functional>
 #include <string>
+#include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
-#include "internal/platform/byte_array.h"
+#include "absl/functional/any_invocable.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/multiplex/multiplex_socket.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
@@ -150,6 +155,18 @@ class WifiLan {
 
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 
+  // Establishes connection to WifiLan service by ip address through
+  // MultiplexSocket.
+  ExceptionOr<WifiLanSocket> ConnectWithMultiplexSocketLocked(
+      const std::string& service_id, const std::string& ip_address)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Creates a MultiplexSocket for outgoing connection based on connected
+  // WifiLanSocket physical socket for specific service_id and ip address.
+  ExceptionOr<WifiLanSocket> CreateOutgoingMultiplexSocketLocked(
+      WifiLanSocket& socket, const std::string& service_id,
+      const std::string& ip_address) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -187,6 +204,16 @@ class WifiLan {
   // and thus require pointer stability.
   absl::flat_hash_map<std::string, WifiLanServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
+
+  // Whether the multiplex feature is enabled.
+  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplex);
+
+  // A map of IpAddress -> MultiplexSocket.
+  absl::flat_hash_map<std::string,
+                      mediums::multiplex::MultiplexSocket*>
+      multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

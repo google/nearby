@@ -65,6 +65,7 @@ class FakeEndpointChannel : public EndpointChannel {
           EstablishedConnection::SafeDisconnectionResult result) override {
     Close(reason);
   }
+  bool IsClosed() const override { return is_closed_; }
   location::nearby::proto::connections::ConnectionTechnology GetTechnology()
       const override {
     return location::nearby::proto::connections::ConnectionTechnology::
