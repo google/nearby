@@ -65,8 +65,8 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
     }
   }
 
-  WCHAR device_name[size];
-  if (GetComputerNameExW(ComputerNameDnsHostname, device_name, &size)) {
+  std::wstring device_name(size, L' ');
+  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size)) {
     winrt::hstring device_name_str(device_name);
     return winrt::to_string(device_name_str);
   }

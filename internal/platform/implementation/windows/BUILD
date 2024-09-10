@@ -40,11 +40,6 @@ cc_library(
         "timer.h",
         "utils.h",
     ],
-    copts = [
-        "-Ithird_party/nearby/internal/platform/implementation/windows/generated",
-        "-Wno-non-virtual-dtor",
-        "-Wno-vla-extension",
-    ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = ["//sharing/internal/impl/windows:__pkg__"],
     deps = [
@@ -197,8 +192,7 @@ cc_library(
     # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
     copts = [
         "-DNO_INTEL_PIE",
-        "-Ithird_party/nearby/internal/platform/implementation/windows/generated -D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
-        "-Wno-non-virtual-dtor",
+        "-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
         "-Wno-unused-variable",
         "-Wno-unused-value",
     ],
@@ -294,7 +288,7 @@ cc_test(
         "wifi_hotspot_test.cc",
         "wifi_medium_test.cc",
     ],
-    copts = ["-Ithird_party/nearby/internal/platform/implementation/windows/generated -DCORE_ADAPTER_DLL"],
+    copts = ["-DCORE_ADAPTER_DLL"],
     tags = ["nozapfhahn"],
     deps = [
         ":comm",
