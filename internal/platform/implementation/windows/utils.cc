@@ -49,6 +49,7 @@ namespace {
 using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Connectivity::NetworkAdapter;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
+using ::winrt::Windows::Networking::Connectivity::NetworkTypes;
 
 }  // namespace
 
@@ -128,6 +129,11 @@ std::vector<std::string> GetIpv4Addresses() {
           host_name.IPInformation().NetworkAdapter() != nullptr &&
           host_name.Type() == HostNameType::Ipv4) {
         NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
+        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
+          // If we're not connected to a network, we don't want to add this
+          // address.
+          continue;
+        }
         if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
           wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
         } else if (adapter.IanaInterfaceType() ==
