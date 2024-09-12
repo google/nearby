@@ -122,6 +122,7 @@ using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 
+
 constexpr absl::Duration kBackgroundAdvertisementRotationDelayMin =
     absl::Minutes(12);
 // 870 seconds represents 14:30 minutes
