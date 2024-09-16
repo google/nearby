@@ -39,22 +39,22 @@ class MockConnectionAuthenticator : public ConnectionAuthenticator {
               (absl::string_view ukey2_secret,
                std::optional<const internal::LocalCredential> local_credential,
                const internal::SharedCredential& shared_credential),
-              (const override));
+              (const, override));
   MOCK_METHOD(absl::StatusOr<ResponderData>, BuildSignedMessageAsResponder,
               (absl::string_view ukey2_secret,
                const internal::LocalCredential& local_credential),
-              (const override));
+              (const, override));
   MOCK_METHOD(
       absl::Status, VerifyMessageAsInitiator,
       (ResponderData authentication_data, absl::string_view ukey2_secret,
        const std::vector<internal::SharedCredential>& shared_credentials),
-      (const override));
+      (const, override));
   MOCK_METHOD(
       absl::StatusOr<internal::LocalCredential>, VerifyMessageAsResponder,
       (absl::string_view ukey2_secret, InitiatorData initiator_data,
        const std::vector<internal::LocalCredential>& local_credentials,
        const std::vector<internal::SharedCredential>& shared_credentials),
-      (const override));
+      (const, override));
 };
 
 }  // namespace presence

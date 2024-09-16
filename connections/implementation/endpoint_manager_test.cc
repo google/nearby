@@ -77,27 +77,27 @@ class MockEndpointChannel : public EndpointChannel {
                    EstablishedConnection::SafeDisconnectionResult result),
               (override));
   MOCK_METHOD(location::nearby::proto::connections::ConnectionTechnology,
-              GetTechnology, (), (const override));
+              GetTechnology, (), (const, override));
   MOCK_METHOD(location::nearby::proto::connections::ConnectionBand, GetBand, (),
-              (const override));
-  MOCK_METHOD(int, GetFrequency, (), (const override));
-  MOCK_METHOD(int, GetTryCount, (), (const override));
-  MOCK_METHOD(std::string, GetType, (), (const override));
-  MOCK_METHOD(std::string, GetServiceId, (), (const override));
-  MOCK_METHOD(std::string, GetName, (), (const override));
-  MOCK_METHOD(Medium, GetMedium, (), (const override));
-  MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const override));
+              (const, override));
+  MOCK_METHOD(int, GetFrequency, (), (const, override));
+  MOCK_METHOD(int, GetTryCount, (), (const, override));
+  MOCK_METHOD(std::string, GetType, (), (const, override));
+  MOCK_METHOD(std::string, GetServiceId, (), (const, override));
+  MOCK_METHOD(std::string, GetName, (), (const, override));
+  MOCK_METHOD(Medium, GetMedium, (), (const, override));
+  MOCK_METHOD(int, GetMaxTransmitPacketSize, (), (const, override));
   MOCK_METHOD(void, EnableEncryption,
               (std::shared_ptr<EncryptionContext> context), (override));
   MOCK_METHOD(void, DisableEncryption, (), (override));
-  MOCK_METHOD(bool, IsPaused, (), (const override));
+  MOCK_METHOD(bool, IsPaused, (), (const, override));
   MOCK_METHOD(bool, IsEncrypted, (), (override));
   MOCK_METHOD(ExceptionOr<ByteArray>, TryDecrypt, (const ByteArray& data),
               (override));
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
-  MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
-  MOCK_METHOD(absl::Time, GetLastWriteTimestamp, (), (const override));
+  MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const, override));
+  MOCK_METHOD(absl::Time, GetLastWriteTimestamp, (), (const, override));
   MOCK_METHOD(void, SetAnalyticsRecorder,
               (analytics::AnalyticsRecorder*, const std::string&), (override));
 

@@ -102,8 +102,8 @@ ConnectionAuthenticator::TwoWayInitiatorData BuildDefaultInitiatorData() {
 
 class MockAuthenticationTransport : public AuthenticationTransport {
  public:
-  MOCK_METHOD(void, WriteMessage, (absl::string_view), (const override));
-  MOCK_METHOD(std::string, ReadMessage, (), (const override));
+  MOCK_METHOD(void, WriteMessage, (absl::string_view), (const, override));
+  MOCK_METHOD(std::string, ReadMessage, (), (const, override));
 };
 
 class PresenceDeviceProviderTest : public ::testing::Test {
