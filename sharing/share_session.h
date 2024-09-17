@@ -148,6 +148,7 @@ class ShareSession {
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
   virtual bool OnNewConnection(NearbyConnection* connection) = 0;
+  virtual void OnConnectionDisconnected() {}
 
   analytics::AnalyticsRecorder& analytics_recorder() {
     return analytics_recorder_;

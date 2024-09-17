@@ -96,6 +96,14 @@ bool OutgoingShareSession::OnNewConnection(NearbyConnection* connection) {
   return true;
 }
 
+void OutgoingShareSession::OnConnectionDisconnected() {
+  if (pending_complete_metadata_.has_value()) {
+    UpdateTransferMetadata(*pending_complete_metadata_);
+    pending_complete_metadata_.reset();
+  }
+}
+
+
 std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths()
     const {
   std::vector<std::filesystem::path> file_paths;
@@ -433,6 +441,25 @@ std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {
   }
 
   return std::nullopt;
+}
+
+void OutgoingShareSession::DelayCompleteMetadata(
+    const TransferMetadata& complete_metadata) {
+  LOG(INFO)
+      << "Delay complete notification until receiver disconnects for target "
+      << share_target().id;
+  pending_complete_metadata_ = complete_metadata;
+  // Change kComplete status to kInProgress and update clients.
+  TransferMetadataBuilder builder =
+      TransferMetadataBuilder::Clone(complete_metadata);
+  builder.set_status(TransferMetadata::Status::kInProgress);
+  UpdateTransferMetadata(builder.build());
+}
+
+void OutgoingShareSession::DisconnectionTimeout() {
+  VLOG(1) << "Disconnection delay timeed out for target " << share_target().id;
+  pending_complete_metadata_.reset();
+  Disconnect();
 }
 
 }  // namespace nearby::sharing

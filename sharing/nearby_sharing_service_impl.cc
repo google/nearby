@@ -2347,6 +2347,9 @@ void NearbySharingServiceImpl::OnRotateBackgroundAdvertisementTimerFired() {
 
 void NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
     absl::string_view endpoint_id) {
+  VLOG(1) << "Outgoing connection to " << endpoint_id
+          << " disconnected, cancel disconnection timer";
+  disconnection_timeout_alarms_.erase(endpoint_id);
   auto it = outgoing_share_target_map_.find(endpoint_id);
   if (it == outgoing_share_target_map_.end()) {
     return;
@@ -3183,18 +3186,38 @@ void NearbySharingServiceImpl::OutgoingPayloadTransferUpdate(
                << TransferMetadata::StatusToString(metadata.status());
   }
 
+  // When kComplete is received from PayloadTracker, we need to wait for
+  // receiver to close connection before we know that the transfer has
+  // succeeded.  Here we delay the kComplete update until receiver disconnects.
+  // A 1 min timer is setup so that if we do not receive disconnect from
+  // receiver, we assume the transfer has failed.
+  if (metadata.status() == TransferMetadata::Status::kComplete) {
+    session->DelayCompleteMetadata(metadata);
+    auto timer = std::make_unique<ThreadTimer>(
+        *service_thread_, "disconnection_timeout_alarm",
+        kOutgoingDisconnectionDelay,
+        [this, share_target_id = session->share_target().id]() {
+          OutgoingShareSession* session =
+              GetOutgoingShareSession(share_target_id);
+          if (session != nullptr) {
+            session->DisconnectionTimeout();
+          }
+        });
+    disconnection_timeout_alarms_[session->endpoint_id()] = std::move(timer);
+    return;
+  }
   // Make sure to call this before calling Disconnect, or we risk losing some
   // transfer updates in the receive case due to the Disconnect call cleaning up
   // share targets.
   session->UpdateTransferMetadata(metadata);
 
-  if (TransferMetadata::IsFinalStatus(metadata.status())) {
-    // Cancellation has its own disconnection strategy, possibly adding a
-    // delay before disconnection to provide the other party time to process
-    // the cancellation.
-    if (metadata.status() != TransferMetadata::Status::kCancelled) {
-      DisconnectOutgoing(*session, metadata);
-    }
+  // Cancellation has its own disconnection strategy, possibly adding a delay
+  // before disconnection to provide the other party time to process the
+  // cancellation.
+  if (TransferMetadata::IsFinalStatus(metadata.status()) &&
+      metadata.status() != TransferMetadata::Status::kCancelled) {
+    // Failed to send. No point in continuing, so disconnect immediately.
+    session->Disconnect();
   }
 }
 
@@ -3219,28 +3242,6 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
   files_for_deletion.insert(files_for_deletion.end(), payload_file_path.begin(),
                             payload_file_path.end());
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
-}
-
-void NearbySharingServiceImpl::DisconnectOutgoing(OutgoingShareSession& session,
-                                                  TransferMetadata metadata) {
-  std::string endpoint_id = session.endpoint_id();
-  // Failed to send or receive. No point in continuing, so disconnect
-  // immediately.
-  if (metadata.status() != TransferMetadata::Status::kComplete) {
-    session.Disconnect();
-    return;
-  }
-
-  // Disconnect after a timeout to make sure any pending payloads are sent.
-  // This can happen after the session has been destroyed.
-  auto timer = std::make_unique<ThreadTimer>(
-      *service_thread_, "disconnection_timeout_alarm",
-      kOutgoingDisconnectionDelay, [this, endpoint_id]() {
-        disconnection_timeout_alarms_.erase(endpoint_id);
-        nearby_connections_manager_->Disconnect(endpoint_id);
-      });
-
-  disconnection_timeout_alarms_[endpoint_id] = std::move(timer);
 }
 
 IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
@@ -3345,8 +3346,7 @@ void NearbySharingServiceImpl::ClearOutgoingShareSessionMap() {
 }
 
 void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
-  NL_VLOG(1) << __func__ << ": Unregistering share target - "
-             << share_target_id;
+  LOG(INFO) << __func__ << ": Unregistering share target " << share_target_id;
 
   // For metrics.
   all_cancelled_share_target_ids_.erase(share_target_id);
@@ -3375,6 +3375,8 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
       // Be careful not to clear out the share session map if a new session was
       // started during the cancellation delay.
       if (!is_scanning_ && !is_transferring_) {
+        LOG(INFO) << "Cannot find session for target " << share_target_id
+                  << " clearing all outgoing sessions.";
         ClearOutgoingShareSessionMap();
       }
     }

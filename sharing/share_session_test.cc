@@ -78,6 +78,7 @@ class TestShareSession : public ShareSession {
 
   MOCK_METHOD(void, InvokeTransferUpdateCallback,
               (const TransferMetadata& metadata), (override));
+  MOCK_METHOD(void, OnConnectionDisconnected, (), (override));
 
  protected:
   bool OnNewConnection(NearbyConnection* connection) override {
@@ -238,6 +239,7 @@ TEST(ShareSessionTest, OnDisconnect) {
   EXPECT_CALL(session, InvokeTransferUpdateCallback(AllOf(
                            HasStatus(TransferMetadata::Status::kCancelled),
                            IsFinalStatus())));
+  EXPECT_CALL(session, OnConnectionDisconnected());
 
   session.OnDisconnect();
 }

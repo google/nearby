@@ -172,6 +172,7 @@ void ShareSession::RunPairedKeyVerification(
 }
 
 void ShareSession::OnDisconnect() {
+  OnConnectionDisconnected();
   if (disconnect_status_ != TransferMetadata::Status::kUnknown) {
     UpdateTransferMetadata(
         TransferMetadataBuilder().set_status(disconnect_status_).build());

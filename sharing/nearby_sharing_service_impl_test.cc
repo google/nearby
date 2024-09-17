@@ -980,11 +980,14 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void FinishOutgoingTransfer(MockTransferUpdateCallback& transfer_callback,
-                              int64_t share_target_id,
+                              int64_t share_target_id, bool complete,
                               const PayloadInfo& info) {
     // Simulate a successful transfer via Nearby Connections.
     ExpectTransferUpdates(transfer_callback, share_target_id,
-                          {TransferMetadata::Status::kComplete}, [] {});
+                          {TransferMetadata::Status::kInProgress,
+                           complete ? TransferMetadata::Status::kComplete
+                                    : TransferMetadata::Status::kFailed},
+                          [] {});
 
     sharing_service_task_runner_->PostTask([info = info]() {
       auto payload_transfer_update = std::make_unique<PayloadTransferUpdate>(
@@ -1142,7 +1145,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         success_notification.WaitForNotificationWithTimeout(kWaitTimeout));
     FlushTesting();
     EXPECT_FALSE(fake_nearby_connections_manager_->connection_endpoint_info(
-        kEndpointId));
+        kEndpointId).has_value());
     EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
     // To avoid UAF in OnIncomingTransferUpdate().
@@ -2792,7 +2795,8 @@ TEST_F(NearbySharingServiceImplTest,
       success_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
   EXPECT_FALSE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
   EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // File deletion runs in a ThreadPool.
@@ -2842,7 +2846,8 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
       failure_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
   EXPECT_FALSE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
   EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // File deletion runs in a ThreadPool.
@@ -2891,7 +2896,8 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
       failure_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
   EXPECT_FALSE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
   EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
   // File deletion runs in a ThreadPool.
@@ -3394,7 +3400,7 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
   UnregisterSendSurface(&transfer_callback);
 }
 
-TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
+TEST_F(NearbySharingServiceImplTest, SendTextDisconnectTimeout) {
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   AccountManager::Account account;
@@ -3428,7 +3434,8 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
   EXPECT_EQ(meta.type(), TextMetadata::TEXT);
 
   ASSERT_TRUE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
   std::unique_ptr<Advertisement> advertisement =
       Advertisement::FromEndpointInfo(absl::Span<const uint8_t>(
           *fake_nearby_connections_manager_->connection_endpoint_info(
@@ -3442,19 +3449,24 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccess) {
             test_metadata_key.encrypted_key());
 
   PayloadInfo info = AcceptAndSendPayload(transfer_callback, target_id);
-  FinishOutgoingTransfer(transfer_callback, target_id, info);
+  FinishOutgoingTransfer(transfer_callback, target_id, /*complete=*/false,
+                         info);
 
   // We should not have called disconnect yet as we want to wait for 1 minute to
   // make sure all outgoing packets have been sent properly.
   EXPECT_TRUE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
 
   // Forward time until we send the disconnect request to Nearby
   FastForward(kOutgoingDisconnectionDelay);
 
-  // Expect to be disconnected now.
-  EXPECT_FALSE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+  // Disconnect timeout calls FakeConnection::Close which does not call
+  // ConnectionsManager::Disconnect, so the FakeConnectionsManager still thinks
+  // the connection is open.
+  EXPECT_TRUE(
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
 
   UnregisterSendSurface(&transfer_callback);
   account_manager().SetAccount(std::nullopt);
@@ -3467,23 +3479,34 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccessClosedConnection) {
       SetUpOutgoingShareTarget(transfer_callback, discovery_callback);
   SetUpOutgoingConnectionUntilAccept(transfer_callback, target_id);
   PayloadInfo info = AcceptAndSendPayload(transfer_callback, target_id);
-  FinishOutgoingTransfer(transfer_callback, target_id, info);
+  FinishOutgoingTransfer(transfer_callback, target_id, /*complete=*/true, info);
 
   // We should not have called disconnect yet as we want to wait for 1 minute
   // to make sure all outgoing packets have been sent properly.
   EXPECT_TRUE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
 
   // Call disconnect on the connection early before the timeout has passed.
   sharing_service_task_runner_->PostTask([this]() { connection_->Close(); });
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
+  // FakeConnection::Close does not call ConnectionsManager::Disconnect, so
+  // the FakeConnectionsManager still thinks the connection is open.
   // Expect that we haven't called disconnect again as the endpoint is already
   // disconnected.
   EXPECT_TRUE(
-      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId));
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
 
   // Make sure the scheduled disconnect callback does nothing.
   FastForward(kOutgoingDisconnectionDelay);
+
+  // The disconnection_timeout_alarm should have been cancelled, so
+  // ConnectionsManager::Disconnect should not have been called.
+  EXPECT_TRUE(
+      fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+          .has_value());
 
   UnregisterSendSurface(&transfer_callback);
 }

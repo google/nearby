@@ -361,8 +361,6 @@ class NearbySharingServiceImpl
       int64_t share_target_id, TransferMetadata metadata);
 
   void RemoveIncomingPayloads(const IncomingShareSession& session);
-  void DisconnectOutgoing(OutgoingShareSession& session,
-                          TransferMetadata metadata);
 
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,

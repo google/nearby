@@ -44,6 +44,7 @@
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 #include "sharing/transfer_metadata_matchers.h"
 #include "sharing/wifi_credentials_attachment.h"
 
@@ -677,6 +678,39 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
 
   EXPECT_THAT(session_.token(), IsEmpty());
   EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
+}
+
+TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataRecevierDisconnect) {
+  FakeNearbyConnection connection;
+  session_.OnConnected(absl::Now(), &connections_manager_, &connection);
+  TransferMetadata complete_metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
+
+  session_.DelayCompleteMetadata(complete_metadata);
+
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kComplete)));
+  session_.OnDisconnect();
+}
+
+TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
+  FakeNearbyConnection connection;
+  session_.OnConnected(absl::Now(), &connections_manager_, &connection);
+  TransferMetadata complete_metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
+
+  session_.DelayCompleteMetadata(complete_metadata);
+
+  session_.DisconnectionTimeout();
+  EXPECT_THAT(connection.IsClosed(), IsTrue());
 }
 
 }  // namespace
