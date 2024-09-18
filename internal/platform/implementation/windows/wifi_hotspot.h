@@ -21,13 +21,21 @@
 #include <wlanapi.h>
 
 // Standard C/C++ headers
+#include <cstdint>
 #include <deque>
+#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 // Nearby connections headers
+#include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
@@ -45,6 +53,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Cryptography.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace windows {
@@ -293,6 +302,10 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Implemented the disconnection to WiFi hotspot, and used to avoid deadlock.
   bool InternalDisconnectWifiHotspot();
+  // Restore the WiFi connection after disconnect from the Hotspot
+  void RestoreWifiConnection();
+  // Delete the network profile of the WiFi hotspot
+  bool DeleteNetworkProfile(winrt::hstring ssid);
 
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
@@ -301,7 +314,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
   // Discoverer is connected with the Hotspot
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
-  void RestoreWifiConnection();
 
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
@@ -318,7 +330,8 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   winrt::event_token connection_requested_token_;
 
   WiFiAdapter wifi_adapter_{nullptr};
-  WiFiAvailableNetwork wifi_connected_network_{nullptr};
+  WiFiAvailableNetwork wifi_original_network_{nullptr};
+  winrt::hstring wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
 
   // Gets error message from exception pointer
   std::string GetErrorMessage(std::exception_ptr eptr);

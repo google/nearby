@@ -17,19 +17,18 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
-#include <string>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
-#include "internal/platform/implementation/windows/wifi_intel.h"
-
-// Nearby connections headers
-#include "internal/flags/nearby_flags.h"
-#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/logging.h"
+#include "internal/platform/implementation/windows/wifi_intel.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/wifi_utils.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
@@ -410,8 +409,15 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
   absl::MutexLock lock(&mutex_);
 
   try {
+    if (!wifi_connected_hotspot_ssid_.empty()) {
+      NEARBY_LOGS(INFO) << "Before connecting to Hotspot, Delete the previous "
+                           "Hotspot profile with SSID: "
+                        << winrt::to_string(wifi_connected_hotspot_ssid_);
+      DeleteNetworkProfile(wifi_connected_hotspot_ssid_);
+      wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
+    }
     if (IsConnected()) {
-      NEARBY_LOGS(WARNING) << "Already connected to AP, disconnect first.";
+      NEARBY_LOGS(WARNING) << "Already connected to Hotspot, disconnect first.";
       InternalDisconnectWifiHotspot();
     }
 
@@ -461,7 +467,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     // almost guarantee to find the Hotspot
     wifi_adapter_.ScanAsync().get();
 
-    wifi_connected_network_ = nullptr;
+    wifi_original_network_ = nullptr;
     int64_t wifi_hotspot_max_scans = NearbyFlags::GetInstance().GetInt64Flag(
         platform::config_package_nearby::nearby_platform_feature::
             kWifiHotspotScanMaxRetries);
@@ -470,9 +476,9 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     for (i = 0; i < wifi_hotspot_max_scans; i++) {
       for (const auto& network :
            wifi_adapter_.NetworkReport().AvailableNetworks()) {
-        if (!wifi_connected_network_ && !ssid.empty() &&
+        if (!wifi_original_network_ && !ssid.empty() &&
             (winrt::to_string(network.Ssid()) == ssid)) {
-          wifi_connected_network_ = network;
+          wifi_original_network_ = network;
           NEARBY_LOGS(INFO) << "Save the current connected network: " << ssid;
         } else if (!nearby_softap && winrt::to_string(network.Ssid()) ==
                                          hotspot_credentials_->GetSSID()) {
@@ -480,7 +486,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
               << "Found Nearby SSID: " << winrt::to_string(network.Ssid());
           nearby_softap = network;
         }
-        if (nearby_softap && (ssid.empty() || wifi_connected_network_)) break;
+        if (nearby_softap && (ssid.empty() || wifi_original_network_))
+          break;
       }
       if (nearby_softap) break;
       NEARBY_LOGS(INFO) << "Scan ... ";
@@ -541,12 +548,15 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     if (ip_address.empty()) {
       NEARBY_LOGS(INFO) << "Failed to get IP address from hotspot.";
+      RestoreWifiConnection();
+      DeleteNetworkProfile(nearby_softap.Ssid());
       return false;
     }
 
     NEARBY_LOGS(INFO) << "Got IP address " << ip_address << " from hotspot.";
 
     std::string last_ssid = hotspot_credentials_->GetSSID();
+    wifi_connected_hotspot_ssid_ = nearby_softap.Ssid();
     medium_status_ |= kMediumStatusConnected;
     NEARBY_LOGS(INFO) << "Connected to hotspot: " << last_ssid;
 
@@ -566,7 +576,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 }
 
 void WifiHotspotMedium::RestoreWifiConnection() {
-  if (!wifi_connected_network_ && wifi_adapter_) {
+  if (!wifi_original_network_ && wifi_adapter_) {
     wifi_adapter_.Disconnect();
     return;
   }
@@ -579,7 +589,7 @@ void WifiHotspotMedium::RestoreWifiConnection() {
       ssid = winrt::to_string(
           profile.WlanConnectionProfileDetails().GetConnectedSsid());
       if (!ssid.empty() &&
-          (winrt::to_string(wifi_connected_network_.Ssid()) == ssid)) {
+          (winrt::to_string(wifi_original_network_.Ssid()) == ssid)) {
         NEARBY_LOGS(INFO) << "Already conneted to the previous WIFI network "
                           << ssid << "! Skip restoration.";
         return;
@@ -591,7 +601,7 @@ void WifiHotspotMedium::RestoreWifiConnection() {
     NEARBY_LOGS(INFO) << "Disconnected to current network.";
 
     auto connect_result = wifi_adapter_
-                              .ConnectAsync(wifi_connected_network_,
+                              .ConnectAsync(wifi_original_network_,
                                             WiFiReconnectionKind::Automatic)
                               .get();
 
@@ -601,9 +611,9 @@ void WifiHotspotMedium::RestoreWifiConnection() {
                         << static_cast<int>(connect_result.ConnectionStatus());
     } else {
       NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
-                        << winrt::to_string(wifi_connected_network_.Ssid());
+                        << winrt::to_string(wifi_original_network_.Ssid());
     }
-    wifi_connected_network_ = nullptr;
+    wifi_original_network_ = nullptr;
   }
 }
 
@@ -632,49 +642,73 @@ bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
   }
 
   if (wifi_adapter_) {
-    // Gets connected WiFi profile.
-    auto profile =
-        wifi_adapter_.NetworkAdapter().GetConnectedProfileAsync().get();
-
     // Disconnect to the WiFi connection through the WiFi adapter.
     RestoreWifiConnection();
     wifi_adapter_ = nullptr;
 
-    // Try to remove the WiFi profile
-    if (profile != nullptr && profile.CanDelete() &&
-        profile.IsWlanConnectionProfile()) {
-      std::string ssid = winrt::to_string(
-          profile.WlanConnectionProfileDetails().GetConnectedSsid());
-
-      auto profile_delete_status = profile.TryDeleteAsync().get();
-      switch (profile_delete_status) {
-        case ConnectionProfileDeleteStatus::Success:
-          NEARBY_LOGS(INFO)
-              << "WiFi profile with SSID:" << ssid << " is deleted.";
-          break;
-        case ConnectionProfileDeleteStatus::DeniedBySystem:
-          NEARBY_LOGS(ERROR)
-              << "Failed to delete WiFi profile with SSID:" << ssid
-              << " due to denied by system.";
-          break;
-        case ConnectionProfileDeleteStatus::DeniedByUser:
-          NEARBY_LOGS(ERROR)
-              << "Failed to delete WiFi profile with SSID:" << ssid
-              << " due to denied by user.";
-          break;
-        case ConnectionProfileDeleteStatus::UnknownError:
-          NEARBY_LOGS(ERROR)
-              << "Failed to delete WiFi profile with SSID:" << ssid
-              << " due to unknonw error.";
-          break;
-        default:
-          break;
-      }
+    if (!wifi_connected_hotspot_ssid_.empty()) {
+      NEARBY_LOGS(INFO)
+          << "Delete the previous connected network profile with SSID: "
+          << winrt::to_string(wifi_connected_hotspot_ssid_);
+      DeleteNetworkProfile(wifi_connected_hotspot_ssid_);
+      wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
     }
   }
 
   medium_status_ &= (~kMediumStatusConnected);
   return true;
+}
+
+bool WifiHotspotMedium::DeleteNetworkProfile(winrt::hstring ssid) {
+  bool result = false;
+  ConnectionProfile profile{nullptr};
+  auto connections = NetworkInformation::GetConnectionProfiles();
+  auto ssid_string = winrt::to_string(ssid);
+  if (ssid_string.empty()) {
+    NEARBY_LOGS(INFO) << "SSID is empty. No need to delete the network profile";
+    return true;
+  }
+
+  NEARBY_LOGS(INFO) << "Search profile with SSID: " << ssid_string;
+  for (const auto& connection_profile : connections) {
+    if (connection_profile.ProfileName() == ssid) {
+      NEARBY_LOGS(INFO) << "Found the network profile with SSID: "
+                        << ssid_string;
+      profile = connection_profile;
+      break;
+    }
+  }
+  if (profile == nullptr) {
+    NEARBY_LOGS(INFO) << "No network profile found with SSID: " << ssid_string;
+    return result;
+  }
+
+  if (profile != nullptr && profile.CanDelete() &&
+      profile.IsWlanConnectionProfile()) {
+    auto profile_delete_status = profile.TryDeleteAsync().get();
+    switch (profile_delete_status) {
+      case ConnectionProfileDeleteStatus::Success:
+        NEARBY_LOGS(INFO) << "WiFi profile with SSID:" << ssid_string
+                          << " is deleted.";
+        result = true;
+        break;
+      case ConnectionProfileDeleteStatus::DeniedBySystem:
+        NEARBY_LOGS(ERROR) << "Failed to delete WiFi profile with SSID:"
+                           << ssid_string << " due to denied by system.";
+        break;
+      case ConnectionProfileDeleteStatus::DeniedByUser:
+        NEARBY_LOGS(ERROR) << "Failed to delete WiFi profile with SSID:"
+                           << ssid_string << " due to denied by user.";
+        break;
+      case ConnectionProfileDeleteStatus::UnknownError:
+        NEARBY_LOGS(ERROR) << "Failed to delete WiFi profile with SSID:"
+                           << ssid_string << " due to unknonw error.";
+        break;
+      default:
+        break;
+    }
+  }
+  return result;
 }
 
 std::string WifiHotspotMedium::GetErrorMessage(std::exception_ptr eptr) {
