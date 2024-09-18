@@ -558,6 +558,8 @@ enum LogSource {
   DEBUG_DEVICES = 5;
   // Represents the device for Nearby Module Food.
   NEARBY_MODULE_FOOD_DEVICES = 6;
+  // Represents the device for BeTo Team Food.
+  BETO_DOG_FOOD_DEVICES = 7;
 }
 
 // The Fast Share server action name.
