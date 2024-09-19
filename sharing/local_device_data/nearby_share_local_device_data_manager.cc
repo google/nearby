@@ -24,7 +24,7 @@ namespace sharing {
 // LINT.IfChange(sharing_max_name_length_bytes)
 const size_t kNearbyShareDeviceNameMaxLength = 32;
 // LINT.ThenChange(
-// //depot/google3/location/nearby/apps/better_together/windows/nearby_share/testing/functional/quick_share_transfer_api_test.py:sharing_max_name_length_bytes,
+// //depot/google3/location/nearby/apps/better_together/windows/nearby_share/testing/functional/quick_share_transfer_without_login_api_test.py:sharing_max_name_length_bytes,
 // //depot/google3/location/nearby/testing/nearby_native/client_windows/nearby_sharing_snippet.cc:sharing_max_name_length_bytes,
 // //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/res/values/ints.xml:sharing_max_name_length_bytes,
 // //depot/google3/javatests/com/google/android/gmscore/integ/modules/nearby/mobly/snippets/sharing/SharingClientSnippet.java:sharing_max_name_length_bytes)
