@@ -22,8 +22,8 @@
 #include "absl/time/time.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
-#include "internal/platform/wifi_utils.h"
 
 // Nearby connections headers
 #include "internal/platform/cancellation_flag_listener.h"

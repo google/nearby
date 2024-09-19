@@ -299,7 +299,6 @@ cc_library(
         "wifi_direct.cc",
         "wifi_hotspot.cc",
         "wifi_lan.cc",
-        "wifi_utils.cc",
     ],
     hdrs = [
         "ble.h",
@@ -312,7 +311,6 @@ cc_library(
         "wifi_direct.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
-        "wifi_utils.h",
     ],
     copts = [
         "-DCORE_ADAPTER_DLL",
@@ -333,6 +331,7 @@ cc_library(
         "//internal/base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:wifi_utils",
         # TODO: Support WebRTC
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -456,7 +455,6 @@ cc_test(
         "wifi_lan_connection_info_test.cc",
         "wifi_lan_test.cc",
         "wifi_test.cc",
-        "wifi_utils_test.cc",
     ],
     deps = [
         ":base",

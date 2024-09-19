@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/wifi_utils.h"
+#include "internal/platform/implementation/wifi_utils.h"
 
 #include <string>
 #include <vector>
@@ -21,6 +21,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
 

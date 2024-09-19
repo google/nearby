@@ -26,13 +26,13 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
-#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 namespace windows {

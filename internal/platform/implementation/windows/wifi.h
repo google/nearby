@@ -15,14 +15,14 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WIFI_H_
 #define PLATFORM_IMPL_WINDOWS_WIFI_H_
 
-#include <windows.h>
 #include <objbase.h>
+#include <windows.h>
 #include <wlanapi.h>
 #include <wtypes.h>
 
 // Nearby connections headers
 #include "internal/platform/implementation/wifi.h"
-#include "internal/platform/wifi_utils.h"
+#include "internal/platform/implementation/wifi_utils.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"

@@ -19,10 +19,10 @@
 // #include <cstddef>
 #include "absl/strings/str_format.h"
 #include "internal/platform/implementation/wifi.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 namespace windows {
