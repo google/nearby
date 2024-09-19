@@ -44,16 +44,16 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
   if (use_task_scheduler_) {
     if (shut_down_) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Attempt to Schedule on a shut down executor.";
+      LOG(ERROR) << __func__
+                 << ": Attempt to Schedule on a shut down executor.";
 
       return nullptr;
     }
     return task_scheduler_.Schedule(std::move(runnable), duration);
   } else {
     if (shut_down_) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Attempt to Schedule on a shut down executor.";
+      LOG(ERROR) << __func__
+                 << ": Attempt to Schedule on a shut down executor.";
 
       return nullptr;
     }
@@ -79,8 +79,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {
   if (shut_down_) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Attempt to Execute on a shut down executor.";
+    LOG(ERROR) << __func__ << ": Attempt to Execute on a shut down executor.";
     return;
   }
 
@@ -107,8 +106,7 @@ void ScheduledExecutor::Shutdown() {
       return;
     }
   }
-  NEARBY_LOGS(ERROR) << __func__
-                     << ": Attempt to Shutdown on a shut down executor.";
+  LOG(ERROR) << __func__ << ": Attempt to Shutdown on a shut down executor.";
 }
 }  // namespace windows
 }  // namespace nearby

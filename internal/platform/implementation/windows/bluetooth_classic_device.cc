@@ -86,8 +86,8 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
   }
 
   try {
-    NEARBY_LOGS(INFO) << __func__ << ": Get RF services for service id:"
-                      << winrt::to_string(serviceId.AsString());
+    LOG(INFO) << __func__ << ": Get RF services for service id:"
+              << winrt::to_string(serviceId.AsString());
 
     RfcommDeviceServicesResult rfcomm_device_services = nullptr;
     // Try to get service from un cached mode.
@@ -101,13 +101,12 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
         rfcomm_device_services = rfcomm_device_services_async.GetResults();
         break;
       case winrt::Windows::Foundation::AsyncStatus::Started:
-        NEARBY_LOGS(ERROR)
-            << __func__
-            << ": Failed to get RfcommDeviceService due to timeout.";
+        LOG(ERROR) << __func__
+                   << ": Failed to get RfcommDeviceService due to timeout.";
         rfcomm_device_services_async.Cancel();
         return nullptr;
       default:
-        NEARBY_LOGS(ERROR)
+        LOG(ERROR)
             << __func__
             << ": Failed to get RfcommDeviceService due to unknown reasons.";
         return nullptr;
@@ -115,35 +114,33 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(
 
     if (rfcomm_device_services != nullptr &&
         rfcomm_device_services.Services().Size() > 0) {
-      NEARBY_LOGS(INFO) << __func__ << ": Get "
-                        << rfcomm_device_services.Services().Size()
-                        << " services without cache.";
+      LOG(INFO) << __func__ << ": Get "
+                << rfcomm_device_services.Services().Size()
+                << " services without cache.";
       // found the matched service.
       for (auto rfcomm_device_service : rfcomm_device_services.Services()) {
         if (rfcomm_device_service.Device() != nullptr &&
             winrt::to_string(rfcomm_device_service.Device().DeviceId()) ==
                 id_) {
-          NEARBY_LOGS(INFO)
-              << __func__ << ": Found service from no-cache mode.";
+          LOG(INFO) << __func__ << ": Found service from no-cache mode.";
           return rfcomm_device_service;
         }
       }
     }
 
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Failed to get RfcommDeviceService due to no any services.";
+    LOG(ERROR) << __func__
+               << ": Failed to get RfcommDeviceService due to no any services.";
     return nullptr;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService: "
-                       << exception.what();
+    LOG(ERROR) << __func__
+               << ": Failed to get RfcommDeviceService: " << exception.what();
     return nullptr;
   } catch (const winrt::hresult_error& ex) {
-    NEARBY_LOGS(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
-                       << ", error message: " << winrt::to_string(ex.message());
+    LOG(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
+               << ", error message: " << winrt::to_string(ex.message());
     return nullptr;
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
     return nullptr;
   }
 }
@@ -154,8 +151,8 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdWithRetryAsync(
   int check_service_count = 0;
   while (check_service_count < kCheckBluetoothServiceMaxTimes) {
     try {
-      NEARBY_LOGS(INFO) << __func__ << ": Get RF services for service id:"
-                        << winrt::to_string(serviceId.AsString());
+      LOG(INFO) << __func__ << ": Get RF services for service id:"
+                << winrt::to_string(serviceId.AsString());
 
       RfcommDeviceServicesResult rfcomm_device_services = nullptr;
       // Try to get service from un cached mode.
@@ -169,13 +166,12 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdWithRetryAsync(
           rfcomm_device_services = rfcomm_device_services_async.GetResults();
           break;
         case winrt::Windows::Foundation::AsyncStatus::Started:
-          NEARBY_LOGS(ERROR)
-              << __func__
-              << ": Failed to get RfcommDeviceService due to timeout.";
+          LOG(ERROR) << __func__
+                     << ": Failed to get RfcommDeviceService due to timeout.";
           rfcomm_device_services_async.Cancel();
           return nullptr;
         default:
-          NEARBY_LOGS(ERROR)
+          LOG(ERROR)
               << __func__
               << ": Failed to get RfcommDeviceService due to unknown reasons.";
           return nullptr;
@@ -183,16 +179,15 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdWithRetryAsync(
 
       if (rfcomm_device_services != nullptr &&
           rfcomm_device_services.Services().Size() > 0) {
-        NEARBY_LOGS(INFO) << __func__ << ": Get "
-                          << rfcomm_device_services.Services().Size()
-                          << " services without cache.";
+        LOG(INFO) << __func__ << ": Get "
+                  << rfcomm_device_services.Services().Size()
+                  << " services without cache.";
         // found the matched service.
         for (auto rfcomm_device_service : rfcomm_device_services.Services()) {
           if (rfcomm_device_service.Device() != nullptr &&
               winrt::to_string(rfcomm_device_service.Device().DeviceId()) ==
                   id_) {
-            NEARBY_LOGS(INFO)
-                << __func__ << ": Found service from no-cache mode.";
+            LOG(INFO) << __func__ << ": Found service from no-cache mode.";
             return rfcomm_device_service;
           }
         }
@@ -200,24 +195,23 @@ RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdWithRetryAsync(
 
       ++check_service_count;
       absl::SleepFor(kCheckBluetoothServiceInterval);
-      NEARBY_LOGS(ERROR) << __func__ << ": No any services at "
-                         << check_service_count << "th check.";
+      LOG(ERROR) << __func__ << ": No any services at " << check_service_count
+                 << "th check.";
     } catch (std::exception exception) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService: "
-                         << exception.what();
+      LOG(ERROR) << __func__
+                 << ": Failed to get RfcommDeviceService: " << exception.what();
       return nullptr;
     } catch (const winrt::hresult_error& ex) {
-      NEARBY_LOGS(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
-                         << ", error message: "
-                         << winrt::to_string(ex.message());
+      LOG(ERROR) << __func__ << ": RfcommDeviceService: " << ex.code()
+                 << ", error message: " << winrt::to_string(ex.message());
       return nullptr;
     } catch (...) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+      LOG(ERROR) << __func__ << ": Unknown exception.";
       return nullptr;
     }
   }
 
-  NEARBY_LOGS(ERROR) << __func__ << ": Failed to get RfcommDeviceService.";
+  LOG(ERROR) << __func__ << ": Failed to get RfcommDeviceService.";
   return nullptr;
 }
 

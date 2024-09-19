@@ -145,16 +145,13 @@ std::vector<std::string> GetIpv4Addresses() {
       }
     }
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot get IPv4 addresses. Exception : "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot get IPv4 addresses. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   result.insert(result.end(), wifi_addresses.begin(), wifi_addresses.end());

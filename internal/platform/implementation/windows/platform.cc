@@ -75,7 +75,6 @@
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 

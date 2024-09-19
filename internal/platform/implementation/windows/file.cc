@@ -88,7 +88,7 @@ ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
     }
     return ExceptionOr<ByteArray>(ByteArray(buffer_.data(), num_bytes_read));
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "Fail to read";
+    LOG(ERROR) << "Fail to read";
     return ExceptionOr<ByteArray>{Exception::kIo};
   }
 }
@@ -114,7 +114,7 @@ Exception IOFile::Write(const ByteArray& data) {
     file_.flush();
     return {file_.good() ? Exception::kSuccess : Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "Fail to write";
+    LOG(ERROR) << "Fail to write";
     return {Exception::kIo};
   }
 }

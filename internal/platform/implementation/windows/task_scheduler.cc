@@ -37,12 +37,12 @@ void CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 }  // namespace
 
 TaskScheduler::TaskScheduler() {
-  NEARBY_LOGS(INFO) << __func__ << ": Created task scheduler: " << this;
+  LOG(INFO) << __func__ << ": Created task scheduler: " << this;
 }
 
 TaskScheduler::~TaskScheduler() {
   Shutdown();
-  NEARBY_LOGS(INFO) << __func__ << ": Destroyed task scheduler: " << this;
+  LOG(INFO) << __func__ << ": Destroyed task scheduler: " << this;
 }
 
 std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
@@ -54,16 +54,15 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
     Runnable&& runnable, absl::Duration duration,
     absl::Duration repeat_interval) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__
-                    << ": Scheduling task on task scheduler:" << this
-                    << ", duration: " << absl::ToInt64Milliseconds(duration)
-                    << "ms, repeat_interval: "
-                    << absl::ToInt64Milliseconds(repeat_interval) << "ms";
+  LOG(INFO) << __func__ << ": Scheduling task on task scheduler:" << this
+            << ", duration: " << absl::ToInt64Milliseconds(duration)
+            << "ms, repeat_interval: "
+            << absl::ToInt64Milliseconds(repeat_interval) << "ms";
   if (is_shutdown_) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Attempt to schedule task on a shut down task "
-                          "scheduler: "
-                       << this;
+    LOG(ERROR) << __func__
+               << ": Attempt to schedule task on a shut down task "
+                  "scheduler: "
+               << this;
     return nullptr;
   }
 
@@ -79,24 +78,23 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
                              task->runnable(),
                              absl::ToInt64Milliseconds(duration),
                              absl::ToInt64Milliseconds(repeat_interval), 0)) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Failed to create timer queue timer in task scheduler:" << this
-        << " error: " << GetLastError();
+    LOG(ERROR) << __func__
+               << ": Failed to create timer queue timer in task scheduler:"
+               << this << " error: " << GetLastError();
     return nullptr;
   }
 
   task->set_timer_handle(reinterpret_cast<intptr_t>(timer_handle));
   scheduled_tasks_.insert({reinterpret_cast<intptr_t>(timer_handle), task});
-  NEARBY_LOGS(INFO) << __func__ << ": Scheduled task " << task.get()
-                    << " on task scheduler:" << this
-                    << " timer handle: " << task->timer_handle();
+  LOG(INFO) << __func__ << ": Scheduled task " << task.get()
+            << " on task scheduler:" << this
+            << " timer handle: " << task->timer_handle();
   return task;
 }
 
 void TaskScheduler::Shutdown() {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Shutting down task scheduler:" << this;
+  LOG(INFO) << __func__ << ": Shutting down task scheduler:" << this;
   if (is_shutdown_) {
     return;
   }
@@ -109,16 +107,15 @@ void TaskScheduler::Shutdown() {
             nullptr, reinterpret_cast<HANDLE>(task.second->timer_handle()),
             INVALID_HANDLE_VALUE)) {
       if (GetLastError() != ERROR_IO_PENDING) {
-        NEARBY_LOGS(ERROR) << __func__
-                           << ": Failed to delete timer queue timer: "
-                           << task.second->timer_handle()
-                           << " error: " << GetLastError();
+        LOG(ERROR) << __func__ << ": Failed to delete timer queue timer: "
+                   << task.second->timer_handle()
+                   << " error: " << GetLastError();
       }
     }
   }
   scheduled_tasks_.clear();
   is_shutdown_ = true;
-  NEARBY_LOGS(INFO) << __func__ << ": Shut down task scheduler:" << this;
+  LOG(INFO) << __func__ << ": Shut down task scheduler:" << this;
 }
 
 TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
@@ -137,8 +134,8 @@ TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
 }
 
 bool TaskScheduler::ScheduledTask::Cancel() {
-  NEARBY_LOGS(INFO) << __func__ << ": Cancelling timer " << timer_handle()
-                    << " from task scheduler:" << this;
+  LOG(INFO) << __func__ << ": Cancelling timer " << timer_handle()
+            << " from task scheduler:" << this;
   {
     absl::MutexLock lock(&mutex_);
     if (is_cancelled_) {
@@ -188,8 +185,9 @@ bool TaskScheduler::CancelScheduledTask(intptr_t timer_handle) {
   if (!DeleteTimerQueueTimer(nullptr, reinterpret_cast<HANDLE>(timer_handle),
                              INVALID_HANDLE_VALUE)) {
     if (GetLastError() != ERROR_IO_PENDING) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to delete timer queue timer: "
-                         << timer_handle << " error: " << GetLastError();
+      LOG(ERROR) << __func__
+                 << ": Failed to delete timer queue timer: " << timer_handle
+                 << " error: " << GetLastError();
       return false;
     }
   }

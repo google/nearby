@@ -12,23 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
-
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <string>
 
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
-#include "internal/platform/cancellation_flag_listener.h"
-#include "internal/platform/wifi_utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 namespace windows {
@@ -41,30 +45,30 @@ WifiHotspotMedium::~WifiHotspotMedium() {
 }
 
 bool WifiHotspotMedium::IsInterfaceValid() const {
-  HANDLE wifi_direct_handle = NULL;
+  HANDLE wifi_direct_handle = nullptr;
   DWORD negotiated_version = 0;
   DWORD result = 0;
 
   result =
       WFDOpenHandle(WFD_API_VERSION, &negotiated_version, &wifi_direct_handle);
   if (result == ERROR_SUCCESS) {
-    NEARBY_LOGS(INFO) << "WiFi can support Hotspot";
+    LOG(INFO) << "WiFi can support Hotspot";
     WFDCloseHandle(wifi_direct_handle);
     return true;
   }
 
-  NEARBY_LOGS(ERROR) << "WiFi can't support Hotspot";
+  LOG(ERROR) << "WiFi can't support Hotspot";
   return false;
 }
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(WARNING) << __func__ << " : Connect to remote service.";
+  LOG(WARNING) << __func__ << " : Connect to remote service.";
 
   if (ip_address.empty() || port == 0) {
-    NEARBY_LOGS(ERROR) << "no valid service address and port to connect: "
-                       << "ip_address = " << ip_address << ", port = " << port;
+    LOG(ERROR) << "no valid service address and port to connect: "
+               << "ip_address = " << ip_address << ", port = " << port;
     return nullptr;
   }
 
@@ -75,7 +79,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     ipv4_address = std::string(ip_address);
   }
   if (ipv4_address.empty()) {
-    NEARBY_LOGS(ERROR) << "Invalid IP address parameter.";
+    LOG(ERROR) << "Invalid IP address parameter.";
     return nullptr;
   }
 
@@ -97,13 +101,11 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
           platform::config_package_nearby::nearby_platform_feature::
               kWifiHotspotConnectionTimeoutMillis);
 
-  NEARBY_LOGS(INFO) << "maximum connection retries="
-                    << wifi_hotspot_max_connection_retries
-                    << ", connection interval="
-                    << wifi_hotspot_retry_interval_millis
-                    << "ms, connection timeout="
-                    << wifi_hotspot_client_socket_connect_timeout_millis
-                    << "ms";
+  LOG(INFO) << "maximum connection retries="
+            << wifi_hotspot_max_connection_retries
+            << ", connection interval=" << wifi_hotspot_retry_interval_millis
+            << "ms, connection timeout="
+            << wifi_hotspot_client_socket_connect_timeout_millis << "ms";
   for (int i = 0; i < wifi_hotspot_max_connection_retries; i++) {
     try {
       StreamSocket socket{};
@@ -114,16 +116,15 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
       // setup cancel listener
       if (cancellation_flag != nullptr) {
         if (cancellation_flag->Cancelled()) {
-          NEARBY_LOGS(INFO) << "connect has been cancelled to service "
-                            << ipv4_address << ":" << port;
+          LOG(INFO) << "connect has been cancelled to service " << ipv4_address
+                    << ":" << port;
           return nullptr;
         }
 
         connection_cancellation_listener =
             std::make_unique<nearby::CancellationFlagListener>(
                 cancellation_flag, [socket]() {
-                  NEARBY_LOGS(WARNING)
-                      << "connect is closed due to it is cancelled.";
+                  LOG(WARNING) << "connect is closed due to it is cancelled.";
                   socket.Close();
                 });
       }
@@ -131,7 +132,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
       if (FeatureFlags::GetInstance().GetFlags().enable_connection_timeout) {
         connection_timeout_ = scheduled_executor_.Schedule(
             [socket]() {
-              NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
+              LOG(WARNING) << "connect is closed due to timeout.";
               socket.Close();
             },
             absl::Milliseconds(
@@ -147,22 +148,22 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
 
       auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>(socket);
 
-      NEARBY_LOGS(INFO) << "connected to remote service " << ipv4_address << ":"
-                        << port;
+      LOG(INFO) << "connected to remote service " << ipv4_address << ":"
+                << port;
       return wifi_hotspot_socket;
     } catch (std::exception exception) {
-      NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
-                         << ":" << port << " for the " << i + 1
-                         << " time. Exception: " << exception.what();
+      LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
+                 << port << " for the " << i + 1
+                 << " time. Exception: " << exception.what();
     } catch (const winrt::hresult_error& error) {
-      NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
-                         << ":" << port << " for the " << i + 1
-                         << " time. WinRT exception: " << error.code() << ": "
-                         << winrt::to_string(error.message());
+      LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
+                 << port << " for the " << i + 1
+                 << " time. WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
     } catch (...) {
-      NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
-                         << ":" << port << " for the " << i + 1
-                         << " time due to unknown reason.";
+      LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
+                 << port << " for the " << i + 1
+                 << " time due to unknown reason.";
     }
 
     if (connection_timeout_ != nullptr) {
@@ -178,13 +179,13 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
 std::unique_ptr<api::WifiHotspotServerSocket>
 WifiHotspotMedium::ListenForService(int port) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__
-                    << " :Start to listen connection from WiFi Hotspot client.";
+  LOG(INFO) << __func__
+            << " :Start to listen connection from WiFi Hotspot client.";
 
   // check current status
   if (IsAccepting()) {
-    NEARBY_LOGS(WARNING) << "accepting connections already started on port "
-                         << server_socket_ptr_->GetPort();
+    LOG(WARNING) << "accepting connections already started on port "
+                 << server_socket_ptr_->GetPort();
     return nullptr;
   }
 
@@ -197,16 +198,16 @@ WifiHotspotMedium::ListenForService(int port) {
     // Setup close notifier after listen started.
     server_socket->SetCloseNotifier([this]() {
       absl::MutexLock lock(&mutex_);
-      NEARBY_LOGS(INFO) << "Server socket was closed.";
+      LOG(INFO) << "Server socket was closed.";
       medium_status_ &= (~kMediumStatusAccepting);
       server_socket_ptr_ = nullptr;
     });
-    NEARBY_LOGS(INFO) << "Started to listen serive on port "
-                      << server_socket_ptr_->GetPort();
+    LOG(INFO) << "Started to listen serive on port "
+              << server_socket_ptr_->GetPort();
     return server_socket;
   }
 
-  NEARBY_LOGS(ERROR) << "Failed to listen service on port " << port;
+  LOG(ERROR) << "Failed to listen service on port " << port;
 
   return nullptr;
 }
@@ -214,11 +215,10 @@ WifiHotspotMedium::ListenForService(int port) {
 bool WifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials* hotspot_credentials_) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Start to create WiFi Hotspot.";
+  LOG(INFO) << __func__ << ": Start to create WiFi Hotspot.";
 
   if (IsBeaconing()) {
-    NEARBY_LOGS(WARNING)
-        << "Cannot create WiFi Hotspot again when it is running.";
+    LOG(WARNING) << "Cannot create WiFi Hotspot again when it is running.";
     return true;
   }
 
@@ -253,7 +253,7 @@ bool WifiHotspotMedium::StartWifiHotspot(
     publisher_.Start();
     if (publisher_.Status() ==
         WiFiDirectAdvertisementPublisherStatus::Started) {
-      NEARBY_LOGS(INFO) << __func__ << ": WiFi Hotspot created and started.";
+      LOG(INFO) << __func__ << ": WiFi Hotspot created and started.";
       medium_status_ |= kMediumStatusBeaconing;
       if (NearbyFlags::GetInstance().GetBoolFlag(
               platform::config_package_nearby::nearby_platform_feature::
@@ -261,39 +261,36 @@ bool WifiHotspotMedium::StartWifiHotspot(
         WifiIntel& intel_wifi{WifiIntel::GetInstance()};
         if (intel_wifi.Start()) {
           int GO_channel = intel_wifi.GetGOChannel();
-          NEARBY_LOGS(INFO)
-              << "Intel PIE enabled, Hotspot is running on channel: "
-              << GO_channel;
+          LOG(INFO) << "Intel PIE enabled, Hotspot is running on channel: "
+                    << GO_channel;
           intel_wifi.Stop();
           hotspot_credentials_->SetFrequency(
               WifiUtils::ConvertChannelToFrequencyMhz(GO_channel,
                                                       WifiBandType::kUnknown));
         }
       } else {
-        NEARBY_LOGS(INFO)
-            << "Intel PIE disabled, Can't extract Hotspot channel info!";
+        LOG(INFO) << "Intel PIE disabled, Can't extract Hotspot channel info!";
         hotspot_credentials_->SetFrequency(-1);
       }
       return true;
     }
 
     // Clean up when fail
-    NEARBY_LOGS(ERROR) << "Windows WiFi Hotspot fails to start";
+    LOG(ERROR) << "Windows WiFi Hotspot fails to start";
     publisher_.StatusChanged(publisher_status_changed_token_);
     listener_.ConnectionRequested(connection_requested_token_);
     listener_ = nullptr;
     publisher_ = nullptr;
     return false;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Cannot start Hotspot. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__
+               << ": Cannot start Hotspot. Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot start Hotspot.  WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__
+               << ": Cannot start Hotspot.  WinRT exception: " << error.code()
+               << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
 }
@@ -303,7 +300,7 @@ bool WifiHotspotMedium::StopWifiHotspot() {
   absl::MutexLock lock(&mutex_);
 
   if (!IsBeaconing()) {
-    NEARBY_LOGS(WARNING) << "Cannot stop SoftAP because no SoftAP is started.";
+    LOG(WARNING) << "Cannot stop SoftAP because no SoftAP is started.";
     return true;
   }
   try {
@@ -314,20 +311,20 @@ bool WifiHotspotMedium::StopWifiHotspot() {
       wifi_direct_device_ = nullptr;
       listener_ = nullptr;
       publisher_ = nullptr;
-      NEARBY_LOGS(INFO) << "succeeded to stop WiFi Hotspot";
+      LOG(INFO) << "succeeded to stop WiFi Hotspot";
     }
 
     medium_status_ &= (~kMediumStatusBeaconing);
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Stop Hotspot failed. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__
+               << ": Stop Hotspot failed. Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Stop Hotspot failed. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__
+               << ": Stop Hotspot failed. WinRT exception: " << error.code()
+               << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
 }
@@ -337,34 +334,33 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
     WiFiDirectAdvertisementPublisherStatusChangedEventArgs event) {
   if (event.Status() == WiFiDirectAdvertisementPublisherStatus::Started) {
     if (sender.Advertisement().LegacySettings().IsEnabled()) {
-      NEARBY_LOGS(INFO)
-          << "WiFi SoftAP SSID: "
-          << winrt::to_string(
-                 publisher_.Advertisement().LegacySettings().Ssid());
-      NEARBY_LOGS(INFO) << "WiFi SoftAP PW: "
-                        << winrt::to_string(publisher_.Advertisement()
-                                                .LegacySettings()
-                                                .Passphrase()
-                                                .Password());
+      LOG(INFO) << "WiFi SoftAP SSID: "
+                << winrt::to_string(
+                       publisher_.Advertisement().LegacySettings().Ssid());
+      LOG(INFO) << "WiFi SoftAP PW: "
+                << winrt::to_string(publisher_.Advertisement()
+                                        .LegacySettings()
+                                        .Passphrase()
+                                        .Password());
     }
     return winrt::fire_and_forget();
   } else if (event.Status() ==
              WiFiDirectAdvertisementPublisherStatus::Created) {
-    NEARBY_LOGS(INFO) << "Receive WiFi direct/SoftAP Created event.";
+    LOG(INFO) << "Receive WiFi direct/SoftAP Created event.";
     return winrt::fire_and_forget();
   } else if (event.Status() ==
              WiFiDirectAdvertisementPublisherStatus::Stopped) {
-    NEARBY_LOGS(INFO) << "Receive WiFi direct/SoftAP Stopped event.";
+    LOG(INFO) << "Receive WiFi direct/SoftAP Stopped event.";
   } else if (event.Status() ==
              WiFiDirectAdvertisementPublisherStatus::Aborted) {
-    NEARBY_LOGS(INFO) << "Receive WiFi direct/SoftAP Aborted event.";
+    LOG(INFO) << "Receive WiFi direct/SoftAP Aborted event.";
   }
 
   // Publisher is stopped. Need to clean up the publisher.
   {
     absl::MutexLock lock(&mutex_);
     if (publisher_ != nullptr) {
-      NEARBY_LOGS(ERROR) << "Windows WiFi Hotspot cleanup.";
+      LOG(ERROR) << "Windows WiFi Hotspot cleanup.";
       listener_.ConnectionRequested(connection_requested_token_);
       publisher_.StatusChanged(publisher_status_changed_token_);
       wifi_direct_device_ = nullptr;
@@ -381,8 +377,8 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
     WiFiDirectConnectionRequestedEventArgs const& event) {
   WiFiDirectConnectionRequest connection_request = event.GetConnectionRequest();
   winrt::hstring device_name = connection_request.DeviceInformation().Name();
-  NEARBY_LOGS(INFO) << "Receive connection request from: "
-                    << winrt::to_string(device_name);
+  LOG(INFO) << "Receive connection request from: "
+            << winrt::to_string(device_name);
 
   try {
     // This is to solve b/236805122.
@@ -395,9 +391,9 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
     wifi_direct_device_ = WiFiDirectDevice::FromIdAsync(
                               connection_request.DeviceInformation().Id())
                               .get();
-    NEARBY_LOGS(INFO) << "Registered the device in WLAN-AutoConfig";
+    LOG(INFO) << "Registered the device in WLAN-AutoConfig";
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
+    LOG(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
     wifi_direct_device_ = nullptr;
     connection_request.Close();
   }
@@ -410,27 +406,26 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
   try {
     if (!wifi_connected_hotspot_ssid_.empty()) {
-      NEARBY_LOGS(INFO) << "Before connecting to Hotspot, Delete the previous "
-                           "Hotspot profile with SSID: "
-                        << winrt::to_string(wifi_connected_hotspot_ssid_);
+      LOG(INFO) << "Before connecting to Hotspot, Delete the previous "
+                   "Hotspot profile with SSID: "
+                << winrt::to_string(wifi_connected_hotspot_ssid_);
       DeleteNetworkProfile(wifi_connected_hotspot_ssid_);
       wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
     }
     if (IsConnected()) {
-      NEARBY_LOGS(WARNING) << "Already connected to Hotspot, disconnect first.";
+      LOG(WARNING) << "Already connected to Hotspot, disconnect first.";
       InternalDisconnectWifiHotspot();
     }
 
     auto access = WiFiAdapter::RequestAccessAsync().get();
     if (access != WiFiAccessStatus::Allowed) {
-      NEARBY_LOGS(WARNING) << "Access Denied with reason: "
-                           << static_cast<int>(access);
+      LOG(WARNING) << "Access Denied with reason: " << static_cast<int>(access);
       return false;
     }
 
     auto adapters = WiFiAdapter::FindAllAdaptersAsync().get();
     if (adapters.Size() < 1) {
-      NEARBY_LOGS(WARNING) << "No WiFi Adapter found.";
+      LOG(WARNING) << "No WiFi Adapter found.";
       return false;
     }
     wifi_adapter_ = adapters.GetAt(0);
@@ -461,8 +456,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       }
     }
 
-    NEARBY_LOGS(INFO) << "Scanning for Nearby Hotspot SSID: "
-                      << hotspot_credentials_->GetSSID();
+    LOG(INFO) << "Scanning for Nearby Hotspot SSID: "
+              << hotspot_credentials_->GetSSID();
     // First time scan may not find our target hotspot, try 2 more times can
     // almost guarantee to find the Hotspot
     wifi_adapter_.ScanAsync().get();
@@ -479,23 +474,22 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
         if (!wifi_original_network_ && !ssid.empty() &&
             (winrt::to_string(network.Ssid()) == ssid)) {
           wifi_original_network_ = network;
-          NEARBY_LOGS(INFO) << "Save the current connected network: " << ssid;
+          LOG(INFO) << "Save the current connected network: " << ssid;
         } else if (!nearby_softap && winrt::to_string(network.Ssid()) ==
                                          hotspot_credentials_->GetSSID()) {
-          NEARBY_LOGS(INFO)
-              << "Found Nearby SSID: " << winrt::to_string(network.Ssid());
+          LOG(INFO) << "Found Nearby SSID: "
+                    << winrt::to_string(network.Ssid());
           nearby_softap = network;
         }
-        if (nearby_softap && (ssid.empty() || wifi_original_network_))
-          break;
+        if (nearby_softap && (ssid.empty() || wifi_original_network_)) break;
       }
       if (nearby_softap) break;
-      NEARBY_LOGS(INFO) << "Scan ... ";
+      LOG(INFO) << "Scan ... ";
       wifi_adapter_.ScanAsync().get();
     }
-    NEARBY_LOGS(INFO) << "Finish scanning "
-                      << (nearby_softap ? "successfully" : "failed") << " with "
-                      << i+1 << " times trying.";
+    LOG(INFO) << "Finish scanning "
+              << (nearby_softap ? "successfully" : "failed") << " with "
+              << i + 1 << " times trying.";
 
     if (intel_wifi_started) {
       WifiIntel& intel_wifi{WifiIntel::GetInstance()};
@@ -504,7 +498,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     }
 
     if (!nearby_softap) {
-      NEARBY_LOGS(INFO) << "Hotspot is not found";
+      LOG(INFO) << "Hotspot is not found";
       return false;
     }
     PasswordCredential creds;
@@ -517,8 +511,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     if (connect_result == nullptr ||
         connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-      NEARBY_LOGS(INFO) << "Connecting failed with reason: "
-                        << static_cast<int>(connect_result.ConnectionStatus());
+      LOG(INFO) << "Connecting failed with reason: "
+                << static_cast<int>(connect_result.ConnectionStatus());
       RestoreWifiConnection();
       return false;
     }
@@ -532,11 +526,11 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
         NearbyFlags::GetInstance().GetInt64Flag(
             platform::config_package_nearby::nearby_platform_feature::
                 kWifiHotspotCheckIpIntervalMillis);
-    NEARBY_LOGS(INFO) << "maximum IP check retries=" << ip_address_max_retries
-                      << ", IP check interval="
-                      << ip_address_retry_interval_millis << "ms";
+    LOG(INFO) << "maximum IP check retries=" << ip_address_max_retries
+              << ", IP check interval=" << ip_address_retry_interval_millis
+              << "ms";
     for (int i = 0; i < ip_address_max_retries; i++) {
-      NEARBY_LOGS(INFO) << "Check IP address at attemp " << i;
+      LOG(INFO) << "Check IP address at attemp " << i;
       std::vector<std::string> ip_addresses = GetIpv4Addresses();
       if (ip_addresses.empty()) {
         Sleep(ip_address_retry_interval_millis);
@@ -547,30 +541,28 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     }
 
     if (ip_address.empty()) {
-      NEARBY_LOGS(INFO) << "Failed to get IP address from hotspot.";
+      LOG(INFO) << "Failed to get IP address from hotspot.";
       RestoreWifiConnection();
       DeleteNetworkProfile(nearby_softap.Ssid());
       return false;
     }
 
-    NEARBY_LOGS(INFO) << "Got IP address " << ip_address << " from hotspot.";
+    LOG(INFO) << "Got IP address " << ip_address << " from hotspot.";
 
     std::string last_ssid = hotspot_credentials_->GetSSID();
     wifi_connected_hotspot_ssid_ = nearby_softap.Ssid();
     medium_status_ |= kMediumStatusConnected;
-    NEARBY_LOGS(INFO) << "Connected to hotspot: " << last_ssid;
+    LOG(INFO) << "Connected to hotspot: " << last_ssid;
 
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Cannot connet to Hotspot. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__
+               << ": Cannot connet to Hotspot. Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot connet to Hotspot.  WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": Cannot connet to Hotspot.  WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
 }
@@ -590,15 +582,15 @@ void WifiHotspotMedium::RestoreWifiConnection() {
           profile.WlanConnectionProfileDetails().GetConnectedSsid());
       if (!ssid.empty() &&
           (winrt::to_string(wifi_original_network_.Ssid()) == ssid)) {
-        NEARBY_LOGS(INFO) << "Already conneted to the previous WIFI network "
-                          << ssid << "! Skip restoration.";
+        LOG(INFO) << "Already conneted to the previous WIFI network " << ssid
+                  << "! Skip restoration.";
         return;
       }
     }
 
     // Disconnect to the WiFi connection through the WiFi adapter.
     wifi_adapter_.Disconnect();
-    NEARBY_LOGS(INFO) << "Disconnected to current network.";
+    LOG(INFO) << "Disconnected to current network.";
 
     auto connect_result = wifi_adapter_
                               .ConnectAsync(wifi_original_network_,
@@ -607,11 +599,11 @@ void WifiHotspotMedium::RestoreWifiConnection() {
 
     if (connect_result == nullptr ||
         connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-      NEARBY_LOGS(INFO) << "Connecting to previous network failed with reason: "
-                        << static_cast<int>(connect_result.ConnectionStatus());
+      LOG(INFO) << "Connecting to previous network failed with reason: "
+                << static_cast<int>(connect_result.ConnectionStatus());
     } else {
-      NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
-                        << winrt::to_string(wifi_original_network_.Ssid());
+      LOG(INFO) << "Restored the previous WIFI connection: "
+                << winrt::to_string(wifi_original_network_.Ssid());
     }
     wifi_original_network_ = nullptr;
   }
@@ -622,22 +614,21 @@ bool WifiHotspotMedium::DisconnectWifiHotspot() {
   try {
     return InternalDisconnectWifiHotspot();
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Stop Hotspot failed. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__
+               << ": Stop Hotspot failed. Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Stop Hotspot failed. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__
+               << ": Stop Hotspot failed. WinRT exception: " << error.code()
+               << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
 }
 
 bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
   if (!IsConnected()) {
-    NEARBY_LOGS(WARNING)
-        << "Cannot disconnect SoftAP because it is not connected.";
+    LOG(WARNING) << "Cannot disconnect SoftAP because it is not connected.";
     return true;
   }
 
@@ -647,9 +638,8 @@ bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
     wifi_adapter_ = nullptr;
 
     if (!wifi_connected_hotspot_ssid_.empty()) {
-      NEARBY_LOGS(INFO)
-          << "Delete the previous connected network profile with SSID: "
-          << winrt::to_string(wifi_connected_hotspot_ssid_);
+      LOG(INFO) << "Delete the previous connected network profile with SSID: "
+                << winrt::to_string(wifi_connected_hotspot_ssid_);
       DeleteNetworkProfile(wifi_connected_hotspot_ssid_);
       wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
     }
@@ -665,21 +655,20 @@ bool WifiHotspotMedium::DeleteNetworkProfile(winrt::hstring ssid) {
   auto connections = NetworkInformation::GetConnectionProfiles();
   auto ssid_string = winrt::to_string(ssid);
   if (ssid_string.empty()) {
-    NEARBY_LOGS(INFO) << "SSID is empty. No need to delete the network profile";
+    LOG(INFO) << "SSID is empty. No need to delete the network profile";
     return true;
   }
 
-  NEARBY_LOGS(INFO) << "Search profile with SSID: " << ssid_string;
+  LOG(INFO) << "Search profile with SSID: " << ssid_string;
   for (const auto& connection_profile : connections) {
     if (connection_profile.ProfileName() == ssid) {
-      NEARBY_LOGS(INFO) << "Found the network profile with SSID: "
-                        << ssid_string;
+      LOG(INFO) << "Found the network profile with SSID: " << ssid_string;
       profile = connection_profile;
       break;
     }
   }
   if (profile == nullptr) {
-    NEARBY_LOGS(INFO) << "No network profile found with SSID: " << ssid_string;
+    LOG(INFO) << "No network profile found with SSID: " << ssid_string;
     return result;
   }
 
@@ -688,21 +677,20 @@ bool WifiHotspotMedium::DeleteNetworkProfile(winrt::hstring ssid) {
     auto profile_delete_status = profile.TryDeleteAsync().get();
     switch (profile_delete_status) {
       case ConnectionProfileDeleteStatus::Success:
-        NEARBY_LOGS(INFO) << "WiFi profile with SSID:" << ssid_string
-                          << " is deleted.";
+        LOG(INFO) << "WiFi profile with SSID:" << ssid_string << " is deleted.";
         result = true;
         break;
       case ConnectionProfileDeleteStatus::DeniedBySystem:
-        NEARBY_LOGS(ERROR) << "Failed to delete WiFi profile with SSID:"
-                           << ssid_string << " due to denied by system.";
+        LOG(ERROR) << "Failed to delete WiFi profile with SSID:" << ssid_string
+                   << " due to denied by system.";
         break;
       case ConnectionProfileDeleteStatus::DeniedByUser:
-        NEARBY_LOGS(ERROR) << "Failed to delete WiFi profile with SSID:"
-                           << ssid_string << " due to denied by user.";
+        LOG(ERROR) << "Failed to delete WiFi profile with SSID:" << ssid_string
+                   << " due to denied by user.";
         break;
       case ConnectionProfileDeleteStatus::UnknownError:
-        NEARBY_LOGS(ERROR) << "Failed to delete WiFi profile with SSID:"
-                           << ssid_string << " due to unknonw error.";
+        LOG(ERROR) << "Failed to delete WiFi profile with SSID:" << ssid_string
+                   << " due to unknonw error.";
         break;
       default:
         break;

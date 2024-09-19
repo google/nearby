@@ -59,8 +59,8 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   // Get length of the computer name.
   if (!GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size)) {
     if (GetLastError() != ERROR_MORE_DATA) {
-      NEARBY_LOGS(ERROR) << ": Failed to get device name size, error:"
-                         << GetLastError();
+      LOG(ERROR) << ": Failed to get device name size, error:"
+                 << GetLastError();
       return std::nullopt;
     }
   }
@@ -71,7 +71,7 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
     return winrt::to_string(device_name_str);
   }
 
-  NEARBY_LOGS(ERROR) << ": Failed to get device name, error:" << GetLastError();
+  LOG(ERROR) << ": Failed to get device name, error:" << GetLastError();
   return std::nullopt;
 }
 
@@ -97,8 +97,7 @@ std::optional<std::string> DeviceInfo::GetFullName() const {
                          UserAuthenticationStatus::LocallyAuthenticated)
           .get();
   if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
+    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
     return std::nullopt;
   }
 
@@ -112,15 +111,15 @@ std::optional<std::string> DeviceInfo::GetFullName() const {
       current_user.GetPropertyAsync(KnownUserProperties::DisplayName());
   IInspectable full_name_obj = full_name_obj_async.get();
   if (full_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error retrieving full name of user.";
+    LOG(ERROR) << __func__ << ": Error retrieving full name of user.";
     return std::nullopt;
   }
   winrt::hstring full_name = full_name_obj.as<winrt::hstring>();
   std::string full_name_str = winrt::to_string(full_name);
 
   if (full_name_str.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error unboxing string value for full name of user.";
+    LOG(ERROR) << __func__
+               << ": Error unboxing string value for full name of user.";
     return std::nullopt;
   }
 
@@ -140,8 +139,7 @@ std::optional<std::string> DeviceInfo::GetGivenName() const {
                          UserAuthenticationStatus::LocallyAuthenticated)
           .get();
   if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
+    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
     return std::nullopt;
   }
 
@@ -155,15 +153,15 @@ std::optional<std::string> DeviceInfo::GetGivenName() const {
       current_user.GetPropertyAsync(KnownUserProperties::FirstName());
   IInspectable given_name_obj = given_name_obj_async.get();
   if (given_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error retrieving first name of user.";
+    LOG(ERROR) << __func__ << ": Error retrieving first name of user.";
     return std::nullopt;
   }
   winrt::hstring given_name = given_name_obj.as<winrt::hstring>();
   std::string given_name_str = winrt::to_string(given_name);
 
   if (given_name_str.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error unboxing string value for first name of user.";
+    LOG(ERROR) << __func__
+               << ": Error unboxing string value for first name of user.";
     return std::nullopt;
   }
 
@@ -183,8 +181,7 @@ std::optional<std::string> DeviceInfo::GetLastName() const {
                          UserAuthenticationStatus::LocallyAuthenticated)
           .get();
   if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
+    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
     return std::nullopt;
   }
 
@@ -198,15 +195,15 @@ std::optional<std::string> DeviceInfo::GetLastName() const {
       current_user.GetPropertyAsync(KnownUserProperties::LastName());
   IInspectable last_name_obj = last_name_obj_async.get();
   if (last_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error retrieving last name of user.";
+    LOG(ERROR) << __func__ << ": Error retrieving last name of user.";
     return std::nullopt;
   }
   winrt::hstring last_name = last_name_obj.as<winrt::hstring>();
   std::string last_name_str = winrt::to_string(last_name);
 
   if (last_name_str.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error unboxing string value for last name of user.";
+    LOG(ERROR) << __func__
+               << ": Error unboxing string value for last name of user.";
     return std::nullopt;
   }
 
@@ -226,8 +223,7 @@ std::optional<std::string> DeviceInfo::GetProfileUserName() const {
                          UserAuthenticationStatus::LocallyAuthenticated)
           .get();
   if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
+    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
     return std::nullopt;
   }
 
@@ -241,17 +237,15 @@ std::optional<std::string> DeviceInfo::GetProfileUserName() const {
       current_user.GetPropertyAsync(KnownUserProperties::AccountName());
   IInspectable account_name_obj = account_name_obj_async.get();
   if (account_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving account name of user.";
+    LOG(ERROR) << __func__ << ": Error retrieving account name of user.";
     return std::nullopt;
   }
   winrt::hstring account_name = account_name_obj.as<winrt::hstring>();
   std::string account_name_string = winrt::to_string(account_name);
 
   if (account_name_string.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Error unboxing string value for profile username of user.";
+    LOG(ERROR) << __func__
+               << ": Error unboxing string value for profile username of user.";
     return std::nullopt;
   }
 

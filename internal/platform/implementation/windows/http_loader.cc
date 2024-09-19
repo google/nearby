@@ -22,6 +22,8 @@
 #include "absl/strings/ascii.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -202,8 +204,8 @@ absl::Status HttpLoader::ConnectWebServer() {
                                    0);      /*Flags*/
 
   if (internet_handle_ == nullptr) {
-    NEARBY_LOGS(ERROR) << "Failed to open internet with error "
-                       << GetLastError() << ".";
+    LOG(ERROR) << "Failed to open internet with error " << GetLastError()
+               << ".";
     return absl::FailedPreconditionError(absl::StrCat(GetLastError()));
   }
 
@@ -217,8 +219,8 @@ absl::Status HttpLoader::ConnectWebServer() {
                                      0);                    /*Context*/
 
   if (connect_handle_ == nullptr) {
-    NEARBY_LOGS(ERROR) << "Failed to connect remote web server with error "
-                       << GetLastError() << ".";
+    LOG(ERROR) << "Failed to connect remote web server with error "
+               << GetLastError() << ".";
     InternetCloseHandle(internet_handle_);
     return absl::FailedPreconditionError(absl::StrCat(GetLastError()));
   }
@@ -242,9 +244,8 @@ absl::Status HttpLoader::SendRequest() {
                        0);
 
   if (request_handle_ == nullptr) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to open request to remote web server with error "
-        << GetLastError() << ".";
+    LOG(ERROR) << "Failed to open request to remote web server with error "
+               << GetLastError() << ".";
     InternetCloseHandle(internet_handle_);
     InternetCloseHandle(connect_handle_);
 
@@ -284,9 +285,8 @@ absl::Status HttpLoader::SendRequest() {
                                  data_size);      /*Data size*/
 
   if (result == FALSE) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to send request to remote web server with error "
-        << GetLastError() << ".";
+    LOG(ERROR) << "Failed to send request to remote web server with error "
+               << GetLastError() << ".";
     InternetCloseHandle(request_handle_);
     InternetCloseHandle(connect_handle_);
     InternetCloseHandle(internet_handle_);
@@ -334,9 +334,8 @@ absl::StatusOr<WebResponse> HttpLoader::ProcessResponse() {
         web_response.body.append(buffer, read_size);
       }
     } else {
-      NEARBY_LOGS(ERROR)
-          << "Failed to read response from remote web server with error "
-          << GetLastError() << ".";
+      LOG(ERROR) << "Failed to read response from remote web server with error "
+                 << GetLastError() << ".";
       InternetCloseHandle(request_handle_);
       InternetCloseHandle(connect_handle_);
       InternetCloseHandle(internet_handle_);

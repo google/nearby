@@ -23,7 +23,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {
@@ -68,7 +68,7 @@ class ThreadPool {
   int running_tasks_count_ ABSL_GUARDED_BY(mutex_) = 0;
 
   // The latch is used to wait for running tasks
-  std::unique_ptr<CountDownLatch> shutdown_latch_ = nullptr;
+  std::unique_ptr<shared::CountDownLatch> shutdown_latch_ = nullptr;
 
   friend VOID CALLBACK WorkCallback(PTP_CALLBACK_INSTANCE instance,
                                     PVOID parameter, PTP_WORK work);

@@ -126,13 +126,12 @@ BleGattServer::CreateCharacteristic(
     api::ble_v2::GattCharacteristic::Permission permission,
     api::ble_v2::GattCharacteristic::Property property) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": create characteristic, service_uuid: "
-                    << std::string(service_uuid) << ", characteristic_uuid: "
-                    << std::string(characteristic_uuid);
+  LOG(INFO) << __func__ << ": create characteristic, service_uuid: "
+            << std::string(service_uuid)
+            << ", characteristic_uuid: " << std::string(characteristic_uuid);
 
   if (!service_uuid_.IsEmpty() && service_uuid_ != service_uuid) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Only support one GATT service for now.";
+    LOG(ERROR) << __func__ << ": Only support one GATT service for now.";
     return absl::nullopt;
   }
 
@@ -156,17 +155,17 @@ bool BleGattServer::UpdateCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     const nearby::ByteArray& value) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": update characteristic: "
-                    << std::string(characteristic.uuid);
+  LOG(INFO) << __func__
+            << ": update characteristic: " << std::string(characteristic.uuid);
 
   if (characteristic.service_uuid != service_uuid_) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Cannot found the GATT service.";
+    LOG(ERROR) << __func__ << ": Cannot found the GATT service.";
     return false;
   }
 
   for (auto& it : gatt_characteristic_datas_) {
     if (it.gatt_characteristic.uuid == characteristic.uuid) {
-      NEARBY_VLOG(1) << __func__ << ": Found the characteristic to update.";
+      VLOG(1) << __func__ << ": Found the characteristic to update.";
       it.data = value;
 
       // If it is in running, notify the value changed.
@@ -178,8 +177,7 @@ bool BleGattServer::UpdateCharacteristic(
           is_indicate_characteristic = true;
         }
 
-        NEARBY_LOGS(INFO) << __func__
-                          << ": Notify characteristic value updated.";
+        LOG(INFO) << __func__ << ": Notify characteristic value updated.";
         if (is_indicate_characteristic) {
           NotifyValueChanged(it.gatt_characteristic);
         }
@@ -189,7 +187,7 @@ bool BleGattServer::UpdateCharacteristic(
     }
   }
 
-  NEARBY_LOGS(ERROR) << __func__ << ": Failed to update the characteristic.";
+  LOG(ERROR) << __func__ << ": Failed to update the characteristic.";
 
   return false;
 }
@@ -199,8 +197,9 @@ absl::Status BleGattServer::NotifyCharacteristicChanged(
     const ByteArray& new_value) {
   absl::MutexLock lock(&mutex_);
   // Currently, the method is not hooked up at platform layer.
-  NEARBY_VLOG(1) << __func__ << ": Notify characteristic="
-                 << std::string(characteristic.uuid) << " changed.";
+  VLOG(1) << __func__
+          << ": Notify characteristic=" << std::string(characteristic.uuid)
+          << " changed.";
   return absl::OkStatus();
 }
 
@@ -208,7 +207,7 @@ void BleGattServer::Stop() {
   absl::AnyInvocable<void()> close_notifier = nullptr;
   {
     absl::MutexLock lock(&mutex_);
-    NEARBY_VLOG(1) << __func__ << ": Start to stop GATT server.";
+    VLOG(1) << __func__ << ": Start to stop GATT server.";
     if (gatt_service_provider_ != nullptr) {
       try {
         if (is_advertising_) {
@@ -219,15 +218,15 @@ void BleGattServer::Stop() {
         service_uuid_ = Uuid();
         gatt_service_provider_ = nullptr;
       } catch (std::exception exception) {
-        NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+        LOG(ERROR) << __func__ << ": Exception: " << exception.what();
       } catch (const winrt::hresult_error& error) {
-        NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                           << ": " << winrt::to_string(error.message());
+        LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                   << winrt::to_string(error.message());
       } catch (...) {
-        NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+        LOG(ERROR) << __func__ << ": Unknown exception.";
       }
     } else {
-      NEARBY_LOGS(WARNING) << __func__ << ": no GATT server is running.";
+      LOG(WARNING) << __func__ << ": no GATT server is running.";
     }
     close_notifier = std::move(close_notifier_);
   }
@@ -240,28 +239,28 @@ void BleGattServer::Stop() {
 bool BleGattServer::InitializeGattServer() {
   try {
     // Create and advertise GATT service.
-    NEARBY_VLOG(1) << __func__ << ": Create GATT service service_uuid="
-                   << std::string(service_uuid_);
+    VLOG(1) << __func__ << ": Create GATT service service_uuid="
+            << std::string(service_uuid_);
 
     if (adapter_ == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Bluetooth adapter is absent.";
+      LOG(ERROR) << __func__ << ": Bluetooth adapter is absent.";
       return false;
     }
 
     if (!adapter_->IsEnabled()) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Bluetooth adapter is disabled.";
+      LOG(ERROR) << __func__ << ": Bluetooth adapter is disabled.";
       return false;
     }
 
     if (!adapter_->IsLowEnergySupported()) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Bluetooth adapter does not support BLE, which "
-                            "is needed to start GATT server.";
+      LOG(ERROR) << __func__
+                 << ": Bluetooth adapter does not support BLE, which "
+                    "is needed to start GATT server.";
       return false;
     }
 
     if (!adapter_->IsPeripheralRoleSupported()) {
-      NEARBY_LOGS(ERROR)
+      LOG(ERROR)
           << __func__
           << ": Bluetooth Hardware does not support Peripheral Role, which is "
              "required to start GATT server.";
@@ -273,9 +272,8 @@ bool BleGattServer::InitializeGattServer() {
         GattServiceProvider::CreateAsync(service_uuid).get();
 
     if (service_provider_result.Error() != BluetoothError::Success) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Failed to create GATT service. Error: "
-                         << static_cast<int>(service_provider_result.Error());
+      LOG(ERROR) << __func__ << ": Failed to create GATT service. Error: "
+                 << static_cast<int>(service_provider_result.Error());
       return false;
     }
 
@@ -284,7 +282,7 @@ bool BleGattServer::InitializeGattServer() {
     service_provider_advertisement_changed_token_ =
         gatt_service_provider_.AdvertisementStatusChanged(
             {this, &BleGattServer::ServiceProvider_AdvertisementStatusChanged});
-    NEARBY_LOGS(INFO) << __func__ << ": GATT service created.";
+    LOG(INFO) << __func__ << ": GATT service created.";
 
     // Create GATT characteristics.
     for (auto& characteristic_data : gatt_characteristic_datas_) {
@@ -318,10 +316,11 @@ bool BleGattServer::InitializeGattServer() {
         is_notify_supported = true;
       }
 
-      NEARBY_VLOG(1) << __func__ << ": GATT characteristic properties: read="
-                     << is_read_supported << ",write=" << is_write_supported
-                     << ",indicate=" << is_indicate_supported
-                     << ",notify=" << is_notify_supported;
+      VLOG(1) << __func__
+              << ": GATT characteristic properties: read=" << is_read_supported
+              << ",write=" << is_write_supported
+              << ",indicate=" << is_indicate_supported
+              << ",notify=" << is_notify_supported;
 
       gatt_characteristic_parameters.CharacteristicProperties(properties);
       gatt_characteristic_parameters.WriteProtectionLevel(
@@ -330,10 +329,8 @@ bool BleGattServer::InitializeGattServer() {
       winrt::guid characteristic_uuid = nearby_uuid_to_winrt_guid(
           characteristic_data.gatt_characteristic.uuid);
 
-      NEARBY_VLOG(1) << __func__
-                     << ": Create characteristic characteristic_uuid="
-                     << winrt::to_string(
-                            winrt::to_hstring(characteristic_uuid));
+      VLOG(1) << __func__ << ": Create characteristic characteristic_uuid="
+              << winrt::to_string(winrt::to_hstring(characteristic_uuid));
 
       GattLocalCharacteristicResult result =
           gatt_service_provider_.Service()
@@ -342,9 +339,9 @@ bool BleGattServer::InitializeGattServer() {
               .get();
 
       if (result.Error() != BluetoothError::Success) {
-        NEARBY_LOGS(ERROR) << __func__
-                           << ": Failed to create GATT characteristic. Error: "
-                           << static_cast<int>(result.Error());
+        LOG(ERROR) << __func__
+                   << ": Failed to create GATT characteristic. Error: "
+                   << static_cast<int>(result.Error());
         return false;
       }
 
@@ -352,9 +349,8 @@ bool BleGattServer::InitializeGattServer() {
 
       ::winrt::guid local_characteristic_guid =
           characteristic_data.local_characteristic.Uuid();
-      NEARBY_VLOG(1) << __func__ << ": Local GATT characteristic. uuid: "
-                     << winrt::to_string(
-                            winrt::to_hstring(local_characteristic_guid));
+      VLOG(1) << __func__ << ": Local GATT characteristic. uuid: "
+              << winrt::to_string(winrt::to_hstring(local_characteristic_guid));
 
       // Setup gatt local characteristic events.
       if (is_read_supported) {
@@ -379,15 +375,15 @@ bool BleGattServer::InitializeGattServer() {
 
     is_gatt_server_inited_ = true;
 
-    NEARBY_LOGS(INFO) << __func__ << ": GATT service is initalized.";
+    LOG(INFO) << __func__ << ": GATT service is initalized.";
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
 
   // Clean up.
@@ -404,29 +400,28 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
   absl::MutexLock lock(&mutex_);
 
   try {
-    NEARBY_VLOG(1) << __func__ << ": service_data="
-                   << absl::BytesToHexString(service_data.AsStringView())
-                   << ", is_connectable=" << is_connectable;
+    VLOG(1) << __func__ << ": service_data="
+            << absl::BytesToHexString(service_data.AsStringView())
+            << ", is_connectable=" << is_connectable;
 
     if (is_advertising_) {
-      NEARBY_LOGS(ERROR) << ": GATT server is already in advertising.";
+      LOG(ERROR) << ": GATT server is already in advertising.";
       return false;
     }
 
     if (!is_gatt_server_inited_ && !InitializeGattServer()) {
-      NEARBY_LOGS(ERROR) << ":Failed to initalize GATT service.";
+      LOG(ERROR) << ":Failed to initalize GATT service.";
       return false;
     }
 
     if (gatt_service_provider_ == nullptr) {
-      NEARBY_LOGS(WARNING) << __func__ << ": no GATT server is running.";
+      LOG(WARNING) << __func__ << ": no GATT server is running.";
       return false;
     }
 
     if (gatt_service_provider_.AdvertisementStatus() ==
         GattServiceProviderAdvertisementStatus::Started) {
-      NEARBY_LOGS(WARNING) << __func__
-                           << ": GATT server is already in advertising.";
+      LOG(WARNING) << __func__ << ": GATT server is already in advertising.";
       return false;
     }
 
@@ -451,27 +446,27 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
       absl::SleepFor(absl::Milliseconds(kGattServerCheckIntervalInMills));
       wait_milliseconds += kGattServerCheckIntervalInMills;
       if (absl::Milliseconds(wait_milliseconds) > kGattServerTimeout) {
-        NEARBY_LOGS(ERROR)
-            << __func__ << ": Failed to start GATT advertising due to timeout.";
+        LOG(ERROR) << __func__
+                   << ": Failed to start GATT advertising due to timeout.";
         return false;
       }
     }
 
     is_advertising_ = true;
-    NEARBY_LOGS(INFO) << __func__ << ": GATT server started.";
+    LOG(INFO) << __func__ << ": GATT server started.";
 
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
 
   is_advertising_ = false;
-  NEARBY_LOGS(ERROR) << __func__ << ": Failed to advertise GATT server.";
+  LOG(ERROR) << __func__ << ": Failed to advertise GATT server.";
   return false;
 }
 
@@ -479,22 +474,22 @@ bool BleGattServer::StopAdvertisement() {
   absl::MutexLock lock(&mutex_);
 
   try {
-    NEARBY_LOGS(INFO) << __func__ << ": stop advertisement.";
+    LOG(INFO) << __func__ << ": stop advertisement.";
 
     if (!is_advertising_) {
-      NEARBY_LOGS(WARNING) << __func__ << ": no GATT advertisement.";
+      LOG(WARNING) << __func__ << ": no GATT advertisement.";
       return true;
     }
 
     if (gatt_service_provider_ == nullptr) {
-      NEARBY_LOGS(WARNING) << __func__ << ": no GATT server is running.";
+      LOG(WARNING) << __func__ << ": no GATT server is running.";
       is_advertising_ = false;
       return true;
     }
 
     if (gatt_service_provider_.AdvertisementStatus() ==
         GattServiceProviderAdvertisementStatus ::Stopped) {
-      NEARBY_LOGS(WARNING) << __func__ << ": no GATT advertisement is running.";
+      LOG(WARNING) << __func__ << ": no GATT advertisement is running.";
       is_advertising_ = false;
       return true;
     }
@@ -506,15 +501,15 @@ bool BleGattServer::StopAdvertisement() {
     // status is stopped after the stop advertising is called.
 
     is_advertising_ = false;
-    NEARBY_LOGS(INFO) << __func__ << ": GATT server stopped.";
+    LOG(INFO) << __func__ << ": GATT server stopped.";
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
 
   return false;
@@ -530,9 +525,9 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
         GattLocalCharacteristic const& gatt_local_characteristic,
     ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
         GattReadRequestedEventArgs args) {
-  NEARBY_LOGS(INFO) << __func__ << ": Read characteristic. uuid: "
-                    << winrt::to_string(
-                           winrt::to_hstring(gatt_local_characteristic.Uuid()));
+  LOG(INFO) << __func__ << ": Read characteristic. uuid: "
+            << winrt::to_string(
+                   winrt::to_hstring(gatt_local_characteristic.Uuid()));
 
   auto deferral = args.GetDeferral();
 
@@ -542,15 +537,15 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
         FindGattCharacteristicData(gatt_local_characteristic);
 
     if (characteristic_data == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to find characteristic="
-                         << ::winrt::to_string(::winrt::to_hstring(
-                                gatt_local_characteristic.Uuid()));
+      LOG(ERROR) << __func__ << ": Failed to find characteristic="
+                 << ::winrt::to_string(
+                        ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
       return {};
     }
 
     GattReadRequest request = args.GetRequestAsync().get();
     if (request == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to get GATT read request.";
+      LOG(ERROR) << __func__ << ": Failed to get GATT read request.";
       deferral.Complete();
       return {};
     }
@@ -563,20 +558,20 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
     request.RespondWithValue(buffer);
     deferral.Complete();
 
-    NEARBY_VLOG(1) << __func__ << ": Sent data to remote device.";
+    VLOG(1) << __func__ << ": Sent data to remote device.";
     return {};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
 
   deferral.Complete();
 
-  NEARBY_LOGS(ERROR) << __func__ << ": Failed to send data to remote device.";
+  LOG(ERROR) << __func__ << ": Failed to send data to remote device.";
   return {};
 }
 
@@ -593,10 +588,9 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
     ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
         GattLocalCharacteristic const& gatt_local_characteristic,
     ::winrt::Windows::Foundation::IInspectable const& args) {
-  NEARBY_LOGS(INFO) << __func__
-                    << ": Subscribed clients changed. characteristic="
-                    << ::winrt::to_string(::winrt::to_hstring(
-                           gatt_local_characteristic.Uuid()));
+  LOG(INFO) << __func__ << ": Subscribed clients changed. characteristic="
+            << ::winrt::to_string(
+                   ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
 
   try {
     std::vector<api::ble_v2::GattCharacteristic>
@@ -608,9 +602,9 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
         FindGattCharacteristicData(gatt_local_characteristic);
 
     if (characteristic_data == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to find characteristic="
-                         << ::winrt::to_string(::winrt::to_hstring(
-                                gatt_local_characteristic.Uuid()));
+      LOG(ERROR) << __func__ << ": Failed to find characteristic="
+                 << ::winrt::to_string(
+                        ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
       return;
     }
 
@@ -666,12 +660,12 @@ void BleGattServer::Characteristic_SubscribedClientsChanged(
           subscribed_characteristic);
     }
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
 }
 
@@ -680,9 +674,9 @@ void BleGattServer::ServiceProvider_AdvertisementStatusChanged(
         GattServiceProvider const& sender,
     ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::
         GattServiceProviderAdvertisementStatusChangedEventArgs const& args) {
-  NEARBY_LOGS(INFO) << __func__ << ": Advertisement status changed. status="
-                    << ConvertGattStatusToString(args.Status())
-                    << ", error=" << static_cast<int>(args.Error());
+  LOG(INFO) << __func__ << ": Advertisement status changed. status="
+            << ConvertGattStatusToString(args.Status())
+            << ", error=" << static_cast<int>(args.Error());
 }
 
 void BleGattServer::NotifyValueChanged(
@@ -692,8 +686,8 @@ void BleGattServer::NotifyValueChanged(
         FindGattCharacteristicData(gatt_characteristic);
 
     if (characteristic_data == nullptr) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Failed to find characteristic="
-                         << std::string(gatt_characteristic.uuid);
+      LOG(ERROR) << __func__ << ": Failed to find characteristic="
+                 << std::string(gatt_characteristic.uuid);
       return;
     }
 
@@ -713,19 +707,19 @@ void BleGattServer::NotifyValueChanged(
 
     for (const auto& result : results) {
       if (result.Status() != GattCommunicationStatus::Success) {
-        NEARBY_LOGS(ERROR)
-            << __func__ << ": Failed to notify value change. remote device id="
-            << ::winrt::to_string(
-                   result.SubscribedClient().Session().DeviceId().Id());
+        LOG(ERROR) << __func__
+                   << ": Failed to notify value change. remote device id="
+                   << ::winrt::to_string(
+                          result.SubscribedClient().Session().DeviceId().Id());
       }
     }
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
 }
 

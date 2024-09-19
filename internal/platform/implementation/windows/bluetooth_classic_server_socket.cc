@@ -20,16 +20,20 @@
 #include <memory>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
 namespace {
-using ::winrt::Windows::Networking::Sockets::StreamSocket;
 using ::winrt::Windows::Networking::Sockets::SocketProtectionLevel;
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
+using ::winrt::Windows::Networking::Sockets::StreamSocket;
 using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
 using ::winrt::Windows::Networking::Sockets::
     StreamSocketListenerConnectionReceivedEventArgs;
@@ -48,7 +52,7 @@ BluetoothServerSocket::~BluetoothServerSocket() { Close(); }
 // Once error is reported, it is permanent, and ServerSocket has to be closed.
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
+  LOG(INFO) << __func__ << ": Accept is called.";
 
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
@@ -58,7 +62,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   StreamSocket bluetooth_socket = pending_sockets_.front();
   pending_sockets_.pop_front();
 
-  NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
+  LOG(INFO) << __func__ << ": Accepted a remote connection.";
   return std::make_unique<BluetoothSocket>(bluetooth_socket);
 }
 
@@ -71,7 +75,7 @@ void BluetoothServerSocket::SetCloseNotifier(
 Exception BluetoothServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
+    LOG(INFO) << __func__ << ": Close is called.";
 
     if (closed_) {
       return {Exception::kSuccess};
@@ -95,23 +99,23 @@ Exception BluetoothServerSocket::Close() {
       close_notifier_();
     }
 
-    NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
+    LOG(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
   } catch (std::exception exception) {
     closed_ = true;
     cond_.SignalAll();
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
     closed_ = true;
     cond_.SignalAll();
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
     closed_ = true;
     cond_.SignalAll();
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -137,12 +141,12 @@ bool BluetoothServerSocket::listen() {
 
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   return false;
@@ -152,7 +156,7 @@ bool BluetoothServerSocket::listen() {
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const& args) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Received connection.";
+  LOG(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {
     return ::winrt::fire_and_forget{};

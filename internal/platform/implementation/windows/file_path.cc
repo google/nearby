@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/windows/file_path.h"
 
+// clang-format off
 #include <windows.h>
 #include <winver.h>
 #include <PathCch.h>
@@ -23,6 +24,7 @@
 #include <shlwapi.h>
 #include <strsafe.h>
 #include <wchar.h>
+// clang-format on
 
 #include <algorithm>
 #include <cctype>
@@ -175,8 +177,8 @@ std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
   }
 
   if (count > 0) {
-    NEARBY_LOGS(INFO) << "Renamed " << wstring_to_string(path) << " to "
-                      << wstring_to_string(target);
+    LOG(INFO) << "Renamed " << wstring_to_string(path) << " to "
+              << wstring_to_string(target);
   }
 
   // The above leaves the file open, so close it.
@@ -214,9 +216,8 @@ std::wstring FilePath::MutateForbiddenPathElements(std::wstring& str) {
     if (tmp_path_element.size() == 1 && tmp_path_element[0] == kDot) {
       // Change the dot path name to an underscore.
       tmp_path_element[0] = kReplacementChar;
-      NEARBY_LOGS(INFO) << "Renamed path element "
-                        << wstring_to_string(path_element) << " to "
-                        << wstring_to_string(tmp_path_element);
+      LOG(INFO) << "Renamed path element " << wstring_to_string(path_element)
+                << " to " << wstring_to_string(tmp_path_element);
       path_element[0] = kReplacementChar;
     }
 
@@ -227,9 +228,8 @@ std::wstring FilePath::MutateForbiddenPathElements(std::wstring& str) {
     while (std::find(forbidden.begin(), forbidden.end(), tmp_path_element) !=
            forbidden.end()) {
       tmp_path_element.insert(tmp_path_element.begin(), kReplacementChar);
-      NEARBY_LOGS(INFO) << "Renamed path element "
-                        << wstring_to_string(path_element) << " to "
-                        << wstring_to_string(tmp_path_element);
+      LOG(INFO) << "Renamed path element " << wstring_to_string(path_element)
+                << " to " << wstring_to_string(tmp_path_element);
       path_element.insert(path_element.begin(), kReplacementChar);
     }
 
@@ -263,22 +263,22 @@ void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
   for (; it != path.end(); it++) {
     // If 0 < character < 32, it's illegal, replace it
     if (*it > 0 && *it < 32) {
-      NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
-                        << " replaced \'" << std::string(1, *it) << "\' with \'"
-                        << std::string(1, kReplacementChar);
+      LOG(INFO) << "In path " << wstring_to_string(path) << " replaced \'"
+                << std::string(1, *it) << "\' with \'"
+                << std::string(1, kReplacementChar);
       *it = kReplacementChar;
     }
     if (*it == 0) {  // character is null
-      NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
-                        << " replaced \'NULL\' with \'"
-                        << std::string(1, kReplacementChar) << "\'";
+      LOG(INFO) << "In path " << wstring_to_string(path)
+                << " replaced \'NULL\' with \'"
+                << std::string(1, kReplacementChar) << "\'";
       *it = kReplacementChar;
     }
     for (auto illegal_character : kIllegalFileCharacters) {
       if (*it == illegal_character) {
-        NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
-                          << " replaced \'" << std::string(1, *it)
-                          << "\' with \'" << std::string(1, kReplacementChar);
+        LOG(INFO) << "In path " << wstring_to_string(path) << " replaced \'"
+                  << std::string(1, *it) << "\' with \'"
+                  << std::string(1, kReplacementChar);
         *it = kReplacementChar;
       }
     }
