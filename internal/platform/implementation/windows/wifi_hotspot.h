@@ -306,6 +306,10 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   void RestoreWifiConnection();
   // Delete the network profile of the WiFi hotspot
   bool DeleteNetworkProfile(winrt::hstring ssid);
+  // Store the Hotspot SSID to local storage
+  void StoreHotspotSsid(std::string ssid);
+  // Get the Hotspot SSID from local storage
+  std::string GetStoredHotspotSsid();
 
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket

@@ -11,7 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -21,23 +20,38 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/input_file.h"
+#include "internal/platform/implementation/output_file.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace windows {
+namespace {
+constexpr absl::string_view kHotspotSsidFileName = "ssid.txt";
+}
 
-WifiHotspotMedium::WifiHotspotMedium() {}
+WifiHotspotMedium::WifiHotspotMedium() {
+  std::string ssid = GetStoredHotspotSsid();
+  if (!ssid.empty()) {
+    LOG(INFO) << "Get stored Hotspot SSID: " << ssid
+                      << " from previous run";
+    DeleteNetworkProfile(winrt::to_hstring(ssid));
+    StoreHotspotSsid({});
+  }
+}
 
 WifiHotspotMedium::~WifiHotspotMedium() {
   StopWifiHotspot();
@@ -411,6 +425,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
                 << winrt::to_string(wifi_connected_hotspot_ssid_);
       DeleteNetworkProfile(wifi_connected_hotspot_ssid_);
       wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
+      StoreHotspotSsid({});
     }
     if (IsConnected()) {
       LOG(WARNING) << "Already connected to Hotspot, disconnect first.";
@@ -551,6 +566,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     std::string last_ssid = hotspot_credentials_->GetSSID();
     wifi_connected_hotspot_ssid_ = nearby_softap.Ssid();
+    StoreHotspotSsid(winrt::to_string(wifi_connected_hotspot_ssid_));
     medium_status_ |= kMediumStatusConnected;
     LOG(INFO) << "Connected to hotspot: " << last_ssid;
 
@@ -642,6 +658,7 @@ bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
                 << winrt::to_string(wifi_connected_hotspot_ssid_);
       DeleteNetworkProfile(wifi_connected_hotspot_ssid_);
       wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
+      StoreHotspotSsid({});
     }
   }
 
@@ -697,6 +714,84 @@ bool WifiHotspotMedium::DeleteNetworkProfile(winrt::hstring ssid) {
     }
   }
   return result;
+}
+
+void WifiHotspotMedium::StoreHotspotSsid(std::string ssid) {
+  std::unique_ptr<api::OutputFile> ssid_file;
+  try {
+    std::string file_name(kHotspotSsidFileName);
+    std::string full_path =
+        nearby::api::ImplementationPlatform::GetAppDataPath(file_name);
+    ssid_file =
+        nearby::api::ImplementationPlatform::CreateOutputFile(full_path);
+    if (ssid_file == nullptr) {
+      LOG(ERROR) << "Failed to create output file: " << file_name;
+      return;
+    }
+    ByteArray data(ssid);
+    ssid_file->Write(data);
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+                       << ": Failed to store Hotspot SSID. Exception: "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    LOG(ERROR) << __func__
+                       << ": Failed to store Hotspot SSID. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": unknown error.";
+  }
+  if (ssid_file != nullptr) {
+    ssid_file->Close();
+  }
+}
+
+std::string WifiHotspotMedium::GetStoredHotspotSsid() {
+  std::unique_ptr<api::InputFile> ssid_file;
+  try {
+    std::string file_name(kHotspotSsidFileName);
+    std::string full_path =
+        nearby::api::ImplementationPlatform::GetAppDataPath(file_name);
+    std::unique_ptr<api::InputFile> ssid_file =
+        nearby::api::ImplementationPlatform::CreateInputFile(full_path, 0);
+    if (ssid_file == nullptr) {
+      LOG(ERROR) << "Failed to create input file: " << file_name;
+      return {};
+    }
+    auto total_size = ssid_file->GetTotalSize();
+    if (total_size == 0) {
+      LOG(INFO) << __func__ << ": No Hotspot ssid found.";
+      ssid_file->Close();
+      return {};
+    }
+
+    nearby::ExceptionOr<ByteArray> raw_ssid = ssid_file->Read(total_size);
+
+    if (!raw_ssid.ok()) {
+      LOG(ERROR) << __func__
+                         << ": Failed to read Hotspot ssid. Exception: "
+                         << raw_ssid.exception();
+      return {};
+    }
+    return std::string(raw_ssid.GetResult().data());
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+                       << ": Failed to store Hotspot SSID. Exception: "
+                       << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    LOG(ERROR) << __func__
+                       << ": Failed to store Hotspot SSID. WinRT exception: "
+                       << error.code() << ": "
+                       << winrt::to_string(error.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": unknown error.";
+  }
+  if (ssid_file != nullptr) {
+    ssid_file->Close();
+  }
+
+  return {};
 }
 
 std::string WifiHotspotMedium::GetErrorMessage(std::exception_ptr eptr) {
