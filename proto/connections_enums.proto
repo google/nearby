@@ -419,9 +419,13 @@ enum LogSource {
   // Represents the device for debugging.
   DEBUG_DEVICES = 5;
   // Represents the device for Nearby Module Food.
-  MODULE_FOOD_DEVICES = 6;
+  NEARBY_MODULE_FOOD_DEVICES = 6;
   // Represents the device for BeTo Team Food.
-  BETO_DOG_FOOD_DEVICES = 7;
+  BETO_DOGFOOD_DEVICES = 7;
+  // Represents the device for Nearby dog Food.
+  NEARBY_DOGFOOD_DEVICES = 8;
+  // Represents the device for Nearby Team Food.
+  NEARBY_TEAMFOOD_DEVICES = 9;
 }
 
 // LINT.IfChange
