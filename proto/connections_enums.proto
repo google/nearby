@@ -693,6 +693,18 @@ enum OperationResultCode {
   CLIENT_PERMISSION_FAILURE = 2028;
   // Client doesn't listen BLE
   CLIENT_BLE_NO_LISTENING = 2029;
+  // Client already connected to the remote device
+  CLIENT_ALREADY_CONNECTED_TO_TARGET = 2030;
+  // Incoming connection failed due to topological limit
+  CLIENT_FAILED_INCOMING_CONNECTION_DUE_TO_TOPOLOGICAL_LIMIT = 2031;
+  // Client out of order API call
+  CLIENT_OUT_OF_ORDER_API_CALL = 2032;
+  // Client has wrong connecting permission
+  CLIENT_WRONG_CONNECTING_PERMISSIONS = 2033;
+  // Client already connected to endpoint
+  CLIENT_ALREADY_CONNECTED_TO_ENDPOINT = 2034;
+  // Client request connecting to unknown endpoint
+  CLIENT_CONNECT_TO_UNKNOWN_ENDPOINT = 2035;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -1222,6 +1234,20 @@ enum OperationResultCode {
   NEARBY_WEB_RTC_RECONNECT_PEER_ID_NULL = 4599;
   // Meta data null when reconnect to wifi Aware
   NEARBY_WIFI_AWARE_RECONNECT_META_DATA_NULL = 4600;
+  // Client not advertising and not listening
+  NEARBY_NOT_ADVERTISING_OR_LISTENING = 4601;
+  // Can not obtain device provider
+  NEARBY_CAN_NOT_OBTAIN_DEVICE_PROVIDER = 4602;
+  // Failed to setup strategy
+  NEARBY_SETUP_STRATEGY_FAILURE = 4603;
+  // TxAdvertisement null
+  NEARBY_TX_ADVERTISEMENT_NULL = 4604;
+  // Endpoint id mismatch
+  NEARBY_ENDPOINT_ID_MISMATCH = 4605;
+  // Connectivity info null
+  NEARBY_CONNECTIVITY_INFO_NULL_OR_WRONG = 4606;
+  // Local client state wrong
+  NEARBY_LOCAL_CLIENT_STATE_WRONG = 4607;
 }
 
 enum StopAdvertisingReason {
