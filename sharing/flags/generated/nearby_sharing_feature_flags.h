@@ -69,8 +69,8 @@ constexpr auto kEnableTransferCancellationOptimization =
 constexpr auto kEnableWebrtcMedium =
     flags::Flag<bool>(kConfigPackage, "45411620", false);
 // Set the logging level in Nearby Sharing SDK. The default logging level is
-// WARNING. The mapping of logging level to number:VERBOSE: -1, INFO: 0,
-// WARNING: 1, ERROR: 2, FATAL: 3
+// WARNING. The mapping of logging level to number: INFO: 0, WARNING: 1, ERROR:
+// 2, FATAL: 3,  negative values are -(verbosity level).
 constexpr auto kLoggingLevel =
     flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
 // When true, the sender will not require confirming the ukey2 token.
@@ -91,9 +91,6 @@ constexpr auto kEnableQrCodeUi =
 // Show Admin mode warning message in the app
 constexpr auto kShowAdminModeWarning =
     flags::Flag<bool>(kConfigPackage, "45410558", false);
-// Show/hide auto app start setting.
-constexpr auto kShowAutoAppStartSetting =
-    flags::Flag<bool>(kConfigPackage, "45411601", true);
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
@@ -118,7 +115,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45630055, kUseGrpcClient},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
-      {45411601, kShowAutoAppStartSetting},
   };
 }
 
