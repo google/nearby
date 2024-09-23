@@ -586,7 +586,8 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                      << (state == ReceiveSurfaceState::kForeground
                              ? "Foreground"
                              : "Background")
-                     << ", transfer_callback: " << transfer_callback;
+                     << ", transfer_callback: " << transfer_callback
+                     << ", vendor_id: " << static_cast<uint32_t>(vendor_id);
 
         // Check available mediums.
         if (!HasAvailableConnectionMediums()) {
