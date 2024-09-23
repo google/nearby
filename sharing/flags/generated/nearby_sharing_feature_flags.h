@@ -85,15 +85,6 @@ constexpr auto kUpgradeBandwidthAfterAccept =
 // When true, use gRpc client to access backend.
 constexpr auto kUseGrpcClient =
     flags::Flag<bool>(kConfigPackage, "45630055", false);
-// Enable/disable QR Code UI
-constexpr auto kEnableQrCodeUi =
-    flags::Flag<bool>(kConfigPackage, "45417647", false);
-// Show Admin mode warning message in the app
-constexpr auto kShowAdminModeWarning =
-    flags::Flag<bool>(kConfigPackage, "45410558", false);
-// Update track
-constexpr auto kUpdateTrack =
-    flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -113,8 +104,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45627824, kUpgradeBandwidthAfterAccept},
       {45630055, kUseGrpcClient},
-      {45417647, kEnableQrCodeUi},
-      {45410558, kShowAdminModeWarning},
   };
 }
 
@@ -131,9 +120,7 @@ inline absl::btree_map<int, const flags::Flag<double>&> GetDoubleFlags() {
 
 inline absl::btree_map<int, const flags::Flag<absl::string_view>&>
 GetStringFlags() {
-  return {
-      {45409861, kUpdateTrack},
-  };
+  return {};
 }
 
 }  // namespace nearby_sharing_feature
