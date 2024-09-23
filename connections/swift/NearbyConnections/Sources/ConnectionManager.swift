@@ -213,6 +213,18 @@ public class ConnectionManager {
       withCompletionHandler: completionHandler
     )
   }
+
+  /// Disconnects from, and removes all traces of, all connected and/or discovered endpoints.
+  ///
+  /// This call is expected to be preceded by a call to stop advertising or discovery as needed.
+  /// After calling this method, no further operations with remote endpoints will be possible until
+  /// a new call to start advertising or discovery.
+  ///
+  /// - Parameters:
+  ///   - completionHandler: Called when all endpoints have been disconnected and removed.
+  public func stopAllEndpoints(completionHandler: ((Error?) -> Void)? = nil) {
+    GNCCoreAdapter.shared.stopAllEndpoints(completionHandler: completionHandler)
+  }
 }
 
 extension ConnectionManager: InternalPayloadDelegate {
