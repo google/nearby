@@ -29,6 +29,7 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
+#include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
@@ -462,4 +463,17 @@ void OutgoingShareSession::DisconnectionTimeout() {
   Disconnect();
 }
 
+void OutgoingShareSession::UpdateSessionForDedup(
+    const ShareTarget& share_target,
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+    absl::string_view endpoint_id) {
+  if (IsConnected()) return;
+  set_share_target(share_target);
+  set_endpoint_id(endpoint_id);
+  if (certificate.has_value()) {
+    set_certificate(std::move(certificate.value()));
+  } else {
+    clear_certificate();
+  }
+}
 }  // namespace nearby::sharing

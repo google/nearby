@@ -94,6 +94,9 @@ constexpr auto kShowAdminModeWarning =
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
+// Apply endpoints de-duplication algorithms.
+constexpr auto kApplyEndpointsDedup =
+    flags::Flag<bool>(kConfigPackage, "45656298", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -115,6 +118,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45630055, kUseGrpcClient},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
+      {45656298, kApplyEndpointsDedup},
   };
 }
 

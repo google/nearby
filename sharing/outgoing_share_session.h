@@ -24,9 +24,11 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
+#include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
@@ -129,6 +131,11 @@ class OutgoingShareSession : public ShareSession {
   void DelayCompleteMetadata(const TransferMetadata& complete_metadata);
   // Disconnect timeout expired without receiving client disconnect.
   void DisconnectionTimeout();
+  // Used only for OutgoingShareSession De-duplication.
+  void UpdateSessionForDedup(
+      const ShareTarget& share_target,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+      absl::string_view endpoint_id);
 
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;

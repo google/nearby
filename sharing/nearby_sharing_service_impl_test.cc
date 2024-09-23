@@ -112,10 +112,12 @@ using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::PairedKeyResultFrame;
 using ::nearby::sharing::service::proto::TextMetadata;
 using ::nearby::sharing::service::proto::V1Frame;
+using ::testing::_;
 using ::testing::InSequence;
 using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::ReturnRef;
+using ::testing::SaveArg;
 using ::testing::StrictMock;
 using ::testing::UnorderedElementsAre;
 
@@ -391,6 +393,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         nullptr);
     NearbyShareContactManagerImpl::Factory::SetFactoryForTesting(nullptr);
     NearbyShareCertificateManagerImpl::Factory::SetFactoryForTesting(nullptr);
+    NearbyFlags::GetInstance().ResetOverridedValues();
     nearby_fast_initiation_factory_.reset();
   }
 
@@ -4063,8 +4066,59 @@ TEST_F(NearbySharingServiceImplTest,
   service_.reset();
 }
 
+TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      true);
+  // Start discovery.
+  SetConnectionType(ConnectionType::kWifi);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  RegisterSendSurface(&transfer_callback, &discovery_callback,
+                      SendSurfaceState::kForeground);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            1u);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+  {
+    absl::Notification notification;
+    // vendor_id is default to 0.
+    FindEndpoint(/*endpoint_id=*/"1");
+    FindEndpointWithVendorId(
+        /*endpoint_id=*/"1",
+        static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+
+    ::testing::InSequence s;
+    ShareTarget share_target_1;
+    ShareTarget share_target_2;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_1));
+
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_2 = share_target;
+          notification.Notify();
+        });
+
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/true);
+    EXPECT_EQ(share_target_1.id, share_target_2.id);
+    // Vendor_id updated.
+    EXPECT_EQ(share_target_1.vendor_id, 0);
+    EXPECT_EQ(share_target_2.vendor_id,
+              static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  Shutdown();
+  service_.reset();
+}
+
 TEST_F(NearbySharingServiceImplTest,
        RetryDiscoveredEndpointsDownloadCertsAndRetryDecryption) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      false);
   // Start discovery.
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
@@ -4121,6 +4175,120 @@ TEST_F(NearbySharingServiceImplTest,
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
   EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(3);
+  Shutdown();
+  service_.reset();
+}
+
+// This test verifies the de-dup logic. Since certificates are the same, all the
+// share targets are duplicates.
+TEST_F(NearbySharingServiceImplTest, EndpointDedupBAsedOnDeviceId) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      true);
+  // Start discovery.
+  SetConnectionType(ConnectionType::kWifi);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  RegisterSendSurface(&transfer_callback, &discovery_callback,
+                      SendSurfaceState::kForeground);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            1u);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+  // Order of events:
+  // - Discover endpoint 1 --> decrypts public certificate
+  // - Discover endpoint 2 --> cannot decrypt public certificate
+  // - Discover endpoint 3 --> decrypts public certificate
+  //                       --> De-dup endpoint 1 with endpoint 3
+  // - Discover endpoint 4 --> cannot decrypt public certificate
+  // - Lose endpoint 3     --> endpoint 3 is purged from map
+  // ----------------------------------------------------------------
+  // - Fire certificate download timer --> certificates downloaded
+  // - (Re)discover endpoints 2 --> endpoint 2 is insert into map
+  // - (Re)discover endpoints 4 --> De-dup endpoint 2 with endpoint 4
+  {
+    absl::Notification notification;
+    // vendor_id is default to 0.
+    FindEndpoint(/*endpoint_id=*/"1");
+    FindInvalidEndpoint(/*endpoint_id=*/"2");
+    FindEndpointWithVendorId(
+        /*endpoint_id=*/"3",
+        static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    FindInvalidEndpoint(/*endpoint_id=*/"4");
+    LoseEndpoint(/*endpoint_id=*/"3");
+    ::testing::InSequence s;
+    ShareTarget share_target_ep_1;
+    ShareTarget share_target_ep_3;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_ep_1));
+
+    // Update endpoint 1 to endpoint 3
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
+        .WillOnce(SaveArg<0>(&share_target_ep_3));
+
+    // Lost endpoint 3
+    EXPECT_CALL(discovery_callback, OnShareTargetLost)
+        .WillOnce([&](ShareTarget share_target) { notification.Notify(); });
+
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/false);
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/3,
+                                             /*success=*/true);
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/4,
+                                             /*success=*/false);
+    EXPECT_EQ(share_target_ep_1.id, share_target_ep_3.id);
+    // Vendor_id updated.
+    EXPECT_EQ(share_target_ep_3.vendor_id,
+              static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  FastForward(kCertificateDownloadDuringDiscoveryPeriod);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            2u);
+  certificate_manager()->NotifyPublicCertificatesDownloaded();
+  FlushTesting();
+  ShareTarget share_target_ep_4;
+  {
+    absl::Notification notification;
+    ::testing::InSequence s;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered);
+    // Update endpoint 2 to endpoint 4
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated)
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_ep_4 = share_target;
+          notification.Notify();
+        });
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/5,
+                                             /*success=*/true);
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/6,
+                                             /*success=*/true);
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
+
+  // Introduce a small delay for things to settle.
+  FastForward(absl::Seconds(1));
+
+  // Send Text to updated endpoint 4.
+  SetUpKeyVerification(
+      /*is_incoming=*/false, PairedKeyResultFrame::SUCCESS);
+
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(
+      /*endpoint_id=*/"4", GetToken());
+  fake_nearby_connections_manager_->set_nearby_connection(connection_.get());
+
+  SetUpOutgoingConnectionUntilAccept(transfer_callback, share_target_ep_4.id);
+  PayloadInfo info =
+      AcceptAndSendPayload(transfer_callback, share_target_ep_4.id);
+
+  FinishOutgoingTransfer(transfer_callback, share_target_ep_4.id,
+                         /*complete=*/true, info);
+
+  EXPECT_TRUE(fake_nearby_connections_manager_
+                  ->connection_endpoint_info(/*endpoint_id=*/"4")
+                  .has_value());
+
   Shutdown();
   service_.reset();
 }

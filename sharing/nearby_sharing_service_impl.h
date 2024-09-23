@@ -369,6 +369,18 @@ class NearbySharingServiceImpl
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
+  // The share_target's id is updated to match the old one
+  // and OnShareTargetUpdated is called.
+  void DeduplicateInOutgoingShareTarget(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+
+  // Looks for a duplicate of the given share target in the outgoing share
+  // target map. The share target's id is changed to match an existing target if
+  // available. Returns true if the duplicate is found.
+  bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
+                                           ShareTarget& share_target);
+
   ShareSession* GetShareSession(int64_t share_target_id);
   IncomingShareSession* GetIncomingShareSession(int64_t share_target_id);
   OutgoingShareSession* GetOutgoingShareSession(int64_t share_target_id);

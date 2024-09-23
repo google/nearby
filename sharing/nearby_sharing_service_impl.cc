@@ -1351,12 +1351,11 @@ void NearbySharingServiceImpl::OnPrivateCertificatesChanged() {
 }
 
 void NearbySharingServiceImpl::OnLoginSucceeded(absl::string_view account_id) {
-  RunOnNearbySharingServiceThread(
-      "on_login_succeeded", [this]() {
-        NL_LOG(INFO) << __func__ << ": Account login.";
+  RunOnNearbySharingServiceThread("on_login_succeeded", [this]() {
+    NL_LOG(INFO) << __func__ << ": Account login.";
 
-        ResetAllSettings(/*logout=*/false);
-      });
+    ResetAllSettings(/*logout=*/false);
+  });
 }
 
 void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id,
@@ -1683,12 +1682,18 @@ void NearbySharingServiceImpl::HandleEndpointDiscovered(
   // found one.
 
   // Looking for the ShareTarget based on endpoint id.
-  if (outgoing_share_target_map_.find(endpoint_id) !=
-      outgoing_share_target_map_.end()) {
-    FinishEndpointDiscoveryEvent();
-    return;
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kApplyEndpointsDedup)) {
+    if (outgoing_share_target_map_.find(endpoint_id) !=
+        outgoing_share_target_map_.end()) {
+      LOG(INFO) << __func__ << ": Ignoring endpoint_id: " << endpoint_id
+                << " because it is already in the "
+                << "outgoingShareTargetMap.";
+      FinishEndpointDiscoveryEvent();
+      return;
+    }
   }
-
   // Once we get the advertisement, the first thing to do is decrypt the
   // certificate.
   NearbyShareEncryptedMetadataKey encrypted_metadata_key(
@@ -1707,7 +1712,7 @@ void NearbySharingServiceImpl::HandleEndpointDiscovered(
             "outgoing_decrypted_certificate",
             [this, endpoint_id_copy, endpoint_info_copy, advertisement_copy,
              decrypted_public_certificate]() {
-              NL_LOG(INFO) << __func__ << ": Decrypted public certificate";
+              LOG(INFO) << __func__ << ": Decrypted public certificate";
               OnOutgoingDecryptedCertificate(
                   endpoint_id_copy, endpoint_info_copy, advertisement_copy,
                   decrypted_public_certificate);
@@ -1749,11 +1754,18 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
     const Advertisement& advertisement,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
-  // Check again for this endpoint id, to avoid race conditions.
-  if (outgoing_share_target_map_.find(endpoint_id) !=
-      outgoing_share_target_map_.end()) {
-    FinishEndpointDiscoveryEvent();
-    return;
+  bool apply_endpoints_dedup = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup);
+  if (!apply_endpoints_dedup) {
+    // Check again for this endpoint id, to avoid race conditions.
+    if (outgoing_share_target_map_.find(endpoint_id) !=
+        outgoing_share_target_map_.end()) {
+      LOG(INFO) << __func__ << ": Ignoring endpoint_id: " << endpoint_id
+                << " because it is already in the "
+                << "outgoingShareTargetMap.";
+      FinishEndpointDiscoveryEvent();
+      return;
+    }
   }
 
   // The certificate provides the device name, in order to create a ShareTarget
@@ -1763,7 +1775,7 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
                         /*is_incoming=*/false);
   if (!share_target.has_value()) {
     if (discovered_advertisements_retried_set_.contains(endpoint_id)) {
-      NL_LOG(INFO)
+      LOG(INFO)
           << __func__
           << ": Don't try to download public certificates again for endpoint="
           << endpoint_id;
@@ -1771,9 +1783,10 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
       return;
     }
 
-    NL_LOG(INFO)
-        << __func__ << ": Failed to convert discovered advertisement to share "
-        << "target. Ignoring endpoint until next certificate download.";
+    LOG(INFO) << __func__
+              << ": Failed to convert discovered advertisement to share "
+              << "target. Ignoring endpoint: " << endpoint_id
+              << " until next certificate download.";
     std::vector<uint8_t> endpoint_info_data(endpoint_info.begin(),
                                             endpoint_info.end());
 
@@ -1781,13 +1794,23 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     FinishEndpointDiscoveryEvent();
     return;
   }
+  if (apply_endpoints_dedup) {
+    if (FindDuplicateInOutgoingShareTargets(endpoint_id, *share_target)) {
+      DeduplicateInOutgoingShareTarget(*share_target, endpoint_id,
+                                       std::move(certificate));
+      FinishEndpointDiscoveryEvent();
+      return;
+    }
+  }
+
   CreateOutgoingShareSession(*share_target, endpoint_id,
                              std::move(certificate));
 
   // Update the endpoint id for the share target.
-  NL_LOG(INFO) << __func__
-               << ": An endpoint has been discovered, with an advertisement "
-                  "containing a valid share target.";
+  LOG(INFO) << __func__ << ": An endpoint: " << endpoint_id
+            << " has been discovered, with an advertisement "
+               "containing a valid share target with id: "
+            << share_target->id;
 
   // Log analytics event of discovering share target.
   analytics_recorder_->NewDiscoverShareTarget(
@@ -1802,10 +1825,10 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
                 share_foreground_send_surface_start_timestamp_));
 
   // Notifies the user that we discovered a device.
-  NL_VLOG(1) << __func__ << ": There are "
-             << (foreground_send_surface_map_.size() +
-                 background_send_surface_map_.size())
-             << " discovery callbacks be called.";
+  VLOG(1) << __func__ << ": There are "
+          << (foreground_send_surface_map_.size() +
+              background_send_surface_map_.size())
+          << " discovery callbacks be called.";
 
   for (auto& entry : foreground_send_surface_map_) {
     entry.second.OnShareTargetDiscovered(*share_target);
@@ -1814,8 +1837,8 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     entry.second.OnShareTargetDiscovered(*share_target);
   }
 
-  NL_VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered "
-             << (context_->GetClock()->Now() - scanning_start_timestamp_);
+  VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered at timestamp: "
+          << (context_->GetClock()->Now() - scanning_start_timestamp_);
 
   FinishEndpointDiscoveryEvent();
 }
@@ -2356,9 +2379,9 @@ void NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
     return;
   }
 
-  NL_VLOG(1) << __func__ << ": Removing (endpoint_id=" << it->first
-             << ", share_target.id=" << it->second.id
-             << ") from outgoing share target map";
+  LOG(INFO) << __func__ << ": Removing (endpoint_id=" << it->first
+            << ", share_target.id=" << it->second.id
+            << ") from outgoing share target map";
   ShareTarget share_target = std::move(it->second);
   outgoing_share_target_map_.erase(it);
 
@@ -2597,10 +2620,9 @@ void NearbySharingServiceImpl::OnIncomingAdvertisementDecoded(
              placeholder_share_target_id,
              decrypted_public_certificate =
                  std::move(decrypted_public_certificate)]() {
-              OnIncomingDecryptedCertificate(
-                  endpoint_id, advertisement_copy,
-                  placeholder_share_target_id,
-                  decrypted_public_certificate);
+              OnIncomingDecryptedCertificate(endpoint_id, advertisement_copy,
+                                             placeholder_share_target_id,
+                                             decrypted_public_certificate);
             });
       });
 }
@@ -2698,7 +2720,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
     is_connecting_ = false;
     OnTransferComplete();
   } else if (metadata.status() ==
-                 TransferMetadata::Status::kAwaitingLocalConfirmation) {
+             TransferMetadata::Status::kAwaitingLocalConfirmation) {
     is_connecting_ = false;
     OnTransferStarted(/*is_incoming=*/false);
   }
@@ -3264,18 +3286,82 @@ IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
   return it->second;
 }
 
+void NearbySharingServiceImpl::DeduplicateInOutgoingShareTarget(
+    const ShareTarget& share_target, absl::string_view endpoint_id,
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
+  // TODO(b/343764269): may need to update last_outgoing_metadata_ if the
+  // deduped target id matches the one in last_outgoing_metadata_.
+  // But since we do not modify the share target of a connected session, it may
+  // not happen.
+
+  auto session_it = outgoing_share_session_map_.find(share_target.id);
+  if (session_it == outgoing_share_session_map_.end()) {
+    LOG(WARNING) << __func__ << ": share_target.id=" << share_target.id
+                 << " not found in outgoing share session map.";
+    return;
+  }
+  if (session_it->second.IsConnected()) {
+    LOG(INFO) << __func__ << ": share_target.id=" << share_target.id
+              << " is connected, not updating outgoing_share_session_map_.";
+    return;
+  }
+  session_it->second.UpdateSessionForDedup(share_target, std::move(certificate),
+                                           endpoint_id);
+
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(share_target);
+  }
+
+  LOG(INFO) << __func__
+            << ": [Dedupped] Reported OnShareTargetUpdated to all surfaces "
+               "for share_target: "
+            << share_target.ToString();
+}
+
+bool NearbySharingServiceImpl::FindDuplicateInOutgoingShareTargets(
+    absl::string_view endpoint_id, ShareTarget& share_target) {
+  // If the duplicate is found, share_target.id needs to be updated to the old
+  // "discovered" share_target_id so OnShareTargetUpdated matches a target that
+  // was discovered before.
+
+  auto it = outgoing_share_target_map_.find(endpoint_id);
+  if (it != outgoing_share_target_map_.end()) {
+    // If endpoint info changes for an endpoint ID, NC will send a rediscovery
+    // event for the same endpoint id.
+    LOG(INFO) << __func__
+              << ": [Dedupped] Found duplicate endpoint_id: " << endpoint_id
+              << " in outgoing_share_target_map, share_target.id changed from: "
+              << share_target.id << " to " << it->second.id;
+    share_target.id = it->second.id;
+    it->second = share_target;
+    return true;
+  }
+
+  for (auto it = outgoing_share_target_map_.begin();
+       it != outgoing_share_target_map_.end(); ++it) {
+    if (it->second.device_id == share_target.device_id) {
+      LOG(INFO)
+          << __func__
+          << ": [Dedupped] Found duplicate device_id. endpoint ID "
+             "changed from: "
+          << it->first << " to " << endpoint_id
+          << " in outgoing_share_target_map, share_target.id changed from: "
+          << share_target.id << " to " << it->second.id;
+      share_target.id = it->second.id;
+      outgoing_share_target_map_.erase(it);
+      outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
+      return true;
+    }
+  }
+  return false;
+}
+
 OutgoingShareSession& NearbySharingServiceImpl::CreateOutgoingShareSession(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
-  // We need to explicitly remove any previous share target for
-  // |endpoint_id| if one exists, notifying observers that a share target is
-  // lost.
-  const auto it = outgoing_share_target_map_.find(endpoint_id);
-  if (it != outgoing_share_target_map_.end() &&
-      it->second.id != share_target.id) {
-    RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
-  }
-
   NL_VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
              << ", share_target_id=" << share_target.id
              << ") to outgoing share target map";
