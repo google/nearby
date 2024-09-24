@@ -314,6 +314,10 @@ void OutgoingShareSession::SendAllPayloads(
     connections_manager()->Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
+  for (auto& payload : ExtractWifiCredentialsPayloads()) {
+    connections_manager()->Send(
+        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
+  }
 }
 
 void OutgoingShareSession::InitSendPayload(
@@ -420,6 +424,10 @@ std::vector<Payload> OutgoingShareSession::ExtractTextPayloads() {
 
 std::vector<Payload> OutgoingShareSession::ExtractFilePayloads() {
   return std::move(file_payloads_);
+}
+
+std::vector<Payload> OutgoingShareSession::ExtractWifiCredentialsPayloads() {
+  return std::move(wifi_credentials_payloads_);
 }
 
 std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {

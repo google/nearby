@@ -534,6 +534,12 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
+          }))
+      .WillOnce(Invoke(
+          [this](
+              std::unique_ptr<Payload> payload,
+              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = session_.attachment_payload_map().at(wifi1_.id());
           }));
   EXPECT_CALL(mock_event_logger_,
               Log(Matcher<const SharingLog&>(
@@ -649,6 +655,15 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
+          }));
+  session_.SendNextPayload();
+
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(Invoke(
+          [this](
+              std::unique_ptr<Payload> payload,
+              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = session_.attachment_payload_map().at(wifi1_.id());
           }));
   session_.SendNextPayload();
 }
