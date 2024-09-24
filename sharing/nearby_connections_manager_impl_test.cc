@@ -29,6 +29,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
@@ -1788,29 +1789,11 @@ TEST_F(NearbyConnectionsManagerImplTest,
   payload_listener_remote.payload_cb(kRemoteEndpointId,
                                      Payload(kPayloadId, InputFile(file)));
 
-  // Flag is off. Don't add unknown file paths to the list.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFile,
-      false);
-  auto unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
-  EXPECT_TRUE(unknown_file_paths.empty());
   nearby_connections_manager_->OnPayloadTransferUpdateForTesting(
       kRemoteEndpointId,
       PayloadTransferUpdate(kPayloadId, PayloadStatus::kCanceled, kTotalSize,
                             /*bytes_transferred=*/kTotalSize));
-
-  // Flag is on. Add unknown file paths with kCanceled to the list.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFile,
-      true);
-  nearby_connections_manager_->OnPayloadTransferUpdateForTesting(
-      kRemoteEndpointId,
-      PayloadTransferUpdate(kPayloadId, PayloadStatus::kCanceled, kTotalSize,
-                            /*bytes_transferred=*/kTotalSize));
-  unknown_file_paths =
+  absl::flat_hash_set<std::filesystem::path> unknown_file_paths =
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_EQ(unknown_file_paths.size(), 1);
   nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
@@ -1828,25 +1811,9 @@ TEST_F(NearbyConnectionsManagerImplTest,
 TEST_F(NearbyConnectionsManagerImplTest, ProcessUnknownFilePathsToDelete) {
   std::filesystem::path file(std::filesystem::temp_directory_path() /
                              "file.jpg");
-  // Flag is off. Don't add unknown file paths to the list.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFile,
-      false);
-  auto unknown_file_paths =
-      nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
       PayloadStatus::kCanceled, PayloadContent::Type::kFile, file);
-  EXPECT_TRUE(unknown_file_paths.empty());
-
-  // Flag is on. Add unknown file paths with kCanceled to the list.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFile,
-      true);
-  nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
-      PayloadStatus::kCanceled, PayloadContent::Type::kFile, file);
-  unknown_file_paths =
+  absl::flat_hash_set<std::filesystem::path> unknown_file_paths =
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_EQ(unknown_file_paths.size(), 1);
   nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();

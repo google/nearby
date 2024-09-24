@@ -4893,10 +4893,6 @@ TEST_F(NearbySharingServiceImplTest, NoAdvertisingWhenHidden) {
 }
 
 TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kDeleteUnexpectedReceivedFile,
-      true);
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
       "test1.txt");
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(

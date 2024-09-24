@@ -2936,20 +2936,6 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
       session->session_id(), session->share_target(),
       /*referrer_package=*/std::nullopt, session->os_type());
 
-  // Controls BWU using a flag when receiving an introduction frame, since it
-  // could be a problem before accepted by a user.
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          sharing::config_package_nearby::nearby_sharing_feature::
-              kUpgradeBandwidthAfterAccept)) {
-    if (frame->has_start_transfer() && frame->start_transfer()) {
-      if (session->TryUpgradeBandwidth()) {
-        NL_LOG(INFO)
-            << __func__
-            << ": Upgrade bandwidth when receiving an introduction frame.";
-      }
-    }
-  }
-
   if (IsOutOfStorage(device_info_,
                      std::filesystem::u8path(settings_->GetCustomSavePath()),
                      session->attachment_container().GetStorageSize())) {
@@ -3251,16 +3237,12 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
   NL_LOG(INFO) << __func__ << ": Cleaning up payloads due to transfer failure";
   nearby_connections_manager_->ClearIncomingPayloads();
   std::vector<std::filesystem::path> files_for_deletion;
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kDeleteUnexpectedReceivedFile)) {
-    auto file_paths_to_delete =
-        nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
-    for (auto it = file_paths_to_delete.begin();
-         it != file_paths_to_delete.end(); ++it) {
-      NL_VLOG(1) << __func__ << ": Has unknown file path to delete.";
-      files_for_deletion.push_back(*it);
-    }
+  auto file_paths_to_delete =
+      nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
+  for (auto it = file_paths_to_delete.begin();
+        it != file_paths_to_delete.end(); ++it) {
+    NL_VLOG(1) << __func__ << ": Has unknown file path to delete.";
+    files_for_deletion.push_back(*it);
   }
   std::vector<std::filesystem::path> payload_file_path =
       session.GetPayloadFilePaths();
