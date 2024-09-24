@@ -1921,7 +1921,7 @@ TEST_F(NearbySharingServiceImplTest,
   SetConnectionType(ConnectionType::kWifi);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
   FlushTesting();
 
   // Register background receive surface with vendor ID 1.
@@ -1938,6 +1938,30 @@ TEST_F(NearbySharingServiceImplTest,
   auto advertisement = Advertisement::FromEndpointInfo(*endpoint_info);
   EXPECT_EQ(advertisement->vendor_id(),
             static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+}
+
+TEST_F(NearbySharingServiceImplTest,
+       RegisterReceiveSurfaceWithVendorId_DoesNotAdvertiseInContacts) {
+  SetConnectionType(ConnectionType::kWifi);
+  preference_manager().SetInteger(
+      prefs::kNearbySharingBackgroundVisibilityName,
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
+  FlushTesting();
+
+  // Register background receive surface with vendor ID 1.
+  MockTransferUpdateCallback background_transfer_callback;
+  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
+      &background_transfer_callback,
+      NearbySharingService::ReceiveSurfaceState::kBackground,
+      static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+  ASSERT_EQ(result, NearbySharingService::StatusCodes::kOk);
+  ASSERT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
+
+  auto endpoint_info =
+      fake_nearby_connections_manager_->advertising_endpoint_info();
+  auto advertisement = Advertisement::FromEndpointInfo(*endpoint_info);
+  EXPECT_EQ(advertisement->vendor_id(),
+            static_cast<uint8_t>(Advertisement::BlockedVendorId::kNone));
 }
 
 TEST_F(NearbySharingServiceImplTest,
@@ -1970,7 +1994,7 @@ TEST_F(NearbySharingServiceImplTest,
   SetConnectionType(ConnectionType::kWifi);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
-      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
+      static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
   FlushTesting();
 
   // Register background receive surface with vendor ID 0.
@@ -4181,7 +4205,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 // This test verifies the de-dup logic. Since certificates are the same, all the
 // share targets are duplicates.
-TEST_F(NearbySharingServiceImplTest, EndpointDedupBAsedOnDeviceId) {
+TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
       true);

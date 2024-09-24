@@ -1593,7 +1593,9 @@ NearbySharingServiceImpl::CreateEndpointInfo(
 
   std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_key), device_type, device_name,
-      static_cast<uint8_t>(GetReceivingVendorId()));
+      visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE
+          ? static_cast<uint8_t>(GetReceivingVendorId())
+          : static_cast<uint8_t>(BlockedVendorId::kNone));
   if (advertisement) {
     return advertisement->ToEndpointInfo();
   } else {
