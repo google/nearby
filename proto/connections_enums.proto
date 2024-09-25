@@ -1248,6 +1248,10 @@ enum OperationResultCode {
   NEARBY_CONNECTIVITY_INFO_NULL_OR_WRONG = 4606;
   // Local client state wrong
   NEARBY_LOCAL_CLIENT_STATE_WRONG = 4607;
+  // Remote exception when processing received payload
+  NEARBY_REMOTE_EXCEPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4608;
+  // Bad file description when processing received payload
+  NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609;
 }
 
 enum StopAdvertisingReason {
