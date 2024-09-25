@@ -783,7 +783,11 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
   NL_LOG(INFO) << "Received payload id=" << payload.id;
   [[maybe_unused]] auto result =
       incoming_payloads_.emplace(payload.id, std::move(payload));
-  NL_DCHECK(result.second);
+  if (!result.second) {
+    NL_LOG(WARNING) << __func__ << ": Payload id=" << payload.id
+                     << " already exists.";
+  }
+//  NL_DCHECK(result.second);
 }
 
 void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
@@ -795,7 +799,8 @@ void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
         status == PayloadStatus::kInProgress) &&
       type == PayloadContent::Type::kFile) {
     NL_LOG(WARNING) << __func__
-                    << ": Unknown payload has been canceled, removing.";
+                    << ": Unknown payload has been canceled, removing "
+                    << " path=" << path;  // TODO(eidenkim): Remove this log.
     MutexLock lock(&mutex_);
     file_paths_to_delete_.insert(path);
   }
