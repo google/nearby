@@ -137,6 +137,7 @@ class FakeBwuHandler : public BaseBwuHandler {
         return parser::ForBwuWifiLanPathAvailable(/*ip_address=*/"ABCD",
                                                   /*port=*/1234);
       case location::nearby::proto::connections::WEB_RTC:
+      case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:
         return parser::ForBwuWebrtcPathAvailable(
             /*peer_id=*/"peer-id",
             location::nearby::connections::LocationHint{});
