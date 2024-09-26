@@ -49,6 +49,7 @@ static NSError *AlreadyReadingCharacteristicError() {
 @implementation GNCBLEGATTClient {
   dispatch_queue_t _queue;
   id<GNCPeripheral> _peripheral;
+  GNCRequestDisconnectionHandler _requestDisconnectionHandler;
 
   /**
    * A map of service UUIDs with each service holding a map of a list of characterisitcs to a
@@ -70,15 +71,18 @@ static NSError *AlreadyReadingCharacteristicError() {
       *_readCharacteristicValueCompletionHandlers;
 }
 
-- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral {
-  return [self
-      initWithPeripheral:peripheral
-                   queue:dispatch_queue_create(kGNCBLEGATTClientQueueLabel, DISPATCH_QUEUE_SERIAL)];
+- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
+       requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler {
+  return [self initWithPeripheral:peripheral
+                            queue:dispatch_queue_create(kGNCBLEGATTClientQueueLabel,
+                                                        DISPATCH_QUEUE_SERIAL)
+      requestDisconnectionHandler:requestDisconnectionHandler];
 };
 
 // Private.
 - (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
-                             queue:(nullable dispatch_queue_t)queue {
+                             queue:(nullable dispatch_queue_t)queue
+       requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler {
   self = [super init];
   if (self) {
     _queue = queue ?: dispatch_get_main_queue();
@@ -86,6 +90,7 @@ static NSError *AlreadyReadingCharacteristicError() {
     _peripheral.peripheralDelegate = self;
     _discoverCharacteristicsCompletionHandlers = [[NSMutableDictionary alloc] init];
     _readCharacteristicValueCompletionHandlers = [[NSMutableDictionary alloc] init];
+    _requestDisconnectionHandler = requestDisconnectionHandler;
   }
   return self;
 };
@@ -170,6 +175,12 @@ static NSError *AlreadyReadingCharacteristicError() {
                                                   completionHandler;
 
     [_peripheral readValueForCharacteristic:cbCharacteristic];
+  });
+}
+
+- (void)disconnect {
+  dispatch_async(_queue, ^{
+    _requestDisconnectionHandler(_peripheral);
   });
 }
 

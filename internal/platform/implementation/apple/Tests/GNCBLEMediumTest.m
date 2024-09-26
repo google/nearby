@@ -18,6 +18,7 @@
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Tests/GNCBLEMedium+Testing.h"
@@ -313,8 +314,6 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 - (void)testDisconnect {
   GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
   GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
-  XCTestExpectation *connectExpectation =
-      [[XCTestExpectation alloc] initWithDescription:@"Connect."];
   XCTestExpectation *disconnectExpectation =
       [[XCTestExpectation alloc] initWithDescription:@"Disconnect."];
 
@@ -327,12 +326,8 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
       completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
         XCTAssertNotNil(client);
         XCTAssertNil(error);
-        [connectExpectation fulfill];
+        [client disconnect];
       }];
-
-  [self waitForExpectations:@[ connectExpectation ] timeout:3];
-
-  [fakeCentralManager simulateCentralManagerDidDisconnectPeripheral:peripheral];
 
   [self waitForExpectations:@[ disconnectExpectation ] timeout:3];
 }
