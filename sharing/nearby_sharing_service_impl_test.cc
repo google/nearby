@@ -778,7 +778,6 @@ class NearbySharingServiceImplTest : public testing::Test {
     fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                                 GetToken());
     fake_nearby_connections_manager_->set_nearby_connection(connection_.get());
-
     return DiscoverShareTarget(transfer_callback, discovery_callback);
   }
 
@@ -4227,8 +4226,9 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   // - Lose endpoint 3     --> endpoint 3 is purged from map
   // ----------------------------------------------------------------
   // - Fire certificate download timer --> certificates downloaded
-  // - (Re)discover endpoints 2 --> endpoint 2 is insert into map
-  // - (Re)discover endpoints 4 --> De-dup endpoint 2 with endpoint 4
+  // - {x|y} can be 2 or 4, as the (Re)discover order is non-deterministic
+  // - (Re)discover endpoints x --> endpoint x is insert into map
+  // - (Re)discover endpoints y --> De-dup endpoint x with endpoint y
   {
     absl::Notification notification;
     // vendor_id is default to 0.
@@ -4272,15 +4272,16 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
             2u);
   certificate_manager()->NotifyPublicCertificatesDownloaded();
   FlushTesting();
-  ShareTarget share_target_ep_4;
+  ShareTarget share_target_updated;
   {
     absl::Notification notification;
     ::testing::InSequence s;
     EXPECT_CALL(discovery_callback, OnShareTargetDiscovered);
-    // Update endpoint 2 to endpoint 4
+    // One of the re-discovered endpoint updates the other one. The ordering
+    // is non-deterministic.
     EXPECT_CALL(discovery_callback, OnShareTargetUpdated)
         .WillOnce([&](ShareTarget share_target) {
-          share_target_ep_4 = share_target;
+          share_target_updated = share_target;
           notification.Notify();
         });
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/5,
@@ -4291,26 +4292,32 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   }
   EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
 
-  // Introduce a small delay for things to settle.
-  FastForward(absl::Seconds(1));
+  FlushTesting();
 
-  // Send Text to updated endpoint 4.
+  // Send Text to the updated endpoint.
   SetUpKeyVerification(
       /*is_incoming=*/false, PairedKeyResultFrame::SUCCESS);
-
+  // Since we don't know exactly which endpoint is updated, we need to set the
+  // token for both of them.
   fake_nearby_connections_manager_->SetRawAuthenticationToken(
       /*endpoint_id=*/"4", GetToken());
+  fake_nearby_connections_manager_->SetRawAuthenticationToken(
+      /*endpoint_id=*/"2", GetToken());
   fake_nearby_connections_manager_->set_nearby_connection(connection_.get());
 
-  SetUpOutgoingConnectionUntilAccept(transfer_callback, share_target_ep_4.id);
-  PayloadInfo info =
-      AcceptAndSendPayload(transfer_callback, share_target_ep_4.id);
+  SetUpOutgoingConnectionUntilAccept(transfer_callback,
+                                     share_target_updated.id);
 
-  FinishOutgoingTransfer(transfer_callback, share_target_ep_4.id,
+  PayloadInfo info =
+      AcceptAndSendPayload(transfer_callback, share_target_updated.id);
+  FinishOutgoingTransfer(transfer_callback, share_target_updated.id,
                          /*complete=*/true, info);
 
   EXPECT_TRUE(fake_nearby_connections_manager_
                   ->connection_endpoint_info(/*endpoint_id=*/"4")
+                  .has_value() ||
+              fake_nearby_connections_manager_
+                  ->connection_endpoint_info(/*endpoint_id=*/"2")
                   .has_value());
 
   Shutdown();
