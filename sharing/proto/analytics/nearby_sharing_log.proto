@@ -31,7 +31,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 76
+// Next Tag: 77
 // LINT.IfChange
 message SharingLog {
   /* collection_basis = {
@@ -207,6 +207,8 @@ message SharingLog {
 
   // Used only for Nearby Share android app now.
   optional ShowAllowPermissionAutoAccess show_allow_permission_auto_access = 75;
+
+  optional ShowWaitingForAccept show_waiting_for_accept = 76;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -873,6 +875,10 @@ message SharingLog {
 
   message SendDesktopTransferEvent {
     optional location.nearby.proto.sharing.DesktopTransferEventType event = 1;
+  }
+
+  message ShowWaitingForAccept {
+    optional location.nearby.proto.sharing.ButtonStatus button_status = 1;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)

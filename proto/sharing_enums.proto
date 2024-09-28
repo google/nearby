@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 67
+// Next id: 68
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -293,6 +293,9 @@ enum EventType {
   // UI events for transferring files with desktop applications. It includes
   // event types such as DESKTOP_TRANSFER_EVENT_SEND_TYPE_SELECT_A_DEVICE.
   SEND_DESKTOP_TRANSFER_EVENT = 66;
+
+  // Show accept button on Quick Share receive UI
+  WAITING_FOR_ACCEPT = 67;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
@@ -915,6 +918,13 @@ enum IdentityVerification {
   IDENTITY_VERIFICATION_NO_PHONE_NUMBER_VERIFIED = 1;
   IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_NOT_LINKED_TO_GAIA = 2;
   IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_LINKED_TO_QS_GAIA = 3;
+}
+
+enum ButtonStatus {
+  BUTTON_STATUS_UNKNOWN = 0;
+  BUTTON_STATUS_CLICK_ACCEPT = 1;
+  BUTTON_STATUS_CLICK_REJECT = 2;
+  BUTTON_STATUS_IGNORE = 3;
 }
 // LINT.ThenChange(
 //   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
