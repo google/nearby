@@ -41,7 +41,10 @@ cc_library(
         "utils.h",
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
-    visibility = ["//sharing/internal/impl/windows:__pkg__"],
+    visibility = [
+        "//location/nearby:__subpackages__",
+        "//sharing/internal/impl/windows:__pkg__",
+    ],
     deps = [
         ":comm",
         "//internal/base:bluetooth_address",

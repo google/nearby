@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
 #ifndef PLATFORM_IMPL_WINDOWS_UTILS_H_
 #define PLATFORM_IMPL_WINDOWS_UTILS_H_
 
-#include <windows.h>
+// clang-format off
+#include <Windows.h>
+// clang-format on
 
 #include <cstdint>
 #include <string>
@@ -39,8 +41,8 @@ std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);
 std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s);
 
 // Helpers to windows platform
-std::wstring string_to_wstring(std::string str);
-std::string wstring_to_string(std::wstring wstr);
+std::wstring string_to_wstring(const std::string& str);
+std::string wstring_to_string(const std::wstring& wstr);
 ByteArray Sha256(absl::string_view input, size_t size);
 
 // Reads the IPv4 addresses
