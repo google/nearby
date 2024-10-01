@@ -3248,6 +3248,11 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
       session.GetPayloadFilePaths();
   files_for_deletion.insert(files_for_deletion.end(), payload_file_path.begin(),
                             payload_file_path.end());
+  if (!files_for_deletion.empty()) {
+    for (const auto& path : files_for_deletion) {
+      NL_VLOG(1) << __func__ << ": Has file path to delete: " << path;
+    }
+  }
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});
 }
 
