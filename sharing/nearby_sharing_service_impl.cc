@@ -971,7 +971,7 @@ void NearbySharingServiceImpl::DoCancel(
 
       session->WriteCancelFrame();
     } else {
-      session->connection()->Close();
+      session->Disconnect();
     }
   } else {
     NL_LOG(INFO) << "Disconnect endpoint id:" << session->endpoint_id();
@@ -2767,7 +2767,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
 void NearbySharingServiceImpl::CloseConnection(int64_t share_target_id) {
   ShareSession* session = GetShareSession(share_target_id);
   if (session != nullptr && session->IsConnected()) {
-    session->connection()->Close();
+    session->Disconnect();
     return;
   }
   NL_LOG(WARNING) << __func__ << ": Invalid connection for target - "

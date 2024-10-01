@@ -45,7 +45,6 @@ class NearbyConnectionImpl : public NearbyConnection {
       std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback)
       ABSL_LOCKS_EXCLUDED(mutex_) override;
   void Write(std::vector<uint8_t> bytes) override;
-  void Close() override;
   void SetDisconnectionListener(std::function<void()> listener)
       ABSL_LOCKS_EXCLUDED(mutex_) override;
 
