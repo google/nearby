@@ -15,9 +15,15 @@
 #include "internal/platform/implementation/g3/webrtc.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/medium_environment.h"
+#include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/checks.h"
 
@@ -55,7 +61,8 @@ WebRtcMedium::~WebRtcMedium() { single_thread_executor_.Shutdown(); }
 const std::string WebRtcMedium::GetDefaultCountryCode() { return "US"; }
 
 void WebRtcMedium::CreatePeerConnection(
-    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
+    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback,
+    bool non_cellular) {
   auto& env = MediumEnvironment::Instance();
   if (!env.GetUseValidPeerConnection()) {
     callback(nullptr);
@@ -75,6 +82,7 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
+  // TODO(edwinwu): Add support for non-cellular networks.
   auto peer_connection_or_error =
       webrtc::CreateModularPeerConnectionFactory(
           std::move(factory_dependencies))
