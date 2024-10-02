@@ -30,15 +30,18 @@ struct BooleanMediumSelector {
   bool wifi_lan = false;
   bool wifi_hotspot = false;
   bool wifi_direct = false;
+  bool web_rtc_no_cellular = false;
 
   constexpr bool Any(bool value) const {
     return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value || wifi_hotspot == value || wifi_direct == value;
+           wifi_lan == value || wifi_hotspot == value || wifi_direct == value ||
+           web_rtc_no_cellular;
   }
 
   constexpr bool All(bool value) const {
     return bluetooth == value && ble == value && web_rtc == value &&
-           wifi_lan == value && wifi_hotspot == value && wifi_direct == value;
+           wifi_lan == value && wifi_hotspot == value && wifi_direct == value &&
+           web_rtc_no_cellular == value;
   }
 
   constexpr int Count(bool value) const {
@@ -49,6 +52,7 @@ struct BooleanMediumSelector {
     if (wifi_hotspot == value) count++;
     if (wifi_direct == value) count++;
     if (web_rtc == value) count++;
+    if (web_rtc_no_cellular == value) count++;
     return count;
   }
 
@@ -59,6 +63,7 @@ struct BooleanMediumSelector {
     wifi_lan = value;
     wifi_hotspot = value;
     wifi_direct = value;
+    web_rtc_no_cellular = value;
     return *this;
   }
 
@@ -71,6 +76,8 @@ struct BooleanMediumSelector {
     if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
     if (ble == value) mediums.push_back(Medium::BLE);
+    if (web_rtc_no_cellular == value)
+      mediums.push_back(Medium::WEB_RTC_NON_CELLULAR);
     return mediums;
   }
 };

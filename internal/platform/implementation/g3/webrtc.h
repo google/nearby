@@ -16,8 +16,10 @@
 #define PLATFORM_IMPL_G3_WEBRTC_H_
 
 #include <memory>
+#include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "webrtc/api/peer_connection_interface.h"
@@ -61,7 +63,8 @@ class WebRtcMedium : public api::WebRtcMedium {
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
-                            PeerConnectionCallback callback) override;
+                            PeerConnectionCallback callback,
+                            bool non_cellular) override;
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(

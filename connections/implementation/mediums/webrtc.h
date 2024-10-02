@@ -20,10 +20,13 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
+#include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
@@ -70,7 +73,8 @@ class WebRtc {
   bool StartAcceptingConnections(
       const std::string& service_id, const WebrtcPeerId& self_peer_id,
       const location::nearby::connections::LocationHint& location_hint,
-      AcceptedConnectionCallback callback) ABSL_LOCKS_EXCLUDED(mutex_);
+      AcceptedConnectionCallback callback, bool non_cellular)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Try to stop (accepting) the specific connection with provided service id.
   // Runs on @MainThread
@@ -83,7 +87,8 @@ class WebRtc {
   WebRtcSocketWrapper Connect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
-      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
+      CancellationFlag* cancellation_flag, bool non_cellular)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  protected:
   // Use for unit tests only to inject a WebRtcMedium.
