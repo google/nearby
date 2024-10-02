@@ -14,6 +14,7 @@
 
 #include "connections/core.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -88,6 +89,9 @@ void Core::StartAdvertising(absl::string_view service_id,
   CheckServiceId(service_id);
   CHECK(advertising_options.strategy.IsValid());
 
+  client_.SetWebRtcNonCellular(GetWebRtcNonCellular(
+      advertising_options.CompatibleOptions().allowed.GetMediums(true)));
+
   router_->StartAdvertising(&client_, service_id, advertising_options, info,
                             std::move(callback));
 }
@@ -142,6 +146,9 @@ void Core::RequestConnection(absl::string_view endpoint_id,
     connection_options.keep_alive_timeout_millis =
         FeatureFlags::GetInstance().GetFlags().keep_alive_timeout_millis;
   }
+
+  client_.SetWebRtcNonCellular(
+      GetWebRtcNonCellular(connection_options.GetMediums()));
 
   router_->RequestConnection(&client_, endpoint_id, info, connection_options,
                              std::move(callback));
@@ -546,6 +553,15 @@ void Core::UpdateDiscoveryOptionsV3(absl::string_view service_id,
   };
   router_->UpdateDiscoveryOptionsV3(&client_, service_id, old_discovery_options,
                                     std::move(result_cb));
+}
+
+bool Core::GetWebRtcNonCellular(const std::vector<Medium>& mediums) {
+  for (const auto& medium : mediums) {
+    if (medium == Medium::WEB_RTC_NON_CELLULAR) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace connections

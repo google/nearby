@@ -2272,6 +2272,9 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
   client->OnConnectionAccepted(endpoint_id);
 
   // Report the current bandwidth to the client
+  if (medium == Medium::WEB_RTC && !mediums_->GetWebRtc().IsUsingCellular()) {
+    medium = Medium::WEB_RTC_NON_CELLULAR;
+  }
   client->OnBandwidthChanged(endpoint_id, medium);
 
   NEARBY_LOGS(INFO) << "Connection accepted on Medium:"
