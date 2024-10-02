@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
@@ -58,7 +59,8 @@ class WebRtcMedium {
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
   virtual void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
-                                    PeerConnectionCallback callback) = 0;
+                                    PeerConnectionCallback callback,
+                                    bool non_cellular) = 0;
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
   virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
