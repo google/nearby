@@ -42,6 +42,12 @@ cc_library(
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
+        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
+        "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/p2p:rtc_p2p",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:refcount",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/time",
@@ -94,8 +100,8 @@ cc_test(
         "//internal/platform/implementation/g3",  # buildcleaner: keep
         "//third_party/protobuf",
         "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
-        "//third_party/webrtc/files/stable/webrtc/api:rtc_error",
         "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",

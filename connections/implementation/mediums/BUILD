@@ -61,6 +61,7 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
+        "//third_party/webrtc/files/stable/webrtc/rtc_base:network_constants",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -162,6 +163,7 @@ cc_test(
         ":mediums",
         ":utils",
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",

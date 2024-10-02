@@ -17,13 +17,18 @@
 
 #ifndef NO_WEBRTC
 
+#include <memory>
 #include <string>
 
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/webrtc.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
+#include "connections/medium_selector.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
