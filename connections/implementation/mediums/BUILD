@@ -162,6 +162,7 @@ cc_test(
         ":mediums",
         ":utils",
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",

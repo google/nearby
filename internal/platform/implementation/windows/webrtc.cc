@@ -27,6 +27,7 @@
 #include "internal/platform/logging.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/rtc_base/network_constants.h"
 #include "webrtc/rtc_base/thread.h"
 
 namespace nearby {
@@ -70,7 +71,8 @@ const std::string WebRtcMedium::GetDefaultCountryCode() {
 }
 
 void WebRtcMedium::CreatePeerConnection(
-    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
+    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback,
+    bool non_cellular) {
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
   rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
   // TODO(b/261663238): Add the TURN servers and go beyond the default servers.
@@ -94,11 +96,20 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
+  auto peer_connection_factory = webrtc::CreateModularPeerConnectionFactory(
+      std::move(factory_dependencies));
+  if (peer_connection_factory == nullptr) {
+    LOG(FATAL) << "Failed to create peer connection factory";
+    callback(/*peer_connection=*/nullptr);
+  }
+  if (non_cellular) {
+    webrtc::PeerConnectionFactoryInterface::Options options;
+    options.network_ignore_mask |= rtc::ADAPTER_TYPE_CELLULAR;
+    peer_connection_factory->SetOptions(options);
+  }
   auto peer_connection_or_error =
-      webrtc::CreateModularPeerConnectionFactory(
-          std::move(factory_dependencies))
-          ->CreatePeerConnectionOrError(rtc_config, std::move(dependencies));
-
+      peer_connection_factory->CreatePeerConnectionOrError(
+          rtc_config, std::move(dependencies));
   if (peer_connection_or_error.ok()) {
     callback(peer_connection_or_error.MoveValue());
   } else {
