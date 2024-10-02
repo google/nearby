@@ -18,17 +18,31 @@
 
 #include <iterator>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/time/time.h"
+#include "connections/implementation/mediums/webrtc/data_channel_listener.h"
+#include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
+#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/rtc_error.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/api/set_local_description_observer_interface.h"
+#include "webrtc/api/set_remote_description_observer_interface.h"
+#include "webrtc/p2p/base/port.h"
+#include "webrtc/rtc_base/ref_counted_object.h"
 
 namespace nearby {
 namespace connections {
@@ -118,10 +132,11 @@ using PeerConnectionState =
 
 std::unique_ptr<ConnectionFlow> ConnectionFlow::Create(
     LocalIceCandidateListener local_ice_candidate_listener,
-    DataChannelListener data_channel_listener, WebRtcMedium& webrtc_medium) {
-  auto connection_flow = absl::WrapUnique(
-      new ConnectionFlow(std::move(local_ice_candidate_listener),
-                         std::move(data_channel_listener)));
+    DataChannelListener data_channel_listener,
+    AdapterTypeListener adapter_type_listener, WebRtcMedium& webrtc_medium) {
+  auto connection_flow = absl::WrapUnique(new ConnectionFlow(
+      std::move(local_ice_candidate_listener), std::move(data_channel_listener),
+      std::move(adapter_type_listener)));
   if (connection_flow->InitPeerConnection(webrtc_medium)) {
     return connection_flow;
   }
@@ -131,9 +146,11 @@ std::unique_ptr<ConnectionFlow> ConnectionFlow::Create(
 
 ConnectionFlow::ConnectionFlow(
     LocalIceCandidateListener local_ice_candidate_listener,
-    DataChannelListener data_channel_listener)
+    DataChannelListener data_channel_listener,
+    AdapterTypeListener adapter_type_listener)
     : data_channel_listener_(std::move(data_channel_listener)),
-      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
+      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)),
+      adapter_type_listener_(std::move(adapter_type_listener)) {}
 
 ConnectionFlow::~ConnectionFlow() {
   NEARBY_LOGS(INFO) << "~ConnectionFlow";
@@ -475,6 +492,12 @@ void ConnectionFlow::OnRenegotiationNeeded() {
   CHECK(IsRunningOnSignalingThread());
 }
 
+void ConnectionFlow::OnIceSelectedCandidatePairChanged(
+    const cricket::CandidatePairChangeEvent& event) {
+  adapter_type_listener_.adapter_type_changed_cb(
+      event.selected_candidate_pair.local_candidate().network_type());
+}
+
 bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   CHECK(IsRunningOnSignalingThread());
   if (current_state != state_) {
@@ -563,6 +586,7 @@ ConnectionFlow::GetAndResetPeerConnection() {
   MutexLock lock(&mutex_);
   return std::move(peer_connection_);
 }
+
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

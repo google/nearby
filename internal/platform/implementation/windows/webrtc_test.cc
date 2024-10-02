@@ -17,9 +17,13 @@
 #include <memory>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+
+#include "internal/platform/implementation/webrtc.h"
+#include "webrtc/api/jsep.h"
+#include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 
 namespace nearby {
 namespace windows {
@@ -58,13 +62,15 @@ TEST(WebrtcTest, CreatePeerConnectionSucceeds) {
   auto observer = std::make_unique<MockPeerConnectionObserver>();
   WebRtcMedium medium;
   medium.CreatePeerConnection(
-      observer.get(), [](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
-                             peer_connection) mutable {
+      observer.get(),
+      [](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
+             peer_connection) mutable {
         if (!peer_connection) {
           FAIL() << "Peer connection should have been non-null";
           return;
         }
-      });
+      },
+      /*non_cellular=*/false);
 }
 
 TEST(WebrtcTest, GetSignalingMessengerSucceeds) {

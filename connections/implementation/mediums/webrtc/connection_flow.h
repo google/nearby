@@ -18,17 +18,27 @@
 #ifndef NO_WEBRTC
 
 #include <memory>
+#include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/time/time.h"
 #include "connections/implementation/mediums/webrtc/data_channel_listener.h"
 #include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
-#include "internal/platform/runnable.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/single_thread_executor.h"
+#include "internal/platform/future.h"
+#include "internal/platform/listeners.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/jsep.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/p2p/base/port.h"
+#include "webrtc/rtc_base/network_constants.h"
 
 namespace nearby {
 namespace connections {
@@ -80,11 +90,18 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
     kEnded,
   };
 
+  // The listener that notifies the AdapterType has been changed.
+  struct AdapterTypeListener {
+    absl::AnyInvocable<void(rtc::AdapterType adapter_type)>
+        adapter_type_changed_cb = DefaultCallback<rtc::AdapterType>();
+  };
+
   // This method blocks on the creation of the peer connection object.
   // Can be called on any thread but never called on signaling thread.
   static std::unique_ptr<ConnectionFlow> Create(
       LocalIceCandidateListener local_ice_candidate_listener,
-      DataChannelListener data_channel_listener, WebRtcMedium& webrtc_medium);
+      DataChannelListener data_channel_listener,
+      AdapterTypeListener adapter_type_listener, WebRtcMedium& webrtc_medium);
   ~ConnectionFlow() override;
 
   // Create the offer that will be sent to the remote. Mirrors the behaviour of
@@ -134,13 +151,16 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   void OnConnectionChange(
       webrtc::PeerConnectionInterface::PeerConnectionState new_state) override;
   void OnRenegotiationNeeded() override;
+  void OnIceSelectedCandidatePairChanged(
+      const cricket::CandidatePairChangeEvent& event) override;
 
   // Public because it's used in tests too.
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> GetPeerConnection();
 
  private:
   ConnectionFlow(LocalIceCandidateListener local_ice_candidate_listener,
-                 DataChannelListener data_channel_listener);
+                 DataChannelListener data_channel_listener,
+                 AdapterTypeListener adapter_type_listener);
 
   // Resets peer connection reference. Returns old value.
   rtc::scoped_refptr<webrtc::PeerConnectionInterface>
@@ -222,6 +242,8 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   // used. We are using std::shared_ptr instead of rtc::WeakPtrFactory because
   // the former is thread-safe.
   std::shared_ptr<void> can_run_tasks_ = std::make_shared<int>();
+
+  AdapterTypeListener adapter_type_listener_;
 
   friend class CreateSessionDescriptionObserverImpl;
 };
