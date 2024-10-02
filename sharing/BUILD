@@ -862,3 +862,16 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "nearby_connections_service_test",
+    srcs = ["nearby_connections_service_test.cc"],
+    deps = [
+        ":connection_types",
+        ":nearby_sharing_service",
+        "//internal/platform:types",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

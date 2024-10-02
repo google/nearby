@@ -43,8 +43,7 @@ Payload ConvertToPayload(NcPayload payload) {
                      std::vector<uint8_t>(data.begin(), data.end()));
     }
     case NcPayloadType::kFile: {
-      std::filesystem::path file_path =
-          std::filesystem::u8path(payload.AsFile()->GetFilePath());
+      std::string file_path = payload.AsFile()->GetFilePath();
       std::string parent_folder = payload.GetParentFolder();
       NL_VLOG(1) << __func__ << ": Payload file_path=" << file_path
                  << ", parent_folder = " << parent_folder;

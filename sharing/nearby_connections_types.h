@@ -391,7 +391,9 @@ enum class DistanceInfo {
 
 struct InputFile {
   InputFile() = default;
-  explicit InputFile(std::filesystem::path path) { this->path = path; }
+  explicit InputFile(std::string path) {
+    this->path = std::filesystem::u8path(path);
+  }
 
   std::filesystem::path path;
 };
