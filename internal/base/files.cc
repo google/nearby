@@ -95,4 +95,14 @@ bool CreateDirectories(const std::filesystem::path& path) {
   return true;
 }
 
+bool CreateHardLink(const std::filesystem::path& target,
+                    const std::filesystem::path& link_path) {
+  std::error_code error_code;
+  std::filesystem::create_hard_link(target, link_path, error_code);
+  if (error_code) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace nearby::sharing

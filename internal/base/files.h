@@ -51,6 +51,11 @@ bool Rename(const std::filesystem::path& old_path,
 // Returns true on success.
 bool CreateDirectories(const std::filesystem::path& path);
 
+// Creates a hard link to target at link_path.
+// Returns true on success.
+bool CreateHardLink(const std::filesystem::path& target,
+                    const std::filesystem::path& link_path);
+
 }  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
