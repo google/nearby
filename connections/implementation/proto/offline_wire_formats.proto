@@ -123,6 +123,25 @@ message ConnectionRequestFrame {
 }
 
 message ConnectionResponseFrame {
+  // Should always match cs/symbol:location.nearby.proto.connections.Medium
+  // LINT.IfChange
+  enum Medium {
+    UNKNOWN_MEDIUM = 0;
+    MDNS = 1 [deprecated = true];
+    BLUETOOTH = 2;
+    WIFI_HOTSPOT = 3;
+    BLE = 4;
+    WIFI_LAN = 5;
+    WIFI_AWARE = 6;
+    NFC = 7;
+    WIFI_DIRECT = 8;
+    WEB_RTC = 9;
+    BLE_L2CAP = 10;
+    USB = 11;
+    WEB_RTC_NON_CELLULAR = 12;
+  }
+  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
+
   // This doesn't need to send back endpoint_id and endpoint_name (like
   // the ConnectionRequestFrame does) because those have already been
   // transmitted out-of-band, at the time this endpoint was discovered.
@@ -153,6 +172,9 @@ message ConnectionResponseFrame {
   optional int32 multiplex_socket_bitmask = 5;
   optional int32 nearby_connections_version = 6 [deprecated = true];
   optional int32 safe_to_disconnect_version = 7;
+  // The mediums that this device supports for upgrades, used as a backup if no
+  // mediums are specified in the ConnectionRequestFrame.
+  repeated Medium mediums = 8 [packed = true];
 }
 
 message PayloadTransferFrame {
