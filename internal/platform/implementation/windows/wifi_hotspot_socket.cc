@@ -12,11 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <cstring>
 #include <exception>
 
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
@@ -44,12 +49,12 @@ WifiHotspotSocket::~WifiHotspotSocket() {
       Close();
     }
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
 }
 
@@ -68,14 +73,14 @@ Exception WifiHotspotSocket::Close() {
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -101,7 +106,7 @@ ExceptionOr<ByteArray> WifiHotspotSocket::SocketInputStream::Read(
           input_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
 
       if (ibuffer.Length() != size) {
-        NEARBY_LOGS(WARNING) << "Only got part of data of needed.";
+        LOG(WARNING) << "Only got part of data of needed.";
       }
 
       ByteArray data((char*)ibuffer.data(), ibuffer.Length());
@@ -118,7 +123,7 @@ ExceptionOr<ByteArray> WifiHotspotSocket::SocketInputStream::Read(
       return ExceptionOr<ByteArray>(data);
     }
     if (result == 0) {
-      NEARBY_LOGS(INFO) << "Connection closed.";
+      LOG(INFO) << "Connection closed.";
       return {Exception::kIo};
     }
     // When WSAEWOULDBLOCK happens, it means the packet for receive is not
@@ -139,14 +144,14 @@ ExceptionOr<ByteArray> WifiHotspotSocket::SocketInputStream::Read(
     }
     return {Exception::kIo};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -171,7 +176,7 @@ ExceptionOr<size_t> WifiHotspotSocket::SocketInputStream::Skip(size_t offset) {
       return ExceptionOr<size_t>((size_t)result);
     }
     if (result == 0) {
-      NEARBY_LOGS(INFO) << "Connection closed.";
+      LOG(INFO) << "Connection closed.";
     } else {
       // When WSAEWOULDBLOCK happens, it means the packet for receive is not
       // ready at the moment. The API select() will block till the packet is
@@ -191,14 +196,14 @@ ExceptionOr<size_t> WifiHotspotSocket::SocketInputStream::Skip(size_t offset) {
     }
     return {Exception::kIo};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -213,14 +218,14 @@ Exception WifiHotspotSocket::SocketInputStream::Close() {
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -256,18 +261,18 @@ Exception WifiHotspotSocket::SocketOutputStream::Write(const ByteArray& data) {
     if (result > 0) {
       return {Exception::kSuccess};
     }
-    NEARBY_LOGS(INFO) << "recv failed: " << WSAGetLastError();
+    LOG(INFO) << "recv failed: " << WSAGetLastError();
 
     return {Exception::kIo};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -279,14 +284,14 @@ Exception WifiHotspotSocket::SocketOutputStream::Flush() {
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -301,14 +306,14 @@ Exception WifiHotspotSocket::SocketOutputStream::Close() {
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }

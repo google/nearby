@@ -240,21 +240,6 @@ class NearbySharingService {
   // |share_target|.
   virtual bool DidLocalUserCancelTransfer(int64_t share_target_id) = 0;
 
-  // Opens attachments in |attachment_container| from the remote |share_target|.
-  // If |attachment_container| is null, or the container is empty, the status
-  // code will be set to kInvalidArgument.
-  virtual void Open(
-      ShareTarget share_target,
-      std::unique_ptr<AttachmentContainer> attachment_container,
-      std::function<void(StatusCodes status_codes)> status_codes_callback) = 0;
-
-  // Copies text to cache/clipboard.
-  virtual void CopyText(absl::string_view text) = 0;
-
-  // Persists and joins the Wi-Fi network.
-  virtual void JoinWifiNetwork(absl::string_view ssid,
-                               absl::string_view password) = 0;
-
   // Checks to make sure visibility setting is valid and updates the service's
   // visibility if so.
   virtual void SetVisibility(

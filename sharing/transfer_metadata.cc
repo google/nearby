@@ -52,6 +52,7 @@ bool TransferMetadata::IsFinalStatus(Status status) {
 }
 
 // static
+// LINT.IfChange()
 std::string TransferMetadata::StatusToString(Status status) {
   switch (status) {
     case Status::kConnecting:
@@ -86,6 +87,7 @@ std::string TransferMetadata::StatusToString(Status status) {
       return "kIncompletePayloads";
   }
 }
+// LINT.ThenChange(//depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/transfer_status.dart)
 
 TransferMetadata::TransferMetadata(
     Status status, float progress, std::optional<std::string> token,

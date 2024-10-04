@@ -29,10 +29,13 @@
 #include "absl/time/time.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
+#include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
+#include "sharing/certificates/test_util.h"
+#include "sharing/common/nearby_share_enums.h"
 #include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
@@ -44,6 +47,7 @@
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/transfer_metadata_builder.h"
 #include "sharing/transfer_metadata_matchers.h"
 #include "sharing/wifi_credentials_attachment.h"
 
@@ -460,7 +464,7 @@ TEST_F(OutgoingShareSessionTest,
 }
 
 TEST_F(OutgoingShareSessionTest,
-       HandleConnectionResponseUnsuportedTypeResponse) {
+       HandleConnectionResponseUnsupportedTypeResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE);
   std::optional<TransferMetadata::Status> status =
@@ -530,6 +534,12 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
               std::unique_ptr<Payload> payload,
               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
+          }))
+      .WillOnce(Invoke(
+          [this](
+              std::unique_ptr<Payload> payload,
+              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = session_.attachment_payload_map().at(wifi1_.id());
           }));
   EXPECT_CALL(mock_event_logger_,
               Log(Matcher<const SharingLog&>(
@@ -647,6 +657,15 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
             payload->id = session_.attachment_payload_map().at(text2_.id());
           }));
   session_.SendNextPayload();
+
+  EXPECT_CALL(send_payload_callback, Call(_, _))
+      .WillOnce(Invoke(
+          [this](
+              std::unique_ptr<Payload> payload,
+              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
+            payload->id = session_.attachment_payload_map().at(wifi1_.id());
+          }));
+  session_.SendNextPayload();
 }
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
@@ -679,5 +698,79 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
 }
 
+TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
+  FakeNearbyConnection connection;
+  session_.OnConnected(absl::Now(), &connections_manager_, &connection);
+  TransferMetadata complete_metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
+
+  session_.DelayCompleteMetadata(complete_metadata);
+
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kComplete)));
+  session_.OnDisconnect();
+}
+
+TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
+  FakeNearbyConnection connection;
+  session_.OnConnected(absl::Now(), &connections_manager_, &connection);
+  TransferMetadata complete_metadata =
+      TransferMetadataBuilder()
+          .set_status(TransferMetadata::Status::kComplete)
+          .build();
+  EXPECT_CALL(transfer_metadata_callback_,
+              Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
+
+  session_.DelayCompleteMetadata(complete_metadata);
+
+  session_.DisconnectionTimeout();
+  EXPECT_THAT(connection.IsClosed(), IsTrue());
+}
+
+TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithCertificate) {
+  EXPECT_FALSE(session_.certificate().has_value());
+  EXPECT_FALSE(session_.self_share());
+  ShareTarget share_target2{
+      "test_update_name",     ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, "test_update_full_name",
+      /* is_known */ true,    "test_update_device_id",  true};
+  session_.UpdateSessionForDedup(share_target2,
+                                 GetNearbyShareTestDecryptedPublicCertificate(),
+                                 "test_update_endpoint_id");
+  EXPECT_THAT(session_.share_target().ToString(), Eq(share_target2.ToString()));
+  EXPECT_TRUE(session_.certificate().has_value());
+  EXPECT_THAT(session_.endpoint_id(), Eq("test_update_endpoint_id"));
+  EXPECT_TRUE(session_.self_share());
+}
+
+TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithoutCertificate) {
+  session_.set_certificate(GetNearbyShareTestDecryptedPublicCertificate());
+  ShareTarget share_target2{
+      "test_update_name",     ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, "test_update_full_name",
+      /* is_known */ true,    "test_update_device_id",  true};
+  session_.UpdateSessionForDedup(share_target2, std::nullopt,
+                                 "test_update_endpoint_id");
+  // Certificate is cleared.
+  EXPECT_FALSE(session_.certificate().has_value());
+}
+
+TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupConnectedIsNoOp) {
+  auto share_target_org = session_.share_target();
+  FakeNearbyConnection connection;
+  session_.OnConnected(absl::Now(), &connections_manager_, &connection);
+  ShareTarget share_target2{
+      "test_update_name",     ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, "test_update_full_name",
+      /* is_known */ true,    "test_update_device_id",  true};
+  session_.UpdateSessionForDedup(share_target2, std::nullopt,
+                                 "test_update_endpoint_id");
+  EXPECT_THAT(session_.share_target().ToString(),
+              Eq(share_target_org.ToString()));
+}
 }  // namespace
 }  // namespace nearby::sharing

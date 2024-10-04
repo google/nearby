@@ -34,6 +34,7 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
@@ -46,6 +47,7 @@ cc_test(
     timeout = "short",
     srcs = [
         "encode_test.cc",
+        "mime_test.cc",
     ],
     shard_count = 8,
     deps = [

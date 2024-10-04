@@ -14,9 +14,11 @@
 
 #include "internal/platform/implementation/windows/submittable_executor.h"
 
+#include <cstdint>
+
 #include "internal/platform/implementation/windows/executor.h"
 #include "internal/platform/logging.h"
-
+#include "internal/platform/runnable.h"
 namespace nearby {
 namespace windows {
 
@@ -32,8 +34,8 @@ bool SubmittableExecutor::DoSubmit(Runnable&& wrapped_callable) {
     return true;
   }
 
-  NEARBY_LOGS(ERROR) << "Error: " << __func__
-                     << ": Attempt to DoSubmit on a shutdown executor.";
+  LOG(ERROR) << "Error: " << __func__
+             << ": Attempt to DoSubmit on a shutdown executor.";
 
   return false;
 }
@@ -43,8 +45,8 @@ void SubmittableExecutor::Execute(Runnable&& runnable) {
   if (!shut_down_) {
     executor_->Execute(std::move(runnable));
   } else {
-    NEARBY_LOGS(ERROR) << "Error: " << __func__
-                       << ": Attempt to Execute on a shutdown executor.";
+    LOG(ERROR) << "Error: " << __func__
+               << ": Attempt to Execute on a shutdown executor.";
   }
 }
 
@@ -55,8 +57,8 @@ void SubmittableExecutor::Shutdown() {
     shut_down_ = true;
   }
 
-  NEARBY_LOGS(ERROR) << "Error: " << __func__
-                     << ": Attempt to Shutdown on a shutdown executor.";
+  LOG(ERROR) << "Error: " << __func__
+             << ": Attempt to Shutdown on a shutdown executor.";
 }
 
 }  // namespace windows

@@ -56,10 +56,11 @@ std::string MimeTypeFromPath(const std::filesystem::path& path) {
 }  // namespace
 
 FileAttachment::FileAttachment(std::filesystem::path file_path,
+                               absl::string_view mime_type,
                                std::string parent_folder, int32_t batch_id,
                                SourceType source_type)
     : Attachment(Attachment::Family::kFile, /*size=*/0, batch_id, source_type),
-      mime_type_(MimeTypeFromPath(file_path)),
+      mime_type_(mime_type.empty() ? MimeTypeFromPath(file_path) : mime_type),
       type_(FileAttachmentTypeFromMimeType(mime_type_)),
       file_path_(std::move(file_path)),
       parent_folder_(std::move(parent_folder)) {

@@ -167,6 +167,10 @@ NC_API int NcGetLocalEndpointId(NC_INSTANCE instance);
 NC_API void NcEnableBleV2(NC_INSTANCE instance, bool enable,
                           NcCallbackResult result_callback);
 
+// Sets the custom save path for Nearby Connections.
+NC_API void NcSetCustomSavePath(NC_INSTANCE instance, const NC_DATA* save_path,
+                                NcCallbackResult result_callback);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

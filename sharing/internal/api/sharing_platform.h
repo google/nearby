@@ -34,7 +34,6 @@
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/system_info.h"
 #include "sharing/internal/api/wifi_adapter.h"
 
@@ -65,24 +64,9 @@ class SharingPlatform {
 
   virtual WifiAdapter& GetWifiAdapter() = 0;
 
-  virtual void LaunchDefaultBrowserFromURL(
-      absl::string_view url, std::function<void(absl::Status)> callback) = 0;
-
-  virtual nearby::api::Shell& GetShell() = 0;
-
   virtual nearby::api::FastInitBleBeacon& GetFastInitBleBeacon() = 0;
 
   virtual nearby::api::FastInitiationManager& GetFastInitiationManager() = 0;
-
-  // Make calls to OS to copy text to clipboard
-  //
-  // @param text is a text to copy to clipboard.
-  // @param callback
-  //
-  // If it is successfully copied, callback provided is executed with
-  // absl::OkStatus. Otherwise, absl::InternalError.
-  virtual void CopyText(absl::string_view text,
-                        std::function<void(absl::Status)> callback) = 0;
 
   // Creates system information class. SystemInfo provides APIs to access
   // system information.

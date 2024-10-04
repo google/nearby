@@ -16,12 +16,13 @@
 
 #include <windows.h>
 
+#include <memory>
 #include <queue>
 #include <utility>
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
 
@@ -44,16 +45,15 @@ std::unique_ptr<ThreadPool> ThreadPool::Create(int max_pool_size) {
   InitializeThreadpoolEnvironment(&thread_pool_environ);
 
   if (max_pool_size <= 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Maximum pool size must be positive integer value.";
+    LOG(ERROR) << __func__
+               << ": Maximum pool size must be positive integer value.";
     return nullptr;
   }
 
   thread_pool = CreateThreadpool(NULL);
   if (thread_pool == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": failed to create thread pool. LastError: "
-                       << GetLastError();
+    LOG(ERROR) << __func__ << ": failed to create thread pool. LastError: "
+               << GetLastError();
     return nullptr;
   }
 
@@ -61,9 +61,9 @@ std::unique_ptr<ThreadPool> ThreadPool::Create(int max_pool_size) {
   // it will keep at least one thread.
   SetThreadpoolThreadMaximum(thread_pool, max_pool_size);
   if (!SetThreadpoolThreadMinimum(thread_pool, 1)) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": failed to set minimum thread pool size. LastError: "
-        << GetLastError();
+    LOG(ERROR) << __func__
+               << ": failed to set minimum thread pool size. LastError: "
+               << GetLastError();
     CloseThreadpool(thread_pool);
     return nullptr;
   }
@@ -83,12 +83,12 @@ ThreadPool::ThreadPool(PTP_POOL thread_pool,
     : thread_pool_(thread_pool),
       thread_pool_environ_(thread_pool_environ),
       max_pool_size_(max_pool_size) {
-  NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
-                 << ") is created with size:" << max_pool_size_;
+  VLOG(1) << __func__ << ": Thread pool(" << this
+          << ") is created with size:" << max_pool_size_;
 }
 
 ThreadPool::~ThreadPool() {
-  NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this << ") is released.";
+  VLOG(1) << __func__ << ": Thread pool(" << this << ") is released.";
 
   if (thread_pool_ == nullptr) {
     return;
@@ -105,20 +105,18 @@ bool ThreadPool::Run(Runnable task) {
   }
 
   if (shutdown_latch_ != nullptr) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Thread pool is in shutting down.";
+    LOG(WARNING) << __func__ << ": Thread pool is in shutting down.";
     return false;
   }
 
   PTP_WORK work;
   tasks_.push(std::move(task));
-  NEARBY_VLOG(1) << __func__ << ": Scheduled to run task(" << &tasks_.back()
-                 << ").";
+  VLOG(1) << __func__ << ": Scheduled to run task(" << &tasks_.back() << ").";
 
   work = CreateThreadpoolWork(WorkCallback, this, &thread_pool_environ_);
   if (work == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": failed to create thread pool work. LastError: "
-                       << GetLastError();
+    LOG(ERROR) << __func__ << ": failed to create thread pool work. LastError: "
+               << GetLastError();
     return false;
   }
 
@@ -137,29 +135,27 @@ void ThreadPool::ShutDown() {
     absl::MutexLock lock(&mutex_);
 
     if (thread_pool_ == nullptr) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Shutdown on closed thread pool("
-                           << this << ").";
+      LOG(WARNING) << __func__ << ": Shutdown on closed thread pool(" << this
+                   << ").";
       return;
     }
 
     if (running_tasks_count_ == 0) {
       CloseThreadpool(thread_pool_);
       thread_pool_ = nullptr;
-      NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
-                     << ") is shut down.";
+      VLOG(1) << __func__ << ": Thread pool(" << this << ") is shut down.";
       return;
     }
 
     if (shutdown_latch_ != nullptr) {
-      NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
-                     << ") is already in shutting down.";
+      VLOG(1) << __func__ << ": Thread pool(" << this
+              << ") is already in shutting down.";
       return;
     }
 
-    NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this
-                   << ") is shutting down.";
+    VLOG(1) << __func__ << ": Thread pool(" << this << ") is shutting down.";
 
-    shutdown_latch_ = std::make_unique<CountDownLatch>(1);
+    shutdown_latch_ = std::make_unique<shared::CountDownLatch>(1);
   }
 
   // Wait for all tasks to complete.
@@ -169,7 +165,7 @@ void ThreadPool::ShutDown() {
     absl::MutexLock lock(&mutex_);
     CloseThreadpool(thread_pool_);
     thread_pool_ = nullptr;
-    NEARBY_VLOG(1) << __func__ << ": Thread pool(" << this << ") is shut down.";
+    VLOG(1) << __func__ << ": Thread pool(" << this << ") is shut down.";
   }
 }
 
@@ -183,14 +179,14 @@ void ThreadPool::RunNextTask() {
       return;
     }
     if (!tasks_.empty()) {
-      NEARBY_VLOG(1) << __func__ << ": Run task(" << &tasks_.front() << ").";
+      VLOG(1) << __func__ << ": Run task(" << &tasks_.front() << ").";
 
       task = std::move(tasks_.front());
       tasks_.pop();
 
       if (task == nullptr) {
-        NEARBY_LOGS(WARNING)
-            << __func__ << ": Tried to run task in an empty thread pool.";
+        LOG(WARNING) << __func__
+                     << ": Tried to run task in an empty thread pool.";
         --running_tasks_count_;
         if (running_tasks_count_ == 0 && shutdown_latch_ != nullptr) {
           shutdown_latch_->CountDown();

@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_WIFI_UTILS_H_
-#define PLATFORM_BASE_WIFI_UTILS_H_
+#ifndef PLATFORM_PUBLIC_WIFI_UTILS_H_
+#define PLATFORM_PUBLIC_WIFI_UTILS_H_
 
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/wifi.h"
 
 namespace nearby {
@@ -57,4 +58,4 @@ class WifiUtils {
 
 }  // namespace nearby
 
-#endif  // PLATFORM_BASE_WIFI_UTILS_H_
+#endif  // PLATFORM_PUBLIC_WIFI_UTILS_H_

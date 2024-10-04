@@ -15,12 +15,14 @@
 #ifndef PLATFORM_IMPL_WINDOWS_FILE_H_
 #define PLATFORM_IMPL_WINDOWS_FILE_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <memory>
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
@@ -30,10 +32,10 @@ namespace windows {
 
 class IOFile final : public api::InputFile, public api::OutputFile {
  public:
-  static std::unique_ptr<IOFile> CreateInputFile(
-      const absl::string_view file_path, size_t size);
+  static std::unique_ptr<IOFile> CreateInputFile(absl::string_view file_path,
+                                                 size_t size);
 
-  static std::unique_ptr<IOFile> CreateOutputFile(const absl::string_view path);
+  static std::unique_ptr<IOFile> CreateOutputFile(absl::string_view path);
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
 
@@ -46,11 +48,12 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   Exception Flush() override;
 
  private:
-  explicit IOFile(const absl::string_view file_path, size_t size);
-  explicit IOFile(const absl::string_view file_path);
+  explicit IOFile(absl::string_view file_path, size_t size);
+  explicit IOFile(absl::string_view file_path);
 
   std::fstream file_;
   std::string path_;
+  std::string buffer_;
   std::int64_t total_size_;
 };
 

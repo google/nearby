@@ -15,7 +15,10 @@
 #ifndef PLATFORM_IMPL_APPLE_COUNT_DOWN_LATCH_H_
 #define PLATFORM_IMPL_APPLE_COUNT_DOWN_LATCH_H_
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/count_down_latch.h"
 
 namespace nearby {

@@ -21,9 +21,9 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_lan.h"
-#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 namespace connections {

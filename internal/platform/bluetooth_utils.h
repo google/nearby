@@ -15,6 +15,9 @@
 #ifndef PLATFORM_BASE_BLUETOOTH_UTILS_H_
 #define PLATFORM_BASE_BLUETOOTH_UTILS_H_
 
+#include <cstdint>
+#include <string>
+
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 

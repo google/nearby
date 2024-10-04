@@ -70,8 +70,8 @@ BleAdvertisementHeader::BleAdvertisementHeader(
               kMinAdvertisementHeaderLength + 2) {
         advertisement_header_bytes = ble_advertisement_header_bytes;
       } else {
-        NEARBY_LOGS(WARNING) << "Cannot deserialize BLEAdvertisementHeader. "
-                                "Invalid advertising data.";
+        NEARBY_VLOG(1) << "Cannot deserialize BLEAdvertisementHeader. "
+                          "Invalid advertising data.";
         return;
       }
     } else {

@@ -17,6 +17,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
@@ -88,6 +89,11 @@ class AccountManager {
       absl::string_view account_id,
       absl::AnyInvocable<void(absl::string_view)> success_callback,
       absl::AnyInvocable<void(absl::Status)> failure_callback) = 0;
+
+  // Returns a pair containing the client id and client secret used in the most
+  // recent Login request.
+  // If no current user is logged in, returns empty string for both.
+  virtual std::pair<std::string, std::string> GetOAuthClientCredential() = 0;
 
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;

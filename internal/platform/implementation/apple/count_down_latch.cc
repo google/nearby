@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/apple/count_down_latch.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace apple {

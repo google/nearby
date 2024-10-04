@@ -24,9 +24,11 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
+#include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
@@ -124,9 +126,21 @@ class OutgoingShareSession : public ShareSession {
   // Used only if enable_transfer_cancellation_optimization is true.
   void SendNextPayload();
 
+  // Cache the kComplete metadata in pending_complete_metadata_ and forward a
+  // modified copy that changes kComplete into kInProgress.
+  void DelayCompleteMetadata(const TransferMetadata& complete_metadata);
+  // Disconnect timeout expired without receiving client disconnect.
+  void DisconnectionTimeout();
+  // Used only for OutgoingShareSession De-duplication.
+  void UpdateSessionForDedup(
+      const ShareTarget& share_target,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+      absl::string_view endpoint_id);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   bool OnNewConnection(NearbyConnection* connection) override;
+  void OnConnectionDisconnected() override;
 
  private:
   // Create a payload status listener to send status change to
@@ -161,6 +175,7 @@ class OutgoingShareSession : public ShareSession {
   // This alarm is used to disconnect the sharing connection if both sides do
   // not press accept within the timeout.
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
+  std::optional<TransferMetadata> pending_complete_metadata_;
 };
 
 }  // namespace nearby::sharing

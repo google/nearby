@@ -15,6 +15,7 @@
 #ifndef PLATFORM_BASE_INPUT_STREAM_H_
 #define PLATFORM_BASE_INPUT_STREAM_H_
 
+#include <cstddef>
 #include <cstdint>
 
 #include "internal/platform/byte_array.h"

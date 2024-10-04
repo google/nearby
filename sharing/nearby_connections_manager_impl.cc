@@ -39,7 +39,6 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
 #include "sharing/flags/generated/nearby_sharing_feature_flags.h"
-#include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -790,19 +789,15 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
 void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
     PayloadStatus status, PayloadContent::Type type,
     const std::filesystem::path& path) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          sharing::config_package_nearby::nearby_sharing_feature::
-              kDeleteUnexpectedReceivedFile)) {
-    // Unknown payload comes as kInProgress and kCanceled status with kFile type
-    // from NearbyConnections. Delete it.
-    if ((status == PayloadStatus::kCanceled ||
-         status == PayloadStatus::kInProgress) &&
-        type == PayloadContent::Type::kFile) {
-      NL_LOG(WARNING) << __func__
-                      << ": Unknown payload has been canceled, removing.";
-      MutexLock lock(&mutex_);
-      file_paths_to_delete_.insert(path);
-    }
+  // Unknown payload comes as kInProgress and kCanceled status with kFile type
+  // from NearbyConnections. Delete it.
+  if ((status == PayloadStatus::kCanceled ||
+        status == PayloadStatus::kInProgress) &&
+      type == PayloadContent::Type::kFile) {
+    NL_LOG(WARNING) << __func__
+                    << ": Unknown payload has been canceled, removing.";
+    MutexLock lock(&mutex_);
+    file_paths_to_delete_.insert(path);
   }
 }
 

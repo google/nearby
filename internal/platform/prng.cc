@@ -14,6 +14,8 @@
 
 #include "internal/platform/prng.h"
 
+#include <cstdint>
+#include <cstdlib>
 #include <limits>
 
 #include "absl/time/clock.h"

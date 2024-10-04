@@ -16,6 +16,8 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_TEST_MOCK_ACCOUNT_MANAGER_H_
 
 #include <optional>
+#include <string>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "absl/functional/any_invocable.h"
@@ -45,6 +47,8 @@ class MockAccountManager : public AccountManager {
                absl::AnyInvocable<void(absl::string_view)> success_callback,
                absl::AnyInvocable<void(absl::Status)> failure_callback),
               (override));
+  MOCK_METHOD((std::pair<std::string, std::string>), GetOAuthClientCredential,
+              (), (override));
   MOCK_METHOD(void, AddObserver, (Observer * observer), (override));
   MOCK_METHOD(void, RemoveObserver, (Observer * observer), (override));
 };

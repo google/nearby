@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.Collections.h"
@@ -49,6 +50,7 @@ namespace {
 using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Connectivity::NetworkAdapter;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
+using ::winrt::Windows::Networking::Connectivity::NetworkTypes;
 
 }  // namespace
 
@@ -105,16 +107,6 @@ std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
   return std::string(ipv4_b, 4);
 }
 
-std::wstring string_to_wstring(std::string str) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.from_bytes(str);
-}
-
-std::string wstring_to_string(std::wstring wstr) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.to_bytes(wstr);
-}
-
 std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> result;
   std::vector<std::string> wifi_addresses;
@@ -128,6 +120,11 @@ std::vector<std::string> GetIpv4Addresses() {
           host_name.IPInformation().NetworkAdapter() != nullptr &&
           host_name.Type() == HostNameType::Ipv4) {
         NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
+        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
+          // If we're not connected to a network, we don't want to add this
+          // address.
+          continue;
+        }
         if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
           wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
         } else if (adapter.IanaInterfaceType() ==
@@ -139,16 +136,13 @@ std::vector<std::string> GetIpv4Addresses() {
       }
     }
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot get IPv4 addresses. Exception : "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot get IPv4 addresses. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   result.insert(result.end(), wifi_addresses.begin(), wifi_addresses.end());
@@ -295,7 +289,8 @@ std::string InspectableReader::ReadString(IInspectable inspectable) {
     throw std::invalid_argument("not string data type.");
   }
 
-  return wstring_to_string(property_value.GetString().c_str());
+  return nearby::windows::string_utils::WideStringToString(
+      property_value.GetString().c_str());
 }
 
 std::vector<std::string> InspectableReader::ReadStringArray(

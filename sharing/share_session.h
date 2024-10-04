@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -57,7 +58,6 @@ class ShareSession {
 
   virtual bool IsIncoming() const = 0;
   std::string endpoint_id() const { return endpoint_id_; }
-
   const std::optional<NearbyShareDecryptedPublicCertificate>& certificate()
       const {
     return certificate_;
@@ -66,6 +66,7 @@ class ShareSession {
   void set_certificate(NearbyShareDecryptedPublicCertificate certificate) {
     certificate_ = std::move(certificate);
   }
+  void clear_certificate() { certificate_ = std::nullopt; }
 
   NearbyConnection* connection() const { return connection_; }
   bool IsConnected() const { return connection_ != nullptr; }
@@ -148,6 +149,7 @@ class ShareSession {
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
   virtual bool OnNewConnection(NearbyConnection* connection) = 0;
+  virtual void OnConnectionDisconnected() {}
 
   analytics::AnalyticsRecorder& analytics_recorder() {
     return analytics_recorder_;
@@ -172,6 +174,13 @@ class ShareSession {
 
   NearbyConnectionsManager* connections_manager() {
     return connections_manager_;
+  }
+  void set_endpoint_id(absl::string_view endpoint_id) {
+    endpoint_id_ = std::string(endpoint_id);
+  }
+  void set_share_target(const ShareTarget& share_target) {
+    share_target_ = share_target;
+    self_share_ = share_target.for_self_share;
   }
 
  private:

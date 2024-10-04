@@ -654,3 +654,18 @@ void NcEnableBleV2(NC_INSTANCE instance, bool enable,
       enable);
   result_callback(NC_STATUS_SUCCESS);
 }
+
+void NcSetCustomSavePath(NC_INSTANCE instance, const NC_DATA* save_path,
+                         NcCallbackResult result_callback) {
+  NcContext* nc_context = GetContext(instance);
+  if (nc_context == nullptr) {
+    result_callback(NC_STATUS_ERROR);
+    return;
+  }
+
+  nc_context->core->SetCustomSavePath(
+      std::string(save_path->data, save_path->size),
+      [=](::nearby::connections::Status status) {
+        result_callback(static_cast<NC_STATUS>(status.value));
+      });
+}

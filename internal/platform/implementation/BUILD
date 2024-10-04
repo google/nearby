@@ -85,6 +85,24 @@ cc_library(
 )
 
 cc_library(
+    name = "wifi_utils",
+    srcs = [
+        "wifi_utils.cc",
+    ],
+    hdrs = [
+        "wifi.h",
+        "wifi_utils.h",
+    ],
+    visibility = [
+        "//:__subpackages__",
+    ],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "comm",
     hdrs = [
         "ble.h",
@@ -151,5 +169,19 @@ cc_library(
         "//internal/platform:base",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "wifi_utils_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["wifi_utils_test.cc"],
+    shard_count = 8,
+    deps = [
+        ":wifi_utils",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )

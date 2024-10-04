@@ -164,13 +164,6 @@ class NearbySharingServiceImpl
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
   bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
-  void Open(ShareTarget share_target,
-            std::unique_ptr<AttachmentContainer> attachment_container,
-            std::function<void(StatusCodes status_codes)> status_codes_callback)
-      override;
-  void CopyText(absl::string_view text) override;
-  void JoinWifiNetwork(absl::string_view ssid,
-                       absl::string_view password) override;
   void SetVisibility(
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;
@@ -205,7 +198,6 @@ class NearbySharingServiceImpl
   void OnDataUsageChanged(proto::DataUsage data_usage);
   void OnCustomSavePathChanged(absl::string_view custom_save_path);
   void OnVisibilityChanged(proto::DeviceVisibility visibility);
-  void OnAllowedContactsChanged(absl::Span<const std::string> allowed_contacts);
 
   // NearbyShareCertificateManager::Observer:
   void OnPublicCertificatesDownloaded() override;
@@ -279,9 +271,6 @@ class NearbySharingServiceImpl
                                 absl::Span<const uint8_t> endpoint_info);
   void HandleEndpointLost(absl::string_view endpoint_id);
   void FinishEndpointDiscoveryEvent();
-  void OnOutgoingAdvertisementDecoded(
-      absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
-      std::unique_ptr<Advertisement> advertisement);
   void OnOutgoingDecryptedCertificate(
       absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
       const Advertisement& advertisement,
@@ -372,8 +361,6 @@ class NearbySharingServiceImpl
       int64_t share_target_id, TransferMetadata metadata);
 
   void RemoveIncomingPayloads(const IncomingShareSession& session);
-  void DisconnectOutgoing(OutgoingShareSession& session,
-                          TransferMetadata metadata);
 
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
@@ -381,6 +368,18 @@ class NearbySharingServiceImpl
   OutgoingShareSession& CreateOutgoingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+
+  // The share_target's id is updated to match the old one
+  // and OnShareTargetUpdated is called.
+  void DeduplicateInOutgoingShareTarget(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+
+  // Looks for a duplicate of the given share target in the outgoing share
+  // target map. The share target's id is changed to match an existing target if
+  // available. Returns true if the duplicate is found.
+  bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
+                                           ShareTarget& share_target);
 
   ShareSession* GetShareSession(int64_t share_target_id);
   IncomingShareSession* GetIncomingShareSession(int64_t share_target_id);

@@ -63,7 +63,7 @@ class MockEndpointChannel : public BaseEndpointChannel {
   explicit MockEndpointChannel(InputStream* input, OutputStream* output)
       : BaseEndpointChannel("service_id", "channel", input, output) {}
 
-  MOCK_METHOD(Medium, GetMedium, (), (const override));
+  MOCK_METHOD(Medium, GetMedium, (), (const, override));
   MOCK_METHOD(void, CloseImpl, (), (override));
 };
 

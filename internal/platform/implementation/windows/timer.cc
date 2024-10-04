@@ -41,8 +41,7 @@ bool Timer::Create(int delay, int interval,
   if (use_task_scheduler_) {
     absl::MutexLock lock(&mutex_);
     if ((delay < 0) || (interval < 0)) {
-      NEARBY_LOGS(WARNING)
-          << "Delay and interval shouldn\'t be negative value.";
+      LOG(WARNING) << "Delay and interval shouldn\'t be negative value.";
       return false;
     }
 
@@ -63,8 +62,7 @@ bool Timer::Create(int delay, int interval,
     absl::MutexLock lock(&mutex_);
 
     if ((delay < 0) || (interval < 0)) {
-      NEARBY_LOGS(WARNING)
-          << "Delay and interval shouldn\'t be negative value.";
+      LOG(WARNING) << "Delay and interval shouldn\'t be negative value.";
       return false;
     }
 
@@ -74,7 +72,7 @@ bool Timer::Create(int delay, int interval,
 
     timer_queue_handle_ = CreateTimerQueue();
     if (timer_queue_handle_ == nullptr) {
-      NEARBY_LOGS(ERROR) << "Failed to create timer queue.";
+      LOG(ERROR) << "Failed to create timer queue.";
       return false;
     }
 
@@ -87,7 +85,7 @@ bool Timer::Create(int delay, int interval,
                                &callback_, delay, interval,
                                WT_EXECUTEDEFAULT)) {
       if (!DeleteTimerQueueEx(timer_queue_handle_, nullptr)) {
-        NEARBY_LOGS(ERROR) << "Failed to create timer in timer queue.";
+        LOG(ERROR) << "Failed to create timer in timer queue.";
       }
       timer_queue_handle_ = nullptr;
       return false;
@@ -116,7 +114,7 @@ bool Timer::Stop() {
 
     if (!DeleteTimerQueueTimer(timer_queue_handle_, handle_, nullptr)) {
       if (GetLastError() != ERROR_IO_PENDING) {
-        NEARBY_LOGS(ERROR) << "Failed to delete timer from timer queue.";
+        LOG(ERROR) << "Failed to delete timer from timer queue.";
         return false;
       }
     }
@@ -124,7 +122,7 @@ bool Timer::Stop() {
     handle_ = nullptr;
 
     if (!DeleteTimerQueueEx(timer_queue_handle_, nullptr)) {
-      NEARBY_LOGS(ERROR) << "Failed to delete timer queue.";
+      LOG(ERROR) << "Failed to delete timer queue.";
       return false;
     }
 
@@ -137,7 +135,7 @@ bool Timer::FireNow() {
   absl::MutexLock lock(&mutex_);
 
   if (!callback_) {
-    NEARBY_LOGS(ERROR) << "callback_ is empty";
+    LOG(ERROR) << "callback_ is empty";
     return false;
   }
 
@@ -146,8 +144,7 @@ bool Timer::FireNow() {
   }
 
   if (task_executor_ == nullptr) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to fire the task due to cannot create executor.";
+    LOG(ERROR) << "Failed to fire the task due to cannot create executor.";
     return false;
   }
 

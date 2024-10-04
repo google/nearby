@@ -195,6 +195,7 @@ class EndpointChannelManager final {
                                           bool notify_stop_waiting);
     bool CreateNewTimeoutDisconnectedState(const std::string& endpoint_id,
                                            absl::Duration timeout_millis);
+    bool IsWaitingForSafeToDisconnectTimeout(const std::string& endpoint_id);
     bool IsSafeToDisconnect(const std::string& endpoint_id);
     void RemoveTimeoutDisconnectedState(const std::string& endpoint_id);
 

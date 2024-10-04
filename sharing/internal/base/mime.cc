@@ -16,7 +16,9 @@
 
 #include <string>
 
+#include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/ascii.h"
 #include "absl/strings/string_view.h"
 
 namespace nearby {
@@ -25,10 +27,10 @@ namespace utils {
 // Refers to
 // http://svn.apache.org/repos/asf/httpd/httpd/trunk/docs/conf/mime.types.
 std::string GetWellKnownMimeTypeFromExtension(absl::string_view extension) {
-  static absl::flat_hash_map<
+  // The extension types in this map must be lower case.
+  static absl::NoDestructor<absl::flat_hash_map<
       std::string,
-      std::string>* mime_map = new absl::flat_hash_map<std::string,
-                                                       std::string>({
+      std::string>> mime_map({
       {"123", "application/vnd.lotus-1-2-3"},
       {"3dml", "text/vnd.in3d.3dml"},
       {"3ds", "image/x-3ds"},
@@ -1029,7 +1031,7 @@ std::string GetWellKnownMimeTypeFromExtension(absl::string_view extension) {
       {"zmm", "application/vnd.handheld-entertainment+xml"},
   });
 
-  return (*mime_map)[extension];
+  return (*mime_map)[absl::AsciiStrToLower(extension)];
 }  // NOLINT
 
 }  // namespace utils

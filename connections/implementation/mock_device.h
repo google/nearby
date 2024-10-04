@@ -25,11 +25,11 @@ namespace nearby {
 
 class MockNearbyDevice : public NearbyDevice {
  public:
-  MOCK_METHOD(NearbyDevice::Type, GetType, (), (const override));
-  MOCK_METHOD(std::string, GetEndpointId, (), (const override));
+  MOCK_METHOD(NearbyDevice::Type, GetType, (), (const, override));
+  MOCK_METHOD(std::string, GetEndpointId, (), (const, override));
   MOCK_METHOD(std::vector<ConnectionInfoVariant>, GetConnectionInfos, (),
-              (const override));
-  MOCK_METHOD(std::string, ToProtoBytes, (), (const override));
+              (const, override));
+  MOCK_METHOD(std::string, ToProtoBytes, (), (const, override));
 };
 
 }  // namespace nearby

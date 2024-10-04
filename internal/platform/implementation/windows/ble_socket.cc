@@ -15,7 +15,10 @@
 #include "internal/platform/implementation/windows/ble_socket.h"
 
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/windows/ble_peripheral.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
