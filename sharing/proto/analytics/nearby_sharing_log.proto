@@ -292,6 +292,10 @@ message SharingLog {
     optional bool qr_code_flow = 8 [deprecated = true];
     // True if the connection established from receiver
     optional bool is_incoming_connection = 9;
+    // Duration from when the receiver attempts to receive from a QR code to
+    // when the QR code sender successfully connects to this receiver. Only set
+    // for QR-code based receive flows.
+    optional google.protobuf.Duration qr_code_receiver_connect_latency = 10;
   }
 
   // EventType: ACCEPT_AGREEMENTS
