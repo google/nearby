@@ -781,7 +781,8 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
 
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableWifiHotspotClient)) {
+              kEnableWifiHotspotClient) ||
+      connection_options.non_disruptive_hotspot_mode) {
     // Remove Wi-Fi Hotspot if WiFi LAN is available.
     StripOutWifiHotspotMedium(connection_info);
   }

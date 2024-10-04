@@ -3715,12 +3715,16 @@ TransportType NearbySharingServiceImpl::GetTransportType(
     const AttachmentContainer& container) const {
   if (container.GetTotalAttachmentsSize() >
       kAttachmentsSizeThresholdOverHighQualityMedium) {
-    NL_LOG(INFO) << __func__ << ": Transport type is kHighQuality";
+    if (GetDisableWifiHotspotState()) {
+      LOG(INFO) << "Transport type is kHighQuality|kNonDisruptive";
+      return TransportType::kHighQualityNonDisruptive;
+    }
+    LOG(INFO) << "Transport type is kHighQuality";
     return TransportType::kHighQuality;
   }
 
   if (container.GetFileAttachments().empty()) {
-    NL_LOG(INFO) << __func__ << ": Transport type is kNonDisruptive";
+    LOG(INFO) << "Transport type is kNonDisruptive";
     return TransportType::kNonDisruptive;
   }
 

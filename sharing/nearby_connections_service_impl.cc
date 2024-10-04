@@ -203,6 +203,8 @@ void NearbyConnectionsServiceImpl::RequestConnection(
     options.remote_bluetooth_mac_address =
         NcByteArray(std::string(mac_address.begin(), mac_address.end()));
   }
+  options.non_disruptive_hotspot_mode =
+      connection_options.non_disruptive_hotspot_mode;
   NcConnectionRequestInfo connection_request_info;
   connection_request_info.endpoint_info =
       NcByteArray(std::string(endpoint_info.begin(), endpoint_info.end()));

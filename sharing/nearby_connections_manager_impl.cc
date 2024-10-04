@@ -127,6 +127,7 @@ std::string MediumSelectionToString(const MediumSelection& mediums) {
   if (mediums.ble) ss << "ble ";
   if (mediums.web_rtc) ss << "webrtc ";
   if (mediums.wifi_lan) ss << "wifilan ";
+  if (mediums.wifi_hotspot) ss << "wifihotspot ";
   ss << "}";
 
   return ss.str();
@@ -349,7 +350,8 @@ void NearbyConnectionsManagerImpl::Connect(
                          PowerLevel::kHighPower),
       /*wifi_lan=*/
       ShouldEnableWifiLan(connectivity_manager_),
-      /*wifi_hotspot=*/transport_type == TransportType::kHighQuality);
+      /*wifi_hotspot=*/
+      IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality));
   NL_VLOG(1) << __func__ << ": "
              << "data_usage=" << static_cast<int>(data_usage)
              << ", allowed_mediums="
@@ -396,10 +398,12 @@ void NearbyConnectionsManagerImpl::Connect(
 
   nearby_connections_service_->RequestConnection(
       kServiceId, endpoint_info, endpoint_id,
-      ConnectionOptions(std::move(allowed_mediums),
-                        std::move(bluetooth_mac_address),
-                        /*keep_alive_interval=*/std::nullopt,
-                        /*keep_alive_timeout=*/std::nullopt),
+      ConnectionOptions(
+          std::move(allowed_mediums), std::move(bluetooth_mac_address),
+          /*keep_alive_interval=*/std::nullopt,
+          /*keep_alive_timeout=*/std::nullopt,
+          IsTransportTypeFlagsSet(transport_type,
+                                  TransportType::kHighQualityNonDisruptive)),
       std::move(connection_listener),
       [this, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
         MutexLock lock(&mutex_);
@@ -410,7 +414,7 @@ void NearbyConnectionsManagerImpl::Connect(
       });
 
   // Setup transfer manager.
-  if (transport_type == TransportType::kHighQuality) {
+  if (IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality)) {
     transfer_managers_[endpoint_id] =
         std::make_unique<TransferManager>(context_, endpoint_id);
   }

@@ -533,6 +533,50 @@ TEST_F(NearbyConnectionsManagerImplTest, DiscoveryFlow) {
       kSynchronizationTimeOut));
 }
 
+TEST_F(NearbyConnectionsManagerImplTest, DisableWifiHotspot) {
+  SetConnectionType(ConnectivityManager::ConnectionType::kWifi);
+
+  MediumSelection expected_mediums(/*bluetooth=*/true,
+                                   /*ble=*/false,
+                                   /*web_rtc=*/should_use_web_rtc_,
+                                   /*wifi_lan=*/should_use_wifilan_,
+                                   /*wifi_hotspot*/ true);
+
+  // StartDiscovery will succeed.
+  NearbyConnectionsService::DiscoveryListener discovery_listener_remote;
+  testing::NiceMock<MockDiscoveryListener> discovery_listener;
+  StartDiscovery(discovery_listener_remote, DataUsage::WIFI_ONLY_DATA_USAGE,
+                 discovery_listener);
+
+  absl::Notification notification;
+  const std::vector<uint8_t> local_endpoint_info(std::begin(kEndpointInfo),
+                                                 std::end(kEndpointInfo));
+  EXPECT_CALL(*nearby_connections_, RequestConnection)
+      .WillOnce([&](absl::string_view service_id,
+                    const std::vector<uint8_t>& endpoint_info,
+                    absl::string_view endpoint_id, ConnectionOptions options,
+                    NearbyConnectionsService::ConnectionListener listener,
+                    std::function<void(Status status)> callback) {
+        EXPECT_EQ(service_id, kServiceId);
+        EXPECT_EQ(endpoint_info, local_endpoint_info);
+        EXPECT_EQ(endpoint_id, kRemoteEndpointId);
+        EXPECT_EQ(options.allowed_mediums.wifi_hotspot, true);
+        EXPECT_TRUE(options.non_disruptive_hotspot_mode);
+        std::move(callback)(Status::kSuccess);
+        notification.Notify();
+      });
+
+  NearbyConnectionsManager::NearbyConnectionCallback connections_callback;
+
+  nearby_connections_manager_->Connect(
+      local_endpoint_info, kRemoteEndpointId,
+      /*bluetooth_mac_address=*/std::nullopt, DataUsage::WIFI_ONLY_DATA_USAGE,
+      TransportType::kHighQualityNonDisruptive, connections_callback);
+
+  EXPECT_TRUE(
+      notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
+}
+
 /******************************************************************************/
 // Begin: NearbyConnectionsManagerImplTestConnectionMediums
 /******************************************************************************/
@@ -609,6 +653,9 @@ TEST_P(NearbyConnectionsManagerImplTestConnectionMediums,
                   expected_mediums.bluetooth);
         EXPECT_EQ(options.allowed_mediums.web_rtc, expected_mediums.web_rtc);
         EXPECT_EQ(options.allowed_mediums.wifi_lan, expected_mediums.wifi_lan);
+        EXPECT_EQ(options.allowed_mediums.wifi_hotspot,
+                  expected_mediums.wifi_hotspot);
+        EXPECT_FALSE(options.non_disruptive_hotspot_mode);
         std::move(callback)(Status::kSuccess);
         notification.Notify();
       });
