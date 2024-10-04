@@ -24,7 +24,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/windows/utils.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -38,7 +38,8 @@ std::unique_ptr<IOFile> IOFile::CreateInputFile(absl::string_view file_path,
 
 IOFile::IOFile(absl::string_view file_path, size_t size) : path_(file_path) {
   // Always open input file path as wide string on Windows platform.
-  std::wstring wide_path = string_to_wstring(std::string(file_path));
+  std::wstring wide_path = string_utils::StringToWideString(
+      std::string(file_path));
   file_.open(wide_path, std::ios::binary | std::ios::in | std::ios::ate);
 
   total_size_ = file_.tellg();
@@ -59,7 +60,8 @@ std::unique_ptr<IOFile> IOFile::CreateOutputFile(absl::string_view path) {
 IOFile::IOFile(absl::string_view file_path)
     : file_(), path_(file_path), total_size_(0) {
   // Always open input file path as wide string on Windows platform.
-  std::wstring wide_path = string_to_wstring(path_);
+  std::wstring wide_path =
+      string_utils::StringToWideString(path_);
   file_.open(wide_path, std::ios::binary | std::ios::out);
 }
 

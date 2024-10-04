@@ -41,6 +41,7 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
@@ -120,7 +121,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   LOG(INFO) << "mDNS instance name is " << instance_name;
 
   dnssd_service_instance_ = DnssdServiceInstance{
-      string_to_wstring(instance_name),
+      string_utils::StringToWideString(instance_name),
       nullptr,  // let windows use default computer's local name
       (uint16)nsd_service_info.GetPort()};
 
@@ -131,8 +132,8 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
       nsd_service_info.GetTxtRecords();
   auto it = text_records.begin();
   while (it != text_records.end()) {
-    text_attributes.Insert(string_to_wstring(it->first),
-                           string_to_wstring(it->second));
+    text_attributes.Insert(string_utils::StringToWideString(it->first),
+                           string_utils::StringToWideString(it->second));
     it++;
   }
 
@@ -205,8 +206,8 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
       kMdnsInstanceNameFormat.data(), nsd_service_info.GetServiceName(),
       nsd_service_info.GetServiceType());
   int port = nsd_service_info.GetPort();
-  dns_service_instance_name_ =
-      std::make_unique<std::wstring>(string_to_wstring(instance_name));
+  dns_service_instance_name_ = std::make_unique<std::wstring>(
+      string_utils::StringToWideString(instance_name));
 
   dns_service_instance_.pszInstanceName =
       (LPWSTR)dns_service_instance_name_->c_str();
@@ -278,7 +279,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
       L"System.Devices.Dnssd.TextAttributes"};
 
   device_watcher_ = DeviceInformation::CreateWatcher(
-      string_to_wstring(selector), requestedProperties,
+      string_utils::StringToWideString(selector), requestedProperties,
       DeviceInformationKind::AssociationEndpointService);
 
   device_watcher_added_event_token =
@@ -351,7 +352,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
       nullptr;
 
-  HostName host_name{string_to_wstring(std::string(ipv4_address))};
+  HostName host_name{
+      string_utils::StringToWideString(std::string(ipv4_address))};
   winrt::hstring service_name{winrt::to_hstring(port)};
 
   StreamSocket socket{};

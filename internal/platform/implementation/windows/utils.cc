@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/crypto.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.Collections.h"
@@ -104,16 +105,6 @@ std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
   ipv4_b[4] = 0;
 
   return std::string(ipv4_b, 4);
-}
-
-std::wstring string_to_wstring(std::string str) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.from_bytes(str);
-}
-
-std::string wstring_to_string(std::wstring wstr) {
-  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-  return converter.to_bytes(wstr);
 }
 
 std::vector<std::string> GetIpv4Addresses() {
@@ -298,7 +289,8 @@ std::string InspectableReader::ReadString(IInspectable inspectable) {
     throw std::invalid_argument("not string data type.");
   }
 
-  return wstring_to_string(property_value.GetString().c_str());
+  return nearby::windows::string_utils::WideStringToString(
+      property_value.GetString().c_str());
 }
 
 std::vector<std::string> InspectableReader::ReadStringArray(

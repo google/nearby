@@ -41,7 +41,9 @@ cc_library(
         "utils.h",
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
-    visibility = ["//sharing/internal/impl/windows:__pkg__"],
+    visibility = [
+        "//sharing/internal/impl/windows:__pkg__",
+    ],
     deps = [
         ":comm",
         "//internal/base:bluetooth_address",
@@ -144,6 +146,26 @@ cc_library(
 )
 
 cc_library(
+    name = "string_utils",
+    srcs = [
+        "string_utils.cc",
+    ],
+    hdrs = [
+        "string_utils.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//internal/platform:__subpackages__",
+        "//location/nearby:__subpackages__",
+    ],
+    deps = [
+        "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "windows",
     srcs = [
         "ble_gatt_client.cc",
@@ -209,6 +231,7 @@ cc_library(
     deps = [
         ":comm",
         ":crypto",  # build_cleaner: keep
+        ":string_utils",
         ":types",
         "//connections/implementation/flags:connections_flags",
         "//internal/account",
@@ -311,5 +334,19 @@ cc_test(
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_test(
+    name = "string_utils_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "string_utils_test.cc",
+    ],
+    deps = [
+        ":string_utils",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
