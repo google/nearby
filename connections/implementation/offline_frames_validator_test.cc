@@ -309,7 +309,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithIllegalFilePath) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
 }
 
 TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
@@ -334,7 +334,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -360,8 +360,9 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
 }
+
 TEST(OfflineFramesValidatorTest, ValidatesAsFailWithNullPayloadTransferFrame) {
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::PayloadChunk chunk;
@@ -379,7 +380,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsFailWithNullPayloadTransferFrame) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -404,7 +405,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -425,7 +426,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -450,7 +451,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -471,7 +472,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -492,7 +493,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -518,7 +519,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -543,7 +544,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -563,7 +564,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -583,7 +584,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -597,7 +598,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -614,7 +615,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest, ValidatesAsOkBandwidthUpgradeWifiDirect) {
@@ -628,7 +629,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkBandwidthUpgradeWifiDirect) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -644,7 +645,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 
   // But -1 itself is not invalid
   bytes = ForBwuWifiDirectPathAvailable(
@@ -654,7 +655,7 @@ TEST(OfflineFramesValidatorTest,
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -671,7 +672,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 
   std::string wifi_direct_ssid_wrong_length =
       std::string{kWifiDirectSsid} + "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
@@ -683,7 +684,7 @@ TEST(OfflineFramesValidatorTest,
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -713,7 +714,7 @@ TEST(OfflineFramesValidatorTest,
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 }  // namespace

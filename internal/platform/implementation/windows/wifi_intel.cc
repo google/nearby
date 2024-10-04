@@ -46,43 +46,43 @@ namespace nearby {
 namespace windows {
 namespace {
 
-#define SAFEDELETE(x)                                          \
-  {                                                            \
-    try {                                                      \
-      if (x) {                                                 \
-        delete x;                                              \
-        x = nullptr;                                           \
-      }                                                        \
-    } catch (...) {                                            \
-      NEARBY_LOGS(INFO) << absl::StrFormat(                    \
-          "Exception while delete memory at 0x%p ", (void*)x); \
-    }                                                          \
+#define SAFEDELETE(x)                                                        \
+  {                                                                          \
+    try {                                                                    \
+      if (x) {                                                               \
+        delete x;                                                            \
+        x = nullptr;                                                         \
+      }                                                                      \
+    } catch (...) {                                                          \
+      LOG(INFO) << absl::StrFormat("Exception while delete memory at 0x%p ", \
+                                   (void*)x);                                \
+    }                                                                        \
   }
 
-#define SAFEDELETEARRAY(x)                                     \
-  {                                                            \
-    try {                                                      \
-      if (x) {                                                 \
-        delete[] x;                                            \
-        x = nullptr;                                           \
-      }                                                        \
-    } catch (...) {                                            \
-      NEARBY_LOGS(INFO) << absl::StrFormat(                    \
-          "Exception while delete memory at 0x%p ", (void*)x); \
-    }                                                          \
+#define SAFEDELETEARRAY(x)                                                   \
+  {                                                                          \
+    try {                                                                    \
+      if (x) {                                                               \
+        delete[] x;                                                          \
+        x = nullptr;                                                         \
+      }                                                                      \
+    } catch (...) {                                                          \
+      LOG(INFO) << absl::StrFormat("Exception while delete memory at 0x%p ", \
+                                   (void*)x);                                \
+    }                                                                        \
   }
 
-#define SAFEFREELIBRARY(x)                                       \
-  {                                                              \
-    try {                                                        \
-      if (x) {                                                   \
-        FreeLibrary(x);                                          \
-        x = nullptr;                                             \
-      }                                                          \
-    } catch (...) {                                              \
-      NEARBY_LOGS(INFO) << absl::StrFormat(                      \
-          "Exception while freeing library at 0x%p ", (void*)x); \
-    }                                                            \
+#define SAFEFREELIBRARY(x)                                                     \
+  {                                                                            \
+    try {                                                                      \
+      if (x) {                                                                 \
+        FreeLibrary(x);                                                        \
+        x = nullptr;                                                           \
+      }                                                                        \
+    } catch (...) {                                                            \
+      LOG(INFO) << absl::StrFormat("Exception while freeing library at 0x%p ", \
+                                   (void*)x);                                  \
+    }                                                                          \
   }
 
 #ifndef NO_INTEL_PIE
@@ -143,11 +143,11 @@ WifiIntel& WifiIntel::GetInstance() {
 }
 
 bool WifiIntel::Start() {
-  NEARBY_LOGS(INFO) << "WifiIntel::Start()";
+  LOG(INFO) << "WifiIntel::Start()";
 #ifndef NO_INTEL_PIE
   muroc_api_dll_handle_ = PIEDllLoader();
   if ((muroc_api_dll_handle_ != nullptr)) {
-    NEARBY_LOGS(INFO) << "Load PIE_API_DLL completed successfully";
+    LOG(INFO) << "Load PIE_API_DLL completed successfully";
 
     wifi_adapter_handle_ =
         WifiGetAdapterList(muroc_api_dll_handle_, &p_all_adapters_);
@@ -159,23 +159,23 @@ bool WifiIntel::Start() {
     }
   }
 #else
-  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, skip";
+  LOG(INFO) << "NO_INTEL_PIE found, skip";
 #endif
   return intel_wifi_valid_;
 }
 
 void WifiIntel::Stop() {
-  NEARBY_LOGS(INFO) << "WifiIntel::Stop()";
+  LOG(INFO) << "WifiIntel::Stop()";
 #ifndef NO_INTEL_PIE
   if (intel_wifi_valid_) {
-    NEARBY_LOGS(INFO) << "Deregister Intel Callback, free Adapters Memory "
-                         "List, free Muroc Api Dll handler.";
+    LOG(INFO) << "Deregister Intel Callback, free Adapters Memory "
+                 "List, free Muroc Api Dll handler.";
     DeregisterIntelCallback(muroc_api_dll_handle_, IntelEventHandler);
     FreeMemoryList(muroc_api_dll_handle_, p_all_adapters_);
     SAFEFREELIBRARY(muroc_api_dll_handle_);
   }
 #else
-  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, skip";
+  LOG(INFO) << "NO_INTEL_PIE found, skip";
 #endif
 }
 
@@ -198,12 +198,11 @@ int WifiIntel::GetGOChannel() {
 
   if (WifiPanQueryPreferredChannelSettingFunc == nullptr) {
     dwError = GetLastError();  // NOLINT
-    NEARBY_LOGS(INFO)
-        << "GetProcAddress WifiPanQueryPreferredChannelSetting error: "
-        << dwError;
+    LOG(INFO) << "GetProcAddress WifiPanQueryPreferredChannelSetting error: "
+              << dwError;
     return channel;
   }
-  NEARBY_VLOG(1)
+  VLOG(1)
       << "Load WifiPanQueryPreferredChannelSetting API completed successfully";
 
   intelWifiHeader.dwSize =
@@ -213,22 +212,21 @@ int WifiIntel::GetGOChannel() {
       wifi_adapter_handle_, &intelWifiHeader, (void*)&intelGOChan);
 
   if (murocApiRetVal == IWLAN_E_SUCCESS) {  // NOLINT
-    NEARBY_LOGS(INFO)
-        << "Calling WifiPanQueryPreferredChannelSetting API succeeded";
+    LOG(INFO) << "Calling WifiPanQueryPreferredChannelSetting API succeeded";
     if (intelGOChan.goState == MurocDefs::INTEL_GO_CURRENT_CHANNEL_ACTIVE) {
       channel = intelGOChan.channel;
     } else {
-      NEARBY_LOGS(INFO) << "No active GO found, return -1";
+      LOG(INFO) << "No active GO found, return -1";
     }
   } else {
-    NEARBY_LOGS(INFO) << "Calling WifiPanQueryPreferredChannelSetting API "
-                         "failed with error: "
-                      << murocApiRetVal;
+    LOG(INFO) << "Calling WifiPanQueryPreferredChannelSetting API "
+                 "failed with error: "
+              << murocApiRetVal;
   }
 
   return channel;
 #else
-  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
+  LOG(INFO) << "NO_INTEL_PIE found, return -1";
   return -1;
 #endif
 }
@@ -244,19 +242,18 @@ bool WifiIntel::SetScanFilter(int channel) {
   if (channel <= 0) return false;
   if (!intel_wifi_valid_) return false;
 
-  NEARBY_LOGS(INFO) << "Set scan channel:" << channel;
+  LOG(INFO) << "Set scan channel:" << channel;
   WifiLegacyGoSetScanFilterFunc =
       (WIFILEGACYGOSETSCANFILTER)GetProcAddress(  // NOLINT
           muroc_api_dll_handle_, "WifiLegacyGoSetScanFilter");
 
   if (WifiLegacyGoSetScanFilterFunc == nullptr) {
     dwError = GetLastError();  // NOLINT
-    NEARBY_LOGS(INFO) << "GetProcAddress WifiLegacyGoSetScanFilterFunc error: "
-                      << dwError;
+    LOG(INFO) << "GetProcAddress WifiLegacyGoSetScanFilterFunc error: "
+              << dwError;
     return false;
   }
-  NEARBY_VLOG(1)
-      << "Load WifiLegacyGoSetScanFilterFunc API completed successfully";
+  VLOG(1) << "Load WifiLegacyGoSetScanFilterFunc API completed successfully";
 
   intelWifiHeader.dwSize = sizeof(MurocDefs::WIFI_LEGACY_GO_SCAN_FILTER);
   memset(&scanFilter, 0, sizeof(scanFilter));
@@ -265,18 +262,18 @@ bool WifiIntel::SetScanFilter(int channel) {
       wifi_adapter_handle_, &intelWifiHeader, (void*)&scanFilter);
 
   if (murocApiRetVal == IWLAN_E_SUCCESS) {  // NOLINT
-    NEARBY_LOGS(INFO) << "Calling WifiLegacyGoSetScanFilter API "
-                         "succeeded, set scan channel to "
-                      << channel;
+    LOG(INFO) << "Calling WifiLegacyGoSetScanFilter API "
+                 "succeeded, set scan channel to "
+              << channel;
     return true;
   }
-  NEARBY_LOGS(INFO) << "Calling WifiLegacyGoSetScanFilter API "
-                       "failed with error: "
-                    << murocApiRetVal;
+  LOG(INFO) << "Calling WifiLegacyGoSetScanFilter API "
+               "failed with error: "
+            << murocApiRetVal;
 
   return false;
 #else
-  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
+  LOG(INFO) << "NO_INTEL_PIE found, return -1";
   return false;
 #endif
 }
@@ -296,28 +293,27 @@ bool WifiIntel::ResetScanFilter() {
 
   if (WifiPanReSetLegacyGoScanFilterFunc == nullptr) {
     dwError = GetLastError();  // NOLINT
-    NEARBY_LOGS(INFO)
-        << "GetProcAddress WifiPanReSetLegacyGoScanFilterFunc error: "
-        << dwError;
+    LOG(INFO) << "GetProcAddress WifiPanReSetLegacyGoScanFilterFunc error: "
+              << dwError;
     return false;
   }
-  NEARBY_VLOG(1)
+  VLOG(1)
       << "Load WifiPanReSetLegacyGoScanFilterFunc API completed successfully";
   intelWifiHeader.dwSize = 0;
   murocApiRetVal = WifiPanReSetLegacyGoScanFilterFunc(wifi_adapter_handle_,
                                                       &intelWifiHeader);
 
   if (murocApiRetVal == IWLAN_E_SUCCESS) {  // NOLINT
-    NEARBY_LOGS(INFO) << "Calling WifiPanReSetLegacyGoScanFilter API succeeded";
+    LOG(INFO) << "Calling WifiPanReSetLegacyGoScanFilter API succeeded";
     return true;
   }
-  NEARBY_LOGS(INFO) << "Calling WifiPanQueryPreferredChannelSetting API "
-                       "failed with error: "
-                    << murocApiRetVal;
+  LOG(INFO) << "Calling WifiPanQueryPreferredChannelSetting API "
+               "failed with error: "
+            << murocApiRetVal;
 
   return false;
 #else
-  NEARBY_LOGS(INFO) << "NO_INTEL_PIE found, return -1";
+  LOG(INFO) << "NO_INTEL_PIE found, return -1";
   return false;
 #endif
 }
@@ -343,20 +339,18 @@ wchar_t* GetEntireRegistryDeviceList() {
       configRet = CM_Get_Device_ID_ListW(nullptr, pDeviceList, deviceListLength,
                                          CM_GETIDLIST_FILTER_PRESENT);
       if (configRet != CR_SUCCESS) {
-        NEARBY_LOGS(INFO)
-            << "Unexpected error! CM_Get_Device_ID_List return Value of "
-            << configRet;
+        LOG(INFO) << "Unexpected error! CM_Get_Device_ID_List return Value of "
+                  << configRet;
         SAFEDELETEARRAY(pDeviceList);
       }
     } else {
       configRet = CR_OUT_OF_MEMORY;
-      NEARBY_LOGS(INFO)
+      LOG(INFO)
           << "Unexpected error! failed to allocate memory to the device list";
     }
   } else {
-    NEARBY_LOGS(INFO)
-        << "Unexpected error! CM_Get_Device_ID_List_Size return Value of "
-        << configRet;
+    LOG(INFO) << "Unexpected error! CM_Get_Device_ID_List_Size return Value of "
+              << configRet;
   }
 
   return pDeviceList;
@@ -404,15 +398,14 @@ DEVINST SearchForDeviceInstance(wchar_t* pEntireDeviceList) {
       configRet =
           CM_Locate_DevNodeW(&devInst, currentDevice, CM_LOCATE_DEVNODE_NORMAL);
       if (configRet != CR_SUCCESS) {
-        NEARBY_LOGS(INFO)
-            << "Unexpected error! CM_Locate_DevNode return Value of "
-            << configRet;
+        LOG(INFO) << "Unexpected error! CM_Locate_DevNode return Value of "
+                  << configRet;
         devInst = NULL;
         break;
       }
       isMatchingDeviceFound = IsHwIdMatching(devInst, PIE_HW_ID_);
       if (isMatchingDeviceFound) {
-        NEARBY_LOGS(INFO) << "Intel WIFI Device is found!";
+        LOG(INFO) << "Intel WIFI Device is found!";
         break;
       } else {
         devInst = NULL;
@@ -437,15 +430,14 @@ void OpenRegKeyHandle(DEVINST devInst, HKEY& softwareKey) {
                                     RegDisposition_OpenExisting, &softwareKey,
                                     CM_REGISTRY_SOFTWARE);
 
-    NEARBY_VLOG(1) << absl::StrFormat("softwareKey %p ", softwareKey);
+    VLOG(1) << absl::StrFormat("softwareKey %p ", softwareKey);
 
     if (configRet != CR_SUCCESS) {
-      NEARBY_LOGS(INFO)
-          << "Unexpected error! CM_Open_DevNode_Key return Value of "
-          << configRet;
+      LOG(INFO) << "Unexpected error! CM_Open_DevNode_Key return Value of "
+                << configRet;
     }
   } else {
-    NEARBY_LOGS(INFO) << "devInst is NULL";
+    LOG(INFO) << "devInst is NULL";
   }
 }
 
@@ -462,7 +454,7 @@ DWORD GetRegKeyWCHARValue(DEVINST deviceInstance, LPCWSTR keyName,
 
     CloseRegKeyHandle(softwareKey);
   } else {
-    NEARBY_LOGS(INFO) << "Couldn't find dev instacne for device  :-( ";
+    LOG(INFO) << "Couldn't find dev instacne for device  :-( ";
     ret = ERROR_NOT_FOUND;  // NOLINT
   }
   return ret;
@@ -481,15 +473,15 @@ DWORD GetFullDllLoadPathFromPieRegistry(DEVINST pieDeviceInstance,
   status = GetRegKeyWCHARValue(pieDeviceInstance, PIE_DLL_PATH_HINT, nullptr,
                                &dllPathBufferLen, &regKeyDataType);
   if (status != ERROR_SUCCESS) {
-    NEARBY_LOGS(INFO)
-        << "Unexpected error! GetRegKeyWCHARValue return Value of " << status;
+    LOG(INFO) << "Unexpected error! GetRegKeyWCHARValue return Value of "
+              << status;
     return status;
   } else {
-    NEARBY_VLOG(1) << "Queried key length successfully!";
+    VLOG(1) << "Queried key length successfully!";
   }
 
   dllFullPathLen = (dllPathBufferLen + sizeof(PIE_API_DLL));
-  NEARBY_VLOG(1) << "dll Full Path Length = " << dllFullPathLen;
+  VLOG(1) << "dll Full Path Length = " << dllFullPathLen;
 
   pLoadPathString = new wchar_t[dllFullPathLen];
   SecureZeroMemory(pLoadPathString, dllFullPathLen);  // NOLINT
@@ -499,13 +491,13 @@ DWORD GetFullDllLoadPathFromPieRegistry(DEVINST pieDeviceInstance,
       GetRegKeyWCHARValue(pieDeviceInstance, PIE_DLL_PATH_HINT, pLoadPathString,
                           &dllPathBufferLen, &regKeyDataType);
   if (status != ERROR_SUCCESS) {
-    NEARBY_LOGS(INFO)
-        << "Unexpected error! GetRegKeyWCHARValue return Value of " << status;
+    LOG(INFO) << "Unexpected error! GetRegKeyWCHARValue return Value of "
+              << status;
     SAFEDELETEARRAY(pLoadPathString);
     return status;
   } else {
     pathString = pLoadPathString;
-    NEARBY_VLOG(1) << "Queried key successfully!";
+    VLOG(1) << "Queried key successfully!";
   }
 
   std::wstring fullString = pathString + PIE_API_DLL;
@@ -537,16 +529,15 @@ HINSTANCE WifiIntel::PIEDllLoader() {
   ret = GetFullDllLoadPathFromPieRegistry(pieRegDeviceInstance, &pDllPathValue);
 
   if (ret == ERROR_SUCCESS) {
-    NEARBY_LOGS(INFO) << "Found and trying to load MurocApi.dll";
+    LOG(INFO) << "Found and trying to load MurocApi.dll";
 
     // load the library and get the handle
     murocApiDllHandle = LoadLibraryW(pDllPathValue);  // NOLINT
 
-    NEARBY_VLOG(1) << absl::StrFormat("Muroc Api Dll Handle is 0x%p ",
-                                      murocApiDllHandle);
+    VLOG(1) << absl::StrFormat("Muroc Api Dll Handle is 0x%p ",
+                               murocApiDllHandle);
   } else {
-    NEARBY_LOGS(INFO) << "GetFullDllLoadPathFromPieRegistry fails eith error: "
-                      << ret;
+    LOG(INFO) << "GetFullDllLoadPathFromPieRegistry fails eith error: " << ret;
   }
 
   SAFEDELETEARRAY(pDllPathValue);
@@ -566,14 +557,14 @@ HADAPTER WifiGetAdapterList(HINSTANCE murocApiDllHandle,
 
   if (WifiGetAdapterListFunction == nullptr) {
     dwError = GetLastError();
-    NEARBY_LOGS(INFO) << "GetProcAddress for WifiGetAdapterListFunction API "
-                         "fails with error: "
-                      << dwError;
+    LOG(INFO) << "GetProcAddress for WifiGetAdapterListFunction API "
+                 "fails with error: "
+              << dwError;
     return INVALID_HADAPTER;
   }
 
-  NEARBY_VLOG(1) << "GetProcAddress for WifiGetAdapterListFunction API "
-                    "completed successfully";
+  VLOG(1) << "GetProcAddress for WifiGetAdapterListFunction API "
+             "completed successfully";
   INTEL_WIFI_HEADER intelHeader = {INTEL_STRUCT_VERSION_V156,  // NOLINT
                                    sizeof(MurocDefs::INTEL_ADAPTER_LIST_V120)};
   MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;
@@ -582,14 +573,13 @@ HADAPTER WifiGetAdapterList(HINSTANCE murocApiDllHandle,
       WifiGetAdapterListFunction(&intelHeader, (void**)ppAllAdapters);
 
   if (murocApiRetVal != IWLAN_E_SUCCESS) {
-    NEARBY_LOGS(INFO)
-        << "Calling WifiGetAdapterListFunction API fails with error:"
-        << murocApiRetVal;
+    LOG(INFO) << "Calling WifiGetAdapterListFunction API fails with error:"
+              << murocApiRetVal;
     return INVALID_HADAPTER;
   }
 
   firstAdapterOnTheList = (*ppAllAdapters)->adapter[0].hAdapter;
-  NEARBY_LOGS(INFO) << "WIFI Adapter on the list: " << firstAdapterOnTheList;
+  LOG(INFO) << "WIFI Adapter on the list: " << firstAdapterOnTheList;
 
   return firstAdapterOnTheList;
 }
@@ -604,22 +594,21 @@ void RegisterIntelCallback(
       murocApiDllHandle, "RegisterIntelCallback");
   if (registerIntelCBFunc == nullptr) {
     dwError = GetLastError();
-    NEARBY_LOGS(INFO)
-        << "GetProcAddress of RegisterIntelCallback API fails with error:"
-        << dwError;
+    LOG(INFO) << "GetProcAddress of RegisterIntelCallback API fails with error:"
+              << dwError;
     return;
   }
 
-  NEARBY_VLOG(1) << "Load RegisterIntelCallback API successfully";
+  VLOG(1) << "Load RegisterIntelCallback API successfully";
   MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;
 
   murocApiRetVal = registerIntelCBFunc(pIntelEventCbHandle);
 
   if (murocApiRetVal == IWLAN_E_SUCCESS) {
-    NEARBY_LOGS(INFO) << "Calling RegisterIntelCallback API succeeded.";
+    LOG(INFO) << "Calling RegisterIntelCallback API succeeded.";
   } else {
-    NEARBY_LOGS(INFO) << "Calling RegisterIntelCallback API fails with error:"
-                      << murocApiRetVal;
+    LOG(INFO) << "Calling RegisterIntelCallback API fails with error:"
+              << murocApiRetVal;
   }
 }
 
@@ -633,30 +622,29 @@ void DeregisterIntelCallback(HINSTANCE murocApiDllHandle,
 
   if (deregisterIntelCBFunc == nullptr) {
     dwError = GetLastError();
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "GetProcAddress of DeregisterIntelCallback API failed with error: ",
         dwError;
     return;
   }
 
   {
-    NEARBY_VLOG(1) << "Load DeregisterIntelCallback API successfully";
+    VLOG(1) << "Load DeregisterIntelCallback API successfully";
     MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;
 
     murocApiRetVal = deregisterIntelCBFunc(fnCallback);
 
     if (murocApiRetVal == IWLAN_E_SUCCESS) {
-      NEARBY_VLOG(1) << "Calling DeregisterIntelCallback API succeeded.";
+      VLOG(1) << "Calling DeregisterIntelCallback API succeeded.";
     } else {
-      NEARBY_LOGS(INFO)
-          << "Calling DeregisterIntelCallback API fails with error:"
-          << murocApiRetVal;
+      LOG(INFO) << "Calling DeregisterIntelCallback API fails with error:"
+                << murocApiRetVal;
     }
   }
 }
 
 void WINAPI IntelEventHandler(MurocDefs::INTEL_EVENT iEvent, void* pContext) {
-  NEARBY_LOGS(INFO) << "Received Intel Event id: %d" << iEvent.eType;
+  LOG(INFO) << "Received Intel Event id: %d" << iEvent.eType;
 }
 
 void FreeMemoryList(HINSTANCE murocApiDllHandle, void* ptr) {
@@ -668,22 +656,21 @@ void FreeMemoryList(HINSTANCE murocApiDllHandle, void* ptr) {
 
   if (freeMemoryListFunction == nullptr) {
     dwError = GetLastError();
-    NEARBY_LOGS(INFO)
-        << "GetProcAddress of FreeListMemory API failed with error: "
-        << dwError;
+    LOG(INFO) << "GetProcAddress of FreeListMemory API failed with error: "
+              << dwError;
   }
 
   if ((freeMemoryListFunction != nullptr)) {
-    NEARBY_VLOG(1) << "Load FreeListMemory API successfully";
+    VLOG(1) << "Load FreeListMemory API successfully";
     MUROC_RET murocApiRetVal = IWLAN_E_FAILURE;
 
     murocApiRetVal = freeMemoryListFunction(ptr);
 
     if (murocApiRetVal == IWLAN_E_SUCCESS) {
-      NEARBY_VLOG(1) << "Calling FreeListMemory API succeeded.";
+      VLOG(1) << "Calling FreeListMemory API succeeded.";
     } else {
-      NEARBY_LOGS(INFO) << "Calling FreeListMemory API failed with error: "
-                        << murocApiRetVal;
+      LOG(INFO) << "Calling FreeListMemory API failed with error: "
+                << murocApiRetVal;
     }
   }
 }

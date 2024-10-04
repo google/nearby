@@ -16,6 +16,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
@@ -87,6 +88,11 @@ bool FakeAccountManager::GetAccessToken(
   }
   success_callback(account_id);
   return true;
+}
+
+std::pair<std::string, std::string>
+FakeAccountManager::GetOAuthClientCredential() {
+  return {"", ""};
 }
 
 void FakeAccountManager::SetAccount(std::optional<Account> account) {

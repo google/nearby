@@ -121,9 +121,9 @@ class FakePresenceDevice : public NearbyDevice {
  public:
   std::string GetEndpointId() const override { return "LOCALTEST"; }
   MOCK_METHOD(std::vector<ConnectionInfoVariant>, GetConnectionInfos, (),
-              (const override));
-  MOCK_METHOD(NearbyDevice::Type, GetType, (), (const override));
-  MOCK_METHOD(std::string, ToProtoBytes, (), (const override));
+              (const, override));
+  MOCK_METHOD(NearbyDevice::Type, GetType, (), (const, override));
+  MOCK_METHOD(std::string, ToProtoBytes, (), (const, override));
 };
 
 class FakePresenceDeviceProvider : public NearbyDeviceProvider {
@@ -171,13 +171,13 @@ class MockEndpointChannel : public BaseEndpointChannel {
   MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
   MOCK_METHOD(void, CloseImpl, (), (override));
   MOCK_METHOD(location::nearby::proto::connections::Medium, GetMedium, (),
-              (const override));
-  MOCK_METHOD(std::string, GetType, (), (const override));
-  MOCK_METHOD(std::string, GetName, (), (const override));
-  MOCK_METHOD(bool, IsPaused, (), (const override));
+              (const, override));
+  MOCK_METHOD(std::string, GetType, (), (const, override));
+  MOCK_METHOD(std::string, GetName, (), (const, override));
+  MOCK_METHOD(bool, IsPaused, (), (const, override));
   MOCK_METHOD(void, Pause, (), (override));
   MOCK_METHOD(void, Resume, (), (override));
-  MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const override));
+  MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const, override));
 
   bool broken_write_{false};
 
@@ -199,8 +199,8 @@ class MockPcpHandler : public BasePcpHandler {
   using BasePcpHandler::DiscoveredEndpoint;
   using BasePcpHandler::StartOperationResult;
 
-  MOCK_METHOD(Strategy, GetStrategy, (), (const override));
-  MOCK_METHOD(Pcp, GetPcp, (), (const override));
+  MOCK_METHOD(Strategy, GetStrategy, (), (const, override));
+  MOCK_METHOD(Pcp, GetPcp, (), (const, override));
 
   MOCK_METHOD(bool, HasOutgoingConnections, (ClientProxy * client),
               (const, override));

@@ -17,10 +17,13 @@
 #include <shlobj.h>
 
 #include <algorithm>
+#include <cstddef>
 #include <sstream>
+#include <string>
 
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
+#include "internal/platform/payload_id.h"
 
 namespace test_utils {
 std::wstring StringToWideString(const std::string& s) {
@@ -44,7 +47,7 @@ std::string GetPayloadPath(nearby::PayloadId payload_id) {
       FOLDERID_Downloads,  //  rfid: A reference to the KNOWNFOLDERID that
                            //  identifies the folder.
       0,           // dwFlags: Flags that specify special retrieval options.
-      NULL,        // hToken: An access token that represents a particular user.
+      nullptr,     // hToken: An access token that represents a particular user.
       &basePath);  // ppszPath: When this method returns, contains the address
                    // of a pointer to a null-terminated Unicode string that
                    // specifies the path of the known folder. The calling
@@ -54,8 +57,8 @@ std::string GetPayloadPath(nearby::PayloadId payload_id) {
 
   size_t bufferSize;
   // Get the required buffer size.
-  wcstombs_s(&bufferSize, NULL, 0, basePath, 0);
-  std::string fullpathUTF8(bufferSize, NULL);
+  wcstombs_s(&bufferSize, nullptr, 0, basePath, 0);
+  std::string fullpathUTF8(bufferSize, 0);
   wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
   std::string fullPath = std::string(fullpathUTF8);
   // Clean up the string by removing null's

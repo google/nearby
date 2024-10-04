@@ -32,21 +32,12 @@ namespace nearby_sharing_feature {
 // Time to delay the endpoint loss in milliseconds.
 constexpr auto kDelayEndpointLossMs =
     flags::Flag<int64_t>(kConfigPackage, "45632386", 500);
-// When true, delete the file payload which received unexpectedly.
-constexpr auto kDeleteUnexpectedReceivedFile =
-    flags::Flag<bool>(kConfigPackage, "45627826", true);
 // Enable/disable the use of BLE as a connection medium.
 constexpr auto kEnableBleForTransfer =
     flags::Flag<bool>(kConfigPackage, "45427466", false);
 // Enable/disable certificates dump
 constexpr auto kEnableCertificatesDump =
     flags::Flag<bool>(kConfigPackage, "45409184", false);
-// Enable/disable dumping feature flags
-constexpr auto kEnableDumpingFeatureFlags =
-    flags::Flag<bool>(kConfigPackage, "45415713", true);
-// Enable/disable logging additional system info metrics
-constexpr auto kEnableLoggingSystemInfoMetrics =
-    flags::Flag<bool>(kConfigPackage, "45412418", true);
 // Enable/disable WebRTC medium in Nearby Share
 constexpr auto kEnableMediumWebRtc =
     flags::Flag<bool>(kConfigPackage, "45418905", false);
@@ -69,8 +60,8 @@ constexpr auto kEnableTransferCancellationOptimization =
 constexpr auto kEnableWebrtcMedium =
     flags::Flag<bool>(kConfigPackage, "45411620", false);
 // Set the logging level in Nearby Sharing SDK. The default logging level is
-// WARNING. The mapping of logging level to number:VERBOSE: -1, INFO: 0,
-// WARNING: 1, ERROR: 2, FATAL: 3
+// WARNING. The mapping of logging level to number: INFO: 0, WARNING: 1, ERROR:
+// 2, FATAL: 3,  negative values are -(verbosity level).
 constexpr auto kLoggingLevel =
     flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
 // When true, the sender will not require confirming the ukey2 token.
@@ -79,32 +70,26 @@ constexpr auto kSenderSkipsConfirmation =
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
-// When true, we only upgrade the bandwidth after accepting a connection.
-constexpr auto kUpgradeBandwidthAfterAccept =
-    flags::Flag<bool>(kConfigPackage, "45627824", true);
 // When true, use gRpc client to access backend.
 constexpr auto kUseGrpcClient =
     flags::Flag<bool>(kConfigPackage, "45630055", false);
+// When true, dedup discovered endpoints.
+constexpr auto kApplyEndpointsDedup =
+    flags::Flag<bool>(kConfigPackage, "45656298", false);
 // Enable/disable QR Code UI
 constexpr auto kEnableQrCodeUi =
     flags::Flag<bool>(kConfigPackage, "45417647", false);
 // Show Admin mode warning message in the app
 constexpr auto kShowAdminModeWarning =
     flags::Flag<bool>(kConfigPackage, "45410558", false);
-// Show/hide auto app start setting.
-constexpr auto kShowAutoAppStartSetting =
-    flags::Flag<bool>(kConfigPackage, "45411601", true);
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
-      {45627826, kDeleteUnexpectedReceivedFile},
       {45427466, kEnableBleForTransfer},
       {45409184, kEnableCertificatesDump},
-      {45415713, kEnableDumpingFeatureFlags},
-      {45412418, kEnableLoggingSystemInfoMetrics},
       {45418905, kEnableMediumWebRtc},
       {45418906, kEnableMediumWifiLan},
       {45411589, kEnableRetryResumeTransfer},
@@ -114,11 +99,10 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45411620, kEnableWebrtcMedium},
       {45411353, kSenderSkipsConfirmation},
       {45409033, kShowAutoUpdateSetting},
-      {45627824, kUpgradeBandwidthAfterAccept},
       {45630055, kUseGrpcClient},
+      {45656298, kApplyEndpointsDedup},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
-      {45411601, kShowAutoAppStartSetting},
   };
 }
 

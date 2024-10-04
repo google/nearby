@@ -17,8 +17,8 @@
 #include <string>
 #include <utility>
 
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 

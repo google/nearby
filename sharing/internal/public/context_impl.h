@@ -29,7 +29,6 @@
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -43,8 +42,6 @@ class ContextImpl : public Context {
 
   Clock* GetClock() const override;
   std::unique_ptr<Timer> CreateTimer() override;
-  void OpenUrl(const nearby::network::Url& url,
-               std::function<void(absl::Status)> callback) override;
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   sharing::api::WifiAdapter& GetWifiAdapter() const override;
@@ -52,9 +49,6 @@ class ContextImpl : public Context {
   std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
-  api::Shell& GetShell() const override;
-  void CopyText(absl::string_view text,
-                std::function<void(absl::Status)> callback) override;
   TaskRunner* GetTaskRunner() override;
 
  private:

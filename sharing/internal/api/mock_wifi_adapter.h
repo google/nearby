@@ -44,10 +44,6 @@ class MockWifiAdapter : public nearby::sharing::api::WifiAdapter {
   MOCK_METHOD(void, AddObserver, (Observer * observer), (override));
   MOCK_METHOD(void, RemoveObserver, (Observer * observer), (override));
   MOCK_METHOD(bool, HasObserver, (Observer * observer), (override));
-  MOCK_METHOD(void, JoinNetwork,
-              (absl::string_view ssid, absl::string_view password,
-               std::function<void(absl::Status)> callback),
-              (override));
 };
 
 }  // namespace nearby::sharing::api

@@ -20,8 +20,10 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
-#include "internal/platform/wifi_utils.h"
 
 // Nearby connections headers
 #include "internal/platform/cancellation_flag_listener.h"
@@ -66,23 +68,23 @@ bool WifiDirectMedium::IsInterfaceValid() const {
   DWORD result =
       WFDOpenHandle(WFD_API_VERSION, &negotiated_version, &wifi_direct_handle);
   if (result == ERROR_SUCCESS) {
-    NEARBY_LOGS(INFO) << "WiFi can support WifiDirect";
+    LOG(INFO) << "WiFi can support WifiDirect";
     WFDCloseHandle(wifi_direct_handle);
     return true;
   }
 
-  NEARBY_LOGS(ERROR) << "WiFi can't support WifiDirect";
+  LOG(ERROR) << "WiFi can't support WifiDirect";
   return false;
 }
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(WARNING) << __func__ << " : Connect to remote service.";
+  LOG(WARNING) << __func__ << " : Connect to remote service.";
 
   if (ip_address.empty() || port == 0) {
-    NEARBY_LOGS(ERROR) << "no valid service address and port to connect: "
-                       << "ip_address = " << ip_address << ", port = " << port;
+    LOG(ERROR) << "no valid service address and port to connect: "
+               << "ip_address = " << ip_address << ", port = " << port;
     return nullptr;
   }
 
@@ -94,7 +96,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   }
 
   if (!WifiUtils::ValidateIPV4(ipv4_address)) {
-    NEARBY_LOGS(ERROR) << "Invalid IP address parameter.";
+    LOG(ERROR) << "Invalid IP address parameter.";
     return nullptr;
   }
 
@@ -113,23 +115,22 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
       // setup cancel listener
       if (cancellation_flag != nullptr) {
         if (cancellation_flag->Cancelled()) {
-          NEARBY_LOGS(INFO) << "connect has been cancelled to service "
-                            << ipv4_address << ":" << port;
+          LOG(INFO) << "connect has been cancelled to service " << ipv4_address
+                    << ":" << port;
           return nullptr;
         }
 
         connection_cancellation_listener =
             std::make_unique<nearby::CancellationFlagListener>(
                 cancellation_flag, [socket]() {
-                  NEARBY_LOGS(WARNING)
-                      << "connect is closed due to it is cancelled.";
+                  LOG(WARNING) << "connect is closed due to it is cancelled.";
                   socket.Close();
                 });
       }
 
       connection_timeout_ = scheduled_executor_.Schedule(
           [socket]() {
-            NEARBY_LOGS(WARNING) << "connect is closed due to timeout.";
+            LOG(WARNING) << "connect is closed due to timeout.";
             socket.Close();
           },
           kWifiDirectClientSocketConnectTimeoutMillis);
@@ -143,12 +144,12 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
 
       auto client_socket = std::make_unique<WifiDirectSocket>(socket);
 
-      NEARBY_LOGS(INFO) << "connected to remote service " << ipv4_address << ":"
-                        << port;
+      LOG(INFO) << "connected to remote service " << ipv4_address << ":"
+                << port;
       return client_socket;
     } catch (...) {
-      NEARBY_LOGS(ERROR) << "failed to connect remote service " << ipv4_address
-                         << ":" << port << " for the " << i + 1 << " time";
+      LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
+                 << port << " for the " << i + 1 << " time";
     }
 
     if (connection_timeout_ != nullptr) {
@@ -167,8 +168,8 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
 
   // check current status
   if (IsAccepting()) {
-    NEARBY_LOGS(WARNING) << "accepting connections already started on port "
-                         << server_socket_ptr_->GetPort();
+    LOG(WARNING) << "accepting connections already started on port "
+                 << server_socket_ptr_->GetPort();
     return nullptr;
   }
 
@@ -179,18 +180,18 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
     medium_status_ |= kMediumStatusAccepting;
     server_socket->SetCloseNotifier([this]() {
       absl::MutexLock lock(&mutex_);
-      NEARBY_LOGS(INFO) << "server socket was closed on port "
-                        << server_socket_ptr_->GetPort();
+      LOG(INFO) << "server socket was closed on port "
+                << server_socket_ptr_->GetPort();
       medium_status_ &= (~kMediumStatusAccepting);
       server_socket_ptr_ = nullptr;
     });
 
-    NEARBY_LOGS(INFO) << "started to listen serive on port "
-                      << server_socket_ptr_->GetPort();
+    LOG(INFO) << "started to listen serive on port "
+              << server_socket_ptr_->GetPort();
     return server_socket;
   }
 
-  NEARBY_LOGS(ERROR) << "Failed to listen service on port " << port;
+  LOG(ERROR) << "Failed to listen service on port " << port;
 
   return nullptr;
 }
@@ -200,7 +201,7 @@ bool WifiDirectMedium::StartWifiDirect(
   absl::MutexLock lock(&mutex_);
 
   if (IsBeaconing()) {
-    NEARBY_LOGS(WARNING) << "cannot create SoftAP again when it is running.";
+    LOG(WARNING) << "cannot create SoftAP again when it is running.";
     return true;
   }
 
@@ -245,29 +246,26 @@ bool WifiDirectMedium::StartWifiDirect(
     publisher_.Start();
     if (publisher_.Status() ==
         WiFiDirectAdvertisementPublisherStatus::Started) {
-      NEARBY_LOGS(INFO) << "Windows WiFiDirect GO(SoftAP) started";
+      LOG(INFO) << "Windows WiFiDirect GO(SoftAP) started";
       medium_status_ |= kMediumStatusBeaconing;
       return true;
     }
 
     // Clean up when fail
-    NEARBY_LOGS(ERROR) << "Windows WiFiDirect GO(SoftAP) fails to start";
+    LOG(ERROR) << "Windows WiFiDirect GO(SoftAP) fails to start";
     publisher_.StatusChanged(publisher_status_changed_token_);
     listener_.ConnectionRequested(connection_requested_token_);
     listener_ = nullptr;
     publisher_ = nullptr;
     return false;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot start WiFiDirect GO. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Cannot start WiFiDirect GO. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot start WiFiDirect GO.  WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": Cannot start WiFiDirect GO.  WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -277,7 +275,7 @@ bool WifiDirectMedium::StopWifiDirect() {
   absl::MutexLock lock(&mutex_);
 
   if (!IsBeaconing()) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << "Cannot stop WiFiDirect GO(SoftAP) because no GO was started.";
     return true;
   }
@@ -290,21 +288,19 @@ bool WifiDirectMedium::StopWifiDirect() {
       wifi_direct_device_ = nullptr;
       listener_ = nullptr;
       publisher_ = nullptr;
-      NEARBY_LOGS(INFO) << "succeeded to stop WiFiDirect GO(SoftAP)";
+      LOG(INFO) << "succeeded to stop WiFiDirect GO(SoftAP)";
     }
 
     medium_status_ &= (~kMediumStatusBeaconing);
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Stop WiFiDirect GO failed. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Stop WiFiDirect GO failed. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Stop WiFiDirect GO failed. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": Stop WiFiDirect GO failed. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -314,34 +310,33 @@ fire_and_forget WifiDirectMedium::OnStatusChanged(
     WiFiDirectAdvertisementPublisherStatusChangedEventArgs event) {
   if (event.Status() == WiFiDirectAdvertisementPublisherStatus::Started) {
     if (sender.Advertisement().LegacySettings().IsEnabled()) {
-      NEARBY_LOGS(INFO)
-          << "WiFiDirect GO SSID: "
-          << winrt::to_string(
-                 publisher_.Advertisement().LegacySettings().Ssid());
-      NEARBY_LOGS(INFO) << "WiFiDirect GO PW: "
-                        << winrt::to_string(publisher_.Advertisement()
-                                                .LegacySettings()
-                                                .Passphrase()
-                                                .Password());
+      LOG(INFO) << "WiFiDirect GO SSID: "
+                << winrt::to_string(
+                       publisher_.Advertisement().LegacySettings().Ssid());
+      LOG(INFO) << "WiFiDirect GO PW: "
+                << winrt::to_string(publisher_.Advertisement()
+                                        .LegacySettings()
+                                        .Passphrase()
+                                        .Password());
     }
     return winrt::fire_and_forget();
   } else if (event.Status() ==
              WiFiDirectAdvertisementPublisherStatus::Created) {
-    NEARBY_LOGS(INFO) << "Receive WiFiDirect/SoftAP Created event.";
+    LOG(INFO) << "Receive WiFiDirect/SoftAP Created event.";
     return winrt::fire_and_forget();
   } else if (event.Status() ==
              WiFiDirectAdvertisementPublisherStatus::Stopped) {
-    NEARBY_LOGS(INFO) << "Receive WiFiDirect/SoftAP Stopped event.";
+    LOG(INFO) << "Receive WiFiDirect/SoftAP Stopped event.";
   } else if (event.Status() ==
              WiFiDirectAdvertisementPublisherStatus::Aborted) {
-    NEARBY_LOGS(INFO) << "Receive WiFiDirect/SoftAP Aborted event.";
+    LOG(INFO) << "Receive WiFiDirect/SoftAP Aborted event.";
   }
 
   // Publisher is stopped. Need to clean up the publisher.
   {
     absl::MutexLock lock(&mutex_);
     if (publisher_ != nullptr) {
-      NEARBY_LOGS(ERROR) << "Windows WiFiDirect GO(SoftAP) cleanup.";
+      LOG(ERROR) << "Windows WiFiDirect GO(SoftAP) cleanup.";
       listener_.ConnectionRequested(connection_requested_token_);
       publisher_.StatusChanged(publisher_status_changed_token_);
       wifi_direct_device_ = nullptr;
@@ -358,8 +353,8 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
     WiFiDirectConnectionRequestedEventArgs const& event) {
   WiFiDirectConnectionRequest connection_request = event.GetConnectionRequest();
   winrt::hstring device_name = connection_request.DeviceInformation().Name();
-  NEARBY_LOGS(INFO) << "Receive connection request from: "
-                    << winrt::to_string(device_name);
+  LOG(INFO) << "Receive connection request from: "
+            << winrt::to_string(device_name);
 
   try {
     // This is to solve b/236805122.
@@ -372,9 +367,9 @@ fire_and_forget WifiDirectMedium::OnConnectionRequested(
     wifi_direct_device_ = WiFiDirectDevice::FromIdAsync(
                               connection_request.DeviceInformation().Id())
                               .get();
-    NEARBY_LOGS(INFO) << "Registered the device in WLAN-AutoConfig";
+    LOG(INFO) << "Registered the device in WLAN-AutoConfig";
   } catch (...) {
-    NEARBY_LOGS(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
+    LOG(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
     wifi_direct_device_ = nullptr;
     connection_request.Close();
   }
@@ -387,20 +382,19 @@ bool WifiDirectMedium::ConnectWifiDirect(
 
   try {
     if (IsConnected()) {
-      NEARBY_LOGS(WARNING) << "Already connected to AP, disconnect first.";
+      LOG(WARNING) << "Already connected to AP, disconnect first.";
       InternalDisconnectWifiDirect();
     }
 
     auto access = WiFiAdapter::RequestAccessAsync().get();
     if (access != WiFiAccessStatus::Allowed) {
-      NEARBY_LOGS(WARNING) << "Access Denied with reason: "
-                           << static_cast<int>(access);
+      LOG(WARNING) << "Access Denied with reason: " << static_cast<int>(access);
       return false;
     }
 
     auto adapters = WiFiAdapter::FindAllAdaptersAsync().get();
     if (adapters.Size() < 1) {
-      NEARBY_LOGS(WARNING) << "No WiFi Adapter found.";
+      LOG(WARNING) << "No WiFi Adapter found.";
       return false;
     }
     wifi_adapter_ = adapters.GetAt(0);
@@ -417,8 +411,8 @@ bool WifiDirectMedium::ConnectWifiDirect(
 
     // SoftAP is an abbreviation for "software enabled access point".
     WiFiAvailableNetwork nearby_softap{nullptr};
-    NEARBY_LOGS(INFO) << "Scanning for Nearby WifiDirect GO's SSID: "
-                      << wifi_direct_credentials->GetSSID();
+    LOG(INFO) << "Scanning for Nearby WifiDirect GO's SSID: "
+              << wifi_direct_credentials->GetSSID();
 
     // First time scan may not find our target GO, try 2 more times can
     // almost guarantee to find the GO
@@ -431,22 +425,22 @@ bool WifiDirectMedium::ConnectWifiDirect(
         if (!wifi_connected_network_ && !ssid.empty() &&
             (winrt::to_string(network.Ssid()) == ssid)) {
           wifi_connected_network_ = network;
-          NEARBY_LOGS(INFO) << "Save the current connected network: " << ssid;
+          LOG(INFO) << "Save the current connected network: " << ssid;
         } else if (!nearby_softap && winrt::to_string(network.Ssid()) ==
                                          wifi_direct_credentials->GetSSID()) {
-          NEARBY_LOGS(INFO)
-              << "Found Nearby SSID: " << winrt::to_string(network.Ssid());
+          LOG(INFO) << "Found Nearby SSID: "
+                    << winrt::to_string(network.Ssid());
           nearby_softap = network;
         }
         if (nearby_softap && wifi_connected_network_) break;
       }
       if (nearby_softap) break;
-      NEARBY_LOGS(INFO) << "Scan ... ";
+      LOG(INFO) << "Scan ... ";
       wifi_adapter_.ScanAsync().get();
     }
 
     if (!nearby_softap) {
-      NEARBY_LOGS(INFO) << "WifiDirect GO is not found";
+      LOG(INFO) << "WifiDirect GO is not found";
       return false;
     }
 
@@ -460,15 +454,15 @@ bool WifiDirectMedium::ConnectWifiDirect(
 
     if (connect_result == nullptr ||
         connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-      NEARBY_LOGS(INFO) << "Connecting failed with reason: "
-                        << static_cast<int>(connect_result.ConnectionStatus());
+      LOG(INFO) << "Connecting failed with reason: "
+                << static_cast<int>(connect_result.ConnectionStatus());
       return false;
     }
 
     // Make sure IP address is ready.
     std::string ip_address;
     for (int i = 0; i < kIpAddressMaxRetries; i++) {
-      NEARBY_LOGS(INFO) << "Check IP address at attempt " << i;
+      LOG(INFO) << "Check IP address at attempt " << i;
       std::vector<std::string> ip_addresses = GetIpv4Addresses();
       if (ip_addresses.empty()) {
         Sleep(kIpAddressRetryIntervalMillis / absl::Milliseconds(1));
@@ -479,28 +473,26 @@ bool WifiDirectMedium::ConnectWifiDirect(
     }
 
     if (ip_address.empty()) {
-      NEARBY_LOGS(INFO) << "Failed to get IP address from WifiDirect GO.";
+      LOG(INFO) << "Failed to get IP address from WifiDirect GO.";
       return false;
     }
 
-    NEARBY_LOGS(INFO) << "Got IP: " << ip_address << " from WifiDirect GO.";
+    LOG(INFO) << "Got IP: " << ip_address << " from WifiDirect GO.";
 
     std::string last_ssid = wifi_direct_credentials->GetSSID();
     medium_status_ |= kMediumStatusConnected;
-    NEARBY_LOGS(INFO) << "Connected to WifiDirect GO: " << last_ssid;
+    LOG(INFO) << "Connected to WifiDirect GO: " << last_ssid;
 
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot connet to WifiDirect GO. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Cannot connet to WifiDirect GO. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot connet to WifiDirect GO.  WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__
+               << ": Cannot connet to WifiDirect GO.  WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -520,15 +512,15 @@ void WifiDirectMedium::RestoreWifiConnection() {
           profile.WlanConnectionProfileDetails().GetConnectedSsid());
       if (!ssid.empty() &&
           (winrt::to_string(wifi_connected_network_.Ssid()) == ssid)) {
-        NEARBY_LOGS(INFO) << "Already conneted to the previous WIFI network "
-                          << ssid << "! Skip restoration.";
+        LOG(INFO) << "Already conneted to the previous WIFI network " << ssid
+                  << "! Skip restoration.";
         return;
       }
     }
 
     // Disconnect to the WiFi connection through the WiFi adapter.
     wifi_adapter_.Disconnect();
-    NEARBY_LOGS(INFO) << "Disconnected to current network.";
+    LOG(INFO) << "Disconnected to current network.";
 
     auto connect_result = wifi_adapter_
                               .ConnectAsync(wifi_connected_network_,
@@ -537,11 +529,11 @@ void WifiDirectMedium::RestoreWifiConnection() {
 
     if (connect_result == nullptr ||
         connect_result.ConnectionStatus() != WiFiConnectionStatus::Success) {
-      NEARBY_LOGS(INFO) << "Connecting to previous network failed with reason: "
-                        << static_cast<int>(connect_result.ConnectionStatus());
+      LOG(INFO) << "Connecting to previous network failed with reason: "
+                << static_cast<int>(connect_result.ConnectionStatus());
     } else {
-      NEARBY_LOGS(INFO) << "Restored the previous WIFI connection: "
-                        << winrt::to_string(wifi_connected_network_.Ssid());
+      LOG(INFO) << "Restored the previous WIFI connection: "
+                << winrt::to_string(wifi_connected_network_.Ssid());
     }
     wifi_connected_network_ = nullptr;
   }
@@ -552,23 +544,21 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
   try {
     return InternalDisconnectWifiDirect();
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Disconnect WifiDirect GO failed. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Disconnect WifiDirect GO failed. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Disconnect WifiDirect GO failed. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__
+               << ": Disconnect WifiDirect GO failed. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exception.";
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
 
 bool WifiDirectMedium::InternalDisconnectWifiDirect() {
   if (!IsConnected()) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << "Cannot disconnect WifiDirect GO because it is not connected.";
     return true;
   }
@@ -591,23 +581,19 @@ bool WifiDirectMedium::InternalDisconnectWifiDirect() {
       auto profile_delete_status = profile.TryDeleteAsync().get();
       switch (profile_delete_status) {
         case ConnectionProfileDeleteStatus::Success:
-          NEARBY_LOGS(INFO)
-              << "WiFi profile with SSID:" << ssid << " is deleted.";
+          LOG(INFO) << "WiFi profile with SSID:" << ssid << " is deleted.";
           break;
         case ConnectionProfileDeleteStatus::DeniedBySystem:
-          NEARBY_LOGS(ERROR)
-              << "Failed to delete WiFi profile with SSID:" << ssid
-              << " due to denied by system.";
+          LOG(ERROR) << "Failed to delete WiFi profile with SSID:" << ssid
+                     << " due to denied by system.";
           break;
         case ConnectionProfileDeleteStatus::DeniedByUser:
-          NEARBY_LOGS(ERROR)
-              << "Failed to delete WiFi profile with SSID:" << ssid
-              << " due to denied by user.";
+          LOG(ERROR) << "Failed to delete WiFi profile with SSID:" << ssid
+                     << " due to denied by user.";
           break;
         case ConnectionProfileDeleteStatus::UnknownError:
-          NEARBY_LOGS(ERROR)
-              << "Failed to delete WiFi profile with SSID:" << ssid
-              << " due to unknonw error.";
+          LOG(ERROR) << "Failed to delete WiFi profile with SSID:" << ssid
+                     << " due to unknonw error.";
           break;
         default:
           break;

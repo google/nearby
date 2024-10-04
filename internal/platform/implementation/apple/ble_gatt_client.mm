@@ -127,8 +127,9 @@ bool GattClient::SetCharacteristicSubscription(
   return false;
 }
 
-// TODO(b/290385712): Implement.
-void GattClient::Disconnect() {}
+void GattClient::Disconnect() {
+  [gatt_client_ disconnect];
+}
 
 }  // namespace apple
 }  // namespace nearby

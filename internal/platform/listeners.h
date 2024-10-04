@@ -15,6 +15,7 @@
 #ifndef PLATFORM_BASE_LISTENERS_H_
 #define PLATFORM_BASE_LISTENERS_H_
 
+#include <functional>
 #include "absl/functional/any_invocable.h"
 
 namespace nearby {

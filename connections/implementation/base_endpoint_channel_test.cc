@@ -58,7 +58,7 @@ class TestEndpointChannel : public BaseEndpointChannel {
 
   using BaseEndpointChannel::EncodeMessageForTests;
 
-  MOCK_METHOD(Medium, GetMedium, (), (const override));
+  MOCK_METHOD(Medium, GetMedium, (), (const, override));
   MOCK_METHOD(void, CloseImpl, (), (override));
 };
 

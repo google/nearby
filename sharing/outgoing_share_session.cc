@@ -29,6 +29,7 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
+#include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
@@ -95,6 +96,14 @@ bool OutgoingShareSession::OnNewConnection(NearbyConnection* connection) {
   set_disconnect_status(TransferMetadata::Status::kFailed);
   return true;
 }
+
+void OutgoingShareSession::OnConnectionDisconnected() {
+  if (pending_complete_metadata_.has_value()) {
+    UpdateTransferMetadata(*pending_complete_metadata_);
+    pending_complete_metadata_.reset();
+  }
+}
+
 
 std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths()
     const {
@@ -305,6 +314,10 @@ void OutgoingShareSession::SendAllPayloads(
     connections_manager()->Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
+  for (auto& payload : ExtractWifiCredentialsPayloads()) {
+    connections_manager()->Send(
+        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
+  }
 }
 
 void OutgoingShareSession::InitSendPayload(
@@ -413,6 +426,10 @@ std::vector<Payload> OutgoingShareSession::ExtractFilePayloads() {
   return std::move(file_payloads_);
 }
 
+std::vector<Payload> OutgoingShareSession::ExtractWifiCredentialsPayloads() {
+  return std::move(wifi_credentials_payloads_);
+}
+
 std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {
   if (!text_payloads_.empty()) {
     Payload payload = text_payloads_.back();
@@ -435,4 +452,36 @@ std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {
   return std::nullopt;
 }
 
+void OutgoingShareSession::DelayCompleteMetadata(
+    const TransferMetadata& complete_metadata) {
+  LOG(INFO)
+      << "Delay complete notification until receiver disconnects for target "
+      << share_target().id;
+  pending_complete_metadata_ = complete_metadata;
+  // Change kComplete status to kInProgress and update clients.
+  TransferMetadataBuilder builder =
+      TransferMetadataBuilder::Clone(complete_metadata);
+  builder.set_status(TransferMetadata::Status::kInProgress);
+  UpdateTransferMetadata(builder.build());
+}
+
+void OutgoingShareSession::DisconnectionTimeout() {
+  VLOG(1) << "Disconnection delay timeed out for target " << share_target().id;
+  pending_complete_metadata_.reset();
+  Disconnect();
+}
+
+void OutgoingShareSession::UpdateSessionForDedup(
+    const ShareTarget& share_target,
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+    absl::string_view endpoint_id) {
+  if (IsConnected()) return;
+  set_share_target(share_target);
+  set_endpoint_id(endpoint_id);
+  if (certificate.has_value()) {
+    set_certificate(std::move(certificate.value()));
+  } else {
+    clear_certificate();
+  }
+}
 }  // namespace nearby::sharing

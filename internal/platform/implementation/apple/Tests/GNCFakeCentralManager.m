@@ -56,6 +56,10 @@
   [centralDelegate gnc_centralManager:self didConnectPeripheral:peripheral];
 }
 
+- (void)cancelPeripheralConnection:(id<GNCPeripheral>)peripheral {
+  [centralDelegate gnc_centralManager:self didDisconnectPeripheral:peripheral error:nil];
+}
+
 - (void)stopScan {
 }
 

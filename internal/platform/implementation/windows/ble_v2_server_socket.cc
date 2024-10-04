@@ -18,10 +18,11 @@
 #include <exception>
 #include <memory>
 
-#include "absl/log/check.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_v2_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -37,7 +38,7 @@ BleV2ServerSocket::BleV2ServerSocket(api::BluetoothAdapter* adapter)
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
+  LOG(INFO) << __func__ << ": Accept is called.";
 
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
@@ -47,14 +48,14 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {
   BleV2Socket ble_socket = pending_sockets_.front();
   pending_sockets_.pop_front();
 
-  NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
+  LOG(INFO) << __func__ << ": Accepted a remote connection.";
   return std::make_unique<BleV2Socket>(ble_socket);
 }
 
 Exception BleV2ServerSocket::Close() {
   // TODO(b/271031645): implement BLE socket using weave
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
+  LOG(INFO) << __func__ << ": Close is called.";
 
   if (closed_) {
     return {Exception::kSuccess};
@@ -68,7 +69,7 @@ Exception BleV2ServerSocket::Close() {
 
 bool BleV2ServerSocket::Bind() {
   // TODO(b/271031645): implement BLE socket using weave
-  NEARBY_LOGS(ERROR) << __func__ << ": GATT socket started.";
+  LOG(ERROR) << __func__ << ": GATT socket started.";
   return true;
 }
 

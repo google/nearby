@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "gmock/gmock.h"
-#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -36,7 +35,6 @@
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/system_info.h"
 #include "sharing/internal/api/wifi_adapter.h"
 
@@ -69,22 +67,10 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(nearby::sharing::api::WifiAdapter&, GetWifiAdapter, (),
               (override));
 
-  MOCK_METHOD(void, LaunchDefaultBrowserFromURL,
-              (absl::string_view url,
-               std::function<void(absl::Status)> callback),
-              (override));
-
-  MOCK_METHOD(nearby::api::Shell&, GetShell, (), (override));
-
   MOCK_METHOD(nearby::api::FastInitBleBeacon&, GetFastInitBleBeacon, (),
               (override));
 
   MOCK_METHOD(nearby::api::FastInitiationManager&, GetFastInitiationManager, (),
-              (override));
-
-  MOCK_METHOD(void, CopyText,
-              (absl::string_view text,
-               std::function<void(absl::Status)> callback),
               (override));
 
   MOCK_METHOD(std::unique_ptr<nearby::api::SystemInfo>, CreateSystemInfo, (),

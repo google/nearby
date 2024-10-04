@@ -135,6 +135,7 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
+        "//internal/platform/implementation:wifi_utils",
         "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",

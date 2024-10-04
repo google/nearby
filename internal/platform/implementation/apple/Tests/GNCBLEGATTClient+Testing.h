@@ -31,9 +31,12 @@ NS_ASSUME_NONNULL_BEGIN
  * @param peripheral The peripheral instance.
  * @param queue The queue to run on, this must match the queue that the peripheral's delegate is
  *              running on. Defaults to the main queue when @c nil.
+ * @param requestDisconnectionHandler Called on a private queue with @c peripheral when the
+ *                                    connection to the peripheral should be cancelled.
  */
 - (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
-                             queue:(nullable dispatch_queue_t)queue;
+                             queue:(nullable dispatch_queue_t)queue
+       requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
 
 @end
 

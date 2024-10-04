@@ -19,6 +19,7 @@
 #import <XCTest/XCTest.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Tests/GNCBLEGATTClient+Testing.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakePeripheral.h"
 
@@ -37,8 +38,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testDiscoverCharacteristics {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -64,8 +68,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 
   fakePeripheral.discoverServicesError = [NSError errorWithDomain:@"fake" code:0 userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -97,8 +104,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                                               code:0
                                                                           userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -123,8 +133,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testDuplicateDiscoverCharacteristics {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -163,8 +176,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testDiscoverCharacteristicsMultipleCallsWithDifferentServices {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID1 = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *serviceUUID2 = [CBUUID UUIDWithString:kServiceUUID2];
@@ -209,8 +225,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testDiscoverCharacteristicsMultipleCallsWithDifferentCharacteristics {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID1 = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -256,8 +275,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testGetCharacteristic {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -287,8 +309,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 
   fakePeripheral.discoverServicesError = [NSError errorWithDomain:@"fake" code:0 userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -324,8 +349,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                                               code:0
                                                                           userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -353,8 +381,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testDuplicateGetCharacteristic {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -400,8 +431,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testGetNonExistentCharacteristic {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -425,8 +459,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testReadValueForCharacteristic {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -461,8 +498,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 
   fakePeripheral.discoverServicesError = [NSError errorWithDomain:@"fake" code:0 userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -503,8 +543,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                                               code:0
                                                                           userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -541,8 +584,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                                        code:0
                                                                    userInfo:nil];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -576,8 +622,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testDuplicateReadValueForCharacteristic {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -630,8 +679,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testReadValueForMultipleCharacteristics {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID1 = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -691,8 +743,11 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
 - (void)testReadValueForUndiscoveredCharacteristic {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];
@@ -714,13 +769,33 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   [self waitForExpectations:@[ expectation ] timeout:3];
 }
 
+- (void)testDisconnect {
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  XCTestExpectation *expectation = [[XCTestExpectation alloc] initWithDescription:@"Disconnect."];
+
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> peripheral) {
+                         XCTAssertNotNil(peripheral);
+                         [expectation fulfill];
+                       }];
+
+  [gattClient disconnect];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+}
+
 #pragma mark - Delegate Calls
 
 - (void)testUnexpectedDelegateCalls {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
-  GNCBLEGATTClient *gattClient = [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
-                                                                        queue:nil];
+  GNCBLEGATTClient *gattClient =
+      [[GNCBLEGATTClient alloc] initWithPeripheral:fakePeripheral
+                                             queue:nil
+                       requestDisconnectionHandler:^(id<GNCPeripheral> __unused peripheral){
+                       }];
 
   CBUUID *serviceUUID = [CBUUID UUIDWithString:kServiceUUID1];
   CBUUID *characteristicUUID = [CBUUID UUIDWithString:kCharacteristicUUID1];

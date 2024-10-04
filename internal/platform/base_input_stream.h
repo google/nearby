@@ -15,6 +15,10 @@
 #ifndef PLATFORM_BASE_BASE_INPUT_STREAM_H_
 #define PLATFORM_BASE_BASE_INPUT_STREAM_H_
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"

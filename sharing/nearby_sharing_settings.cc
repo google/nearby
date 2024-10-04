@@ -267,6 +267,7 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
              << ", expiration=" << expiration;
   visibility_expiration_timer_.reset();
 
+  SetFallbackVisibility(last_visibility);
   absl::Time now = clock_->Now();
   if (expiration != absl::ZeroDuration()) {
     NL_VLOG(1) << __func__ << ": temporary visibility timer starts.";
@@ -274,16 +275,8 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
     preference_manager_.SetInteger(
         prefs::kNearbySharingBackgroundVisibilityExpirationSeconds,
         absl::ToUnixSeconds(fallback_visibility_timestamp));
-    SetFallbackVisibility(last_visibility);
     StartVisibilityTimer(expiration);
   } else {
-    // Since our UI provides the option to go back to temporary everyone mode,
-    // we should only clear the fallback visibility when we are not in everyone
-    // mode. Once we fall back to a non-everyone mode visibility, we should
-    // clear the fallback visibility.
-    if (visibility != DeviceVisibility::DEVICE_VISIBILITY_EVERYONE) {
-      SetFallbackVisibility(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
-    }
     preference_manager_.SetInteger(
         prefs::kNearbySharingBackgroundVisibilityExpirationSeconds, 0);
   }

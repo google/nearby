@@ -77,7 +77,7 @@ TEST(ConditionVariableTest, WaitTerminatesOnTimeoutWithoutNotify) {
                                            start - kWaitTime);
 
   // Windows cannot guarantee the exact time of the timeout.
-  EXPECT_GE(bias, -15);
+  EXPECT_GE(bias, -100);
 }
 
 }  // namespace

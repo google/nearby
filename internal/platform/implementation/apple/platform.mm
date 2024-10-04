@@ -26,7 +26,6 @@
 #include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
-#import "internal/platform/implementation/apple/log_message.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
 #include "internal/platform/implementation/apple/preferences_manager.h"
@@ -133,11 +132,6 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId p
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const std::string& file_path) {
   return shared::IOFile::CreateOutputFile(file_path);
-}
-
-std::unique_ptr<LogMessage> ImplementationPlatform::CreateLogMessage(
-    const char* file, int line, LogMessage::Severity severity) {
-  return std::make_unique<apple::LogMessage>(file, line, severity);
 }
 
 // Java-like Executors

@@ -14,8 +14,6 @@
 
 #include "sharing/nearby_connections_types.h"
 
-#include <filesystem>  // NOLINT
-
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
@@ -24,21 +22,14 @@ namespace nearby::sharing {
 using ::testing::Eq;
 
 TEST(NearbyConnectionSharingTypesPayloadTest, FromInputFileUTF8) {
-  InputFile input_file(std::filesystem::u8path("/为甚么/tmp/test.txt"));
-  Payload payload(input_file);
-  EXPECT_THAT(payload.id, Eq(7724502655048749887LL));
-  EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kFile));
-}
-
-TEST(NearbyConnectionSharingTypesPayloadTest, FromInputFileUTF16) {
-  InputFile input_file(std::filesystem::path(L"/为甚么/tmp/test.txt"));
+  InputFile input_file("/为甚么/tmp/test.txt");
   Payload payload(input_file);
   EXPECT_THAT(payload.id, Eq(7724502655048749887LL));
   EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kFile));
 }
 
 TEST(NearbyConnectionSharingTypesPayloadTest, FromInputFileWithId) {
-  InputFile input_file(std::filesystem::u8path("/为甚么/tmp/test.txt"));
+  InputFile input_file("/为甚么/tmp/test.txt");
   Payload payload(1234, input_file);
   EXPECT_THAT(payload.id, Eq(1234LL));
   EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kFile));

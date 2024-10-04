@@ -20,9 +20,14 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "internal/account/account_manager_impl.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
+#include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
+#include "webrtc/rtc_base/thread.h"
 
 namespace nearby {
 namespace windows {
@@ -54,13 +59,13 @@ const std::string WebRtcMedium::GetDefaultCountryCode() {
   wchar_t systemGeoName[LOCALE_NAME_MAX_LENGTH];
 
   if (!GetUserDefaultGeoName(systemGeoName, LOCALE_NAME_MAX_LENGTH)) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to GetUserDefaultGeoName: "
-                       << ". Fall back to US.";
+    LOG(ERROR) << __func__
+               << ": Failed to GetUserDefaultGeoName: " << ". Fall back to US.";
     return "US";
   }
   std::wstring wideGeo(systemGeoName);
   std::string systemGeoNameString(wideGeo.begin(), wideGeo.end());
-  NEARBY_VLOG(1) << "GetUserDefaultGeoName() returns: " << systemGeoNameString;
+  VLOG(1) << "GetUserDefaultGeoName() returns: " << systemGeoNameString;
   return systemGeoNameString;
 }
 
@@ -80,7 +85,7 @@ void WebRtcMedium::CreatePeerConnection(
   std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
   signaling_thread->SetName("signaling_thread", nullptr);
   if (!signaling_thread->Start()) {
-    NEARBY_LOGS(FATAL) << "Failed to start thread";
+    LOG(FATAL) << "Failed to start thread";
   }
 
   webrtc::PeerConnectionDependencies dependencies(observer);
@@ -97,7 +102,7 @@ void WebRtcMedium::CreatePeerConnection(
   if (peer_connection_or_error.ok()) {
     callback(peer_connection_or_error.MoveValue());
   } else {
-    NEARBY_LOGS(FATAL) << "Failed to create peer connection";
+    LOG(FATAL) << "Failed to create peer connection";
     callback(/*peer_connection=*/nullptr);
   }
 }

@@ -139,6 +139,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
 
   {
     MutexLock crypto_lock(&crypto_mutex_);
+    Exception message_exception{Exception::kInvalidProtocolBuffer};
     if (IsEncryptionEnabledLocked()) {
       // If encryption is enabled, decode the message.
       std::string input(std::move(result));
@@ -169,6 +170,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
                 << parser::GetFrameType(parsed.result());
           }
         } else {
+          message_exception.value = parsed.exception();
           NEARBY_LOGS(WARNING)
               << __func__ << ": Unable to parse data as unencrypted message.";
         }
@@ -176,7 +178,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
       packet_meta_data.StopEncryption();
       if (result.Empty()) {
         NEARBY_LOGS(WARNING) << __func__ << ": Unable to parse read result.";
-        return ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer);
+        return ExceptionOr<ByteArray>(message_exception);
       }
     }
   }

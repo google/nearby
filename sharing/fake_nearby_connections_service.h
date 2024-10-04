@@ -110,7 +110,7 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
                std::function<void(Status status)> callback),
               (override));
 
-  MOCK_METHOD(std::string, Dump, (), (const override));
+  MOCK_METHOD(std::string, Dump, (), (const, override));
 };
 
 }  // namespace sharing

@@ -245,7 +245,13 @@ static NSError *AlreadyScanningError() {
   GNCGATTConnectionCompletionHandler handler = _connectionCompletionHandlers[peripheral.identifier];
   _connectionCompletionHandlers[peripheral.identifier] = nil;
   if (handler) {
-    GNCBLEGATTClient *client = [[GNCBLEGATTClient alloc] initWithPeripheral:peripheral];
+    GNCBLEGATTClient *client =
+        [[GNCBLEGATTClient alloc] initWithPeripheral:peripheral
+                         requestDisconnectionHandler:^(id<GNCPeripheral> peripheral) {
+                           dispatch_async(_queue, ^{
+                             [_centralManager cancelPeripheralConnection:peripheral];
+                           });
+                         }];
     handler(client, nil);
   }
 }

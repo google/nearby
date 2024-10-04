@@ -28,6 +28,7 @@ namespace sharing {
 // notifications so additions should be explicitly handled on the frontend.
 class TransferMetadata {
  public:
+  // LINT.IfChange()
   enum class Status {
     kUnknown,
     kConnecting,
@@ -46,6 +47,7 @@ class TransferMetadata {
     kIncompletePayloads,
     kMaxValue = kIncompletePayloads
   };
+  // LINT.ThenChange(//depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/transfer_status.dart)
 
   static bool IsFinalStatus(Status status);
   static std::string StatusToString(TransferMetadata::Status status);

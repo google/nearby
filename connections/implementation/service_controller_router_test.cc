@@ -59,10 +59,10 @@ class FakeNearbyDevice : public NearbyDevice {
   NearbyDevice::Type GetType() const override {
     return NearbyDevice::Type::kUnknownDevice;
   }
-  MOCK_METHOD(std::string, GetEndpointId, (), (const override));
+  MOCK_METHOD(std::string, GetEndpointId, (), (const, override));
   MOCK_METHOD(std::vector<ConnectionInfoVariant>, GetConnectionInfos, (),
-              (const override));
-  MOCK_METHOD(std::string, ToProtoBytes, (), (const override));
+              (const, override));
+  MOCK_METHOD(std::string, ToProtoBytes, (), (const, override));
 };
 
 // This class must be in the same namespace as ServiceControllerRouter for

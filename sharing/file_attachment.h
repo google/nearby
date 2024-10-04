@@ -36,6 +36,7 @@ class FileAttachment : public Attachment {
   using Type = nearby::sharing::service::proto::FileMetadata::Type;
 
   explicit FileAttachment(std::filesystem::path file_path,
+                          absl::string_view mime_type = "",
                           std::string parent_folder = "", int32_t batch_id = 0,
                           SourceType source_type = SourceType::kUnknown);
   FileAttachment(int64_t id, int64_t size, std::string file_name,

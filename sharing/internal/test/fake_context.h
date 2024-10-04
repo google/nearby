@@ -20,23 +20,18 @@
 #include <functional>
 #include <memory>
 
-#include "absl/status/status.h"
-#include "absl/strings/string_view.h"
-#include "internal/network/url.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "internal/test/fake_clock.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
-#include "sharing/internal/api/shell.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/test/fake_bluetooth_adapter.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_fast_initiation_manager.h"
-#include "sharing/internal/test/fake_shell.h"
 #include "sharing/internal/test/fake_wifi_adapter.h"
 
 namespace nearby {
@@ -48,8 +43,6 @@ class FakeContext : public Context {
 
   Clock* GetClock() const override;
   std::unique_ptr<Timer> CreateTimer() override;
-  void OpenUrl(const nearby::network::Url& url,
-               std::function<void(absl::Status)> callback) override;
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
   sharing::api::WifiAdapter& GetWifiAdapter() const override;
@@ -57,9 +50,6 @@ class FakeContext : public Context {
   std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
       uint32_t concurrent_count) const override;
-  api::Shell& GetShell() const override;
-  void CopyText(absl::string_view text,
-                std::function<void(absl::Status)> callback) override;
   TaskRunner* GetTaskRunner() override;
 
   FakeClock* fake_clock() const { return fake_clock_.get(); }
@@ -75,7 +65,6 @@ class FakeContext : public Context {
   FakeFastInitiationManager* fake_fast_initiation_manager() const {
     return fake_fast_initiation_manager_.get();
   }
-  FakeShell* fake_shell() const { return fake_shell_.get(); }
 
  private:
   std::unique_ptr<FakeClock> fake_clock_;
@@ -83,7 +72,6 @@ class FakeContext : public Context {
   std::unique_ptr<FakeBluetoothAdapter> fake_bluetooth_adapter_;
   std::unique_ptr<FakeWifiAdapter> fake_wifi_adapter_;
   std::unique_ptr<FakeFastInitiationManager> fake_fast_initiation_manager_;
-  std::unique_ptr<FakeShell> fake_shell_;
   std::unique_ptr<TaskRunner> executor_;
 };
 

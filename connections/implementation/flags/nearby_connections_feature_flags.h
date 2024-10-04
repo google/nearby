@@ -62,7 +62,9 @@ constexpr auto kEnableSafeToDisconnect =
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);
-// Enable/Disable payload-received-ack feature.
+// Set the safe-to-disconnect version.
+// Enable 1. safe-to-disconnect check 2. reserved 3. auto-reconnect 4.
+// auto-resume 5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 // When true, use stable endpoint ID.
