@@ -102,6 +102,8 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
       const std::filesystem::path& path);
   void OnPayloadTransferUpdateForTesting(absl::string_view endpoint_id,
                                          const PayloadTransferUpdate& update);
+  void OnPayloadReceivedForTesting(absl::string_view endpoint_id,
+                                   Payload& payload);
 
  private:
   // EndpointDiscoveryListener:
@@ -127,6 +129,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void ProcessUnknownFilePathsToDelete(PayloadStatus status,
                                        PayloadContent::Type type,
                                        const std::filesystem::path& path);
+  void DeleteUnknownFilePayloadAndCancel(Payload& payload);
   absl::flat_hash_set<std::filesystem::path> GetUnknownFilePathsToDelete();
 
   std::optional<std::weak_ptr<PayloadStatusListener>> GetStatusListenerForId(

@@ -32,6 +32,9 @@ namespace nearby_sharing_feature {
 // Time to delay the endpoint loss in milliseconds.
 constexpr auto kDelayEndpointLossMs =
     flags::Flag<int64_t>(kConfigPackage, "45632386", 500);
+// When true, delete the file payload which received unexpectedly.
+constexpr auto kDeleteUnexpectedReceivedFileFix =
+    flags::Flag<bool>(kConfigPackage, "45657036", false);
 // Enable/disable the use of BLE as a connection medium.
 constexpr auto kEnableBleForTransfer =
     flags::Flag<bool>(kConfigPackage, "45427466", false);
@@ -88,6 +91,7 @@ constexpr auto kUpdateTrack =
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
+      {45657036, kDeleteUnexpectedReceivedFileFix},
       {45427466, kEnableBleForTransfer},
       {45409184, kEnableCertificatesDump},
       {45418905, kEnableMediumWebRtc},
