@@ -47,7 +47,7 @@ struct TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[18]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[19]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -99,6 +99,9 @@ extern ConnectionsLog_EstablishedConnectionDefaultTypeInternal _ConnectionsLog_E
 class ConnectionsLog_OperationResult;
 struct ConnectionsLog_OperationResultDefaultTypeInternal;
 extern ConnectionsLog_OperationResultDefaultTypeInternal _ConnectionsLog_OperationResult_default_instance_;
+class ConnectionsLog_OperationResultWithMedium;
+struct ConnectionsLog_OperationResultWithMediumDefaultTypeInternal;
+extern ConnectionsLog_OperationResultWithMediumDefaultTypeInternal _ConnectionsLog_OperationResultWithMedium_default_instance_;
 class ConnectionsLog_Payload;
 struct ConnectionsLog_PayloadDefaultTypeInternal;
 extern ConnectionsLog_PayloadDefaultTypeInternal _ConnectionsLog_Payload_default_instance_;
@@ -130,6 +133,7 @@ template<> ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryPhase* 
 template<> ::location::nearby::analytics::proto::ConnectionsLog_ErrorCode* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_ErrorCode>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>(Arena*);
+template<> ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_Payload* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_Payload>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_RawUwbRangingEvent* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_RawUwbRangingEvent>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_StrategySession* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_StrategySession>(Arena*);
@@ -516,6 +520,208 @@ class ConnectionsLog_OperationResult final :
 };
 // -------------------------------------------------------------------
 
+class ConnectionsLog_OperationResultWithMedium final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium) */ {
+ public:
+  inline ConnectionsLog_OperationResultWithMedium() : ConnectionsLog_OperationResultWithMedium(nullptr) {}
+  ~ConnectionsLog_OperationResultWithMedium() override;
+  explicit constexpr ConnectionsLog_OperationResultWithMedium(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ConnectionsLog_OperationResultWithMedium(const ConnectionsLog_OperationResultWithMedium& from);
+  ConnectionsLog_OperationResultWithMedium(ConnectionsLog_OperationResultWithMedium&& from) noexcept
+    : ConnectionsLog_OperationResultWithMedium() {
+    *this = ::std::move(from);
+  }
+
+  inline ConnectionsLog_OperationResultWithMedium& operator=(const ConnectionsLog_OperationResultWithMedium& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ConnectionsLog_OperationResultWithMedium& operator=(ConnectionsLog_OperationResultWithMedium&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const ConnectionsLog_OperationResultWithMedium& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ConnectionsLog_OperationResultWithMedium* internal_default_instance() {
+    return reinterpret_cast<const ConnectionsLog_OperationResultWithMedium*>(
+               &_ConnectionsLog_OperationResultWithMedium_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(ConnectionsLog_OperationResultWithMedium& a, ConnectionsLog_OperationResultWithMedium& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ConnectionsLog_OperationResultWithMedium* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ConnectionsLog_OperationResultWithMedium* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ConnectionsLog_OperationResultWithMedium* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ConnectionsLog_OperationResultWithMedium>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const ConnectionsLog_OperationResultWithMedium& from);
+  void MergeFrom(const ConnectionsLog_OperationResultWithMedium& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(ConnectionsLog_OperationResultWithMedium* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium";
+  }
+  protected:
+  explicit ConnectionsLog_OperationResultWithMedium(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMediumFieldNumber = 1,
+    kUpdateIndexFieldNumber = 2,
+    kResultCategoryFieldNumber = 3,
+    kResultCodeFieldNumber = 4,
+    kConnectionModeFieldNumber = 5,
+  };
+  // optional .location.nearby.proto.connections.Medium medium = 1;
+  bool has_medium() const;
+  private:
+  bool _internal_has_medium() const;
+  public:
+  void clear_medium();
+  ::location::nearby::proto::connections::Medium medium() const;
+  void set_medium(::location::nearby::proto::connections::Medium value);
+  private:
+  ::location::nearby::proto::connections::Medium _internal_medium() const;
+  void _internal_set_medium(::location::nearby::proto::connections::Medium value);
+  public:
+
+  // optional int32 update_index = 2;
+  bool has_update_index() const;
+  private:
+  bool _internal_has_update_index() const;
+  public:
+  void clear_update_index();
+  int32_t update_index() const;
+  void set_update_index(int32_t value);
+  private:
+  int32_t _internal_update_index() const;
+  void _internal_set_update_index(int32_t value);
+  public:
+
+  // optional .location.nearby.proto.connections.OperationResultCategory result_category = 3;
+  bool has_result_category() const;
+  private:
+  bool _internal_has_result_category() const;
+  public:
+  void clear_result_category();
+  ::location::nearby::proto::connections::OperationResultCategory result_category() const;
+  void set_result_category(::location::nearby::proto::connections::OperationResultCategory value);
+  private:
+  ::location::nearby::proto::connections::OperationResultCategory _internal_result_category() const;
+  void _internal_set_result_category(::location::nearby::proto::connections::OperationResultCategory value);
+  public:
+
+  // optional .location.nearby.proto.connections.OperationResultCode result_code = 4;
+  bool has_result_code() const;
+  private:
+  bool _internal_has_result_code() const;
+  public:
+  void clear_result_code();
+  ::location::nearby::proto::connections::OperationResultCode result_code() const;
+  void set_result_code(::location::nearby::proto::connections::OperationResultCode value);
+  private:
+  ::location::nearby::proto::connections::OperationResultCode _internal_result_code() const;
+  void _internal_set_result_code(::location::nearby::proto::connections::OperationResultCode value);
+  public:
+
+  // optional .location.nearby.proto.connections.ConnectionMode connection_mode = 5;
+  bool has_connection_mode() const;
+  private:
+  bool _internal_has_connection_mode() const;
+  public:
+  void clear_connection_mode();
+  ::location::nearby::proto::connections::ConnectionMode connection_mode() const;
+  void set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  private:
+  ::location::nearby::proto::connections::ConnectionMode _internal_connection_mode() const;
+  void _internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  int medium_;
+  int32_t update_index_;
+  int result_category_;
+  int result_code_;
+  int connection_mode_;
+  friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
+};
+// -------------------------------------------------------------------
+
 class ConnectionsLog_StrategySession final :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.analytics.proto.ConnectionsLog.StrategySession) */ {
  public:
@@ -562,7 +768,7 @@ class ConnectionsLog_StrategySession final :
                &_ConnectionsLog_StrategySession_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    3;
 
   friend void swap(ConnectionsLog_StrategySession& a, ConnectionsLog_StrategySession& b) {
     a.Swap(&b);
@@ -858,7 +1064,7 @@ class ConnectionsLog_DiscoveryPhase final :
                &_ConnectionsLog_DiscoveryPhase_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   friend void swap(ConnectionsLog_DiscoveryPhase& a, ConnectionsLog_DiscoveryPhase& b) {
     a.Swap(&b);
@@ -929,9 +1135,11 @@ class ConnectionsLog_DiscoveryPhase final :
     kDiscoveredEndpointFieldNumber = 3,
     kSentConnectionRequestFieldNumber = 4,
     kUwbRangingFieldNumber = 5,
+    kAdvDisResultFieldNumber = 8,
     kDiscoveryMetadataFieldNumber = 7,
     kDurationMillisFieldNumber = 1,
     kClientFlowIdFieldNumber = 6,
+    kStopReasonFieldNumber = 9,
   };
   // repeated .location.nearby.proto.connections.Medium medium = 2;
   int medium_size() const;
@@ -1004,6 +1212,24 @@ class ConnectionsLog_DiscoveryPhase final :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_UwbRangingProcess >&
       uwb_ranging() const;
 
+  // repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 8;
+  int adv_dis_result_size() const;
+  private:
+  int _internal_adv_dis_result_size() const;
+  public:
+  void clear_adv_dis_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* mutable_adv_dis_result(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+      mutable_adv_dis_result();
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& _internal_adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _internal_add_adv_dis_result();
+  public:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* add_adv_dis_result();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+      adv_dis_result() const;
+
   // optional .location.nearby.analytics.proto.ConnectionsLog.DiscoveryMetadata discovery_metadata = 7;
   bool has_discovery_metadata() const;
   private:
@@ -1048,6 +1274,19 @@ class ConnectionsLog_DiscoveryPhase final :
   void _internal_set_client_flow_id(int64_t value);
   public:
 
+  // optional .location.nearby.proto.connections.StopDiscoveringReason stop_reason = 9;
+  bool has_stop_reason() const;
+  private:
+  bool _internal_has_stop_reason() const;
+  public:
+  void clear_stop_reason();
+  ::location::nearby::proto::connections::StopDiscoveringReason stop_reason() const;
+  void set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value);
+  private:
+  ::location::nearby::proto::connections::StopDiscoveringReason _internal_stop_reason() const;
+  void _internal_set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase)
  private:
   class _Internal;
@@ -1061,9 +1300,11 @@ class ConnectionsLog_DiscoveryPhase final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_DiscoveredEndpoint > discovered_endpoint_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest > sent_connection_request_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_UwbRangingProcess > uwb_ranging_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium > adv_dis_result_;
   ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadata* discovery_metadata_;
   int64_t duration_millis_;
   int64_t client_flow_id_;
+  int stop_reason_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -1114,7 +1355,7 @@ class ConnectionsLog_DiscoveredEndpoint final :
                &_ConnectionsLog_DiscoveredEndpoint_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    5;
 
   friend void swap(ConnectionsLog_DiscoveredEndpoint& a, ConnectionsLog_DiscoveredEndpoint& b) {
     a.Swap(&b);
@@ -1271,7 +1512,7 @@ class ConnectionsLog_UwbRangingProcess final :
                &_ConnectionsLog_UwbRangingProcess_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    6;
 
   friend void swap(ConnectionsLog_UwbRangingProcess& a, ConnectionsLog_UwbRangingProcess& b) {
     a.Swap(&b);
@@ -1568,7 +1809,7 @@ class ConnectionsLog_RawUwbRangingEvent final :
                &_ConnectionsLog_RawUwbRangingEvent_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   friend void swap(ConnectionsLog_RawUwbRangingEvent& a, ConnectionsLog_RawUwbRangingEvent& b) {
     a.Swap(&b);
@@ -1740,7 +1981,7 @@ class ConnectionsLog_AdvertisingPhase final :
                &_ConnectionsLog_AdvertisingPhase_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    8;
 
   friend void swap(ConnectionsLog_AdvertisingPhase& a, ConnectionsLog_AdvertisingPhase& b) {
     a.Swap(&b);
@@ -1809,9 +2050,11 @@ class ConnectionsLog_AdvertisingPhase final :
   enum : int {
     kMediumFieldNumber = 2,
     kReceivedConnectionRequestFieldNumber = 3,
+    kAdvDisResultFieldNumber = 6,
     kAdvertisingMetadataFieldNumber = 5,
     kDurationMillisFieldNumber = 1,
     kClientFlowIdFieldNumber = 4,
+    kStopReasonFieldNumber = 7,
   };
   // repeated .location.nearby.proto.connections.Medium medium = 2;
   int medium_size() const;
@@ -1847,6 +2090,24 @@ class ConnectionsLog_AdvertisingPhase final :
   ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest* add_received_connection_request();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest >&
       received_connection_request() const;
+
+  // repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 6;
+  int adv_dis_result_size() const;
+  private:
+  int _internal_adv_dis_result_size() const;
+  public:
+  void clear_adv_dis_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* mutable_adv_dis_result(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+      mutable_adv_dis_result();
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& _internal_adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _internal_add_adv_dis_result();
+  public:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* add_adv_dis_result();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+      adv_dis_result() const;
 
   // optional .location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata advertising_metadata = 5;
   bool has_advertising_metadata() const;
@@ -1892,6 +2153,19 @@ class ConnectionsLog_AdvertisingPhase final :
   void _internal_set_client_flow_id(int64_t value);
   public:
 
+  // optional .location.nearby.proto.connections.StopAdvertisingReason stop_reason = 7;
+  bool has_stop_reason() const;
+  private:
+  bool _internal_has_stop_reason() const;
+  public:
+  void clear_stop_reason();
+  ::location::nearby::proto::connections::StopAdvertisingReason stop_reason() const;
+  void set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value);
+  private:
+  ::location::nearby::proto::connections::StopAdvertisingReason _internal_stop_reason() const;
+  void _internal_set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase)
  private:
   class _Internal;
@@ -1903,9 +2177,11 @@ class ConnectionsLog_AdvertisingPhase final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> medium_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest > received_connection_request_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium > adv_dis_result_;
   ::location::nearby::analytics::proto::ConnectionsLog_AdvertisingMetadata* advertising_metadata_;
   int64_t duration_millis_;
   int64_t client_flow_id_;
+  int stop_reason_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -1956,7 +2232,7 @@ class ConnectionsLog_ConnectionRequest final :
                &_ConnectionsLog_ConnectionRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    9;
 
   friend void swap(ConnectionsLog_ConnectionRequest& a, ConnectionsLog_ConnectionRequest& b) {
     a.Swap(&b);
@@ -2158,7 +2434,7 @@ class ConnectionsLog_ConnectionAttempt final :
                &_ConnectionsLog_ConnectionAttempt_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    10;
 
   friend void swap(ConnectionsLog_ConnectionAttempt& a, ConnectionsLog_ConnectionAttempt& b) {
     a.Swap(&b);
@@ -2234,6 +2510,7 @@ class ConnectionsLog_ConnectionAttempt final :
     kMediumFieldNumber = 4,
     kAttemptResultFieldNumber = 5,
     kClientFlowIdFieldNumber = 6,
+    kConnectionModeFieldNumber = 10,
   };
   // optional string connection_token = 7;
   bool has_connection_token() const;
@@ -2367,6 +2644,19 @@ class ConnectionsLog_ConnectionAttempt final :
   void _internal_set_client_flow_id(int64_t value);
   public:
 
+  // optional .location.nearby.proto.connections.ConnectionMode connection_mode = 10;
+  bool has_connection_mode() const;
+  private:
+  bool _internal_has_connection_mode() const;
+  public:
+  void clear_connection_mode();
+  ::location::nearby::proto::connections::ConnectionMode connection_mode() const;
+  void set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  private:
+  ::location::nearby::proto::connections::ConnectionMode _internal_connection_mode() const;
+  void _internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt)
  private:
   class _Internal;
@@ -2385,6 +2675,7 @@ class ConnectionsLog_ConnectionAttempt final :
   int medium_;
   int attempt_result_;
   int64_t client_flow_id_;
+  int connection_mode_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2435,7 +2726,7 @@ class ConnectionsLog_EstablishedConnection final :
                &_ConnectionsLog_EstablishedConnection_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    11;
 
   friend void swap(ConnectionsLog_EstablishedConnection& a, ConnectionsLog_EstablishedConnection& b) {
     a.Swap(&b);
@@ -2760,7 +3051,7 @@ class ConnectionsLog_Payload final :
                &_ConnectionsLog_Payload_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    12;
 
   friend void swap(ConnectionsLog_Payload& a, ConnectionsLog_Payload& b) {
     a.Swap(&b);
@@ -2835,6 +3126,7 @@ class ConnectionsLog_Payload final :
     kNumBytesTransferredFieldNumber = 4,
     kStatusFieldNumber = 6,
     kNumSuccessfulAutoResumeFieldNumber = 7,
+    kNumFailedAutoResumeFieldNumber = 9,
   };
   // optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 8;
   bool has_operation_result() const;
@@ -2945,6 +3237,19 @@ class ConnectionsLog_Payload final :
   void _internal_set_num_successful_auto_resume(int32_t value);
   public:
 
+  // optional int32 num_failed_auto_resume = 9;
+  bool has_num_failed_auto_resume() const;
+  private:
+  bool _internal_has_num_failed_auto_resume() const;
+  public:
+  void clear_num_failed_auto_resume();
+  int32_t num_failed_auto_resume() const;
+  void set_num_failed_auto_resume(int32_t value);
+  private:
+  int32_t _internal_num_failed_auto_resume() const;
+  void _internal_set_num_failed_auto_resume(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.Payload)
  private:
   class _Internal;
@@ -2962,6 +3267,7 @@ class ConnectionsLog_Payload final :
   int64_t num_bytes_transferred_;
   int status_;
   int32_t num_successful_auto_resume_;
+  int32_t num_failed_auto_resume_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -3012,7 +3318,7 @@ class ConnectionsLog_BandwidthUpgradeAttempt final :
                &_ConnectionsLog_BandwidthUpgradeAttempt_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    13;
 
   friend void swap(ConnectionsLog_BandwidthUpgradeAttempt& a, ConnectionsLog_BandwidthUpgradeAttempt& b) {
     a.Swap(&b);
@@ -3302,7 +3608,7 @@ class ConnectionsLog_ErrorCode final :
                &_ConnectionsLog_ErrorCode_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    14;
 
   friend void swap(ConnectionsLog_ErrorCode& a, ConnectionsLog_ErrorCode& b) {
     a.Swap(&b);
@@ -3779,7 +4085,7 @@ class ConnectionsLog_AdvertisingMetadata final :
                &_ConnectionsLog_AdvertisingMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    15;
 
   friend void swap(ConnectionsLog_AdvertisingMetadata& a, ConnectionsLog_AdvertisingMetadata& b) {
     a.Swap(&b);
@@ -3851,6 +4157,8 @@ class ConnectionsLog_AdvertisingMetadata final :
     kSupportsNfcTechnologyFieldNumber = 3,
     kMultipleAdvertisementSupportedFieldNumber = 4,
     kSupportsDualBandFieldNumber = 6,
+    kSupportsWifiAwareFieldNumber = 7,
+    kEndpointInfoSizeFieldNumber = 8,
     kPowerLevelFieldNumber = 5,
   };
   // optional int32 connected_ap_frequency = 2;
@@ -3918,6 +4226,32 @@ class ConnectionsLog_AdvertisingMetadata final :
   void _internal_set_supports_dual_band(bool value);
   public:
 
+  // optional bool supports_wifi_aware = 7;
+  bool has_supports_wifi_aware() const;
+  private:
+  bool _internal_has_supports_wifi_aware() const;
+  public:
+  void clear_supports_wifi_aware();
+  bool supports_wifi_aware() const;
+  void set_supports_wifi_aware(bool value);
+  private:
+  bool _internal_supports_wifi_aware() const;
+  void _internal_set_supports_wifi_aware(bool value);
+  public:
+
+  // optional int32 endpoint_info_size = 8;
+  bool has_endpoint_info_size() const;
+  private:
+  bool _internal_has_endpoint_info_size() const;
+  public:
+  void clear_endpoint_info_size();
+  int32_t endpoint_info_size() const;
+  void set_endpoint_info_size(int32_t value);
+  private:
+  int32_t _internal_endpoint_info_size() const;
+  void _internal_set_endpoint_info_size(int32_t value);
+  public:
+
   // optional .location.nearby.proto.connections.PowerLevel power_level = 5;
   bool has_power_level() const;
   private:
@@ -3945,6 +4279,8 @@ class ConnectionsLog_AdvertisingMetadata final :
   bool supports_nfc_technology_;
   bool multiple_advertisement_supported_;
   bool supports_dual_band_;
+  bool supports_wifi_aware_;
+  int32_t endpoint_info_size_;
   int power_level_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
@@ -3996,7 +4332,7 @@ class ConnectionsLog_DiscoveryMetadata final :
                &_ConnectionsLog_DiscoveryMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    16;
 
   friend void swap(ConnectionsLog_DiscoveryMetadata& a, ConnectionsLog_DiscoveryMetadata& b) {
     a.Swap(&b);
@@ -4183,7 +4519,7 @@ class ConnectionsLog_ConnectionAttemptMetadata final :
                &_ConnectionsLog_ConnectionAttemptMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    17;
 
   friend void swap(ConnectionsLog_ConnectionAttemptMetadata& a, ConnectionsLog_ConnectionAttemptMetadata& b) {
     a.Swap(&b);
@@ -4545,7 +4881,7 @@ class ConnectionsLog final :
                &_ConnectionsLog_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    18;
 
   friend void swap(ConnectionsLog& a, ConnectionsLog& b) {
     a.Swap(&b);
@@ -4611,6 +4947,7 @@ class ConnectionsLog final :
 
   typedef ConnectionsLog_ClientSession ClientSession;
   typedef ConnectionsLog_OperationResult OperationResult;
+  typedef ConnectionsLog_OperationResultWithMedium OperationResultWithMedium;
   typedef ConnectionsLog_StrategySession StrategySession;
   typedef ConnectionsLog_DiscoveryPhase DiscoveryPhase;
   typedef ConnectionsLog_DiscoveredEndpoint DiscoveredEndpoint;
@@ -4988,6 +5325,154 @@ inline void ConnectionsLog_OperationResult::_internal_set_result_code(::location
 inline void ConnectionsLog_OperationResult::set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
   _internal_set_result_code(value);
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResult.result_code)
+}
+
+// -------------------------------------------------------------------
+
+// ConnectionsLog_OperationResultWithMedium
+
+// optional .location.nearby.proto.connections.Medium medium = 1;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_medium() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_medium() const {
+  return _internal_has_medium();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_medium() {
+  medium_ = 0;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline ::location::nearby::proto::connections::Medium ConnectionsLog_OperationResultWithMedium::_internal_medium() const {
+  return static_cast< ::location::nearby::proto::connections::Medium >(medium_);
+}
+inline ::location::nearby::proto::connections::Medium ConnectionsLog_OperationResultWithMedium::medium() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.medium)
+  return _internal_medium();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_medium(::location::nearby::proto::connections::Medium value) {
+  assert(::location::nearby::proto::connections::Medium_IsValid(value));
+  _has_bits_[0] |= 0x00000001u;
+  medium_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_medium(::location::nearby::proto::connections::Medium value) {
+  _internal_set_medium(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.medium)
+}
+
+// optional int32 update_index = 2;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_update_index() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_update_index() const {
+  return _internal_has_update_index();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_update_index() {
+  update_index_ = 0;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline int32_t ConnectionsLog_OperationResultWithMedium::_internal_update_index() const {
+  return update_index_;
+}
+inline int32_t ConnectionsLog_OperationResultWithMedium::update_index() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.update_index)
+  return _internal_update_index();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_update_index(int32_t value) {
+  _has_bits_[0] |= 0x00000002u;
+  update_index_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_update_index(int32_t value) {
+  _internal_set_update_index(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.update_index)
+}
+
+// optional .location.nearby.proto.connections.OperationResultCategory result_category = 3;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_result_category() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_result_category() const {
+  return _internal_has_result_category();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_result_category() {
+  result_category_ = 0;
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline ::location::nearby::proto::connections::OperationResultCategory ConnectionsLog_OperationResultWithMedium::_internal_result_category() const {
+  return static_cast< ::location::nearby::proto::connections::OperationResultCategory >(result_category_);
+}
+inline ::location::nearby::proto::connections::OperationResultCategory ConnectionsLog_OperationResultWithMedium::result_category() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_category)
+  return _internal_result_category();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_result_category(::location::nearby::proto::connections::OperationResultCategory value) {
+  assert(::location::nearby::proto::connections::OperationResultCategory_IsValid(value));
+  _has_bits_[0] |= 0x00000004u;
+  result_category_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_result_category(::location::nearby::proto::connections::OperationResultCategory value) {
+  _internal_set_result_category(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_category)
+}
+
+// optional .location.nearby.proto.connections.OperationResultCode result_code = 4;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_result_code() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_result_code() const {
+  return _internal_has_result_code();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_result_code() {
+  result_code_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::proto::connections::OperationResultCode ConnectionsLog_OperationResultWithMedium::_internal_result_code() const {
+  return static_cast< ::location::nearby::proto::connections::OperationResultCode >(result_code_);
+}
+inline ::location::nearby::proto::connections::OperationResultCode ConnectionsLog_OperationResultWithMedium::result_code() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_code)
+  return _internal_result_code();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
+  assert(::location::nearby::proto::connections::OperationResultCode_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  result_code_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
+  _internal_set_result_code(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_code)
+}
+
+// optional .location.nearby.proto.connections.ConnectionMode connection_mode = 5;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_connection_mode() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_connection_mode() const {
+  return _internal_has_connection_mode();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_connection_mode() {
+  connection_mode_ = 0;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_OperationResultWithMedium::_internal_connection_mode() const {
+  return static_cast< ::location::nearby::proto::connections::ConnectionMode >(connection_mode_);
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_OperationResultWithMedium::connection_mode() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.connection_mode)
+  return _internal_connection_mode();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  assert(::location::nearby::proto::connections::ConnectionMode_IsValid(value));
+  _has_bits_[0] |= 0x00000010u;
+  connection_mode_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  _internal_set_connection_mode(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.connection_mode)
 }
 
 // -------------------------------------------------------------------
@@ -5678,6 +6163,75 @@ inline void ConnectionsLog_DiscoveryPhase::set_allocated_discovery_metadata(::lo
   }
   discovery_metadata_ = discovery_metadata;
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.discovery_metadata)
+}
+
+// repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 8;
+inline int ConnectionsLog_DiscoveryPhase::_internal_adv_dis_result_size() const {
+  return adv_dis_result_.size();
+}
+inline int ConnectionsLog_DiscoveryPhase::adv_dis_result_size() const {
+  return _internal_adv_dis_result_size();
+}
+inline void ConnectionsLog_DiscoveryPhase::clear_adv_dis_result() {
+  adv_dis_result_.Clear();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_DiscoveryPhase::mutable_adv_dis_result(int index) {
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return adv_dis_result_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+ConnectionsLog_DiscoveryPhase::mutable_adv_dis_result() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return &adv_dis_result_;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_DiscoveryPhase::_internal_adv_dis_result(int index) const {
+  return adv_dis_result_.Get(index);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_DiscoveryPhase::adv_dis_result(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return _internal_adv_dis_result(index);
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_DiscoveryPhase::_internal_add_adv_dis_result() {
+  return adv_dis_result_.Add();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_DiscoveryPhase::add_adv_dis_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _add = _internal_add_adv_dis_result();
+  // @@protoc_insertion_point(field_add:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+ConnectionsLog_DiscoveryPhase::adv_dis_result() const {
+  // @@protoc_insertion_point(field_list:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return adv_dis_result_;
+}
+
+// optional .location.nearby.proto.connections.StopDiscoveringReason stop_reason = 9;
+inline bool ConnectionsLog_DiscoveryPhase::_internal_has_stop_reason() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_DiscoveryPhase::has_stop_reason() const {
+  return _internal_has_stop_reason();
+}
+inline void ConnectionsLog_DiscoveryPhase::clear_stop_reason() {
+  stop_reason_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::proto::connections::StopDiscoveringReason ConnectionsLog_DiscoveryPhase::_internal_stop_reason() const {
+  return static_cast< ::location::nearby::proto::connections::StopDiscoveringReason >(stop_reason_);
+}
+inline ::location::nearby::proto::connections::StopDiscoveringReason ConnectionsLog_DiscoveryPhase::stop_reason() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.stop_reason)
+  return _internal_stop_reason();
+}
+inline void ConnectionsLog_DiscoveryPhase::_internal_set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value) {
+  assert(::location::nearby::proto::connections::StopDiscoveringReason_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  stop_reason_ = value;
+}
+inline void ConnectionsLog_DiscoveryPhase::set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value) {
+  _internal_set_stop_reason(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.stop_reason)
 }
 
 // -------------------------------------------------------------------
@@ -6388,6 +6942,75 @@ inline void ConnectionsLog_AdvertisingPhase::set_allocated_advertising_metadata(
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.advertising_metadata)
 }
 
+// repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 6;
+inline int ConnectionsLog_AdvertisingPhase::_internal_adv_dis_result_size() const {
+  return adv_dis_result_.size();
+}
+inline int ConnectionsLog_AdvertisingPhase::adv_dis_result_size() const {
+  return _internal_adv_dis_result_size();
+}
+inline void ConnectionsLog_AdvertisingPhase::clear_adv_dis_result() {
+  adv_dis_result_.Clear();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_AdvertisingPhase::mutable_adv_dis_result(int index) {
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return adv_dis_result_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+ConnectionsLog_AdvertisingPhase::mutable_adv_dis_result() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return &adv_dis_result_;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_AdvertisingPhase::_internal_adv_dis_result(int index) const {
+  return adv_dis_result_.Get(index);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_AdvertisingPhase::adv_dis_result(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return _internal_adv_dis_result(index);
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_AdvertisingPhase::_internal_add_adv_dis_result() {
+  return adv_dis_result_.Add();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_AdvertisingPhase::add_adv_dis_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _add = _internal_add_adv_dis_result();
+  // @@protoc_insertion_point(field_add:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+ConnectionsLog_AdvertisingPhase::adv_dis_result() const {
+  // @@protoc_insertion_point(field_list:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return adv_dis_result_;
+}
+
+// optional .location.nearby.proto.connections.StopAdvertisingReason stop_reason = 7;
+inline bool ConnectionsLog_AdvertisingPhase::_internal_has_stop_reason() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingPhase::has_stop_reason() const {
+  return _internal_has_stop_reason();
+}
+inline void ConnectionsLog_AdvertisingPhase::clear_stop_reason() {
+  stop_reason_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::proto::connections::StopAdvertisingReason ConnectionsLog_AdvertisingPhase::_internal_stop_reason() const {
+  return static_cast< ::location::nearby::proto::connections::StopAdvertisingReason >(stop_reason_);
+}
+inline ::location::nearby::proto::connections::StopAdvertisingReason ConnectionsLog_AdvertisingPhase::stop_reason() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.stop_reason)
+  return _internal_stop_reason();
+}
+inline void ConnectionsLog_AdvertisingPhase::_internal_set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value) {
+  assert(::location::nearby::proto::connections::StopAdvertisingReason_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  stop_reason_ = value;
+}
+inline void ConnectionsLog_AdvertisingPhase::set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value) {
+  _internal_set_stop_reason(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.stop_reason)
+}
+
 // -------------------------------------------------------------------
 
 // ConnectionsLog_ConnectionRequest
@@ -6957,6 +7580,35 @@ inline void ConnectionsLog_ConnectionAttempt::set_allocated_operation_result(::l
   }
   operation_result_ = operation_result;
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.operation_result)
+}
+
+// optional .location.nearby.proto.connections.ConnectionMode connection_mode = 10;
+inline bool ConnectionsLog_ConnectionAttempt::_internal_has_connection_mode() const {
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_ConnectionAttempt::has_connection_mode() const {
+  return _internal_has_connection_mode();
+}
+inline void ConnectionsLog_ConnectionAttempt::clear_connection_mode() {
+  connection_mode_ = 0;
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_ConnectionAttempt::_internal_connection_mode() const {
+  return static_cast< ::location::nearby::proto::connections::ConnectionMode >(connection_mode_);
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_ConnectionAttempt::connection_mode() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.connection_mode)
+  return _internal_connection_mode();
+}
+inline void ConnectionsLog_ConnectionAttempt::_internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  assert(::location::nearby::proto::connections::ConnectionMode_IsValid(value));
+  _has_bits_[0] |= 0x00000200u;
+  connection_mode_ = value;
+}
+inline void ConnectionsLog_ConnectionAttempt::set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  _internal_set_connection_mode(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.connection_mode)
 }
 
 // -------------------------------------------------------------------
@@ -7664,6 +8316,34 @@ inline void ConnectionsLog_Payload::set_allocated_operation_result(::location::n
   }
   operation_result_ = operation_result;
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.Payload.operation_result)
+}
+
+// optional int32 num_failed_auto_resume = 9;
+inline bool ConnectionsLog_Payload::_internal_has_num_failed_auto_resume() const {
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_Payload::has_num_failed_auto_resume() const {
+  return _internal_has_num_failed_auto_resume();
+}
+inline void ConnectionsLog_Payload::clear_num_failed_auto_resume() {
+  num_failed_auto_resume_ = 0;
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline int32_t ConnectionsLog_Payload::_internal_num_failed_auto_resume() const {
+  return num_failed_auto_resume_;
+}
+inline int32_t ConnectionsLog_Payload::num_failed_auto_resume() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.Payload.num_failed_auto_resume)
+  return _internal_num_failed_auto_resume();
+}
+inline void ConnectionsLog_Payload::_internal_set_num_failed_auto_resume(int32_t value) {
+  _has_bits_[0] |= 0x00000100u;
+  num_failed_auto_resume_ = value;
+}
+inline void ConnectionsLog_Payload::set_num_failed_auto_resume(int32_t value) {
+  _internal_set_num_failed_auto_resume(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.Payload.num_failed_auto_resume)
 }
 
 // -------------------------------------------------------------------
@@ -8989,7 +9669,7 @@ inline void ConnectionsLog_AdvertisingMetadata::set_multiple_advertisement_suppo
 
 // optional .location.nearby.proto.connections.PowerLevel power_level = 5;
 inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_power_level() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionsLog_AdvertisingMetadata::has_power_level() const {
@@ -8997,7 +9677,7 @@ inline bool ConnectionsLog_AdvertisingMetadata::has_power_level() const {
 }
 inline void ConnectionsLog_AdvertisingMetadata::clear_power_level() {
   power_level_ = -1;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline ::location::nearby::proto::connections::PowerLevel ConnectionsLog_AdvertisingMetadata::_internal_power_level() const {
   return static_cast< ::location::nearby::proto::connections::PowerLevel >(power_level_);
@@ -9008,7 +9688,7 @@ inline ::location::nearby::proto::connections::PowerLevel ConnectionsLog_Adverti
 }
 inline void ConnectionsLog_AdvertisingMetadata::_internal_set_power_level(::location::nearby::proto::connections::PowerLevel value) {
   assert(::location::nearby::proto::connections::PowerLevel_IsValid(value));
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000080u;
   power_level_ = value;
 }
 inline void ConnectionsLog_AdvertisingMetadata::set_power_level(::location::nearby::proto::connections::PowerLevel value) {
@@ -9042,6 +9722,62 @@ inline void ConnectionsLog_AdvertisingMetadata::_internal_set_supports_dual_band
 inline void ConnectionsLog_AdvertisingMetadata::set_supports_dual_band(bool value) {
   _internal_set_supports_dual_band(value);
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_dual_band)
+}
+
+// optional bool supports_wifi_aware = 7;
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_supports_wifi_aware() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::has_supports_wifi_aware() const {
+  return _internal_has_supports_wifi_aware();
+}
+inline void ConnectionsLog_AdvertisingMetadata::clear_supports_wifi_aware() {
+  supports_wifi_aware_ = false;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_supports_wifi_aware() const {
+  return supports_wifi_aware_;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::supports_wifi_aware() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_wifi_aware)
+  return _internal_supports_wifi_aware();
+}
+inline void ConnectionsLog_AdvertisingMetadata::_internal_set_supports_wifi_aware(bool value) {
+  _has_bits_[0] |= 0x00000020u;
+  supports_wifi_aware_ = value;
+}
+inline void ConnectionsLog_AdvertisingMetadata::set_supports_wifi_aware(bool value) {
+  _internal_set_supports_wifi_aware(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_wifi_aware)
+}
+
+// optional int32 endpoint_info_size = 8;
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_endpoint_info_size() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::has_endpoint_info_size() const {
+  return _internal_has_endpoint_info_size();
+}
+inline void ConnectionsLog_AdvertisingMetadata::clear_endpoint_info_size() {
+  endpoint_info_size_ = 0;
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline int32_t ConnectionsLog_AdvertisingMetadata::_internal_endpoint_info_size() const {
+  return endpoint_info_size_;
+}
+inline int32_t ConnectionsLog_AdvertisingMetadata::endpoint_info_size() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.endpoint_info_size)
+  return _internal_endpoint_info_size();
+}
+inline void ConnectionsLog_AdvertisingMetadata::_internal_set_endpoint_info_size(int32_t value) {
+  _has_bits_[0] |= 0x00000040u;
+  endpoint_info_size_ = value;
+}
+inline void ConnectionsLog_AdvertisingMetadata::set_endpoint_info_size(int32_t value) {
+  _internal_set_endpoint_info_size(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.endpoint_info_size)
 }
 
 // -------------------------------------------------------------------
@@ -10052,6 +10788,8 @@ inline void ConnectionsLog::set_allocated_files_migration_phase(std::string* fil
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
