@@ -38,6 +38,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -2104,6 +2105,11 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
   }
 
   advertising_session_id_ = analytics_recorder_->GenerateNextId();
+
+  VLOG(1) << "Advertising endpoint_info: "
+          << absl::BytesToHexString(absl::string_view(
+                 reinterpret_cast<const char*>(endpoint_info->data()),
+                 endpoint_info->size()));
 
   nearby_connections_manager_->StartAdvertising(
       *endpoint_info,
