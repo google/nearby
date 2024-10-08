@@ -630,16 +630,14 @@ class NearbySharingServiceImplTest : public testing::Test {
                 default_instance()
                     .New();
     paired_key_encryption_frame->set_signed_data(
-        is_incoming
-            ? std::string(GetIncomingConnectionSignedData().begin(),
-                          GetIncomingConnectionSignedData().end())
-            : std::string(GetOutgoingConnectionSignedData().begin(),
-                          GetOutgoingConnectionSignedData().end()));
+        is_incoming ? std::string(GetIncomingConnectionSignedData().begin(),
+                                  GetIncomingConnectionSignedData().end())
+                    : std::string(GetOutgoingConnectionSignedData().begin(),
+                                  GetOutgoingConnectionSignedData().end()));
     paired_key_encryption_frame->set_secret_id_hash(
         std::string(GetPrivateCertificateHashAuthToken().begin(),
                     GetPrivateCertificateHashAuthToken().end()));
-    v1_frame->set_allocated_paired_key_encryption(
-        paired_key_encryption_frame);
+    v1_frame->set_allocated_paired_key_encryption(paired_key_encryption_frame);
     std::vector<uint8_t> encryption_bytes(frame.ByteSizeLong());
     frame.SerializeToArray(encryption_bytes.data(), encryption_bytes.size());
 
@@ -661,7 +659,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   std::vector<uint8_t> CreateTestEndpointInfo(uint8_t vendor_id = kVendorId) {
-      std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
+    std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
         GetNearbyShareTestEncryptedMetadataKey().salt(),
         GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
         kDeviceName, vendor_id);
@@ -1014,7 +1012,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   std::vector<uint8_t> CreateInvalidTestEndpointInfo() {
-      std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
+    std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
         GetNearbyShareTestEncryptedMetadataKey().salt(),
         GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
         std::nullopt, kVendorId);
@@ -1146,8 +1144,9 @@ class NearbySharingServiceImplTest : public testing::Test {
     EXPECT_TRUE(
         success_notification.WaitForNotificationWithTimeout(kWaitTimeout));
     FlushTesting();
-    EXPECT_FALSE(fake_nearby_connections_manager_->connection_endpoint_info(
-        kEndpointId).has_value());
+    EXPECT_FALSE(
+        fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+            .has_value());
     EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
     // To avoid UAF in OnIncomingTransferUpdate().
@@ -1306,9 +1305,7 @@ class TestObserver : public NearbySharingService::Observer {
 
   void OnLanStatusChanged(AdapterState state) override { lan_state_ = state; }
 
-  void OnCredentialError() override {
-    credential_error_called_ = true;
-  }
+  void OnCredentialError() override { credential_error_called_ = true; }
 
   void OnShutdown() override {
     shutdown_called_ = true;
@@ -2555,8 +2552,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
   nearby::sharing::service::proto::FileMetadata* file_metadata =
       introduction_frame->add_file_metadata();
   file_metadata->set_name("name");
-  file_metadata->set_type(
-      nearby::sharing::service::proto::FileMetadata::AUDIO);
+  file_metadata->set_type(nearby::sharing::service::proto::FileMetadata::AUDIO);
   file_metadata->set_payload_id(1);
   file_metadata->set_size(kFreeDiskSpace + 1);
   file_metadata->set_mime_type("mime type");
@@ -2611,8 +2607,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionFileSizeOverflow) {
   nearby::sharing::service::proto::FileMetadata* file_metadata =
       introduction_frame->add_file_metadata();
   file_metadata->set_name("name_1");
-  file_metadata->set_type(
-      nearby::sharing::service::proto::FileMetadata::AUDIO);
+  file_metadata->set_type(nearby::sharing::service::proto::FileMetadata::AUDIO);
   file_metadata->set_payload_id(1);
   file_metadata->set_size(std::numeric_limits<int64_t>::max());
   file_metadata->set_mime_type("mime type");
@@ -3268,11 +3263,10 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedToConnect) {
       DiscoverShareTarget(transfer_callback, discovery_callback);
 
   absl::Notification notification;
-  ExpectTransferUpdates(
-      transfer_callback, target_id,
-      {TransferMetadata::Status::kConnecting,
-       TransferMetadata::Status::kFailed},
-      [&]() { notification.Notify(); });
+  ExpectTransferUpdates(transfer_callback, target_id,
+                        {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kFailed},
+                        [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target_id, CreateTextAttachments({kTextPayload})),
@@ -3289,11 +3283,10 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedKeyVerification) {
       DiscoverShareTarget(transfer_callback, discovery_callback);
 
   absl::Notification notification;
-  ExpectTransferUpdates(
-      transfer_callback, target_id,
-      {TransferMetadata::Status::kConnecting,
-       TransferMetadata::Status::kDeviceAuthenticationFailed},
-      [&]() { notification.Notify(); });
+  ExpectTransferUpdates(transfer_callback, target_id,
+                        {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kDeviceAuthenticationFailed},
+                        [&]() { notification.Notify(); });
 
   SetUpKeyVerification(/*is_incoming=*/false, PairedKeyResultFrame::FAIL);
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
@@ -5058,7 +5051,8 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   ShareTarget share_target;
   share_target.is_incoming = true;
   IncomingShareSession session(
-      *sharing_service_task_runner_, analytics_recorder, "endpoint_id",
+      fake_context_.fake_clock(), *sharing_service_task_runner_,
+      fake_nearby_connections_manager_, analytics_recorder, "endpoint_id",
       share_target,
       [](const IncomingShareSession&, const TransferMetadata&) {});
   service_->RemoveIncomingPayloads(session);

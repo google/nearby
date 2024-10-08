@@ -826,9 +826,8 @@ void NearbySharingServiceImpl::Accept(
             GetIncomingShareSession(share_target_id);
         if (incoming_session != nullptr) {
           // Incoming session.
-          bool accept_success = incoming_session->AcceptTransfer(
-              context_->GetClock(),
-              absl::bind_front(
+          bool accept_success =
+              incoming_session->AcceptTransfer(absl::bind_front(
                   &NearbySharingServiceImpl::IncomingPayloadTransferUpdate,
                   this));
           std::move(status_codes_callback)(
@@ -1069,8 +1068,7 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
   session.set_session_id(analytics_recorder_->GenerateNextId());
-  session.OnConnected(context_->GetClock()->Now(),
-                      nearby_connections_manager_.get(), connection);
+  session.OnConnected(context_->GetClock()->Now(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
@@ -2448,8 +2446,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     absl::Time connect_start_time, NearbyConnection* connection,
     OutgoingShareSession& session) {
   int64_t share_target_id = session.share_target().id;
-  if (!session.OnConnected(connect_start_time,
-                           nearby_connections_manager_.get(), connection)) {
+  if (!session.OnConnected(connect_start_time, connection)) {
     session.Abort(session.disconnect_status());
     return;
   }
@@ -2476,7 +2473,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
     return;
   }
   session.RunPairedKeyVerification(
-      context_->GetClock(), ToProtoOsType(device_info_.GetOsType()),
+      ToProtoOsType(device_info_.GetOsType()),
       {
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),
@@ -2819,8 +2816,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
       *share_target, endpoint_id, std::move(certificate));
   // Copy session id from placeholder session to actual session.
   session.set_session_id(session_id);
-  session.OnConnected(context_->GetClock()->Now(),
-                      nearby_connections_manager_.get(), connection);
+  session.OnConnected(context_->GetClock()->Now(), connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
@@ -2834,7 +2830,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
     return;
   }
   session.RunPairedKeyVerification(
-      context_->GetClock(), ToProtoOsType(device_info_.GetOsType()),
+      ToProtoOsType(device_info_.GetOsType()),
       {
           .visibility = settings_->GetVisibility(),
           .last_visibility = settings_->GetLastVisibility(),
@@ -2973,7 +2969,6 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
               kEnableTransferCancellationOptimization),
-      context_->GetClock(),
       [this, share_target_id](
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target_id, std::move(frame));
@@ -3001,10 +2996,8 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
   }
   // Don't need to wait for user to accept for Self share.
   NL_LOG(INFO) << __func__ << ": Auto-accepting self share.";
-  session.AcceptTransfer(
-      context_->GetClock(),
-      absl::bind_front(&NearbySharingServiceImpl::IncomingPayloadTransferUpdate,
-                       this));
+  session.AcceptTransfer(absl::bind_front(
+      &NearbySharingServiceImpl::IncomingPayloadTransferUpdate, this));
   OnTransferStarted(/*is_incoming=*/true);
 }
 
@@ -3260,7 +3253,8 @@ IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   NL_DCHECK(share_target.is_incoming);
   auto [it, inserted] = incoming_share_session_map_.try_emplace(
-      share_target.id, *service_thread_, *analytics_recorder_,
+      share_target.id, context_->GetClock(), *service_thread_,
+      nearby_connections_manager_.get(), *analytics_recorder_,
       std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnIncomingTransferUpdate,
                        this));
@@ -3486,7 +3480,8 @@ void NearbySharingServiceImpl::CreateOutgoingShareSession(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   auto [it_out, inserted] = outgoing_share_session_map_.try_emplace(
-      share_target.id, *service_thread_, *analytics_recorder_,
+      share_target.id, context_->GetClock(), *service_thread_,
+      nearby_connections_manager_.get(), *analytics_recorder_,
       std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
                        this));

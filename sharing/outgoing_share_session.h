@@ -30,6 +30,7 @@
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/paired_key_verification_runner.h"
@@ -45,7 +46,8 @@ namespace nearby::sharing {
 class OutgoingShareSession : public ShareSession {
  public:
   OutgoingShareSession(
-      TaskRunner& service_thread,
+      Clock* clock, TaskRunner& service_thread,
+      NearbyConnectionsManager* connections_manager,
       analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
       const ShareTarget& share_target,
       std::function<void(OutgoingShareSession&, const TransferMetadata&)>
@@ -117,7 +119,7 @@ class OutgoingShareSession : public ShareSession {
   // `update_callback`.
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
-      bool enable_transfer_cancellation_optimization, Clock* clock,
+      bool enable_transfer_cancellation_optimization,
       std::function<
           void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
@@ -146,13 +148,11 @@ class OutgoingShareSession : public ShareSession {
   // Create a payload status listener to send status change to
   // `update_callback`.  Send all payloads to NearbyConnectionManager.
   void SendAllPayloads(
-      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Create a payload status listener to send status change to
   // `update_callback`.
   void InitSendPayload(
-      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   std::vector<Payload> ExtractTextPayloads();
@@ -161,7 +161,6 @@ class OutgoingShareSession : public ShareSession {
   std::optional<Payload> ExtractNextPayload();
   bool FillIntroductionFrame(
       nearby::sharing::service::proto::IntroductionFrame* introduction) const;
-
 
   std::optional<std::string> obfuscated_gaia_id_;
   // All payloads are in the same order as the attachments in the share target.

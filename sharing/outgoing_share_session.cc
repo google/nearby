@@ -55,17 +55,17 @@ using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
 OutgoingShareSession::OutgoingShareSession(
-    TaskRunner& service_thread,
+    Clock* clock, TaskRunner& service_thread,
+    NearbyConnectionsManager* connections_manager,
     analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
     std::function<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(service_thread, analytics_recorder, std::move(endpoint_id),
-                   share_target),
+    : ShareSession(clock, service_thread, connections_manager,
+                   analytics_recorder, std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
-OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) =
-    default;
+OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) = default;
 
 OutgoingShareSession::~OutgoingShareSession() = default;
 
@@ -104,9 +104,7 @@ void OutgoingShareSession::OnConnectionDisconnected() {
   }
 }
 
-
-std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths()
-    const {
+std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths() const {
   std::vector<std::filesystem::path> file_paths;
   file_paths.reserve(attachment_container().GetFileAttachments().size());
   for (const FileAttachment& file_attachment :
@@ -273,7 +271,7 @@ bool OutgoingShareSession::AcceptTransfer(
 }
 
 void OutgoingShareSession::SendPayloads(
-    bool enable_transfer_cancellation_optimization, Clock* clock,
+    bool enable_transfer_cancellation_optimization,
     std::function<
         void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
         frame_read_callback,
@@ -293,38 +291,36 @@ void OutgoingShareSession::SendPayloads(
   NL_VLOG(1) << __func__
              << ": The connection was accepted. Payloads are now being sent.";
   if (enable_transfer_cancellation_optimization) {
-    InitSendPayload(clock, std::move(update_callback));
+    InitSendPayload(std::move(update_callback));
     SendNextPayload();
   } else {
-    SendAllPayloads(clock, std::move(update_callback));
+    SendAllPayloads(std::move(update_callback));
   }
 }
 
 void OutgoingShareSession::SendAllPayloads(
-    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
-      clock, share_target().id, attachment_container(),
+      &clock(), share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
   for (auto& payload : ExtractTextPayloads()) {
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
   for (auto& payload : ExtractFilePayloads()) {
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
   for (auto& payload : ExtractWifiCredentialsPayloads()) {
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
 }
 
 void OutgoingShareSession::InitSendPayload(
-    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
-      clock, share_target().id, attachment_container(),
+      &clock(), share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
 }
 
@@ -332,7 +328,7 @@ void OutgoingShareSession::SendNextPayload() {
   std::optional<Payload> payload = ExtractNextPayload();
   if (payload.has_value()) {
     NL_LOG(INFO) << __func__ << ": Send  payload " << payload->id;
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(*payload), payload_tracker());
   } else {
     NL_LOG(WARNING) << __func__ << ": There is no paylaods to send.";

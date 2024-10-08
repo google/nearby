@@ -51,22 +51,23 @@ namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
+using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
-using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 
 }  // namespace
 
 IncomingShareSession::IncomingShareSession(
-    TaskRunner& service_thread,
+    Clock* clock, TaskRunner& service_thread,
+    NearbyConnectionsManager* connections_manager,
     analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
     std::function<void(const IncomingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(service_thread, analytics_recorder, std::move(endpoint_id),
-                   share_target),
+    : ShareSession(clock, service_thread, connections_manager,
+                   analytics_recorder, std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;
@@ -209,7 +210,6 @@ bool IncomingShareSession::ReadyForTransfer(
 }
 
 bool IncomingShareSession::AcceptTransfer(
-    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   if (!ready_for_accept_ || !IsConnected()) {
     NL_LOG(WARNING) << __func__ << ": out of order API call.";
@@ -219,7 +219,7 @@ bool IncomingShareSession::AcceptTransfer(
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
   set_payload_tracker(std::make_shared<PayloadTracker>(
-      clock, share_target().id, attachment_container(), payload_map,
+      &clock(), share_target().id, attachment_container(), payload_map,
       std::move(update_callback)));
 
   // Register status listener for all payloads.
@@ -228,8 +228,8 @@ bool IncomingShareSession::AcceptTransfer(
                << ": Started listening for progress on payload: " << it->second
                << " for attachment: " << it->first;
 
-    connections_manager()->RegisterPayloadStatusListener(it->second,
-                                                        payload_tracker());
+    connections_manager().RegisterPayloadStatusListener(it->second,
+                                                         payload_tracker());
 
     NL_VLOG(1) << __func__ << ": Accepted incoming files from share target - "
                << share_target().id;
@@ -277,7 +277,7 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
     }
 
     const Payload* incoming_payload =
-        connections_manager()->GetIncomingPayload(it->second);
+        connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_file()) {
       NL_LOG(WARNING) << __func__ << ": No payload found for file - "
                       << file.id();
@@ -309,7 +309,7 @@ bool IncomingShareSession::UpdatePayloadContents() {
       return false;
     }
     const Payload* incoming_payload =
-        connections_manager()->GetIncomingPayload(it->second);
+        connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
       NL_LOG(WARNING) << __func__ << ": No payload found for text - "
                       << text.id();
@@ -344,7 +344,7 @@ bool IncomingShareSession::UpdatePayloadContents() {
     }
 
     const Payload* incoming_payload =
-        connections_manager()->GetIncomingPayload(it->second);
+        connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
       NL_LOG(WARNING) << __func__
                       << ": No payload found for WiFi credentials - "
@@ -407,7 +407,7 @@ bool IncomingShareSession::TryUpgradeBandwidth() {
   if (!bandwidth_upgrade_requested_ &&
       attachment_container().GetTotalAttachmentsSize() >=
           kAttachmentsSizeThresholdOverHighQualityMedium) {
-    connections_manager()->UpgradeBandwidth(endpoint_id());
+    connections_manager().UpgradeBandwidth(endpoint_id());
     bandwidth_upgrade_requested_ = true;
     return true;
   }
@@ -439,8 +439,7 @@ void IncomingShareSession::SendFailureResponse(
   WriteResponseFrame(response_status);
   NL_DCHECK(TransferMetadata::IsFinalStatus(status))
       << "SendFailureResponse should only be called with a final status";
-  UpdateTransferMetadata(
-      TransferMetadataBuilder().set_status(status).build());
+  UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
 }
 
 std::pair<bool, bool> IncomingShareSession::PayloadTransferUpdate(

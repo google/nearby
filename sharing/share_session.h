@@ -48,7 +48,8 @@ namespace nearby::sharing {
 // This class is thread-compatible.
 class ShareSession {
  public:
-  ShareSession(TaskRunner& service_thread,
+  ShareSession(Clock* clock, TaskRunner& service_thread,
+               NearbyConnectionsManager* connections_manager,
                analytics::AnalyticsRecorder& analytics_recorder,
                std::string endpoint_id, const ShareTarget& share_target);
   ShareSession(ShareSession&&);
@@ -105,7 +106,6 @@ class ShareSession {
   // Notifies the ShareTargetInfo that the connection has been established.
   // Returns true if the connection was successfully established.
   bool OnConnected(absl::Time connect_start_time,
-                   NearbyConnectionsManager* connections_manager,
                    NearbyConnection* connection);
 
   // Send TransferMetadataUpdate with the final status.
@@ -113,7 +113,7 @@ class ShareSession {
   void Abort(TransferMetadata::Status status);
 
   void RunPairedKeyVerification(
-      Clock* clock, location::nearby::proto::sharing::OSType os_type,
+      location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
       NearbyShareCertificateManager* certificate_manager,
       const std::vector<uint8_t>& token,
@@ -151,6 +151,8 @@ class ShareSession {
   virtual bool OnNewConnection(NearbyConnection* connection) = 0;
   virtual void OnConnectionDisconnected() {}
 
+  Clock& clock() const { return clock_; }
+
   analytics::AnalyticsRecorder& analytics_recorder() {
     return analytics_recorder_;
   };
@@ -172,7 +174,7 @@ class ShareSession {
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
-  NearbyConnectionsManager* connections_manager() {
+  NearbyConnectionsManager& connections_manager() {
     return connections_manager_;
   }
   void set_endpoint_id(absl::string_view endpoint_id) {
@@ -184,11 +186,12 @@ class ShareSession {
   }
 
  private:
+  Clock& clock_;
   TaskRunner& service_thread_;
+  NearbyConnectionsManager& connections_manager_;
   analytics::AnalyticsRecorder& analytics_recorder_;
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
-  NearbyConnectionsManager* connections_manager_ = nullptr;
   NearbyConnection* connection_ = nullptr;
   // If not empty, this is the 4 digit token used to verify the connection.
   // If token is empty, it means self-share and verification is not needed.
