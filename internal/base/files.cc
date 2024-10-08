@@ -105,4 +105,14 @@ bool CreateHardLink(const std::filesystem::path& target,
   return true;
 }
 
+bool CopyFileSafely(const std::filesystem::path& old_path,
+                    const std::filesystem::path& new_path) {
+  std::error_code error_code;
+  std::filesystem::copy(old_path, new_path, error_code);
+  if (error_code) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace nearby::sharing
