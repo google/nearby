@@ -88,6 +88,9 @@ constexpr auto kShowAdminModeWarning =
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
+// The time in milliseconds a cached entry can be in LOST state.
+constexpr auto kDiscoveryCacheLostExpiryMs =
+    flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -114,6 +117,7 @@ inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
   return {
       {45632386, kDelayEndpointLossMs},
       {45401358, kLoggingLevel},
+      {45658774, kDiscoveryCacheLostExpiryMs},
   };
 }
 

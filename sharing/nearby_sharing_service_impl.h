@@ -80,7 +80,6 @@
 #include "sharing/wrapped_share_target_discovered_callback.h"
 
 namespace nearby::sharing {
-
 class NearbyShareContactManager;
 
 namespace NearbySharingServiceUnitTests {
@@ -184,6 +183,13 @@ class NearbySharingServiceImpl
   void UpdateFilePathsInProgress(bool update) override;
 
  private:
+  // Cache a recently lost share target to be re-discovered.
+  // Purged after expiry_timer.
+  struct DiscoveryCacheEntry {
+    // If needed, we can add "state" field to model "Tomb" state.
+    std::unique_ptr<ThreadTimer> expiry_timer;
+    ShareTarget share_target;
+  };
   // Internal implementation of methods to avoid using recursive mutex.
   StatusCodes InternalUnregisterSendSurface(
       TransferUpdateCallback* transfer_callback);
@@ -298,7 +304,10 @@ class NearbySharingServiceImpl
 
   void ScheduleRotateBackgroundAdvertisementTimer();
   void OnRotateBackgroundAdvertisementTimerFired();
-  void RemoveOutgoingShareTargetWithEndpointId(absl::string_view endpoint_id);
+  // Returns the share target if it has been removed, std::nullopt otherwise.
+  std::optional<ShareTarget> RemoveOutgoingShareTargetWithEndpointId(
+      absl::string_view endpoint_id);
+  void RemoveOutgoingShareTargetAndReportLost(absl::string_view endpoint_id);
 
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);
@@ -365,21 +374,38 @@ class NearbySharingServiceImpl
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
-  OutgoingShareSession& CreateOutgoingShareSession(
+  void CreateOutgoingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
-  // The share_target's id is updated to match the old one
+  void MoveToDiscoveryCache(absl::string_view endpoint_id);
+  // Immediately expire all timers in the discovery cache. (i.e. report
+  // ShareTargetLost)
+  void TriggerDiscoveryCacheExpiryTimers();
+  // Update the entry in outgoing_share_session_map_ with the new share target
   // and OnShareTargetUpdated is called.
   void DeduplicateInOutgoingShareTarget(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
-  // Looks for a duplicate of the given share target in the outgoing share
+  // Add an entry to the outgoing_share_session_map_
+  // and OnShareTargetUpdated is called.
+  void DeDuplicateInDiscoveryCache(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+
+  // Looks for a duplicate of the share target in the outgoing share
   // target map. The share target's id is changed to match an existing target if
   // available. Returns true if the duplicate is found.
   bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
                                            ShareTarget& share_target);
+
+  // Looks for a duplicate of the share target in the discovery cache.
+  // If found, move the share target to the outgoing share target map.
+  // The share target's id is updated to match the cached entry.
+  // Returns true if the duplicate is found.
+  bool FindDuplicateInDiscoveryCache(absl::string_view endpoint_id,
+                                     ShareTarget& share_target);
 
   ShareSession* GetShareSession(int64_t share_target_id);
   IncomingShareSession* GetIncomingShareSession(int64_t share_target_id);
@@ -518,6 +544,8 @@ class NearbySharingServiceImpl
   // endpoint and public certificate are related to the outgoing share target.
   absl::flat_hash_map<int64_t, OutgoingShareSession>
       outgoing_share_session_map_;
+  // A map of Endpoint id to DiscoveryCacheEntry.
+  absl::flat_hash_map<std::string, DiscoveryCacheEntry> discovery_cache_;
   // For metrics. The IDs of ShareTargets that are cancelled while trying to
   // establish an outgoing connection.
   absl::flat_hash_set<int64_t> all_cancelled_share_target_ids_;

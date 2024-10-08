@@ -4138,6 +4138,131 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
 }
 
 TEST_F(NearbySharingServiceImplTest,
+       OnLostDedupSameEndpointIdBeforeExpiryNoOnShareTargetLost) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      true);
+  // Start discovery.
+  SetConnectionType(ConnectionType::kWifi);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  RegisterSendSurface(&transfer_callback, &discovery_callback,
+                      SendSurfaceState::kForeground);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            1u);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+  {
+    absl::Notification notification;
+    ::testing::InSequence s;
+    ShareTarget share_target_1;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_1));
+    // vendor_id is default to 0.
+    FindEndpoint(/*endpoint_id=*/"1");
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    // Finish processing all the HandleEndpointDiscovered events.
+    FlushTesting();
+
+    // No call to OnShareTargetLost.
+    LoseEndpoint(/*endpoint_id=*/"1");
+
+    // Fastforward to just before the cache expiry time.
+    FastForward(
+        absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+                               config_package_nearby::nearby_sharing_feature::
+                                   kDiscoveryCacheLostExpiryMs) -
+                           10));
+    FindEndpointWithVendorId(
+        /*endpoint_id=*/"1",
+        static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    ShareTarget share_target_2;
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_2 = share_target;
+          notification.Notify();
+        });
+
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/true);
+    EXPECT_EQ(share_target_1.id, share_target_2.id);
+    // Vendor_id updated.
+    EXPECT_EQ(share_target_1.vendor_id, 0);
+    EXPECT_EQ(share_target_2.vendor_id,
+              static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
+  Shutdown();
+  service_.reset();
+}
+
+TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      true);
+  // Start discovery.
+  SetConnectionType(ConnectionType::kWifi);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  RegisterSendSurface(&transfer_callback, &discovery_callback,
+                      SendSurfaceState::kForeground);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            1u);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+  {
+    absl::Notification notification;
+    ::testing::InSequence s;
+    ShareTarget share_target_1;
+
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_1));
+    // vendor_id is default to 0.
+    FindEndpoint(/*endpoint_id=*/"1");
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    // Finish processing all the HandleEndpointDiscovered related events before
+    // fast forwarding to avoid race condition.
+    FlushTesting();
+
+    ShareTarget share_target_1_lost;
+    EXPECT_CALL(discovery_callback, OnShareTargetLost)
+        .WillOnce(SaveArg<0>(&share_target_1_lost));
+    LoseEndpoint(/*endpoint_id=*/"1");
+
+    // Fast forward to after the cache expiry time.
+    FastForward(
+        absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+                               config_package_nearby::nearby_sharing_feature::
+                                   kDiscoveryCacheLostExpiryMs) +
+                           10));
+    FindEndpointWithVendorId(
+        /*endpoint_id=*/"1",
+        static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    ShareTarget share_target_2;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_2 = share_target;
+          notification.Notify();
+        });
+
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/true);
+    EXPECT_EQ(share_target_1_lost.id, share_target_1.id);
+    // Cache entry expires and the share_target ID is not preserved.
+    EXPECT_NE(share_target_1.id, share_target_2.id);
+
+    EXPECT_EQ(share_target_1.vendor_id, 0);
+    EXPECT_EQ(share_target_2.vendor_id,
+              static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
+  Shutdown();
+  service_.reset();
+}
+
+TEST_F(NearbySharingServiceImplTest,
        RetryDiscoveredEndpointsDownloadCertsAndRetryDecryption) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
@@ -4208,6 +4333,12 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
       true);
+  // Make kDiscoveryCacheLostExpiryMs larger than
+  // kCertificateDownloadDuringDiscoveryPeriod (10s).
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      config_package_nearby::nearby_sharing_feature::
+          kDiscoveryCacheLostExpiryMs,
+      20000);  // 20s
   // Start discovery.
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
@@ -4223,50 +4354,61 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   // - Discover endpoint 3 --> decrypts public certificate
   //                       --> De-dup endpoint 1 with endpoint 3
   // - Discover endpoint 4 --> cannot decrypt public certificate
-  // - Lose endpoint 3     --> endpoint 3 is purged from map
+  // - Lose endpoint 3     --> endpoint 3 is added to discovery_cache
   // ----------------------------------------------------------------
   // - Fire certificate download timer --> certificates downloaded
   // - {x|y} can be 2 or 4, as the (Re)discover order is non-deterministic
-  // - (Re)discover endpoints x --> endpoint x is insert into map
+  // - (Re)discover endpoints x before endpoint 3 discovery cache expiry
+  //                            --> De-dup endpoint 3 with endpoint x
   // - (Re)discover endpoints y --> De-dup endpoint x with endpoint y
   {
     absl::Notification notification;
+    ::testing::InSequence s;
     // vendor_id is default to 0.
     FindEndpoint(/*endpoint_id=*/"1");
+    ShareTarget share_target_ep_1;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_ep_1));
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    FlushTesting();
+
     FindInvalidEndpoint(/*endpoint_id=*/"2");
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/false);
+    FlushTesting();
+
     FindEndpointWithVendorId(
         /*endpoint_id=*/"3",
         static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
-    FindInvalidEndpoint(/*endpoint_id=*/"4");
-    LoseEndpoint(/*endpoint_id=*/"3");
-    ::testing::InSequence s;
-    ShareTarget share_target_ep_1;
-    ShareTarget share_target_ep_3;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
-        .WillOnce(SaveArg<0>(&share_target_ep_1));
-
     // Update endpoint 1 to endpoint 3
+    ShareTarget share_target_ep_3;
     EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
-        .WillOnce(SaveArg<0>(&share_target_ep_3));
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_ep_3 = share_target;
+          notification.Notify();
+        });
 
-    // Lost endpoint 3
-    EXPECT_CALL(discovery_callback, OnShareTargetLost)
-        .WillOnce([&](ShareTarget share_target) { notification.Notify(); });
-
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
-                                             /*success=*/true);
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
-                                             /*success=*/false);
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/3,
                                              /*success=*/true);
+    FlushTesting();
+
+    FindInvalidEndpoint(/*endpoint_id=*/"4");
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/4,
                                              /*success=*/false);
+    FlushTesting();
+
+    LoseEndpoint(/*endpoint_id=*/"3");
+    FlushTesting();
+
     EXPECT_EQ(share_target_ep_1.id, share_target_ep_3.id);
     // Vendor_id updated.
     EXPECT_EQ(share_target_ep_3.vendor_id,
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
+  // kDiscoveryCacheLostExpiryMs is set to be larger than
+  // kCertificateDownloadDuringDiscoveryPeriod so the cache_entry is unexpired.
   FastForward(kCertificateDownloadDuringDiscoveryPeriod);
   EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
             2u);
@@ -4276,7 +4418,8 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   {
     absl::Notification notification;
     ::testing::InSequence s;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered);
+    // Update endpoint 3
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_)).Times(1);
     // One of the re-discovered endpoint updates the other one. The ordering
     // is non-deterministic.
     EXPECT_CALL(discovery_callback, OnShareTargetUpdated)
