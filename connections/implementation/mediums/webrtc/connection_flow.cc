@@ -306,7 +306,7 @@ bool ConnectionFlow::OnRemoteIceCandidatesReceived(
   pc->signaling_thread()->PostTask(
       [this, can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
        candidates = std::move(ice_candidates)]() mutable {
-        // don't run the task if the weak_ptr is no longer valid.
+        // Don't run the task if the weak_ptr is no longer valid.
         if (!can_run_tasks.lock()) {
           return;
         }
@@ -529,7 +529,7 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
   pc->signaling_thread()->PostTask(
       [can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
        task = std::move(runnable)]() mutable {
-        // don't run the task if the weak_ptr is no longer valid.
+        // Don't run the task if the weak_ptr is no longer valid.
         // shared_ptr |can_run_tasks_| is destroyed on the same thread
         // (signaling thread). This guarantees that if the weak_ptr is valid
         // when this task starts, it will stay valid until the task ends.

@@ -116,7 +116,6 @@ bool MultiplexOutputStream::Close(const std::string& service_id) {
     return false;
   }
 
-  // auto service_id_hash_salt = item->second->GetServiceIdHashSalt();
   item->second->Close();
   if (is_enabled_.Get()) {
     Future<bool> future;
