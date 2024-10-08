@@ -2546,6 +2546,8 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   all_cancelled_share_target_ids_.clear();
 
   int64_t share_target_id = session.share_target().id;
+  absl::Time connection_start_time = context_->GetClock()->Now();
+
   // TODO(b/343281329): do not request wifi hotspot medium if
   // disable_wifi_hotspot option has been requested and device is currently
   // connected to Wifi.
@@ -2553,7 +2555,8 @@ void NearbySharingServiceImpl::OnCreatePayloads(
       std::move(endpoint_info), session.endpoint_id(),
       std::move(bluetooth_mac_address), settings_->GetDataUsage(),
       GetTransportType(session.attachment_container()),
-      [this, share_target_id](NearbyConnection* connection, Status status) {
+      [this, connection_start_time, share_target_id](
+          NearbyConnection* connection, Status status) {
         OutgoingShareSession* session =
             GetOutgoingShareSession(share_target_id);
         if (session == nullptr) {
@@ -2572,15 +2575,12 @@ void NearbySharingServiceImpl::OnCreatePayloads(
               /*transfer_position=*/
               GetConnectedShareTargetPos(),
               /*concurrent_connections=*/GetConnectedShareTargetCount(),
-              session->connection_start_time().has_value()
-                  ? absl::ToInt64Milliseconds(
-                        context_->GetClock()->Now() -
-                        *(session->connection_start_time()))
-                  : 0,
+              absl::ToInt64Milliseconds(context_->GetClock()->Now() -
+                                        connection_start_time),
               std::nullopt);
         }
 
-        OnOutgoingConnection(context_->GetClock()->Now(), connection, *session);
+        OnOutgoingConnection(connection_start_time, connection, *session);
       });
 }
 
