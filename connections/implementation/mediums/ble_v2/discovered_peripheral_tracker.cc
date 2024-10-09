@@ -502,7 +502,7 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
     auto gatt_advertisement_status_or =
         BleAdvertisement::CreateBleAdvertisement(*gatt_advertisement_bytes);
     if (!gatt_advertisement_status_or.ok()) {
-      LOG(INFO) << gatt_advertisement_status_or.status();
+      VLOG(1) << gatt_advertisement_status_or.status();
       continue;
     }
     auto gatt_advertisement = gatt_advertisement_status_or.value();
@@ -525,12 +525,12 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
         const auto sii_it = service_id_infos_.find(service_id);
         if (sii_it != service_id_infos_.end()) {
           if (sii_it->second.fast_advertisement_service_uuid == service_uuid) {
-            LOG(INFO) << "This GATT advertisement:"
-                      << absl::BytesToHexString(
-                             gatt_advertisement_bytes->AsStringView())
-                      << " is a fast advertisement and matched UUID="
-                      << service_uuid.Get16BitAsString()
-                      << " in a map with service_id=" << service_id;
+            VLOG(1) << "This GATT advertisement:"
+                    << absl::BytesToHexString(
+                           gatt_advertisement_bytes->AsStringView())
+                    << " is a fast advertisement and matched UUID="
+                    << service_uuid.Get16BitAsString()
+                    << " in a map with service_id=" << service_id;
             parsed_gatt_advertisements.insert({service_id, gatt_advertisement});
           }
         }
@@ -605,7 +605,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   BleAdvertisementHeader advertisement_header(
       ExtractAdvertisementHeaderBytes(advertisement_data));
   if (!advertisement_header.IsValid()) {
-    LOG(INFO) << "Failed to deserialize BLE advertisement header. Ignoring.";
+    VLOG(1) << "Failed to deserialize BLE advertisement header. Ignoring.";
     return;
   }
 
@@ -736,11 +736,10 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
           << ". Caller should retry reading its GATT advertisement.";
       return true;
     case AdvertisementReadResult::RetryStatus::kPreviouslySucceeded:
-      LOG(INFO)
-          << "Received advertisement header with hash "
-          << absl::BytesToHexString(
-                 advertisement_header.GetAdvertisementHash().AsStringView())
-          << ", but we have already read its GATT advertisement.";
+      VLOG(1) << "Received advertisement header with hash "
+              << absl::BytesToHexString(
+                     advertisement_header.GetAdvertisementHash().AsStringView())
+              << ", but we have already read its GATT advertisement.";
       return false;
     case AdvertisementReadResult::RetryStatus::kTooSoon:
       LOG(INFO)
