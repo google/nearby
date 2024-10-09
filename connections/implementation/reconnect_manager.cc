@@ -142,7 +142,7 @@ bool ReconnectManager::Start(bool is_incoming, ClientProxy* client,
   CountDownLatch latch(1);
   reconnect_executor_.Execute(
       "reconnect-start",
-      [this, &final_result, is_incoming, client, &endpoint_id,
+      [this, &final_result, is_incoming, client, endpoint_id,
        &reconnect_service_id, retry_delay_millis, reconnect_retry_num, medium,
        &latch]() mutable {
         for (int i = 0; i < reconnect_retry_num; ++i) {
