@@ -116,7 +116,6 @@ class ShareSession {
       location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
       NearbyShareCertificateManager* certificate_manager,
-      const std::vector<uint8_t>& token,
       std::function<
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                location::nearby::proto::sharing::OSType)>

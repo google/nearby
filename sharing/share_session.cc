@@ -158,14 +158,19 @@ void ShareSession::RunPairedKeyVerification(
     OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
     NearbyShareCertificateManager* certificate_manager,
-    const std::vector<uint8_t>& token,
     std::function<void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                        OSType)>
         callback) {
-  token_ = TokenToFourDigitString(token);
+  std::optional<std::vector<uint8_t>> token =
+      connections_manager_.GetRawAuthenticationToken(endpoint_id());
+  if (!token.has_value()) {
+    Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
+    return;
+  }
+  token_ = TokenToFourDigitString(*token);
 
   key_verification_runner_ = std::make_shared<PairedKeyVerificationRunner>(
-      &clock_, os_type, IsIncoming(), visibility_history, token, connection_,
+      &clock_, os_type, IsIncoming(), visibility_history, *token, connection_,
       certificate_, certificate_manager, frames_reader_.get(),
       kReadFramesTimeout);
   key_verification_runner_->Run(std::move(callback));

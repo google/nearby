@@ -171,6 +171,7 @@ TEST(ShareSessionTest, IncomingRunPairedKeyVerificationSuccess) {
   ShareTarget share_target;
   share_target.is_incoming = true;
   TestShareSession session(std::string(kEndpointId), share_target);
+  session.connections_manager().SetRawAuthenticationToken(kEndpointId, token);
   session.SetOnNewConnectionResult(true);
   absl::Time connect_start_time = absl::Now();
   EXPECT_TRUE(session.OnConnected(connect_start_time, &connection));
@@ -185,7 +186,7 @@ TEST(ShareSessionTest, IncomingRunPairedKeyVerificationSuccess) {
               proto::DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
           .last_visibility_time = absl::Now(),
       },
-      &certificate_manager, token,
+      &certificate_manager,
       [&notification, &verification_result](
           PairedKeyVerificationRunner::PairedKeyVerificationResult result,
           location::nearby::proto::sharing::OSType) {

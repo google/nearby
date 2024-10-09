@@ -2465,13 +2465,6 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
           (context_->GetClock()->Now() - connect_start_time)),
       /*referrer_package=*/std::nullopt);
 
-  std::optional<std::vector<uint8_t>> token =
-      nearby_connections_manager_->GetRawAuthenticationToken(
-          session.endpoint_id());
-  if (!token.has_value()) {
-    session.Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
-    return;
-  }
   session.RunPairedKeyVerification(
       ToProtoOsType(device_info_.GetOsType()),
       {
@@ -2479,7 +2472,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
           .last_visibility = settings_->GetLastVisibility(),
           .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
       },
-      GetCertificateManager(), *token,
+      GetCertificateManager(),
       absl::bind_front(
           &NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone,
           this, share_target_id));
@@ -2821,14 +2814,6 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
   connection->SetDisconnectionListener(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
 
-  std::optional<std::vector<uint8_t>> token =
-      nearby_connections_manager_->GetRawAuthenticationToken(
-          session.endpoint_id());
-
-  if (!token.has_value()) {
-    session.Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
-    return;
-  }
   session.RunPairedKeyVerification(
       ToProtoOsType(device_info_.GetOsType()),
       {
@@ -2836,7 +2821,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
           .last_visibility = settings_->GetLastVisibility(),
           .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
       },
-      GetCertificateManager(), *token,
+      GetCertificateManager(),
       absl::bind_front(
           &NearbySharingServiceImpl::OnIncomingConnectionKeyVerificationDone,
           this, share_target_id));
