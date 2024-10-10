@@ -47,6 +47,7 @@ namespace analytics {
 namespace {
 const char kVersion[] = "v1.0.0";
 constexpr absl::string_view kOnStartClientSession = "OnStartClientSession";
+const absl::Duration kConnectionTokenMaxLife = absl::Hours(24);
 }  // namespace
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
@@ -1199,6 +1200,15 @@ AnalyticsRecorder::LogicalConnection::GetEstablisedConnections() {
                  std::back_inserter(established_connections),
                  [](auto &kv) { return *kv.second; });
   physical_connections_.clear();
+
+  for (auto &established_connection : established_connections) {
+    if (absl::Milliseconds(established_connection.duration_millis()) >=
+        kConnectionTokenMaxLife) {
+      NEARBY_LOGS(INFO) << "connection token exceed TTL, drop token.";
+      established_connection.set_connection_token("");
+    }
+  }
+
   return established_connections;
 }
 
