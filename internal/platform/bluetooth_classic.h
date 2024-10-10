@@ -16,12 +16,16 @@
 #define PLATFORM_PUBLIC_BLUETOOTH_CLASSIC_H_
 
 #include <stdbool.h>
+
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/blocking_queue_stream.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -48,12 +52,12 @@ class BluetoothSocket : public MediumSocket {
   BluetoothSocket(const BluetoothSocket&) = default;
   BluetoothSocket& operator=(const BluetoothSocket&) = default;
 
-// Creates a physical BluetoothSocket from a platform implementation.
+  // Creates a physical BluetoothSocket from a platform implementation.
   explicit BluetoothSocket(std::unique_ptr<api::BluetoothSocket> socket)
       : MediumSocket(location::nearby::proto::connections::Medium::BLUETOOTH),
         impl_(socket.release()) {}
 
-// Creates a virtual BluetoothSocket from a virtual output stream.
+  // Creates a virtual BluetoothSocket from a virtual output stream.
   explicit BluetoothSocket(OutputStream* virtual_output_stream)
       : MediumSocket(location::nearby::proto::connections::Medium::BLUETOOTH),
         blocking_queue_input_stream_(std::make_shared<BlockingQueueStream>()),
