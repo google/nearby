@@ -93,13 +93,14 @@ bool EventType_IsValid(int value) {
     case 64:
     case 65:
     case 66:
+    case 67:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[67] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[68] = {};
 
 static const char EventType_names[] =
   "ACCEPT_AGREEMENTS"
@@ -168,7 +169,8 @@ static const char EventType_names[] =
   "TAP_QUICK_SETTINGS_TILE"
   "TOGGLE_SHOW_NOTIFICATION"
   "UNKNOWN_EVENT_TYPE"
-  "VERIFY_APK";
+  "VERIFY_APK"
+  "WAITING_FOR_ACCEPT";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EventType_entries[] = {
   { {EventType_names + 0, 17}, 1 },
@@ -238,6 +240,7 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EventType_entries[] = 
   { {EventType_names + 1349, 24}, 44 },
   { {EventType_names + 1373, 18}, 0 },
   { {EventType_names + 1391, 10}, 41 },
+  { {EventType_names + 1401, 18}, 67 },
 };
 
 static const int EventType_entries_by_number[] = {
@@ -308,6 +311,7 @@ static const int EventType_entries_by_number[] = {
   12, // 64 -> DECRYPT_CERTIFICATE_FAILURE
   57, // 65 -> SHOW_ALLOW_PERMISSION_AUTO_ACCESS
   48, // 66 -> SEND_DESKTOP_TRANSFER_EVENT
+  67, // 67 -> WAITING_FOR_ACCEPT
 };
 
 const std::string& EventType_Name(
@@ -316,12 +320,12 @@ const std::string& EventType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           EventType_entries,
           EventType_entries_by_number,
-          67, EventType_strings);
+          68, EventType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       EventType_entries,
       EventType_entries_by_number,
-      67, value);
+      68, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      EventType_strings[idx].get();
 }
@@ -329,7 +333,7 @@ bool EventType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EventType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      EventType_entries, 67, name, &int_value);
+      EventType_entries, 68, name, &int_value);
   if (success) {
     *value = static_cast<EventType>(int_value);
   }
@@ -1131,32 +1135,36 @@ bool DeviceType_IsValid(int value) {
     case 1:
     case 2:
     case 3:
+    case 4:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DeviceType_strings[4] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DeviceType_strings[5] = {};
 
 static const char DeviceType_names[] =
+  "CAR"
   "LAPTOP"
   "PHONE"
   "TABLET"
   "UNKNOWN_DEVICE_TYPE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DeviceType_entries[] = {
-  { {DeviceType_names + 0, 6}, 3 },
-  { {DeviceType_names + 6, 5}, 1 },
-  { {DeviceType_names + 11, 6}, 2 },
-  { {DeviceType_names + 17, 19}, 0 },
+  { {DeviceType_names + 0, 3}, 4 },
+  { {DeviceType_names + 3, 6}, 3 },
+  { {DeviceType_names + 9, 5}, 1 },
+  { {DeviceType_names + 14, 6}, 2 },
+  { {DeviceType_names + 20, 19}, 0 },
 };
 
 static const int DeviceType_entries_by_number[] = {
-  3, // 0 -> UNKNOWN_DEVICE_TYPE
-  1, // 1 -> PHONE
-  2, // 2 -> TABLET
-  0, // 3 -> LAPTOP
+  4, // 0 -> UNKNOWN_DEVICE_TYPE
+  2, // 1 -> PHONE
+  3, // 2 -> TABLET
+  1, // 3 -> LAPTOP
+  0, // 4 -> CAR
 };
 
 const std::string& DeviceType_Name(
@@ -1165,12 +1173,12 @@ const std::string& DeviceType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           DeviceType_entries,
           DeviceType_entries_by_number,
-          4, DeviceType_strings);
+          5, DeviceType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       DeviceType_entries,
       DeviceType_entries_by_number,
-      4, value);
+      5, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      DeviceType_strings[idx].get();
 }
@@ -1178,7 +1186,7 @@ bool DeviceType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DeviceType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      DeviceType_entries, 4, name, &int_value);
+      DeviceType_entries, 5, name, &int_value);
   if (success) {
     *value = static_cast<DeviceType>(int_value);
   }
@@ -1319,41 +1327,53 @@ bool LogSource_IsValid(int value) {
     case 4:
     case 5:
     case 6:
+    case 7:
+    case 8:
+    case 9:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> LogSource_strings[7] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> LogSource_strings[10] = {};
 
 static const char LogSource_names[] =
   "BETA_TESTER_DEVICES"
+  "BETO_DOGFOOD_DEVICES"
   "DEBUG_DEVICES"
   "INTERNAL_DEVICES"
   "LAB_DEVICES"
+  "NEARBY_DOGFOOD_DEVICES"
   "NEARBY_MODULE_FOOD_DEVICES"
+  "NEARBY_TEAMFOOD_DEVICES"
   "OEM_DEVICES"
   "UNSPECIFIED_SOURCE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry LogSource_entries[] = {
   { {LogSource_names + 0, 19}, 3 },
-  { {LogSource_names + 19, 13}, 5 },
-  { {LogSource_names + 32, 16}, 2 },
-  { {LogSource_names + 48, 11}, 1 },
-  { {LogSource_names + 59, 26}, 6 },
-  { {LogSource_names + 85, 11}, 4 },
-  { {LogSource_names + 96, 18}, 0 },
+  { {LogSource_names + 19, 20}, 7 },
+  { {LogSource_names + 39, 13}, 5 },
+  { {LogSource_names + 52, 16}, 2 },
+  { {LogSource_names + 68, 11}, 1 },
+  { {LogSource_names + 79, 22}, 8 },
+  { {LogSource_names + 101, 26}, 6 },
+  { {LogSource_names + 127, 23}, 9 },
+  { {LogSource_names + 150, 11}, 4 },
+  { {LogSource_names + 161, 18}, 0 },
 };
 
 static const int LogSource_entries_by_number[] = {
-  6, // 0 -> UNSPECIFIED_SOURCE
-  3, // 1 -> LAB_DEVICES
-  2, // 2 -> INTERNAL_DEVICES
+  9, // 0 -> UNSPECIFIED_SOURCE
+  4, // 1 -> LAB_DEVICES
+  3, // 2 -> INTERNAL_DEVICES
   0, // 3 -> BETA_TESTER_DEVICES
-  5, // 4 -> OEM_DEVICES
-  1, // 5 -> DEBUG_DEVICES
-  4, // 6 -> NEARBY_MODULE_FOOD_DEVICES
+  8, // 4 -> OEM_DEVICES
+  2, // 5 -> DEBUG_DEVICES
+  6, // 6 -> NEARBY_MODULE_FOOD_DEVICES
+  1, // 7 -> BETO_DOGFOOD_DEVICES
+  5, // 8 -> NEARBY_DOGFOOD_DEVICES
+  7, // 9 -> NEARBY_TEAMFOOD_DEVICES
 };
 
 const std::string& LogSource_Name(
@@ -1362,12 +1382,12 @@ const std::string& LogSource_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           LogSource_entries,
           LogSource_entries_by_number,
-          7, LogSource_strings);
+          10, LogSource_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       LogSource_entries,
       LogSource_entries_by_number,
-      7, value);
+      10, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      LogSource_strings[idx].get();
 }
@@ -1375,7 +1395,7 @@ bool LogSource_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, LogSource* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      LogSource_entries, 7, name, &int_value);
+      LogSource_entries, 10, name, &int_value);
   if (success) {
     *value = static_cast<LogSource>(int_value);
   }
@@ -3203,6 +3223,187 @@ bool DecryptCertificateFailureStatus_Parse(
       DecryptCertificateFailureStatus_entries, 7, name, &int_value);
   if (success) {
     *value = static_cast<DecryptCertificateFailureStatus>(int_value);
+  }
+  return success;
+}
+bool ContactAccess_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ContactAccess_strings[5] = {};
+
+static const char ContactAccess_names[] =
+  "CONTACT_ACCESS_NO_CONTACT_UPLOADED"
+  "CONTACT_ACCESS_ONLY_UPLOAD_GOOGLE_CONTACT"
+  "CONTACT_ACCESS_UNKNOWN"
+  "CONTACT_ACCESS_UPLOAD_CONTACT_FOR_DEVICE_CONTACT_CONSENT"
+  "CONTACT_ACCESS_UPLOAD_CONTACT_FOR_QUICK_SHARE_CONSENT";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ContactAccess_entries[] = {
+  { {ContactAccess_names + 0, 34}, 1 },
+  { {ContactAccess_names + 34, 41}, 2 },
+  { {ContactAccess_names + 75, 22}, 0 },
+  { {ContactAccess_names + 97, 56}, 3 },
+  { {ContactAccess_names + 153, 53}, 4 },
+};
+
+static const int ContactAccess_entries_by_number[] = {
+  2, // 0 -> CONTACT_ACCESS_UNKNOWN
+  0, // 1 -> CONTACT_ACCESS_NO_CONTACT_UPLOADED
+  1, // 2 -> CONTACT_ACCESS_ONLY_UPLOAD_GOOGLE_CONTACT
+  3, // 3 -> CONTACT_ACCESS_UPLOAD_CONTACT_FOR_DEVICE_CONTACT_CONSENT
+  4, // 4 -> CONTACT_ACCESS_UPLOAD_CONTACT_FOR_QUICK_SHARE_CONSENT
+};
+
+const std::string& ContactAccess_Name(
+    ContactAccess value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ContactAccess_entries,
+          ContactAccess_entries_by_number,
+          5, ContactAccess_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ContactAccess_entries,
+      ContactAccess_entries_by_number,
+      5, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ContactAccess_strings[idx].get();
+}
+bool ContactAccess_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ContactAccess* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ContactAccess_entries, 5, name, &int_value);
+  if (success) {
+    *value = static_cast<ContactAccess>(int_value);
+  }
+  return success;
+}
+bool IdentityVerification_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> IdentityVerification_strings[4] = {};
+
+static const char IdentityVerification_names[] =
+  "IDENTITY_VERIFICATION_NO_PHONE_NUMBER_VERIFIED"
+  "IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_LINKED_TO_QS_GAIA"
+  "IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_NOT_LINKED_TO_GAIA"
+  "IDENTITY_VERIFICATION_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry IdentityVerification_entries[] = {
+  { {IdentityVerification_names + 0, 46}, 1 },
+  { {IdentityVerification_names + 46, 61}, 3 },
+  { {IdentityVerification_names + 107, 62}, 2 },
+  { {IdentityVerification_names + 169, 29}, 0 },
+};
+
+static const int IdentityVerification_entries_by_number[] = {
+  3, // 0 -> IDENTITY_VERIFICATION_UNKNOWN
+  0, // 1 -> IDENTITY_VERIFICATION_NO_PHONE_NUMBER_VERIFIED
+  2, // 2 -> IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_NOT_LINKED_TO_GAIA
+  1, // 3 -> IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_LINKED_TO_QS_GAIA
+};
+
+const std::string& IdentityVerification_Name(
+    IdentityVerification value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          IdentityVerification_entries,
+          IdentityVerification_entries_by_number,
+          4, IdentityVerification_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      IdentityVerification_entries,
+      IdentityVerification_entries_by_number,
+      4, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     IdentityVerification_strings[idx].get();
+}
+bool IdentityVerification_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, IdentityVerification* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      IdentityVerification_entries, 4, name, &int_value);
+  if (success) {
+    *value = static_cast<IdentityVerification>(int_value);
+  }
+  return success;
+}
+bool ButtonStatus_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ButtonStatus_strings[4] = {};
+
+static const char ButtonStatus_names[] =
+  "BUTTON_STATUS_CLICK_ACCEPT"
+  "BUTTON_STATUS_CLICK_REJECT"
+  "BUTTON_STATUS_IGNORE"
+  "BUTTON_STATUS_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ButtonStatus_entries[] = {
+  { {ButtonStatus_names + 0, 26}, 1 },
+  { {ButtonStatus_names + 26, 26}, 2 },
+  { {ButtonStatus_names + 52, 20}, 3 },
+  { {ButtonStatus_names + 72, 21}, 0 },
+};
+
+static const int ButtonStatus_entries_by_number[] = {
+  3, // 0 -> BUTTON_STATUS_UNKNOWN
+  0, // 1 -> BUTTON_STATUS_CLICK_ACCEPT
+  1, // 2 -> BUTTON_STATUS_CLICK_REJECT
+  2, // 3 -> BUTTON_STATUS_IGNORE
+};
+
+const std::string& ButtonStatus_Name(
+    ButtonStatus value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ButtonStatus_entries,
+          ButtonStatus_entries_by_number,
+          4, ButtonStatus_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ButtonStatus_entries,
+      ButtonStatus_entries_by_number,
+      4, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ButtonStatus_strings[idx].get();
+}
+bool ButtonStatus_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ButtonStatus* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ButtonStatus_entries, 4, name, &int_value);
+  if (success) {
+    *value = static_cast<ButtonStatus>(int_value);
   }
   return success;
 }

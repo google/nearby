@@ -19,7 +19,8 @@ namespace mediums {
 constexpr AdvertisementData::AdvertisementData(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : tag_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
-  , public_key_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string){}
+  , public_key_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , rx_advertisement_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string){}
 struct AdvertisementDataDefaultTypeInternal {
   constexpr AdvertisementDataDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -61,6 +62,9 @@ class AdvertisementData::_Internal {
   static void set_has_public_key(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
   }
+  static void set_has_rx_advertisement(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
 };
 
 AdvertisementData::AdvertisementData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -92,6 +96,14 @@ AdvertisementData::AdvertisementData(const AdvertisementData& from)
     public_key_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_public_key(), 
       GetArenaForAllocation());
   }
+  rx_advertisement_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    rx_advertisement_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_rx_advertisement()) {
+    rx_advertisement_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_rx_advertisement(), 
+      GetArenaForAllocation());
+  }
   // @@protoc_insertion_point(copy_constructor:location.nearby.mediums.AdvertisementData)
 }
 
@@ -103,6 +115,10 @@ tag_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyI
 public_key_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   public_key_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+rx_advertisement_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  rx_advertisement_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
@@ -117,6 +133,7 @@ inline void AdvertisementData::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   tag_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   public_key_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  rx_advertisement_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void AdvertisementData::ArenaDtor(void* object) {
@@ -136,12 +153,15 @@ void AdvertisementData::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       tag_.ClearNonDefaultToEmpty();
     }
     if (cached_has_bits & 0x00000002u) {
       public_key_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000004u) {
+      rx_advertisement_.ClearNonDefaultToEmpty();
     }
   }
   _has_bits_.Clear();
@@ -168,6 +188,15 @@ const char* AdvertisementData::_InternalParse(const char* ptr, ::PROTOBUF_NAMESP
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           auto str = _internal_mutable_public_key();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bytes rx_advertisement = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_rx_advertisement();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
         } else
@@ -216,6 +245,12 @@ uint8_t* AdvertisementData::_InternalSerialize(
         2, this->_internal_public_key(), target);
   }
 
+  // optional bytes rx_advertisement = 3;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->WriteBytesMaybeAliased(
+        3, this->_internal_rx_advertisement(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -233,7 +268,7 @@ size_t AdvertisementData::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     // optional bytes tag = 1;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -246,6 +281,13 @@ size_t AdvertisementData::ByteSizeLong() const {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
           this->_internal_public_key());
+    }
+
+    // optional bytes rx_advertisement = 3;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
+          this->_internal_rx_advertisement());
     }
 
   }
@@ -270,12 +312,15 @@ void AdvertisementData::MergeFrom(const AdvertisementData& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_tag(from._internal_tag());
     }
     if (cached_has_bits & 0x00000002u) {
       _internal_set_public_key(from._internal_public_key());
+    }
+    if (cached_has_bits & 0x00000004u) {
+      _internal_set_rx_advertisement(from._internal_rx_advertisement());
     }
   }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
@@ -307,6 +352,11 @@ void AdvertisementData::InternalSwap(AdvertisementData* other) {
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &public_key_, lhs_arena,
       &other->public_key_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &rx_advertisement_, lhs_arena,
+      &other->rx_advertisement_, rhs_arena
   );
 }
 

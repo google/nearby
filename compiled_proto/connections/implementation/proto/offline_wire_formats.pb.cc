@@ -68,6 +68,8 @@ constexpr ConnectionRequestFrame::ConnectionRequestFrame(
   , keep_alive_interval_millis_(0)
   , keep_alive_timeout_millis_(0)
   , device_type_(0)
+  , connection_mode_(0)
+
   , _oneof_case_{}{}
 struct ConnectionRequestFrameDefaultTypeInternal {
   constexpr ConnectionRequestFrameDefaultTypeInternal()
@@ -267,6 +269,18 @@ struct BandwidthUpgradeNegotiationFrame_UpgradePathInfoDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT BandwidthUpgradeNegotiationFrame_UpgradePathInfoDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_default_instance_;
+constexpr BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : sta_frequency_(0){}
+struct BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannelDefaultTypeInternal {
+  constexpr BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannelDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannelDefaultTypeInternal() {}
+  union {
+    BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannelDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel_default_instance_;
 constexpr BandwidthUpgradeNegotiationFrame_ClientIntroduction::BandwidthUpgradeNegotiationFrame_ClientIntroduction(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : endpoint_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
@@ -296,6 +310,7 @@ constexpr BandwidthUpgradeNegotiationFrame::BandwidthUpgradeNegotiationFrame(
   : upgrade_path_info_(nullptr)
   , client_introduction_(nullptr)
   , client_introduction_ack_(nullptr)
+  , safe_to_close_prior_channel_(nullptr)
   , event_type_(0)
 {}
 struct BandwidthUpgradeNegotiationFrameDefaultTypeInternal {
@@ -769,13 +784,14 @@ bool ConnectionRequestFrame_Medium_IsValid(int value) {
     case 9:
     case 10:
     case 11:
+    case 12:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionRequestFrame_Medium_strings[12] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionRequestFrame_Medium_strings[13] = {};
 
 static const char ConnectionRequestFrame_Medium_names[] =
   "BLE"
@@ -786,6 +802,7 @@ static const char ConnectionRequestFrame_Medium_names[] =
   "UNKNOWN_MEDIUM"
   "USB"
   "WEB_RTC"
+  "WEB_RTC_NON_CELLULAR"
   "WIFI_AWARE"
   "WIFI_DIRECT"
   "WIFI_HOTSPOT"
@@ -800,25 +817,27 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionRequestFrame
   { {ConnectionRequestFrame_Medium_names + 28, 14}, 0 },
   { {ConnectionRequestFrame_Medium_names + 42, 3}, 11 },
   { {ConnectionRequestFrame_Medium_names + 45, 7}, 9 },
-  { {ConnectionRequestFrame_Medium_names + 52, 10}, 6 },
-  { {ConnectionRequestFrame_Medium_names + 62, 11}, 8 },
-  { {ConnectionRequestFrame_Medium_names + 73, 12}, 3 },
-  { {ConnectionRequestFrame_Medium_names + 85, 8}, 5 },
+  { {ConnectionRequestFrame_Medium_names + 52, 20}, 12 },
+  { {ConnectionRequestFrame_Medium_names + 72, 10}, 6 },
+  { {ConnectionRequestFrame_Medium_names + 82, 11}, 8 },
+  { {ConnectionRequestFrame_Medium_names + 93, 12}, 3 },
+  { {ConnectionRequestFrame_Medium_names + 105, 8}, 5 },
 };
 
 static const int ConnectionRequestFrame_Medium_entries_by_number[] = {
   5, // 0 -> UNKNOWN_MEDIUM
   3, // 1 -> MDNS
   2, // 2 -> BLUETOOTH
-  10, // 3 -> WIFI_HOTSPOT
+  11, // 3 -> WIFI_HOTSPOT
   0, // 4 -> BLE
-  11, // 5 -> WIFI_LAN
-  8, // 6 -> WIFI_AWARE
+  12, // 5 -> WIFI_LAN
+  9, // 6 -> WIFI_AWARE
   4, // 7 -> NFC
-  9, // 8 -> WIFI_DIRECT
+  10, // 8 -> WIFI_DIRECT
   7, // 9 -> WEB_RTC
   1, // 10 -> BLE_L2CAP
   6, // 11 -> USB
+  8, // 12 -> WEB_RTC_NON_CELLULAR
 };
 
 const std::string& ConnectionRequestFrame_Medium_Name(
@@ -827,12 +846,12 @@ const std::string& ConnectionRequestFrame_Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           ConnectionRequestFrame_Medium_entries,
           ConnectionRequestFrame_Medium_entries_by_number,
-          12, ConnectionRequestFrame_Medium_strings);
+          13, ConnectionRequestFrame_Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       ConnectionRequestFrame_Medium_entries,
       ConnectionRequestFrame_Medium_entries_by_number,
-      12, value);
+      13, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      ConnectionRequestFrame_Medium_strings[idx].get();
 }
@@ -840,7 +859,7 @@ bool ConnectionRequestFrame_Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionRequestFrame_Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      ConnectionRequestFrame_Medium_entries, 12, name, &int_value);
+      ConnectionRequestFrame_Medium_entries, 13, name, &int_value);
   if (success) {
     *value = static_cast<ConnectionRequestFrame_Medium>(int_value);
   }
@@ -859,9 +878,68 @@ constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::WIFI_DIRECT;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::WEB_RTC;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::BLE_L2CAP;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::USB;
+constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::WEB_RTC_NON_CELLULAR;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::Medium_MIN;
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame::Medium_MAX;
 constexpr int ConnectionRequestFrame::Medium_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool ConnectionRequestFrame_ConnectionMode_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionRequestFrame_ConnectionMode_strings[2] = {};
+
+static const char ConnectionRequestFrame_ConnectionMode_names[] =
+  "INSTANT"
+  "LEGACY";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionRequestFrame_ConnectionMode_entries[] = {
+  { {ConnectionRequestFrame_ConnectionMode_names + 0, 7}, 1 },
+  { {ConnectionRequestFrame_ConnectionMode_names + 7, 6}, 0 },
+};
+
+static const int ConnectionRequestFrame_ConnectionMode_entries_by_number[] = {
+  1, // 0 -> LEGACY
+  0, // 1 -> INSTANT
+};
+
+const std::string& ConnectionRequestFrame_ConnectionMode_Name(
+    ConnectionRequestFrame_ConnectionMode value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ConnectionRequestFrame_ConnectionMode_entries,
+          ConnectionRequestFrame_ConnectionMode_entries_by_number,
+          2, ConnectionRequestFrame_ConnectionMode_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ConnectionRequestFrame_ConnectionMode_entries,
+      ConnectionRequestFrame_ConnectionMode_entries_by_number,
+      2, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ConnectionRequestFrame_ConnectionMode_strings[idx].get();
+}
+bool ConnectionRequestFrame_ConnectionMode_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionRequestFrame_ConnectionMode* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ConnectionRequestFrame_ConnectionMode_entries, 2, name, &int_value);
+  if (success) {
+    *value = static_cast<ConnectionRequestFrame_ConnectionMode>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr ConnectionRequestFrame_ConnectionMode ConnectionRequestFrame::LEGACY;
+constexpr ConnectionRequestFrame_ConnectionMode ConnectionRequestFrame::INSTANT;
+constexpr ConnectionRequestFrame_ConnectionMode ConnectionRequestFrame::ConnectionMode_MIN;
+constexpr ConnectionRequestFrame_ConnectionMode ConnectionRequestFrame::ConnectionMode_MAX;
+constexpr int ConnectionRequestFrame::ConnectionMode_ARRAYSIZE;
 #endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 bool ConnectionResponseFrame_ResponseStatus_IsValid(int value) {
   switch (value) {
@@ -1196,13 +1274,14 @@ bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(int value) 
     case 8:
     case 9:
     case 11:
+    case 12:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[11] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[12] = {};
 
 static const char BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[] =
   "BLE"
@@ -1212,6 +1291,7 @@ static const char BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names[
   "UNKNOWN_MEDIUM"
   "USB"
   "WEB_RTC"
+  "WEB_RTC_NON_CELLULAR"
   "WIFI_AWARE"
   "WIFI_DIRECT"
   "WIFI_HOTSPOT"
@@ -1225,24 +1305,26 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry BandwidthUpgradeNegoti
   { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 19, 14}, 0 },
   { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 33, 3}, 11 },
   { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 36, 7}, 9 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 43, 10}, 6 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 53, 11}, 8 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 64, 12}, 3 },
-  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 76, 8}, 5 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 43, 20}, 12 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 63, 10}, 6 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 73, 11}, 8 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 84, 12}, 3 },
+  { {BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_names + 96, 8}, 5 },
 };
 
 static const int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number[] = {
   4, // 0 -> UNKNOWN_MEDIUM
   2, // 1 -> MDNS
   1, // 2 -> BLUETOOTH
-  9, // 3 -> WIFI_HOTSPOT
+  10, // 3 -> WIFI_HOTSPOT
   0, // 4 -> BLE
-  10, // 5 -> WIFI_LAN
-  7, // 6 -> WIFI_AWARE
+  11, // 5 -> WIFI_LAN
+  8, // 6 -> WIFI_AWARE
   3, // 7 -> NFC
-  8, // 8 -> WIFI_DIRECT
+  9, // 8 -> WIFI_DIRECT
   6, // 9 -> WEB_RTC
   5, // 11 -> USB
+  7, // 12 -> WEB_RTC_NON_CELLULAR
 };
 
 const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Name(
@@ -1251,12 +1333,12 @@ const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries,
           BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number,
-          11, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings);
+          12, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries,
       BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries_by_number,
-      11, value);
+      12, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_strings[idx].get();
 }
@@ -1264,7 +1346,7 @@ bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, 11, name, &int_value);
+      BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_entries, 12, name, &int_value);
   if (success) {
     *value = static_cast<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium>(int_value);
   }
@@ -1282,6 +1364,7 @@ constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgra
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::WIFI_DIRECT;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::WEB_RTC;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::USB;
+constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::WEB_RTC_NON_CELLULAR;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Medium_MIN;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Medium_MAX;
 constexpr int BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Medium_ARRAYSIZE;
@@ -1382,13 +1465,14 @@ bool BandwidthUpgradeRetryFrame_Medium_IsValid(int value) {
     case 9:
     case 10:
     case 11:
+    case 12:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeRetryFrame_Medium_strings[11] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> BandwidthUpgradeRetryFrame_Medium_strings[12] = {};
 
 static const char BandwidthUpgradeRetryFrame_Medium_names[] =
   "BLE"
@@ -1398,6 +1482,7 @@ static const char BandwidthUpgradeRetryFrame_Medium_names[] =
   "UNKNOWN_MEDIUM"
   "USB"
   "WEB_RTC"
+  "WEB_RTC_NON_CELLULAR"
   "WIFI_AWARE"
   "WIFI_DIRECT"
   "WIFI_HOTSPOT"
@@ -1411,24 +1496,26 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry BandwidthUpgradeRetryF
   { {BandwidthUpgradeRetryFrame_Medium_names + 24, 14}, 0 },
   { {BandwidthUpgradeRetryFrame_Medium_names + 38, 3}, 11 },
   { {BandwidthUpgradeRetryFrame_Medium_names + 41, 7}, 9 },
-  { {BandwidthUpgradeRetryFrame_Medium_names + 48, 10}, 6 },
-  { {BandwidthUpgradeRetryFrame_Medium_names + 58, 11}, 8 },
-  { {BandwidthUpgradeRetryFrame_Medium_names + 69, 12}, 3 },
-  { {BandwidthUpgradeRetryFrame_Medium_names + 81, 8}, 5 },
+  { {BandwidthUpgradeRetryFrame_Medium_names + 48, 20}, 12 },
+  { {BandwidthUpgradeRetryFrame_Medium_names + 68, 10}, 6 },
+  { {BandwidthUpgradeRetryFrame_Medium_names + 78, 11}, 8 },
+  { {BandwidthUpgradeRetryFrame_Medium_names + 89, 12}, 3 },
+  { {BandwidthUpgradeRetryFrame_Medium_names + 101, 8}, 5 },
 };
 
 static const int BandwidthUpgradeRetryFrame_Medium_entries_by_number[] = {
   4, // 0 -> UNKNOWN_MEDIUM
   2, // 2 -> BLUETOOTH
-  9, // 3 -> WIFI_HOTSPOT
+  10, // 3 -> WIFI_HOTSPOT
   0, // 4 -> BLE
-  10, // 5 -> WIFI_LAN
-  7, // 6 -> WIFI_AWARE
+  11, // 5 -> WIFI_LAN
+  8, // 6 -> WIFI_AWARE
   3, // 7 -> NFC
-  8, // 8 -> WIFI_DIRECT
+  9, // 8 -> WIFI_DIRECT
   6, // 9 -> WEB_RTC
   1, // 10 -> BLE_L2CAP
   5, // 11 -> USB
+  7, // 12 -> WEB_RTC_NON_CELLULAR
 };
 
 const std::string& BandwidthUpgradeRetryFrame_Medium_Name(
@@ -1437,12 +1524,12 @@ const std::string& BandwidthUpgradeRetryFrame_Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           BandwidthUpgradeRetryFrame_Medium_entries,
           BandwidthUpgradeRetryFrame_Medium_entries_by_number,
-          11, BandwidthUpgradeRetryFrame_Medium_strings);
+          12, BandwidthUpgradeRetryFrame_Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       BandwidthUpgradeRetryFrame_Medium_entries,
       BandwidthUpgradeRetryFrame_Medium_entries_by_number,
-      11, value);
+      12, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      BandwidthUpgradeRetryFrame_Medium_strings[idx].get();
 }
@@ -1450,7 +1537,7 @@ bool BandwidthUpgradeRetryFrame_Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, BandwidthUpgradeRetryFrame_Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      BandwidthUpgradeRetryFrame_Medium_entries, 11, name, &int_value);
+      BandwidthUpgradeRetryFrame_Medium_entries, 12, name, &int_value);
   if (success) {
     *value = static_cast<BandwidthUpgradeRetryFrame_Medium>(int_value);
   }
@@ -1468,6 +1555,7 @@ constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::WIFI_DIR
 constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::WEB_RTC;
 constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::BLE_L2CAP;
 constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::USB;
+constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::WEB_RTC_NON_CELLULAR;
 constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::Medium_MIN;
 constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame::Medium_MAX;
 constexpr int BandwidthUpgradeRetryFrame::Medium_ARRAYSIZE;
@@ -2912,6 +3000,9 @@ class ConnectionRequestFrame::_Internal {
   }
   static const ::location::nearby::connections::ConnectionsDevice& connections_device(const ConnectionRequestFrame* msg);
   static const ::location::nearby::connections::PresenceDevice& presence_device(const ConnectionRequestFrame* msg);
+  static void set_has_connection_mode(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
+  }
 };
 
 const ::location::nearby::connections::MediumMetadata&
@@ -3017,8 +3108,8 @@ ConnectionRequestFrame::ConnectionRequestFrame(const ConnectionRequestFrame& fro
     medium_metadata_ = nullptr;
   }
   ::memcpy(&nonce_, &from.nonce_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&nonce_)) + sizeof(device_type_));
+    static_cast<size_t>(reinterpret_cast<char*>(&connection_mode_) -
+    reinterpret_cast<char*>(&nonce_)) + sizeof(connection_mode_));
   clear_has_Device();
   switch (from.Device_case()) {
     case kConnectionsDevice: {
@@ -3059,8 +3150,8 @@ device_info_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&medium_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&medium_metadata_)) + sizeof(device_type_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&connection_mode_) -
+    reinterpret_cast<char*>(&medium_metadata_)) + sizeof(connection_mode_));
 clear_has_Device();
 }
 
@@ -3151,10 +3242,10 @@ void ConnectionRequestFrame::Clear() {
         reinterpret_cast<char*>(&keep_alive_interval_millis_) -
         reinterpret_cast<char*>(&nonce_)) + sizeof(keep_alive_interval_millis_));
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     ::memset(&keep_alive_timeout_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_type_) -
-        reinterpret_cast<char*>(&keep_alive_timeout_millis_)) + sizeof(device_type_));
+        reinterpret_cast<char*>(&connection_mode_) -
+        reinterpret_cast<char*>(&keep_alive_timeout_millis_)) + sizeof(connection_mode_));
   }
   clear_Device();
   _has_bits_.Clear();
@@ -3294,6 +3385,19 @@ const char* ConnectionRequestFrame::_InternalParse(const char* ptr, ::PROTOBUF_N
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.connections.ConnectionRequestFrame.ConnectionMode connection_mode = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::connections::ConnectionRequestFrame_ConnectionMode_IsValid(val))) {
+            _internal_set_connection_mode(static_cast<::location::nearby::connections::ConnectionRequestFrame_ConnectionMode>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(14, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -3411,6 +3515,13 @@ uint8_t* ConnectionRequestFrame::_InternalSerialize(
     }
     default: ;
   }
+  // optional .location.nearby.connections.ConnectionRequestFrame.ConnectionMode connection_mode = 14;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      14, this->_internal_connection_mode(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -3492,7 +3603,7 @@ size_t ConnectionRequestFrame::ByteSizeLong() const {
     }
 
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     // optional int32 keep_alive_timeout_millis = 9;
     if (cached_has_bits & 0x00000100u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_keep_alive_timeout_millis());
@@ -3501,6 +3612,12 @@ size_t ConnectionRequestFrame::ByteSizeLong() const {
     // optional int32 device_type = 10 [default = 0, deprecated = true];
     if (cached_has_bits & 0x00000200u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_device_type());
+    }
+
+    // optional .location.nearby.connections.ConnectionRequestFrame.ConnectionMode connection_mode = 14;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_connection_mode());
     }
 
   }
@@ -3572,12 +3689,15 @@ void ConnectionRequestFrame::MergeFrom(const ConnectionRequestFrame& from) {
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     if (cached_has_bits & 0x00000100u) {
       keep_alive_timeout_millis_ = from.keep_alive_timeout_millis_;
     }
     if (cached_has_bits & 0x00000200u) {
       device_type_ = from.device_type_;
+    }
+    if (cached_has_bits & 0x00000400u) {
+      connection_mode_ = from.connection_mode_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -3641,8 +3761,8 @@ void ConnectionRequestFrame::InternalSwap(ConnectionRequestFrame* other) {
       &other->device_info_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionRequestFrame, device_type_)
-      + sizeof(ConnectionRequestFrame::device_type_)
+      PROTOBUF_FIELD_OFFSET(ConnectionRequestFrame, connection_mode_)
+      + sizeof(ConnectionRequestFrame::connection_mode_)
       - PROTOBUF_FIELD_OFFSET(ConnectionRequestFrame, medium_metadata_)>(
           reinterpret_cast<char*>(&medium_metadata_),
           reinterpret_cast<char*>(&other->medium_metadata_));
@@ -7780,6 +7900,193 @@ std::string BandwidthUpgradeNegotiationFrame_UpgradePathInfo::GetTypeName() cons
 
 // ===================================================================
 
+class BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::_Internal {
+ public:
+  using HasBits = decltype(std::declval<BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel>()._has_bits_);
+  static void set_has_sta_frequency(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+}
+BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel(const BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  sta_frequency_ = from.sta_frequency_;
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+}
+
+inline void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::SharedCtor() {
+sta_frequency_ = 0;
+}
+
+BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::~BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::ArenaDtor(void* object) {
+  BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel* _this = reinterpret_cast< BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel* >(object);
+  (void)_this;
+}
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  sta_frequency_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional int32 sta_frequency = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_sta_frequency(&has_bits);
+          sta_frequency_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional int32 sta_frequency = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_sta_frequency(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  return target;
+}
+
+size_t BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional int32 sta_frequency = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_sta_frequency());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel*>(
+      &from));
+}
+
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::MergeFrom(const BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_sta_frequency()) {
+    _internal_set_sta_frequency(from._internal_sta_frequency());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::CopyFrom(const BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::IsInitialized() const {
+  return true;
+}
+
+void BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::InternalSwap(BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  swap(sta_frequency_, other->sta_frequency_);
+}
+
+std::string BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::GetTypeName() const {
+  return "location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel";
+}
+
+
+// ===================================================================
+
 class BandwidthUpgradeNegotiationFrame_ClientIntroduction::_Internal {
  public:
   using HasBits = decltype(std::declval<BandwidthUpgradeNegotiationFrame_ClientIntroduction>()._has_bits_);
@@ -8173,7 +8480,7 @@ class BandwidthUpgradeNegotiationFrame::_Internal {
  public:
   using HasBits = decltype(std::declval<BandwidthUpgradeNegotiationFrame>()._has_bits_);
   static void set_has_event_type(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
+    (*has_bits)[0] |= 16u;
   }
   static const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo& upgrade_path_info(const BandwidthUpgradeNegotiationFrame* msg);
   static void set_has_upgrade_path_info(HasBits* has_bits) {
@@ -8186,6 +8493,10 @@ class BandwidthUpgradeNegotiationFrame::_Internal {
   static const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroductionAck& client_introduction_ack(const BandwidthUpgradeNegotiationFrame* msg);
   static void set_has_client_introduction_ack(HasBits* has_bits) {
     (*has_bits)[0] |= 4u;
+  }
+  static const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel& safe_to_close_prior_channel(const BandwidthUpgradeNegotiationFrame* msg);
+  static void set_has_safe_to_close_prior_channel(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
   }
 };
 
@@ -8200,6 +8511,10 @@ BandwidthUpgradeNegotiationFrame::_Internal::client_introduction(const Bandwidth
 const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroductionAck&
 BandwidthUpgradeNegotiationFrame::_Internal::client_introduction_ack(const BandwidthUpgradeNegotiationFrame* msg) {
   return *msg->client_introduction_ack_;
+}
+const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel&
+BandwidthUpgradeNegotiationFrame::_Internal::safe_to_close_prior_channel(const BandwidthUpgradeNegotiationFrame* msg) {
+  return *msg->safe_to_close_prior_channel_;
 }
 BandwidthUpgradeNegotiationFrame::BandwidthUpgradeNegotiationFrame(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -8229,6 +8544,11 @@ BandwidthUpgradeNegotiationFrame::BandwidthUpgradeNegotiationFrame(const Bandwid
   } else {
     client_introduction_ack_ = nullptr;
   }
+  if (from._internal_has_safe_to_close_prior_channel()) {
+    safe_to_close_prior_channel_ = new ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel(*from.safe_to_close_prior_channel_);
+  } else {
+    safe_to_close_prior_channel_ = nullptr;
+  }
   event_type_ = from.event_type_;
   // @@protoc_insertion_point(copy_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame)
 }
@@ -8252,6 +8572,7 @@ inline void BandwidthUpgradeNegotiationFrame::SharedDtor() {
   if (this != internal_default_instance()) delete upgrade_path_info_;
   if (this != internal_default_instance()) delete client_introduction_;
   if (this != internal_default_instance()) delete client_introduction_ack_;
+  if (this != internal_default_instance()) delete safe_to_close_prior_channel_;
 }
 
 void BandwidthUpgradeNegotiationFrame::ArenaDtor(void* object) {
@@ -8271,7 +8592,7 @@ void BandwidthUpgradeNegotiationFrame::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000000fu) {
     if (cached_has_bits & 0x00000001u) {
       GOOGLE_DCHECK(upgrade_path_info_ != nullptr);
       upgrade_path_info_->Clear();
@@ -8283,6 +8604,10 @@ void BandwidthUpgradeNegotiationFrame::Clear() {
     if (cached_has_bits & 0x00000004u) {
       GOOGLE_DCHECK(client_introduction_ack_ != nullptr);
       client_introduction_ack_->Clear();
+    }
+    if (cached_has_bits & 0x00000008u) {
+      GOOGLE_DCHECK(safe_to_close_prior_channel_ != nullptr);
+      safe_to_close_prior_channel_->Clear();
     }
   }
   event_type_ = 0;
@@ -8334,6 +8659,14 @@ const char* BandwidthUpgradeNegotiationFrame::_InternalParse(const char* ptr, ::
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel safe_to_close_prior_channel = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          ptr = ctx->ParseMessage(_internal_mutable_safe_to_close_prior_channel(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -8366,7 +8699,7 @@ uint8_t* BandwidthUpgradeNegotiationFrame::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.EventType event_type = 1;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       1, this->_internal_event_type(), target);
@@ -8396,6 +8729,14 @@ uint8_t* BandwidthUpgradeNegotiationFrame::_InternalSerialize(
         4, _Internal::client_introduction_ack(this), target, stream);
   }
 
+  // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel safe_to_close_prior_channel = 5;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        5, _Internal::safe_to_close_prior_channel(this), target, stream);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -8413,7 +8754,7 @@ size_t BandwidthUpgradeNegotiationFrame::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo upgrade_path_info = 2;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -8435,8 +8776,15 @@ size_t BandwidthUpgradeNegotiationFrame::ByteSizeLong() const {
           *client_introduction_ack_);
     }
 
-    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.EventType event_type = 1;
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.SafeToClosePriorChannel safe_to_close_prior_channel = 5;
     if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *safe_to_close_prior_channel_);
+    }
+
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.EventType event_type = 1;
+    if (cached_has_bits & 0x00000010u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_event_type());
     }
@@ -8463,7 +8811,7 @@ void BandwidthUpgradeNegotiationFrame::MergeFrom(const BandwidthUpgradeNegotiati
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_upgrade_path_info()->::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo::MergeFrom(from._internal_upgrade_path_info());
     }
@@ -8474,6 +8822,9 @@ void BandwidthUpgradeNegotiationFrame::MergeFrom(const BandwidthUpgradeNegotiati
       _internal_mutable_client_introduction_ack()->::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroductionAck::MergeFrom(from._internal_client_introduction_ack());
     }
     if (cached_has_bits & 0x00000008u) {
+      _internal_mutable_safe_to_close_prior_channel()->::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel::MergeFrom(from._internal_safe_to_close_prior_channel());
+    }
+    if (cached_has_bits & 0x00000010u) {
       event_type_ = from.event_type_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -13474,6 +13825,9 @@ template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNe
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo* Arena::CreateMaybeMessage< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel* Arena::CreateMaybeMessage< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel >(arena);
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroduction* Arena::CreateMaybeMessage< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroduction >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_ClientIntroduction >(arena);
