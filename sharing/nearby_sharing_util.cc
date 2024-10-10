@@ -33,16 +33,9 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_sharing_service.h"
-#include "sharing/transfer_metadata.h"
 
-namespace nearby {
-namespace sharing {
-namespace {
-using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
-using ::location::nearby::proto::sharing::ConnectionLayerStatus;
-}  // namespace
+namespace nearby::sharing {
 
 std::string ReceiveSurfaceStateToString(
     NearbySharingService::ReceiveSurfaceState state) {
@@ -156,85 +149,4 @@ bool IsOutOfStorage(DeviceInfo& device_info, std::filesystem::path file_path,
   return *available_storage <= storage_required;
 }
 
-AttachmentTransmissionStatus ConvertToTransmissionStatus(
-    TransferMetadata::Status status) {
-  switch (status) {
-    case TransferMetadata::Status::kComplete:
-      return AttachmentTransmissionStatus::
-          COMPLETE_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kCancelled:
-      return AttachmentTransmissionStatus::
-          CANCELED_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kFailed:
-      return AttachmentTransmissionStatus::
-          FAILED_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kIncompletePayloads:
-      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
-    case TransferMetadata::Status::kMediaUnavailable:
-      return AttachmentTransmissionStatus::MEDIA_UNAVAILABLE_ATTACHMENT;
-    case TransferMetadata::Status::kDeviceAuthenticationFailed:
-      return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
-    case TransferMetadata::Status::kRejected:
-      return AttachmentTransmissionStatus::REJECTED_ATTACHMENT;
-    case TransferMetadata::Status::kTimedOut:
-      return AttachmentTransmissionStatus::TIMED_OUT_ATTACHMENT;
-    case TransferMetadata::Status::kUnsupportedAttachmentType:
-      return AttachmentTransmissionStatus::
-          UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT;
-    default:
-      return AttachmentTransmissionStatus::
-          UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
-  }
-}
-
-ConnectionLayerStatus ConvertToConnectionLayerStatus(Status status) {
-  switch (status) {
-    case Status::kUnknown:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_UNKNOWN;
-    case Status::kSuccess:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_SUCCESS;
-    case Status::kError:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ERROR;
-    case Status::kOutOfOrderApiCall:
-      return ConnectionLayerStatus::
-          CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL;
-    case Status::kAlreadyHaveActiveStrategy:
-      return ConnectionLayerStatus::
-          CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY;
-    case Status::kAlreadyAdvertising:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING;
-    case Status::kAlreadyDiscovering:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING;
-    case Status::kAlreadyListening:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ALREADY_LISTENING;
-    case Status::kEndpointIOError:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR;
-    case Status::kEndpointUnknown:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN;
-    case Status::kConnectionRejected:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_CONNECTION_REJECTED;
-    case Status::kAlreadyConnectedToEndpoint:
-      return ConnectionLayerStatus::
-          CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT;
-    case Status::kNotConnectedToEndpoint:
-      return ConnectionLayerStatus::
-          CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT;
-    case Status::kBluetoothError:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR;
-    case Status::kBleError:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_BLE_ERROR;
-    case Status::kWifiLanError:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR;
-    case Status::kPayloadUnknown:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN;
-    case Status::kReset:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_RESET;
-    case Status::kTimeout:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_TIMEOUT;
-    default:
-      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_UNKNOWN;
-  }
-}
-
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
