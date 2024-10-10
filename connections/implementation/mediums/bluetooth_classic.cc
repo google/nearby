@@ -75,12 +75,12 @@ BluetoothClassic::~BluetoothClassic() {
 
   {
     MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << "Closing multiplex sockets for "
-                      << multiplex_sockets_.size() << " devices";
+    LOG(INFO) << "Closing multiplex sockets for " << multiplex_sockets_.size()
+              << " devices";
     if (is_multiplex_enabled_) {
       for (auto& [bt_mac, multiplex_socket] : multiplex_sockets_) {
-        NEARBY_LOGS(INFO) << "Closing multiplex sockets for "
-                          << GetRemoteDevice(bt_mac).GetName();
+        LOG(INFO) << "Closing multiplex sockets for "
+                  << GetRemoteDevice(bt_mac).GetName();
         multiplex_socket->Shutdown();
       }
     }
@@ -104,45 +104,41 @@ bool BluetoothClassic::IsAvailableLocked() const {
 }
 
 bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
-  NEARBY_LOGS(INFO) << "Turning on BT discoverability with device_name="
-                    << device_name;
+  LOG(INFO) << "Turning on BT discoverability with device_name=" << device_name;
   MutexLock lock(&mutex_);
 
   if (device_name.empty()) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to turn on BT discoverability. Empty device name.";
+    LOG(INFO) << "Refusing to turn on BT discoverability. Empty device name.";
     return false;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO) << "Can't turn on BT discoverability. BT is off.";
+    LOG(INFO) << "Can't turn on BT discoverability. BT is off.";
     return false;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO)
-        << "Can't turn on BT discoverability. BT is not available.";
+    LOG(INFO) << "Can't turn on BT discoverability. BT is not available.";
     return false;
   }
 
   if (IsDiscoverable()) {
-    NEARBY_LOGS(INFO) << "Refusing to turn on BT discoverability; new name='"
-                      << device_name << "'; current name='"
-                      << adapter_.GetName() << "'";
+    LOG(INFO) << "Refusing to turn on BT discoverability; new name='"
+              << device_name << "'; current name='" << adapter_.GetName()
+              << "'";
     return false;
   }
 
   if (!ModifyDeviceName(device_name)) {
-    NEARBY_LOGS(INFO)
-        << "Failed to turn on BT discoverability; failed to set name to "
-        << device_name;
+    LOG(INFO) << "Failed to turn on BT discoverability; failed to set name to "
+              << device_name;
     return false;
   }
 
   if (!ModifyScanMode(ScanMode::kConnectableDiscoverable)) {
-    NEARBY_LOGS(INFO) << "Failed to turn on BT discoverability; failed to set "
-                         "scan_mode to "
-                      << ScanModeToString(ScanMode::kConnectableDiscoverable);
+    LOG(INFO) << "Failed to turn on BT discoverability; failed to set "
+                 "scan_mode to "
+              << ScanModeToString(ScanMode::kConnectableDiscoverable);
 
     // Don't forget to perform this rollback of the partial state changes we've
     // made til now.
@@ -150,24 +146,23 @@ bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
     return false;
   }
 
-  NEARBY_LOGS(INFO) << "Turned on BT discoverability with device_name="
-                    << device_name;
+  LOG(INFO) << "Turned on BT discoverability with device_name=" << device_name;
   return true;
 }
 
 bool BluetoothClassic::TurnOffDiscoverability() {
-  NEARBY_LOGS(INFO) << "Turning off Bluetooth discoverability.";
+  LOG(INFO) << "Turning off Bluetooth discoverability.";
   MutexLock lock(&mutex_);
 
   if (!IsDiscoverable()) {
-    NEARBY_LOGS(INFO) << "Can't turn off BT discoverability; it is already off";
+    LOG(INFO) << "Can't turn off BT discoverability; it is already off";
     return false;
   }
 
   RestoreScanMode();
   RestoreDeviceName();
 
-  NEARBY_LOGS(INFO) << "Turned Bluetooth discoverability off.";
+  LOG(INFO) << "Turned Bluetooth discoverability off.";
   return true;
 }
 
@@ -200,8 +195,8 @@ bool BluetoothClassic::ModifyScanMode(ScanMode scan_mode) {
 bool BluetoothClassic::RestoreScanMode() {
   if (original_scan_mode_ == ScanMode::kUnknown ||
       !adapter_.SetScanMode(original_scan_mode_)) {
-    NEARBY_LOGS(INFO) << "Failed to restore original Bluetooth scan mode to "
-                      << ScanModeToString(original_scan_mode_);
+    LOG(INFO) << "Failed to restore original Bluetooth scan mode to "
+              << ScanModeToString(original_scan_mode_);
     return false;
   }
 
@@ -214,8 +209,8 @@ bool BluetoothClassic::RestoreScanMode() {
 bool BluetoothClassic::RestoreDeviceName() {
   if (original_device_name_.empty() || !adapter_.SetName(original_device_name_,
                                                          /* persis= */ true)) {
-    NEARBY_LOGS(INFO) << "Failed to restore original Bluetooth device name to "
-                      << original_device_name_;
+    LOG(INFO) << "Failed to restore original Bluetooth device name to "
+              << original_device_name_;
     return false;
   }
   original_device_name_.clear();
@@ -227,26 +222,24 @@ bool BluetoothClassic::StartDiscovery(const std::string& serviceId,
   MutexLock lock(&mutex_);
 
   if (serviceId.empty()) {
-    NEARBY_LOGS(INFO) << "Refusing to start discovery; service ID is empty.";
+    LOG(INFO) << "Refusing to start discovery; service ID is empty.";
     return false;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO) << "Can't discover BT devices because BT isn't enabled.";
+    LOG(INFO) << "Can't discover BT devices because BT isn't enabled.";
     return false;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO)
-        << "Can't discover BT devices because BT isn't available.";
+    LOG(INFO) << "Can't discover BT devices because BT isn't available.";
     return false;
   }
 
   if (IsDiscoveringLocked(serviceId)) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to start discovery of BT devices because another "
-           "discovery is already in-progress for service_id="
-        << serviceId;
+    LOG(INFO) << "Refusing to start discovery of BT devices because another "
+                 "discovery is already in-progress for service_id="
+              << serviceId;
     return false;
   }
 
@@ -283,7 +276,7 @@ bool BluetoothClassic::StartDiscovery(const std::string& serviceId,
     AddDiscoveryCallback(serviceId, std::move(callback));
 
     if (!medium_->StartDiscovery(std::move(medium_callback))) {
-      NEARBY_LOGS(INFO) << "Failed to start discovery of BT devices.";
+      LOG(INFO) << "Failed to start discovery of BT devices.";
       RemoveDiscoveryCallback(serviceId);
       return false;
     }
@@ -299,8 +292,7 @@ bool BluetoothClassic::StopDiscovery(const std::string& serviceId) {
   MutexLock lock(&mutex_);
 
   if (!IsDiscoveringLocked(serviceId)) {
-    NEARBY_LOGS(INFO)
-        << "Can't stop discovery of BT devices because it never started.";
+    LOG(INFO) << "Can't stop discovery of BT devices because it never started.";
     return false;
   }
 
@@ -308,7 +300,7 @@ bool BluetoothClassic::StopDiscovery(const std::string& serviceId) {
 
   if (!HasDiscoveryCallbacks()) {
     if (!medium_->StopDiscovery()) {
-      NEARBY_LOGS(INFO) << "Failed to stop discovery of Bluetooth devices.";
+      LOG(INFO) << "Failed to stop discovery of Bluetooth devices.";
       return false;
     }
 
@@ -325,7 +317,7 @@ bool BluetoothClassic::IsDiscoveringLocked(const std::string& serviceId) const {
 void BluetoothClassic::StopAllDiscovery() {
   MutexLock lock(&mutex_);
   if (!medium_->StopDiscovery()) {
-    NEARBY_LOGS(INFO) << "Failed to stop discovery of Bluetooth devices.";
+    LOG(INFO) << "Failed to stop discovery of Bluetooth devices.";
   }
 
   RemoveAllDiscoveryCallbacks();
@@ -337,35 +329,35 @@ bool BluetoothClassic::StartAcceptingConnections(
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Refusing to start accepting BT connections; service ID is empty.";
     return false;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO) << "Can't create BT server socket [service=" << service_id
-                      << "]; BT is disabled.";
+    LOG(INFO) << "Can't create BT server socket [service=" << service_id
+              << "]; BT is disabled.";
     return false;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO) << "Can't start accepting BT connections [service="
-                      << service_id << "]; BT not available.";
+    LOG(INFO) << "Can't start accepting BT connections [service=" << service_id
+              << "]; BT not available.";
     return false;
   }
 
   if (IsAcceptingConnectionsLocked(service_id)) {
-    NEARBY_LOGS(INFO)
-        << "Refusing to start accepting BT connections [service=" << service_id
-        << "]; BT server is already in-progress with the same name.";
+    LOG(INFO) << "Refusing to start accepting BT connections [service="
+              << service_id
+              << "]; BT server is already in-progress with the same name.";
     return false;
   }
 
   BluetoothServerSocket socket =
       medium_->ListenForService(service_id, GenerateUuidFromString(service_id));
   if (!socket.IsValid()) {
-    NEARBY_LOGS(INFO) << "Failed to start accepting Bluetooth connections for "
-                      << service_id;
+    LOG(INFO) << "Failed to start accepting Bluetooth connections for "
+              << service_id;
     return false;
   }
 
@@ -395,11 +387,11 @@ bool BluetoothClassic::StartAcceptingConnections(
     while (true) {
       BluetoothSocket client_socket = server_socket.Accept();
       if (!client_socket.IsValid()) {
-        NEARBY_LOGS(INFO) << "Failed to accept connection for " << service_id;
+        LOG(INFO) << "Failed to accept connection for " << service_id;
         server_socket.Close();
         break;
       }
-      NEARBY_LOGS(INFO) << "Accepted connection for " << service_id;
+      LOG(INFO) << "Accepted connection for " << service_id;
       bool callback_called = false;
       {
         MutexLock lock(&mutex_);
@@ -418,8 +410,8 @@ bool BluetoothClassic::StartAcceptingConnections(
                 multiplex_socket);
             MultiplexSocket::StopListeningForIncomingConnection(
                 service_id, Medium::BLUETOOTH);
-            NEARBY_LOGS(INFO) << "Multiplex virtaul socket created for "
-                              << client_socket.GetRemoteDevice().GetName();
+            LOG(INFO) << "Multiplex virtaul socket created for "
+                      << client_socket.GetRemoteDevice().GetName();
             if (callback) {
               callback(service_id,
                        *(down_cast<BluetoothSocket*>(
@@ -430,7 +422,7 @@ bool BluetoothClassic::StartAcceptingConnections(
         }
       }
       if (callback && !callback_called) {
-        NEARBY_LOGS(INFO) << "Call back triggered for physical socket.";
+        LOG(INFO) << "Call back triggered for physical socket.";
         callback(service_id, std::move(client_socket));
       }
     }
@@ -454,15 +446,15 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
-    NEARBY_LOGS(INFO) << "Unable to stop accepting BT connections because the "
-                         "service_id is empty.";
+    LOG(INFO) << "Unable to stop accepting BT connections because the "
+                 "service_id is empty.";
     return false;
   }
 
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
-    NEARBY_LOGS(INFO) << "Can't stop accepting BT connections for "
-                      << service_id << " because it was never started.";
+    LOG(INFO) << "Can't stop accepting BT connections for " << service_id
+              << " because it was never started.";
     return false;
   }
   if (is_multiplex_enabled_) {
@@ -487,7 +479,7 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
 
   // Finally, close the BluetoothServerSocket.
   if (!listening_socket.Close().Ok()) {
-    NEARBY_LOGS(INFO) << "Failed to close BT server socket for " << service_id;
+    LOG(INFO) << "Failed to close BT server socket for " << service_id;
     return false;
   }
 
@@ -500,8 +492,7 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
   {
     MutexLock lock(&mutex_);
     if (is_multiplex_enabled_) {
-      NEARBY_LOGS(INFO) << "multiplex_sockets_ size:"
-                        << multiplex_sockets_.size();
+      LOG(INFO) << "multiplex_sockets_ size:" << multiplex_sockets_.size();
       auto it = multiplex_sockets_.find(bluetooth_device.GetMacAddress());
       if (it != multiplex_sockets_.end()) {
         MultiplexSocket* multiplex_socket = it->second;
@@ -511,9 +502,8 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
           // Should not happen.
           auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
           if (bluetooth_socket == nullptr) {
-            NEARBY_LOGS(INFO)
-                << "Failed to cast to BluetoothSocket for " << service_id
-                << " with " << bluetooth_device.GetName();
+            LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
+                      << " with " << bluetooth_device.GetName();
             return BluetoothSocket{};
           }
           return *bluetooth_socket;
@@ -525,18 +515,17 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
   while (service_id_to_connect_attempts_count_map_[service_id] <=
          kConnectAttemptsLimit) {
     if (cancellation_flag->Cancelled()) {
-      NEARBY_LOGS(WARNING)
-          << "Attempt #"
-          << service_id_to_connect_attempts_count_map_[service_id]
-          << ": Cannot start creating client BT socket due to cancel.";
+      LOG(WARNING) << "Attempt #"
+                   << service_id_to_connect_attempts_count_map_[service_id]
+                   << ": Cannot start creating client BT socket due to cancel.";
       return BluetoothSocket{};
     }
 
     auto wrapper_result =
         AttemptToConnect(bluetooth_device, service_id, cancellation_flag);
-    NEARBY_LOGS(INFO) << "Attempt #"
-                      << service_id_to_connect_attempts_count_map_[service_id]
-                      << " to connect: " << wrapper_result.IsValid();
+    LOG(INFO) << "Attempt #"
+              << service_id_to_connect_attempts_count_map_[service_id]
+              << " to connect: " << wrapper_result.IsValid();
     if (wrapper_result.IsValid()) {
       return wrapper_result;
     }
@@ -544,8 +533,7 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
     service_id_to_connect_attempts_count_map_[service_id]++;
   }
 
-  NEARBY_LOGS(WARNING) << "Giving up after " << kConnectAttemptsLimit
-                       << " attempts";
+  LOG(WARNING) << "Giving up after " << kConnectAttemptsLimit << " attempts";
   return BluetoothSocket{};
 }
 
@@ -553,26 +541,31 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
     BluetoothDevice& bluetooth_device, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << "BluetoothClassic::Connect: service_id=" << service_id
-                    << ", device=" << &bluetooth_device;
+  LOG(INFO) << "BluetoothClassic::Connect: service_id=" << service_id
+            << ", device=" << &bluetooth_device;
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   BluetoothSocket socket{};
 
   if (service_id.empty()) {
-    NEARBY_LOGS(INFO)
+    LOG(WARNING)
         << "Refusing to create client BT socket because service_id is empty.";
     return socket;
   }
 
   if (!radio_.IsEnabled()) {
-    NEARBY_LOGS(INFO) << "Can't create client BT socket [service=" << service_id
-                      << "]: BT isn't enabled.";
+    LOG(WARNING) << "Can't create client BT socket [service=" << service_id
+                 << "]: BT isn't enabled.";
     return socket;
   }
 
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(INFO) << "Can't create client BT socket [service=" << service_id
-                      << "]; BT isn't available.";
+    LOG(WARNING) << "Can't create client BT socket [service=" << service_id
+                 << "]; BT isn't available.";
+    return socket;
+  }
+
+  if (!bluetooth_device.IsValid()) {
+    LOG(WARNING) << "Bluetooth device is not valid.";
     return socket;
   }
 
@@ -583,8 +576,7 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   // `ConnectToService`, return an empty socket. There is no need for a
   // CancellationFlagListener because the attempt logic is not asynchronous.
   if (!socket.IsValid() || cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(INFO) << "Failed to Connect via BT [service=" << service_id
-                      << "]";
+    LOG(INFO) << "Failed to Connect via BT [service=" << service_id << "]";
     return BluetoothSocket{};
   }
 
@@ -599,12 +591,11 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
     // Should not happen.
     auto* bluetooth_socket = down_cast<BluetoothSocket*>(virtual_socket);
     if (bluetooth_socket == nullptr) {
-      NEARBY_LOGS(INFO) << "Failed to cast to BluetoothSocket for "
-                        << service_id << " with " << bluetooth_device.GetName();
+      LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
+                << " with " << bluetooth_device.GetName();
       return BluetoothSocket{};
     }
-    NEARBY_LOGS(INFO) << "Multiplex socket created for "
-                      << bluetooth_device.GetName();
+    LOG(INFO) << "Multiplex socket created for " << bluetooth_device.GetName();
     multiplex_sockets_.emplace(bluetooth_device.GetMacAddress(),
                                multiplex_socket);
     return *bluetooth_socket;
