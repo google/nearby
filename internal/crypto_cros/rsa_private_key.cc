@@ -36,7 +36,7 @@
 #include <openssl/mem.h>
 #include <openssl/rsa.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 // static
 std::unique_ptr<RSAPrivateKey> RSAPrivateKey::Create(uint16_t num_bits) {
@@ -126,4 +126,4 @@ bool RSAPrivateKey::ExportPublicKey(std::vector<uint8_t>* output) const {
   return true;
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

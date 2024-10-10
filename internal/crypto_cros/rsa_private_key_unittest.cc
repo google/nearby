@@ -21,6 +21,7 @@
 
 #include "gtest/gtest.h"
 
+namespace nearby {
 namespace {
 
 const uint8_t kTestPrivateKeyInfo[] = {
@@ -384,3 +385,5 @@ TEST(RSAPrivateKeyUnitTest, CreateFromKeyTest) {
   ASSERT_EQ(privkey, privkey_copy);
   ASSERT_EQ(pubkey, pubkey_copy);
 }
+
+}  // namespace nearby

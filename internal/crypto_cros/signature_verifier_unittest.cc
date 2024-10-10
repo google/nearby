@@ -23,6 +23,8 @@
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
 
+namespace nearby {
+
 TEST(SignatureVerifierTest, BasicTest) {
   // The input data in this test comes from real certificates.
   //
@@ -422,3 +424,5 @@ TEST(SignatureVerifierTest, VerifyRSAPSS) {
   verifier.VerifyUpdate(kPSSMessage);
   EXPECT_FALSE(verifier.VerifyFinal());
 }
+
+}  // namespace nearby

@@ -26,6 +26,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 
+namespace nearby {
+
 static const size_t kSHA1DigestSize = 20;
 static const size_t kSHA256DigestSize = 32;
 
@@ -376,3 +378,5 @@ TEST(HMACTest, Bytes) {
   EXPECT_FALSE(hmac.VerifyTruncated(
       data, absl::MakeSpan(calculated_hmac, kSHA256DigestSize / 2)));
 }
+
+}  // namespace nearby

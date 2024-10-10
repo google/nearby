@@ -40,7 +40,7 @@
 #include <openssl/mem.h>
 #include <openssl/pkcs8.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 ECPrivateKey::~ECPrivateKey() = default;
 
@@ -186,4 +186,4 @@ bool ECPrivateKey::ExportRawPublicKey(std::string* output) const {
 
 ECPrivateKey::ECPrivateKey() = default;
 
-}  // namespace crypto
+}  // namespace nearby::crypto

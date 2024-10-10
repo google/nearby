@@ -21,7 +21,7 @@
 
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // A wrapper to calculate secure hashes incrementally, allowing to
 // be used when the full input is not known in advance. The end result will the
@@ -52,6 +52,6 @@ class CRYPTO_EXPORT SecureHash {
   SecureHash() {}
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_SECURE_HASH_H_

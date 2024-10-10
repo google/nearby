@@ -24,7 +24,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 CRYPTO_EXPORT
 std::string HkdfSha256(absl::string_view secret, absl::string_view salt,
@@ -36,6 +36,6 @@ std::vector<uint8_t> HkdfSha256(absl::Span<const uint8_t> secret,
                                 absl::Span<const uint8_t> info,
                                 size_t derived_key_size);
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_HKDF_H_

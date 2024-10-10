@@ -22,7 +22,7 @@
 
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // Wraps a platform-specific symmetric key and allows it to be held in a
 // scoped_ptr.
@@ -84,6 +84,6 @@ class CRYPTO_EXPORT SymmetricKey {
   std::string key_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_SYMMETRIC_KEY_H_

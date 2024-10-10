@@ -23,6 +23,7 @@
 
 #include "gtest/gtest.h"
 
+namespace nearby {
 namespace {
 
 void ExpectKeysEqual(const crypto::ECPrivateKey* keypair1,
@@ -331,3 +332,5 @@ TEST(ECPrivateKeyUnitTest, LoadOldOpenSSLKeyTest) {
 
   EXPECT_TRUE(keypair_openssl);
 }
+
+}  // namespace nearby

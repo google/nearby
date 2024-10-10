@@ -41,7 +41,7 @@
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 namespace {
 
@@ -225,4 +225,4 @@ absl::optional<size_t> Encryptor::CryptCTR(bool do_encrypt,
   return input.size();
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

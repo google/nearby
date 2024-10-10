@@ -30,7 +30,7 @@
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 struct SignatureVerifier::VerifyContext {
   bssl::ScopedEVP_MD_CTX ctx;
@@ -119,4 +119,4 @@ void SignatureVerifier::Reset() {
   signature_.clear();
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

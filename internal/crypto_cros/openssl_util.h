@@ -20,7 +20,7 @@
 
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // Provides a buffer of at least MIN_SIZE bytes, for use when calling OpenSSL's
 // SHA256, HMAC, etc functions, adapting the buffer sizing rules to meet those
@@ -98,6 +98,6 @@ class OpenSSLErrStackTracer {
   ~OpenSSLErrStackTracer() { ClearOpenSSLERRStack(); }
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_OPENSSL_UTIL_H_

@@ -31,15 +31,9 @@
 #include "absl/types/variant.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
-#ifdef NEARBY_CHROMIUM
-#include "crypto/aead.h"
-#include "crypto/ec_private_key.h"
-#include "crypto/hkdf.h"
-#else
 #include "internal/crypto_cros/aead.h"
 #include "internal/crypto_cros/ec_private_key.h"
 #include "internal/crypto_cros/hkdf.h"
-#endif
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/crypto.h"
 #include "internal/platform/future.h"
@@ -86,7 +80,7 @@ absl::Duration RandomDuration(absl::Duration max_duration) {
 }
 
 std::string CustomizeBytesSize(absl::string_view bytes, size_t len) {
-  return ::crypto::HkdfSha256(
+  return crypto::HkdfSha256(
       /*ikm=*/std::string(bytes),  // NOLINT
       /*salt=*/std::string(CredentialManagerImpl::kAuthenticityKeyByteSize, 0),
       /*info=*/"", /*derived_key_size=*/len);

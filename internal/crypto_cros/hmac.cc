@@ -33,7 +33,7 @@
 #include "internal/crypto_cros/secure_util.h"
 #include "internal/crypto_cros/symmetric_key.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 HMAC::HMAC(HashAlgorithm hash_alg) : hash_alg_(hash_alg), initialized_(false) {
   // Only SHA-1 and SHA-256 hash algorithms are supported now.
@@ -118,4 +118,4 @@ bool HMAC::VerifyTruncated(absl::Span<const uint8_t> data,
   return SecureMemEqual(digest.data(), computed_digest, digest.size());
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

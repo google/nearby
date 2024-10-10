@@ -31,7 +31,7 @@
 #include "internal/crypto_cros/crypto_export.h"
 #include "internal/crypto_cros/nearby_base.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // Simplify the interface and reduce includes by abstracting out the internals.
 class SymmetricKey;
@@ -120,6 +120,6 @@ class CRYPTO_EXPORT HMAC {
   std::vector<unsigned char> key_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_HMAC_H_

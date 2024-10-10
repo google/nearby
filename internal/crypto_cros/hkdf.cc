@@ -34,7 +34,7 @@
 #include "internal/crypto_cros/hmac.h"
 #include <openssl/digest.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 std::string HkdfSha256(absl::string_view secret, absl::string_view salt,
                        absl::string_view info, size_t derived_key_size) {
@@ -62,4 +62,4 @@ std::vector<uint8_t> HkdfSha256(absl::Span<const uint8_t> secret,
   return ret;
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto
