@@ -333,6 +333,7 @@ cc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
         # TODO: Support WebRTC
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
