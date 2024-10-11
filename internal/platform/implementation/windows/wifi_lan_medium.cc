@@ -173,26 +173,6 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return false;
 }
 
-// Win32 call only can use globel function or static method in class
-void WifiLanMedium::Advertising_StopCompleted(DWORD Status, PVOID pQueryContext,
-                                              PDNS_SERVICE_INSTANCE pInstance) {
-  LOG(INFO) << "unregister with status=" << Status;
-  try {
-    WifiLanMedium* medium = static_cast<WifiLanMedium*>(pQueryContext);
-    medium->NotifyDnsServiceUnregistered(Status);
-  } catch (...) {
-    LOG(ERROR) << "failed to notify the stop of DNS service instance."
-               << Status;
-  }
-}
-
-void WifiLanMedium::NotifyDnsServiceUnregistered(DWORD status) {
-  if (dns_service_stop_latch_.get() != nullptr) {
-    dns_service_stop_status_ = status;
-    dns_service_stop_latch_.get()->CountDown();
-  }
-}
-
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
   // Need to use Win32 API to deregister the Dnssd instance
   if (!IsAdvertising()) {
@@ -201,47 +181,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
     return false;
   }
 
-  // Init DNS service instance
-  std::string instance_name = absl::StrFormat(
-      kMdnsInstanceNameFormat.data(), nsd_service_info.GetServiceName(),
-      nsd_service_info.GetServiceType());
-  int port = nsd_service_info.GetPort();
-  dns_service_instance_name_ = std::make_unique<std::wstring>(
-      string_utils::StringToWideString(instance_name));
-
-  dns_service_instance_.pszInstanceName =
-      (LPWSTR)dns_service_instance_name_->c_str();
-  dns_service_instance_.pszHostName = (LPWSTR)kMdnsHostName.data();
-  dns_service_instance_.wPort = port;
-
-  // Init DNS service register request
-  dns_service_register_request_.Version = DNS_QUERY_REQUEST_VERSION1;
-  dns_service_register_request_.InterfaceIndex =
-      0;  // all interfaces will be considered
-  dns_service_register_request_.unicastEnabled = false;
-  dns_service_register_request_.hCredentials = nullptr;
-  dns_service_register_request_.pServiceInstance = &dns_service_instance_;
-  dns_service_register_request_.pQueryContext = this;  // callback use it
-  dns_service_register_request_.pRegisterCompletionCallback =
-      WifiLanMedium::Advertising_StopCompleted;
-
-  dns_service_stop_latch_ = std::make_unique<CountDownLatch>(1);
-  DWORD status = DnsServiceDeRegister(&dns_service_register_request_, nullptr);
-
-  if (status != DNS_REQUEST_PENDING) {
-    LOG(ERROR) << "failed to stop mDNS advertising for service type ="
-               << nsd_service_info.GetServiceType();
-    return false;
-  }
-
-  // Wait for stop finish
-  dns_service_stop_latch_.get()->Await();
-  dns_service_stop_latch_ = nullptr;
-  if (dns_service_stop_status_ != 0) {
-    LOG(INFO) << "failed to stop mDNS advertising for service type ="
-              << nsd_service_info.GetServiceType();
-    return false;
-  }
+  dnssd_service_instance_ = nullptr;
 
   LOG(INFO) << "succeeded to stop mDNS advertising for service type ="
             << nsd_service_info.GetServiceType();
@@ -635,6 +575,22 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
   std::optional<NsdServiceInfo> last_nsd_service_info =
       GetDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()));
   if (!last_nsd_service_info.has_value()) {
+    if (IsConnectableIpAddress(
+            ipaddr_4bytes_to_dotdecimal_string(nsd_service_info.GetIPAddress()),
+            nsd_service_info.GetPort(), kConnectTimeout)) {
+      // If the device is not in the discovered service list, but it is
+      // connectable during update, we add it to the discovered service list.
+      LOG(INFO) << "device added for service name "
+                << nsd_service_info.GetServiceName() << ", address: "
+                << ipaddr_4bytes_to_dotdecimal_string(
+                       nsd_service_info.GetIPAddress())
+                << ":" << nsd_service_info.GetPort();
+      UpdateDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()),
+                              nsd_service_info);
+      discovered_service_callback_.service_discovered_cb(nsd_service_info);
+      return fire_and_forget{};
+    }
+
     LOG(WARNING)
         << "Don't update WIFI_LAN device due to it is not in device list.";
     return fire_and_forget{};

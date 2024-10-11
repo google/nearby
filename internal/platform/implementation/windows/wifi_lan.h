@@ -18,24 +18,31 @@
 // Windows headers
 // clang-format off
 #include <windows.h>  // NOLINT
-#include <windns.h>   // NOLINT
 // clang-format on
 
 // Standard C/C++ headers
+#include <cstddef>
+#include <cstdint>
+#include <deque>
 #include <exception>
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 
 // Nearby connections headers
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/input_stream.h"
@@ -250,11 +257,6 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(
       int port = 0) override;
 
-  // DnsServiceDeRegister is a async process, after operation finish, callback
-  // will call this method to notify the waiting method StopAdvertising to
-  // continue.
-  void NotifyDnsServiceUnregistered(DWORD status);
-
   absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
       override {
     return absl::nullopt;
@@ -312,8 +314,6 @@ class WifiLanMedium : public api::WifiLanMedium {
       DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate);
   fire_and_forget Watcher_DeviceRemoved(
       DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate);
-  static void Advertising_StopCompleted(DWORD Status, PVOID pQueryContext,
-                                        PDNS_SERVICE_INSTANCE pInstance);
 
   // Gets error message from exception pointer
   std::string GetErrorMessage(std::exception_ptr eptr);
@@ -327,13 +327,6 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Advertising properties
   DnssdServiceInstance dnssd_service_instance_{nullptr};
   DnssdRegistrationResult dnssd_regirstraion_result_{nullptr};
-
-  // Stop advertising properties
-  DNS_SERVICE_INSTANCE dns_service_instance_{nullptr};
-  DNS_SERVICE_REGISTER_REQUEST dns_service_register_request_;
-  std::unique_ptr<std::wstring> dns_service_instance_name_{nullptr};
-  std::unique_ptr<CountDownLatch> dns_service_stop_latch_;
-  DWORD dns_service_stop_status_;
 
   // Discovery properties
   DeviceWatcher device_watcher_{nullptr};
