@@ -161,7 +161,6 @@ cc_library(
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//sharing:__subpackages__",
     ],
     deps = [
         ":comm",
