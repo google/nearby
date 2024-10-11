@@ -124,11 +124,12 @@ enum EventType : int {
   SET_ACCOUNT = 63,
   DECRYPT_CERTIFICATE_FAILURE = 64,
   SHOW_ALLOW_PERMISSION_AUTO_ACCESS = 65,
-  SEND_DESKTOP_TRANSFER_EVENT = 66
+  SEND_DESKTOP_TRANSFER_EVENT = 66,
+  WAITING_FOR_ACCEPT = 67
 };
 bool EventType_IsValid(int value);
 constexpr EventType EventType_MIN = UNKNOWN_EVENT_TYPE;
-constexpr EventType EventType_MAX = SEND_DESKTOP_TRANSFER_EVENT;
+constexpr EventType EventType_MAX = WAITING_FOR_ACCEPT;
 constexpr int EventType_ARRAYSIZE = EventType_MAX + 1;
 
 const std::string& EventType_Name(EventType value);
@@ -405,11 +406,12 @@ enum DeviceType : int {
   UNKNOWN_DEVICE_TYPE = 0,
   PHONE = 1,
   TABLET = 2,
-  LAPTOP = 3
+  LAPTOP = 3,
+  CAR = 4
 };
 bool DeviceType_IsValid(int value);
 constexpr DeviceType DeviceType_MIN = UNKNOWN_DEVICE_TYPE;
-constexpr DeviceType DeviceType_MAX = LAPTOP;
+constexpr DeviceType DeviceType_MAX = CAR;
 constexpr int DeviceType_ARRAYSIZE = DeviceType_MAX + 1;
 
 const std::string& DeviceType_Name(DeviceType value);
@@ -473,11 +475,14 @@ enum LogSource : int {
   BETA_TESTER_DEVICES = 3,
   OEM_DEVICES = 4,
   DEBUG_DEVICES = 5,
-  NEARBY_MODULE_FOOD_DEVICES = 6
+  NEARBY_MODULE_FOOD_DEVICES = 6,
+  BETO_DOGFOOD_DEVICES = 7,
+  NEARBY_DOGFOOD_DEVICES = 8,
+  NEARBY_TEAMFOOD_DEVICES = 9
 };
 bool LogSource_IsValid(int value);
 constexpr LogSource LogSource_MIN = UNSPECIFIED_SOURCE;
-constexpr LogSource LogSource_MAX = NEARBY_MODULE_FOOD_DEVICES;
+constexpr LogSource LogSource_MAX = NEARBY_TEAMFOOD_DEVICES;
 constexpr int LogSource_ARRAYSIZE = LogSource_MAX + 1;
 
 const std::string& LogSource_Name(LogSource value);
@@ -1115,6 +1120,70 @@ inline const std::string& DecryptCertificateFailureStatus_Name(T enum_t_value) {
 }
 bool DecryptCertificateFailureStatus_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DecryptCertificateFailureStatus* value);
+enum ContactAccess : int {
+  CONTACT_ACCESS_UNKNOWN = 0,
+  CONTACT_ACCESS_NO_CONTACT_UPLOADED = 1,
+  CONTACT_ACCESS_ONLY_UPLOAD_GOOGLE_CONTACT = 2,
+  CONTACT_ACCESS_UPLOAD_CONTACT_FOR_DEVICE_CONTACT_CONSENT = 3,
+  CONTACT_ACCESS_UPLOAD_CONTACT_FOR_QUICK_SHARE_CONSENT = 4
+};
+bool ContactAccess_IsValid(int value);
+constexpr ContactAccess ContactAccess_MIN = CONTACT_ACCESS_UNKNOWN;
+constexpr ContactAccess ContactAccess_MAX = CONTACT_ACCESS_UPLOAD_CONTACT_FOR_QUICK_SHARE_CONSENT;
+constexpr int ContactAccess_ARRAYSIZE = ContactAccess_MAX + 1;
+
+const std::string& ContactAccess_Name(ContactAccess value);
+template<typename T>
+inline const std::string& ContactAccess_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ContactAccess>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ContactAccess_Name.");
+  return ContactAccess_Name(static_cast<ContactAccess>(enum_t_value));
+}
+bool ContactAccess_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ContactAccess* value);
+enum IdentityVerification : int {
+  IDENTITY_VERIFICATION_UNKNOWN = 0,
+  IDENTITY_VERIFICATION_NO_PHONE_NUMBER_VERIFIED = 1,
+  IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_NOT_LINKED_TO_GAIA = 2,
+  IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_LINKED_TO_QS_GAIA = 3
+};
+bool IdentityVerification_IsValid(int value);
+constexpr IdentityVerification IdentityVerification_MIN = IDENTITY_VERIFICATION_UNKNOWN;
+constexpr IdentityVerification IdentityVerification_MAX = IDENTITY_VERIFICATION_PHONE_NUMBER_VERIFIED_LINKED_TO_QS_GAIA;
+constexpr int IdentityVerification_ARRAYSIZE = IdentityVerification_MAX + 1;
+
+const std::string& IdentityVerification_Name(IdentityVerification value);
+template<typename T>
+inline const std::string& IdentityVerification_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, IdentityVerification>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function IdentityVerification_Name.");
+  return IdentityVerification_Name(static_cast<IdentityVerification>(enum_t_value));
+}
+bool IdentityVerification_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, IdentityVerification* value);
+enum ButtonStatus : int {
+  BUTTON_STATUS_UNKNOWN = 0,
+  BUTTON_STATUS_CLICK_ACCEPT = 1,
+  BUTTON_STATUS_CLICK_REJECT = 2,
+  BUTTON_STATUS_IGNORE = 3
+};
+bool ButtonStatus_IsValid(int value);
+constexpr ButtonStatus ButtonStatus_MIN = BUTTON_STATUS_UNKNOWN;
+constexpr ButtonStatus ButtonStatus_MAX = BUTTON_STATUS_IGNORE;
+constexpr int ButtonStatus_ARRAYSIZE = ButtonStatus_MAX + 1;
+
+const std::string& ButtonStatus_Name(ButtonStatus value);
+template<typename T>
+inline const std::string& ButtonStatus_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, ButtonStatus>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function ButtonStatus_Name.");
+  return ButtonStatus_Name(static_cast<ButtonStatus>(enum_t_value));
+}
+bool ButtonStatus_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ButtonStatus* value);
 // ===================================================================
 
 
@@ -1182,6 +1251,9 @@ template <> struct is_proto_enum< ::location::nearby::proto::sharing::FastInitTy
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::DesktopNotification> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::DesktopTransferEventType> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::sharing::DecryptCertificateFailureStatus> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::ContactAccess> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::IdentityVerification> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::sharing::ButtonStatus> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 
