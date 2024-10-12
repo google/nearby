@@ -17,6 +17,7 @@
 #include <winnls.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -71,6 +72,12 @@ const std::string WebRtcMedium::GetDefaultCountryCode() {
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
+  CreatePeerConnection(std::nullopt, observer, std::move(callback));
+}
+
+void WebRtcMedium::CreatePeerConnection(
+    std::optional<webrtc::PeerConnectionFactoryInterface::Options> options,
+    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
   rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
   // TODO(b/261663238): Add the TURN servers and go beyond the default servers.
@@ -94,6 +101,9 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
+  if (options.has_value()) {
+    // TODO(edwinwu): Add support for non-cellular networks.
+  }
   auto peer_connection_or_error =
       webrtc::CreateModularPeerConnectionFactory(
           std::move(factory_dependencies))

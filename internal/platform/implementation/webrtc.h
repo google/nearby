@@ -18,8 +18,10 @@
 #ifndef NO_WEBRTC
 
 #include <memory>
+#include <optional>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/byte_array.h"
@@ -59,6 +61,13 @@ class WebRtcMedium {
   // |callback|.
   virtual void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
                                     PeerConnectionCallback callback) = 0;
+
+  // Creates and returns a new webrtc::PeerConnectionInterface object via
+  // |callback| with |PeerConnectionFactoryInterface::Options|.
+  virtual void CreatePeerConnection(
+      std::optional<webrtc::PeerConnectionFactoryInterface::Options> options,
+      webrtc::PeerConnectionObserver* observer,
+      PeerConnectionCallback callback) = 0;
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
   virtual std::unique_ptr<WebRtcSignalingMessenger> GetSignalingMessenger(
