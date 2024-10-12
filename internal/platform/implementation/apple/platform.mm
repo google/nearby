@@ -222,7 +222,7 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest
   [condition unlock];
 
   if (blockResponse == nil) {
-    return absl::UnknownError([[blockError localizedDescription] UTF8String]);
+    return absl::FailedPreconditionError([[blockError localizedDescription] UTF8String]);
   }
 
   WebResponse webResponse;
