@@ -54,11 +54,6 @@ TEST(FakeWifiAdapter, SetPoweredRunsSuccessCallback) {
   EXPECT_TRUE(powered_on);
 }
 
-TEST(FakeWifiAdapter, GetAdapterIdReturnsNearbyByDefault) {
-  FakeWifiAdapter fake_wifi_adapter;
-  EXPECT_EQ(fake_wifi_adapter.GetAdapterId(), "nearby");
-}
-
 TEST(FakeWifiAdapter, HasObserverReturnsTrueAfterAddingObserver) {
   FakeWifiAdapter fake_wifi_adapter;
   FakeWifiAdapterObserver fake_observer(&fake_wifi_adapter);

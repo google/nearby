@@ -69,9 +69,6 @@ class WifiAdapter {
   virtual void SetPowered(bool powered, std::function<void()> success_callback,
                           std::function<void()> error_callback) = 0;
 
-  // The unique ID/name of this adapter.
-  virtual std::optional<std::string> GetAdapterId() const = 0;
-
   // Adds and removes observers for events on this Wi-Fi adapter. If
   // monitoring multiple adapters, check the `adapter` parameter of observer
   // methods to determine which adapter is issuing the event.

@@ -56,8 +56,6 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
     success_callback();
   }
 
-  std::optional<std::string> GetAdapterId() const override { return "nearby"; }
-
   void AddObserver(Observer* observer) override {
     observer_list_.AddObserver(observer);
   }
