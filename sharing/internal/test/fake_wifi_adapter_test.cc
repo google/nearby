@@ -34,12 +34,6 @@ TEST(FakeWifiAdapter, IsPoweredReturnsTrueByDefault) {
   EXPECT_TRUE(fake_wifi_adapter.IsPowered());
 }
 
-TEST(FakeWifiAdapter, GetOSPermissionStatusReturnsAllowedByDefault) {
-  FakeWifiAdapter fake_wifi_adapter;
-  EXPECT_EQ(fake_wifi_adapter.GetOsPermissionStatus(),
-            sharing::api::WifiAdapter::PermissionStatus::kAllowed);
-}
-
 TEST(FakeWifiAdapter, SetPoweredRunsSuccessCallback) {
   bool powered_on;
   std::function<void()> success_callback = [&powered_on]() {

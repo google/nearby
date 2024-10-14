@@ -35,7 +35,6 @@ class MockWifiAdapter : public nearby::sharing::api::WifiAdapter {
 
   MOCK_METHOD(bool, IsPresent, (), (const, override));
   MOCK_METHOD(bool, IsPowered, (), (const, override));
-  MOCK_METHOD(PermissionStatus, GetOsPermissionStatus, (), (const, override));
   MOCK_METHOD(void, SetPowered,
               (bool powered, std::function<void()> success_callback,
                std::function<void()> error_callback),
