@@ -31,7 +31,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 77
+// Next Tag: 78
 // LINT.IfChange
 message SharingLog {
   /* collection_basis = {
@@ -209,6 +209,8 @@ message SharingLog {
   optional ShowAllowPermissionAutoAccess show_allow_permission_auto_access = 75;
 
   optional ShowWaitingForAccept show_waiting_for_accept = 76;
+
+  optional HighQualityMediumSetup high_quality_medium_setup = 77;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -894,6 +896,13 @@ message SharingLog {
 
   message ShowWaitingForAccept {
     optional location.nearby.proto.sharing.ButtonStatus button_status = 1;
+  }
+
+  message HighQualityMediumSetup {
+    optional ShareTargetInfo share_target_info = 1;
+    optional int64 session_id = 2 /* type = ST_SESSION_ID */;
+    optional int64 duration_millis = 4;
+    optional bool is_timeout = 5;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)

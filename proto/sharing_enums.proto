@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 68
+// Next id: 69
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -296,6 +296,9 @@ enum EventType {
 
   // Show accept button on Quick Share receive UI
   WAITING_FOR_ACCEPT = 67;
+
+  // High quality event setup
+  HIGH_QUALITY_MEDIUM_SETUP = 68;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
