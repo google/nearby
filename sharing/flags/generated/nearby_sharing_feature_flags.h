@@ -32,9 +32,6 @@ namespace nearby_sharing_feature {
 // Time to delay the endpoint loss in milliseconds.
 constexpr auto kDelayEndpointLossMs =
     flags::Flag<int64_t>(kConfigPackage, "45632386", 500);
-// When true, delete the file payload which received unexpectedly.
-constexpr auto kDeleteUnexpectedReceivedFileFix =
-    flags::Flag<bool>(kConfigPackage, "45657036", false);
 // Enable/disable the use of BLE as a connection medium.
 constexpr auto kEnableBleForTransfer =
     flags::Flag<bool>(kConfigPackage, "45427466", false);
@@ -79,6 +76,12 @@ constexpr auto kUseGrpcClient =
 // When true, dedup discovered endpoints.
 constexpr auto kApplyEndpointsDedup =
     flags::Flag<bool>(kConfigPackage, "45656298", false);
+// When true, delete the file payload which received unexpectedly.
+constexpr auto kDeleteUnexpectedReceivedFileFix =
+    flags::Flag<bool>(kConfigPackage, "45657036", false);
+// The time in milliseconds a cached entry can be in LOST state.
+constexpr auto kDiscoveryCacheLostExpiryMs =
+    flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
 // Enable/disable QR Code UI
 constexpr auto kEnableQrCodeUi =
     flags::Flag<bool>(kConfigPackage, "45417647", false);
@@ -88,13 +91,12 @@ constexpr auto kShowAdminModeWarning =
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
-// The time in milliseconds a cached entry can be in LOST state.
-constexpr auto kDiscoveryCacheLostExpiryMs =
-    flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
+// Enable the info banner to display duplicate Quick Share apps.
+constexpr auto kEnableConflictBanner =
+    flags::Flag<bool>(kConfigPackage, "45661130", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
-      {45657036, kDeleteUnexpectedReceivedFileFix},
       {45427466, kEnableBleForTransfer},
       {45409184, kEnableCertificatesDump},
       {45418905, kEnableMediumWebRtc},
@@ -108,8 +110,10 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
       {45656298, kApplyEndpointsDedup},
+      {45657036, kDeleteUnexpectedReceivedFileFix},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
+      {45661130, kEnableConflictBanner},
   };
 }
 
