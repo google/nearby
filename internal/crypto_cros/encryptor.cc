@@ -28,11 +28,9 @@
 #include "internal/platform/logging.h"
 #else
 #include "absl/log/check.h"  // nogncheck
-#endif
-
-#ifndef NEARBY_SWIFTPM
 #include "absl/log/log.h"  // nogncheck
 #endif
+
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "internal/crypto_cros/nearby_base.h"
