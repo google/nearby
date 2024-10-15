@@ -901,8 +901,8 @@ message SharingLog {
   message HighQualityMediumSetup {
     optional ShareTargetInfo share_target_info = 1;
     optional int64 session_id = 2 /* type = ST_SESSION_ID */;
-    optional int64 duration_millis = 4;
-    optional bool is_timeout = 5;
+    optional int64 duration_millis = 3;
+    optional bool is_timeout = 4;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
