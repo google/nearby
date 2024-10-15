@@ -325,7 +325,7 @@ enum Visibility {
 
   CONTACTS_ONLY = 1;
   EVERYONE = 2;
-  SELECTED_CONTACTS_ONLY = 3;
+  SELECTED_CONTACTS_ONLY = 3 [deprecated = true];
   HIDDEN = 4;
   SELF_SHARE = 5;
 }

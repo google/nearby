@@ -88,6 +88,9 @@ Visibility GetLoggerVisibility(DeviceVisibility visibility) {
       return Visibility::EVERYONE;
     case DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE:
       return Visibility::SELF_SHARE;
+    case DeviceVisibility::DEVICE_VISIBILITY_HIDDEN:
+      return Visibility::HIDDEN;
+    case DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED:
     default:
       return Visibility::UNKNOWN_VISIBILITY;
   }
