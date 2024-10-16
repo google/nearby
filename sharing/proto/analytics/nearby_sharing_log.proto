@@ -31,7 +31,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 78
+// Next Tag: 79
 // LINT.IfChange
 message SharingLog {
   /* collection_basis = {
@@ -211,6 +211,8 @@ message SharingLog {
   optional ShowWaitingForAccept show_waiting_for_accept = 76;
 
   optional HighQualityMediumSetup high_quality_medium_setup = 77;
+
+  optional RpcCallStatus rpc_call_status = 78;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -903,6 +905,22 @@ message SharingLog {
     optional int64 session_id = 2 /* type = ST_SESSION_ID */;
     optional int64 duration_millis = 3;
     optional bool is_timeout = 4;
+  }
+
+  message RpcCallStatus {
+    enum RpcDirection {
+      UNKNOWN_RPC_DIRECTION = 0;
+      INCOMING = 1;
+      OUTGOING = 2;
+    }
+
+    optional RpcDirection direction = 1;
+    // Name of RPC in <ServiceName>.<MethodName> format.
+    optional string rpc_name = 2;
+    // Canonical error code of RPC.
+    optional int32 error_code = 3;
+    // Latency of RPC call in milliseconds.
+    optional int64 latency_millis = 4;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)

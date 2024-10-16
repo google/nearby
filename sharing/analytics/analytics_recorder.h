@@ -20,6 +20,8 @@
 #include <optional>
 #include <string>
 
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/analytics/event_logger.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
@@ -193,6 +195,12 @@ class AnalyticsRecorder {
   void NewVerifyAPKStatus(
       location::nearby::proto::sharing::VerifyAPKStatus status,
       location::nearby::proto::sharing::ApkSource source);
+
+  void NewRpcCallStatus(
+      absl::string_view rpc_name,
+      nearby::sharing::analytics::proto::SharingLog::RpcCallStatus::RpcDirection
+          direction,
+      int error_code, absl::Duration latency);
 
   // Generates a random number for session ID or flow ID.
   int64_t GenerateNextId();

@@ -21,6 +21,8 @@
 
 #include "google/protobuf/duration.pb.h"
 #include "absl/random/random.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
@@ -822,6 +824,22 @@ void AnalyticsRecorder::NewVerifyAPKStatus(
   auto* verify_apk_status = sharing_log->mutable_verify_apk_status();
   verify_apk_status->add_status(status);
   verify_apk_status->add_source(source);
+
+  LogEvent(*sharing_log);
+}
+
+void AnalyticsRecorder::NewRpcCallStatus(
+    absl::string_view rpc_name,
+    SharingLog::RpcCallStatus::RpcDirection direction,
+    int error_code, absl::Duration latency) {
+  std::unique_ptr<SharingLog> sharing_log =
+      CreateSharingLog(EventCategory::RPC_EVENT, EventType::RPC_CALL_STATUS);
+
+  auto* rpc_call_status = sharing_log->mutable_rpc_call_status();
+  rpc_call_status->set_rpc_name(std::string(rpc_name));
+  rpc_call_status->set_direction(direction);
+  rpc_call_status->set_error_code(error_code);
+  rpc_call_status->set_latency_millis(absl::ToInt64Milliseconds(latency));
 
   LogEvent(*sharing_log);
 }

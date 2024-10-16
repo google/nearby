@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 69
+// Next id: 70
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -300,6 +300,9 @@ enum EventType {
   // High quality event setup
   HIGH_QUALITY_MEDIUM_SETUP = 68;
 
+  // RPC call status
+  RPC_CALL_STATUS = 69;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
@@ -310,6 +313,7 @@ enum EventCategory {
   SENDING_EVENT = 1;
   RECEIVING_EVENT = 2;
   SETTINGS_EVENT = 3;
+  RPC_EVENT = 4;
 }
 
 // Status of nearby sharing.
