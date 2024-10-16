@@ -149,7 +149,7 @@ void NearbyShareSettings::StartVisibilityTimer(
         proto::DeviceVisibility visibility;
         {
           absl::MutexLock lock(&mutex_);
-          visibility = GetRawFallbackVisibility().visibility;
+          visibility = fallback_visibility_;
           visibility_expiration_timer_.reset();
         }
         SetVisibility(visibility);
@@ -257,6 +257,14 @@ void NearbyShareSettings::SetVisibility(DeviceVisibility visibility,
     visibility = DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE;
   }
   DeviceVisibility last_visibility = GetVisibility();
+  absl::Duration max_expiration =
+      absl::Seconds(kMaxVisibilityExpirationSeconds);
+  if (expiration > max_expiration) {
+    LOG(WARNING) << "Set visbility expiration is too long. visibility="
+                 << static_cast<int>(visibility)
+                 << ", expiration=" << expiration;
+    expiration = max_expiration;
+  }
   if (analytics_recorder_ != nullptr) {
     analytics_recorder_->NewSetVisibility(
         last_visibility, visibility, absl::ToInt64Milliseconds(expiration));

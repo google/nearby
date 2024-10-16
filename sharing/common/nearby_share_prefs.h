@@ -63,7 +63,8 @@ ABSL_CONST_INIT const proto::DeviceVisibility kDefaultVisibility =
     proto::DeviceVisibility::DEVICE_VISIBILITY_HIDDEN;
 ABSL_CONST_INIT const proto::DeviceVisibility kDefaultFallbackVisibility =
     proto::DeviceVisibility::DEVICE_VISIBILITY_HIDDEN;
-ABSL_CONST_INIT const int kDefaultMaxVisibilityExpirationSeconds = 300;
+ABSL_CONST_INIT const int kDefaultMaxVisibilityExpirationSeconds =
+    600;  // 10 minutes
 
 void RegisterNearbySharingPrefs(
     nearby::sharing::api::PreferenceManager& preference_manager,

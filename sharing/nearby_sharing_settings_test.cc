@@ -389,6 +389,23 @@ TEST_F(NearbyShareSettingsTest, TemporaryVisibilityIsCorrect) {
             absl::Seconds(1));
 }
 
+TEST_F(NearbyShareSettingsTest, SetVisibilityWithExpirationTooLong) {
+  // Set visibility with expiration longer than the max.
+  settings()->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE,
+                            absl::Hours(1));
+  // Expiration capped at 10minutes.
+  absl::Time expected_fallback_time =
+      context_.GetClock()->Now() + absl::Minutes(10);
+  NearbyShareSettings::FallbackVisibilityInfo fallback_visibility =
+      settings()->GetFallbackVisibility();
+  // default visibility was hidden.
+  EXPECT_EQ(fallback_visibility.visibility,
+            DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
+  absl::Duration time_diff = fallback_visibility.fallback_time -
+                             expected_fallback_time;
+  EXPECT_LT(absl::AbsDuration(time_diff), absl::Seconds(1));
+}
+
 TEST(NearbyShareVisibilityTest, RestoresFallbackVisibility_ExpiredTimer) {
   // Create Nearby Share settings dependencies.
   FakeContext context;
