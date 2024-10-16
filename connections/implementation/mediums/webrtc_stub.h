@@ -72,6 +72,8 @@ class WebRtc {
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag);
+
+  bool IsUsingCellular();
 };
 
 }  // namespace mediums

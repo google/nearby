@@ -536,6 +536,8 @@ UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium) {
       return UpgradePathInfo::WIFI_DIRECT;
     case Medium::WEB_RTC:
       return UpgradePathInfo::WEB_RTC;
+    case Medium::WEB_RTC_NON_CELLULAR:
+      return UpgradePathInfo::WEB_RTC_NON_CELLULAR;
     default:
       return UpgradePathInfo::UNKNOWN_MEDIUM;
   }
@@ -561,6 +563,8 @@ Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium) {
       return Medium::WIFI_DIRECT;
     case UpgradePathInfo::WEB_RTC:
       return Medium::WEB_RTC;
+    case UpgradePathInfo::WEB_RTC_NON_CELLULAR:
+      return Medium::WEB_RTC_NON_CELLULAR;
     default:
       return Medium::UNKNOWN_MEDIUM;
   }
@@ -586,6 +590,8 @@ ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium) {
       return ConnectionRequestFrame::WIFI_DIRECT;
     case Medium::WEB_RTC:
       return ConnectionRequestFrame::WEB_RTC;
+    case Medium::WEB_RTC_NON_CELLULAR:
+      return ConnectionRequestFrame::WEB_RTC_NON_CELLULAR;
     default:
       return ConnectionRequestFrame::UNKNOWN_MEDIUM;
   }
@@ -611,6 +617,8 @@ Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium) {
       return Medium::WIFI_DIRECT;
     case ConnectionRequestFrame::WEB_RTC:
       return Medium::WEB_RTC;
+    case ConnectionRequestFrame::WEB_RTC_NON_CELLULAR:
+      return Medium::WEB_RTC_NON_CELLULAR;
     default:
       return Medium::UNKNOWN_MEDIUM;
   }

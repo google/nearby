@@ -15,11 +15,13 @@
 #include "connections/implementation/bwu_manager.h"
 
 #include <algorithm>
+#include <cassert>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/functional/bind_front.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
@@ -28,10 +30,9 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
-#include "internal/platform/implementation/system_clock.h"
 #ifdef NO_WEBRTC
 #include "connections/implementation/webrtc_bwu_handler_stub.h"
 #else
@@ -40,11 +41,14 @@
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 #include "connections/implementation/wifi_lan_bwu_handler.h"
-#include "internal/flags/nearby_flags.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/runnable.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -472,7 +476,7 @@ BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
 
 void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
                                        const BwuNegotiationFrame frame,
-                                       const string& endpoint_id) {
+                                       const std::string& endpoint_id) {
   NEARBY_LOGS(INFO) << "OnBwuNegotiationFrame: processing incoming "
                     << BwuNegotiationFrame::EventType_Name(frame.event_type())
                     << " frame for endpoint " << endpoint_id;
@@ -691,7 +695,7 @@ void BwuManager::RunUpgradeProtocol(
 
 // Outgoing BWU session.
 void BwuManager::ProcessBwuPathAvailableEvent(
-    ClientProxy* client, const string& endpoint_id,
+    ClientProxy* client, const std::string& endpoint_id,
     const UpgradePathInfo& upgrade_path_info) {
   Medium upgrade_medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
@@ -1191,7 +1195,15 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
   channel->Resume();
 
   // Report the success to the client
-  client->OnBandwidthChanged(endpoint_id, channel->GetMedium());
+  Medium medium = channel->GetMedium();
+  if (FeatureFlags::GetInstance()
+          .GetFlags()
+          .support_web_rtc_non_cellular_medium) {
+    if (medium == Medium::WEB_RTC && !mediums_->GetWebRtc().IsUsingCellular()) {
+      medium = Medium::WEB_RTC_NON_CELLULAR;
+    }
+  }
+  client->OnBandwidthChanged(endpoint_id, medium);
   in_progress_upgrades_.erase(endpoint_id);
 }
 
