@@ -20,6 +20,7 @@
 
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/task_runner.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context_impl.h"
 #include "sharing/nearby_connections_manager_factory.h"
@@ -37,7 +38,8 @@ NearbySharingServiceFactory* NearbySharingServiceFactory::GetInstance() {
 }
 
 NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
-    int32_t vendor_id, SharingPlatform& sharing_platform,
+    SharingPlatform& sharing_platform,
+    analytics::AnalyticsRecorder* analytics_recorder,
     ::nearby::analytics::EventLogger* event_logger) {
   if (nearby_sharing_service_ != nullptr) {
     return nullptr;
@@ -45,17 +47,16 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
 
   context_ =
       std::make_unique<ContextImpl>(sharing_platform);
-  event_logger_ = event_logger;
   std::unique_ptr<TaskRunner> service_thread =
       context_->CreateSequencedTaskRunner();
   auto nearby_connections_manager =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
           service_thread.get(), context_.get(),
-          sharing_platform.GetDeviceInfo(), event_logger_);
+          sharing_platform.GetDeviceInfo(), event_logger);
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
-      vendor_id, std::move(service_thread), context_.get(), sharing_platform,
-      std::move(nearby_connections_manager), event_logger_);
+      std::move(service_thread), context_.get(), sharing_platform,
+      std::move(nearby_connections_manager), analytics_recorder);
 
   return nearby_sharing_service_.get();
 }

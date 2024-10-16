@@ -43,7 +43,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/base/observer_list.h"
 #include "internal/flags/nearby_flags.h"
@@ -192,21 +191,19 @@ OSType ToProtoOsType(::nearby::api::DeviceInfo::OsType os_type) {
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
-    int32_t vendor_id, std::unique_ptr<TaskRunner> service_thread,
-    Context* context, SharingPlatform& sharing_platform,
+    std::unique_ptr<TaskRunner> service_thread, Context* context,
+    SharingPlatform& sharing_platform,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
-    nearby::analytics::EventLogger* event_logger)
+    analytics::AnalyticsRecorder* analytics_recorder)
     : service_thread_(std::move(service_thread)),
       context_(context),
       device_info_(sharing_platform.GetDeviceInfo()),
       preference_manager_(sharing_platform.GetPreferenceManager()),
       account_manager_(sharing_platform.GetAccountManager()),
+      analytics_recorder_(*analytics_recorder),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
-      analytics_recorder_(std::make_unique<analytics::AnalyticsRecorder>(
-          vendor_id, event_logger)),
       nearby_share_client_factory_(
-          sharing_platform.CreateSharingRpcClientFactory(
-              analytics_recorder_.get())),
+          sharing_platform.CreateSharingRpcClientFactory(&analytics_recorder_)),
       profile_info_provider_(
           std::make_unique<NearbyShareProfileInfoProviderImpl>(
               device_info_, account_manager_)),
@@ -223,11 +220,12 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           NearbyFastInitiationImpl::Factory::Create(context_)),
       settings_(std::make_unique<NearbyShareSettings>(
           context_, context_->GetClock(), device_info_, preference_manager_,
-          local_device_data_manager_.get(), analytics_recorder_.get())),
+          local_device_data_manager_.get(), &analytics_recorder_)),
       service_extension_(std::make_unique<NearbySharingServiceExtension>()),
       file_handler_(sharing_platform),
       app_info_(sharing_platform.CreateAppInfo()) {
-  NL_DCHECK(nearby_connections_manager_);
+  CHECK(nearby_connections_manager_);
+  CHECK(analytics_recorder);
 
   is_shutting_down_ = std::make_unique<bool>(false);
   std::filesystem::path path = device_info_.GetAppDataPath();
@@ -778,10 +776,10 @@ void NearbySharingServiceImpl::SendAttachments(
 
         app_info_->SetActiveFlag();
         // Set session ID.
-        session->set_session_id(analytics_recorder_->GenerateNextId());
+        session->set_session_id(analytics_recorder_.GenerateNextId());
 
         // Log analytics event of sending start.
-        analytics_recorder_->NewSendStart(
+        analytics_recorder_.NewSendStart(
             session->session_id(),
             /*transfer_position=*/GetConnectedShareTargetPos(),
             /*concurrent_connections=*/GetConnectedShareTargetCount(),
@@ -872,7 +870,7 @@ void NearbySharingServiceImpl::Reject(
           return;
         }
         // Log analytics event of responding to introduction.
-        analytics_recorder_->NewRespondToIntroduction(
+        analytics_recorder_.NewRespondToIntroduction(
             ResponseToIntroduction::REJECT_INTRODUCTION, session->session_id());
 
         RunOnNearbySharingServiceThreadDelayed(
@@ -1067,7 +1065,7 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   int64_t placeholder_share_target_id = placeholder_share_target.id;
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
-  session.set_session_id(analytics_recorder_->GenerateNextId());
+  session.set_session_id(analytics_recorder_.GenerateNextId());
   session.OnConnected(context_->GetClock()->Now(), connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
@@ -1617,7 +1615,7 @@ void NearbySharingServiceImpl::StartFastInitiationAdvertising() {
   NL_VLOG(1) << __func__ << ": Fast initiation advertising in kSilent mode.";
 
   // Log analytics event of sending fast initiation.
-  analytics_recorder_->NewSendFastInitialization();
+  analytics_recorder_.NewSendFastInitialization();
 }
 
 void NearbySharingServiceImpl::OnStartFastInitiationAdvertising() {
@@ -1833,7 +1831,7 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
             << share_target->id;
 
   // Log analytics event of discovering share target.
-  analytics_recorder_->NewDiscoverShareTarget(
+  analytics_recorder_.NewDiscoverShareTarget(
       *share_target, scanning_session_id_,
       absl::ToInt64Milliseconds(context_->GetClock()->Now() -
                                 scanning_start_timestamp_),
@@ -2121,7 +2119,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
     }
   }
 
-  advertising_session_id_ = analytics_recorder_->GenerateNextId();
+  advertising_session_id_ = analytics_recorder_.GenerateNextId();
 
   VLOG(1) << "Advertising endpoint_info: "
           << absl::BytesToHexString(absl::string_view(
@@ -2134,7 +2132,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
       visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
       [this, visibility, data_usage](Status status) {
         // Log analytics event of advertising start.
-        analytics_recorder_->NewAdvertiseDevicePresenceStart(
+        analytics_recorder_.NewAdvertiseDevicePresenceStart(
             advertising_session_id_, visibility,
             status == Status::kSuccess ? SessionStatus::SUCCEEDED_SESSION_STATUS
                                        : SessionStatus::FAILED_SESSION_STATUS,
@@ -2165,7 +2163,7 @@ void NearbySharingServiceImpl::StopAdvertising() {
 
   nearby_connections_manager_->StopAdvertising([this](Status status) {
     // Log analytics event of advertising end.
-    analytics_recorder_->NewAdvertiseDevicePresenceEnd(advertising_session_id_);
+    analytics_recorder_.NewAdvertiseDevicePresenceEnd(advertising_session_id_);
     OnStopAdvertisingResult(status);
   });
 
@@ -2199,7 +2197,7 @@ void NearbySharingServiceImpl::StartScanning() {
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
-  scanning_session_id_ = analytics_recorder_->GenerateNextId();
+  scanning_session_id_ = analytics_recorder_.GenerateNextId();
 
   nearby_connections_manager_->StartDiscovery(
       /*listener=*/this, settings_->GetDataUsage(), [this](Status status) {
@@ -2209,7 +2207,7 @@ void NearbySharingServiceImpl::StartScanning() {
             foreground_send_surface_map_.empty()
                 ? analytics::SendSurfaceState::kBackground
                 : analytics::SendSurfaceState::kForeground;
-        analytics_recorder_->NewScanForShareTargetsStart(
+        analytics_recorder_.NewScanForShareTargetsStart(
             scanning_session_id_,
             status == Status::kSuccess ? SessionStatus::SUCCEEDED_SESSION_STATUS
                                        : SessionStatus::FAILED_SESSION_STATUS,
@@ -2229,7 +2227,7 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::StopScanning() {
   }
 
   // Log analytics event of scanning end.
-  analytics_recorder_->NewScanForShareTargetsEnd(scanning_session_id_);
+  analytics_recorder_.NewScanForShareTargetsEnd(scanning_session_id_);
 
   nearby_connections_manager_->StopDiscovery();
   is_scanning_ = false;
@@ -2455,7 +2453,7 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
 
   // Log analytics event of establishing connection.
-  analytics_recorder_->NewEstablishConnection(
+  analytics_recorder_.NewEstablishConnection(
       session.session_id(),
       EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS,
       session.share_target(),
@@ -2527,7 +2525,7 @@ void NearbySharingServiceImpl::OnCreatePayloads(
     return;
   }
   // Log analytics event of describing attachments.
-  analytics_recorder_->NewDescribeAttachments(session.attachment_container());
+  analytics_recorder_.NewDescribeAttachments(session.attachment_container());
 
   std::optional<std::vector<uint8_t>> bluetooth_mac_address =
       GetBluetoothMacAddressForShareTarget(session);
@@ -2558,7 +2556,7 @@ void NearbySharingServiceImpl::OnCreatePayloads(
         // Log analytics event of new connection.
         session->set_connection_layer_status(status);
         if (connection == nullptr) {
-          analytics_recorder_->NewEstablishConnection(
+          analytics_recorder_.NewEstablishConnection(
               session->session_id(),
               EstablishConnectionStatus::CONNECTION_STATUS_FAILURE,
               session->share_target(),
@@ -2651,7 +2649,7 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
     AttachmentTransmissionStatus transmission_status =
         ConvertToTransmissionStatus(metadata.status());
 
-    analytics_recorder_->NewReceiveAttachmentsEnd(
+    analytics_recorder_.NewReceiveAttachmentsEnd(
         session.session_id(), received_bytes, transmission_status,
         /* referrer_package=*/std::nullopt);
 
@@ -2700,7 +2698,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
     AttachmentTransmissionStatus transmission_status =
         ConvertToTransmissionStatus(metadata.status());
 
-    analytics_recorder_->NewSendAttachmentsEnd(
+    analytics_recorder_.NewSendAttachmentsEnd(
         session.session_id(), sent_bytes, session.share_target(),
         transmission_status,
         /*transfer_position=*/GetConnectedShareTargetPos(),
@@ -2917,7 +2915,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
   }
 
   // Log analytics event of receiving introduction.
-  analytics_recorder_->NewReceiveIntroduction(
+  analytics_recorder_.NewReceiveIntroduction(
       session->session_id(), session->share_target(),
       /*referrer_package=*/std::nullopt, session->os_type());
 
@@ -3239,7 +3237,7 @@ IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
   NL_DCHECK(share_target.is_incoming);
   auto [it, inserted] = incoming_share_session_map_.try_emplace(
       share_target.id, context_->GetClock(), *service_thread_,
-      nearby_connections_manager_.get(), *analytics_recorder_,
+      nearby_connections_manager_.get(), analytics_recorder_,
       std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnIncomingTransferUpdate,
                        this));
@@ -3466,7 +3464,7 @@ void NearbySharingServiceImpl::CreateOutgoingShareSession(
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   auto [it_out, inserted] = outgoing_share_session_map_.try_emplace(
       share_target.id, context_->GetClock(), *service_thread_,
-      nearby_connections_manager_.get(), *analytics_recorder_,
+      nearby_connections_manager_.get(), analytics_recorder_,
       std::string(endpoint_id), share_target,
       absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
                        this));

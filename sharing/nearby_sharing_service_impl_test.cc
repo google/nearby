@@ -380,6 +380,8 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetBluetoothIsPowered(true);
     SetScreenLocked(false);
     SetConnectionType(ConnectionType::kWifi);
+    analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorder>(
+        /*vendor_id=*/0, /*event_logger=*/nullptr);
 
     service_ = CreateService(std::move(fake_task_runner));
   }
@@ -408,9 +410,9 @@ class NearbySharingServiceImplTest : public testing::Test {
       std::unique_ptr<FakeTaskRunner> task_runner) {
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     return std::make_unique<NearbySharingServiceImpl>(
-        /*vendor_id=*/0, std::move(task_runner), &fake_context_,
-        mock_sharing_platform_,
-        absl::WrapUnique(fake_nearby_connections_manager_));
+        std::move(task_runner), &fake_context_, mock_sharing_platform_,
+        absl::WrapUnique(fake_nearby_connections_manager_),
+        analytics_recorder_.get());
   }
 
   void SetVisibility(DeviceVisibility visibility) {
@@ -1207,6 +1209,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   std::unique_ptr<FakeNearbyConnection> connection_;
   StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
+  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;

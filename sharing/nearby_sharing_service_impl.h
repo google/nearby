@@ -34,7 +34,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/analytics/event_logger.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -105,10 +104,10 @@ class NearbySharingServiceImpl
 
  public:
   NearbySharingServiceImpl(
-      int32_t vendor_id, std::unique_ptr<nearby::TaskRunner> service_thread,
-      Context* context, nearby::sharing::api::SharingPlatform& sharing_platform,
+      std::unique_ptr<nearby::TaskRunner> service_thread, Context* context,
+      nearby::sharing::api::SharingPlatform& sharing_platform,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
-      nearby::analytics::EventLogger* event_logger = nullptr);
+      analytics::AnalyticsRecorder* analytics_recorder);
   ~NearbySharingServiceImpl() override;
 
   // NearbySharingService
@@ -484,10 +483,10 @@ class NearbySharingServiceImpl
   nearby::DeviceInfo& device_info_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
+  // Used to create analytics events.
+  analytics::AnalyticsRecorder& analytics_recorder_;
 
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
-  // Used to create analytics events.
-  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
       nearby_share_client_factory_;
   std::unique_ptr<NearbyShareProfileInfoProvider> profile_info_provider_;
