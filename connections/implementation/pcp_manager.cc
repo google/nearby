@@ -35,6 +35,7 @@
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
 #include "connections/params.h"
 #include "connections/status.h"
@@ -84,6 +85,9 @@ Status PcpManager::StartAdvertising(
   if (!SetCurrentPcpHandler(advertising_options.strategy)) {
     return {Status::kError};
   }
+
+  client->SetWebRtcNonCellular(GetWebRtcNonCellular(
+      advertising_options.CompatibleOptions().allowed.GetMediums(true)));
 
   return current_->StartAdvertising(client, service_id, advertising_options,
                                     info);
@@ -146,6 +150,9 @@ Status PcpManager::RequestConnection(
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
   }
+
+  client->SetWebRtcNonCellular(
+      GetWebRtcNonCellular(connection_options.GetMediums()));
 
   return current_->RequestConnection(client, endpoint_id, info,
                                      connection_options);
@@ -218,6 +225,15 @@ bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
 PcpHandler* PcpManager::GetPcpHandler(Pcp pcp) const {
   auto item = handlers_.find(pcp);
   return item != handlers_.end() ? item->second.get() : nullptr;
+}
+
+bool PcpManager::GetWebRtcNonCellular(const std::vector<Medium>& mediums) {
+  for (const auto& medium : mediums) {
+    if (medium == Medium::WEB_RTC_NON_CELLULAR) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace connections

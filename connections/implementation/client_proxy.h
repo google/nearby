@@ -323,6 +323,12 @@ class ClientProxy final {
   // Returns true if the multiplex socket is supported for the given medium.
   bool IsMultiplexSocketSupported(absl::string_view endpoint_id, Medium medium);
 
+  // Gets the WebRTC non cellular network status.
+  bool GetWebRtcNonCellular();
+
+  // Sets the WebRTC non cellular network status.
+  void SetWebRtcNonCellular(bool webrtc_non_cellular);
+
   /** Bitmask for bt multiplex connection support. */
   // Note. Deprecates the first and second bit of BT_MULTIPLEX_ENABLED and
   // WIFI_LAN_MULTIPLEX_ENABLED and shift them to the third and the forth bit.
@@ -502,6 +508,8 @@ class ClientProxy final {
   bool supports_safe_to_disconnect_;
   bool support_auto_reconnect_;
   std::int32_t local_safe_to_disconnect_version_;
+  // Allowed to use WebRTC over non-cellular networks.
+  bool webrtc_non_cellular_ = false;
 };
 
 }  // namespace connections

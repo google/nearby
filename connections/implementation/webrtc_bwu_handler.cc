@@ -12,21 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "absl/strings/str_cat.h"
 #ifndef NO_WEBRTC
 
 #include "connections/implementation/webrtc_bwu_handler.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "absl/strings/str_cat.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
+#include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -67,9 +72,9 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
       << peer_id.GetId() << ", location hint "
       << absl::StrCat(location_hint.location());
 
-  mediums::WebRtcSocketWrapper socket =
-      webrtc_.Connect(service_id, peer_id, location_hint,
-                      client->GetCancellationFlag(endpoint_id));
+  mediums::WebRtcSocketWrapper socket = webrtc_.Connect(
+      service_id, peer_id, location_hint,
+      client->GetCancellationFlag(endpoint_id), client->GetWebRtcNonCellular());
   if (!socket.IsValid()) {
     NEARBY_LOGS(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
                        << peer_id.GetId() << ") on endpoint " << endpoint_id
@@ -117,7 +122,8 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     if (!webrtc_.StartAcceptingConnections(
             upgrade_service_id, self_id, location_hint,
             absl::bind_front(&WebrtcBwuHandler::OnIncomingWebrtcConnection,
-                             this, client))) {
+                             this, client),
+            client->GetWebRtcNonCellular())) {
       NEARBY_LOGS(ERROR) << "WebRtcBwuHandler couldn't initiate the WEB_RTC "
                             "upgrade for endpoint "
                          << endpoint_id

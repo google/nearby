@@ -14,6 +14,7 @@
 
 #include "connections/core.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>

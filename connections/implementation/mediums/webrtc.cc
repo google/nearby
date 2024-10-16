@@ -18,19 +18,27 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/bind_front.h"
 #include "absl/time/time.h"
+#include "connections/implementation/mediums/webrtc/connection_flow.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/signaling_frames.h"
+#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/webrtc.h"
 #include "webrtc/api/jsep.h"
 
 namespace nearby {
@@ -86,7 +94,8 @@ bool WebRtc::IsAcceptingConnectionsLocked(const std::string& service_id) {
 bool WebRtc::StartAcceptingConnections(const std::string& service_id,
                                        const WebrtcPeerId& self_peer_id,
                                        const LocationHint& location_hint,
-                                       AcceptedConnectionCallback callback) {
+                                       AcceptedConnectionCallback callback,
+                                       bool non_cellular) {
   MutexLock lock(&mutex_);
   if (!IsAvailable()) {
     NEARBY_LOGS(WARNING) << "Cannot start accepting WebRTC connections because "
@@ -106,6 +115,8 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
   AcceptingConnectionsInfo info = AcceptingConnectionsInfo();
   info.self_peer_id = self_peer_id;
   info.accepted_connection_callback = std::move(callback);
+
+  medium_->SetNonCellular(non_cellular);
 
   // Create a new SignalingMessenger so that we can communicate w/ Tachyon.
   info.signaling_messenger =
@@ -197,8 +208,10 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
 WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
                                     const WebrtcPeerId& remote_peer_id,
                                     const LocationHint& location_hint,
-                                    CancellationFlag* cancellation_flag) {
+                                    CancellationFlag* cancellation_flag,
+                                    bool non_cellular) {
   service_id_to_connect_attempts_count_map_[service_id] = 1;
+  medium_->SetNonCellular(non_cellular);
   while (service_id_to_connect_attempts_count_map_[service_id] <=
          kConnectAttemptsLimit) {
     if (cancellation_flag->Cancelled()) {

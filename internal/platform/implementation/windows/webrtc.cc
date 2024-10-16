@@ -27,6 +27,7 @@
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/thread.h"
 
@@ -101,14 +102,15 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
+  rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
+      peer_connection_factory = webrtc::CreateModularPeerConnectionFactory(
+          std::move(factory_dependencies));
   if (options.has_value()) {
-    // TODO(edwinwu): Add support for non-cellular networks.
+    peer_connection_factory->SetOptions(options.value());
   }
   auto peer_connection_or_error =
-      webrtc::CreateModularPeerConnectionFactory(
-          std::move(factory_dependencies))
-          ->CreatePeerConnectionOrError(rtc_config, std::move(dependencies));
-
+      peer_connection_factory->CreatePeerConnectionOrError(
+          rtc_config, std::move(dependencies));
   if (peer_connection_or_error.ok()) {
     callback(peer_connection_or_error.MoveValue());
   } else {
