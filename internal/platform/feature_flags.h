@@ -114,6 +114,7 @@ class FeatureFlags {
     // from triggering an OutOfMemory error.
     std::uint32_t connection_max_frame_length = 1048576;
     std::uint32_t blocking_queue_stream_queue_capacity = 10;
+    bool support_web_rtc_non_cellular_medium = false;
   };
 
   static const FeatureFlags& GetInstance() {

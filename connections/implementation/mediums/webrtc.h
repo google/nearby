@@ -90,6 +90,8 @@ class WebRtc {
       CancellationFlag* cancellation_flag, bool non_cellular)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  bool IsUsingCellular() ABSL_LOCKS_EXCLUDED(mutex_);
+
  protected:
   // Use for unit tests only to inject a WebRtcMedium.
   explicit WebRtc(std::unique_ptr<WebRtcMedium> medium);
@@ -232,6 +234,10 @@ class WebRtc {
   void RestartTachyonReceiveMessages(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // Runs on |single_thread_executor_|.
+  void AdapterTypeChangedHandler(/*rtc::AdapterType*/ int adapter_type)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   void OffloadFromThread(const std::string& name, Runnable runnable);
 
   Mutex mutex_;
@@ -256,6 +262,8 @@ class WebRtc {
   // a unique ConnectionFlow.
   absl::flat_hash_map<std::string, std::unique_ptr<ConnectionFlow>>
       connection_flows_ ABSL_GUARDED_BY(mutex_);
+
+  bool is_using_cellular_ ABSL_GUARDED_BY(mutex_) = true;
 };
 
 }  // namespace mediums

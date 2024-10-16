@@ -24,6 +24,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
@@ -87,9 +88,10 @@ class WebRtcMedium {
   // |callback|.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
                             PeerConnectionCallback callback) {
-    // TODO(edwinwu): Add a flag to control this and add support for
-    // non-cellular networks.
-    if (non_cellular_) {
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .support_web_rtc_non_cellular_medium) {
+      // TODO(edwinwu): Add support for non-cellular networks.
       impl_->CreatePeerConnection(std::nullopt, observer, std::move(callback));
     } else {
       impl_->CreatePeerConnection(observer, std::move(callback));
