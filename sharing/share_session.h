@@ -21,11 +21,9 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
@@ -48,6 +46,9 @@ namespace nearby::sharing {
 // This class is thread-compatible.
 class ShareSession {
  public:
+  static location::nearby::proto::sharing::AttachmentTransmissionStatus
+  ConvertToTransmissionStatus(TransferMetadata::Status status);
+
   ShareSession(Clock* clock, TaskRunner& service_thread,
                NearbyConnectionsManager* connections_manager,
                analytics::AnalyticsRecorder& analytics_recorder,
@@ -85,10 +86,6 @@ class ShareSession {
 
   void set_session_id(int64_t session_id) { session_id_ = session_id; }
 
-  std::optional<absl::Time> connection_start_time() const {
-    return connection_start_time_;
-  }
-
   location::nearby::proto::sharing::OSType os_type() const { return os_type_; }
 
   bool self_share() const { return self_share_; }
@@ -103,10 +100,6 @@ class ShareSession {
   TransferMetadata::Status disconnect_status() const {
     return disconnect_status_;
   }
-  // Notifies the ShareTargetInfo that the connection has been established.
-  // Returns true if the connection was successfully established.
-  bool OnConnected(absl::Time connect_start_time,
-                   NearbyConnection* connection);
 
   // Send TransferMetadataUpdate with the final status.
   // If connected, also close the connection.
@@ -122,9 +115,6 @@ class ShareSession {
           callback);
 
   void OnDisconnect();
-  void SetAttachmentContainer(AttachmentContainer container) {
-    attachment_container_ = std::move(container);
-  }
   const AttachmentContainer& attachment_container() const {
     return attachment_container_;
   }
@@ -147,8 +137,11 @@ class ShareSession {
  protected:
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
-  virtual bool OnNewConnection(NearbyConnection* connection) = 0;
   virtual void OnConnectionDisconnected() {}
+  void SetConnection(NearbyConnection* connection);
+  void SetAttachmentContainer(AttachmentContainer container) {
+    attachment_container_ = std::move(container);
+  }
 
   Clock& clock() const { return clock_; }
 
@@ -199,7 +192,6 @@ class ShareSession {
   std::shared_ptr<PairedKeyVerificationRunner> key_verification_runner_;
   std::shared_ptr<PayloadTracker> payload_tracker_;
   int64_t session_id_;
-  std::optional<absl::Time> connection_start_time_;
   ::location::nearby::proto::sharing::OSType os_type_ =
       ::location::nearby::proto::sharing::OSType::UNKNOWN_OS_TYPE;
   bool self_share_ = false;

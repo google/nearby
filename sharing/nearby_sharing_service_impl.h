@@ -311,9 +311,8 @@ class NearbySharingServiceImpl
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);
 
-  void OnOutgoingConnection(absl::Time connect_start_time,
-                            NearbyConnection* connection,
-                            OutgoingShareSession& session);
+  void OnOutgoingConnection(int64_t share_target_id,
+                            NearbyConnection* connection, Status status);
 
   void CreatePayloads(
       OutgoingShareSession& session,
@@ -363,10 +362,10 @@ class NearbySharingServiceImpl
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       bool is_incoming);
 
-  void IncomingPayloadTransferUpdate(
-      int64_t share_target_id, TransferMetadata metadata);
-  void OutgoingPayloadTransferUpdate(
-      int64_t share_target_id, TransferMetadata metadata);
+  void IncomingPayloadTransferUpdate(int64_t share_target_id,
+                                     TransferMetadata metadata);
+  void OutgoingPayloadTransferUpdate(int64_t share_target_id,
+                                     TransferMetadata metadata);
 
   void RemoveIncomingPayloads(const IncomingShareSession& session);
 
@@ -453,17 +452,8 @@ class NearbySharingServiceImpl
   void RunOnAnyThread(absl::string_view task_name,
                       absl::AnyInvocable<void()> task);
 
-  // Returns a 1-based position.It is used by group share feature.
-  int GetConnectedShareTargetPos();
-
-  // Returns the share target count. It is used by group share feature.
-  int GetConnectedShareTargetCount();
-
   // Returns use case of sender. It is used by group share feature.
   ::location::nearby::proto::sharing::SharingUseCase GetSenderUseCase();
-
-  // Calculates transport type based on attachment size.
-  TransportType GetTransportType(const AttachmentContainer& container) const;
 
   // Update file path for the file attachment.
   void UpdateFilePath(AttachmentContainer& container);

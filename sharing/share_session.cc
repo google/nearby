@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/strings/str_format.h"
-#include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -43,6 +42,7 @@
 namespace nearby::sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
@@ -66,6 +66,38 @@ std::string TokenToFourDigitString(const std::vector<uint8_t>& bytes) {
 }
 
 }  // namespace
+
+/* static */
+AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
+    TransferMetadata::Status status) {
+  switch (status) {
+    case TransferMetadata::Status::kComplete:
+      return AttachmentTransmissionStatus::
+          COMPLETE_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kCancelled:
+      return AttachmentTransmissionStatus::
+          CANCELED_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kFailed:
+      return AttachmentTransmissionStatus::
+          FAILED_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kIncompletePayloads:
+      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
+    case TransferMetadata::Status::kMediaUnavailable:
+      return AttachmentTransmissionStatus::MEDIA_UNAVAILABLE_ATTACHMENT;
+    case TransferMetadata::Status::kDeviceAuthenticationFailed:
+      return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
+    case TransferMetadata::Status::kRejected:
+      return AttachmentTransmissionStatus::REJECTED_ATTACHMENT;
+    case TransferMetadata::Status::kTimedOut:
+      return AttachmentTransmissionStatus::TIMED_OUT_ATTACHMENT;
+    case TransferMetadata::Status::kUnsupportedAttachmentType:
+      return AttachmentTransmissionStatus::
+          UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT;
+    default:
+      return AttachmentTransmissionStatus::
+          UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
+  }
+}
 
 ShareSession::ShareSession(Clock* clock, TaskRunner& service_thread,
                            NearbyConnectionsManager* connections_manager,
@@ -117,16 +149,10 @@ void ShareSession::set_disconnect_status(
   }
 }
 
-bool ShareSession::OnConnected(absl::Time connect_start_time,
-                               NearbyConnection* connection) {
-  if (!OnNewConnection(connection)) {
-    return false;
-  }
-  connection_start_time_ = connect_start_time;
+void ShareSession::SetConnection(NearbyConnection* connection) {
   connection_ = connection;
   frames_reader_ =
       std::make_shared<IncomingFramesReader>(service_thread_, connection_);
-  return true;
 }
 
 void ShareSession::Disconnect() {

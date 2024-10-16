@@ -111,8 +111,6 @@ namespace nearby::sharing {
 namespace {
 
 using BlockedVendorId = ::nearby::sharing::Advertisement::BlockedVendorId;
-using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
-using ::location::nearby::proto::sharing::EstablishConnectionStatus;
 using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::location::nearby::proto::sharing::SessionStatus;
@@ -772,18 +770,9 @@ void NearbySharingServiceImpl::SendAttachments(
           return;
         }
 
-        session->SetAttachmentContainer(std::move(*attachment_container));
+        session->InitiateSendAttachments(std::move(attachment_container));
 
         app_info_->SetActiveFlag();
-        // Set session ID.
-        session->set_session_id(analytics_recorder_.GenerateNextId());
-
-        // Log analytics event of sending start.
-        analytics_recorder_.NewSendStart(
-            session->session_id(),
-            /*transfer_position=*/GetConnectedShareTargetPos(),
-            /*concurrent_connections=*/GetConnectedShareTargetCount(),
-            session->share_target());
 
         OnTransferStarted(/*is_incoming=*/false);
         is_connecting_ = true;
@@ -1066,7 +1055,7 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   IncomingShareSession& session = CreateIncomingShareSession(
       placeholder_share_target, endpoint_id, /*certificate=*/std::nullopt);
   session.set_session_id(analytics_recorder_.GenerateNextId());
-  session.OnConnected(context_->GetClock()->Now(), connection);
+  session.OnConnected(connection);
   connection->SetDisconnectionListener([this, placeholder_share_target_id]() {
     OnConnectionDisconnected(placeholder_share_target_id);
   });
@@ -2441,39 +2430,35 @@ void NearbySharingServiceImpl::OnTransferStarted(bool is_incoming) {
 }
 
 void NearbySharingServiceImpl::OnOutgoingConnection(
-    absl::Time connect_start_time, NearbyConnection* connection,
-    OutgoingShareSession& session) {
-  int64_t share_target_id = session.share_target().id;
-  if (!session.OnConnected(connect_start_time, connection)) {
-    session.Abort(session.disconnect_status());
+    int64_t share_target_id, NearbyConnection* connection, Status status) {
+  OutgoingShareSession* session =
+      GetOutgoingShareSession(share_target_id);
+  if (session == nullptr) {
+    LOG(WARNING) << "Nearby connection connected, but share target "
+                 << share_target_id << " already disconnected.";
+    if (connection != nullptr) {
+      connection->Close();
+    }
     return;
   }
-
-  connection->SetDisconnectionListener(
-      [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
-
-  // Log analytics event of establishing connection.
-  analytics_recorder_.NewEstablishConnection(
-      session.session_id(),
-      EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS,
-      session.share_target(),
-      /*transfer_position=*/GetConnectedShareTargetPos(),
-      /*concurrent_connections=*/GetConnectedShareTargetCount(),
-      absl::ToInt64Milliseconds(
-          (context_->GetClock()->Now() - connect_start_time)),
-      /*referrer_package=*/std::nullopt);
-
-  session.RunPairedKeyVerification(
-      ToProtoOsType(device_info_.GetOsType()),
-      {
-          .visibility = settings_->GetVisibility(),
-          .last_visibility = settings_->GetLastVisibility(),
-          .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
-      },
-      GetCertificateManager(),
-      absl::bind_front(
-          &NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone,
-          this, share_target_id));
+  if (connection != nullptr) {
+    connection->SetDisconnectionListener([this, share_target_id]() {
+      OnConnectionDisconnected(share_target_id);
+    });
+  }
+  if (session->OnConnectResult(connection, status)) {
+    session->RunPairedKeyVerification(
+        ToProtoOsType(device_info_.GetOsType()),
+        {
+            .visibility = settings_->GetVisibility(),
+            .last_visibility = settings_->GetLastVisibility(),
+            .last_visibility_time = settings_->GetLastVisibilityTimestamp(),
+        },
+        GetCertificateManager(),
+        absl::bind_front(
+            &NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone,
+            this, share_target_id));
+  }
 }
 
 void NearbySharingServiceImpl::CreatePayloads(
@@ -2534,42 +2519,13 @@ void NearbySharingServiceImpl::OnCreatePayloads(
   all_cancelled_share_target_ids_.clear();
 
   int64_t share_target_id = session.share_target().id;
-  absl::Time connection_start_time = context_->GetClock()->Now();
 
-  // TODO(b/343281329): do not request wifi hotspot medium if
-  // disable_wifi_hotspot option has been requested and device is currently
-  // connected to Wifi.
-  nearby_connections_manager_->Connect(
-      std::move(endpoint_info), session.endpoint_id(),
-      std::move(bluetooth_mac_address), settings_->GetDataUsage(),
-      GetTransportType(session.attachment_container()),
-      [this, connection_start_time, share_target_id](
-          NearbyConnection* connection, Status status) {
-        OutgoingShareSession* session =
-            GetOutgoingShareSession(share_target_id);
-        if (session == nullptr) {
-          NL_LOG(WARNING) << __func__
-                          << "Nearby connection connected, but share target "
-                          << share_target_id << " already disconnected.";
-          return;
-        }
-        // Log analytics event of new connection.
-        session->set_connection_layer_status(status);
-        if (connection == nullptr) {
-          analytics_recorder_.NewEstablishConnection(
-              session->session_id(),
-              EstablishConnectionStatus::CONNECTION_STATUS_FAILURE,
-              session->share_target(),
-              /*transfer_position=*/
-              GetConnectedShareTargetPos(),
-              /*concurrent_connections=*/GetConnectedShareTargetCount(),
-              absl::ToInt64Milliseconds(context_->GetClock()->Now() -
-                                        connection_start_time),
-              std::nullopt);
-        }
-
-        OnOutgoingConnection(connection_start_time, connection, *session);
-      });
+  session.Connect(
+      std::move(endpoint_info), std::move(bluetooth_mac_address),
+      settings_->GetDataUsage(),
+      GetDisableWifiHotspotState(),
+      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingConnection, this,
+                       share_target_id));
 }
 
 void NearbySharingServiceImpl::Fail(IncomingShareSession& session,
@@ -2646,11 +2602,10 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
     int64_t received_bytes =
         session.attachment_container().GetTotalAttachmentsSize() *
         metadata.progress() / 100;
-    AttachmentTransmissionStatus transmission_status =
-        ConvertToTransmissionStatus(metadata.status());
 
     analytics_recorder_.NewReceiveAttachmentsEnd(
-        session.session_id(), received_bytes, transmission_status,
+        session.session_id(), received_bytes,
+        ShareSession::ConvertToTransmissionStatus(metadata.status()),
         /* referrer_package=*/std::nullopt);
 
     OnTransferComplete();
@@ -2691,26 +2646,7 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
   }
 
   if (metadata.is_final_status()) {
-    // Log analytics event of sending attachment end.
-    int64_t sent_bytes =
-        session.attachment_container().GetTotalAttachmentsSize() *
-        metadata.progress() / 100;
-    AttachmentTransmissionStatus transmission_status =
-        ConvertToTransmissionStatus(metadata.status());
-
-    analytics_recorder_.NewSendAttachmentsEnd(
-        session.session_id(), sent_bytes, session.share_target(),
-        transmission_status,
-        /*transfer_position=*/GetConnectedShareTargetPos(),
-        /*concurrent_connections=*/GetConnectedShareTargetCount(),
-        /*duration_millis=*/
-        session.connection_start_time().has_value()
-            ? absl::ToInt64Milliseconds(context_->GetClock()->Now() -
-                                        *(session.connection_start_time()))
-            : 0,
-        /*referrer_package=*/std::nullopt,
-        ConvertToConnectionLayerStatus(session.connection_layer_status()),
-        session.os_type());
+    session.SendAttachmentsCompleted(metadata);
     is_connecting_ = false;
     OnTransferComplete();
   } else if (metadata.status() ==
@@ -2807,7 +2743,7 @@ void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
       *share_target, endpoint_id, std::move(certificate));
   // Copy session id from placeholder session to actual session.
   session.set_session_id(session_id);
-  session.OnConnected(context_->GetClock()->Now(), connection);
+  session.OnConnected(connection);
   // Need to rebind the disconnect listener to the new share target id.
   connection->SetDisconnectionListener(
       [this, share_target_id]() { OnConnectionDisconnected(share_target_id); });
@@ -3474,7 +3410,6 @@ void NearbySharingServiceImpl::CreateOutgoingShareSession(
                     "should NOT happen";
   } else {
     auto& session = it_out->second;
-    session.set_connection_layer_status(Status::kUnknown);
     if (certificate.has_value()) {
       session.set_certificate(std::move(*certificate));
     }
@@ -3814,41 +3749,10 @@ void NearbySharingServiceImpl::RunOnAnyThread(absl::string_view task_name,
       });
 }
 
-int NearbySharingServiceImpl::GetConnectedShareTargetPos() {
-  // Returns 1 before group sharing is enabled.
-  return 1;
-}
-
-int NearbySharingServiceImpl::GetConnectedShareTargetCount() {
-  // Returns 1 before group sharing is enabled.
-  return 1;
-}
-
 ::location::nearby::proto::sharing::SharingUseCase
 NearbySharingServiceImpl::GetSenderUseCase() {
   // Returns unknown before group sharing is enabled.
   return ::location::nearby::proto::sharing::SharingUseCase::USE_CASE_UNKNOWN;
-}
-
-TransportType NearbySharingServiceImpl::GetTransportType(
-    const AttachmentContainer& container) const {
-  if (container.GetTotalAttachmentsSize() >
-      kAttachmentsSizeThresholdOverHighQualityMedium) {
-    if (GetDisableWifiHotspotState()) {
-      LOG(INFO) << "Transport type is kHighQuality|kNonDisruptive";
-      return TransportType::kHighQualityNonDisruptive;
-    }
-    LOG(INFO) << "Transport type is kHighQuality";
-    return TransportType::kHighQuality;
-  }
-
-  if (container.GetFileAttachments().empty()) {
-    LOG(INFO) << "Transport type is kNonDisruptive";
-    return TransportType::kNonDisruptive;
-  }
-
-  NL_LOG(INFO) << __func__ << ": Transport type is kAny";
-  return TransportType::kAny;
 }
 
 void NearbySharingServiceImpl::UpdateFilePathsInProgress(

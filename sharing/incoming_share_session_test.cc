@@ -184,7 +184,7 @@ class IncomingShareSessionTest : public ::testing::Test {
 };
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionNoSupportedPayload) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   IntroductionFrame frame;
 
   EXPECT_THAT(session_.ProcessIntroduction(frame),
@@ -193,7 +193,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionNoSupportedPayload) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyFile) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   IntroductionFrame frame;
   frame.mutable_file_metadata();
 
@@ -203,7 +203,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyFile) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionFilesTooLarge) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   IntroductionFrame frame;
   FileMetadata file1;
   FileMetadata file2;
@@ -218,7 +218,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionFilesTooLarge) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyText) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   IntroductionFrame frame;
   frame.mutable_text_metadata();
 
@@ -228,7 +228,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionEmptyText) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   FileMetadata filemeta1 = introduction_frame_.file_metadata(0);
   FileAttachment file1(filemeta1.id(), filemeta1.size(), filemeta1.name(),
                        filemeta1.mime_type(), filemeta1.type(),
@@ -277,7 +277,7 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithWrongPayloadType) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   int64_t payload_id1 = introduction_frame_.file_metadata(0).payload_id();
@@ -333,7 +333,7 @@ TEST_F(IncomingShareSessionTest,
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithMissingFilePayloads) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -406,7 +406,7 @@ TEST_F(IncomingShareSessionTest,
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithMissingTextPayloads) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -476,7 +476,7 @@ TEST_F(IncomingShareSessionTest,
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithMissingWifiPayloads) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -544,7 +544,7 @@ TEST_F(IncomingShareSessionTest,
 }
 
 TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   IntroductionFrame introduction_frame;
   FileMetadata file1;
   FileMetadata file2;
@@ -583,7 +583,7 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -660,7 +660,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -715,7 +715,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -763,7 +763,7 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   std::filesystem::path file1_path = "/usr/tmp/file1";
@@ -821,7 +821,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
   session_.set_session_id(1234);
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
@@ -839,7 +839,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
                                share_target,
                                transfer_metadata_callback_.AsStdFunction());
   session.set_session_id(1234);
-  EXPECT_TRUE(session.OnConnected(absl::Now(), &connection_));
+  session.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)))
@@ -852,7 +852,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
   session_.set_session_id(1234);
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
@@ -870,7 +870,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeout) {
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
   session_.set_session_id(1234);
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_CALL(
       transfer_metadata_callback_,
       Call(_, HasStatus(TransferMetadata::Status::kAwaitingLocalConfirmation)));
@@ -903,7 +903,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
   session_.set_session_id(1234);
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
 
@@ -913,7 +913,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
 
 TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
   session_.set_session_id(1234);
-  EXPECT_TRUE(session_.OnConnected(absl::Now(), &connection_));
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
   EXPECT_THAT(
@@ -956,7 +956,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -990,7 +990,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -1023,7 +1023,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -1056,7 +1056,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
 }
 
 TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
   session_.SetTokenForTests("1234");
 
   bool introduction_received = false;
@@ -1089,7 +1089,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
 }
 
 TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNotNeeded) {
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
 
   EXPECT_THAT(session_.TryUpgradeBandwidth(), IsFalse());
   EXPECT_THAT(connections_manager_.DidUpgradeBandwidth(kEndpointId), IsFalse());
@@ -1119,7 +1119,7 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
                                             }
                                           )pb",
                                           &introduction_frame));
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
               Eq(std::nullopt));
 
@@ -1135,7 +1135,7 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseNotConnected) {
 }
 
 TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
-  session_.OnConnected(absl::Now(), &connection_);
+  session_.OnConnected(&connection_);
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
 

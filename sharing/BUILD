@@ -212,6 +212,7 @@ cc_library(
         "//sharing/common:compatible_u8_string",
         "//sharing/internal/api:platform",
         "//sharing/internal/public:logging",
+        "//sharing/proto:enums_cc_proto",
         "//sharing/proto:wire_format_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",

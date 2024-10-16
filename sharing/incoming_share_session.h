@@ -107,9 +107,11 @@ class IncomingShareSession : public ShareSession {
   std::pair<bool, bool> PayloadTransferUpdate(
       bool update_file_paths_in_progress, const TransferMetadata& metadata);
 
+  // Called when an incoming connection is established.
+  void OnConnected(NearbyConnection* connection);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
-  bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
   // Update file attachment paths with payload paths.
