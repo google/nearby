@@ -261,7 +261,7 @@ cc_library(
         "//internal/weave:__subpackages__",
         "//location/nearby/apps:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
-        "//location/nearby/sharing/sdk/test_client:__pkg__",
+        "//location/nearby/sharing/sdk:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",

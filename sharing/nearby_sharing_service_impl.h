@@ -35,6 +35,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
@@ -171,6 +172,7 @@ class NearbySharingServiceImpl
   NearbyShareContactManager* GetContactManager() override;
   NearbyShareCertificateManager* GetCertificateManager() override;
   AccountManager* GetAccountManager() override;
+  Clock& GetClock() override { return *context_->GetClock(); }
 
   // NearbyConnectionsManager::IncomingConnectionListener:
   void OnIncomingConnection(absl::string_view endpoint_id,
