@@ -191,7 +191,7 @@ class ShareSession {
   std::shared_ptr<IncomingFramesReader> frames_reader_;
   std::shared_ptr<PairedKeyVerificationRunner> key_verification_runner_;
   std::shared_ptr<PayloadTracker> payload_tracker_;
-  int64_t session_id_;
+  int64_t session_id_ = 0;
   ::location::nearby::proto::sharing::OSType os_type_ =
       ::location::nearby::proto::sharing::OSType::UNKNOWN_OS_TYPE;
   bool self_share_ = false;

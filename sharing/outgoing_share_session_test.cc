@@ -526,6 +526,7 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferNotConnected) {
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
 
   EXPECT_THAT(
@@ -631,6 +632,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::ACCEPT);
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
@@ -815,6 +817,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   session_.SetTokenForTests("1234");
 
@@ -830,6 +833,7 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   session_.SetTokenForTests("1234");
 
@@ -845,6 +849,7 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
 
 TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   TransferMetadata complete_metadata =
       TransferMetadataBuilder()
@@ -862,6 +867,7 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
 
 TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   TransferMetadata complete_metadata =
       TransferMetadataBuilder()
@@ -907,6 +913,7 @@ TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithoutCertificate) {
 TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupConnectedIsNoOp) {
   auto share_target_org = session_.share_target();
   FakeNearbyConnection connection;
+  session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   ShareTarget share_target2{
       "test_update_name",     ::nearby::network::Url(), ShareTargetType::kPhone,
