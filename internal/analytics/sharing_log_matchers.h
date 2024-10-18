@@ -43,6 +43,22 @@ MATCHER_P(SharingLogHasStatus, status, "has status") {
   return arg.status() == status;
 }
 
+MATCHER_P(HasRpcName, rpc_name, "has rpc_name") {
+  return arg.rpc_name() == rpc_name;
+}
+
+MATCHER_P(HasDirection, direction, "has direction") {
+  return arg.direction() == direction;
+}
+
+MATCHER_P(HasErrorCode, error_code, "has error_code") {
+  return arg.error_code() == error_code;
+}
+
+MATCHER_P(HasLatencyMillis, latency_millis, "has latency_millis") {
+  return arg.latency_millis() == latency_millis;
+}
+
 }  // namespace nearby::analytics
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_ANALYTICS_SHARING_LOG_MATCHERS_H_
