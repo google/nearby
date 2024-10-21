@@ -1831,8 +1831,9 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     entry.second.OnShareTargetDiscovered(*share_target);
   }
 
-  VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered at timestamp: "
-          << (context_->GetClock()->Now() - scanning_start_timestamp_);
+  VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered: share_target.id="
+          << share_target->id << " device_name=" << share_target->device_name
+          << " endpoint_id=" << endpoint_id << " to all send surfaces.";
 
   FinishEndpointDiscoveryEvent();
 }
@@ -2378,7 +2379,9 @@ void NearbySharingServiceImpl::RemoveOutgoingShareTargetAndReportLost(
   }
 
   VLOG(1) << __func__
-          << ": Reported OnShareTargetLost for EndpointId: " << endpoint_id;
+          << ": Reported OnShareTargetLost for EndpointId: " << endpoint_id
+          << " share target.id=" << share_target_opt->id
+          << " share target.device_name=" << share_target_opt->device_name;
 }
 
 void NearbySharingServiceImpl::OnTransferComplete() {
