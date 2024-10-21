@@ -911,6 +911,8 @@ message SharingLog {
     optional int64 session_id = 2 /* type = ST_SESSION_ID */;
     optional int64 duration_millis = 3;
     optional bool is_timeout = 4;
+    optional int32 original_quality = 5;
+    optional int32 connection_medium = 6;
   }
 
   message RpcCallStatus {
