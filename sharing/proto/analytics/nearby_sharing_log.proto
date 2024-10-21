@@ -31,7 +31,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 79
+// Next Tag: 80
 // LINT.IfChange
 message SharingLog {
   /* collection_basis = {
@@ -214,6 +214,8 @@ message SharingLog {
 
   optional RpcCallStatus rpc_call_status = 78;
 
+  optional StartQrCodeSession start_qr_code_session = 79;
+
   // Used only for Nearby Share Windows app now.
   message AppInfo {
     // e.g. "1.0.408"
@@ -360,6 +362,10 @@ message SharingLog {
     optional location.nearby.proto.sharing.ScanType scan_type = 3;
     optional int64 flow_id = 4 /* type = ST_SESSION_ID */;
     optional string referrer_name = 5;
+    // Represents whether this scan was started with an active QR code session
+    // that can be used to help discover targets that have scanned the same QR
+    // code
+    optional bool use_qr_code = 6;
   }
 
   // EventType: SCAN_FOR_SHARE_TARGETS_END
@@ -922,5 +928,8 @@ message SharingLog {
     // Latency of RPC call in milliseconds.
     optional int64 latency_millis = 4;
   }
+
+  // EventType: START_QR_CODE_SESSION
+  message StartQrCodeSession {}
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
