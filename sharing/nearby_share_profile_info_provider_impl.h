@@ -40,7 +40,6 @@ class NearbyShareProfileInfoProviderImpl
 
   // NearbyShareProfileInfoProvider:
   std::optional<std::string> GetGivenName() const override;
-  std::optional<std::string> GetProfileUserName() const override;
 
  private:
   nearby::DeviceInfo& device_info_;

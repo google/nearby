@@ -34,10 +34,7 @@ class DeviceInfo {
   virtual std::string GetOsDeviceName() const = 0;
   virtual api::DeviceInfo::DeviceType GetDeviceType() const = 0;
   virtual api::DeviceInfo::OsType GetOsType() const = 0;
-  virtual std::optional<std::string> GetFullName() const = 0;
   virtual std::optional<std::string> GetGivenName() const = 0;
-  virtual std::optional<std::string> GetLastName() const = 0;
-  virtual std::optional<std::string> GetProfileUserName() const = 0;
 
   virtual std::filesystem::path GetDownloadPath() const = 0;
   virtual std::filesystem::path GetAppDataPath() const = 0;

@@ -43,10 +43,5 @@ std::optional<std::string> NearbyShareProfileInfoProviderImpl::GetGivenName()
   return device_info_.GetGivenName();
 }
 
-std::optional<std::string>
-NearbyShareProfileInfoProviderImpl::GetProfileUserName() const {
-  return device_info_.GetProfileUserName();
-}
-
 }  // namespace sharing
 }  // namespace nearby

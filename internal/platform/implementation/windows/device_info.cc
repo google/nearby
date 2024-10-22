@@ -84,48 +84,6 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
-std::optional<std::string> DeviceInfo::GetFullName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> full_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::DisplayName());
-  IInspectable full_name_obj = full_name_obj_async.get();
-  if (full_name_obj == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving full name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring full_name = full_name_obj.as<winrt::hstring>();
-  std::string full_name_str = winrt::to_string(full_name);
-
-  if (full_name_str.empty()) {
-    LOG(ERROR) << __func__
-               << ": Error unboxing string value for full name of user.";
-    return std::nullopt;
-  }
-
-  return full_name_str;
-}
-
 std::optional<std::string> DeviceInfo::GetGivenName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all
@@ -166,90 +124,6 @@ std::optional<std::string> DeviceInfo::GetGivenName() const {
   }
 
   return given_name_str;
-}
-
-std::optional<std::string> DeviceInfo::GetLastName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> last_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::LastName());
-  IInspectable last_name_obj = last_name_obj_async.get();
-  if (last_name_obj == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving last name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring last_name = last_name_obj.as<winrt::hstring>();
-  std::string last_name_str = winrt::to_string(last_name);
-
-  if (last_name_str.empty()) {
-    LOG(ERROR) << __func__
-               << ": Error unboxing string value for last name of user.";
-    return std::nullopt;
-  }
-
-  return last_name_str;
-}
-
-std::optional<std::string> DeviceInfo::GetProfileUserName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> account_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::AccountName());
-  IInspectable account_name_obj = account_name_obj_async.get();
-  if (account_name_obj == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving account name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring account_name = account_name_obj.as<winrt::hstring>();
-  std::string account_name_string = winrt::to_string(account_name);
-
-  if (account_name_string.empty()) {
-    LOG(ERROR) << __func__
-               << ": Error unboxing string value for profile username of user.";
-    return std::nullopt;
-  }
-
-  return account_name_string;
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {

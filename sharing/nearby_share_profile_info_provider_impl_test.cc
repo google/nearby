@@ -30,7 +30,6 @@ constexpr char kTestAccountId[] = "test_account_id";
 constexpr char kTestAccountGivenName[] = "given_name";
 constexpr char kExpectedTestAccountGivenName[] = "given_name";
 constexpr char kProfileGivenName[] = "Barack";
-constexpr char kProfileProfileUserName[] = "test@gmail.com";
 
 }  // namespace
 
@@ -41,15 +40,10 @@ class NearbyShareProfileInfoProviderImplTest : public ::testing::Test {
 
   void SetUp() override {
     fake_device_info_.SetGivenName(std::nullopt);
-    fake_device_info_.SetProfileUserName(std::nullopt);
   }
 
   void SetUserGivenName(const std::string& name) {
     fake_device_info_.SetGivenName(name);
-  }
-
-  void SetProfileUserName(const std::string& profile_user_name) {
-    fake_device_info_.SetProfileUserName(profile_user_name);
   }
 
   FakeDeviceInfo& fake_device_info() {
@@ -64,7 +58,6 @@ class NearbyShareProfileInfoProviderImplTest : public ::testing::Test {
 };
 
 TEST_F(NearbyShareProfileInfoProviderImplTest, GivenName) {
-  SetProfileUserName(kProfileProfileUserName);
   NearbyShareProfileInfoProviderImpl profile_info_provider(
       fake_device_info(), fake_account_manager());
 
@@ -77,23 +70,6 @@ TEST_F(NearbyShareProfileInfoProviderImplTest, GivenName) {
 
   SetUserGivenName(kProfileGivenName);
   EXPECT_EQ(profile_info_provider.GetGivenName(), kProfileGivenName);
-}
-
-TEST_F(NearbyShareProfileInfoProviderImplTest, ProfileUserName) {
-  {
-    // If profile username is empty, return std::nullopt.
-    SetProfileUserName(std::string());
-    NearbyShareProfileInfoProviderImpl profile_info_provider(
-        fake_device_info(), fake_account_manager());
-    EXPECT_FALSE(profile_info_provider.GetProfileUserName());
-  }
-  {
-    SetProfileUserName(kProfileProfileUserName);
-    NearbyShareProfileInfoProviderImpl profile_info_provider(
-        fake_device_info(), fake_account_manager());
-    EXPECT_EQ(profile_info_provider.GetProfileUserName(),
-              kProfileProfileUserName);
-  }
 }
 
 TEST_F(NearbyShareProfileInfoProviderImplTest, GivenNameUseLoginAccount) {
