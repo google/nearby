@@ -28,6 +28,7 @@
 #include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Foundation.h"
@@ -43,6 +44,8 @@ using UserType = winrt::Windows::System::UserType;
 using UserAuthenticationStatus =
     winrt::Windows::System::UserAuthenticationStatus;
 
+using ::nearby::windows::string_utils::WideStringToString;
+
 template <typename T>
 using IVectorView = winrt::Windows::Foundation::Collections::IVectorView<T>;
 
@@ -57,18 +60,20 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   DWORD size = 0;
 
   // Get length of the computer name.
-  if (!GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size)) {
+  if (GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size) == 0) {
     if (GetLastError() != ERROR_MORE_DATA) {
       LOG(ERROR) << ": Failed to get device name size, error:"
                  << GetLastError();
       return std::nullopt;
     }
   }
-
   std::wstring device_name(size, L' ');
-  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size)) {
-    winrt::hstring device_name_str(device_name);
-    return winrt::to_string(device_name_str);
+  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size) !=
+      0) {
+    // On input size includes null termination.
+    // On output size excludes null termination.
+    device_name.resize(size);
+    return WideStringToString(device_name);
   }
 
   LOG(ERROR) << ": Failed to get device name, error:" << GetLastError();

@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/windows/device_info.h"
 
+#include <cstring>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "internal/platform/implementation/device_info.h"
@@ -22,8 +24,11 @@ namespace nearby {
 namespace windows {
 namespace {
 
-TEST(DeviceInfo, DISABLED_GetComputerName) {
-  EXPECT_TRUE(DeviceInfo().GetOsDeviceName().has_value());
+TEST(DeviceInfo, GetComputerName) {
+  ASSERT_TRUE(DeviceInfo().GetOsDeviceName().has_value());
+  std::string device_name = DeviceInfo().GetOsDeviceName().value();
+  // Makes sure device_name does not include terminating null character.
+  EXPECT_EQ(device_name.size(), std::strlen(device_name.data()));
 }
 
 TEST(DeviceInfo, DISABLED_GetDeviceType) {
