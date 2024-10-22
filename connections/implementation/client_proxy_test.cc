@@ -15,32 +15,45 @@
 #include "connections/implementation/client_proxy.h"
 
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "base/casts.h"
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/payload.h"
+#include "connections/status.h"
 #include "connections/strategy.h"
-#include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device_provider.h"
-#include "internal/analytics/event_logger.h"
+#include "connections/v3/listeners.h"
+#include "internal/analytics/mock_event_logger.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/interop/device.h"
 #include "internal/interop/device_provider.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -64,15 +77,13 @@ constexpr FeatureFlags::Flags kTestCases[] = {
     },
 };
 
-class FakeEventLogger : public ::nearby::analytics::EventLogger {
+class FakeEventLogger : public ::nearby::analytics::MockEventLogger {
  public:
   explicit FakeEventLogger() = default;
 
-  void Log(const ::google::protobuf::MessageLite& message) override {
-    ConnectionsLog log;
-    log.CheckTypeAndMergeFrom(message);
+  void Log(const ConnectionsLog& message) override {
     MutexLock lock(&mutex_);
-    logs_.push_back(std::move(log));
+    logs_.push_back(message);
   }
 
   int GetCompleteClientSessionCount() {
@@ -149,17 +160,51 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     std::string id;
   };
 
+  void SetUp() override {
+    EnvironmentConfig config{/*webrtc_enabled=*/false,
+                             /*use_simulated_clock=*/true};
+    env_.Start(config);
+    client1_ = std::make_unique<ClientProxy>(&event_logger1_);
+    client2_ = std::make_unique<ClientProxy>(&event_logger2_);
+  }
+
+  void TearDown() override {
+    client1_.reset();
+    client2_.reset();
+    env_.Stop();
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
+
   bool ShouldEnterHighVisibilityMode(
       const AdvertisingOptions& advertising_options) {
     return !advertising_options.low_power &&
            advertising_options.allowed.bluetooth;
   }
 
+  bool ShouldEnterStableEndpointIdMode(
+      const AdvertisingOptions& advertising_options) {
+    if (advertising_options.use_stable_endpoint_id) {
+      return true;
+    } else if (advertising_options.low_power) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   Endpoint StartAdvertising(
       ClientProxy* client, ConnectionListener listener,
       AdvertisingOptions advertising_options = AdvertisingOptions{}) {
-    if (ShouldEnterHighVisibilityMode(advertising_options)) {
-      client->EnterHighVisibilityMode();
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            connections::config_package_nearby::nearby_connections_feature::
+                kUseStableEndpointId)) {
+      if (ShouldEnterStableEndpointIdMode(advertising_options)) {
+        client->EnterStableEndpointIdMode();
+      }
+    } else {
+      if (ShouldEnterHighVisibilityMode(advertising_options)) {
+        client->EnterHighVisibilityMode();
+      }
     }
     Endpoint endpoint{
         .info = ByteArray{"advertising endpoint name"},
@@ -210,7 +255,7 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
         .info = ByteArray{"discovery endpoint name"},
         .id = client->GetLocalEndpointId(),
     };
-    client->StartedDiscovery(service_id_, strategy_, listener,
+    client->StartedDiscovery(service_id_, strategy_, std::move(listener),
                              absl::MakeSpan(mediums_));
     return endpoint;
   }
@@ -321,6 +366,26 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
     client->OnPayloadProgress(endpoint.id, {});
   }
 
+  void EnableUseStableEndpointIdFeature() {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        connections::config_package_nearby::nearby_connections_feature::
+            kUseStableEndpointId,
+        true);
+  }
+
+  ClientProxy* client1() { return client1_.get(); }
+
+  ClientProxy* client2() { return client2_.get(); }
+
+  void FastForward(absl::Duration duration) {
+    (*env_.GetSimulatedClock())
+        ->FastForward(
+            ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
+            absl::Milliseconds(100));
+    // make sure the timer based callback is executed.
+    absl::SleepFor(absl::Milliseconds(100));
+  }
+
   MockConnectionListener mock_advertising_connection_;
 
   MockDiscoveryListener mock_discovery_;
@@ -332,12 +397,14 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   std::vector<location::nearby::proto::connections::Medium> mediums_{
       location::nearby::proto::connections::Medium::BLUETOOTH,
   };
+
+  MediumEnvironment& env_ = MediumEnvironment::Instance();
   Strategy strategy_{Strategy::kP2pPointToPoint};
   const std::string service_id_{"service"};
   FakeEventLogger event_logger1_;
   FakeEventLogger event_logger2_;
-  ClientProxy client1_{&event_logger1_};
-  ClientProxy client2_{&event_logger2_};
+  std::unique_ptr<ClientProxy> client1_;
+  std::unique_ptr<ClientProxy> client2_;
   std::string auth_token_ = "auth_token";
   ByteArray raw_auth_token_ = ByteArray(auth_token_);
   ByteArray payload_bytes_{"bytes"};
@@ -363,10 +430,12 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
       .bandwidth_changed_cb =
           mock_discovery_connection_.bandwidth_changed_cb.AsStdFunction(),
   };
-  DiscoveryListener discovery_listener_{
-      .endpoint_found_cb = mock_discovery_.endpoint_found_cb.AsStdFunction(),
-      .endpoint_lost_cb = mock_discovery_.endpoint_lost_cb.AsStdFunction(),
-  };
+  DiscoveryListener GetDiscoveryListener() {
+    return DiscoveryListener{
+        .endpoint_found_cb = mock_discovery_.endpoint_found_cb.AsStdFunction(),
+        .endpoint_lost_cb = mock_discovery_.endpoint_lost_cb.AsStdFunction(),
+    };
+  }
   ConnectionOptions connection_options_;
   AdvertisingOptions advertising_options_;
   DiscoveryOptions discovery_options_;
@@ -378,32 +447,32 @@ TEST_P(ClientProxyTest, CanCancelEndpoint) {
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
 
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
   CancellationFlag* cancellation_flag =
-      client2_.GetCancellationFlag(advertising_endpoint.id);
+      client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+      client2()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
   EXPECT_FALSE(cancellation_flag->Cancelled());
 
-  client2_.CancelEndpoint(advertising_endpoint.id);
+  client2()->CancelEndpoint(advertising_endpoint.id);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_FALSE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+        client2()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
     EXPECT_FALSE(cancellation_flag->Cancelled());
   } else {
     // The Cancelled is always true as the default flag being returned.
     EXPECT_TRUE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+        client2()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
     EXPECT_TRUE(cancellation_flag->Cancelled());
   }
 }
@@ -414,32 +483,32 @@ TEST_P(ClientProxyTest, CanCancelAllEndpoints) {
   MediumEnvironment::Instance().SetFeatureFlags(feature_flags);
 
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // `CancellationFlag` pointers are passed to other classes in Nearby
   // Connections, and by using the pointers directly, we test their
   // consumption of `CancellationFlag` pointers.
   CancellationFlag* cancellation_flag =
-      client2_.GetCancellationFlag(advertising_endpoint.id);
+      client2()->GetCancellationFlag(advertising_endpoint.id);
 
   EXPECT_FALSE(
-      client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+      client2()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
   EXPECT_FALSE(cancellation_flag->Cancelled());
 
-  client2_.CancelAllEndpoints();
+  client2()->CancelAllEndpoints();
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_FALSE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+        client2()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
     EXPECT_FALSE(cancellation_flag->Cancelled());
   } else {
     // The Cancelled is always true as the default flag being returned.
     EXPECT_TRUE(
-        client2_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+        client2()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
     EXPECT_TRUE(cancellation_flag->Cancelled());
   }
 }
@@ -452,40 +521,40 @@ TEST_P(ClientProxyTest, CanCancelAllEndpointsWithDifferentEndpoint) {
   ConnectionListener advertising_connection_listener_3;
   ClientProxy client3;
 
-  StartDiscovery(&client1_, discovery_listener_);
+  StartDiscovery(client1(), GetDiscoveryListener());
   Endpoint advertising_endpoint_2 =
-      StartAdvertising(&client2_, advertising_connection_listener_2);
+      StartAdvertising(client2(), advertising_connection_listener_2);
   Endpoint advertising_endpoint_3 =
       StartAdvertising(&client3, advertising_connection_listener_3);
-  OnDiscoveryEndpointFound(&client1_, advertising_endpoint_2);
-  OnDiscoveryConnectionInitiated(&client1_, advertising_endpoint_2);
-  OnDiscoveryEndpointFound(&client1_, advertising_endpoint_3);
-  OnDiscoveryConnectionInitiated(&client1_, advertising_endpoint_3);
+  OnDiscoveryEndpointFound(client1(), advertising_endpoint_2);
+  OnDiscoveryConnectionInitiated(client1(), advertising_endpoint_2);
+  OnDiscoveryEndpointFound(client1(), advertising_endpoint_3);
+  OnDiscoveryConnectionInitiated(client1(), advertising_endpoint_3);
 
   // The CancellationFlag of endpoint_2 and endpoint_3 have been added. Default
   // Cancelled is false.
   EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
+      client1()->GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
   EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+      client1()->GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
 
-  client1_.CancelAllEndpoints();
+  client1()->CancelAllEndpoints();
 
   if (!feature_flags.enable_cancellation_flag) {
     // The CancellationFlag of endpoint_2 and endpoint_3 will not be removed
     // since it is not added. The default flag returned as Cancelled being true,
     // but Cancelled requested is false since the FeatureFlag is off.
     EXPECT_FALSE(
-        client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
+        client1()->GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
     EXPECT_FALSE(
-        client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+        client1()->GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
   } else {
     // Expect the CancellationFlag of endpoint_2 and endpoint_3 has been
     // removed. The Cancelled is always true as the default flag being returned.
     EXPECT_TRUE(
-        client1_.GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
+        client1()->GetCancellationFlag(advertising_endpoint_2.id)->Cancelled());
     EXPECT_TRUE(
-        client1_.GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
+        client1()->GetCancellationFlag(advertising_endpoint_3.id)->Cancelled());
   }
 }
 
@@ -495,7 +564,7 @@ INSTANTIATE_TEST_SUITE_P(ParametrisedClientProxyTest, ClientProxyTest,
 TEST_F(ClientProxyTest, ConstructorDestructorWorks) { SUCCEED(); }
 
 TEST_F(ClientProxyTest, ClientIdIsUnique) {
-  EXPECT_NE(client1_.GetClientId(), client2_.GetClientId());
+  EXPECT_NE(client1()->GetClientId(), client2()->GetClientId());
 }
 
 TEST_F(ClientProxyTest, DumpString) {
@@ -510,153 +579,153 @@ TEST_F(ClientProxyTest, DumpString) {
       "  Discovery Service ID: \n"
       "  Connections: \n"
       "  Discovered endpoint IDs: \n",
-      client1_.GetClientId(), client1_.GetLocalEndpointId());
-  std::string dump = client1_.Dump();
+      client1()->GetClientId(), client1()->GetLocalEndpointId());
+  std::string dump = client1()->Dump();
   EXPECT_EQ(dump, expect);
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUnique) {
-  EXPECT_NE(client1_.GetLocalEndpointId(), client2_.GetLocalEndpointId());
+  EXPECT_NE(client1()->GetLocalEndpointId(), client2()->GetLocalEndpointId());
 }
 
 TEST_F(ClientProxyTest, GeneratedEndpointIdIsUniqueWithDeviceProvider) {
-  client1_.RegisterConnectionsDeviceProvider(
+  client1()->RegisterConnectionsDeviceProvider(
       std::make_unique<v3::ConnectionsDeviceProvider>(
           v3::ConnectionsDeviceProvider("", {})));
-  client2_.RegisterConnectionsDeviceProvider(
+  client2()->RegisterConnectionsDeviceProvider(
       std::make_unique<v3::ConnectionsDeviceProvider>(
           v3::ConnectionsDeviceProvider("", {})));
-  EXPECT_NE(client1_.GetLocalEndpointId(), client2_.GetLocalEndpointId());
+  EXPECT_NE(client1()->GetLocalEndpointId(), client2()->GetLocalEndpointId());
 }
 
 TEST_F(ClientProxyTest, ResetClearsState) {
-  client1_.Reset();
-  EXPECT_FALSE(client1_.IsAdvertising());
-  EXPECT_FALSE(client1_.IsDiscovering());
-  EXPECT_TRUE(client1_.GetAdvertisingServiceId().empty());
-  EXPECT_TRUE(client1_.GetDiscoveryServiceId().empty());
+  client1()->Reset();
+  EXPECT_FALSE(client1()->IsAdvertising());
+  EXPECT_FALSE(client1()->IsDiscovering());
+  EXPECT_TRUE(client1()->GetAdvertisingServiceId().empty());
+  EXPECT_TRUE(client1()->GetDiscoveryServiceId().empty());
 }
 
 TEST_F(ClientProxyTest, StartedAdvertisingChangesStateFromIdle) {
-  client1_.StartedAdvertising(service_id_, strategy_, {}, {});
+  client1()->StartedAdvertising(service_id_, strategy_, {}, {});
 
-  EXPECT_TRUE(client1_.IsAdvertising());
-  EXPECT_FALSE(client1_.IsDiscovering());
-  EXPECT_EQ(client1_.GetAdvertisingServiceId(), service_id_);
-  EXPECT_TRUE(client1_.GetDiscoveryServiceId().empty());
+  EXPECT_TRUE(client1()->IsAdvertising());
+  EXPECT_FALSE(client1()->IsDiscovering());
+  EXPECT_EQ(client1()->GetAdvertisingServiceId(), service_id_);
+  EXPECT_TRUE(client1()->GetDiscoveryServiceId().empty());
 }
 
 TEST_F(ClientProxyTest, StartedDiscoveryChangesStateFromIdle) {
-  client1_.StartedDiscovery(service_id_, strategy_, {}, {});
+  client1()->StartedDiscovery(service_id_, strategy_, {}, {});
 
-  EXPECT_FALSE(client1_.IsAdvertising());
-  EXPECT_TRUE(client1_.IsDiscovering());
-  EXPECT_TRUE(client1_.GetAdvertisingServiceId().empty());
-  EXPECT_EQ(client1_.GetDiscoveryServiceId(), service_id_);
+  EXPECT_FALSE(client1()->IsAdvertising());
+  EXPECT_TRUE(client1()->IsDiscovering());
+  EXPECT_TRUE(client1()->GetAdvertisingServiceId().empty());
+  EXPECT_EQ(client1()->GetDiscoveryServiceId(), service_id_);
 }
 
 TEST_F(ClientProxyTest, OnEndpointFoundFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnEndpointLostFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryEndpointLost(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryEndpointLost(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnConnectionInitiatedFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnBandwidthChangedFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionRemoteAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryBandwidthChanged(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionLocalAccepted(client2(), advertising_endpoint);
+  OnDiscoveryConnectionRemoteAccepted(client2(), advertising_endpoint);
+  OnDiscoveryConnectionAccepted(client2(), advertising_endpoint);
+  OnDiscoveryBandwidthChanged(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnDisconnectedFiresNotificationInDiscovery) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, LocalEndpointAcceptedConnectionChangesState) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionLocalAccepted(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, LocalEndpointRejectedConnectionChangesState) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionLocalRejected(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionLocalRejected(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, RemoteEndpointAcceptedConnectionChangesState) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionRemoteAccepted(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionRemoteAccepted(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, RemoteEndpointRejectedConnectionChangesState) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionRemoteRejected(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionRemoteRejected(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnPayloadChangesState) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionRemoteAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionAccepted(&client2_, advertising_endpoint);
-  OnPayload(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionLocalAccepted(client2(), advertising_endpoint);
+  OnDiscoveryConnectionRemoteAccepted(client2(), advertising_endpoint);
+  OnDiscoveryConnectionAccepted(client2(), advertising_endpoint);
+  OnPayload(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest, OnPayloadProgressChangesState) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionLocalAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionRemoteAccepted(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionAccepted(&client2_, advertising_endpoint);
-  OnPayloadProgress(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
+  OnDiscoveryConnectionLocalAccepted(client2(), advertising_endpoint);
+  OnDiscoveryConnectionRemoteAccepted(client2(), advertising_endpoint);
+  OnDiscoveryConnectionAccepted(client2(), advertising_endpoint);
+  OnPayloadProgress(client2(), advertising_endpoint);
 }
 
 TEST_F(ClientProxyTest,
@@ -675,13 +744,13 @@ TEST_F(ClientProxyTest,
   };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
-  StopAdvertising(&client1_);
+  StopAdvertising(client1());
 
   // Advertise immediately.
   Endpoint advertising_endpoint_2 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
   EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
@@ -702,15 +771,16 @@ TEST_F(ClientProxyTest,
   };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
-  StopAdvertising(&client1_);
+  StopAdvertising(client1());
 
   // Wait to expire and then advertise.
-  absl::SleepFor(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
-                 absl::Milliseconds(100));
+  FastForward(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
+              absl::Milliseconds(100));
+
   Endpoint advertising_endpoint_2 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
@@ -730,10 +800,10 @@ TEST_F(ClientProxyTest,
       false,  // low_power
   };
   Endpoint advertising_endpoint_1 =
-      StartAdvertising(&client1_, advertising_connection_listener_,
+      StartAdvertising(client1(), advertising_connection_listener_,
                        high_viz_advertising_options);
 
-  StopAdvertising(&client1_);
+  StopAdvertising(client1());
 
   AdvertisingOptions low_viz_advertising_options{
       {
@@ -746,7 +816,273 @@ TEST_F(ClientProxyTest,
   };
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
-      &client1_, advertising_connection_listener_, low_viz_advertising_options);
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest,
+       RotateWhenLowVizAdvertisementAfterHighVizAndStableAdvertisement) {
+  EnableUseStableEndpointIdFeature();
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(client1(), advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  StopAdvertising(client1());
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(
+    ClientProxyTest,
+    NoRotateWhenLowVizStableAdvertisementAfterHighVizAndStableAdvertisement) {
+  EnableUseStableEndpointIdFeature();
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(client1(), advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  StopAdvertising(client1());
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(
+    ClientProxyTest,
+    NoRotateWhenAdvertisementHasConnectionAfterStableAdvertisementForAWhile) {
+  EnableUseStableEndpointIdFeature();
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(client1(), advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint_1);
+  StopAdvertising(client1());
+
+  // Client should use cached endpoint id when having connection.
+  EXPECT_EQ(client1()->GetLocalEndpointId(), advertising_endpoint_1.id);
+
+  // Wait to expire and then advertise.
+  FastForward(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
+              absl::Milliseconds(100));
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest, RotateWhenLowVizAdvertisementAfterDisconnection) {
+  EnableUseStableEndpointIdFeature();
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(client1(), advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint_1);
+  StopAdvertising(client1());
+  FastForward(absl::Seconds(2));
+  client1()->OnDisconnected(advertising_endpoint_1.id, true);
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest,
+       NoRotateWhenLowVizAndStableAdvertisementAfterDisconnection) {
+  EnableUseStableEndpointIdFeature();
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(client1(), advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint_1);
+  StopAdvertising(client1());
+  FastForward(absl::Seconds(2));
+  client1()->OnDisconnected(advertising_endpoint_1.id, true);
+
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
+
+  EXPECT_EQ(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest, RotateWhenAdvertisementAfterDisconnectionForAWhile) {
+  EnableUseStableEndpointIdFeature();
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions high_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+
+  Endpoint advertising_endpoint_1 =
+      StartAdvertising(client1(), advertising_connection_listener_,
+                       high_viz_advertising_options);
+
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint_1);
+  StopAdvertising(client1());
+  client1()->OnDisconnected(advertising_endpoint_1.id, true);
+
+  // Wait to expire and then advertise.
+  FastForward(ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout +
+              absl::Milliseconds(100));
+  AdvertisingOptions low_viz_advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      true,   // low_power
+  };
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, low_viz_advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
@@ -767,13 +1103,43 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenStartDiscovery) {
   };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
-  StopAdvertising(&client1_);
-  StartDiscovery(&client1_, discovery_listener_);
+  StopAdvertising(client1());
+  StartDiscovery(client1(), GetDiscoveryListener());
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
+
+  EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
+}
+
+TEST_F(ClientProxyTest,
+       EndpointIdRotateWhenStartDiscoveryAfterStableAdvertising) {
+  BooleanMediumSelector booleanMediumSelector;
+  booleanMediumSelector.bluetooth = true;
+
+  AdvertisingOptions advertising_options{
+      {
+          strategy_,
+          booleanMediumSelector,
+      },
+      false,  // auto_upgrade_bandwidth
+      false,  // enforce_topology_constraints
+      false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
+  };
+
+  Endpoint advertising_endpoint_1 = StartAdvertising(
+      client1(), advertising_connection_listener_, advertising_options);
+
+  StopAdvertising(client1());
+  StartDiscovery(client1(), GetDiscoveryListener());
+
+  Endpoint advertising_endpoint_2 = StartAdvertising(
+      client1(), advertising_connection_listener_, advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
@@ -792,15 +1158,18 @@ TEST_F(ClientProxyTest,
       false,  // auto_upgrade_bandwidth
       false,  // enforce_topology_constraints
       false,  // low_power
+      true,   // enable_bluetooth_listening
+      false,  // enable_webrtc_listening
+      true,   // use_stable_endpoint_id
   };
 
   Endpoint advertising_endpoint_1 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
-  StopAdvertising(&client1_);
+  StopAdvertising(client1());
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
@@ -820,137 +1189,137 @@ TEST_F(ClientProxyTest, EndpointIdRotateWhenLowVizAdvertisementWithLowPower) {
       true,   // low_power
   };
   Endpoint advertising_endpoint_1 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
-  StopAdvertising(&client1_);
+  StopAdvertising(client1());
 
   Endpoint advertising_endpoint_2 = StartAdvertising(
-      &client1_, advertising_connection_listener_, advertising_options);
+      client1(), advertising_connection_listener_, advertising_options);
 
   EXPECT_NE(advertising_endpoint_1.id, advertising_endpoint_2.id);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionForStoppedAdvertisingWithConnection) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
 
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // Before
-  EXPECT_TRUE(client1_.HasPendingConnectionToEndpoint(
-      advertising_endpoint.id));           // Connections are available
-  EXPECT_FALSE(client1_.IsDiscovering());  // No Discovery
-  EXPECT_TRUE(client1_.IsAdvertising());   // Advertising
+  EXPECT_TRUE(client1()->HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));             // Connections are available
+  EXPECT_FALSE(client1()->IsDiscovering());  // No Discovery
+  EXPECT_TRUE(client1()->IsAdvertising());   // Advertising
 
   // After
-  StopAdvertising(&client1_);  // No Advertising
-  client1_.GetAnalyticsRecorder().Sync();
+  StopAdvertising(client1());  // No Advertising
+  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        LogSessionForStoppedAdvertisingWhenNoConnectionsAndNoDiscovering) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
 
   // Before
-  EXPECT_FALSE(client1_.HasPendingConnectionToEndpoint(
-      advertising_endpoint.id));           // No Connections
-  EXPECT_FALSE(client1_.IsDiscovering());  // No Discovery
-  EXPECT_TRUE(client1_.IsAdvertising());   // Advertising
-  client1_.GetAnalyticsRecorder().Sync();
+  EXPECT_FALSE(client1()->HasPendingConnectionToEndpoint(
+      advertising_endpoint.id));             // No Connections
+  EXPECT_FALSE(client1()->IsDiscovering());  // No Discovery
+  EXPECT_TRUE(client1()->IsAdvertising());   // Advertising
+  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 
   // After
-  StopAdvertising(&client1_);
-  client1_.GetAnalyticsRecorder().Sync();
+  StopAdvertising(client1());
+  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
 
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
 
   // Before
   OnDiscoveryConnectionInitiated(
-      &client2_, advertising_endpoint);    // Connections are available
-  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
-  EXPECT_TRUE(client2_.IsDiscovering());   // Discovering
+      client2(), advertising_endpoint);      // Connections are available
+  EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
+  EXPECT_TRUE(client2()->IsDiscovering());   // Discovering
 
   // After
-  StopDiscovery(&client2_);
-  client2_.GetAnalyticsRecorder().Sync();
+  StopDiscovery(client2());
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        NotLogSessionForStoppedDiscoveryWithoutConnectionsAndAdvertising) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
 
-  StartDiscovery(&client2_, discovery_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
 
   // Before
-  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
-  EXPECT_TRUE(client2_.IsDiscovering());   // Discoverying
-  EXPECT_FALSE(client2_.HasPendingConnectionToEndpoint(
+  EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
+  EXPECT_TRUE(client2()->IsDiscovering());   // Discovering
+  EXPECT_FALSE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // No Connections
 
   // After
-  StopDiscovery(&client2_);
-  client2_.GetAnalyticsRecorder().Sync();
+  StopDiscovery(client2());
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // Before
-  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
-  StopDiscovery(&client2_);                // No Discovery
-  EXPECT_TRUE(client2_.HasPendingConnectionToEndpoint(
+  EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
+  StopDiscovery(client2());                  // No Discovery
+  EXPECT_TRUE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // One Connection
 
   // After
-  OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
-  client2_.GetAnalyticsRecorder().Sync();
+  OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        NotLogSessionOnDisconnectedWithoutConnectionsDiscoveringAdvertising) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
 
   // Before
-  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
-  EXPECT_FALSE(client2_.IsDiscovering());  // No Discovery
-  EXPECT_FALSE(client2_.HasPendingConnectionToEndpoint(
+  EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
+  EXPECT_FALSE(client2()->IsDiscovering());  // No Discovery
+  EXPECT_FALSE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // No Connections
 
   // After
-  client2_.OnDisconnected(advertising_endpoint.id, /*notify=*/false);
-  client2_.GetAnalyticsRecorder().Sync();
+  client2()->OnDisconnected(advertising_endpoint.id, /*notify=*/false);
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
   ClientProxy client3;
   Endpoint advertising_endpoint_1 =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
   Endpoint advertising_endpoint_2 =
-      StartAdvertising(&client2_, advertising_connection_listener_);
-  StartDiscovery(&client3, discovery_listener_);
+      StartAdvertising(client2(), advertising_connection_listener_);
+  StartDiscovery(&client3, GetDiscoveryListener());
 
   OnDiscoveryEndpointFound(&client3, advertising_endpoint_1);
   OnDiscoveryConnectionInitiated(&client3, advertising_endpoint_1);
@@ -967,49 +1336,51 @@ TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
   StopDiscovery(&client3);                // No Discovery
 
   // After
-  client2_.OnDisconnected(advertising_endpoint_1.id, /*notify=*/false);
-  client2_.GetAnalyticsRecorder().Sync();
+  client2()->OnDisconnected(advertising_endpoint_1.id, /*notify=*/false);
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest,
        NotLogSessionOnDisconnectedForDiscoveringWithOnlyOneConnection) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
   // Before
-  EXPECT_FALSE(client2_.IsAdvertising());  // No Advertising
-  EXPECT_TRUE(client2_.IsDiscovering());   // Discovering
-  EXPECT_TRUE(client2_.HasPendingConnectionToEndpoint(
+  EXPECT_FALSE(client2()->IsAdvertising());  // No Advertising
+  EXPECT_TRUE(client2()->IsDiscovering());   // Discovering
+  EXPECT_TRUE(client2()->HasPendingConnectionToEndpoint(
       advertising_endpoint.id));  // One Connection
 
   // After
-  OnDiscoveryConnectionDisconnected(&client2_, advertising_endpoint);
-  client2_.GetAnalyticsRecorder().Sync();
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
+  OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
+  client2()->GetAnalyticsRecorder().Sync();
+  // Since we are no longer checking IsDiscovering(), we complete sessions now
+  // solely based on advertising.
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 1);
 }
 
 TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  StartDiscovery(&client2_, discovery_listener_);
-  OnDiscoveryEndpointFound(&client2_, advertising_endpoint);
-  OnDiscoveryConnectionInitiated(&client2_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  StartDiscovery(client2(), GetDiscoveryListener());
+  OnDiscoveryEndpointFound(client2(), advertising_endpoint);
+  OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
-  client1_.GetAnalyticsRecorder().Sync();
+  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
-  client1_.Reset();
-  client1_.GetAnalyticsRecorder().Sync();
+  client1()->Reset();
+  client1()->GetAnalyticsRecorder().Sync();
   // TODO(b/290936886): Why are there more than one complete sessions?
   EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 
-  client2_.GetAnalyticsRecorder().Sync();
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
-  client2_.Reset();
-  client2_.GetAnalyticsRecorder().Sync();
+  client2()->Reset();
+  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1021,31 +1392,32 @@ TEST_F(ClientProxyTest, GetLocalInfoCorrect) {
 
 TEST_F(ClientProxyTest, GetRemoteInfoNullWithoutConnections) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
 
-  EXPECT_FALSE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
-  EXPECT_FALSE(
-      client1_.GetRemoteSafeToDisconnectVersion(advertising_endpoint.id)
-          .has_value());
+  EXPECT_FALSE(client1()->GetRemoteOsInfo(advertising_endpoint.id).has_value());
+  EXPECT_FALSE(client1()
+                   ->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id)
+                   .has_value());
 }
 
 TEST_F(ClientProxyTest, SetRemoteInfoCorrect) {
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
-  OnAdvertisingConnectionInitiated(&client1_, advertising_endpoint);
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
 
   OsInfo os_info;
   os_info.set_type(OsInfo::ANDROID);
   std::int32_t nearby_connections_version = 2;
-  client1_.SetRemoteOsInfo(advertising_endpoint.id, os_info);
-  client1_.SetRemoteSafeToDisconnectVersion(advertising_endpoint.id,
-                                             nearby_connections_version);
+  client1()->SetRemoteOsInfo(advertising_endpoint.id, os_info);
+  client1()->SetRemoteSafeToDisconnectVersion(advertising_endpoint.id,
+                                              nearby_connections_version);
 
-  ASSERT_TRUE(client1_.GetRemoteOsInfo(advertising_endpoint.id).has_value());
-  EXPECT_EQ(client1_.GetRemoteOsInfo(advertising_endpoint.id).value().type(),
+  ASSERT_TRUE(client1()->GetRemoteOsInfo(advertising_endpoint.id).has_value());
+  EXPECT_EQ(client1()->GetRemoteOsInfo(advertising_endpoint.id).value().type(),
             OsInfo::ANDROID);
-  EXPECT_EQ(client1_.GetRemoteSafeToDisconnectVersion(advertising_endpoint.id),
-            nearby_connections_version);
+  EXPECT_EQ(
+      client1()->GetRemoteSafeToDisconnectVersion(advertising_endpoint.id),
+      nearby_connections_version);
 }
 
 // Test ClientProxy::AddCancellationFlag, where if a flag is already in the map,
@@ -1061,50 +1433,50 @@ TEST_F(ClientProxyTest, UncancelCancellationFlags) {
   // Enable cancellation flags.
   MediumEnvironment::Instance().SetFeatureFlags(kTestCases[0]);
   Endpoint advertising_endpoint =
-      StartAdvertising(&client1_, advertising_connection_listener_);
+      StartAdvertising(client1(), advertising_connection_listener_);
 
   // Add a cancellation flag to the client proxy.
-  client1_.AddCancellationFlag(advertising_endpoint.id);
-  auto flag = client1_.GetCancellationFlag(advertising_endpoint.id);
+  client1()->AddCancellationFlag(advertising_endpoint.id);
+  auto flag = client1()->GetCancellationFlag(advertising_endpoint.id);
   EXPECT_FALSE(flag->Cancelled());
   EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+      client1()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
 
   // Cancel the flag.
   flag->Cancel();
   EXPECT_TRUE(flag->Cancelled());
   EXPECT_TRUE(
-      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+      client1()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
 
   // On subsequent calls to add a new cancellation flag, expect an the flag to
   // be uncancelled.
-  client1_.AddCancellationFlag(advertising_endpoint.id);
-  flag = client1_.GetCancellationFlag(advertising_endpoint.id);
+  client1()->AddCancellationFlag(advertising_endpoint.id);
+  flag = client1()->GetCancellationFlag(advertising_endpoint.id);
   EXPECT_FALSE(flag->Cancelled());
   EXPECT_FALSE(
-      client1_.GetCancellationFlag(advertising_endpoint.id)->Cancelled());
+      client1()->GetCancellationFlag(advertising_endpoint.id)->Cancelled());
 }
 
 TEST_F(ClientProxyTest, GetLocalDeviceWorksWithoutDeviceProvider) {
-  auto device = client1_.GetLocalDevice();
+  auto device = client1()->GetLocalDevice();
   EXPECT_NE(device, nullptr);
   EXPECT_EQ(device->GetEndpointId().length(), 4);
-  EXPECT_NE(client1_.GetLocalDeviceProvider(), nullptr);
+  EXPECT_NE(client1()->GetLocalDeviceProvider(), nullptr);
 }
 
 TEST_F(ClientProxyTest, GetLocalDeviceWorksWithDeviceProvider) {
   MockDeviceProvider provider;
-  client1_.RegisterDeviceProvider(&provider);
-  ASSERT_NE(client1_.GetLocalDeviceProvider(), nullptr);
+  client1()->RegisterDeviceProvider(&provider);
+  ASSERT_NE(client1()->GetLocalDeviceProvider(), nullptr);
   EXPECT_CALL(
-      *(down_cast<MockDeviceProvider*>(client1_.GetLocalDeviceProvider())),
+      *(down_cast<MockDeviceProvider*>(client1()->GetLocalDeviceProvider())),
       GetLocalDevice);
-  client1_.GetLocalDevice();
+  client1()->GetLocalDevice();
 }
 
 TEST_F(ClientProxyTest, TestGetSetLocalEndpointInfo) {
-  client1_.UpdateLocalEndpointInfo("endpoint_info");
-  EXPECT_EQ(client1_.GetLocalEndpointInfo(), "endpoint_info");
+  client1()->UpdateLocalEndpointInfo("endpoint_info");
+  EXPECT_EQ(client1()->GetLocalEndpointInfo(), "endpoint_info");
 }
 
 TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
@@ -1112,7 +1484,7 @@ TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
   CountDownLatch bwu_latch(1);
   CountDownLatch disconnect_latch(1);
   CountDownLatch init_latch(1);
-  client1_.StartedListeningForIncomingConnections(
+  client1()->StartedListeningForIncomingConnections(
       service_id_, Strategy::kP2pCluster,
       {
           .initiated_cb =
@@ -1133,7 +1505,7 @@ TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
               },
       },
       {});
-  auto listener = client1_.GetAdvertisingOrIncomingConnectionListener();
+  auto listener = client1()->GetAdvertisingOrIncomingConnectionListener();
   listener.accepted_cb("endpoint-id");
   listener.initiated_cb("endpoint-id", {.is_incoming_connection = false});
   listener.disconnected_cb("endpoint-id");
@@ -1146,39 +1518,81 @@ TEST_F(ClientProxyTest, TestGetIncomingConnectionListener) {
 }
 
 TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedAdvertising) {
-  EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
-  StartAdvertising(&client1_, advertising_connection_listener_,
+  EXPECT_FALSE(client1()->ShouldEnforceTopologyConstraints());
+  StartAdvertising(client1(), advertising_connection_listener_,
                    {.enforce_topology_constraints = true});
-  EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
+  EXPECT_TRUE(client1()->ShouldEnforceTopologyConstraints());
 }
 
 TEST_F(ClientProxyTest, EnforceTopologyWhenRequestedListeningWithStrategy) {
-  EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
-  StartListeningForIncomingConnections(&client1_, {},
+  EXPECT_FALSE(client1()->ShouldEnforceTopologyConstraints());
+  StartListeningForIncomingConnections(client1(), {},
                                        {.strategy = Strategy::kP2pCluster,
                                         .enforce_topology_constraints = true});
-  EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
+  EXPECT_TRUE(client1()->ShouldEnforceTopologyConstraints());
 }
 
 TEST_F(ClientProxyTest, DontEnforceTopologyWhenRequestedWithNoStrategy) {
-  EXPECT_FALSE(client1_.ShouldEnforceTopologyConstraints());
-  StartListeningForIncomingConnections(&client1_, {},
+  EXPECT_FALSE(client1()->ShouldEnforceTopologyConstraints());
+  StartListeningForIncomingConnections(client1(), {},
                                        {.strategy = Strategy::kNone});
-  EXPECT_TRUE(client1_.ShouldEnforceTopologyConstraints());
+  EXPECT_TRUE(client1()->ShouldEnforceTopologyConstraints());
 }
 
 TEST_F(ClientProxyTest, TestAutoBwuWhenAdvertisingWithAutoBwu) {
-  EXPECT_FALSE(client1_.AutoUpgradeBandwidth());
-  StartAdvertising(&client1_, advertising_connection_listener_,
+  EXPECT_FALSE(client1()->AutoUpgradeBandwidth());
+  StartAdvertising(client1(), advertising_connection_listener_,
                    {.auto_upgrade_bandwidth = true});
-  EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
+  EXPECT_TRUE(client1()->AutoUpgradeBandwidth());
 }
 
 TEST_F(ClientProxyTest, TestAutoBwuWhenListeningWithAutoBwu) {
-  EXPECT_FALSE(client1_.AutoUpgradeBandwidth());
-  StartListeningForIncomingConnections(&client1_, {},
+  EXPECT_FALSE(client1()->AutoUpgradeBandwidth());
+  StartListeningForIncomingConnections(client1(), {},
                                        {.auto_upgrade_bandwidth = true});
-  EXPECT_TRUE(client1_.AutoUpgradeBandwidth());
+  EXPECT_TRUE(client1()->AutoUpgradeBandwidth());
+}
+
+TEST_F(ClientProxyTest, TestMultiplexSocketBitmask) {
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(),
+            ClientProxy::kBtMultiplexEnabled);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      false);
+}
+
+TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(), 0);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      true);
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
+  client1()->SetRemoteMultiplexSocketBitmask(
+      advertising_endpoint.id,
+      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  ASSERT_TRUE(client1()
+                  ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
+                  .has_value());
+  EXPECT_EQ(
+      client1()
+          ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
+          .value(),
+      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  EXPECT_TRUE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+                                                    Medium::BLUETOOTH));
+  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::WIFI_LAN));
+  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+              Medium::WIFI_AWARE));
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex,
+      false);
 }
 
 }  // namespace

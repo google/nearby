@@ -41,26 +41,23 @@ constexpr absl::Duration kTimeOut = absl::Milliseconds(200);
 constexpr char kPreferencesFilePath[] = "Google/Nearby/Sharing";
 }  // namespace
 
-
 TEST(PreferencesManager, CorruptedConfigFile) {
-  std::filesystem::path settingsPath =
-      std::filesystem::temp_directory_path();
+  std::filesystem::path settingsPath = std::filesystem::temp_directory_path();
   std::ofstream output_stream{settingsPath / "preferences.json"};
   output_stream << "CORRUPTED" << std::endl;
 
-  NEARBY_LOGS(INFO) << "Loading preferences from: " << settingsPath.string();
+  LOG(INFO) << "Loading preferences from: " << settingsPath.string();
   EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
             100);
 }
 
 TEST(PreferencesManager, ValidConfigFile) {
-  std::filesystem::path settingsPath =
-      std::filesystem::temp_directory_path();
+  std::filesystem::path settingsPath = std::filesystem::temp_directory_path();
   std::ofstream output_stream{settingsPath / "preferences.json"};
   output_stream << "{\"data\":8, \"name\": \"Valid\"}" << std::endl;
   output_stream.close();
 
-  NEARBY_LOGS(INFO) << "Loading preferences from: " << settingsPath.string();
+  LOG(INFO) << "Loading preferences from: " << settingsPath.string();
   EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
             8);
 }

@@ -15,12 +15,15 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_HTTP_CLIENT_H_
 
-#include <functional>
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
 namespace nearby {
@@ -60,12 +63,14 @@ class HttpClient {
   // Starts HTTP request in asynchronization mode.
   virtual void StartRequest(
       const HttpRequest& request,
-      std::function<void(const absl::StatusOr<HttpResponse>&)> callback) = 0;
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>
+          callback) = 0;
 
   // Starts cancellable request in asynchronization mode.
   virtual void StartCancellableRequest(
       std::unique_ptr<CancellableRequest> request,
-      std::function<void(const absl::StatusOr<HttpResponse>&)> callback) = 0;
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>
+          callback) = 0;
 
   // Gets HTTP response in synchronization mode.
   virtual absl::StatusOr<HttpResponse> GetResponse(

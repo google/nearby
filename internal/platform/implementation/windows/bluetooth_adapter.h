@@ -40,7 +40,7 @@ using WindowsBluetoothAdapter =
 
 // Represents a radio device on the system.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radio?view=winrt-20348
-using winrt::Windows::Devices::Radios::IRadio;
+using winrt::Windows::Devices::Radios::Radio;
 
 // Enumeration that describes possible radio states.
 // https://docs.microsoft.com/en-us/uwp/api/windows.devices.radios.radiostate?view=winrt-20348
@@ -98,6 +98,16 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   // Returns true if the Bluetooth hardware supports Bluetooth 5.0 Extended
   // Advertising
   bool IsExtendedAdvertisingSupported() const;
+
+  // Returns true if the Bluetooth hardware supports BLE Central Role
+  bool IsCentralRoleSupported() const;
+
+  // Returns true if the Bluetooth hardware supports BLE Peripheral Role
+  bool IsPeripheralRoleSupported() const;
+
+  // Returns true if the Bluetooth hardware supports BLE
+  bool IsLowEnergySupported() const;
+
   void RestoreRadioNameIfNecessary();
 
  private:
@@ -105,11 +115,11 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   void StoreRadioNames(absl::string_view original_radio_name,
                        absl::string_view nearby_radio_name);
 
-  WindowsBluetoothAdapter windows_bluetooth_adapter_;
+  WindowsBluetoothAdapter windows_bluetooth_adapter_ = nullptr;
   std::string registry_bluetooth_adapter_name_;
 
-  IRadio windows_bluetooth_radio_;
-  char *GetGenericBluetoothAdapterInstanceID() const;
+  Radio windows_bluetooth_radio_ = nullptr;
+  std::optional<std::string> GetGenericBluetoothAdapterInstanceID() const;
   void find_and_replace(char *source, const char *strFind,
                         const char *strReplace) const;
   ScanMode scan_mode_ = ScanMode::kNone;

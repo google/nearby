@@ -50,6 +50,8 @@ enum EventType {
   ERROR_CODE = 6;
 }
 
+// LINT.IfChange
+
 // The strategy used for a session of Nearby.Connections.
 // Values correspond to
 // http://cs/?q=symbol:com.google.android.gms.nearby.connection.Strategy
@@ -61,6 +63,10 @@ enum ConnectionsStrategy {
   P2P_STAR = 4;
   P2P_POINT_TO_POINT = 5;
 }
+
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
 // The role a device is playing in one StrategySession.
 enum SessionRole {
@@ -83,11 +89,12 @@ enum Medium {
   WEB_RTC = 9;
   BLE_L2CAP = 10;
   USB = 11;
+  WEB_RTC_NON_CELLULAR = 12;
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
 //     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto,
-//     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto
+//     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto,
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
 
@@ -119,6 +126,16 @@ enum ConnectionBand {
   CONNECTION_BAND_CELLULAR_BAND_5G = 7;
 }
 
+// LINT.IfChange
+enum ConnectionMode {
+  LEGACY = 0;
+  INSTANT = 1;
+}
+// LINT.ThenChange(
+//     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/ConnectionMode.java,
+//     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto
+// )
+
 // The result of a ConnectionRequest.
 enum ConnectionRequestResponse {
   UNKNOWN_CONNECTION_REQUEST_RESPONSE = 0;
@@ -148,9 +165,6 @@ enum ConnectionAttemptDirection {
   INCOMING = 1;
   OUTGOING = 2;
 }
-// LINT.ThenChange(
-//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
-// )
 
 // Whether this is an initial or upgrade connection attempt.
 enum ConnectionAttemptType {
@@ -169,7 +183,13 @@ enum DisconnectionReason {
   UPGRADED = 4;
   SHUTDOWN = 5;
   UNFINISHED = 6;
+  PREV_CHANNEL_DISCONNECTION_IN_RECONNECT = 7;
+  AUTHENTICATION_FAILURE = 8;
 }
+
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )
 
 // The type of a Payload.
 // Values correspond to
@@ -399,6 +419,14 @@ enum LogSource {
   OEM_DEVICES = 4;
   // Represents the device for debugging.
   DEBUG_DEVICES = 5;
+  // Represents the device for Nearby Module Food.
+  NEARBY_MODULE_FOOD_DEVICES = 6;
+  // Represents the device for BeTo Team Food.
+  BETO_DOGFOOD_DEVICES = 7;
+  // Represents the device for Nearby dog Food.
+  NEARBY_DOGFOOD_DEVICES = 8;
+  // Represents the device for Nearby Team Food.
+  NEARBY_TEAMFOOD_DEVICES = 9;
 }
 
 // LINT.IfChange
@@ -419,6 +447,7 @@ enum PowerLevel {
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/PowerLevel.java
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
 
 // LINT.IfChange
@@ -439,7 +468,7 @@ enum OperationResultCategory {
 
 // This enum is not used to determine success rate, but for devs to understand
 // occurrences of and operation failure details
-enum OperationResultDetail {
+enum OperationResultCode {
   // Section of CATEGORY_UNKNOWN and CATEGORY_SUCCESS, from 0 to 499
   // DETAIL_UNKNOWN should not happen in normal case
   DETAIL_UNKNOWN = 0;
@@ -587,6 +616,22 @@ enum OperationResultDetail {
   MEDIUM_UNAVAILABLE_UPGRADE_ON_SAME_MEDIUM = 1537;
   // WEBRTC is unavailable due to framework not support
   MEDIUM_UNAVAILABLE_WEB_RTC_NO_INTERNET = 1538;
+  // Sta connection failure due to non-disruptive
+  MEDIUM_UNAVAILABLE_STA_DISRUPTIVE_FALSE = 1539;
+  // Sta connection failure due to user restriction
+  MEDIUM_UNAVAILABLE_STA_USER_NOT_ALLOW = 1540;
+  // Duplicate FastAdvertisement request
+  MEDIUM_UNAVAILABLE_DUPLICATE_FAST_ADVERTISING = 1541;
+  // Wifi LAN NsdManager is unavailable
+  MEDIUM_UNAVAILABLE_NSD_NOT_AVAILABLE = 1542;
+  // Wifi LAN MDNS is unavailable
+  MEDIUM_UNAVAILABLE_MDNS_NOT_AVAILABLE = 1543;
+  // LAN is unavailable due to AP in deny list
+  MEDIUM_UNAVAILABLE_LAN_BLOCKED = 1544;
+  // LAN is unavailable due to signal weak
+  MEDIUM_UNAVAILABLE_POOR_SIGNAL = 1545;
+  // Second outgoing BT connection is not available due to multiplex disabled.
+  MEDIUM_UNAVAILABLE_BT_MULTIPLEX_DISABLED = 1546;
 
   // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
   // NC already hosting a WFD group for this client (same service id)
@@ -623,6 +668,44 @@ enum OperationResultDetail {
   CLIENT_DUPLICATE_WIFI_AWARE_SUBSCRIBING_REQUEST = 2015;
   // BLE and USB should not be upgrade mediums
   CLIENT_UNSUPPORTED_USB_TO_BE_UPGRADE_MEDIUM = 2016;
+  // Log the tie break loss symptom
+  CLIENT_PROCESS_TIE_BREAK_LOSS = 2017;
+  // Duplicated requesting to start advertising
+  CLIENT_BLE_DUPLICATE_ADVERTISING = 2018;
+  // Duplicated requesting to start advertising
+  CLIENT_BLUETOOTH_DUPLICATE_ADVERTISING = 2019;
+  // Duplicated requesting to start advertising
+  CLIENT_NFC_DUPLICATE_ADVERTISING = 2020;
+  // Duplicated requesting to start advertising
+  CLIENT_WIFI_LAN_DUPLICATE_ADVERTISING = 2021;
+  // Duplicated requesting to start advertising
+  CLIENT_USB_DUPLICATE_ADVERTISING = 2022;
+  // Duplicated requesting to start discovery
+  CLIENT_BLE_DUPLICATE_DISCOVERING = 2023;
+  // Duplicated requesting to start discovery
+  CLIENT_BLUETOOTH_DUPLICATE_DISCOVERING = 2024;
+  // Duplicated requesting to start discovery
+  CLIENT_NFC_DUPLICATE_DISCOVERING = 2025;
+  // Duplicated requesting to start discovery
+  CLIENT_WIFI_LAN_DUPLICATE_DISCOVERING = 2026;
+  // Duplicated requesting to start discovery
+  CLIENT_USB_DUPLICATE_DISCOVERING = 2027;
+  // Client not allowed to advertise or discover
+  CLIENT_PERMISSION_FAILURE = 2028;
+  // Client doesn't listen BLE
+  CLIENT_BLE_NO_LISTENING = 2029;
+  // Client already connected to the remote device
+  CLIENT_ALREADY_CONNECTED_TO_TARGET = 2030;
+  // Incoming connection failed due to topological limit
+  CLIENT_FAILED_INCOMING_CONNECTION_DUE_TO_TOPOLOGICAL_LIMIT = 2031;
+  // Client out of order API call
+  CLIENT_OUT_OF_ORDER_API_CALL = 2032;
+  // Client has wrong connecting permission
+  CLIENT_WRONG_CONNECTING_PERMISSIONS = 2033;
+  // Client already connected to endpoint
+  CLIENT_ALREADY_CONNECTED_TO_ENDPOINT = 2034;
+  // Client request connecting to unknown endpoint
+  CLIENT_CONNECT_TO_UNKNOWN_ENDPOINT = 2035;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -651,6 +734,14 @@ enum OperationResultDetail {
   MISCELLEANEOUS_WEB_RTC_GET_DROIDGUARD_RESULT_FAILURE = 2511;
   // Tachyon signal messenger is null
   MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL = 2512;
+  // Failed to receive message
+  MISCELLEANEOUS_WEB_RTC_FAILED_TO_RECEIVE_MESSAGE = 2513;
+  // Failed to change the device name for advertising
+  MISCELLEANEOUS_BLUETOOTH_CHANGE_DEVICE_NAME_FAILURE = 2514;
+  // Failed to get the ICE server
+  MISCELLEANEOUS_WEB_RTC_ICE_SERVER_NULL = 2515;
+  // Failed to get the work source
+  MISCELLEANEOUS_WORK_SOURCE_NULL = 2516;
 
   // Section of CATEGORY_IO_ERROR, from 3000 to 3499
   // Incoming payloads failure due to file opening error
@@ -665,34 +756,34 @@ enum OperationResultDetail {
   IO_STREAM_CREATE_PIPE_FAILURE = 3004;
   // Payloads IOError due to endpoint get IOException on BLE medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_BLE = 3005;
+  IO_ENDPOINT_IO_ERROR_ON_BLE = 3005 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on L2CAP medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_L2CAP = 3006;
+  IO_ENDPOINT_IO_ERROR_ON_BLE_L2CAP = 3006 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on BT medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_BT = 3007;
+  IO_ENDPOINT_IO_ERROR_ON_BT = 3007 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on WebRtc medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WEB_RTC = 3008;
+  IO_ENDPOINT_IO_ERROR_ON_WEB_RTC = 3008 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on Lan medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_LAN = 3009;
+  IO_ENDPOINT_IO_ERROR_ON_LAN = 3009 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on WFD medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WIFI_DIRECT = 3010;
+  IO_ENDPOINT_IO_ERROR_ON_WIFI_DIRECT = 3010 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on Hotspot medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WIFI_HOTSPOT = 3011;
+  IO_ENDPOINT_IO_ERROR_ON_WIFI_HOTSPOT = 3011 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on Aware medium
   // (IOException on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_WIFI_AWARE = 3012;
+  IO_ENDPOINT_IO_ERROR_ON_WIFI_AWARE = 3012 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on NFC medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_NFC = 3013;
+  IO_ENDPOINT_IO_ERROR_ON_NFC = 3013 [deprecated = true];
   // Payloads IOError due to endpoint get IOException on USB medium (IOException
   // on Channel#write)
-  IO_ENDPOINT_IO_ERROR_ON_USB = 3014;
+  IO_ENDPOINT_IO_ERROR_ON_USB = 3014 [deprecated = true];
 
   // Section of CATEGORY_CONNECTIVITY_ERROR, from 3500 to 4499
   // Attach result of WifiAwareManager failure
@@ -827,6 +918,108 @@ enum OperationResultDetail {
   CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3554;
   // BT server socket creation failure (SecurityException)
   CONNECTIVITY_BT_SERVER_SOCKET_CREATION_SECURITY_EXCEPTION_FAILURE = 3555;
+  // Failed to create L2CAP outgoing socket (TimeoutException on socket#connect)
+  CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_TIMEOUT_FAILURE = 3556;
+  // Failed to create connectionFlow
+  CONNECTIVITY_WEB_RTC_UNSATISFIED_LINK_ERROR = 3557;
+  // Different frequencies between group and AP frequencies
+  CONNECTIVITY_DIRECT_GROUP_MCC_FAILURE = 3558;
+  // Payloads IOError due to endpoint get IOException on BLE medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE = 3559;
+  // Payloads IOError due to endpoint get IOException on L2CAP medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE_L2CAP = 3560;
+  // Payloads IOError due to endpoint get IOException on BT medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_BT = 3561;
+  // Payloads IOError due to endpoint get IOException on WebRtc medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WEB_RTC = 3562;
+  // Payloads IOError due to endpoint get IOException on Lan medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_LAN = 3563;
+  // Payloads IOError due to endpoint get IOException on WFD medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_DIRECT = 3564;
+  // Payloads IOError due to endpoint get IOException on Hotspot medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_HOTSPOT = 3565;
+  // Payloads IOError due to endpoint get IOException on Aware medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_AWARE = 3566;
+  // Payloads IOError due to endpoint get IOException on NFC medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_NFC = 3567;
+  // Payloads IOError due to endpoint get IOException on USB medium (IOException
+  // on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_USB = 3568;
+  // Payloads IOError due to endpoint get IOException on UNKNOWN medium
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_UNKNOWN_MEDIUM = 3569;
+  // IOException on bluetooth socket creation
+  CONNECTIVITY_BT_SOCKET_CREATION_IO_EXCEPTION = 3570;
+  // IOException on bluetooth socket connection
+  CONNECTIVITY_BT_SOCKET_CONNECT_IO_EXCEPTION = 3571;
+  // Interrupted exception on bluetooth socket connection
+  CONNECTIVITY_BT_CONNECTION_INTERRUPTED_EXCEPTION = 3572;
+  // Execution exception on bluetooth socket connection
+  CONNECTIVITY_BT_CONNECTION_EXECUTION_EXCEPTION = 3573;
+  // Timeout exception on bluetooth socket connection
+  CONNECTIVITY_BT_CONNECTION_TIMEOUT_EXCEPTION = 3574;
+  // Failure on WifiManager#connect
+  CONNECTIVITY_WIFI_DIRECT_P2P_CONNECTION_FAILURE = 3575;
+  // Interrupted exception on Wifi Direct socket connection
+  CONNECTIVITY_WFD_CONNECTION_INTERRUPTED_EXCEPTION = 3576;
+  // Execution exception on Wifi Direct socket connection
+  CONNECTIVITY_WFD_CONNECTION_EXECUTION_EXCEPTION = 3577;
+  // Timeout exception on Wifi Direct socket connection
+  CONNECTIVITY_WFD_CONNECTION_TIMEOUT_EXCEPTION = 3578;
+  // Hosted address is null in Wifi Direct group
+  CONNECTIVITY_WFD_CONNECTION_HOSTED_ADDRESS_NULL = 3579;
+  // Connect to Wifi Hotspot Specifier failure
+  CONNECTIVITY_WIFI_HOTSPOT_SPECIFIER_FAILURE = 3580;
+  // Connect to Wifi Hotspot failure
+  CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE = 3581;
+  // Connect to Wifi LAN socket timeout
+  CONNECTIVITY_WIFI_LAN_SOCKET_CONNECT_TIMEOUT = 3582;
+  // IOException on bluetooth socket connection
+  CONNECTIVITY_WIFI_LAN_SOCKET_CONNECT_IO_EXCEPTION = 3583;
+  // Failed to start GATT server
+  CONNECTIVITY_BLE_START_GATT_SERVER_FAILURE = 3584;
+  // Failed to add GATT advertisement
+  CONNECTIVITY_BLE_ADD_GATT_ADVERTISEMENT_FAILURE = 3585;
+  // Failed to start BLE advertisement
+  CONNECTIVITY_BLE_START_ADVERTISING_FAILURE = 3586;
+  // Failed to start BT advertisement
+  CONNECTIVITY_BLUETOOTH_START_ADVERTISING_FAILURE = 3587;
+  // Failed to start WLAN advertisement
+  CONNECTIVITY_WIFI_LAN_START_ADVERTISING_FAILURE = 3588;
+  // Failed to start Wifi Aware advertisement
+  CONNECTIVITY_WIFI_AWARE_START_ADVERTISING_FAILURE = 3589;
+  // Failed to start Bluetooth scan
+  CONNECTIVITY_BLUETOOTH_SCAN_FAILURE = 3590;
+  // Failed to start BLE scan
+  CONNECTIVITY_BLE_SCAN_FAILURE = 3591;
+  // Failed to start MDNS scan
+  CONNECTIVITY_MDNS_SCAN_FAILURE = 3592;
+  // Failed to start NFC discovery
+  CONNECTIVITY_NFC_START_DISCOVERY_FAILURE = 3593;
+  // Failed to start WLAN discovery
+  CONNECTIVITY_WIFI_LAN_START_DISCOVERY_FAILURE = 3594;
+  // Failed to start Wifi Aware discovery
+  CONNECTIVITY_WIFI_AWARE_START_DISCOVERY_FAILURE = 3595;
+  // Failed to start UWB discovery
+  CONNECTIVITY_UWB_START_DISCOVERY_FAILURE = 3596;
+  // Failed to register MDNS listening
+  CONNECTIVITY_LAN_MDNS_REGISTER_FAILURE = 3597;
+  // Failed to change BT scan mode
+  CONNECTIVITY_BLUETOOTH_CHANGE_SCAN_MODE_FAILURE = 3598;
+  // Auto resume failure
+  CONNECTIVITY_AUTO_RESUME_FAILURE = 3599;
+  // Timeout when listening instant connection
+  CONNECTIVITY_INSTANT_CONNECTION_LISTENING_TIMEOUT = 3600;
+  // Invalid credential for connection
+  CONNECTIVITY_MEDIUM_INVALID_CREDENTIAL = 3601;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -900,7 +1093,7 @@ enum OperationResultDetail {
   // Methods calling with null password
   NEARBY_WIFI_DIRECT_NULL_PASSWORD = 4529;
   // Multiple BT socket is disabled
-  NEARBY_BT_MULTIPLEX_SOCKET_DISABLED = 4530;
+  NEARBY_BT_MULTIPLEX_SOCKET_DISABLED = 4530 [deprecated = true];
   // Multiple LAN socket is disabled
   NEARBY_LAN_MULTIPLEX_SOCKET_DISABLED = 4531;
   // Channel of the new upgraded medium is null
@@ -974,6 +1167,108 @@ enum OperationResultDetail {
   NEARBY_WIFI_LAN_IP_ADDRESS_ERROR = 4565;
   // PSM value less than 1
   NEARBY_L2CAP_PSM_NOT_POSITIVE = 4566;
+  // Log the encryption failure case
+  NEARBY_ENCRYPTION_FAILURE = 4567;
+  // Log the authentication failure case
+  NEARBY_AUTHENTICATION_FAILURE = 4568;
+  // Failed to create multiple LAN socket
+  NEARBY_LAN_VIRTUAL_SOCKET_NULL = 4569;
+  // Failed to get new bluetooth name for advertising
+  NEARBY_BLUETOOTH_ADVERTISE_TO_BYTES_FAILURE = 4570;
+  // Failed to transform advertising info into bytes
+  NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE = 4571;
+  // Failed to transform advertising info into bytes
+  NEARBY_BLE_FAST_ADVERTISE_TO_BYTES_FAILURE = 4572;
+  // Failed to transform advertising info into bytes
+  NEARBY_NFC_ADVERTISE_TO_BYTES_FAILURE = 4573;
+  // Failed to transform advertising info into bytes
+  NEARBY_WIFI_LAN_ADVERTISE_TO_BYTES_FAILURE = 4574;
+  // Failed to transform advertising info into bytes
+  NEARBY_WIFI_AWARE_ADVERTISE_TO_BYTES_FAILURE = 4575;
+  // Failed to get new USB name for advertising
+  NEARBY_USB_ADVERTISE_TO_BYTES_FAILURE = 4576;
+  // AdvertisingPcpOptions is invalid for NFC
+  NEARBY_NFC_INVALID_PCP_OPTIONS = 4577;
+  // AdvertisingPcpOptions is invalid for Bluetooth
+  NEARBY_BLUETOOTH_INVALID_PCP_OPTIONS = 4578;
+  // AdvertisingPcpOptions is invalid for BLE
+  NEARBY_BLE_INVALID_PCP_OPTIONS = 4579;
+  // AdvertisingPcpOptions is invalid for Wifi LAN
+  NEARBY_WIFI_LAN_INVALID_PCP_OPTIONS = 4580;
+  // AdvertisingPcpOptions is invalid for Wifi Aware
+  NEARBY_WIFI_AWARE_INVALID_PCP_OPTIONS = 4581;
+  // AdvertisingPcpOptions is invalid for USB
+  NEARBY_USB_INVALID_PCP_OPTIONS = 4582;
+  // AdvertisingPcpOptions is invalid for UWB
+  NEARBY_UWB_INVALID_PCP_OPTIONS = 4583;
+  // AdvertisingPcpOptions is invalid for Web RTC
+  NEARBY_WEB_RTC_INVALID_PCP_OPTIONS = 4584;
+  // Bluetooth starts scanning without any client existed.
+  NEARBY_BLUETOOTH_NO_CLIENT_REGISTER_FOR_SCAN = 4585;
+  // TX Advertisement on a wrong connectivity info.
+  NEARBY_INSTANT_CONNECTION_WRONG_CONNECTIVITY_INFO = 4586;
+  // Need to override method
+  NEARBY_NEED_METHOD_OVERRIDE = 4587;
+  // Incoming payloads creation failure
+  NEARBY_GENERIC_INCOMING_PAYLOAD_CREATION_FAILURE = 4588;
+  // No listening peer found
+  NEARBY_WEB_RTC_NO_LISTENING_PEER_FOUND = 4589;
+  // Current medium not in upgrade available mediums
+  NEARBY_UPGRADE_PATH_ON_WRONG_MEDIUM = 4590;
+  // Connect to all medium failure
+  NEARBY_CONNECT_TO_ALL_MEDIUMS_FAILURE = 4591;
+  // MAC address null when reconnect to bluetooth
+  NEARBY_BLUETOOTH_RECONNECT_MAC_NULL = 4592;
+  // Connection info null when reconnect to wifi lan
+  NEARBY_LAN_RECONNECT_CONNECTION_INFO_NULL = 4593;
+  // Ip address null when reconnect to wifi lan
+  NEARBY_LAN_RECONNECT_IP_NULL = 4594;
+  // Meta data null when reconnect to wifi Direct
+  NEARBY_WIFI_DIRECT_RECONNECT_META_DATA_NULL = 4595;
+  // Connect meta data null when reconnect to wifi Direct
+  NEARBY_WIFI_DIRECT_RECONNECT_CONNECT_META_DATA_NULL = 4596;
+  // Meta data null when reconnect to wifi Hotspot
+  NEARBY_WIFI_HOTSPOT_RECONNECT_META_DATA_NULL = 4597;
+  // Connect meta data null when reconnect to wifi Hotspot
+  NEARBY_WIFI_HOTSPOT_RECONNECT_CONNECT_META_DATA_NULL = 4598;
+  // Peer id null when reconnect to Web RTC
+  NEARBY_WEB_RTC_RECONNECT_PEER_ID_NULL = 4599;
+  // Meta data null when reconnect to wifi Aware
+  NEARBY_WIFI_AWARE_RECONNECT_META_DATA_NULL = 4600;
+  // Client not advertising and not listening
+  NEARBY_NOT_ADVERTISING_OR_LISTENING = 4601;
+  // Can not obtain device provider
+  NEARBY_CAN_NOT_OBTAIN_DEVICE_PROVIDER = 4602;
+  // Failed to setup strategy
+  NEARBY_SETUP_STRATEGY_FAILURE = 4603;
+  // TxAdvertisement null
+  NEARBY_TX_ADVERTISEMENT_NULL = 4604;
+  // Endpoint id mismatch
+  NEARBY_ENDPOINT_ID_MISMATCH = 4605;
+  // Connectivity info null
+  NEARBY_CONNECTIVITY_INFO_NULL_OR_WRONG = 4606;
+  // Local client state wrong
+  NEARBY_LOCAL_CLIENT_STATE_WRONG = 4607;
+  // Remote exception when processing received payload
+  NEARBY_REMOTE_EXCEPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4608;
+  // Bad file description when processing received payload
+  NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609;
+}
+
+enum StopAdvertisingReason {
+  STOP_ADVERTISING_REASON_UNKNOWN = 0;
+  // Client call stopAdvertising() to stop advertising
+  CLIENT_STOP_ADVERTISING = 1;
+  // Session is finished and stop advertising
+  FINISH_SESSION_STOP_ADVERTISING = 2;
+}
+
+enum StopDiscoveringReason {
+  STOP_DISCOVERING_REASON_UNKNOWN = 0;
+  // Client call stopDiscovering() to stop discovering
+  CLIENT_STOP_DISCOVERING = 1;
+  // Session is finished and stop discovering
+  FINISH_SESSION_STOP_DISCOVERING = 2;
 }
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto

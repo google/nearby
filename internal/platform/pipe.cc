@@ -21,29 +21,20 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
-#include "internal/platform/base_mutex_lock.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/condition_variable.h"
-#include "internal/platform/implementation/mutex.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby {
 
 namespace {
-using Platform = api::ImplementationPlatform;
-
 class Pipe {
  public:
-  Pipe() {
-#pragma push_macro("CreateMutex")
-#undef CreateMutex
-    mutex_ = Platform::CreateMutex(api::Mutex::Mode::kRegular);
-#pragma pop_macro("CreateMutex")
-    cond_ = Platform::CreateConditionVariable(mutex_.get());
-  }
+  Pipe() = default;
 
   class PipeInputStream : public InputStream {
    public:
@@ -99,12 +90,12 @@ class Pipe {
   std::deque<ByteArray> ABSL_GUARDED_BY(mutex_) buffer_;
   // Order of declaration matters:
   // - mutex must be defined before condvar;
-  std::unique_ptr<api::Mutex> mutex_;
-  std::unique_ptr<api::ConditionVariable> cond_;
+  Mutex mutex_;
+  ConditionVariable cond_{&mutex_};
 };
 
 ExceptionOr<ByteArray> Pipe::Read(size_t size) {
-  BaseMutexLock lock(mutex_.get());
+  MutexLock lock(&mutex_);
 
   // We're done reading all the chunks that were written before the OutputStream
   // was closed, so there's nothing to do here other than return an empty chunk
@@ -114,7 +105,7 @@ ExceptionOr<ByteArray> Pipe::Read(size_t size) {
   }
 
   while (buffer_.empty() && !input_stream_closed_) {
-    Exception wait_exception = cond_->Wait();
+    Exception wait_exception = cond_.Wait();
 
     if (wait_exception.Raised()) {
       return ExceptionOr<ByteArray>{wait_exception};
@@ -149,22 +140,22 @@ ExceptionOr<ByteArray> Pipe::Read(size_t size) {
 }
 
 Exception Pipe::Write(const ByteArray& data) {
-  BaseMutexLock lock(mutex_.get());
+  MutexLock lock(&mutex_);
 
   return WriteLocked(data);
 }
 
 void Pipe::MarkInputStreamClosed() {
-  BaseMutexLock lock(mutex_.get());
+  MutexLock lock(&mutex_);
   if (input_stream_closed_) return;
   input_stream_closed_ = true;
   // Trigger cond_ to unblock a potentially-blocked call to read(), and to let
   // it know to return Exception::IO.
-  cond_->Notify();
+  cond_.Notify();
 }
 
 void Pipe::MarkOutputStreamClosed() {
-  BaseMutexLock lock(mutex_.get());
+  MutexLock lock(&mutex_);
   if (output_stream_closed_) return;
   // Write a sentinel null chunk before marking output_stream_closed as true.
   WriteLocked(ByteArray{});
@@ -179,7 +170,7 @@ Exception Pipe::WriteLocked(const ByteArray& data) {
   buffer_.push_back(data);
   // Trigger cond_ to unblock a potentially-blocked call to read(), now that
   // there's more data for it to consume.
-  cond_->Notify();
+  cond_.Notify();
   return {Exception::kSuccess};
 }
 

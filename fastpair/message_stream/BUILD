@@ -97,10 +97,7 @@ cc_library(
     hdrs = [
         "fake_medium_observer.h",
     ],
-    visibility = [
-        "//:__subpackages__",
-        "//fastpair:__subpackages__",
-    ],
+    visibility = ["//fastpair:__subpackages__"],
     deps = [
         ":message_stream",
         "//fastpair/common",

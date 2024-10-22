@@ -460,12 +460,14 @@ class BleMedium {
     absl::AnyInvocable<void(BlePeripheral& peripheral,
                             BleAdvertisementData advertisement_data)>
         advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
+    absl::AnyInvocable<void(BlePeripheral& peripheral)>
+        advertisement_lost_cb = [](BlePeripheral&) {};
   };
 
   // Async interface for StartScanning.
-  // Result status will be passed to start_advertising_result callback.
-  // To stop advertising, invoke the stop_advertising callback in
-  // AdvertisingSession.
+  // Result status will be passed to start_scanning_result callback.
+  // To stop scanning, invoke the stop_scanning callback in
+  // ScanningSession.
   virtual std::unique_ptr<ScanningSession> StartScanning(
       const Uuid& service_uuid, TxPowerLevel tx_power_level,
       ScanningCallback callback) = 0;

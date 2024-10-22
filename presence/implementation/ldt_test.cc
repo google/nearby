@@ -18,41 +18,37 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
-#include "internal/proto/credential.pb.h"
 
 namespace nearby {
 namespace presence {
 
 namespace {
 using ::nearby::ByteArray;
-using ::nearby::internal::SharedCredential;
-
-#ifdef USE_RUST_LDT
 
 // Test data from Android tests.
 constexpr absl::string_view kKeySeedBase16 =
-    "BAF3C12E1BBBB3E4367BBD40986D0D7CD158DF6D662AAE6312FE67634B5D4547";
+    "CCDB2489E9FCAC42B39348B8941ED19A1D360E75E098C8C15E6B1CC2B620CD39";
 constexpr absl::string_view kKnownMacBase16 =
-    "CDDA7C6CF56882D74364F8BE9874A78D7C961BFF9800A40D83F6652E6CF5D1A7";
-constexpr absl::string_view kSharedCredentialBase16 =
-    "1220BAF3C12E1BBBB3E4367BBD40986D0D7CD158DF6D662AAE6312FE67634B5D45473220"
-    "CDDA7C6CF56882D74364F8BE9874A78D7C961BFF9800A40D83F6652E6CF5D1A7";
+    "B4C59FA599241B81758D976B5A621C05232FE1BF89AE5987CA254C3554DCE50E";
 constexpr absl::string_view kPlainTextBase16 =
-    "205BF1D88FF539EC740CCC2EC2DE19353EF30F01054C3E24";
+    "CD683FE1A1D1F846543D0A13D4AEA40040C8D67B";
 constexpr absl::string_view kCipherTextBase16 =
-    "FDABC09D6F8028D4E5E585C62E9A0DB5003F19FEBDF92524";
-constexpr absl::string_view kSaltBase16 = "874C";
+    "61E481C12F4DE24F2D4AB22D8908F80D3A3F9B40";
+constexpr absl::string_view kSaltBase16 = "0C0F";
 
 TEST(Ldt, EncryptAndDecrypt) {
   // Test data copied from NP LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
                   184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
                   200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
-  ByteArray known_mac({223, 185, 10,  31,  155, 31, 226, 141, 24,  187, 204,
-                       165, 34,  64,  181, 204, 44, 203, 95,  141, 82,  137,
-                       163, 203, 100, 235, 53,  65, 202, 97,  75,  180});
+  ByteArray known_mac({0xB4, 0xC5, 0x9F, 0xA5, 0x99, 0x24, 0x1B, 0x81,
+                       0x75, 0x8D, 0x97, 0x6B, 0x5A, 0x62, 0x1C, 0x05,
+                       0x23, 0x2F, 0xE1, 0xBF, 0x89, 0xAE, 0x59, 0x87,
+                       0xCA, 0x25, 0x4C, 0x35, 0x54, 0xDC, 0xE5, 0x0E});
   ByteArray test_data({205, 104, 63,  225, 161, 209, 248, 70,  84,  61,
                        10,  19,  212, 174, 164, 0,   64,  200, 214, 123});
   ByteArray salt({12, 15});
@@ -84,12 +80,9 @@ TEST(Ldt, EncryptAndroidData) {
 }
 
 TEST(Ldt, DecryptAndroidData) {
-  SharedCredential shared_credential;
-  ASSERT_TRUE(shared_credential.ParseFromString(
-      absl::HexStringToBytes(kSharedCredentialBase16)));
-  absl::StatusOr<LdtEncryptor> encryptor = LdtEncryptor::Create(
-      shared_credential.key_seed(),
-      shared_credential.metadata_encryption_key_tag_v0());
+  absl::StatusOr<LdtEncryptor> encryptor =
+      LdtEncryptor::Create(absl::HexStringToBytes(kKeySeedBase16),
+                           absl::HexStringToBytes(kKnownMacBase16));
   ASSERT_OK(encryptor);
 
   absl::StatusOr<std::string> decrypted =
@@ -99,23 +92,6 @@ TEST(Ldt, DecryptAndroidData) {
   ASSERT_OK(decrypted);
   EXPECT_EQ(*decrypted, absl::HexStringToBytes(kPlainTextBase16));
 }
-
-#else
-TEST(Ldt, LdtUnvailable) {
-  ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
-                  184, 148, 30, 209, 154, 29,  54,  14, 117, 224, 152,
-                  200, 193, 94, 107, 28,  194, 182, 32, 205, 57});
-  ByteArray known_mac({223, 185, 10,  31,  155, 31, 226, 141, 24,  187, 204,
-                       165, 34,  64,  181, 204, 44, 203, 95,  141, 82,  137,
-                       163, 203, 100, 235, 53,  65, 202, 97,  75,  180});
-
-  absl::StatusOr<LdtEncryptor> encryptor =
-      LdtEncryptor::Create(seed.AsStringView(), known_mac.AsStringView());
-
-  EXPECT_THAT(encryptor.status(),
-              absl::UnavailableError("Failed to create LDT encryptor"));
-}
-#endif
 
 }  // namespace
 }  // namespace presence

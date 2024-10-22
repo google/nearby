@@ -17,6 +17,7 @@
 
 #include "gmock/gmock.h"
 #include "connections/implementation/service_controller_router.h"
+#include "connections/listeners.h"
 
 namespace nearby {
 namespace connections {
@@ -35,7 +36,7 @@ class MockServiceControllerRouter : public ServiceControllerRouter {
   MOCK_METHOD(void, StartDiscovery,
               (ClientProxy * client, absl::string_view service_id,
                const DiscoveryOptions& discovery_options,
-               const DiscoveryListener& listener, ResultCallback callback),
+               DiscoveryListener listener, ResultCallback callback),
               (override));
 
   MOCK_METHOD(void, StopDiscovery,

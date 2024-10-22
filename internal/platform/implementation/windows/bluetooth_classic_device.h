@@ -77,10 +77,12 @@ class BluetoothDevice : public api::BluetoothDevice {
   void SetName(std::string name) { name_ = name; }
 
   RfcommDeviceService GetRfcommServiceForIdAsync(
-      const winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId
-          serviceId);
+      winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId serviceId);
 
  private:
+  RfcommDeviceService GetRfcommServiceForIdWithRetryAsync(
+      winrt::Windows::Devices::Bluetooth::Rfcomm::RfcommServiceId serviceId);
+
   // https://docs.microsoft.com/en-us/uwp/api/windows.devices.bluetooth.bluetoothdevice?view=winrt-20348
   winrt::Windows::Devices::Bluetooth::BluetoothDevice windows_bluetooth_device_;
 

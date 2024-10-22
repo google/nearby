@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "internal/weave/packet.h"
 
 namespace nearby {

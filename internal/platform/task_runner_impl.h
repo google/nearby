@@ -23,14 +23,15 @@
 #undef UNICODE
 #endif
 
+#include <cstdint>
 #include <memory>
-#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/multi_thread_executor.h"
+#include "absl/time/time.h"
+#include "internal/platform/submittable_executor.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 
@@ -41,18 +42,22 @@ class TaskRunnerImpl : public TaskRunner {
   explicit TaskRunnerImpl(uint32_t runner_count);
   ~TaskRunnerImpl() override;
 
-  bool PostTask(absl::AnyInvocable<void()> task) override;
+  bool PostTask(absl::AnyInvocable<void()> task) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
   bool PostDelayedTask(absl::Duration delay,
                        absl::AnyInvocable<void()> task) override
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   uint64_t GenerateId();
 
   mutable absl::Mutex mutex_;
-  std::unique_ptr<::nearby::SubmittableExecutor> executor_;
+  std::unique_ptr<SubmittableExecutor> executor_;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Timer>> timers_map_
       ABSL_GUARDED_BY(mutex_);
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace nearby

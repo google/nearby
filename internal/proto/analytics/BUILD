@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
 
 licenses(["notice"])
 
@@ -32,7 +33,6 @@ proto_library(
 proto_library(
     name = "fast_pair_log_proto",
     srcs = ["fast_pair_log.proto"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = ["//proto:fast_pair_enums_proto"],
 )
 
@@ -50,6 +50,7 @@ cc_proto_library(
     name = "connections_log_cc_proto",
     visibility = [
         "//connections:__subpackages__",
+        "//internal/analytics:__pkg__",
         "//location/nearby/analytics/cpp:__subpackages__",
     ],
     deps = [":connections_log_proto"],
@@ -67,8 +68,8 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
+        "//third_party/protobuf",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:protobuf",
     ],
 )

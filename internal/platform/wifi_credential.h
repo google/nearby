@@ -59,6 +59,8 @@ class HotspotCredentials {
 
   // Gets the Frequency
   int GetFrequency() const { return frequency_; }
+  // Set frequency_
+  void SetFrequency(int frequency) { frequency_ = frequency; }
 
   // Gets the Band
   location::nearby::proto::connections::ConnectionBand GetBand() const {
@@ -118,6 +120,8 @@ class WifiDirectCredentials {
 
   // Gets the Frequency
   int GetFrequency() const { return frequency_; }
+  // Set the Frequency
+  void SetFrequency(int frequency) { frequency_ = frequency; }
 
   // Gets the Band
   location::nearby::proto::connections::ConnectionBand GetBand() const {

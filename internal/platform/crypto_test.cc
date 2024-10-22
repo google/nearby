@@ -14,12 +14,29 @@
 
 #include "internal/platform/crypto.h"
 
+#include <stddef.h>
+
+#include <cstdint>
+#include <string>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/crypto_cros/nearby_base.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
+namespace {
+// Ensures we don't have all trivial data, i.e. that the data is indeed random.
+// Currently, that means the bytes cannot be all the same (e.g. all zeros).
+bool IsTrivial(const std::string& bytes) {
+  for (size_t i = 0; i < bytes.size(); i++) {
+    if (bytes[i] != bytes[0]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 TEST(CryptoTest, Md5GeneratesHash) {
   const ByteArray expected_md5(
@@ -44,4 +61,33 @@ TEST(CryptoTest, Sha256ReturnsEmptyOnError) {
   EXPECT_EQ(Crypto::Sha256(""), ByteArray{});
 }
 
+// Basic functionality tests. Does NOT test the security of the random data.
+
+TEST(CryptoTest, RandBytes) {
+  std::string bytes(16, '\0');
+  RandBytes(nearbybase::WriteInto(&bytes, bytes.size()), bytes.size());
+  EXPECT_TRUE(!IsTrivial(bytes));
+}
+
+TEST(CryptoTest, RandomString) {
+  constexpr size_t kSize = 30;
+
+  std::string bytes(kSize, 0);
+  RandBytes(const_cast<std::string::value_type*>(bytes.data()), bytes.size());
+
+  EXPECT_EQ(bytes.size(), kSize);
+  EXPECT_TRUE(!IsTrivial(bytes));
+}
+
+TEST(CryptoTest, RandData) {
+  uint64_t x = nearby::RandData<uint64_t>();
+  uint64_t y = nearby::RandData<uint64_t>();
+
+  // Once in a billion years, consecutively generated random numbers will be
+  // the same and the test will fail.
+  EXPECT_NE(x, y);
+  EXPECT_NE(x >> 32, x & 0xFFFFFFFF);
+}
+
+}  // namespace
 }  // namespace nearby

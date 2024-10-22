@@ -18,6 +18,7 @@
 #include <string>
 
 #include "connections/status.h"
+#include "internal/interop/authentication_status.h"
 
 namespace nearby {
 namespace connections {
@@ -35,6 +36,9 @@ struct InitialConnectionInfo {
   std::string raw_authentication_token;
   // Specifies if the connection is incoming or outgoing.
   bool is_incoming_connection = false;
+  // Result of authentication via the DeviceProvider, if available. Only used
+  // for `RequestConnectionV3()`.
+  AuthenticationStatus authentication_status = AuthenticationStatus::kUnknown;
 };
 
 }  // namespace v3

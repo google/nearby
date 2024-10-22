@@ -15,7 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_UTILS_H_
 #define CORE_INTERNAL_MEDIUMS_UTILS_H_
 
-#include <memory>
+#include <cstddef>
 #include <string>
 
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
@@ -31,6 +31,8 @@ class Utils {
   static ByteArray Sha256Hash(const std::string& source, size_t length);
   static location::nearby::connections::LocationHint BuildLocationHint(
       const std::string& location);
+  static std::string GenerateSalt();
+  static std::string GenerateSalt(size_t length);
 };
 
 }  // namespace connections

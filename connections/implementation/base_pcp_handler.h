@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,27 +26,45 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/params.h"
 #include "connections/status.h"
+#include "connections/strategy.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
+#include "internal/interop/authentication_status.h"
+#include "internal/interop/device.h"
+#include "internal/interop/device_provider.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/ble_v2.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/future.h"
-#include "internal/platform/prng.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/nsd_service_info.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -106,7 +125,7 @@ class BasePcpHandler : public PcpHandler,
   // DiscoveryListener will get called in case of any event.
   Status StartDiscovery(ClientProxy* client, const std::string& service_id,
                         const DiscoveryOptions& discovery_options,
-                        const DiscoveryListener& listener) override;
+                        DiscoveryListener listener) override;
 
   // Stops Discovery if it is active, and changes CLientProxy state,
   // otherwise does nothing.
@@ -123,6 +142,11 @@ class BasePcpHandler : public PcpHandler,
   // Updates state on ClientProxy.
   Status RequestConnection(
       ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) override;
+
+  Status RequestConnectionV3(
+      ClientProxy* client, const NearbyDevice& remote_device,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) override;
 
@@ -268,6 +292,10 @@ class BasePcpHandler : public PcpHandler,
       RUN_ON_PCP_HANDLER_THREAD()
           ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
+  void OnInstantLost(ClientProxy* client, const std::string& endpoint_id,
+                     const ByteArray& endpoint_info)
+      RUN_ON_PCP_HANDLER_THREAD();
+
   Exception OnIncomingConnection(
       ClientProxy* client, const ByteArray& remote_endpoint_info,
       std::unique_ptr<EndpointChannel> endpoint_channel,
@@ -355,7 +383,7 @@ class BasePcpHandler : public PcpHandler,
 
   // Returns a vector of discovered endpoints that share a given Medium.
   std::vector<BasePcpHandler::DiscoveredEndpoint*> GetDiscoveredEndpoints(
-      const location::nearby::proto::connections::Medium medium)
+      location::nearby::proto::connections::Medium medium)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 
   // Start alarms for endpoints lost by their mediums. Used when updating
@@ -374,13 +402,15 @@ class BasePcpHandler : public PcpHandler,
       absl::string_view service_id, StartOperationResult result);
 
   mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
-      const string& service_id, const string& endpoint_id,
+      const std::string& service_id, const std::string& endpoint_id,
       const ByteArray& endpoint_info);
 
   SingleThreadExecutor* GetPcpHandlerThread()
       ABSL_LOCK_RETURNED(serial_executor_) {
     return &serial_executor_;
   }
+
+  void StripOutWifiHotspotMedium(ConnectionInfo& connection_info);
 
   // Test only.
   int GetEndpointLostByMediumAlarmsCount() RUN_ON_PCP_HANDLER_THREAD() {
@@ -410,6 +440,9 @@ class BasePcpHandler : public PcpHandler,
     // Pass Reject notification to client.
     void LocalEndpointRejectedConnection(const std::string& endpoint_id);
 
+    // Check for a pending connection to |endpoint_id|.
+    bool HasPendingConnectionToEndpoint(const std::string& endpoint_id);
+
     // Client state tracker to report events to. Never changes. Always valid.
     ClientProxy* client = nullptr;
     // Peer endpoint info, or empty, if not discovered yet. May change.
@@ -421,6 +454,10 @@ class BasePcpHandler : public PcpHandler,
     ConnectionListener listener;
     ConnectionOptions connection_options;
 
+    // Result of authentication via the DeviceProvider, if available. Only used
+    // for `RequestConnectionV3()`.
+    AuthenticationStatus authentication_status = AuthenticationStatus::kUnknown;
+
     // Only set for outgoing connections. If set, we must call
     // result->Set() when connection is established, or rejected.
     std::weak_ptr<Future<Status>> result;
@@ -428,7 +465,10 @@ class BasePcpHandler : public PcpHandler,
     // Only (possibly) vector for incoming connections.
     std::vector<location::nearby::proto::connections::Medium> supported_mediums;
 
-    // Keep track of a channel before we pass it to EndpointChannelManager.
+    // Keep track of a channel before we pass it to EndpointChannelManager. This
+    // is owned until the call to OnEncryptionSuccessRunnableV3 or
+    // OnEncryptionSuccessRunnable when ownership is transferred to the
+    // EndpointManager.
     std::unique_ptr<EndpointChannel> channel;
 
     // Crypto context; initially empty; established first thing after channel
@@ -441,6 +481,9 @@ class BasePcpHandler : public PcpHandler,
 
     // Used in AnalyticsRecorder for devices connection tracking.
     std::string connection_token;
+
+    // The medium that the connection was established on.
+    location::nearby::proto::connections::Medium medium;
   };
 
   // @EncryptionRunnerThread
@@ -456,13 +499,28 @@ class BasePcpHandler : public PcpHandler,
                                EndpointChannel* channel);
 
   EncryptionRunner::ResultListener GetResultListener();
+  EncryptionRunner::ResultListener GetResultListenerV3(
+      const NearbyDeviceProvider& device_provider,
+      const NearbyDevice& remote_device,
+      const EndpointChannel& endpoint_channel);
 
   void OnEncryptionSuccessRunnable(
       const std::string& endpoint_id,
       std::unique_ptr<securegcm::UKey2Handshake> ukey2,
       const std::string& auth_token, const ByteArray& raw_auth_token);
+  void OnEncryptionSuccessRunnableV3(
+      const NearbyDevice& remote_device,
+      std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
+      absl::string_view auth_token, const ByteArray& raw_auth_token,
+      const EndpointChannel& endpoint_channel,
+      const NearbyDeviceProvider& device_provider);
   void OnEncryptionFailureRunnable(const std::string& endpoint_id,
                                    EndpointChannel* endpoint_channel);
+  void RegisterDeviceAfterEncryptionSuccess(
+      std::string_view endpoint_id,
+      std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
+      std::string_view auth_token, const ByteArray& raw_auth_token,
+      BasePcpHandler::PendingConnectionInfo& connection_info);
 
   static Exception WriteConnectionRequestFrame(
       NearbyDevice::Type device_type, absl::string_view device_proto_bytes,
@@ -496,6 +554,9 @@ class BasePcpHandler : public PcpHandler,
       const std::string& remote_bluetooth_mac_address,
       const DiscoveryOptions& local_discovery_options)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
+
+  Status VerifyConnectionRequest(const std::string& endpoint_id,
+                                 ClientProxy* client);
 
   // Returns true if the webrtc endpoint is created and appended into
   // discovered_endpoints_ with key endpoint_id.
@@ -569,6 +630,13 @@ class BasePcpHandler : public PcpHandler,
   // rotate endpoint id when the advertising options is "low power" (3P) or
   // "disable Bluetooth classic" (1P).
   bool ShouldEnterHighVisibilityMode(
+      const AdvertisingOptions& advertising_options);
+
+  // Below cases should enter stable endpoint id mode:
+  // 1. When use stable endpoint id returns true.
+  // 2. When low power returns false.
+  // 3. Other cases return true.
+  bool ShouldEnterStableEndpointIdMode(
       const AdvertisingOptions& advertising_options);
 
   // Returns the intersection of supported mediums based on the mediums reported

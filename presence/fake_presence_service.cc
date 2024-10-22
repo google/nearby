@@ -18,6 +18,7 @@
 #include <utility>
 #include <vector>
 
+#include "internal/interop/device_provider.h"
 #include "internal/platform/borrowable.h"
 #include "presence/fake_presence_client.h"
 
@@ -52,8 +53,9 @@ absl::StatusOr<BroadcastSessionId> FakePresenceService::StartBroadcast(
 // Not implemented.
 void FakePresenceService::StopBroadcast(BroadcastSessionId session_id) {}
 
-void FakePresenceService::UpdateLocalDeviceMetadata(
-    const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+void FakePresenceService::UpdateDeviceIdentityMetaData(
+    const ::nearby::internal::DeviceIdentityMetaData& metadata,
+    bool regen_credentials,
     absl::string_view manager_app_id,
     const std::vector<nearby::internal::IdentityType>& identity_types,
     int credential_life_cycle_days, int contiguous_copy_of_credentials,
@@ -74,9 +76,8 @@ void FakePresenceService::UpdateLocalDeviceMetadata(
   }
 }
 
-// Not implemented.
-PresenceDeviceProvider* FakePresenceService::GetLocalDeviceProvider() {
-  return nullptr;
+NearbyDeviceProvider* FakePresenceService::GetLocalDeviceProvider() {
+  return provider_;
 }
 
 void FakePresenceService::GetLocalPublicCredentials(

@@ -50,6 +50,14 @@ typedef void (^GNCReadCharacteristicValueCompletionHandler)(NSData *_Nullable va
                                                             NSError *_Nullable error);
 
 /**
+ * A block to be invoked after a call to @c disconnect, requesting that the local connection to the
+ * remote peripheral be cancelled.
+ *
+ * @param peripheral The remote peripheral to disconnect from.
+ */
+typedef void (^GNCRequestDisconnectionHandler)(id<GNCPeripheral> peripheral);
+
+/**
  * An object that can be used to discover, explore, and interact with GATT services and
  * characteristics available on a remote peripheral.
  *
@@ -64,8 +72,11 @@ typedef void (^GNCReadCharacteristicValueCompletionHandler)(NSData *_Nullable va
  * Initializes the GATT client with a specified peripheral.
  *
  * @param peripheral The peripheral instance.
+ * @param requestDisconnectionHandler Called on a private queue with @c peripheral when the
+ *                                    connection to the peripheral should be cancelled.
  */
-- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral;
+- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
+       requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
 
 /**
  * Discovers the specified characteristics of a service.
@@ -111,6 +122,9 @@ typedef void (^GNCReadCharacteristicValueCompletionHandler)(NSData *_Nullable va
 - (void)readValueForCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
                  completionHandler:
                      (nullable GNCReadCharacteristicValueCompletionHandler)completionHandler;
+
+/** Cancels an active or pending local connection to a peripheral. */
+- (void)disconnect;
 
 @end
 

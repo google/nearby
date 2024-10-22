@@ -14,8 +14,12 @@
 
 #include "connections/implementation/ble_advertisement.h"
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "connections/implementation/base_pcp_handler.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
@@ -30,6 +34,9 @@ constexpr absl::string_view kEndpointName{
 constexpr absl::string_view kFastAdvertisementEndpointName{"Fast Advertise"};
 constexpr absl::string_view kBluetoothMacAddress{"00:00:E6:88:64:13"};
 constexpr WebRtcState kWebRtcState = WebRtcState::kConnectable;
+
+using ::absl::StatusCode::kInvalidArgument;
+using ::testing::status::StatusIs;
 
 // TODO(b/169550050): Implement UWBAddress.
 TEST(BleAdvertisementTest, ConstructionWorks) {
@@ -269,7 +276,10 @@ TEST(BleAdvertisementTest, ConstructionFromBytesWorks) {
       ByteArray{},     kWebRtcState};
   ByteArray ble_advertisement_bytes(org_ble_advertisement);
 
-  BleAdvertisement ble_advertisement{false, ble_advertisement_bytes};
+  auto ble_status_or =
+      BleAdvertisement::CreateBleAdvertisement(false, ble_advertisement_bytes);
+  ASSERT_OK(ble_status_or.status());
+  auto ble_advertisement = ble_status_or.value();
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -290,7 +300,10 @@ TEST(BleAdvertisementTest, ConstructionFromBytesWorksForFastAdvertisement) {
                                          fast_endpoint_info, ByteArray{}};
   ByteArray ble_advertisement_bytes(org_ble_advertisement);
 
-  BleAdvertisement ble_advertisement{true, ble_advertisement_bytes};
+  auto ble_status_or =
+      BleAdvertisement::CreateBleAdvertisement(true, ble_advertisement_bytes);
+  ASSERT_OK(ble_status_or.status());
+  auto ble_advertisement = ble_status_or.value();
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_TRUE(ble_advertisement.IsFastAdvertisement());
@@ -322,7 +335,10 @@ TEST(BleAdvertisementTest, ConstructionFromLongLengthBytesWorks) {
   memcpy(long_ble_advertisement_bytes.data(), ble_advertisement_bytes.data(),
          ble_advertisement_bytes.size());
 
-  BleAdvertisement long_ble_advertisement{false, long_ble_advertisement_bytes};
+  auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
+      false, long_ble_advertisement_bytes);
+  ASSERT_OK(ble_status_or.status());
+  auto long_ble_advertisement = ble_status_or.value();
 
   EXPECT_TRUE(long_ble_advertisement.IsValid());
   EXPECT_EQ(kVersion, long_ble_advertisement.GetVersion());
@@ -336,15 +352,13 @@ TEST(BleAdvertisementTest, ConstructionFromLongLengthBytesWorks) {
 }
 
 TEST(BleAdvertisementTest, ConstructionFromNullBytesFails) {
-  BleAdvertisement ble_advertisement{false, ByteArray{}};
-
-  EXPECT_FALSE(ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(false, ByteArray()),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest, ConstructionFromNullBytesFailsForFastAdvertisement) {
-  BleAdvertisement ble_advertisement{true, ByteArray{}};
-
-  EXPECT_FALSE(ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(true, ByteArray()),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest, ConstructionFromShortLengthBytesFails) {
@@ -363,10 +377,9 @@ TEST(BleAdvertisementTest, ConstructionFromShortLengthBytesFails) {
       ble_advertisement_bytes.data(),
       BleAdvertisement::kMinAdvertisementLength - 1};
 
-  BleAdvertisement short_ble_advertisement{false,
-                                           short_ble_advertisement_bytes};
-
-  EXPECT_FALSE(short_ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(
+                  false, short_ble_advertisement_bytes),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest,
@@ -382,9 +395,9 @@ TEST(BleAdvertisementTest,
       ble_advertisement_bytes.data(),
       BleAdvertisement::kMinAdvertisementLength - 1};
 
-  BleAdvertisement short_ble_advertisement{true, short_ble_advertisement_bytes};
-
-  EXPECT_FALSE(short_ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(
+                  true, short_ble_advertisement_bytes),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest,
@@ -404,10 +417,9 @@ TEST(BleAdvertisementTest,
   corrupt_ble_advertisement_string[8] ^= 0x0FF;
   ByteArray corrupt_ble_advertisement_bytes(corrupt_ble_advertisement_string);
 
-  BleAdvertisement corrupt_ble_advertisement{false,
-                                             corrupt_ble_advertisement_bytes};
-
-  EXPECT_FALSE(corrupt_ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(
+                  false, corrupt_ble_advertisement_bytes),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest,
@@ -423,10 +435,9 @@ TEST(BleAdvertisementTest,
   corrupt_ble_advertisement_string[5] ^= 0x0FF;
   ByteArray corrupt_ble_advertisement_bytes(corrupt_ble_advertisement_string);
 
-  BleAdvertisement corrupt_ble_advertisement{true,
-                                             corrupt_ble_advertisement_bytes};
-
-  EXPECT_FALSE(corrupt_ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(
+                  true, corrupt_ble_advertisement_bytes),
+              StatusIs(kInvalidArgument));
 }
 
 }  // namespace

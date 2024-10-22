@@ -15,10 +15,14 @@
 #include "internal/platform/ble.h"
 
 #include <memory>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -74,11 +78,10 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                NEARBY_LOG(
-                    INFO,
-                    "Peripheral discovered: %s, %p, fast advertisement: %d",
-                    peripheral.GetName().c_str(), &peripheral,
-                    fast_advertisement);
+                NEARBY_LOGS(INFO)
+                    << "Discovered peripheral=" << peripheral.GetName()
+                    << ", impl=" << &peripheral.GetImpl()
+                    << ", fast advertisement=" << fast_advertisement;
                 discovered_peripheral = &peripheral;
                 found_latch.CountDown();
               },
@@ -87,8 +90,8 @@ TEST_P(BleMediumTest, CanStartAcceptingConnectionsAndConnect) {
                          fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
       service_id, [&](BleSocket socket, const std::string& service_id) {
-        NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                   &socket, service_id.c_str());
+        NEARBY_LOGS(INFO) << "Connection accepted: socket=" << &socket
+                          << ", service_id=" << service_id;
         accepted_latch.CountDown();
       });
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
@@ -133,11 +136,10 @@ TEST_P(BleMediumTest, CanCancelConnect) {
                   BlePeripheral& peripheral, const std::string& service_id,
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
-                NEARBY_LOG(
-                    INFO,
-                    "Peripheral discovered: %s, %p, fast advertisement: %d",
-                    peripheral.GetName().c_str(), &peripheral,
-                    fast_advertisement);
+                NEARBY_LOGS(INFO)
+                    << "Discovered peripheral=" << peripheral.GetName()
+                    << ", impl=" << &peripheral.GetImpl()
+                    << ", fast advertisement=" << fast_advertisement;
                 discovered_peripheral = &peripheral;
                 found_latch.CountDown();
               },
@@ -146,8 +148,8 @@ TEST_P(BleMediumTest, CanCancelConnect) {
                          fast_advertisement_service_uuid);
   ble_b.StartAcceptingConnections(
       service_id, [&](BleSocket socket, const std::string& service_id) {
-        NEARBY_LOG(INFO, "Connection accepted: socket=%p, service_id=%s",
-                   &socket, service_id.c_str());
+        NEARBY_LOGS(INFO) << "Connection accepted: socket=" << &socket
+                          << ", service_id=" << service_id;
         accepted_latch.CountDown();
       });
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());

@@ -52,6 +52,10 @@ struct ConnectionOptions : public OptionsBase {
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
 
+  // If true, only use WiFi Hotspot for connection when Wifi LAN is not
+  // connected.
+  bool non_disruptive_hotspot_mode = false;
+
   std::vector<Medium> GetMediums() const;
   ConnectionInfo connection_info;
 };

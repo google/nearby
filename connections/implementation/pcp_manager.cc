@@ -14,12 +14,36 @@
 
 #include "connections/implementation/pcp_manager.h"
 
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
+#include "connections/implementation/bwu_manager.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/p2p_cluster_pcp_handler.h"
 #include "connections/implementation/p2p_point_to_point_pcp_handler.h"
 #include "connections/implementation/p2p_star_pcp_handler.h"
+#include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
+#include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/params.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
+#include "internal/interop/device.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
@@ -55,12 +79,15 @@ PcpManager::~PcpManager() {
 }
 
 Status PcpManager::StartAdvertising(
-    ClientProxy* client, const string& service_id,
+    ClientProxy* client, const std::string& service_id,
     const AdvertisingOptions& advertising_options,
     const ConnectionRequestInfo& info) {
   if (!SetCurrentPcpHandler(advertising_options.strategy)) {
     return {Status::kError};
   }
+
+  client->SetWebRtcNonCellular(GetWebRtcNonCellular(
+      advertising_options.CompatibleOptions().allowed.GetMediums(true)));
 
   return current_->StartAdvertising(client, service_id, advertising_options,
                                     info);
@@ -72,7 +99,8 @@ void PcpManager::StopAdvertising(ClientProxy* client) {
   }
 }
 
-Status PcpManager::StartDiscovery(ClientProxy* client, const string& service_id,
+Status PcpManager::StartDiscovery(ClientProxy* client,
+                                  const std::string& service_id,
                                   const DiscoveryOptions& discovery_options,
                                   DiscoveryListener listener) {
   if (!SetCurrentPcpHandler(discovery_options.strategy)) {
@@ -116,19 +144,35 @@ void PcpManager::InjectEndpoint(ClientProxy* client,
 }
 
 Status PcpManager::RequestConnection(
-    ClientProxy* client, const string& endpoint_id,
+    ClientProxy* client, const std::string& endpoint_id,
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
   }
 
+  client->SetWebRtcNonCellular(
+      GetWebRtcNonCellular(connection_options.GetMediums()));
+
   return current_->RequestConnection(client, endpoint_id, info,
                                      connection_options);
 }
 
+Status PcpManager::RequestConnectionV3(
+    ClientProxy* client, const NearbyDevice& remote_device,
+    const ConnectionRequestInfo& info,
+    const ConnectionOptions& connection_options) {
+  // TODO(b/300174495): Add test coverage for when |current_| is nullptr.
+  if (!current_) {
+    return {Status::kOutOfOrderApiCall};
+  }
+
+  return current_->RequestConnectionV3(client, remote_device, info,
+                                       connection_options);
+}
+
 Status PcpManager::AcceptConnection(ClientProxy* client,
-                                    const string& endpoint_id,
+                                    const std::string& endpoint_id,
                                     PayloadListener payload_listener) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
@@ -139,7 +183,7 @@ Status PcpManager::AcceptConnection(ClientProxy* client,
 }
 
 Status PcpManager::RejectConnection(ClientProxy* client,
-                                    const string& endpoint_id) {
+                                    const std::string& endpoint_id) {
   if (!current_) {
     return {Status::kOutOfOrderApiCall};
   }
@@ -171,8 +215,8 @@ bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
   current_ = GetPcpHandler(StrategyToPcp(strategy));
 
   if (!current_) {
-    NEARBY_LOG(ERROR, "Failed to set current PCP handler: strategy=%s",
-               strategy.GetName().c_str());
+    NEARBY_LOGS(ERROR) << "Failed to set current PCP handler: strategy="
+                       << strategy.GetName();
   }
 
   return current_;
@@ -181,6 +225,15 @@ bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
 PcpHandler* PcpManager::GetPcpHandler(Pcp pcp) const {
   auto item = handlers_.find(pcp);
   return item != handlers_.end() ? item->second.get() : nullptr;
+}
+
+bool PcpManager::GetWebRtcNonCellular(const std::vector<Medium>& mediums) {
+  for (const auto& medium : mediums) {
+    if (medium == Medium::WEB_RTC_NON_CELLULAR) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace connections

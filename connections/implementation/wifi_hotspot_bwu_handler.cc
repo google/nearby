@@ -14,16 +14,24 @@
 
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 
+#include <cstdint>
 #include <locale>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
+#include "connections/strategy.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
@@ -74,15 +82,16 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   std::string password = hotspot_crendential->GetPassword();
   std::string gateway = hotspot_crendential->GetGateway();
   std::int32_t port = hotspot_crendential->GetPort();
+  std::int32_t frequency = hotspot_crendential->GetFrequency();
 
   NEARBY_LOGS(INFO) << "Start SoftAP with SSID:" << ssid
                     << ",  Password:" << password << ",  Port:" << port
-                    << ",  Gateway:" << gateway;
+                    << ",  Gateway:" << gateway << ",  Frequency:" << frequency;
 
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
   return parser::ForBwuWifiHotspotPathAvailable(
-      ssid, password, port, gateway,
+      ssid, password, port, frequency, gateway,
       /* supports_disabling_encryption */ disabling_encryption);
 }
 
@@ -114,12 +123,13 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   const std::string& password = upgrade_path_info_credentials.password();
   const std::string& gateway = upgrade_path_info_credentials.gateway();
   std::int32_t port = upgrade_path_info_credentials.port();
+  std::int32_t frequency = upgrade_path_info_credentials.frequency();
 
   NEARBY_LOGS(INFO) << "Received Hotspot credential SSID: " << ssid
                     << ",  Password:" << password << ",  Port:" << port
-                    << ",  Gateway:" << gateway;
+                    << ",  Gateway:" << gateway << ",  Frequency:" << frequency;
 
-  if (!wifi_hotspot_medium_.ConnectWifiHotspot(ssid, password)) {
+  if (!wifi_hotspot_medium_.ConnectWifiHotspot(ssid, password, frequency)) {
     NEARBY_LOGS(ERROR) << "Connect to Hotspot failed";
     return nullptr;
   }
@@ -133,7 +143,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE)
+  NEARBY_VLOG(1)
       << "WifiHotspotBwuHandler successfully connected to WifiHotspot service ("
       << gateway << ":" << port << ") while upgrading endpoint " << endpoint_id;
 

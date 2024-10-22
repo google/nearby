@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
@@ -47,7 +46,7 @@ class CredentialManager {
   // The user’s own public credentials won’t be saved on local credential
   // storage.
   virtual void GenerateCredentials(
-      const nearby::internal::Metadata& metadata,
+      const nearby::internal::DeviceIdentityMetaData& device_identity_metadata,
       absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
@@ -91,23 +90,23 @@ class CredentialManager {
   // `UnsubscribeFromPublicCredentials()` return.
   virtual void UnsubscribeFromPublicCredentials(SubscriberId id) = 0;
 
-  // Decrypts the device metadata from a public credential.
+  // Decrypts the device identity metadata from a public credential.
   // Returns an empty string if decryption fails.
-  virtual std::string DecryptMetadata(absl::string_view metadata_encryption_key,
-                                      absl::string_view key_seed,
-                                      absl::string_view metadata_string) = 0;
+  virtual std::string DecryptDeviceIdentityMetaData(
+      absl::string_view metadata_encryption_key, absl::string_view key_seed,
+      absl::string_view metadata_string) = 0;
 
-  // Sets the NP service's device metadata, regenerating credentials if
-  // `regen_credentials` is set to true.
-  virtual void SetLocalDeviceMetadata(
-      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
-      absl::string_view manager_app_id,
+  // If `regen_credentials` is set to true, regenerating credentials.
+  virtual void SetDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) = 0;
 
-  // Gets the NP service's device metadata.
-  virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
+  virtual ::nearby::internal::DeviceIdentityMetaData
+  GetDeviceIdentityMetaData() = 0;
 };
 
 }  // namespace presence

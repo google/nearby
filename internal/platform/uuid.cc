@@ -14,12 +14,23 @@
 
 #include "internal/platform/uuid.h"
 
+#include <array>
+#include <cstdint>
 #include <iomanip>
+#include <ios>
+#include <optional>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
-#include "absl/strings/escaping.h"
-#include "internal/platform/implementation/crypto.h"
+#include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
+#include <openssl/base.h>
+#include <openssl/digest.h>
 
 namespace nearby {
 namespace {
@@ -30,12 +41,70 @@ std::ostream& write_hex(std::ostream& os, absl::string_view data) {
   }
   return os;
 }
+
+ByteArray Hash(absl::string_view input, const EVP_MD* algo) {
+  unsigned int md_out_size = EVP_MAX_MD_SIZE;
+  uint8_t digest_buffer[EVP_MAX_MD_SIZE];
+  if (input.empty()) return {};
+
+  if (!EVP_Digest(input.data(), input.size(), digest_buffer, &md_out_size, algo,
+                  nullptr))
+    return {};
+
+  return ByteArray{reinterpret_cast<char*>(digest_buffer), md_out_size};
+}
+
+ByteArray Md5(absl::string_view input) { return Hash(input, EVP_md5()); }
+
 }  // namespace
+
+// Based on the Java implementation
+// http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#191
+std::optional<Uuid> Uuid::FromString(absl::string_view data) {
+  std::vector<std::string> components = absl::StrSplit(data, '-');
+  if (components.size() != 5) {
+    return std::nullopt;
+  }
+
+  for (std::string& component : components) {
+    component = absl::StrCat("0x", component);
+  }
+
+  int64_t most_sig_bits = 0L;
+  int64_t least_sig_bits = 0L;
+  int64_t temp;
+  if (!absl::SimpleHexAtoi(components[0], &temp)) {
+    return std::nullopt;
+  }
+  most_sig_bits = temp;
+  most_sig_bits <<= 16;
+  if (!absl::SimpleHexAtoi(components[1], &temp)) {
+    return std::nullopt;
+  }
+  most_sig_bits |= temp;
+  most_sig_bits <<= 16;
+  if (!absl::SimpleHexAtoi(components[2], &temp)) {
+    return std::nullopt;
+  }
+  most_sig_bits |= temp;
+
+  if (!absl::SimpleHexAtoi(components[3], &temp)) {
+    return std::nullopt;
+  }
+  least_sig_bits = temp;
+  least_sig_bits <<= 48;
+  if (!absl::SimpleHexAtoi(components[4], &temp)) {
+    return std::nullopt;
+  }
+  least_sig_bits |= temp;
+
+  return Uuid(most_sig_bits, least_sig_bits);
+}
 
 Uuid::Uuid(absl::string_view data) {
   // Based on the Java counterpart at
   // http://androidxref.com/8.0.0_r4/xref/libcore/ojluni/src/main/java/java/util/UUID.java#162.
-  std::string md5_data(Crypto::Md5(data));
+  std::string md5_data(Md5(data));
   md5_data[6] &= 0x0f;  // Clear version.
   md5_data[6] |= 0x30;  // Set to version 3.
   md5_data[8] &= 0x3f;  // Clear variant.

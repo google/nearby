@@ -26,8 +26,8 @@
 #include "fastpair/handshake/fast_pair_handshake.h"
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
-#include "internal/account/account_manager.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/timer_impl.h"
 

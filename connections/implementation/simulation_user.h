@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_SIMULATION_USER_H_
 #define CORE_INTERNAL_SIMULATION_USER_H_
 
+#include <stdbool.h>
 #include <cstdint>
 #include <string>
 
@@ -27,6 +28,7 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/payload_manager.h"
 #include "connections/implementation/pcp_manager.h"
+#include "connections/v3/connections_device.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -44,13 +46,16 @@ namespace connections {
 
 class SetSafeToDisconnect {
  public:
-  explicit SetSafeToDisconnect(bool safe_to_disconnect,
+  explicit SetSafeToDisconnect(bool safe_to_disconnect, bool auto_reconnect,
                                bool payload_received_ack,
                                std::int32_t safe_to_disconnect_version) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableSafeToDisconnect,
         safe_to_disconnect);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableAutoReconnect,
+        auto_reconnect);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnablePayloadReceivedAck,
@@ -73,9 +78,10 @@ class SimulationUser {
     void Clear() { endpoint_id.clear(); }
   };
 
-  explicit SimulationUser(
-      const std::string& device_name,
-      BooleanMediumSelector allowed = BooleanMediumSelector())
+  SimulationUser(const std::string& device_name,
+                 BooleanMediumSelector allowed = BooleanMediumSelector(),
+                 SetSafeToDisconnect set_safe_to_disconnect =
+                     SetSafeToDisconnect(true, false, true, 5))
       : info_{ByteArray{device_name}},
         advertising_options_{
             {
@@ -96,7 +102,8 @@ class SimulationUser {
                 Strategy::kP2pCluster,
                 allowed,
             },
-        } {}
+        },
+        set_safe_to_disconnect_(set_safe_to_disconnect) {}
   virtual ~SimulationUser() { Stop(); }
   void Stop() {
     pm_.DisconnectFromEndpointManager();
@@ -127,6 +134,12 @@ class SimulationUser {
   // If latch is provided, latch->CountDown() will be called in the initiated_cb
   // callback.
   void RequestConnection(CountDownLatch* latch);
+
+  // Calls PcpManager::RequestConnectionV3.
+  // If latch is provided, latch->CountDown() will be called in the initiated_cb
+  // callback.
+  void RequestConnectionV3(CountDownLatch* latch,
+                           const NearbyDevice& remote_device);
 
   // Calls PcpManager::AcceptConnection.
   // If latch is provided, latch->CountDown() will be called in the accepted_cb
@@ -160,6 +173,9 @@ class SimulationUser {
   bool WaitForProgress(
       absl::AnyInvocable<bool(const PayloadProgressInfo&)> pred,
       absl::Duration timeout);
+
+  ClientProxy& GetClient() { return client_; }
+  EndpointChannelManager& GetEndpointChannelManager() { return ecm_; }
 
  protected:
   // ConnectionListener callbacks
@@ -199,7 +215,7 @@ class SimulationUser {
   AdvertisingOptions advertising_options_;
   ConnectionOptions connection_options_;
   DiscoveryOptions discovery_options_;
-  SetSafeToDisconnect set_safe_to_disconnect_{true, true, 2};
+  SetSafeToDisconnect set_safe_to_disconnect_;
   ClientProxy client_;
   EndpointChannelManager ecm_;
   EndpointManager em_{&ecm_};

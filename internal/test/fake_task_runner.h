@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/task_runner.h"
@@ -46,6 +47,8 @@ class FakeTaskRunner : public TaskRunner {
                        absl::AnyInvocable<void()> task) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void Shutdown() override ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Wait for all thread completed.
   void Sync();
 
@@ -55,6 +58,10 @@ class FakeTaskRunner : public TaskRunner {
   // In some test cases, we need to make sure all running tasks completion
   // before go to next task. This method can be used for the purpose.
   static bool WaitForRunningTasksWithTimeout(absl::Duration timeout);
+  // Use of WaitForRunningTasksWithTimeout requires calling
+  // ResetPendingTaskCount at test initialization to be able to track pending
+  // tasks correctly.
+  static void ResetPendingTasksCount() { pending_tasks_count_ = 0; }
 
  private:
   mutable absl::Mutex mutex_;
@@ -66,7 +73,7 @@ class FakeTaskRunner : public TaskRunner {
   // Tracks delayed tasks.
   std::vector<std::unique_ptr<Timer>> timers_ ABSL_GUARDED_BY(mutex_);
 
-  static std::atomic_uint total_running_thread_count_;
+  static std::atomic_uint pending_tasks_count_;
 };
 
 }  // namespace nearby

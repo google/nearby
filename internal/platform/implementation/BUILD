@@ -14,6 +14,25 @@
 licenses(["notice"])
 
 cc_library(
+    name = "account_manager",
+    hdrs = ["account_manager.h"],
+    visibility = [
+        "//fastpair:__subpackages__",
+        "//internal/account:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+        "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
+        "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
+        "//sharing:__subpackages__",
+    ],
+    deps = [
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "types",
     hdrs = [
         "atomic_boolean.h",
@@ -39,6 +58,7 @@ cc_library(
         "timer.h",
     ],
     visibility = [
+        "//connections/implementation:__subpackages__",
         "//connections/implementation/analytics:__subpackages__",
         "//fastpair:__subpackages__",
         "//internal/crypto_cros:__pkg__",
@@ -47,20 +67,38 @@ cc_library(
         "//internal/preferences:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
-        "//location/nearby/cpp/common:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         "//internal/crypto_cros",
         "//internal/platform:base",
+        "//internal/platform/implementation/shared:crypto",  # Non-chromium impl
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
         "@nlohmann_json//:json",
+    ],
+)
+
+cc_library(
+    name = "wifi_utils",
+    srcs = [
+        "wifi_utils.cc",
+    ],
+    hdrs = [
+        "wifi.h",
+        "wifi_utils.h",
+    ],
+    visibility = [
+        "//:__subpackages__",
+    ],
+    deps = [
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -84,11 +122,11 @@ cc_library(
     copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//fastpair/internal:__pkg__",
         "//fastpair/internal/mediums:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
+        "//presence:__subpackages__",
         "//presence/implementation:__subpackages__",
     ],
     deps = [
@@ -121,8 +159,9 @@ cc_library(
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
+        "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":comm",
@@ -130,5 +169,19 @@ cc_library(
         "//internal/platform:base",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "wifi_utils_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["wifi_utils_test.cc"],
+    shard_count = 8,
+    deps = [
+        ":wifi_utils",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )

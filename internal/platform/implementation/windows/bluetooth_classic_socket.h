@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,60 +15,29 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_SOCKET_H_
 
+#include <windows.h>
+
+#include <cstdint>
 #include <memory>
 
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_device.h"
-#include "winrt/Windows.Foundation.h"
-#include "winrt/Windows.Networking.Sockets.h"
-#include "winrt/Windows.Storage.Streams.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
 
-// Provides data for a hostname or an IP address.
-// https://docs.microsoft.com/en-us/uwp/api/windows.networking.hostname?view=winrt-20348
-using winrt::Windows::Networking::HostName;
-
-// Supports network communication using a stream socket over Bluetooth RFCOMM.
-// https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket?view=winrt-20348
-using winrt::Windows::Networking::Sockets::IStreamSocket;
-using winrt::Windows::Networking::Sockets::StreamSocket;
-
-// Provides a default implementation of the IBuffer interface and its related
-// interfaces.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.buffer?view=winrt-20348
-using winrt::Windows::Storage::Streams::Buffer;
-
-// Represents a sequential stream of bytes to be read.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.iinputstream?view=winrt-20348
-using winrt::Windows::Storage::Streams::IInputStream;
-
-// Represents a sequential stream of bytes to be written.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.ioutputstream?view=winrt-20348
-using winrt::Windows::Storage::Streams::IOutputStream;
-
-// Specifies the read options for an input stream.
-// This enumeration has a FlagsAttribute attribute that allows a bitwise
-// combination of its member values.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.inputstreamoptions?view=winrt-20348
-using winrt::Windows::Storage::Streams::InputStreamOptions;
-
-// Reads data from an input stream.
-// https://docs.microsoft.com/en-us/uwp/api/windows.storage.streams.datareader?view=winrt-20348
-using winrt::Windows::Storage::Streams::DataReader;
-
-// Represents an asynchronous action.
-// https://docs.microsoft.com/en-us/uwp/api/windows.foundation.iasyncaction?view=winrt-20348
-using winrt::Windows::Foundation::IAsyncAction;
-
-// https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
 class BluetoothSocket : public api::BluetoothSocket {
  public:
   BluetoothSocket();
-
-  explicit BluetoothSocket(StreamSocket streamSocket);
-
+  explicit BluetoothSocket(
+      ::winrt::Windows::Networking::Sockets::StreamSocket stream_socket);
   ~BluetoothSocket() override;
 
   // NOTE:
@@ -95,28 +64,32 @@ class BluetoothSocket : public api::BluetoothSocket {
 
   // Connect asynchronously to the target remote device
   // Returns true if successful, false otherwise
-  bool Connect(HostName connectionHostName,
-               winrt::hstring connectionServiceName);
+  bool Connect(::winrt::Windows::Networking::HostName connection_host_name,
+               ::winrt::hstring connection_service_name);
 
  private:
   static constexpr int kInitialTransmitPacketSize = 4096;
 
   class BluetoothInputStream : public InputStream {
    public:
-    explicit BluetoothInputStream(IInputStream stream);
+    explicit BluetoothInputStream(
+        ::winrt::Windows::Storage::Streams::IInputStream stream);
     ~BluetoothInputStream() override = default;
 
     ExceptionOr<ByteArray> Read(std::int64_t size) override;
     Exception Close() override;
 
    private:
-    IInputStream winrt_input_stream_{nullptr};
-    Buffer read_buffer_{kInitialTransmitPacketSize};
+    ::winrt::Windows::Storage::Streams::IInputStream winrt_input_stream_{
+        nullptr};
+    ::winrt::Windows::Storage::Streams::Buffer read_buffer_{
+        kInitialTransmitPacketSize};
   };
 
   class BluetoothOutputStream : public OutputStream {
    public:
-    explicit BluetoothOutputStream(IOutputStream stream);
+    explicit BluetoothOutputStream(
+        ::winrt::Windows::Storage::Streams::IOutputStream stream);
     ~BluetoothOutputStream() override = default;
 
     Exception Write(const ByteArray& data) override;
@@ -125,26 +98,28 @@ class BluetoothSocket : public api::BluetoothSocket {
     Exception Close() override;
 
    private:
-    IOutputStream winrt_output_stream_{nullptr};
-    Buffer write_buffer_{kInitialTransmitPacketSize};
+    ::winrt::Windows::Storage::Streams::IOutputStream winrt_output_stream_{
+        nullptr};
+    ::winrt::Windows::Storage::Streams::Buffer write_buffer_{
+        kInitialTransmitPacketSize};
   };
 
-  bool InternalConnect(HostName connectionHostName,
-                       winrt::hstring connectionServiceName);
+  bool InternalConnect(
+      ::winrt::Windows::Networking::HostName connection_host_name,
+      ::winrt::hstring connection_service_name);
 
-  winrt::fire_and_forget Listener_ConnectionStatusChanged(
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice device,
-      winrt::Windows::Foundation::IInspectable const& args);
+  ::winrt::fire_and_forget Listener_ConnectionStatusChanged(
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice device,
+      ::winrt::Windows::Foundation::IInspectable const& args);
 
-  StreamSocket windows_socket_{nullptr};
+  ::winrt::Windows::Networking::Sockets::StreamSocket windows_socket_{nullptr};
   bool is_bluetooth_socket_closed_ = false;
   BluetoothInputStream input_stream_{nullptr};
   BluetoothOutputStream output_stream_{nullptr};
   std::unique_ptr<BluetoothDevice> bluetooth_device_ = nullptr;
-  winrt::Windows::Devices::Bluetooth::BluetoothDevice native_bluetooth_device_{
-      nullptr};
-  winrt::event_token connection_status_changed_token_{};
-  int connect_called_count_ = 0;
+  ::winrt::Windows::Devices::Bluetooth::BluetoothDevice
+      native_bluetooth_device_{nullptr};
+  ::winrt::event_token connection_status_changed_token_{};
 };
 
 }  // namespace windows

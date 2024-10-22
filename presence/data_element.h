@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <initializer_list>
 #include <ostream>
 #include <string>
 
@@ -27,7 +28,9 @@ namespace presence {
 
 // Reserved Action types when the field type is kActionFieldType.
 // The values are bit numbers in BE ordering.
+// TODO(b/338107166): these are out of date, need to be updated to latest spec
 enum class ActionBit {
+  kCallTransferAction = 4,
   kActiveUnlockAction = 8,
   kNearbyShareAction = 9,
   kInstantTetheringAction = 10,
@@ -39,16 +42,24 @@ enum class ActionBit {
   kLastAction
 };
 
+// helpful for enumerating overall all possible action bit types, this must be
+// kept in sync with the above enum
+constexpr std::initializer_list<ActionBit> kAllActionBits = {
+    ActionBit::kCallTransferAction, ActionBit::kActiveUnlockAction,
+    ActionBit::kNearbyShareAction,  ActionBit::kInstantTetheringAction,
+    ActionBit::kPhoneHubAction,     ActionBit::kPresenceManagerAction,
+    ActionBit::kFinderAction,       ActionBit::kFastPairSassAction,
+    ActionBit::kTapToTransferAction};
+
 /** Describes a custom Data element in NP advertisement. */
 class DataElement {
  public:
   // The field types listed below require special processing when generating and
   // parsing NP advertisements.
   static constexpr int kSaltFieldType = 0;
-  static constexpr int kPrivateIdentityFieldType = 1;
-  static constexpr int kTrustedIdentityFieldType = 2;
+  static constexpr int kPrivateGroupIdentityFieldType = 1;
+  static constexpr int kContactsGroupIdentityFieldType = 2;
   static constexpr int kPublicIdentityFieldType = 3;
-  static constexpr int kProvisionedIdentityFieldType = 4;
   static constexpr int kTxPowerFieldType = 5;
   static constexpr int kActionFieldType = 6;
   static constexpr int kModelIdFieldType = 7;

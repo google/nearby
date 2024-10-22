@@ -15,9 +15,11 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_DEVICE_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/interop/device.h"
 #include "internal/proto/credential.pb.h"
@@ -33,13 +35,18 @@ inline constexpr int kEndpointIdLength = 4;
 
 class PresenceDevice : public nearby::NearbyDevice {
   using Metadata = ::nearby::internal::Metadata;
+  using DeviceIdentityMetaData = ::nearby::internal::DeviceIdentityMetaData;
 
  public:
-  explicit PresenceDevice(Metadata metadata) noexcept;
-  explicit PresenceDevice(DeviceMotion device_motion,
-                          Metadata metadata) noexcept;
+  explicit PresenceDevice(absl::string_view endpoint_id) noexcept;
   explicit PresenceDevice(
-      DeviceMotion device_motion, Metadata metadata,
+      DeviceIdentityMetaData device_identity_metadata) noexcept;
+  explicit PresenceDevice(
+      DeviceMotion device_motion,
+      DeviceIdentityMetaData device_identity_metadata) noexcept;
+  explicit PresenceDevice(
+      DeviceMotion device_motion,
+      DeviceIdentityMetaData device_identity_metadata,
       nearby::internal::IdentityType identity_type) noexcept;
   std::string GetEndpointId() const override { return endpoint_id_; }
   std::vector<nearby::ConnectionInfoVariant> GetConnectionInfos()
@@ -61,8 +68,13 @@ class PresenceDevice : public nearby::NearbyDevice {
     return NearbyDevice::Type::kPresenceDevice;
   }
   DeviceMotion GetDeviceMotion() const { return device_motion_; }
-  Metadata GetMetadata() const { return metadata_; }
-  void SetMetadata(const Metadata metadata) { metadata_ = metadata; }
+  DeviceIdentityMetaData GetDeviceIdentityMetadata() const {
+    return device_identity_metadata_;
+  }
+  void SetDeviceIdentityMetaData(
+      const DeviceIdentityMetaData& device_identity_metadata) {
+    device_identity_metadata_ = device_identity_metadata;
+  }
   void SetDecryptSharedCredential(
       const internal::SharedCredential& decrypt_shared_credential) {
     decrypt_shared_credential_ = decrypt_shared_credential;
@@ -77,7 +89,7 @@ class PresenceDevice : public nearby::NearbyDevice {
  private:
   const absl::Time discovery_timestamp_;
   const DeviceMotion device_motion_;
-  Metadata metadata_;
+  DeviceIdentityMetaData device_identity_metadata_;
   std::vector<DataElement> extended_properties_;
   std::vector<PresenceAction> actions_;
   std::string endpoint_id_;
@@ -99,8 +111,8 @@ inline bool operator==(const PresenceDevice& d1, const PresenceDevice& d2) {
         d2.GetDecryptSharedCredential()->SerializeAsString();
   }
   return d1.GetDeviceMotion() == d2.GetDeviceMotion() &&
-         d1.GetMetadata().SerializeAsString() ==
-             d2.GetMetadata().SerializeAsString() &&
+         d1.GetDeviceIdentityMetadata().SerializeAsString() ==
+             d2.GetDeviceIdentityMetadata().SerializeAsString() &&
          d1.GetActions() == d2.GetActions() &&
          d1.GetExtendedProperties() == d2.GetExtendedProperties() &&
          d1.GetIdentityType() == d2.GetIdentityType() &&

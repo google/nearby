@@ -32,10 +32,9 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/nearby_base.h"
 #include "internal/crypto_cros/openssl_util.h"
-#include <openssl/aes.h>
-#include <openssl/evp.h>
+#include <openssl/aead.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 Aead::Aead(AeadAlgorithm algorithm) {
   EnsureOpenSSLInit();
@@ -187,4 +186,4 @@ bool Aead::Open(absl::Span<const uint8_t> plaintext,
   return true;
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

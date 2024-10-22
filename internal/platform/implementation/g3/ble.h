@@ -184,7 +184,7 @@ class BleMedium : public api::BleMedium {
   std::atomic_bool acceptance_thread_running_ = false;
 
   // A thread pool dedicated to wait to complete the accept_loops_runner_.
-  MultiThreadExecutor close_accept_loops_runner_{kMaxConcurrentAcceptLoops};
+  MultiThreadExecutor close_accept_loops_runner_{1};
 
   // A server socket is established when start advertising.
   std::unique_ptr<BleServerSocket> server_socket_;

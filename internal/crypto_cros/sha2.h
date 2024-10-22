@@ -25,7 +25,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // These functions perform SHA-256 operations.
 //
@@ -47,6 +47,6 @@ CRYPTO_EXPORT std::string SHA256HashString(absl::string_view str);
 CRYPTO_EXPORT void SHA256HashString(absl::string_view str, void* output,
                                     size_t len);
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_SHA2_H_

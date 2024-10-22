@@ -109,7 +109,7 @@ bool Ble::StopScanning(const std::string& service_id) {
     return false;
   }
 
-  NEARBY_LOG(INFO, "Stop BLE scanning with service id=%s", service_id.c_str());
+  NEARBY_LOGS(INFO) << "Stop BLE scanning with service id=" << service_id;
   bool ret = medium_.StopScanning(service_id);
   is_scanning_ = false;
   return ret;

@@ -12,12 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "presence/presence_client.h"
+
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/data_types.h"
 #include "presence/presence_device.h"
@@ -27,7 +34,7 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using ::nearby::internal::Metadata;
+using ::nearby::internal::DeviceIdentityMetaData;
 using ::testing::status::StatusIs;
 
 constexpr absl::string_view kMacAddr = "\x4C\x8B\x1D\xCE\xBA\xD1";
@@ -39,15 +46,14 @@ std::unique_ptr<PresenceClient> CreateDefunctPresenceClient() {
   return presence_service.CreatePresenceClient();
 }
 
-Metadata CreateTestMetadata() {
-  Metadata metadata;
-  metadata.set_device_type(internal::DEVICE_TYPE_PHONE);
-  metadata.set_account_name("test_account");
-  metadata.set_device_name("NP test device");
-  metadata.set_user_name("Test user");
-  metadata.set_device_profile_url("test_image.test.com");
-  metadata.set_bluetooth_mac_address(kMacAddr);
-  return metadata;
+DeviceIdentityMetaData CreateTestDeviceIdentityMetaData() {
+  DeviceIdentityMetaData device_identity_metadata;
+  device_identity_metadata.set_device_type(
+      internal::DeviceType::DEVICE_TYPE_PHONE);
+  device_identity_metadata.set_device_name("NP test device");
+  device_identity_metadata.set_bluetooth_mac_address(kMacAddr);
+  device_identity_metadata.set_device_id("\x12\xab\xcd");
+  return device_identity_metadata;
 }
 
 class PresenceClientTest : public testing::Test {
@@ -125,13 +131,13 @@ TEST_F(PresenceClientTest, GettingDeviceWorks) {
   PresenceServiceImpl presence_service;
   std::unique_ptr<PresenceClient> presence_client =
       presence_service.CreatePresenceClient();
-  presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata(), false, "",
-                                             {}, 0, 0, {});
+  presence_service.UpdateDeviceIdentityMetaData(
+      CreateTestDeviceIdentityMetaData(), false, "", {}, 0, 0, {});
   auto device = presence_client->GetLocalDevice();
   ASSERT_NE(device, std::nullopt);
   EXPECT_EQ(device->GetEndpointId().length(), kEndpointIdLength);
-  EXPECT_EQ(device->GetMetadata().SerializeAsString(),
-            CreateTestMetadata().SerializeAsString());
+  EXPECT_EQ(device->GetDeviceIdentityMetadata().SerializeAsString(),
+            CreateTestDeviceIdentityMetaData().SerializeAsString());
 }
 
 TEST_F(PresenceClientTest, TestGettingDeviceDefunct) {

@@ -26,7 +26,7 @@
 #include "internal/crypto_cros/crypto_export.h"
 #include <openssl/base.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 // Encapsulates an elliptic curve (EC) private key. Can be used to generate new
 // keys, export keys to other formats, or to extract a public key.
@@ -91,6 +91,6 @@ class CRYPTO_EXPORT ECPrivateKey {
   bssl::UniquePtr<EVP_PKEY> key_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_EC_PRIVATE_KEY_H_

@@ -15,11 +15,13 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_WEAVE_PACKET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_WEAVE_PACKET_H_
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {

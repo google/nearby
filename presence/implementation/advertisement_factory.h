@@ -16,10 +16,11 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_ADVERTISEMENT_FACTORY_H_
 
 #include <string>
-#include <vector>
 
 #include "absl/status/statusor.h"
-#include "internal/proto/credential.pb.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "presence/implementation/base_broadcast_request.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 
@@ -39,17 +40,18 @@ class AdvertisementFactory {
   // Returns a BLE advertisement for given `request.
   absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request,
-      absl::optional<LocalCredential> credential) const;
+      absl::optional<LocalCredential> credential) const;  // NOLINT
 
   absl::StatusOr<AdvertisementData> CreateAdvertisement(
       const BaseBroadcastRequest& request) const {
-    return CreateAdvertisement(request, absl::optional<LocalCredential>());
+    return CreateAdvertisement(request,
+                               absl::optional<LocalCredential>());  // NOLINT
   }
 
  private:
   absl::StatusOr<AdvertisementData> CreateBaseNpAdvertisement(
       const BaseBroadcastRequest& request,
-      absl::optional<LocalCredential> credential) const;
+      absl::optional<LocalCredential> credential) const;  // NOLINT
   absl::StatusOr<std::string> EncryptDataElements(
       const LocalCredential& credential, absl::string_view salt,
       absl::string_view data_elements) const;

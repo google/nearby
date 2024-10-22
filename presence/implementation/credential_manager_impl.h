@@ -43,7 +43,7 @@ namespace presence {
 class CredentialManagerImpl : public CredentialManager {
  public:
   using IdentityType = ::nearby::internal::IdentityType;
-  using Metadata = ::nearby::internal::Metadata;
+  using DeviceIdentityMetaData = ::nearby::internal::DeviceIdentityMetaData;
 
   explicit CredentialManagerImpl(SingleThreadExecutor* executor)
       : executor_(ABSL_DIE_IF_NULL(executor)) {
@@ -67,7 +67,8 @@ class CredentialManagerImpl : public CredentialManager {
   static constexpr int kAesGcmIVSize = 12;
 
   void GenerateCredentials(
-      const Metadata& metadata, absl::string_view manager_app_id,
+      const DeviceIdentityMetaData& device_identity_metadata,
+      absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
@@ -111,43 +112,47 @@ class CredentialManagerImpl : public CredentialManager {
 
   void UnsubscribeFromPublicCredentials(SubscriberId id) override;
 
-  std::string DecryptMetadata(absl::string_view metadata_encryption_key,
-                              absl::string_view key_seed,
-                              absl::string_view metadata_string) override;
+  std::string DecryptDeviceIdentityMetaData(
+      absl::string_view metadata_encryption_key, absl::string_view key_seed,
+      absl::string_view metadata_string) override;
 
   std::pair<nearby::internal::LocalCredential,
             nearby::internal::SharedCredential>
-  CreateLocalCredential(const Metadata& metadata, IdentityType identity_type,
-                        absl::Time start_time, absl::Time end_time);
+  CreateLocalCredential(const DeviceIdentityMetaData& device_identity_metadata,
+                        IdentityType identity_type, absl::Time start_time,
+                        absl::Time end_time);
 
   nearby::internal::SharedCredential CreatePublicCredential(
       const nearby::internal::LocalCredential& private_credential,
-      const Metadata& metadata, const std::vector<uint8_t>& public_key);
+      const DeviceIdentityMetaData& device_identity_metadata,
+      const std::vector<uint8_t>& public_key);
 
-  virtual std::string EncryptMetadata(absl::string_view metadata_encryption_key,
-                                      absl::string_view key_seed,
-                                      absl::string_view metadata_string);
+  virtual std::string EncryptDeviceIdentityMetaData(
+      absl::string_view metadata_encryption_key, absl::string_view key_seed,
+      absl::string_view metadata_string);
 
   // Extend the key from 16 bytes to 32 bytes.
   std::vector<uint8_t> ExtendMetadataEncryptionKey(
       absl::string_view metadata_encryption_key);
 
-  void SetLocalDeviceMetadata(
-      const Metadata& metadata, bool regen_credentials,
-      absl::string_view manager_app_id,
+  void SetDeviceIdentityMetaData(
+      const DeviceIdentityMetaData& device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override {
-    metadata_ = metadata;
+    device_identity_metadata_ = device_identity_metadata;
     if (regen_credentials) {
-      GenerateCredentials(
-          metadata, manager_app_id, identity_types, credential_life_cycle_days,
-          contiguous_copy_of_credentials, std::move(credentials_generated_cb));
+      GenerateCredentials(device_identity_metadata, manager_app_id,
+                          identity_types, credential_life_cycle_days,
+                          contiguous_copy_of_credentials,
+                          std::move(credentials_generated_cb));
     }
   }
 
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
-    return metadata_;
+  ::nearby::internal::DeviceIdentityMetaData GetDeviceIdentityMetaData()
+      override {
+    return device_identity_metadata_;
   }
 
  private:
@@ -206,6 +211,23 @@ class CredentialManagerImpl : public CredentialManager {
           callback_for_local_credentials,
       std::optional<GetPublicCredentialsResultCallback>
           callback_for_shared_credentials);
+  void RefillRemainingValidCredentialsWithNewCredentials(
+      const CredentialSelector& credential_selector,
+      std::vector<nearby::internal::LocalCredential> valid_local_credentials,
+      std::vector<nearby::internal::SharedCredential> valid_shared_credentials,
+      int64_t start_time_to_generate_new_credentials_millis,
+      std::optional<GetLocalCredentialsResultCallback>
+          callback_for_local_credentials,
+      std::optional<GetPublicCredentialsResultCallback>
+          callback_for_shared_credentials);
+  void OnCredentialRefillComplete(
+      absl::Status save_credentials_status,
+      std::vector<nearby::internal::LocalCredential> valid_local_credentials,
+      std::vector<nearby::internal::SharedCredential> valid_shared_credentials,
+      std::optional<GetLocalCredentialsResultCallback>
+          callback_for_local_credentials,
+      std::optional<GetPublicCredentialsResultCallback>
+          callback_for_shared_credentials);
 
   void OnCredentialsChanged(absl::string_view manager_app_id,
                             absl::string_view account_name,
@@ -231,7 +253,7 @@ class CredentialManagerImpl : public CredentialManager {
       ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
   std::unique_ptr<nearby::CredentialStorageImpl> credential_storage_ptr_;
-  Metadata metadata_;
+  DeviceIdentityMetaData device_identity_metadata_;
 };
 
 }  // namespace presence

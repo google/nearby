@@ -99,8 +99,7 @@ class FakeProvider {
     seeker_medium.StartDiscovery(BluetoothClassicMedium::DiscoveryCallback{
         .device_discovered_cb =
             [&](BluetoothDevice& device) {
-              NEARBY_LOG(INFO, "Device discovered: %s",
-                         device.GetName().c_str());
+              NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
               found_latch.CountDown();
             },
     });

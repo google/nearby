@@ -145,8 +145,14 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BleMedium::ScanningCallback callback) {
+  absl::MutexLock lock(&peripherals_mutex_);
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   scanning_cb_ = std::move(callback);
+
+  // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
+  // map every time we stopped a scan, we would not be able to connect to peripherals that we
+  // discovered in that scan session.
+  peripherals_.clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -171,8 +177,14 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
 
 bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                               api::ble_v2::BleMedium::ScanCallback callback) {
+  absl::MutexLock lock(&peripherals_mutex_);
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   scan_cb_ = std::move(callback);
+
+  // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
+  // map every time we stopped a scan, we would not be able to connect to peripherals that we
+  // discovered in that scan session.
+  peripherals_.clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];

@@ -48,6 +48,7 @@ constexpr absl::string_view kWifiDirectPassword = "WIFIDIRECT123456";
 constexpr absl::string_view kGateway = "192.168.1.1";
 constexpr int kWifiDirectFrequency = 2412;
 constexpr int kPort = 1000;
+constexpr int kHotspotFrequency = 2412;
 constexpr bool kSupportsDisablingEncryption = true;
 constexpr std::array<Medium, 9> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
@@ -109,7 +110,24 @@ TEST_F(OfflineFramesConnectionRequestTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST_F(OfflineFramesConnectionRequestTest,
+       ValidatesAsFailWithEmptyEndpointIdInConnectionRequestFrame) {
+  connection_info_.local_endpoint_id = "";
+  ByteArray bytes = ForConnectionRequestConnections({}, connection_info_);
+  location::nearby::connections::OfflineFrame frame;
+  frame.ParseFromString(bytes.AsStringView());
+  frame.mutable_v1()->mutable_connection_request()->set_endpoint_id("");
+  ASSERT_TRUE(frame.v1().connection_request().has_endpoint_id());
+
+  OfflineFrame offline_frame;
+  offline_frame.ParseFromString(frame.SerializeAsString());
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST_F(OfflineFramesConnectionRequestTest,
@@ -156,7 +174,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info);
+  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info,
+                                          /*multiplex_socket_bitmask=*/0);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -169,7 +188,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info);
+  ByteArray bytes = ForConnectionResponse(kStatusAccepted, os_info,
+                                          /*multiplex_socket_bitmask=*/0);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
@@ -185,7 +205,8 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   OsInfo os_info;
-  ByteArray bytes = ForConnectionResponse(-1, os_info);
+  ByteArray bytes =
+      ForConnectionResponse(-1, os_info, /*multiplex_socket_bitmask=*/0);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -288,7 +309,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsFailedTypeFileWithIllegalFilePath) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
 }
 
 TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
@@ -313,7 +334,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkTypeFileWithLegalParentFolder) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -339,8 +360,9 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.value == Exception::kIllegalCharacters);
+  EXPECT_EQ(ret_value.value, Exception::kIllegalCharacters);
 }
+
 TEST(OfflineFramesValidatorTest, ValidatesAsFailWithNullPayloadTransferFrame) {
   PayloadTransferFrame::PayloadHeader header;
   PayloadTransferFrame::PayloadChunk chunk;
@@ -358,7 +380,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsFailWithNullPayloadTransferFrame) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -383,7 +405,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -404,7 +426,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -429,7 +451,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -450,7 +472,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -471,7 +493,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -497,7 +519,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -522,7 +544,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -542,7 +564,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -562,7 +584,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -570,13 +592,13 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort,
+      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
       std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -584,7 +606,7 @@ TEST(OfflineFramesValidatorTest,
   OfflineFrame offline_frame;
 
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort,
+      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
       std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
@@ -593,7 +615,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest, ValidatesAsOkBandwidthUpgradeWifiDirect) {
@@ -607,7 +629,7 @@ TEST(OfflineFramesValidatorTest, ValidatesAsOkBandwidthUpgradeWifiDirect) {
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -623,7 +645,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 
   // But -1 itself is not invalid
   bytes = ForBwuWifiDirectPathAvailable(
@@ -633,7 +655,7 @@ TEST(OfflineFramesValidatorTest,
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
-  ASSERT_TRUE(ret_value.Ok());
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -650,7 +672,7 @@ TEST(OfflineFramesValidatorTest,
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame_1);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 
   std::string wifi_direct_ssid_wrong_length =
       std::string{kWifiDirectSsid} + "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
@@ -662,7 +684,7 @@ TEST(OfflineFramesValidatorTest,
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
@@ -692,7 +714,7 @@ TEST(OfflineFramesValidatorTest,
 
   ret_value = EnsureValidOfflineFrame(offline_frame_2);
 
-  ASSERT_FALSE(ret_value.Ok());
+  EXPECT_FALSE(ret_value.Ok());
 }
 
 }  // namespace

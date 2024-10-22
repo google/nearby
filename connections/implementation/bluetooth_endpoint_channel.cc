@@ -62,5 +62,12 @@ void BluetoothEndpointChannel::CloseImpl() {
   }
 }
 
+bool BluetoothEndpointChannel::EnableMultiplexSocket() {
+  NEARBY_LOGS(INFO) << "BluetoothEndpointChannel MultiplexSocket will be "
+                       "enabled if the Bluetooth MultiplexSocket is valid";
+  bluetooth_socket_.EnableMultiplexSocket();
+  return true;
+}
+
 }  // namespace connections
 }  // namespace nearby

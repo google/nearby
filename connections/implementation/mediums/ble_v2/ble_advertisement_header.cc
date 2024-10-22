@@ -70,25 +70,22 @@ BleAdvertisementHeader::BleAdvertisementHeader(
               kMinAdvertisementHeaderLength + 2) {
         advertisement_header_bytes = ble_advertisement_header_bytes;
       } else {
-        NEARBY_LOG(WARNING,
-                   "Cannot deserialize BLEAdvertisementHeader. Invalid "
-                   "advertising data.");
+        NEARBY_VLOG(1) << "Cannot deserialize BLEAdvertisementHeader. "
+                          "Invalid advertising data.";
         return;
       }
     } else {
-      NEARBY_LOG(
-          ERROR,
-          "Cannot deserialize BLEAdvertisementHeader: failed Base64 decoding");
+      NEARBY_LOGS(ERROR) << "Cannot deserialize BLEAdvertisementHeader: failed "
+                            "Base64 decoding";
       return;
     }
   }
 
   if (advertisement_header_bytes.size() < kMinAdvertisementHeaderLength) {
-    NEARBY_LOG(ERROR,
-               "Cannot deserialize BleAdvertisementHeader: expecting min %u "
-               "raw bytes, got %" PRIu64 " instead",
-               kMinAdvertisementHeaderLength,
-               advertisement_header_bytes.size());
+    NEARBY_LOGS(ERROR)
+        << "Cannot deserialize BleAdvertisementHeader: expecting min "
+        << kMinAdvertisementHeaderLength << "raw bytes, got "
+        << advertisement_header_bytes.size();
     return;
   }
 
@@ -100,10 +97,9 @@ BleAdvertisementHeader::BleAdvertisementHeader(
   version_ =
       static_cast<Version>((version_and_num_slots_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV2) {
-    NEARBY_LOG(
-        ERROR,
-        "Cannot deserialize BleAdvertisementHeader: unsupported Version %d",
-        version_);
+    NEARBY_LOGS(ERROR)
+        << "Cannot deserialize BleAdvertisementHeader: unsupported Version "
+        << static_cast<int>(version_);
     return;
   }
   // The next 1 bit is supposed to be the extended advertisement flag.

@@ -15,8 +15,18 @@
 #ifndef PLATFORM_BASE_SOCKET_H_
 #define PLATFORM_BASE_SOCKET_H_
 
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 
@@ -29,7 +39,79 @@ class Socket {
 
   virtual InputStream& GetInputStream() = 0;
   virtual OutputStream& GetOutputStream() = 0;
-  virtual void Close() = 0;
+  virtual Exception Close() = 0;
+};
+
+class MediumSocket : public Socket {
+ public:
+  explicit MediumSocket(location::nearby::proto::connections::Medium medium)
+      : medium_(medium) {}
+  ~MediumSocket() override = default;
+
+  /** Returns the medium of the socket. */
+  virtual location::nearby::proto::connections::Medium GetMedium() const {
+    return medium_;
+  }
+
+  /** Creates a virtual socket only with outputstream. */
+  virtual MediumSocket* CreateVirtualSocket(OutputStream* outputstream) {
+    return this;
+  }
+
+  /** Creates a virtual socket. */
+  virtual MediumSocket* CreateVirtualSocket(
+      const std::string& salted_service_id_hash_key, OutputStream* outputstream,
+      location::nearby::proto::connections::Medium medium,
+      absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
+          virtual_sockets_ptr) {
+    return this;
+  }
+
+  /** Feeds the received incoming data to the client. */
+  virtual void FeedIncomingData(ByteArray data) {
+//    NEARBY_LOGS(INFO) << "FeedIncomingData: do nothing";
+  }
+
+  /** Returns true if the socket is a virtual socket. */
+  virtual bool IsVirtualSocket() {
+    return false;
+  }
+
+  /** Adds a listener to be invoked when the socket is closed. */
+  void AddOnSocketClosedListener(
+      std::unique_ptr<absl::AnyInvocable<void()>> socket_closed_listener) {
+    socket_closed_listeners_.insert(std::move(socket_closed_listener));
+  }
+
+  /** Adds a listener to be invoked when the multiplex socket is enabled. */
+  void RegisterMultiplexEnabledCallback(
+      std::shared_ptr<absl::AnyInvocable<void()>> callback) {
+    multiplex_socket_enabled_cbs_.insert(std::move(callback));
+  }
+
+  /** Enables the multiplex socket. */
+  void EnableMultiplexSocket() {
+    if (!IsVirtualSocket()) {
+      return;
+    }
+    for (auto& callback : multiplex_socket_enabled_cbs_) {
+      (*callback)();
+    }
+  }
+
+  /** Closes the local socket. */
+  void CloseLocal() {
+    for (auto& listener : socket_closed_listeners_) {
+      (*listener)();
+    }
+  }
+
+ private:
+  location::nearby::proto::connections::Medium medium_;
+  absl::flat_hash_set<std::shared_ptr<absl::AnyInvocable<void()>>>
+      socket_closed_listeners_;
+  absl::flat_hash_set<std::shared_ptr<absl::AnyInvocable<void()>>>
+      multiplex_socket_enabled_cbs_;
 };
 
 }  // namespace nearby

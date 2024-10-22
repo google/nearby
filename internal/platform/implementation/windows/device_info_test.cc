@@ -14,11 +14,8 @@
 
 #include "internal/platform/implementation/windows/device_info.h"
 
-#include <functional>
-#include <string>
 
 #include "gtest/gtest.h"
-#include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
@@ -37,21 +34,10 @@ TEST(DeviceInfo, GetOsType) {
   EXPECT_EQ(DeviceInfo().GetOsType(), api::DeviceInfo::OsType::kWindows);
 }
 
-TEST(DeviceInfo, DISABLED_GetFullName) {
-  EXPECT_TRUE(DeviceInfo().GetFullName().has_value());
-}
-
 TEST(DeviceInfo, DISABLED_GetGivenName) {
   EXPECT_TRUE(DeviceInfo().GetGivenName().has_value());
 }
 
-TEST(DeviceInfo, DISABLED_GetLastName) {
-  EXPECT_TRUE(DeviceInfo().GetLastName().has_value());
-}
-
-TEST(DeviceInfo, DISABLED_GetProfileUserName) {
-  EXPECT_TRUE(DeviceInfo().GetProfileUserName().has_value());
-}
 
 TEST(DeviceInfo, DISABLED_GetLocalAppDataPath) {
   EXPECT_TRUE(DeviceInfo().GetLocalAppDataPath().has_value());

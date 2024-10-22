@@ -1,0 +1,106 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package location.nearby.proto.connections;
+
+// import "logs/proto/logs_annotations/logs_annotations.proto";
+
+// option (logs_proto.file_not_used_for_logging_except_enums) = true;
+option optimize_for = LITE_RUNTIME;
+option java_package = "com.google.location.nearby.proto";
+option java_outer_classname = "ConnectionsWestworldEnums";
+
+// LINT.IfChange
+
+// An indication of the client using the Nearby Connections library.
+enum ConnectionsClient {
+  CONNECTIONS_CLIENT_UNKNOWN = 0;
+  CONNECTIONS_CLIENT_NEARBY_SHARE = 1;
+  CONNECTIONS_CLIENT_QUICK_START = 2;
+  CONNECTIONS_CLIENT_OTHER_FIRST_PARTY = 3;
+  CONNECTIONS_CLIENT_THIRD_PARTY = 4;
+}
+
+// An identifier for the type of event being reported in a shared proto.
+enum ReportedEventType {
+  NC_EVENT_TYPE_UNSPECIFIED = 0;
+
+  // The client has started discovery.
+  NC_EVENT_TYPE_START_DISCOVERY = 1;
+
+  // The client has stopped discovery.
+  NC_EVENT_TYPE_STOP_DISCOVERY = 2;
+
+  // Logged when discovery is active and an endpoint matching the current
+  // discovery parameters has been found.
+  NC_EVENT_TYPE_ENDPOINT_FOUND = 3;
+
+  // Logged when discovery is active and an endpoint which had previously
+  // matched the current discovery parameters is no longer detected.
+  NC_EVENT_TYPE_ENDPOINT_LOST = 4;
+
+  // A call to the startAdvertising method.
+  NC_EVENT_TYPE_START_ADVERTISING = 5;
+
+  // A call to the stopAdvertising method.
+  NC_EVENT_TYPE_STOP_ADVERTISING = 6;
+
+  // The current discovery options have been modified, for instance to include
+  // a different power level or mediums.
+  NC_EVENT_TYPE_DISCOVERY_OPTIONS_UPDATED = 7;
+
+  // The client has called requestConnection.
+  NC_EVENT_TYPE_ON_REQUEST_CONNECTION = 8;
+
+  // The client has sent a connection request to another endpoint.
+  NC_EVENT_TYPE_ON_CONNECTION_REQUEST_SENT = 9;
+
+  // The client has received a connection request from another endpoint.
+  NC_EVENT_TYPE_ON_CONNECTION_REQUEST_RECEIVED = 10;
+
+  // During connection establishment, the local endpoint has accepted the
+  // connection.
+  NC_EVENT_TYPE_ON_LOCAL_ENDPOINT_ACCEPTED = 11;
+
+  // During connection establishment, the local endpoint has rejected the
+  // connection.
+  NC_EVENT_TYPE_ON_LOCAL_ENDPOINT_REJECTED = 12;
+
+  // During connection establishment, the remote endpoint has accepted the
+  // connection.
+  NC_EVENT_TYPE_ON_REMOTE_ENDPOINT_ACCEPTED = 13;
+
+  // During connection establishment, the remote endpoint has rejected the
+  // connection.
+  NC_EVENT_TYPE_ON_REMOTE_ENDPOINT_REJECTED = 14;
+
+  // A remote endpoint is attempting to connect to the client.
+  NC_EVENT_TYPE_ON_INCOMING_CONNECTION_ATTEMPT = 15;
+
+  // The client is attempting to connect to a remote endpoint.
+  NC_EVENT_TYPE_ON_OUTGOING_CONNECTION_ATTEMPT = 16;
+
+  // A connection has been established.
+  NC_EVENT_TYPE_ON_CONNECTION_ESTABLSHED = 17;
+
+  // A connection has been closed. Note that sometimes a connection is closed
+  // because it is being upgraded to a higher bandwidth Medium.
+  NC_EVENT_TYPE_ON_CONNECTION_CLOSED = 18;
+}
+
+// LINT.ThenChange(
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+// )

@@ -15,8 +15,10 @@
 #include "internal/platform/implementation/windows/executor.h"
 
 #include <cassert>
+#include <cstdint>
 
 #include "internal/platform/logging.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
@@ -32,13 +34,13 @@ Executor::Executor(int32_t max_concurrency)
 
 void Executor::Execute(Runnable&& runnable) {
   if (shut_down_) {
-    NEARBY_LOGS(VERBOSE) << "Warning: " << __func__
-                         << ": Attempt to execute on a shut down pool.";
+    VLOG(1) << "Warning: " << __func__
+            << ": Attempt to execute on a shut down pool.";
     return;
   }
 
   if (runnable == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Runnable was null.";
+    LOG(ERROR) << __func__ << ": Runnable was null.";
     return;
   }
 

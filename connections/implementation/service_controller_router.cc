@@ -19,8 +19,9 @@
 #include <string>
 #include <utility>
 
-#include "absl/memory/memory.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "connections/listeners.h"
 #include "connections/params.h"
@@ -29,6 +30,8 @@
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
 // TODO(b/285657711): Add tests for uncovered logic, even if trivial.
@@ -75,6 +78,7 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
     case location::nearby::proto::connections::WIFI_AWARE:
     case location::nearby::proto::connections::WIFI_DIRECT:
     case location::nearby::proto::connections::WEB_RTC:
+    case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:
       return v3::Quality::kHigh;
     default:
       return v3::Quality::kUnknown;
@@ -83,6 +87,24 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
 
 ServiceControllerRouter::ServiceControllerRouter() {
   NEARBY_LOGS(INFO) << "ServiceControllerRouter going up.";
+}
+
+// Constructor called by the CrOS platform implementation to override the
+// kEnableBleV2 flag.
+ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
+    : ServiceControllerRouter() {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleV2) !=
+      enable_ble_v2) {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleV2,
+        enable_ble_v2);
+    // CrOS uses the async signature for Scanning and has no support for the
+    // sync version.
+    // TODO(b/333408829): Enable async advertising flag once supported.
+    const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
+        .SetFlags({.enable_ble_v2_async_scanning = true});
+  }
 }
 
 ServiceControllerRouter::~ServiceControllerRouter() {
@@ -127,19 +149,20 @@ void ServiceControllerRouter::StopAdvertising(ClientProxy* client,
 
 void ServiceControllerRouter::StartDiscovery(
     ClientProxy* client, absl::string_view service_id,
-    const DiscoveryOptions& discovery_options,
-    const DiscoveryListener& listener, ResultCallback callback) {
+    const DiscoveryOptions& discovery_options, DiscoveryListener listener,
+    ResultCallback callback) {
   RouteToServiceController(
       "scr-start-discovery",
       [this, client, service_id = std::string(service_id), discovery_options,
-       listener, callback = std::move(callback)]() mutable {
+       listener = std::move(listener),
+       callback = std::move(callback)]() mutable {
         if (client->IsDiscovering()) {
           callback({Status::kAlreadyDiscovering});
           return;
         }
 
         callback(GetServiceController()->StartDiscovery(
-            client, service_id, discovery_options, listener));
+            client, service_id, discovery_options, std::move(listener)));
       });
 }
 
@@ -400,10 +423,10 @@ void ServiceControllerRouter::RequestConnectionV3(
   client->AddCancellationFlag(remote_device.GetEndpointId());
 
   RouteToServiceController(
-      "scr-request-connection",
-      [this, client, endpoint_id = remote_device.GetEndpointId(),
-       v3_info = std::move(info), connection_options,
-       callback = std::move(callback)]() mutable {
+      "scr-request-connection-v3",
+      [this, client, &remote_device, v3_info = std::move(info),
+       connection_options, callback = std::move(callback)]() mutable {
+        std::string endpoint_id = remote_device.GetEndpointId();
         if (client->HasPendingConnectionToEndpoint(endpoint_id) ||
             client->IsConnectedToEndpoint(endpoint_id)) {
           callback({Status::kAlreadyConnectedToEndpoint});
@@ -420,7 +443,7 @@ void ServiceControllerRouter::RequestConnectionV3(
 
         ConnectionListener listener = {
             .initiated_cb =
-                [&v3_info](
+                [&v3_info, &remote_device](
                     const std::string& endpoint_id,
                     const ConnectionResponseInfo& response_info) mutable {
                   v3::InitialConnectionInfo new_info = {
@@ -430,11 +453,10 @@ void ServiceControllerRouter::RequestConnectionV3(
                           response_info.raw_authentication_token.string_data(),
                       .is_incoming_connection =
                           response_info.is_incoming_connection,
+                      .authentication_status =
+                          response_info.authentication_status,
                   };
-                  v3::ConnectionsDevice device(
-                      endpoint_id,
-                      response_info.remote_endpoint_info.AsStringView(), {});
-                  v3_info.listener.initiated_cb(device, new_info);
+                  v3_info.listener.initiated_cb(remote_device, new_info);
                 },
             .accepted_cb =
                 [result_cb = v3_info.listener.result_cb](
@@ -473,8 +495,8 @@ void ServiceControllerRouter::RequestConnectionV3(
             .endpoint_info = ByteArray(endpoint_info),
             .listener = std::move(listener),
         };
-        Status status = GetServiceController()->RequestConnection(
-            client, endpoint_id, std::move(old_info), connection_options);
+        Status status = GetServiceController()->RequestConnectionV3(
+            client, remote_device, std::move(old_info), connection_options);
         if (!status.Ok()) {
           NEARBY_LOGS(WARNING) << "Unable to request connection to endpoint "
                                << endpoint_id << ": " << status.ToString();

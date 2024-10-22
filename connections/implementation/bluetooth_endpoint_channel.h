@@ -33,6 +33,7 @@ class BluetoothEndpointChannel final : public BaseEndpointChannel {
   location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
+  bool EnableMultiplexSocket() override;
 
  private:
   static constexpr int kDefaultBTMaxTransmitPacketSize = 1980;  // 990 * 2 Bytes

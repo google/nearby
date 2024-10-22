@@ -24,7 +24,6 @@
 #include "gtest/gtest.h"
 #include "absl/functional/bind_front.h"
 #include "fastpair//handshake/fast_pair_handshake_lookup.h"
-#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/common/pair_failure.h"
 #include "fastpair/crypto/decrypted_passkey.h"
 #include "fastpair/crypto/decrypted_response.h"
@@ -37,13 +36,11 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/proto/fastpair_rpcs.proto.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
-#include "internal/account/fake_account_manager.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/task_runner_impl.h"
-#include "internal/test/google3_only/fake_authentication_manager.h"
+#include "internal/test/fake_account_manager.h"
 
 namespace nearby {
 namespace fastpair {
@@ -180,19 +177,13 @@ class PairerBrokerImplTest : public testing::Test {
   PairerBrokerImplTest() {
     FastPairDataEncryptorImpl::Factory::SetFactoryForTesting(
         &fake_data_encryptor_factory_);
-    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
-    preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
-        kFastPairPreferencesFilePath);
-    authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
   }
 
   void SetUp() override {
     env_.Start();
     // Setups seeker device.
     mediums_ = std::make_unique<Mediums>();
-    account_manager_ = std::make_unique<FakeAccountManager>(
-        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
-        authentication_manager_.get(), task_runner_.get());
+    account_manager_ = std::make_unique<FakeAccountManager>();
 
     // Setups provider device.
     adapter_provider_ = std::make_unique<BluetoothAdapter>();
@@ -416,9 +407,6 @@ class PairerBrokerImplTest : public testing::Test {
  private:
   MediumEnvironment& env_{MediumEnvironment::Instance()};
   Mutex mutex_;
-  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
-  std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
-  std::unique_ptr<TaskRunner> task_runner_;
   std::unique_ptr<BluetoothClassicMedium> bt_provider_;
   std::unique_ptr<BluetoothAdapter> adapter_provider_;
   std::unique_ptr<GattServer> gatt_server_;

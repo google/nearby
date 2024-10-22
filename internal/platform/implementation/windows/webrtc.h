@@ -15,10 +15,15 @@
 #ifndef PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 #define PLATFORM_IMPL_WINDOWS_WEBRTC_H_
 
+#include <memory>
+#include <optional>
 #include <string>
 
-#include "internal/account/account_manager.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
+#include "webrtc/api/peer_connection_interface.h"
 
 namespace nearby {
 namespace windows {
@@ -62,6 +67,13 @@ class WebRtcMedium : public api::WebRtcMedium {
   // |callback|.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
                             PeerConnectionCallback callback) override;
+
+  // Creates and returns a new webrtc::PeerConnectionInterface object via
+  // |callback| with |PeerConnectionFactoryInterface::Options|.
+  void CreatePeerConnection(
+      std::optional<webrtc::PeerConnectionFactoryInterface::Options> options,
+      webrtc::PeerConnectionObserver* observer,
+      PeerConnectionCallback callback) override;
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
   // TODO(b/261663238): replace with real implementation.

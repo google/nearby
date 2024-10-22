@@ -20,9 +20,12 @@
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/base_input_stream.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -81,92 +84,85 @@ void BleAdvertisement::DoInitialize(bool fast_advertisement, Version version,
   psm_ = psm;
 }
 
-BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
+absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
+    const ByteArray &ble_advertisement_bytes) {
   if (ble_advertisement_bytes.Empty()) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BleAdvertisement: null bytes passed in.");
-    return;
+    return absl::InvalidArgumentError(
+        "Cannot deserialize BleAdvertisement: null bytes passed in.");
   }
 
   if (ble_advertisement_bytes.size() < kVersionLength) {
-    NEARBY_LOG(
-        INFO,
-        "Cannot deserialize BleAdvertisement: expecting min %d raw bytes to "
-        "parse the version, got %" PRIu64,
-        kVersionLength, ble_advertisement_bytes.size());
-    return;
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Cannot deserialize BleAdvertisement: expecting min ", kVersionLength,
+        " bytes, got ", ble_advertisement_bytes.size()));
   }
 
-  ByteArray advertisement_bytes{ble_advertisement_bytes};
-  BaseInputStream base_input_stream{advertisement_bytes};
+  ByteArray advertisement_bytes(ble_advertisement_bytes);
+  BaseInputStream base_input_stream(advertisement_bytes);
   // The first 1 byte is supposed to be the version, socket version and the fast
   // advertisement flag.
   auto version_byte = static_cast<char>(base_input_stream.ReadUint8());
 
-  // Version.
-  version_ = static_cast<Version>((version_byte & kVersionBitmask) >> 5);
-  if (!IsSupportedVersion(version_)) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BleAdvertisement: unsupported Version %u",
-               version_);
-    return;
+  Version version = static_cast<Version>((version_byte & kVersionBitmask) >> 5);
+  if (!IsSupportedVersion(version)) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Cannot deserialize BleAdvertisement: unsupported Version ", version));
   }
 
-  // Socket version.
-  socket_version_ =
+  SocketVersion socket_version =
       static_cast<SocketVersion>((version_byte & kSocketVersionBitmask) >> 2);
-  if (!IsSupportedSocketVersion(socket_version_)) {
-    NEARBY_LOG(
-        INFO,
-        "Cannot deserialize BleAdvertisement: unsupported SocketVersion %u",
-        socket_version_);
-    version_ = Version::kUndefined;
-    return;
+  if (!IsSupportedSocketVersion(socket_version)) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Cannot deserialize BleAdvertisement: unsupported SocketVersion ",
+        socket_version));
   }
 
-  // Fast advertisement flag.
-  fast_advertisement_ =
+  bool fast_advertisement =
       static_cast<bool>((version_byte & kFastAdvertisementFlagBitmask) >> 1);
 
   // The next 3 bytes are supposed to be the service_id_hash if not fast
   // advertisement.
-  if (!fast_advertisement_) {
-    service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+  ByteArray service_id_hash;
+  if (!fast_advertisement) {
+    service_id_hash = base_input_stream.ReadBytes(kServiceIdHashLength);
   }
 
   // Data length.
   int expected_data_size =
-      fast_advertisement_
+      fast_advertisement
           ? static_cast<int>(
                 base_input_stream.ReadBytes(kFastDataSizeLength).data()[0])
           : static_cast<int>(base_input_stream.ReadUint32());
   if (expected_data_size < 0) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BleAdvertisement: negative data size %d",
-               expected_data_size);
-    version_ = Version::kUndefined;
-    return;
+    return absl::InvalidArgumentError(
+        absl::StrCat("Cannot deserialize BleAdvertisement: negative data size ",
+                     expected_data_size));
   }
 
   // Data.
   // Check that the stated data size is the same as what we received.
-  data_ = base_input_stream.ReadBytes(expected_data_size);
-  if (data_.size() != expected_data_size) {
-    NEARBY_LOG(INFO,
-               "Cannot deserialize BleAdvertisement: expected data to be %u "
-               "bytes, got %" PRIu64 " bytes ",
-               expected_data_size, data_.size());
-    version_ = Version::kUndefined;
-    return;
+  auto data = base_input_stream.ReadBytes(expected_data_size);
+  if (data.size() != expected_data_size) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Cannot deserialize BleAdvertisement: expected data to be ",
+        expected_data_size, " bytes, got ", data.size()));
   }
+
+  BleAdvertisement ble_advertisement;
+  ble_advertisement.version_ = version;
+  ble_advertisement.socket_version_ = socket_version;
+  ble_advertisement.fast_advertisement_ = fast_advertisement;
+  ble_advertisement.service_id_hash_ = service_id_hash;
+  ble_advertisement.data_ = data;
 
   // Device token. If the number of remaining bytes are valid for device token,
   // then read it.
   if (base_input_stream.IsAvailable(kDeviceTokenLength)) {
-    device_token_ = base_input_stream.ReadBytes(kDeviceTokenLength);
+    ble_advertisement.device_token_ =
+        base_input_stream.ReadBytes(kDeviceTokenLength);
   } else {
     // No device token no more optional field.
-    return;
+    return ble_advertisement;
   }
 
   // Extra fields, for backward compatible reason, put this field in the end of
@@ -178,8 +174,9 @@ BleAdvertisement::BleAdvertisement(const ByteArray &ble_advertisement_bytes) {
   if (base_input_stream.IsAvailable(extra_fields_byte_number)) {
     BleExtraFields extra_fields{
         base_input_stream.ReadBytes(extra_fields_byte_number)};
-    psm_ = extra_fields.GetPsm();
+    ble_advertisement.psm_ = extra_fields.GetPsm();
   }
+  return ble_advertisement;
 }
 
 BleAdvertisement::operator ByteArray() const {
@@ -243,12 +240,11 @@ bool BleAdvertisement::operator==(const BleAdvertisement &rhs) const {
          this->GetPsm() == rhs.GetPsm();
 }
 
-bool BleAdvertisement::IsSupportedVersion(Version version) const {
+bool BleAdvertisement::IsSupportedVersion(Version version) {
   return version >= Version::kV1 && version <= Version::kV2;
 }
 
-bool BleAdvertisement::IsSupportedSocketVersion(
-    SocketVersion socket_version) const {
+bool BleAdvertisement::IsSupportedSocketVersion(SocketVersion socket_version) {
   return socket_version >= SocketVersion::kV1 &&
          socket_version <= SocketVersion::kV2;
 }

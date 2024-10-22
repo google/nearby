@@ -16,8 +16,10 @@
 #define PLATFORM_BASE_NSD_SERVICE_INFO_H_
 
 #include <string>
+#include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
 
@@ -63,7 +65,7 @@ class NsdServiceInfo {
 
   // Sets all TXTRecord.
   void SetTxtRecords(
-      absl::flat_hash_map<std::string, std::string>& txt_records) {
+      const absl::flat_hash_map<std::string, std::string>& txt_records) {
     txt_records_ = txt_records;
   }
 

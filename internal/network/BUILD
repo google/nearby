@@ -1,21 +1,26 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 licenses(["notice"])
 
 cc_library(
-    name = "types",
+    name = "url",
     srcs = [
-        "http_request.cc",
-        "http_response.cc",
-        "http_status_code.cc",
         "url.cc",
         "utils.cc",
     ],
     hdrs = [
-        "http_body.h",
-        "http_client.h",
-        "http_client_factory.h",
-        "http_request.h",
-        "http_response.h",
-        "http_status_code.h",
         "url.h",
         "utils.h",
     ],
@@ -24,11 +29,43 @@ cc_library(
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "types",
+    srcs = [
+        "http_request.cc",
+        "http_response.cc",
+        "http_status_code.cc",
+    ],
+    hdrs = [
+        "http_body.h",
+        "http_client.h",
+        "http_client_factory.h",
+        "http_request.h",
+        "http_response.h",
+        "http_status_code.h",
+    ],
+    visibility = [
+        "//fastpair:__subpackages__",
+        "//internal:__pkg__",
+        "//internal:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+    deps = [
+        ":url",
         "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -50,19 +87,17 @@ cc_library(
         "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":types",
         "//internal/platform:types",
-        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:comm",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -82,9 +117,10 @@ cc_test(
     deps = [
         ":nearby_http_client",
         ":types",
+        ":url",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
-        "//internal/platform/implementation/g3",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",

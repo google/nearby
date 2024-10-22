@@ -15,13 +15,16 @@
 #ifndef PLATFORM_PUBLIC_DEVICE_INFO_IMPL_H_
 #define PLATFORM_PUBLIC_DEVICE_INFO_IMPL_H_
 
-#include <filesystem>
+#include <cstddef>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/device_info.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/platform.h"
 
 namespace nearby {
@@ -31,18 +34,16 @@ class DeviceInfoImpl : public DeviceInfo {
   DeviceInfoImpl()
       : device_info_impl_(api::ImplementationPlatform::CreateDeviceInfo()) {}
 
-  std::u16string GetOsDeviceName() const override;
+  std::string GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::optional<std::u16string> GetFullName() const override;
-  std::optional<std::u16string> GetGivenName() const override;
-  std::optional<std::u16string> GetLastName() const override;
-  std::optional<std::string> GetProfileUserName() const override;
+  std::optional<std::string> GetGivenName() const override;
 
   std::filesystem::path GetDownloadPath() const override;
   std::filesystem::path GetAppDataPath() const override;
   std::filesystem::path GetTemporaryPath() const override;
+  std::filesystem::path GetLogPath() const override;
 
   std::optional<size_t> GetAvailableDiskSpaceInBytes(
       const std::filesystem::path& path) const override;

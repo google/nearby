@@ -57,6 +57,8 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
   return WebRtcSocketWrapper();
 }
 
+bool WebRtc::IsUsingCellular() { return false; }
+
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

@@ -14,12 +14,9 @@
 #ifndef PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #define PLATFORM_IMPL_WINDOWS_MUTEX_H_
 #include <stdio.h>
-#include <synchapi.h>
 
-#include <memory>
 #include <mutex>  //  NOLINT
 
-#include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
 
@@ -59,7 +56,7 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
   std::recursive_mutex& GetRecursiveMutex() { return recursive_mutex_; }
 
  private:
-  friend class ConditionVariable;
+  friend class ::nearby::ConditionVariable;
   absl::Mutex mutex_;
   std::recursive_mutex recursive_mutex_;  //  The actual mutex allocation
   Mode mode_;

@@ -15,10 +15,12 @@
 #include "presence/implementation/action_factory.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "internal/platform/logging.h"
+#include "presence/data_element.h"
+#include "presence/implementation/base_broadcast_request.h"
 
 namespace nearby {
 namespace presence {
@@ -33,7 +35,7 @@ namespace {
 int GetActionMask(ActionBit action) {
   int bit = static_cast<int>(action);
   if (bit < 0 || bit >= kActionSizeInBits) {
-    NEARBY_LOG(WARNING, "Unsupported action %d", static_cast<int>(action));
+    NEARBY_LOGS(WARNING) << "Unsupported action " << static_cast<int>(action);
     return kEmptyMask;
   }
   return 1 << (kActionSizeInBits - 1 - bit);
@@ -52,20 +54,20 @@ int GetMask(const DataElement& element) {
       if (!value.empty()) {
         return (value[0] & kContentTimestampMask) << kContentTimestampShift;
       } else {
-        NEARBY_LOG(WARNING, "Context timestamp Data Element without value");
+        NEARBY_LOGS(WARNING) << "Context timestamp Data Element without value";
         return kEmptyMask;
       }
     }
     case DataElement::kActionFieldType: {
       if (element.GetValue().empty()) {
-        NEARBY_LOG(WARNING, "Action Data Element without value");
+        NEARBY_LOGS(WARNING) << "Action Data Element without value";
         return kEmptyMask;
       }
       return GetActionMask(ActionBit(element.GetValue()[0]));
     }
   }
-  NEARBY_LOG(WARNING, "Data Element 0x%x not supported in base advertisement",
-             type);
+  NEARBY_LOGS(WARNING) << "Data Element " << type
+                       << " not supported in base advertisement";
   return kEmptyMask;
 }
 

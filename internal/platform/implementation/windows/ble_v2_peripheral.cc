@@ -35,7 +35,7 @@ BleV2Peripheral::BleV2Peripheral(absl::string_view address) {
 bool BleV2Peripheral::SetAddress(absl::string_view address) {
   // The address must be in format "00:B0:D0:63:C2:26".
   if (address.size() != kMacAddressLength) {
-    NEARBY_LOGS(ERROR) << ": Invalid MAC address length.";
+    LOG(ERROR) << ": Invalid MAC address length.";
     return false;
   }
 
@@ -52,7 +52,7 @@ bool BleV2Peripheral::SetAddress(absl::string_view address) {
       }
     }
 
-    NEARBY_LOGS(ERROR) << ": Invalid MAC address format.";
+    LOG(ERROR) << ": Invalid MAC address format.";
     return false;
   }
 

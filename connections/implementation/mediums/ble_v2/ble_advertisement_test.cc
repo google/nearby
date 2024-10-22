@@ -17,8 +17,13 @@
 #include <algorithm>
 #include <string>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
@@ -39,6 +44,9 @@ constexpr absl::string_view kDeviceToken{"\x04\x20"};
 constexpr size_t kAdvertisementLength = 77;
 constexpr size_t kFastAdvertisementLength = 16;
 constexpr size_t kLongAdvertisementLength = kAdvertisementLength + 1000;
+
+using ::absl::StatusCode::kInvalidArgument;
+using ::testing::status::StatusIs;
 
 TEST(BleAdvertisementTest, ConstructionWorksV1) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
@@ -224,7 +232,11 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWorks) {
       kVersion, kSocketVersion, service_id_hash, data, device_token};
 
   ByteArray ble_advertisement_bytes{original_ble_advertisement};
-  BleAdvertisement ble_advertisement{ble_advertisement_bytes};
+
+  auto ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(ble_advertisement_bytes);
+  ASSERT_OK(ble_advertisement_status_or.status());
+  auto ble_advertisement = ble_advertisement_status_or.value();
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -245,7 +257,11 @@ TEST(BleAdvertisementTest,
       kVersion, kSocketVersion, ByteArray{}, fast_data, device_token};
 
   ByteArray ble_advertisement_bytes{original_ble_advertisement};
-  BleAdvertisement ble_advertisement{ble_advertisement_bytes};
+
+  auto ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(ble_advertisement_bytes);
+  ASSERT_OK(ble_advertisement_status_or.status());
+  auto ble_advertisement = ble_advertisement_status_or.value();
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_TRUE(ble_advertisement.IsFastAdvertisement());
@@ -263,7 +279,11 @@ TEST(BleAdvertisementTest, ConstructionFromSerializedBytesWithEmptyDataWorks) {
   BleAdvertisement original_ble_advertisement{
       kVersion, kSocketVersion, service_id_hash, ByteArray(), device_token};
   ByteArray ble_advertisement_bytes{original_ble_advertisement};
-  BleAdvertisement ble_advertisement{ble_advertisement_bytes};
+
+  auto ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(ble_advertisement_bytes);
+  ASSERT_OK(ble_advertisement_status_or.status());
+  auto ble_advertisement = ble_advertisement_status_or.value();
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -281,7 +301,11 @@ TEST(BleAdvertisementTest,
   BleAdvertisement original_ble_advertisement{
       kVersion, kSocketVersion, ByteArray{}, ByteArray(), device_token};
   ByteArray ble_advertisement_bytes{original_ble_advertisement};
-  BleAdvertisement ble_advertisement{ble_advertisement_bytes};
+
+  auto ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(ble_advertisement_bytes);
+  ASSERT_OK(ble_advertisement_status_or.status());
+  auto ble_advertisement = ble_advertisement_status_or.value();
 
   EXPECT_TRUE(ble_advertisement.IsValid());
   EXPECT_TRUE(ble_advertisement.IsFastAdvertisement());
@@ -310,7 +334,11 @@ TEST(BleAdvertisementTest, ConstructionFromExtraSerializedBytesWorks) {
   // Re-parse the Ble advertisement using our extra long advertisement bytes.
   ByteArray long_ble_advertisement_bytes{raw_ble_advertisement_bytes,
                                          kLongAdvertisementLength};
-  BleAdvertisement long_ble_advertisement{long_ble_advertisement_bytes};
+
+  auto long_ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(long_ble_advertisement_bytes);
+  ASSERT_OK(long_ble_advertisement_status_or.status());
+  auto long_ble_advertisement = long_ble_advertisement_status_or.value();
 
   EXPECT_TRUE(long_ble_advertisement.IsValid());
   EXPECT_FALSE(long_ble_advertisement.IsFastAdvertisement());
@@ -341,7 +369,11 @@ TEST(BleAdvertisementTest,
   // Re-parse the Ble advertisement using our extra long advertisement bytes.
   ByteArray long_ble_advertisement_bytes{raw_ble_advertisement_bytes,
                                          kLongAdvertisementLength};
-  BleAdvertisement long_ble_advertisement{long_ble_advertisement_bytes};
+
+  auto long_ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(long_ble_advertisement_bytes);
+  ASSERT_OK(long_ble_advertisement_status_or.status());
+  auto long_ble_advertisement = long_ble_advertisement_status_or.value();
 
   EXPECT_TRUE(long_ble_advertisement.IsValid());
   EXPECT_TRUE(long_ble_advertisement.IsFastAdvertisement());
@@ -353,9 +385,8 @@ TEST(BleAdvertisementTest,
 }
 
 TEST(BleAdvertisementTest, ConstructionFromNullBytesFails) {
-  BleAdvertisement ble_advertisement{ByteArray{}};
-
-  EXPECT_FALSE(ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(ByteArray()),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest, ConstructionFromShortLengthSerializedBytesFails) {
@@ -370,9 +401,9 @@ TEST(BleAdvertisementTest, ConstructionFromShortLengthSerializedBytesFails) {
   // Cut off the advertisement so that it's too short.
   ByteArray short_ble_advertisement_bytes{
       original_ble_advertisement_bytes.data(), 7};
-  BleAdvertisement short_ble_advertisement{short_ble_advertisement_bytes};
-
-  EXPECT_FALSE(short_ble_advertisement.IsValid());
+  EXPECT_THAT(
+      BleAdvertisement::CreateBleAdvertisement(short_ble_advertisement_bytes),
+      StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest,
@@ -387,9 +418,9 @@ TEST(BleAdvertisementTest,
   // Cut off the advertisement so that it's too short.
   ByteArray short_ble_advertisement_bytes{
       original_ble_advertisement_bytes.data(), 2};
-  BleAdvertisement short_ble_advertisement{short_ble_advertisement_bytes};
-
-  EXPECT_FALSE(short_ble_advertisement.IsValid());
+  EXPECT_THAT(
+      BleAdvertisement::CreateBleAdvertisement(short_ble_advertisement_bytes),
+      StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest,
@@ -415,10 +446,9 @@ TEST(BleAdvertisementTest,
   // Try to parse the Ble advertisement using our corrupted advertisement bytes.
   ByteArray corrupted_ble_advertisement_bytes{raw_ble_advertisement_bytes,
                                               kAdvertisementLength};
-  BleAdvertisement corrupted_ble_advertisement{
-      corrupted_ble_advertisement_bytes};
-
-  EXPECT_FALSE(corrupted_ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(
+                  corrupted_ble_advertisement_bytes),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest,
@@ -443,10 +473,9 @@ TEST(BleAdvertisementTest,
   // Try to parse the Ble advertisement using our corrupted advertisement bytes.
   ByteArray corrupted_ble_advertisement_bytes{raw_ble_advertisement_bytes,
                                               kFastAdvertisementLength};
-  BleAdvertisement corrupted_ble_advertisement{
-      corrupted_ble_advertisement_bytes};
-
-  EXPECT_FALSE(corrupted_ble_advertisement.IsValid());
+  EXPECT_THAT(BleAdvertisement::CreateBleAdvertisement(
+                  corrupted_ble_advertisement_bytes),
+              StatusIs(kInvalidArgument));
 }
 
 TEST(BleAdvertisementTest, ConstructionWorksWithPsmValue) {
@@ -480,7 +509,11 @@ TEST(BleAdvertisementTest,
       kVersion, kSocketVersion, service_id_hash, data, device_token, psm);
   ByteArray ble_advertisement_bytes =
       original_ble_advertisement.ByteArrayWithExtraField();
-  BleAdvertisement ble_advertisement(ble_advertisement_bytes);
+
+  auto ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(ble_advertisement_bytes);
+  ASSERT_OK(ble_advertisement_status_or.status());
+  auto ble_advertisement = ble_advertisement_status_or.value();
 
   ASSERT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());
@@ -505,7 +538,11 @@ TEST(BleAdvertisementTest,
   // But use ByteArrayWithExtraField to restore back. It should fail.
   ByteArray ble_advertisement_bytes =
       original_ble_advertisement.ByteArrayWithExtraField();
-  BleAdvertisement ble_advertisement(ble_advertisement_bytes);
+
+  auto ble_advertisement_status_or =
+      BleAdvertisement::CreateBleAdvertisement(ble_advertisement_bytes);
+  ASSERT_OK(ble_advertisement_status_or.status());
+  auto ble_advertisement = ble_advertisement_status_or.value();
 
   ASSERT_TRUE(ble_advertisement.IsValid());
   EXPECT_FALSE(ble_advertisement.IsFastAdvertisement());

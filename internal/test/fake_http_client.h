@@ -17,13 +17,13 @@
 
 #include <stddef.h>
 
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -39,7 +39,7 @@ class FakeHttpClient : public HttpClient {
  public:
   struct RequestInfo {
     HttpRequest request;
-    std::function<void(const absl::StatusOr<HttpResponse>&)> callback;
+    absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback;
   };
 
   FakeHttpClient() = default;
@@ -51,22 +51,23 @@ class FakeHttpClient : public HttpClient {
   FakeHttpClient(FakeHttpClient&&) = default;
   FakeHttpClient& operator=(FakeHttpClient&&) = default;
 
-  void StartRequest(const HttpRequest& request,
-                    std::function<void(const absl::StatusOr<HttpResponse>&)>
-                        callback) override {
+  void StartRequest(
+      const HttpRequest& request,
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
+      override {
     RequestInfo request_info;
     request_info.request = request;
-    request_info.callback = callback;
+    request_info.callback = std::move(callback);
     request_infos_.push_back(std::move(request_info));
   }
 
   void StartCancellableRequest(
       std::unique_ptr<CancellableRequest> request,
-      std::function<void(const absl::StatusOr<HttpResponse>&)> callback)
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override {
     RequestInfo request_info;
     request_info.request = request->http_request();
-    request_info.callback = callback;
+    request_info.callback = std::move(callback);
     request_infos_.push_back(std::move(request_info));
   }
 
@@ -90,8 +91,8 @@ class FakeHttpClient : public HttpClient {
     if (pos >= request_infos_.size()) {
       return;
     }
-    auto request_info = request_infos_.at(pos);
-    if (request_info.callback != nullptr) {
+    auto& request_info = request_infos_.at(pos);
+    if (request_info.callback) {
       request_info.callback(response);
     }
 

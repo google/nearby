@@ -15,10 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SERVICE_CONTROLLER_H_
 
-#include <memory>
 #include <vector>
 
 #include "absl/status/statusor.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/broadcast_request.h"
 #include "presence/data_types.h"
@@ -48,7 +48,15 @@ class ServiceController {
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) = 0;
-  virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
+  virtual void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
+      const std::vector<nearby::internal::IdentityType>& identity_types,
+      int credential_life_cycle_days, int contiguous_copy_of_credentials,
+      GenerateCredentialsResultCallback credentials_generated_cb) = 0;
+  virtual ::nearby::internal::DeviceIdentityMetaData
+  GetDeviceIdentityMetaData() = 0;
   virtual void GetLocalPublicCredentials(
       const CredentialSelector& credential_selector,
       GetPublicCredentialsResultCallback callback) = 0;
@@ -57,6 +65,9 @@ class ServiceController {
       const std::vector<nearby::internal::SharedCredential>&
           remote_public_creds,
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
+  virtual void GetLocalCredentials(
+      const CredentialSelector& credential_selector,
+      GetLocalCredentialsResultCallback callback) = 0;
 };
 
 }  // namespace presence

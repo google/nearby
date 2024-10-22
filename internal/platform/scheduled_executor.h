@@ -15,8 +15,9 @@
 #ifndef PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
 #define PLATFORM_PUBLIC_SCHEDULED_EXECUTOR_H_
 
-#include <cstdint>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/time/time.h"
@@ -29,7 +30,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/thread_check_callable.h"
 #include "internal/platform/thread_check_runnable.h"
 
 namespace nearby {
@@ -40,9 +40,8 @@ namespace nearby {
 // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledExecutorService.html
 class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
  public:
-  using Platform = api::ImplementationPlatform;
-
-  ScheduledExecutor() : impl_(Platform::CreateScheduledExecutor()) {}
+  ScheduledExecutor()
+      : impl_(api::ImplementationPlatform::CreateScheduledExecutor()) {}
   ScheduledExecutor(ScheduledExecutor&& other) { *this = std::move(other); }
   ~ScheduledExecutor() { DoShutdown(); }
 

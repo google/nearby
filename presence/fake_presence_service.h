@@ -15,11 +15,13 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_FAKE_PRESENCE_SERVICE_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_FAKE_PRESENCE_SERVICE_H_
 
+#include "internal/interop/device_provider.h"
+#include "internal/interop/fake_device_provider.h"
 #include "internal/platform/borrowable.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/broadcast_request.h"
 #include "presence/data_types.h"
 #include "presence/presence_client.h"
-#include "presence/presence_device_provider.h"
 #include "presence/presence_service.h"
 
 namespace nearby {
@@ -45,16 +47,18 @@ class FakePresenceService : public PresenceService {
 
   void StopBroadcast(BroadcastSessionId session_id) override;
 
-  void UpdateLocalDeviceMetadata(
-      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
+  void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData& metadata,
+      bool regen_credentials,
       absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
 
-  PresenceDeviceProvider* GetLocalDeviceProvider() override;
+  NearbyDeviceProvider* GetLocalDeviceProvider() override;
 
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
+  ::nearby::internal::DeviceIdentityMetaData GetDeviceIdentityMetaData()
+      override {
     return metadata_;
   }
 
@@ -96,6 +100,10 @@ class FakePresenceService : public PresenceService {
     shared_credentials_ = shared_credentials;
   }
 
+  void SetDeviceProvider(NearbyDeviceProvider* provider) {
+    provider_ = provider;
+  }
+
  private:
   FakePresenceClient* most_recent_fake_presence_client_ = nullptr;
   std::vector<nearby::internal::SharedCredential> shared_credentials_;
@@ -103,7 +111,8 @@ class FakePresenceService : public PresenceService {
   absl::Status gen_credentials_status_;
   absl::Status update_remote_public_credentials_status_;
   absl::Status get_public_credentials_status_;
-  ::nearby::internal::Metadata metadata_;
+  ::nearby::internal::DeviceIdentityMetaData metadata_;
+  NearbyDeviceProvider* provider_;
   ::nearby::Lender<PresenceService*> lender_{this};
 };
 

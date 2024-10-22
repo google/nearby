@@ -20,8 +20,12 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/logging.h"
 #include "internal/weave/base_socket.h"
+#include "internal/weave/connection.h"
+#include "internal/weave/packet.h"
+#include "internal/weave/socket_callback.h"
 
 namespace nearby {
 namespace weave {

@@ -14,8 +14,10 @@
 
 # Proto for Nearby products
 
-# Placeholder: load py_proto_library
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+# Placeholder: load py_proto_library
 
 licenses(["notice"])
 
@@ -37,6 +39,16 @@ cc_proto_library(
 )
 
 proto_library(
+    name = "connections_westworld_enums_proto",
+    srcs = ["connections_westworld_enums.proto"],
+)
+
+java_proto_library(
+    name = "connections_westworld_enums_java_proto",
+    deps = [":connections_westworld_enums_proto"],
+)
+
+proto_library(
     name = "sharing_enums_proto",
     srcs = ["sharing_enums.proto"],
 )
@@ -44,7 +56,6 @@ proto_library(
 proto_library(
     name = "fast_pair_enums_proto",
     srcs = ["fast_pair_enums.proto"],
-    compatible_with = ["//buildenv/target:non_prod"],
 )
 
 cc_proto_library(

@@ -20,7 +20,11 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/future.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/weave/connection.h"
 #include "internal/weave/control_packet_write_request.h"

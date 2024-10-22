@@ -79,6 +79,21 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)connectPeripheral:(id<GNCPeripheral>)peripheral
                   options:(nullable NSDictionary<NSString *, id> *)options;
 
+/**
+ * Cancels an active or pending local connection to a peripheral.
+ *
+ * This method is nonblocking, and any @c CBPeripheral class commands that are still pending to
+ * @c peripheral may not complete. Because other apps may still have a connection to the peripheral,
+ * canceling a local connection doesn’t guarantee that the underlying physical link is immediately
+ * disconnected. From the app’s perspective, however, the peripheral is effectively disconnected,
+ * and the central manager object calls the @c centralManager:didDisconnectPeripheral:error: method
+ * of its delegate object.
+ *
+ * @param peripheral The peripheral to which the central manager is either trying to connect or has
+ * already connected.
+ */
+- (void)cancelPeripheralConnection:(id<GNCPeripheral>)peripheral;
+
 /** Asks the central manager to stop scanning for peripherals. */
 - (void)stopScan;
 

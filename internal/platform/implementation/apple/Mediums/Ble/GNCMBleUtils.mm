@@ -50,7 +50,7 @@ NSData *GNCMGenerateBLEFramesIntroductionPacket(NSData *serviceIDHash) {
   return packet;
 }
 
-NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data) {
+NSData *_Nullable GNCMParseBLEFramesIntroductionPacket(NSData *data) {
   ::location::nearby::mediums::SocketControlFrame socket_control_frame;
   NSUInteger prefixLength = sizeof(kGNCMControlPacketServiceIDHash);
   NSData *packet = [data subdataWithRange:NSMakeRange(prefixLength, data.length - prefixLength)];

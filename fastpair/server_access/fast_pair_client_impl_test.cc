@@ -25,23 +25,34 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/ascii.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/numbers.h"
+#include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
+#include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/common/fast_pair_prefs.h"
 #include "fastpair/common/fast_pair_switches.h"
+#include "fastpair/common/protocol.h"
 #include "fastpair/proto/data.proto.h"
 #include "fastpair/proto/enum.proto.h"
 #include "fastpair/proto/fast_pair_string.proto.h"
 #include "fastpair/proto/proto_builder.h"
+#include "fastpair/server_access/fast_pair_client.h"
 #include "fastpair/server_access/fast_pair_http_notifier.h"
-#include "internal/account/account_manager.h"
-#include "internal/account/fake_account_manager.h"
 #include "internal/auth/auth_status_util.h"
+#include "internal/auth/authentication_manager.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
 #include "internal/network/http_status_code.h"
 #include "internal/network/url.h"
-#include "internal/platform/task_runner_impl.h"
+#include "internal/platform/device_info.h"
+#include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/google3_only/fake_authentication_manager.h"
 
@@ -89,11 +100,11 @@ class MockHttpClient : public HttpClient {
  public:
   MOCK_METHOD(void, StartRequest,
               (const HttpRequest& request,
-               std::function<void(const absl::StatusOr<HttpResponse>&)>),
+               absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>),
               (override));
   MOCK_METHOD(void, StartCancellableRequest,
               (std::unique_ptr<CancellableRequest> request,
-               std::function<void(const absl::StatusOr<HttpResponse>&)>),
+               absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)>),
               (override));
   MOCK_METHOD(absl::StatusOr<HttpResponse>, GetResponse, (const HttpRequest&),
               (override));
@@ -119,9 +130,10 @@ std::vector<std::string> ExpectQueryStringValues(
 // A gMock matcher to match proto values. Use this matcher like:
 // request/response proto, expected_proto;
 // EXPECT_THAT(proto, MatchesProto(expected_proto));
-MATCHER_P(MatchesProto, expected_proto,
-          absl::StrCat(negation ? "does not match" : "matches",
-          testing::PrintToString(expected_proto.SerializeAsString()))) {
+MATCHER_P(
+    MatchesProto, expected_proto,
+    absl::StrCat(negation ? "does not match" : "matches",
+                 testing::PrintToString(expected_proto.SerializeAsString()))) {
   return arg.has_value() &&
          arg->SerializeAsString() == expected_proto.SerializeAsString();
 }
@@ -130,16 +142,11 @@ class FastPairClientImplTest : public ::testing::Test,
                                public FastPairHttpNotifier::Observer {
  protected:
   FastPairClientImplTest() {
-    preferences_manager_ = std::make_unique<preferences::PreferencesManager>(
-        kFastPairPreferencesFilePath);
     authentication_manager_ = std::make_unique<FakeAuthenticationManager>();
     AccountManager::Account account;
     account.id = kTestAccountId;
-    account_manager_ = std::make_unique<FakeAccountManager>(
-        preferences_manager_.get(), prefs::kNearbyFastPairUsersName,
-        authentication_manager_.get(), task_runner_.get());
+    account_manager_ = std::make_unique<FakeAccountManager>();
     account_manager_->SetAccount(account);
-    task_runner_ = std::make_unique<TaskRunnerImpl>(1);
     device_info_ = std::make_unique<FakeDeviceInfo>();
   }
 
@@ -218,12 +225,10 @@ class FastPairClientImplTest : public ::testing::Test,
   std::optional<proto::UserDeleteDeviceRequest> delete_device_request_;
   std::optional<proto::UserDeleteDeviceResponse> delete_device_response_;
 
-  std::unique_ptr<preferences::PreferencesManager> preferences_manager_;
   std::unique_ptr<auth::AuthenticationManager> authentication_manager_;
   std::unique_ptr<FakeAccountManager> account_manager_;
   std::unique_ptr<FastPairClient> fast_pair_client_;
   std::unique_ptr<DeviceInfo> device_info_;
-  std::unique_ptr<TaskRunner> task_runner_;
   ::testing::NiceMock<MockHttpClient>* http_client_;
   std::unique_ptr<MockHttpClient> mock_http_client_;
   FastPairHttpNotifier notifier_;

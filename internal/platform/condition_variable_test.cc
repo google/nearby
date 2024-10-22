@@ -14,8 +14,8 @@
 
 #include "internal/platform/condition_variable.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
+#include <cstdint>
+
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
@@ -25,6 +25,7 @@
 
 namespace nearby {
 namespace {
+constexpr absl::Duration kWaitTime = absl::Milliseconds(500);
 
 TEST(ConditionVariableTest, CanCreate) {
   Mutex mutex;
@@ -36,17 +37,17 @@ TEST(ConditionVariableTest, CanWakeupWaiter) {
   ConditionVariable cond{&mutex};
   bool done = false;
   bool waiting = false;
-  NEARBY_LOG(INFO, "At start; done=%d", done);
+  NEARBY_LOGS(INFO) << "At start; done=" << done;
   {
     SingleThreadExecutor executor;
     executor.Execute([&cond, &mutex, &done, &waiting]() {
       MutexLock lock(&mutex);
-      NEARBY_LOG(INFO, "Before cond.Wait(); done=%d", done);
+      NEARBY_LOGS(INFO) << "Before cond.Wait(); done=" << done;
       waiting = true;
       cond.Wait();
       waiting = false;
       done = true;
-      NEARBY_LOG(INFO, "After cond.Wait(); done=%d", done);
+      NEARBY_LOGS(INFO) << "After cond.Wait(); done=" << done;
     });
     while (true) {
       {
@@ -61,7 +62,7 @@ TEST(ConditionVariableTest, CanWakeupWaiter) {
       EXPECT_FALSE(done);
     }
   }
-  NEARBY_LOG(INFO, "After executor shutdown: done=%d", done);
+  NEARBY_LOGS(INFO) << "After executor shutdown: done=" << done;
   EXPECT_TRUE(done);
 }
 
@@ -70,11 +71,13 @@ TEST(ConditionVariableTest, WaitTerminatesOnTimeoutWithoutNotify) {
   ConditionVariable cond{&mutex};
   MutexLock lock(&mutex);
 
-  const absl::Duration kWaitTime = absl::Milliseconds(100);
   absl::Time start = SystemClock::ElapsedRealtime();
   cond.Wait(kWaitTime);
-  absl::Duration duration = SystemClock::ElapsedRealtime() - start;
-  EXPECT_GE(duration, kWaitTime);
+  int64_t bias = absl::ToInt64Milliseconds(SystemClock::ElapsedRealtime() -
+                                           start - kWaitTime);
+
+  // Windows cannot guarantee the exact time of the timeout.
+  EXPECT_GE(bias, -100);
 }
 
 }  // namespace

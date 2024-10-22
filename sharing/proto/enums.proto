@@ -1,0 +1,61 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package nearby.sharing.proto;
+
+option optimize_for = LITE_RUNTIME;
+
+// Represents the Fast Initiation Notification feature state. This feature
+// shows a notification when a nearby device is trying to share. It can be
+// enabled/disabled independently from the Nearby Share feature.
+enum FastInitiationNotificationState {
+  UNKNOWN_FAST_INIT = 0;
+  ENABLED_FAST_INIT = 1;
+  // User manually disabled the Fast Initiation Notification feature. If
+  // Nearby Share feature is toggled the notification feature will remain
+  // disabled.
+  DISABLED_BY_USER_FAST_INIT = 2;
+  // User turned off Nearby Share which disables the Fast Initiation
+  // Notification feature. If Nearby Share is enabled while Fast Initiation
+  // Notification is in this state then notifications will be re-enabled.
+  DISABLED_BY_FEATURE_FAST_INIT = 3;
+}
+
+enum DataUsage {
+  UNKNOWN_DATA_USAGE = 0;
+  // User is never willing to use the Internet
+  OFFLINE_DATA_USAGE = 1;
+  // User is always willing to use the Internet
+  ONLINE_DATA_USAGE = 2;
+  // User is willing to use the Internet on an un-metered connection.
+  // NOTE: This matches Android Nearby Share's naming for now.
+  WIFI_ONLY_DATA_USAGE = 3;
+}
+
+enum DeviceVisibility {
+  DEVICE_VISIBILITY_UNSPECIFIED = 0;
+  // The user is visible to no one.
+  DEVICE_VISIBILITY_HIDDEN = 1;
+  // The user is visible to devices signed in with the same account.
+  DEVICE_VISIBILITY_SELF_SHARE = 2;
+  // The user is visible to all contacts.
+  DEVICE_VISIBILITY_ALL_CONTACTS = 3;
+  // The user is visible to everyone.
+  DEVICE_VISIBILITY_EVERYONE = 4;
+  // TODO(b/251499089): Combine kAllContacts and kSelectedContacts to kContacts
+  // The user is only visible to selected contacts.
+  DEVICE_VISIBILITY_SELECTED_CONTACTS = 5 [deprecated = true];
+}

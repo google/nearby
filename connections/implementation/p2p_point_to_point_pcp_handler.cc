@@ -16,6 +16,9 @@
 
 #include <vector>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
+
 namespace nearby {
 namespace connections {
 
@@ -46,8 +49,15 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   if (mediums_->GetBluetoothClassic().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::BLUETOOTH);
   }
-  if (mediums_->GetBle().IsAvailable()) {
-    mediums.push_back(location::nearby::proto::connections::BLE);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
+    if (mediums_->GetBleV2().IsAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::BLE);
+    }
+  } else {
+    if (mediums_->GetBle().IsAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::BLE);
+    }
   }
   return mediums;
 }

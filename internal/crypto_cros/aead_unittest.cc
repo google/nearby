@@ -20,6 +20,7 @@
 
 #include "gtest/gtest.h"
 
+namespace nearby {
 namespace {
 
 const crypto::Aead::AeadAlgorithm kAllAlgorithms[]{
@@ -98,3 +99,4 @@ TEST_P(AeadTest, SealOpenWrongKey) {
 }
 
 }  // namespace
+}  // namespace nearby

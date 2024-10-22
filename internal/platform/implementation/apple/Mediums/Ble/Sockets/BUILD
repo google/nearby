@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//tools/build_defs/swift:swift_explicit_module_build_test.bzl", "swift_explicit_module_build_test")
 load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS")
+load("//tools/build_defs/swift:swift_explicit_module_build_test.bzl", "swift_explicit_module_build_test")
 
 licenses(["notice"])
 
@@ -32,9 +32,7 @@ objc_library(
     deps = [
         ":Shared",
         "//third_party/apple_frameworks:CoreBluetooth",
-        "//third_party/apple_frameworks:CoreFoundation",
         "//third_party/apple_frameworks:Foundation",
-        "//third_party/apple_frameworks:QuartzCore",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )

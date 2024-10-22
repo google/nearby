@@ -15,11 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_DATA_DATA_SET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_DATA_DATA_SET_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "absl/functional/any_invocable.h"
 
 namespace nearby {
 namespace data {
@@ -43,12 +44,13 @@ class DataSet {
   // Asynchronously initializes the object, which must have been created by the
   // DataManager::GetDataSet<T> function. |callback| will be invoked on the
   // calling thread when complete.
-  virtual void Initialize(std::function<void(InitStatus)> callback) = 0;
+  virtual void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) = 0;
 
   // Asynchronously loads all entries from the database and invokes |callback|
   // when complete.
   virtual void LoadEntries(
-      std::function<void(bool, std::unique_ptr<std::vector<T>>)> callback) = 0;
+      absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+          callback) = 0;
 
   // Asynchronously saves |entries_to_save| and deletes entries from
   // |keys_to_remove| from the database. |callback| will be invoked on the
@@ -57,11 +59,11 @@ class DataSet {
   virtual void UpdateEntries(
       std::unique_ptr<KeyEntryVector> entries_to_save,
       std::unique_ptr<std::vector<std::string>> keys_to_remove,
-      std::function<void(bool)> callback) = 0;
+      absl::AnyInvocable<void(bool) &&> callback) = 0;
 
   // Asynchronously destroys the database. Use this call only if the database
   // needs to be destroyed for this particular profile.
-  virtual void Destroy(std::function<void(bool)> callback) = 0;
+  virtual void Destroy(absl::AnyInvocable<void(bool) &&> callback) = 0;
 };
 
 }  // namespace data

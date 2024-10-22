@@ -14,11 +14,15 @@
 
 #include "internal/platform/uuid.h"
 
+#include <array>
+#include <cstdint>
+#include <optional>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/crypto.h"
 #include "internal/platform/logging.h"
 
@@ -129,6 +133,14 @@ TEST(UuidTest, OperatorGreaterThan) {
   Uuid b("12345678-1234-1234-1234-123456789013");
 
   EXPECT_TRUE(a < b);
+}
+
+TEST(UuidTest, ConstructUuidFromString) {
+  std::optional<Uuid> a =
+      Uuid::FromString("12345678-1234-1234-1234-123456789012");
+
+  ASSERT_TRUE(a.has_value());
+  EXPECT_EQ(std::string(*a), "12345678-1234-1234-1234-123456789012");
 }
 
 }  // namespace

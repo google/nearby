@@ -49,7 +49,7 @@ class OfflineServiceController : public ServiceController {
 
   Status StartDiscovery(ClientProxy* client, const std::string& service_id,
                         const DiscoveryOptions& discovery_options,
-                        const DiscoveryListener& listener) override;
+                        DiscoveryListener listener) override;
   void StopDiscovery(ClientProxy* client) override;
 
   void InjectEndpoint(ClientProxy* client, const std::string& service_id,
@@ -65,6 +65,11 @@ class OfflineServiceController : public ServiceController {
 
   Status RequestConnection(
       ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) override;
+
+  Status RequestConnectionV3(
+      ClientProxy* client, const NearbyDevice& remote_device,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) override;
   Status AcceptConnection(ClientProxy* client, const std::string& endpoint_id,

@@ -30,7 +30,7 @@ namespace presence {
 BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetSalt(
     absl::string_view salt) {
   if (salt.size() != kSaltSize) {
-    NEARBY_LOG(WARNING, "Unsupported salt length: %d", salt.size());
+    NEARBY_LOGS(WARNING) << "Unsupported salt length: " << salt.size();
   } else {
     salt_ = std::string(salt);
   }
@@ -74,8 +74,7 @@ BasePresenceRequestBuilder::operator BaseBroadcastRequest() const {
       .action = action_};
 
   std::string bytes(kSaltSize, 0);
-  crypto::RandBytes(const_cast<std::string::value_type*>(bytes.data()),
-                    bytes.size());
+  RandBytes(const_cast<std::string::value_type*>(bytes.data()), bytes.size());
 
   BaseBroadcastRequest broadcast_request{
       .variant = presence,
@@ -94,8 +93,8 @@ absl::StatusOr<BaseBroadcastRequest> BaseBroadcastRequest::Create(
       return absl::InvalidArgumentError("Missing broadcast sections");
     }
     if (presence_request.sections.size() > 1) {
-      NEARBY_LOG(WARNING,
-                 "Only first section is used in BLE 4.2 advertisement");
+      NEARBY_LOGS(WARNING)
+          << "Only first section is used in BLE 4.2 advertisement";
     }
     const PresenceBroadcast::BroadcastSection& section =
         presence_request.sections.front();

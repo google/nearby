@@ -15,8 +15,13 @@
 #ifndef PLATFORM_IMPL_WINDOWS_SUBMITTABLE_EXECUTOR_H_
 #define PLATFORM_IMPL_WINDOWS_SUBMITTABLE_EXECUTOR_H_
 
+#include <atomic>
+#include <cstdint>
+#include <memory>
+
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/windows/executor.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
@@ -28,7 +33,7 @@ namespace windows {
 class SubmittableExecutor : public api::SubmittableExecutor {
  public:
   SubmittableExecutor();
-  SubmittableExecutor(int32_t maxConcurrancy);
+  explicit SubmittableExecutor(int32_t max_concurrancy);
   ~SubmittableExecutor() override = default;
 
   // Submit a callable (with no delay).

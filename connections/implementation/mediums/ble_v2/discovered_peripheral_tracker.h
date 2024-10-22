@@ -15,7 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 
-#include <functional>
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,16 +23,20 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/time/time.h"
 #include "connections/implementation/mediums//lost_entity_tracker.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/lost_entity_tracker.h"
-#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace connections {
@@ -46,21 +50,19 @@ namespace mediums {
 // compute found and lost peripherals.
 class DiscoveredPeripheralTracker {
  public:
+  static constexpr std::array<char, 23> kDummyAdvertisementValue = {
+      0x51, 0x43, 0x41, 0x41, 0x41, 0x42, 0x41, 0x43, 0x41, 0x41, 0x41, 0x44,
+      0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41};
   // GATT advertisement fetcher.
-  struct AdvertisementFetcher {
-    // Fetches relevant GATT advertisements for the peripheral found in {@link
-    // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
-    //
-    // `advertisement_read_result` is in/out mutable reference that the caller
-    // should take of its life cycle and pass a valid reference.
-    std::function<void(
-        BleV2Peripheral peripheral, int num_slots, int psm,
-        const std::vector<std::string>& interesting_service_ids,
-        mediums::AdvertisementReadResult& advertisement_read_result)>
-        fetch_advertisements = [](BleV2Peripheral, int, int,
-                                  const std::vector<std::string>&,
-                                  mediums::AdvertisementReadResult&) {};
-  };
+  // Fetches relevant GATT advertisements for the peripheral found in {@link
+  // DiscoveredPeripheralTracker#ProcessFoundBleAdvertisement(}.
+  //
+  // `advertisement_read_result` is in/out mutable reference that the caller
+  // should take of its life cycle and pass a valid reference.
+  using AdvertisementFetcher = absl::AnyInvocable<void(
+      BleV2Peripheral peripheral, int num_slots, int psm,
+      const std::vector<std::string>& interesting_service_ids,
+      mediums::AdvertisementReadResult& advertisement_read_result)>;
 
   explicit DiscoveredPeripheralTracker(
       bool is_extended_advertisement_available = false);
@@ -79,7 +81,7 @@ class DiscoveredPeripheralTracker {
   // advertisement.
   void StartTracking(
       const std::string& service_id,
-      const DiscoveredPeripheralCallback& discovered_peripheral_callback,
+      DiscoveredPeripheralCallback discovered_peripheral_callback,
       const Uuid& fast_advertisement_service_uuid) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Stops tracking discoveries for a particular service Id.
@@ -232,14 +234,14 @@ class DiscoveredPeripheralTracker {
   // AdvertisementData.
   //
   // advertisement_fetcher : a fetcher passed from BLE medium to read the
-  // advertisemeent from BLE characteristics by GATT server.
+  // advertisement from BLE characteristics by GATT server.
   std::vector<const ByteArray*> FetchRawAdvertisements(
       BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
       AdvertisementFetcher advertisement_fetcher)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  std::vector<const ByteArray*> FetchRawAdvertisementsInThread(
+  void FetchRawAdvertisementsInThread(
       BleV2Peripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
       AdvertisementFetcher advertisement_fetcher);
@@ -248,6 +250,30 @@ class DiscoveredPeripheralTracker {
   // GATT advertisement by the input `advertisement_header` and 'mac_address`.
   void UpdateCommonStateForFoundBleAdvertisement(
       const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Processes on lost advertisements. Returns true when the advertisement:
+  // 1. Is an Instant On Lost BLE advertisement.
+  // 2. Matches a peripheral's advertisement hash that has previously been
+  // discovered.
+  bool HandleOnLostAdvertisementLocked(
+      BleV2Peripheral peripheral,
+      const ::nearby::api::ble_v2::BleAdvertisementData& advertisement_data)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Returns true if the advertisement header met the special conditions of
+  // a legacy device dummy advertisement.
+  static bool IsLegacyDeviceAdvertisementData(
+      const api::ble_v2::BleAdvertisementData& advertisement_data);
+
+  // Helps to handle advertisement for Instant On lost.
+  bool IsInstantLostAdvertisement(
+      const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void AddInstantLostAdvertisement(
+      const BleAdvertisementHeader& advertisement_header)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void RemoveExpiredInstantLostAdvertisements()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
@@ -293,11 +319,18 @@ class DiscoveredPeripheralTracker {
       gatt_advertisement_infos_ ABSL_GUARDED_BY(mutex_);
 
   // Tracks the advertisements in GATT fetching.
-  absl::flat_hash_set<ByteArray> fetching_advertisements_
+  absl::flat_hash_set<BleAdvertisementHeader> fetching_advertisements_
       ABSL_GUARDED_BY(mutex_);
 
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
+
+  // Maps an advertisement header's hash with the time it's reported lost.
+  // Ignores subsequent discovery events for the same advertisement header.
+  absl::flat_hash_map<std::string, absl::Time> lost_advertisment_infos_
+      ABSL_GUARDED_BY(mutex_);
+  absl::Time last_lost_info_update_time_ ABSL_GUARDED_BY(mutex_) =
+      absl::InfinitePast();
 };
 
 }  // namespace mediums

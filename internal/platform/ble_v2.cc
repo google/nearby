@@ -22,6 +22,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 
@@ -42,26 +43,6 @@ bool BleV2Medium::StartAdvertising(
 }
 
 bool BleV2Medium::StopAdvertising() { return impl_->StopAdvertising(); }
-
-std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
-BleV2Medium::StartAdvertisingTmp(
-    const api::ble_v2::BleAdvertisementData& advertising_data,
-    api::ble_v2::AdvertiseParameters advertise_set_parameters,
-    api::ble_v2::BleMedium::AdvertisingCallback callback) {
-  if (impl_->StartAdvertising(advertising_data, advertise_set_parameters)) {
-    callback.start_advertising_result(absl::OkStatus());
-  } else {
-    callback.start_advertising_result(
-        absl::InternalError("Failed to start advertising"));
-    return nullptr;
-  }
-  return std::make_unique<api::ble_v2::BleMedium::AdvertisingSession>(
-      api::ble_v2::BleMedium::AdvertisingSession{.stop_advertising = [this] {
-        return impl_->StopAdvertising()
-                   ? absl::OkStatus()
-                   : absl::InternalError("Failed to stop advertising");
-      }});
-}
 
 std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
 BleV2Medium::StartAdvertising(
@@ -111,7 +92,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     // prevent the stale data in cache.
     peripherals_.clear();
     scanning_enabled_ = true;
-    NEARBY_LOG(INFO, "Ble Scanning enabled; impl=%p", GetImpl());
+    NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
   }
   return success;
 }
@@ -126,51 +107,15 @@ bool BleV2Medium::StopScanning() {
   scanning_enabled_ = false;
   peripherals_.clear();
   scan_callback_ = {};
-  NEARBY_LOG(INFO, "Ble Scanning disabled: impl=%p", GetImpl());
+  NEARBY_LOGS(INFO) << "Ble Scanning disabled: impl=" << GetImpl();
   return impl_->StopScanning();
 }
 
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>
-BleV2Medium::StartScanningTmp(
-    const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-    api::ble_v2::BleMedium::ScanningCallback callback) {
-  MutexLock lock(&mutex_);
-
-  if (impl_->StartScanning(
-          service_uuid, tx_power_level,
-          api::ble_v2::BleMedium::ScanCallback{
-              .advertisement_found_cb =
-                  [this,
-                   found_callback = std::move(callback.advertisement_found_cb)](
-                      api::ble_v2::BlePeripheral& peripheral,
-                      BleAdvertisementData advertisement_data) mutable {
-                    MutexLock lock(&mutex_);
-                    if (!peripherals_.contains(&peripheral)) {
-                      NEARBY_LOGS(INFO)
-                          << "Peripheral impl=" << &peripheral
-                          << " does not exist; add it to the map.";
-                      peripherals_.insert(&peripheral);
-                    }
-                    found_callback(peripheral, advertisement_data);
-                  },
-          })) {
-    callback.start_scanning_result(absl::OkStatus());
-  } else {
-    callback.start_scanning_result(absl::InternalError("Failed to start scan"));
-    return nullptr;
-  }
-  return std::make_unique<api::ble_v2::BleMedium::ScanningSession>(
-      api::ble_v2::BleMedium::ScanningSession{.stop_scanning = [this]() {
-        return impl_->StopScanning()
-                   ? absl::OkStatus()
-                   : absl::InternalError("Failed to stop advertising");
-      }});
-}
-std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>
 BleV2Medium::StartScanning(const Uuid& service_uuid,
                            api::ble_v2::TxPowerLevel tx_power_level,
                            api::ble_v2::BleMedium::ScanningCallback callback) {
-  NEARBY_LOG(INFO, "platform mutex: %p", &mutex_);
+  NEARBY_LOGS(INFO) << "platform mutex: " << &mutex_;
   return impl_->StartScanning(
       service_uuid, tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback{
@@ -187,6 +132,7 @@ BleV2Medium::StartScanning(const Uuid& service_uuid,
                 start_scanning_result(status);
               },
           .advertisement_found_cb = std::move(callback.advertisement_found_cb),
+          .advertisement_lost_cb = std::move(callback.advertisement_lost_cb),
       });
 }
 
@@ -280,7 +226,7 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
-  return impl_->IsExtendedAdvertisementsAvailable();
+  return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
 }
 
 BleV2Peripheral BleV2Medium::GetRemotePeripheral(

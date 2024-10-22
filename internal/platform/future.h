@@ -15,8 +15,12 @@
 #ifndef PLATFORM_PUBLIC_FUTURE_H_
 #define PLATFORM_PUBLIC_FUTURE_H_
 
+#include <memory>
 #include <utility>
 
+#include "absl/time/time.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/executor.h"
 #include "internal/platform/settable_future.h"
 
 namespace nearby {

@@ -22,7 +22,7 @@
 
 // Nearby connections headers
 #include "internal/platform/implementation/wifi.h"
-#include "internal/platform/wifi_utils.h"
+#include "internal/platform/implementation/wifi_utils.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"

@@ -16,7 +16,7 @@ syntax = "proto2";
 
 package nearby.proto.fastpair;
 
-import "third_party/nearby/proto/fast_pair_enums.proto";
+import "proto/fast_pair_enums.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "nearby.proto.fastpair";
@@ -107,6 +107,8 @@ message FastPairLog {
   message ProviderInfo {
     // The number of account keys stored in the provider.
     optional int32 number_account_keys_on_provider = 1;
+    // The GATT database hash in the provider.
+    optional string database_hash = 2;
   }
 
   message FootprintsInfo {
@@ -151,4 +153,31 @@ message FastPairLog {
 
   // For the CREATE_BOND event, add bonding transport
   optional uint32 bonding_transport = 18;
+
+  // Whether the current user is first day pairing a new device by fast pair.
+  // This is used for evaluating the A/B test of device pairing half sheet
+  // layout.
+  optional bool is_first_day_new_user = 19;
+
+  // Whether the current user is first seven days pairing a new device by fast
+  // pair. This is used for evaluating the A/B test of device pairing half sheet
+  // layout.
+  optional bool is_seven_days_new_user = 20;
+
+  // For the CREATE_BOND event, add bonded device count
+  optional uint32 bonded_device_count = 21;
+
+  // SASS connection state for the device. Not set for non-SASS devices.
+  optional int32 sass_connection_state = 22;
+
+  optional bool is_pair_triggered_by_settings = 23;
+
+  // The nearby mainline tethering module version.
+  optional int64 nearby_mainline_tethering_version = 24;
+
+  // The nearby nano app version for offload.
+  optional int64 nearby_nano_app_version = 25;
+
+  // For the SECRET_HANDSHAKE event, is the pairing device in paired history.
+  optional bool is_in_paired_history = 26;
 }

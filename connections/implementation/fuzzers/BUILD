@@ -11,19 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-load("//security/fuzzing/blaze:cc_fuzz_target.bzl", "cc_fuzz_target")
 
 licenses(["notice"])
 
-cc_fuzz_target(
+cc_test(
     name = "offline_frames_fuzzer",
     srcs = ["offline_frames_fuzzer.cc"],
-    componentid = 148515,
-    copts = ["-DCORE_ADAPTER_DLL"],
+    linkopts = [
+        "-Wl,--warn-backrefs-exclude=*third_party/nearby/internal/platform/implementation/g3/_objs*",
+    ],
+    tags = ["componentid:148515"],
     deps = [
         "//connections/implementation:internal",
         "//internal/platform:base",
         "//internal/platform/implementation/g3",
-        "//security/fuzzing/blaze:default_init_google_for_cc_fuzz_target",
+        "//testing/fuzzing:fuzztest",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )

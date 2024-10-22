@@ -39,8 +39,6 @@ std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);
 std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s);
 
 // Helpers to windows platform
-std::wstring string_to_wstring(std::string str);
-std::string wstring_to_string(std::wstring wstr);
 ByteArray Sha256(absl::string_view input, size_t size);
 
 // Reads the IPv4 addresses
@@ -75,8 +73,8 @@ const uint16_t kInterfaceTypeWifi = 71;
 class InspectableReader {
  public:
   static bool ReadBoolean(IInspectable inspectable);
-  static uint16 ReadUint16(IInspectable inspectable);
-  static uint32 ReadUint32(IInspectable inspectable);
+  static uint16_t ReadUint16(IInspectable inspectable);
+  static uint32_t ReadUint32(IInspectable inspectable);
   static std::string ReadString(IInspectable inspectable);
   static std::vector<std::string> ReadStringArray(IInspectable inspectable);
 };

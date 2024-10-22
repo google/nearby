@@ -39,6 +39,8 @@ struct AdvertisingOptions {
   // If Nearby Connections should auto-upgrade bandwidth.
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints = true;
+  // Indicates whether the endpoint id should be stable.
+  bool use_stable_endpoint_id = false;
   std::string fast_advertisement_service_uuid;
   BooleanMediumSelector advertising_mediums;
   BooleanMediumSelector upgrade_mediums;

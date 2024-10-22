@@ -16,8 +16,9 @@
 
 #include "absl/functional/bind_front.h"
 #include "connections/listeners.h"
+#include "internal/interop/device.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/system_clock.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
@@ -26,9 +27,9 @@ void SimulationUser::OnConnectionInitiated(const std::string& endpoint_id,
                                            const ConnectionResponseInfo& info,
                                            bool is_outgoing) {
   if (is_outgoing) {
-    NEARBY_LOG(INFO, "RequestConnection: initiated_cb called");
+    NEARBY_LOGS(INFO) << "RequestConnection: initiated_cb called";
   } else {
-    NEARBY_LOG(INFO, "StartAdvertising: initiated_cb called");
+    NEARBY_LOGS(INFO) << "StartAdvertising: initiated_cb called";
     discovered_ = DiscoveredInfo{
         .endpoint_id = endpoint_id,
         .endpoint_info = GetInfo(),
@@ -50,7 +51,7 @@ void SimulationUser::OnConnectionRejected(const std::string& endpoint_id,
 void SimulationUser::OnEndpointFound(const std::string& endpoint_id,
                                      const ByteArray& endpoint_info,
                                      const std::string& service_id) {
-  NEARBY_LOG(INFO, "Device discovered: id=%s", endpoint_id.c_str());
+  NEARBY_LOGS(INFO) << "Device discovered: id=" << endpoint_id;
   discovered_ = DiscoveredInfo{
       .endpoint_id = endpoint_id,
       .endpoint_info = endpoint_info,
@@ -160,6 +161,29 @@ void SimulationUser::RequestConnection(CountDownLatch* latch) {
                                  .listener = std::move(listener),
                              },
                              connection_options_)
+          .Ok());
+}
+
+void SimulationUser::RequestConnectionV3(CountDownLatch* latch,
+                                         const NearbyDevice& remote_device) {
+  initiated_latch_ = latch;
+  ConnectionListener listener = {
+      .initiated_cb =
+          std::bind(&SimulationUser::OnConnectionInitiated, this,
+                    std::placeholders::_1, std::placeholders::_2, true),
+      .accepted_cb =
+          absl::bind_front(&SimulationUser::OnConnectionAccepted, this),
+      .rejected_cb =
+          absl::bind_front(&SimulationUser::OnConnectionRejected, this),
+  };
+  client_.AddCancellationFlag(remote_device.GetEndpointId());
+  EXPECT_TRUE(
+      mgr_.RequestConnectionV3(&client_, remote_device,
+                               {
+                                   .endpoint_info = discovered_.endpoint_info,
+                                   .listener = std::move(listener),
+                               },
+                               connection_options_)
           .Ok());
 }
 

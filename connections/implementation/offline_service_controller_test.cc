@@ -25,6 +25,7 @@
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mock_device.h"
 #include "connections/implementation/offline_simulation_user.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
@@ -106,18 +107,18 @@ class OfflineServiceControllerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOG(INFO, "EP-B: [discovered] %s",
-               user_b.GetDiscovered().endpoint_id.c_str());
+    NEARBY_LOGS(INFO) << "EP-B: [discovered] "
+                      << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connect_latch_);
     EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOG(INFO, "EP-A: [discovered] %s",
-               user_a.GetDiscovered().endpoint_id.c_str());
-    NEARBY_LOG(INFO, "Both users discovered their peers.");
+    NEARBY_LOGS(INFO) << "EP-A: [discovered] "
+                      << user_a.GetDiscovered().endpoint_id;
+    NEARBY_LOGS(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
     EXPECT_TRUE(accept_latch_.Await(kLongTimeout));
-    NEARBY_LOG(INFO, "Both users reached connected state.");
+    NEARBY_LOGS(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 
@@ -242,6 +243,26 @@ TEST_P(OfflineServiceControllerTest, CanConnect) {
               Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
   EXPECT_THAT(user_b.RequestConnection(&connect_latch_),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, CanConnectV3) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  OfflineSimulationUser user_b(kDeviceB, GetParam());
+  EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), &connect_latch_),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_THAT(user_b.StartDiscovery(std::string(kServiceId), &discover_latch_),
+              Eq(Status{Status::kSuccess}));
+  EXPECT_TRUE(discover_latch_.Await(kLongTimeout));
+  auto remote_device = MockNearbyDevice();
+  ON_CALL(remote_device, GetEndpointId)
+      .WillByDefault(testing::Return(user_b.GetDiscovered().endpoint_id));
+  EXPECT_THAT(user_b.RequestConnectionV3(&connect_latch_, remote_device),
               Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
   user_a.Stop();

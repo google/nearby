@@ -17,8 +17,8 @@
 #include <string>
 #include <utility>
 
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/wifi_utils.h"
 
 namespace nearby {
 
@@ -43,7 +43,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
   }
   api::WifiLanMedium::DiscoveredServiceCallback api_callback = {
       .service_discovered_cb =
-          [this](NsdServiceInfo service_info) {
+          [this](const NsdServiceInfo& service_info) {
             MutexLock lock(&mutex_);
             std::string service_type = service_info.GetServiceType();
             // Check callback for the service type.
@@ -86,7 +86,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
             medium_callback.service_discovered_cb(service_info, service_id);
           },
       .service_lost_cb =
-          [this](NsdServiceInfo service_info) {
+          [this](const NsdServiceInfo& service_info) {
             MutexLock lock(&mutex_);
             std::string service_type = service_info.GetServiceType();
             std::string service_name = service_info.GetServiceName();

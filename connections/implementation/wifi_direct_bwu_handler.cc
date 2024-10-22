@@ -14,15 +14,22 @@
 
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 
+#include <cstdint>
 #include <locale>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_endpoint_channel.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_direct.h"
 
 namespace nearby {
@@ -128,7 +135,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE)
+  NEARBY_VLOG(1)
       << "WifiDirectBwuHandler successfully connected to WifiDirect service ("
       << port << ") while upgrading endpoint " << endpoint_id;
 

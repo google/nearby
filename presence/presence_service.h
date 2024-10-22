@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,10 @@
 #include <memory>
 #include <vector>
 
+#include "internal/interop/device_provider.h"
 #include "internal/proto/metadata.pb.h"
 #include "presence/data_types.h"
 #include "presence/presence_client.h"
-#include "presence/presence_device_provider.h"
 
 namespace nearby {
 namespace presence {
@@ -41,14 +41,15 @@ class PresenceService {
 
   virtual void StopBroadcast(BroadcastSessionId session_id) = 0;
 
-  virtual void UpdateLocalDeviceMetadata(
-      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
-      absl::string_view manager_app_id,
+  virtual void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) = 0;
 
-  virtual PresenceDeviceProvider* GetLocalDeviceProvider() = 0;
+  virtual NearbyDeviceProvider* GetLocalDeviceProvider() = 0;
 
   virtual void GetLocalPublicCredentials(
       const CredentialSelector& credential_selector,
@@ -61,7 +62,8 @@ class PresenceService {
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) = 0;
 
   // Testing only.
-  virtual ::nearby::internal::Metadata GetLocalDeviceMetadata() = 0;
+  virtual ::nearby::internal::DeviceIdentityMetaData
+  GetDeviceIdentityMetaData() = 0;
 };
 
 }  // namespace presence

@@ -15,18 +15,36 @@
 #include "internal/platform/implementation/timer.h"
 
 #include <chrono>  // NOLINT
-// NOLINT
 #include <memory>
 #include <thread>  // NOLINT
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 
-TEST(Timer, TestCreateTimer) {
+class TimerTest : public ::testing::TestWithParam<bool> {
+ public:
+  void SetUp() override {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableTaskScheduler,
+        GetParam());
+  }
+
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
+};
+
+TEST_P(TimerTest, TestCreateTimer) {
   int count = 0;
 
   std::unique_ptr<nearby::api::Timer> timer =
@@ -38,30 +56,43 @@ TEST(Timer, TestCreateTimer) {
 }
 
 // This test case cannot run on Google3
-TEST(Timer, DISABLED_TestRepeatTimer) {
+TEST_P(TimerTest, TestRepeatTimer) {
+  CountDownLatch latch(3);
   int count = 0;
-
   std::unique_ptr<nearby::api::Timer> timer =
       nearby::api::ImplementationPlatform::CreateTimer();
 
   ASSERT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(300, 300, [&]() { ++count; }));
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-  EXPECT_TRUE(timer->Stop());
+  EXPECT_TRUE(timer->Create(300, 300, [&]() {
+    ++count;
+    latch.CountDown();
+  }));
+
+  EXPECT_TRUE(latch.Await(absl::Seconds(2)));
   EXPECT_EQ(count, 3);
+  EXPECT_TRUE(timer->Stop());
 }
 
-TEST(Timer, DISABLED_TestFireNow) {
+TEST_P(TimerTest, TestFireNow) {
   int count = 0;
+  absl::Notification notification;
 
   auto timer = nearby::api::ImplementationPlatform::CreateTimer();
 
   EXPECT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(3000, 3000, [&]() { ++count; }));
+  EXPECT_TRUE(timer->Create(3000, 3000, [&count, &notification]() {
+    ++count;
+    notification.Notify();
+  }));
   EXPECT_TRUE(timer->FireNow());
   EXPECT_TRUE(timer->Stop());
+  EXPECT_TRUE(
+      notification.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(count, 1);
 }
+
+INSTANTIATE_TEST_SUITE_P(TimerTaskSchedulerFlagTest, TimerTest,
+                         testing::Bool());
 
 }  // namespace
 }  // namespace windows

@@ -15,17 +15,20 @@
 #ifndef CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 #define CORE_INTERNAL_MEDIUMS_WEBRTC_WEBRTC_SOCKET_IMPL_H_
 
-#ifndef NO_WEBRTC
-
+#include <cstdint>
+#include <string>
 #include <memory>
 
-#include "connections/listeners.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/listeners.h"
+#include "internal/platform/runnable.h"
+#ifndef NO_WEBRTC
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/pipe.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/socket.h"
 #include "webrtc/api/data_channel_interface.h"
@@ -54,7 +57,7 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
   // Overrides for nearby::Socket:
   InputStream& GetInputStream() override;
   OutputStream& GetOutputStream() override;
-  void Close() override;
+  Exception Close() override;
 
   // webrtc::DataChannelObserver:
   void OnStateChange() override;

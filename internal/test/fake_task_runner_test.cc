@@ -26,6 +26,7 @@ namespace nearby {
 namespace {
 
 TEST(FakeTaskRunner, PostTask) {
+  FakeTaskRunner::ResetPendingTasksCount();
   FakeClock clock;
   int count = 0;
   FakeTaskRunner task_runner{&clock, 1};
@@ -36,6 +37,7 @@ TEST(FakeTaskRunner, PostTask) {
 }
 
 TEST(FakeTaskRunner, PostDelayedTask) {
+  FakeTaskRunner::ResetPendingTasksCount();
   FakeClock clock;
   int count = 0;
   FakeTaskRunner task_runner{&clock, 1};
@@ -67,6 +69,7 @@ TEST(FakeTaskRunner, PostTasksRunInSequence) {
 }
 
 TEST(FakeTaskRunner, PostDelayedTaskInDelayedTask) {
+  FakeTaskRunner::ResetPendingTasksCount();
   FakeClock clock;
   int called_count = 0;
   FakeTaskRunner task_runner{&clock, 1};

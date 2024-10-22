@@ -15,14 +15,13 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_DATA_LEVELDB_DATA_SET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_DATA_LEVELDB_DATA_SET_H_
 
-#include <functional>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "third_party/leveldb/include/db.h"
 #include "third_party/leveldb/include/iterator.h"
@@ -31,7 +30,7 @@
 #include "third_party/leveldb/include/status.h"
 #include "internal/data/data_set.h"
 #include "internal/platform/logging.h"
-#include "third_party/protobuf/message_lite.h"
+#include "google/protobuf/message_lite.h"
 
 namespace nearby {
 namespace data {
@@ -47,17 +46,19 @@ class LeveldbDataSet : public DataSet<T> {
   explicit LeveldbDataSet(absl::string_view path) : path_(path) {}
   ~LeveldbDataSet() override = default;
 
-  void Initialize(std::function<void(InitStatus)> callback) override;
-  void LoadEntries(std::function<void(bool, std::unique_ptr<std::vector<T>>)>
-                       callback) override;
+  void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) override;
+  void LoadEntries(
+      absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+          callback) override;
   void LoadEntriesWithKeys(
-      std::function<
-          void(bool, std::unique_ptr<std::vector<std::pair<std::string, T>>>)>
+      absl::AnyInvocable<
+          void(bool,
+               std::unique_ptr<std::vector<std::pair<std::string, T>>>) &&>
           callback);
   void UpdateEntries(std::unique_ptr<KeyEntryVector> entries_to_save,
                      std::unique_ptr<std::vector<std::string>> keys_to_remove,
-                     std::function<void(bool)> callback) override;
-  void Destroy(std::function<void(bool)> callback) override;
+                     absl::AnyInvocable<void(bool) &&> callback) override;
+  void Destroy(absl::AnyInvocable<void(bool) &&> callback) override;
 
  private:
   void Serialize(T const& value, std::string& str);
@@ -73,7 +74,7 @@ template <typename T,
           std::enable_if_t<std::is_base_of<proto2::MessageLite, T>::value, bool>
               isMessageLite>
 void LeveldbDataSet<T, isMessageLite>::Initialize(
-    std::function<void(InitStatus)> callback) {
+    absl::AnyInvocable<void(InitStatus) &&> callback) {
   leveldb::Options options;
   options.create_if_missing = true;
 
@@ -99,7 +100,8 @@ template <typename T,
           std::enable_if_t<std::is_base_of<proto2::MessageLite, T>::value, bool>
               isMessageLite>
 void LeveldbDataSet<T, isMessageLite>::LoadEntries(
-    std::function<void(bool, std::unique_ptr<std::vector<T>>)> callback) {
+    absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
+        callback) {
   auto result = std::make_unique<std::vector<T>>();
   if (status_ != InitStatus::kOK) {
     std::move(callback)(false, std::move(result));
@@ -130,8 +132,8 @@ template <typename T,
           std::enable_if_t<std::is_base_of<proto2::MessageLite, T>::value, bool>
               isMessageLite>
 void LeveldbDataSet<T, isMessageLite>::LoadEntriesWithKeys(
-    std::function<void(bool,
-                       std::unique_ptr<std::vector<std::pair<std::string, T>>>)>
+    absl::AnyInvocable<
+        void(bool, std::unique_ptr<std::vector<std::pair<std::string, T>>>) &&>
         callback) {
   auto result = std::make_unique<std::vector<std::pair<std::string, T>>>();
   if (status_ != InitStatus::kOK) {
@@ -165,7 +167,7 @@ template <typename T,
 void LeveldbDataSet<T, isMessageLite>::UpdateEntries(
     std::unique_ptr<KeyEntryVector> entries_to_save,
     std::unique_ptr<std::vector<std::string>> keys_to_remove,
-    std::function<void(bool)> callback) {
+    absl::AnyInvocable<void(bool) &&> callback) {
   NEARBY_LOGS(INFO) << "UpdateEntries is called.";
   if (status_ != InitStatus::kOK) {
     std::move(callback)(false);
@@ -193,7 +195,7 @@ template <typename T,
           std::enable_if_t<std::is_base_of<proto2::MessageLite, T>::value, bool>
               isMessageLite>
 void LeveldbDataSet<T, isMessageLite>::Destroy(
-    std::function<void(bool)> callback) {
+    absl::AnyInvocable<void(bool) &&> callback) {
   NEARBY_LOGS(INFO) << "Destroy is called.";
   db_.reset();
   leveldb::DestroyDB(path_, leveldb::Options());

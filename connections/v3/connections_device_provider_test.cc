@@ -27,8 +27,8 @@ constexpr absl::string_view kEndpointId = "ABCD";
 constexpr absl::string_view kEndpointInfo = "NC endpoint";
 
 class MockAuthenticationTransport : public AuthenticationTransport {
-  MOCK_METHOD(void, WriteMessage, (absl::string_view), (const override));
-  MOCK_METHOD(std::string, ReadMessage, (), (const override));
+  MOCK_METHOD(void, WriteMessage, (absl::string_view), (const, override));
+  MOCK_METHOD(std::string, ReadMessage, (), (const, override));
 };
 
 TEST(ConnectionsDeviceProviderTest, TestProviderWorksTwoArgs) {

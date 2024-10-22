@@ -24,7 +24,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 class ECPrivateKey;
 class ECSignatureCreator;
@@ -60,6 +60,6 @@ class CRYPTO_EXPORT ECSignatureCreator {
                                std::vector<uint8_t>* out_raw_sig) = 0;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_EC_SIGNATURE_CREATOR_H_

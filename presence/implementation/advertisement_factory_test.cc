@@ -40,7 +40,6 @@ using ::testing::NiceMock;
 using ::testing::Return;
 using ::testing::status::StatusIs;
 
-#ifdef USE_RUST_LDT
 LocalCredential CreateLocalCredential(IdentityType identity_type) {
   // Values copied from LDT tests
   ByteArray seed({204, 219, 36, 137, 233, 252, 172, 66, 179, 147, 72,
@@ -60,7 +59,7 @@ LocalCredential CreateLocalCredential(IdentityType identity_type) {
 TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
-  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE;
+  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);
@@ -78,13 +77,13 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPrivateIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "00514142c2c30e79fee14599e36e34d5d42e49fc37b0df");
+            "00514142b8412efb0bc657ba514baf4d1b50ddc842cd1c");
 }
 
 TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   std::string account_name = "Test account";
   std::string salt = "AB";
-  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_TRUSTED;
+  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_CONTACTS_GROUP;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   data_elements.emplace_back(ActionBit::kPresenceManagerAction);
@@ -103,34 +102,8 @@ TEST(AdvertisementFactory, CreateAdvertisementFromTrustedIdentity) {
   ASSERT_OK(result);
   EXPECT_FALSE(result->is_extended_advertisement);
   EXPECT_EQ(absl::BytesToHexString(result->content),
-            "005241428b213e608c378e9941444dcfbedfcb6958a73d");
+            "0052414257a35c020f1c547d7e169303196d75da7118ba");
 }
-
-TEST(AdvertisementFactory, CreateAdvertisementFromProvisionedIdentity) {
-  std::string account_name = "Test account";
-  std::string salt = "AB";
-  constexpr IdentityType kIdentity = IdentityType::IDENTITY_TYPE_PROVISIONED;
-  std::vector<DataElement> data_elements;
-  data_elements.emplace_back(ActionBit::kActiveUnlockAction);
-  data_elements.emplace_back(ActionBit::kPresenceManagerAction);
-  Action action = ActionFactory::CreateAction(data_elements);
-  BaseBroadcastRequest request =
-      BaseBroadcastRequest(BasePresenceRequestBuilder(kIdentity)
-                               .SetAccountName(account_name)
-                               .SetSalt(salt)
-                               .SetTxPower(5)
-                               .SetAction(action));
-
-  absl::StatusOr<AdvertisementData> result =
-      AdvertisementFactory().CreateAdvertisement(
-          request, CreateLocalCredential(kIdentity));
-
-  ASSERT_OK(result);
-  EXPECT_FALSE(result->is_extended_advertisement);
-  EXPECT_EQ(absl::BytesToHexString(result->content),
-            "005441428b213e608c378e9941444dcfbedfcb6958a73d");
-}
-#endif /*USE_RUST_LDT*/
 
 TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
   std::string salt = "AB";
@@ -154,7 +127,7 @@ TEST(AdvertisementFactory, CreateAdvertisementFromPublicIdentity) {
 
 TEST(AdvertisementFactory, CreateAdvertisementFailsWhenSaltIsTooShort) {
   std::string salt = "AB";
-  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE;
+  constexpr IdentityType kIdentity = internal::IDENTITY_TYPE_PRIVATE_GROUP;
   std::vector<DataElement> data_elements;
   data_elements.emplace_back(ActionBit::kActiveUnlockAction);
   Action action = ActionFactory::CreateAction(data_elements);

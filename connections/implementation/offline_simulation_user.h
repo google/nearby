@@ -22,6 +22,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_service_controller.h"
+#include "internal/interop/device.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -107,6 +108,12 @@ class OfflineSimulationUser {
   // If latch is provided, latch->CountDown() will be called in the initiated_cb
   // callback.
   Status RequestConnection(CountDownLatch* latch);
+
+  // Calls PcpManager::RequestConnectionV3.
+  // If latch is provided, latch->CountDown() will be called in the initiated_cb
+  // callback.
+  Status RequestConnectionV3(CountDownLatch* latch,
+                             const NearbyDevice& remote_device);
 
   // Calls PcpManager::AcceptConnection.
   // If latch is provided, latch->CountDown() will be called in the accepted_cb

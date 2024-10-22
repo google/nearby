@@ -24,7 +24,7 @@ option optimize_for = LITE_RUNTIME;
 
 // The metadata of a device. Contains confidential data not to be broadcasted
 // directly in OTA.
-// NEXT_ID=5
+// NEXT_ID=8
 message DeviceIdentityMetaData {
   // The type of the device.
   DeviceType device_type = 1;
@@ -38,11 +38,24 @@ message DeviceIdentityMetaData {
 
   // The instance type (user profile) related to the metadata.
   InstanceType instance_type = 4;
+
+  // The device_id from the MultideviceParameters file of the broadcasting
+  // device
+  bytes device_id = 5;
+
+  // The device's model name
+  string device_model_name = 6;
+
+  // The device's manufacturer name
+  string device_manufacturer = 7;
 }
 
 // The metadata of a device.
 // Contains confidential data not to be broadcasted directly in OTA.
+// Metadata is deprecated, use DeviceIdentityMetadata instead.
 message Metadata {
+  option deprecated = true;
+
   // The type of the device.
   DeviceType device_type = 1;
 

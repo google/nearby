@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 
+#include <chrono>  // NOLINT
 #include <memory>
 #include <utility>
 
@@ -21,13 +22,31 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/windows/test_data.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 
-TEST(ScheduledExecutorTests, ExecuteSucceeds) {
+constexpr absl::Duration kWaitTimeout = absl::Milliseconds(2000);
+
+class ScheduledExecutorTest : public ::testing::TestWithParam<bool> {
+ public:
+  void SetUp() override {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableTaskScheduler,
+        GetParam());
+  }
+
+  void TearDown() override {
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
+};
+
+TEST_P(ScheduledExecutorTest, ExecuteSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -47,8 +66,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
     notification.Notify();
   });
 
-  ASSERT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   //  Assert
@@ -61,7 +79,7 @@ TEST(ScheduledExecutorTests, ExecuteSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST(ScheduledExecutorTests, ScheduleSucceeds) {
+TEST_P(ScheduledExecutorTest, ScheduleSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -88,8 +106,7 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
       },
       absl::Milliseconds(50));
 
-  ASSERT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(200)));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   ASSERT_EQ(threadIds->size(), 2);
@@ -99,7 +116,7 @@ TEST(ScheduledExecutorTests, ScheduleSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST(ScheduledExecutorTests, CancelSucceeds) {
+TEST_P(ScheduledExecutorTest, CancelSucceeds) {
   absl::Notification notification;
   // Arrange
   std::string expected("");
@@ -123,8 +140,7 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
 
   auto actual = cancelable->Cancel();
 
-  EXPECT_FALSE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
+  EXPECT_FALSE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   // Assert
@@ -136,7 +152,7 @@ TEST(ScheduledExecutorTests, CancelSucceeds) {
   ASSERT_EQ(output, expected);
 }
 
-TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
+TEST_P(ScheduledExecutorTest, CancelAfterStartedFails) {
   absl::Notification notification;
   // Arrange
   std::string expected(RUNNABLE_0_TEXT.c_str());
@@ -158,11 +174,10 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
       },
       absl::Milliseconds(100));
 
-  absl::SleepFor(absl::Milliseconds(200));
+  absl::SleepFor(absl::Milliseconds(500));
   auto actual = cancelable->Cancel();
 
-  ASSERT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(2000)));
+  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   submittableExecutor->Shutdown();
 
   // Assert
@@ -173,6 +188,9 @@ TEST(ScheduledExecutorTests, CancelAfterStartedFails) {
   //  We should've run all runnables on the worker thread
   ASSERT_EQ(output, expected);
 }
+
+INSTANTIATE_TEST_SUITE_P(ScheduledExecutorTaskSchedulerFlagTest,
+                         ScheduledExecutorTest, testing::Bool());
 
 }  // namespace
 }  // namespace windows

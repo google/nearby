@@ -18,16 +18,18 @@
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
-#include "internal/platform/system_clock.h"
 
 namespace nearby {
 namespace connections {
@@ -45,6 +47,9 @@ constexpr FeatureFlags kTestCases[] = {
 };
 
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
+constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
+constexpr absl::string_view kServiceId1{"service ID 1"};
+constexpr absl::string_view kServiceId2{"service ID 2"};
 
 class FakeBluetoothClassicMedium final : public BluetoothClassicMedium {
  public:
@@ -83,7 +88,7 @@ class BluetoothClassicTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
   using DiscoveryCallback = BluetoothClassicMedium::DiscoveryCallback;
 
-  BluetoothClassicTest() {
+  void SetUp() override {
     env_.Start();
     radio_a_ = std::make_unique<BluetoothRadio>();
     radio_b_ = std::make_unique<BluetoothRadio>();
@@ -104,7 +109,7 @@ class BluetoothClassicTest : public ::testing::TestWithParam<FeatureFlags> {
     env_.Sync();
   }
 
-  ~BluetoothClassicTest() override {
+  void TearDown() override {
     env_.Sync(false);
     radio_a_->Disable();
     radio_b_->Disable();
@@ -126,12 +131,123 @@ class BluetoothClassicTest : public ::testing::TestWithParam<FeatureFlags> {
   std::unique_ptr<TestBluetoothClassic> bt_b_;
 };
 
-TEST_P(BluetoothClassicTest, CanConnect) {
+TEST_P(BluetoothClassicTest, CanNotTurnOnDiscoverability) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
 
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
-  constexpr absl::string_view kServiceName1{"service name"};
+  BluetoothRadio& radio_for_client = *radio_a_;
+  BluetoothClassic& bt_client = *bt_a_;
+
+  // Cannot turn on discoverability to an empty device name.
+  EXPECT_FALSE(bt_client.TurnOnDiscoverability(""));
+
+  // Cannot turn on discoverability when radio is disabled.
+  radio_for_client.Disable();
+  EXPECT_FALSE(bt_client.TurnOnDiscoverability(std::string(kDeviceName)));
+  radio_for_client.Enable();
+
+  // Cannot connect when discovery is running.
+  EXPECT_TRUE(bt_client.TurnOnDiscoverability(std::string(kDeviceName)));
+  env_.Sync();
+  EXPECT_FALSE(bt_client.TurnOnDiscoverability(std::string(kDeviceName)));
+}
+
+TEST_P(BluetoothClassicTest, CanNotConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+
+  BluetoothRadio& radio_for_client = *radio_a_;
+  BluetoothClassic& bt_client = *bt_a_;
+
+  // Cannot connect to an empty service id.
+  CancellationFlag flag;
+  BluetoothDevice discovered_device;
+  BluetoothSocket socket_for_client =
+      bt_client.Connect(discovered_device, "", &flag);
+
+  EXPECT_FALSE(socket_for_client.IsValid());
+
+  // Cannot connect when radio is disabled.
+  radio_for_client.Disable();
+  socket_for_client =
+      bt_client.Connect(discovered_device, std::string(kServiceId1), &flag);
+  EXPECT_FALSE(socket_for_client.IsValid());
+  radio_for_client.Enable();
+
+  // Cannot connect when adapter is disabled.
+  radio_for_client.GetBluetoothAdapter().SetStatus(
+      BluetoothAdapter::Status::kDisabled);
+  socket_for_client =
+      bt_client.Connect(discovered_device, std::string(kServiceId1), &flag);
+  EXPECT_FALSE(socket_for_client.IsValid());
+}
+
+TEST_P(BluetoothClassicTest, CannotStartAcceptingConnections) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+
+  BluetoothRadio& radio_for_client = *radio_a_;
+  BluetoothClassic& bt_client = *bt_a_;
+
+  // Cannot start accepting connections to an empty service ID.
+  EXPECT_FALSE(bt_client.StartAcceptingConnections(
+      "", [&](const std::string& service_id, BluetoothSocket socket) {}));
+
+  // Cannot start accepting connections  when radio is disabled.
+  radio_for_client.Disable();
+  EXPECT_FALSE(bt_client.StartAcceptingConnections(
+      std::string(kServiceId1),
+      [&](const std::string& service_id, BluetoothSocket socket) {}));
+  radio_for_client.Enable();
+
+  // Cannot start accepting connections  when it is already accepting.
+  EXPECT_FALSE(bt_client.IsAcceptingConnections(std::string(kServiceId1)));
+  EXPECT_TRUE(bt_client.StartAcceptingConnections(
+      std::string(kServiceId1),
+      [&](const std::string& service_id, BluetoothSocket socket) {}));
+  EXPECT_TRUE(bt_client.IsAcceptingConnections(std::string(kServiceId1)));
+  env_.Sync();
+  EXPECT_FALSE(bt_client.StartAcceptingConnections(
+      std::string(kServiceId1),
+      [&](const std::string& service_id, BluetoothSocket socket) {}));
+}
+
+TEST_P(BluetoothClassicTest, CannotStopAcceptingConnections) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+
+  BluetoothClassic& bt_client = *bt_a_;
+
+  // Cannot stop accepting connections to an empty service ID.
+  EXPECT_FALSE(bt_client.StopAcceptingConnections(""));
+
+  // Cannot stop accepting connections  when service ID is not accepting.
+  EXPECT_FALSE(bt_client.StopAcceptingConnections(std::string(kServiceId1)));
+}
+
+TEST_P(BluetoothClassicTest, CannotStartDiscovery) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+
+  BluetoothRadio& radio_for_client = *radio_a_;
+  BluetoothClassic& bt_client = *bt_a_;
+
+  // Cannot start discovery when service ID is empty.
+  EXPECT_FALSE(bt_client.StartDiscovery("", {}));
+
+  // Cannot start discovery when radio is disabled.
+  radio_for_client.Disable();
+  EXPECT_FALSE(bt_client.StartDiscovery(std::string(kServiceId1), {}));
+  radio_for_client.Enable();
+
+  // Cannot  start discovery when it is already discovering.
+  EXPECT_TRUE(bt_client.StartDiscovery(std::string(kServiceId1), {}));
+  EXPECT_FALSE(bt_client.StartDiscovery(std::string(kServiceId1), {}));
+}
+
+TEST_P(BluetoothClassicTest, CanConnect) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
 
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
@@ -146,31 +262,33 @@ TEST_P(BluetoothClassicTest, CanConnect) {
             std::string(kDeviceName));
   CountDownLatch latch(1);
   BluetoothDevice discovered_device;
-  EXPECT_TRUE(bt_client.StartDiscovery({
-      .device_discovered_cb =
-          [&latch, &discovered_device](BluetoothDevice& device) {
-            discovered_device = device;
-            NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                       &device.GetImpl());
-            latch.CountDown();
-          },
-  }));
+  EXPECT_TRUE(bt_client.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Discovered device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                latch.CountDown();
+              },
+      }));
   EXPECT_TRUE(latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   BluetoothSocket socket_for_server;
   CountDownLatch accept_latch(1);
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
-      std::string(kServiceName1),
+      std::string(kServiceId1),
       [&](const std::string& service_id, BluetoothSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
   CancellationFlag flag;
   BluetoothSocket socket_for_client =
-      bt_client.Connect(discovered_device, std::string(kServiceName1), &flag);
+      bt_client.Connect(discovered_device, std::string(kServiceId1), &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
+  EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
   EXPECT_TRUE(socket_for_server.IsValid());
   EXPECT_TRUE(socket_for_client.IsValid());
   EXPECT_TRUE(socket_for_server.GetRemoteDevice().IsValid());
@@ -180,9 +298,6 @@ TEST_P(BluetoothClassicTest, CanConnect) {
 TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
-
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
-  constexpr absl::string_view kServiceName1{"service name"};
 
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
@@ -197,56 +312,55 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
             std::string(kDeviceName));
   CountDownLatch latch(1);
   BluetoothDevice discovered_device;
-  EXPECT_TRUE(bt_client.StartDiscovery({
-      .device_discovered_cb =
-          [&latch, &discovered_device](BluetoothDevice& device) {
-            discovered_device = device;
-            NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                       &device.GetImpl());
-            latch.CountDown();
-          },
-  }));
+  EXPECT_TRUE(bt_client.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch, &discovered_device](BluetoothDevice& device) {
+                NEARBY_LOGS(INFO) << "Discovered device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                discovered_device = device;
+                latch.CountDown();
+              },
+      }));
   EXPECT_TRUE(latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   BluetoothSocket socket_for_server;
   CountDownLatch accept_latch(1);
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
-      std::string(kServiceName1),
+      std::string(kServiceId1),
       [&](const std::string& service_id, BluetoothSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
   CancellationFlag flag(true);
   BluetoothSocket socket_for_client =
-      bt_client.Connect(discovered_device, std::string(kServiceName1), &flag);
+      bt_client.Connect(discovered_device, std::string(kServiceId1), &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_TRUE(socket_for_server.IsValid());
     EXPECT_TRUE(socket_for_client.IsValid());
     EXPECT_TRUE(socket_for_server.GetRemoteDevice().IsValid());
     EXPECT_TRUE(socket_for_client.GetRemoteDevice().IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_FALSE(socket_for_server.IsValid());
     EXPECT_FALSE(socket_for_client.IsValid());
 
     // Expect an invalid socket from stopping during the first attempt to
-    // connect, because `Connect` returned immediatley when it checked for
+    // connect, because `Connect` returned immediately when it checked for
     // cancellation.
-    EXPECT_EQ(1, bt_client.connect_attempts_count(std::string(kServiceName1)));
+    EXPECT_EQ(1, bt_client.connect_attempts_count(std::string(kServiceId1)));
   }
 }
 
 TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
-
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
-  constexpr absl::string_view kServiceName1{"service name"};
 
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
@@ -264,40 +378,42 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
             std::string(kDeviceName));
   CountDownLatch latch(1);
   BluetoothDevice discovered_device;
-  EXPECT_TRUE(bt_client.StartDiscovery({
-      .device_discovered_cb =
-          [&latch, &discovered_device](BluetoothDevice& device) {
-            discovered_device = device;
-            NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                       &device.GetImpl());
-            latch.CountDown();
-          },
-  }));
+  EXPECT_TRUE(bt_client.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Discovered device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                latch.CountDown();
+              },
+      }));
   EXPECT_TRUE(latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
   BluetoothSocket socket_for_server;
   CountDownLatch accept_latch(1);
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
-      std::string(kServiceName1),
+      std::string(kServiceId1),
       [&](const std::string& service_id, BluetoothSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
   CancellationFlag flag;
   BluetoothSocket socket_for_client =
-      bt_client.Connect(discovered_device, std::string(kServiceName1), &flag);
+      bt_client.Connect(discovered_device, std::string(kServiceId1), &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_TRUE(socket_for_server.IsValid());
     EXPECT_TRUE(socket_for_client.IsValid());
     EXPECT_TRUE(socket_for_server.GetRemoteDevice().IsValid());
     EXPECT_TRUE(socket_for_client.GetRemoteDevice().IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
     EXPECT_FALSE(socket_for_server.IsValid());
     EXPECT_FALSE(socket_for_client.IsValid());
 
@@ -307,17 +423,13 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
     // during shutdown. Because of the way the iteration happens, the check for
     // is cancelled happens after the counter has already been incremented, but
     // before the attempt actually occurs.
-    EXPECT_EQ(2, bt_client.connect_attempts_count(std::string(kServiceName1)));
+    EXPECT_EQ(2, bt_client.connect_attempts_count(std::string(kServiceId1)));
   }
 }
 
 TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);
-
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
-  constexpr absl::string_view kServiceName1{"service name"};
-  constexpr absl::string_view kServiceName2{"anotherservice name"};
 
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
@@ -331,15 +443,17 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
             std::string(kDeviceName));
   CountDownLatch latch(1);
   BluetoothDevice discovered_device;
-  EXPECT_TRUE(bt_client.StartDiscovery({
-      .device_discovered_cb =
-          [&latch, &discovered_device](BluetoothDevice& device) {
-            discovered_device = device;
-            NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                       &device.GetImpl());
-            latch.CountDown();
-          },
-  }));
+  EXPECT_TRUE(bt_client.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Discovered device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                latch.CountDown();
+              },
+      }));
   EXPECT_TRUE(latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   ASSERT_TRUE(discovered_device.IsValid());
@@ -348,33 +462,37 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
   CountDownLatch accept_latch(1);
 
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
-      std::string(kServiceName1),
+      std::string(kServiceId1),
       [&](const std::string& service_id, BluetoothSocket socket) {
         socket_for_server1 = std::move(socket);
         accept_latch.CountDown();
       }));
   CancellationFlag flag;
   BluetoothSocket socket_for_client1 =
-      bt_client.Connect(discovered_device, std::string(kServiceName1), &flag);
+      bt_client.Connect(discovered_device, std::string(kServiceId1), &flag);
 
   // Simulate the flag being cancelled during connection attempt to a different
   // endpoint.
   medium_a_->CancelDuringConnectToService();
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+
+  CountDownLatch accept_latch2(1);
   EXPECT_TRUE(bt_server.StartAcceptingConnections(
-      std::string(kServiceName2),
+      std::string(kServiceId2),
       [&](const std::string& service_id, BluetoothSocket socket) {
         socket_for_server2 = std::move(socket);
-        accept_latch.CountDown();
+        accept_latch2.CountDown();
       }));
 
+  CancellationFlag flag2;
   BluetoothSocket socket_for_client2 =
-      bt_client.Connect(discovered_device, std::string(kServiceName2), &flag);
+      bt_client.Connect(discovered_device, std::string(kServiceId2), &flag2);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName2)));
+    EXPECT_TRUE(accept_latch2.Await(kWaitDuration).result());
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId2)));
     EXPECT_TRUE(socket_for_server1.IsValid());
     EXPECT_TRUE(socket_for_server2.IsValid());
     EXPECT_TRUE(socket_for_client1.IsValid());
@@ -384,8 +502,8 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
     EXPECT_TRUE(socket_for_client1.GetRemoteDevice().IsValid());
     EXPECT_TRUE(socket_for_client2.GetRemoteDevice().IsValid());
   } else {
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
-    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName2)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
+    EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId2)));
     EXPECT_TRUE(socket_for_client1.IsValid());
     EXPECT_FALSE(socket_for_client2.IsValid());
 
@@ -395,11 +513,11 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
     // during shutdown. Because of the way the iteration happens, the check for
     // is cancelled happens after the counter has already been incremented, but
     // before the attempt actually occurs.
-    EXPECT_EQ(2, bt_client.connect_attempts_count(std::string(kServiceName2)));
+    EXPECT_EQ(2, bt_client.connect_attempts_count(std::string(kServiceId2)));
 
     // With the first service name, we expect one attempt count since it
     // succeeded.
-    EXPECT_EQ(1, bt_client.connect_attempts_count(std::string(kServiceName1)));
+    EXPECT_EQ(1, bt_client.connect_attempts_count(std::string(kServiceId1)));
   }
 }
 
@@ -417,45 +535,91 @@ TEST_F(BluetoothClassicTest, CanConstructValidObject) {
 }
 
 TEST_F(BluetoothClassicTest, CanStartAdvertising) {
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
   EXPECT_TRUE(bt_a_->TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_a_->GetBluetoothAdapter().GetName(), kDeviceName);
 }
 
 TEST_F(BluetoothClassicTest, CanStopAdvertising) {
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
   EXPECT_TRUE(bt_a_->TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_a_->GetBluetoothAdapter().GetName(), kDeviceName);
   EXPECT_TRUE(bt_a_->TurnOffDiscoverability());
 }
 
 TEST_F(BluetoothClassicTest, CanStartDiscovery) {
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
   EXPECT_TRUE(bt_a_->TurnOnDiscoverability(std::string(kDeviceName)));
   EXPECT_EQ(radio_a_->GetBluetoothAdapter().GetName(), kDeviceName);
   CountDownLatch latch(1);
-  EXPECT_TRUE(bt_b_->StartDiscovery({
-      .device_discovered_cb =
-          [&latch](BluetoothDevice& device) { latch.CountDown(); },
-  }));
+  EXPECT_TRUE(bt_b_->StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch](BluetoothDevice& device) { latch.CountDown(); },
+      }));
   EXPECT_TRUE(latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_a_->TurnOffDiscoverability());
 }
 
 TEST_F(BluetoothClassicTest, CanStopDiscovery) {
   CountDownLatch latch(1);
-  EXPECT_TRUE(bt_a_->StartDiscovery({
-      .device_discovered_cb =
-          [&latch](BluetoothDevice& device) { latch.CountDown(); },
-  }));
+  EXPECT_TRUE(bt_a_->StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch](BluetoothDevice& device) { latch.CountDown(); },
+      }));
   EXPECT_FALSE(latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(bt_a_->StopDiscovery());
+  EXPECT_TRUE(bt_a_->StopDiscovery(std::string(kServiceId1)));
+}
+
+TEST_F(BluetoothClassicTest, CanDiscoverDeviceChanges) {
+  BluetoothRadio& radio_for_client = *radio_a_;
+  BluetoothRadio& radio_for_server = *radio_b_;
+  BluetoothClassic& bt_client = *bt_a_;
+  BluetoothClassic& bt_server = *bt_b_;
+
+  EXPECT_TRUE(radio_for_client.IsEnabled());
+  EXPECT_TRUE(radio_for_server.IsEnabled());
+
+  EXPECT_TRUE(bt_server.TurnOnDiscoverability(std::string(kDeviceName)));
+  EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(), kDeviceName);
+  CountDownLatch discovered_latch(1);
+  CountDownLatch rename_latch(1);
+  CountDownLatch lost_latch(1);
+  BluetoothDevice discovered_device;
+  EXPECT_TRUE(bt_client.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&discovered_latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Discovered device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                discovered_latch.CountDown();
+              },
+          .device_name_changed_cb =
+              [&rename_latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Rename device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                rename_latch.CountDown();
+              },
+          .device_lost_cb =
+              [&lost_latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Lost device=" << device.GetName()
+                                  << ", impl=" << &device.GetImpl();
+                lost_latch.CountDown();
+              },
+      }));
+  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(radio_for_server.GetBluetoothAdapter().SetName("new_name"));
+  EXPECT_TRUE(rename_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(radio_for_server.Disable());
+  EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(bt_client.StopDiscovery(std::string(kServiceId1)));
 }
 
 TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
-  constexpr absl::string_view kDeviceName{"Simulated BT device #1"};
-  constexpr absl::string_view kServiceName1{"service name"};
-
   BluetoothRadio& radio_for_client = *radio_a_;
   BluetoothRadio& radio_for_server = *radio_b_;
   BluetoothClassic& bt_client = *bt_a_;
@@ -468,24 +632,59 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
   EXPECT_EQ(radio_for_server.GetBluetoothAdapter().GetName(), kDeviceName);
   CountDownLatch latch(1);
   BluetoothDevice discovered_device;
-  EXPECT_TRUE(bt_client.StartDiscovery({
-      .device_discovered_cb =
-          [&latch, &discovered_device](BluetoothDevice& device) {
-            discovered_device = device;
-            NEARBY_LOG(INFO, "Discovered device=%p [impl=%p]", &device,
-                       &device.GetImpl());
-            latch.CountDown();
-          },
-  }));
+  EXPECT_TRUE(bt_client.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb =
+              [&latch, &discovered_device](BluetoothDevice& device) {
+                discovered_device = device;
+                NEARBY_LOGS(INFO) << "Discovered device=" << device.GetName()
+                                  << ",impl=" << &device.GetImpl();
+                latch.CountDown();
+              },
+      }));
   EXPECT_TRUE(latch.Await(kWaitDuration).result());
   EXPECT_TRUE(bt_server.TurnOffDiscoverability());
   EXPECT_TRUE(discovered_device.IsValid());
   EXPECT_TRUE(
-      bt_server.StartAcceptingConnections(std::string(kServiceName1), {}));
+      bt_server.StartAcceptingConnections(std::string(kServiceId1), {}));
   // Allow StartAcceptingConnections do something, before stopping it.
   // This is best effort, because no callbacks are invoked in this scenario.
   SystemClock::Sleep(kWaitDuration);
-  EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceName1)));
+  EXPECT_TRUE(bt_server.StopAcceptingConnections(std::string(kServiceId1)));
+  EXPECT_TRUE(bt_client.StopDiscovery(std::string(kServiceId1)));
+}
+
+TEST_F(BluetoothClassicTest, CheckDiscoveryingStatus) {
+  BluetoothClassic& bluetooth_classic = *bt_a_;
+
+  EXPECT_FALSE(bluetooth_classic.IsDiscovering(std::string(kServiceId1)));
+  EXPECT_TRUE(bluetooth_classic.StartDiscovery(
+      std::string(kServiceId1),
+      {
+          .device_discovered_cb = [](BluetoothDevice& device) {},
+      }));
+  EXPECT_TRUE(bluetooth_classic.IsDiscovering(std::string(kServiceId1)));
+  EXPECT_TRUE(bluetooth_classic.StopDiscovery(std::string(kServiceId1)));
+  EXPECT_FALSE(bluetooth_classic.IsDiscovering(std::string(kServiceId1)));
+  EXPECT_FALSE(bluetooth_classic.StopDiscovery(std::string(kServiceId1)));
+}
+
+TEST_F(BluetoothClassicTest, GetMacAddress) {
+  EXPECT_NE(bt_a_->GetMacAddress(), "");
+  radio_a_->Disable();
+  EXPECT_EQ(bt_a_->GetMacAddress(), "");
+}
+
+TEST_F(BluetoothClassicTest, GetRemoteDevice) {
+  EXPECT_EQ(
+      bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetMacAddress())
+          .GetMacAddress(),
+      radio_b_->GetBluetoothAdapter().GetMacAddress());
+  radio_a_->Disable();
+  EXPECT_FALSE(
+      bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetMacAddress())
+          .IsValid());
 }
 
 }  // namespace

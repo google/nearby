@@ -1,0 +1,99 @@
+bazel_dep(name = "platforms", version = "0.0.8")
+bazel_dep(name = "rules_cc", version = "0.0.9")
+bazel_dep(name = "rules_rust", version = "0.42.1")
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
+
+bazel_dep(name = "abseil-cpp", version = "20240116.1", repo_name = "com_google_absl")
+bazel_dep(name = "protobuf", version = "21.7", repo_name = "com_google_protobuf")
+bazel_dep(name = "googletest", version = "1.14.0", repo_name = "com_google_googletest")
+bazel_dep(name = "boringssl", version = "0.0.0-20240126-22d349c")
+
+git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+git_repository(
+    name = "beto-core",
+    remote = "https://beto-core.googlesource.com/beto-core",
+    commit = "415bd032561d078720642d52e28fd3bc9d5155d4",
+)
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2021",
+    versions = ["1.77.1"],
+)
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+crate = use_extension(
+    "@rules_rust//crate_universe:extension.bzl",
+    "crate",
+)
+crate.from_cargo(
+    name = "crate_index",
+    cargo_lockfile = "@beto-core//:bazel_placeholder/Cargo.lock",
+    manifests = [
+        "@beto-core//:bazel_placeholder/Cargo.toml",
+    ],
+)
+use_repo(crate, "crate_index")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "com_google_ukey2",
+    strip_prefix = "ukey2-master",
+    urls = ["https://github.com/google/ukey2/archive/master.zip"],
+)
+
+http_archive(
+    name = "aappleby_smhasher",
+    strip_prefix = "smhasher-master",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+cc_library(
+    name = "libmurmur3",
+    srcs = ["src/MurmurHash3.cpp"],
+    hdrs = ["src/MurmurHash3.h"],
+    copts = ["-Wno-implicit-fallthrough"],
+    licenses = ["unencumbered"],  # MurmurHash is explicity public-domain
+)""",
+    urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
+)
+
+http_archive(
+    name = "nlohmann_json",
+    strip_prefix = "json-3.10.5",
+    build_file_content = """
+cc_library(
+  name = "json",
+  hdrs = glob([
+    "include/nlohmann/**/*.hpp",
+  ]),
+  includes = ["include"],
+  visibility = ["//visibility:public"],
+  alwayslink = True,
+)""",
+    urls = [
+        "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
+    ],
+)
+
+# ----------------------------------------------
+# Nisaba: Script processing library from Google:
+# ----------------------------------------------
+# We depend on some of core C++ libraries from Nisaba and use the fresh code
+# from the HEAD. See
+#   https://github.com/google-research/nisaba
+http_archive(
+    name = "com_google_nisaba",
+    url = "https://github.com/google-research/nisaba/archive/refs/heads/main.zip",
+    strip_prefix = "nisaba-main",
+)
+
+# -------------------------------------------------------------------------
+# Protocol buffer matches (should be part of gmock and gtest, but not yet):
+#   https://github.com/inazarenko/protobuf-matchers
+http_archive(
+    name = "com_github_protobuf_matchers",
+    urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
+    strip_prefix = "protobuf-matchers-master",
+)

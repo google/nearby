@@ -54,8 +54,5 @@ Carthage/Build
 # Rust
 Cargo.lock
 
-# Bazel Build Directories
+# Bazel
 bazel-*
-
-# Clang LSP compilation database
-compile_commands.json

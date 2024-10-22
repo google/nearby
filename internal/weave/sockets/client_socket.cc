@@ -14,12 +14,17 @@
 
 #include "internal/weave/sockets/client_socket.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "internal/platform/logging.h"
 #include "internal/weave/base_socket.h"
+#include "internal/weave/connection.h"
+#include "internal/weave/packet.h"
 #include "internal/weave/socket_callback.h"
 #include "internal/weave/sockets/initial_data_provider.h"
 

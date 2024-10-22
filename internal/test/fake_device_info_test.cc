@@ -27,8 +27,8 @@ namespace {
 
 TEST(FakeDeviceInfo, DeviceName) {
   FakeDeviceInfo device_info;
-  device_info.SetOsDeviceName(u"windows");
-  EXPECT_EQ(device_info.GetOsDeviceName(), u"windows");
+  device_info.SetOsDeviceName("windows");
+  EXPECT_EQ(device_info.GetOsDeviceName(), "windows");
 }
 
 TEST(FakeDeviceInfo, DeviceType) {
@@ -43,36 +43,12 @@ TEST(FakeDeviceInfo, OsType) {
   EXPECT_EQ(device_info.GetOsType(), api::DeviceInfo::OsType::kWindows);
 }
 
-TEST(FakeDeviceInfo, FullName) {
-  FakeDeviceInfo device_info;
-  device_info.SetFullName(u"windows");
-  EXPECT_EQ(device_info.GetFullName(), u"windows");
-  device_info.SetFullName(std::nullopt);
-  EXPECT_FALSE(device_info.GetFullName().has_value());
-}
-
 TEST(FakeDeviceInfo, GivenName) {
   FakeDeviceInfo device_info;
-  device_info.SetGivenName(u"windows");
-  EXPECT_EQ(device_info.GetGivenName(), u"windows");
+  device_info.SetGivenName("windows");
+  EXPECT_EQ(device_info.GetGivenName(), "windows");
   device_info.SetGivenName(std::nullopt);
   EXPECT_FALSE(device_info.GetGivenName().has_value());
-}
-
-TEST(FakeDeviceInfo, LastName) {
-  FakeDeviceInfo device_info;
-  device_info.SetLastName(u"windows");
-  EXPECT_EQ(device_info.GetLastName(), u"windows");
-  device_info.SetLastName(std::nullopt);
-  EXPECT_FALSE(device_info.GetLastName().has_value());
-}
-
-TEST(FakeDeviceInfo, ProfileUserName) {
-  FakeDeviceInfo device_info;
-  device_info.SetProfileUserName("windows");
-  EXPECT_EQ(device_info.GetProfileUserName(), "windows");
-  device_info.SetProfileUserName(std::nullopt);
-  EXPECT_FALSE(device_info.GetProfileUserName().has_value());
 }
 
 TEST(FakeDeviceInfo, GetDownloadPath) {

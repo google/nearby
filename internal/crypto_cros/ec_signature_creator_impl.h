@@ -22,7 +22,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/ec_signature_creator.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 class ECSignatureCreatorImpl : public ECSignatureCreator {
  public:
@@ -43,6 +43,6 @@ class ECSignatureCreatorImpl : public ECSignatureCreator {
   ECPrivateKey* key_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_EC_SIGNATURE_CREATOR_IMPL_H_

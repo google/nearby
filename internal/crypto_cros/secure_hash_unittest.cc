@@ -23,6 +23,8 @@
 #include "gtest/gtest.h"
 #include "internal/crypto_cros/sha2.h"
 
+namespace nearby {
+
 TEST(SecureHashTest, TestUpdate) {
   // Example B.3 from FIPS 180-2: long message.
   std::string input3(500000, 'a');  // 'a' repeated half a million times
@@ -115,3 +117,5 @@ TEST(SecureHashTest, Equality) {
   // The hash should be the same.
   EXPECT_EQ(0, memcmp(output1, output2, crypto::kSHA256Length));
 }
+
+}  // namespace nearby

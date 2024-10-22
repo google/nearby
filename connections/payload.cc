@@ -17,23 +17,24 @@
 #include <algorithm>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
 #include <variant>
 
+#include "absl/random/random.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/prng.h"
 
 namespace nearby {
 namespace connections {
 
 namespace {
 
-std::string getFileName(const std::string& s) {
+std::string FormatFileName(const std::string& s) {
   std::string s_copy(s);
   std::replace(s_copy.begin(), s_copy.end(), '\\',
                '/');  // replace all '\\' to '/'
@@ -65,13 +66,7 @@ Payload::Payload(const ByteArray& bytes)
 
 Payload::Payload(InputFile input_file)
     : id_(std::hash<std::string>()(input_file.GetFilePath())),
-      file_name_(getFileName(input_file.GetFilePath())),
-      type_(PayloadType::kFile),
-      content_(std::move(input_file)) {}
-
-Payload::Payload(Id id, InputFile input_file)
-    : id_(id),
-      file_name_(getFileName(input_file.GetFilePath())),
+      file_name_(FormatFileName(input_file.GetFilePath())),
       type_(PayloadType::kFile),
       content_(std::move(input_file)) {}
 
@@ -92,6 +87,12 @@ Payload::Payload(Id id, ByteArray&& bytes)
 
 Payload::Payload(Id id, const ByteArray& bytes)
     : id_(id), type_(PayloadType::kBytes), content_(bytes) {}
+
+Payload::Payload(Id id, InputFile input_file)
+    : id_(id),
+      file_name_(FormatFileName(input_file.GetFilePath())),
+      type_(PayloadType::kFile),
+      content_(std::move(input_file)) {}
 
 Payload::Payload(Id id, std::string parent_folder, std::string file_name,
                  InputFile input_file)
@@ -138,7 +139,11 @@ void Payload::SetOffset(size_t offset) {
 size_t Payload::GetOffset() { return offset_; }
 
 // Generate Payload Id; to be passed to outgoing file constructor.
-Payload::Id Payload::GenerateId() { return Prng().NextInt64(); }
+Payload::Id Payload::GenerateId() {
+  absl::BitGen bitgen;
+  return absl::Uniform<Payload::Id>(absl::IntervalOpenClosed, bitgen, 0,
+                                    std::numeric_limits<Payload::Id>::max());
+}
 
 PayloadType Payload::FindType() const {
   return static_cast<PayloadType>(content_.index());

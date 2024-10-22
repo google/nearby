@@ -14,20 +14,28 @@
 
 #include "fastpair/server_access/fast_pair_client_impl.h"
 
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/notification.h"
 #include "fastpair/common/fast_pair_switches.h"
-#include "internal/account/account_manager.h"
+#include "fastpair/server_access/fast_pair_http_notifier.h"
+#include "internal/auth/auth_status_util.h"
+#include "internal/auth/authentication_manager.h"
 #include "internal/network/http_client.h"
+#include "internal/network/http_request.h"
+#include "internal/network/http_response.h"
 #include "internal/network/url.h"
+#include "internal/platform/device_info.h"
+#include "internal/platform/implementation/account_manager.h"
+#include "internal/platform/implementation/device_info.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -274,19 +282,15 @@ absl::StatusOr<std::string> FastPairClientImpl::GetAccessToken() {
   absl::StatusOr<std::string> result;
   absl::Notification notification;
   authentication_manager_->FetchAccessToken(
-      account->id, {
-                       .success_cb =
-                           [&](absl::string_view access_token) {
-                             result = std::string(access_token);
-                             notification.Notify();
-                           },
-                       .failure_cb =
-                           [&](auth::AuthStatus status) {
-                             result = absl::UnknownError(
-                                 absl::StrCat(static_cast<int>(status)));
-                             notification.Notify();
-                           },
-                   });
+      account->id,
+      [&](auth::AuthStatus status, absl::string_view access_token) {
+        if (status == auth::AuthStatus::SUCCESS) {
+          result = std::string(access_token);
+        } else {
+          result = absl::UnknownError(absl::StrCat(static_cast<int>(status)));
+        }
+        notification.Notify();
+      });
   notification.WaitForNotification();
   return result;
 }

@@ -21,13 +21,18 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/packet_meta_data.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
@@ -35,6 +40,9 @@
 namespace nearby {
 namespace connections {
 namespace {
+using ::location::nearby::connections::OfflineFrame;
+using ::nearby::analytics::PacketMetaData;
+using ::location::nearby::proto::connections::Medium;
 
 constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
@@ -90,6 +98,29 @@ class PayloadSimulationUser : public SimulationUser {
     pm_.SendPayload(&client_, {discovered_.endpoint_id}, std::move(payload));
   }
 
+  void ReceivePayload(Payload payload, std::string from_payload_id) {
+    PayloadTransferFrame::PayloadHeader header;
+    header.set_id(payload.GetId());
+    header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+    header.set_total_size(payload.AsBytes().size());
+    header.set_file_name("test_file.txt");
+    header.set_parent_folder("");
+    PayloadTransferFrame::PayloadChunk chunk;
+    chunk.set_body(payload.AsBytes().data());
+    chunk.set_offset(payload.GetOffset());
+    chunk.set_flags(1);
+
+    OfflineFrame offline_frame;
+
+    ByteArray bytes = parser::ForDataPayloadTransfer(header, chunk);
+    offline_frame.ParseFromString(std::string(bytes));
+
+    PacketMetaData packet_meta_data;
+
+    pm_.OnIncomingFrame(offline_frame, from_payload_id, &client_,
+                        Medium::WIFI_HOTSPOT, packet_meta_data);
+  }
+
   Status CancelPayload() {
     if (sender_payload_id_) {
       return pm_.CancelPayload(&client_, sender_payload_id_);
@@ -117,18 +148,18 @@ class PayloadManagerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOG(INFO, "EP-B: [discovered] %s",
-               user_b.GetDiscovered().endpoint_id.c_str());
+    NEARBY_LOGS(INFO) << "EP-B: [discovered] "
+                      << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connection_latch_);
     EXPECT_TRUE(connection_latch_.Await(kDefaultTimeout).result());
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOG(INFO, "EP-A: [discovered] %s",
-               user_a.GetDiscovered().endpoint_id.c_str());
-    NEARBY_LOG(INFO, "Both users discovered their peers.");
+    NEARBY_LOGS(INFO) << "EP-A: [discovered] "
+                      << user_a.GetDiscovered().endpoint_id;
+    NEARBY_LOGS(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
     EXPECT_TRUE(accept_latch_.Await(kDefaultTimeout).result());
-    NEARBY_LOG(INFO, "Both users reached connected state.");
+    NEARBY_LOGS(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 
@@ -162,7 +193,22 @@ TEST_P(PayloadManagerTest, CanSendBytePayload) {
   user_b.SendPayload(Payload(ByteArray{std::string(kMessage)}));
   EXPECT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   EXPECT_EQ(user_a.GetPayload().AsBytes(), ByteArray(std::string(kMessage)));
-  NEARBY_LOG(INFO, "Test completed.");
+  NEARBY_LOGS(INFO) << "Test completed.";
+
+  user_a.Stop();
+  user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest, PayloadId0IsError) {
+  env_.Start();
+  PayloadSimulationUser user_a(kDeviceA, GetParam());
+  PayloadSimulationUser user_b(kDeviceB, GetParam());
+  ASSERT_TRUE(SetupConnection(user_a, user_b));
+
+  user_a.ExpectPayload(payload_latch_);
+  user_b.SendPayload(Payload(0, ByteArray{std::string(kMessage)}));
+  EXPECT_FALSE(payload_latch_.Await(kDefaultTimeout).result());
 
   user_a.Stop();
   user_b.Stop();
@@ -186,7 +232,7 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
-  NEARBY_LOG(INFO, "Stream extracted.");
+  NEARBY_LOGS(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
       [&message](const PayloadProgressInfo& info) {
@@ -195,7 +241,7 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, message);
-  NEARBY_LOG(INFO, "Packet 1 handled.");
+  NEARBY_LOGS(INFO) << "Packet 1 handled.";
 
   tx->Write(message);
   EXPECT_TRUE(user_a.WaitForProgress(
@@ -205,11 +251,11 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
       kProgressTimeout));
   ByteArray result2 = rx.Read(kChunkSize).result();
   EXPECT_EQ(result2, message);
-  NEARBY_LOG(INFO, "Packet 2 handled.");
+  NEARBY_LOGS(INFO) << "Packet 2 handled.";
 
   rx.Close();
   tx->Close();
-  NEARBY_LOG(INFO, "Test completed.");
+  NEARBY_LOGS(INFO) << "Test completed.";
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -229,7 +275,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
-  NEARBY_LOG(INFO, "Stream extracted.");
+  NEARBY_LOGS(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
       [&message](const PayloadProgressInfo& info) {
@@ -238,10 +284,10 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, message);
-  NEARBY_LOG(INFO, "Packet 1 handled.");
+  NEARBY_LOGS(INFO) << "Packet 1 handled.";
 
   EXPECT_EQ(user_a.CancelPayload(), Status{Status::kSuccess});
-  NEARBY_LOG(INFO, "Stream canceled on receiver side.");
+  NEARBY_LOGS(INFO) << "Stream canceled on receiver side.";
 
   // Sender will only handle cancel event if it is sending.
   // Once cancel is handled, write will fail.
@@ -257,12 +303,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
       [status = PayloadProgressInfo::Status::kCanceled](
           const PayloadProgressInfo& info) { return info.status == status; },
       kProgressTimeout));
-  NEARBY_LOG(INFO, "Stream cancelation received.");
+  NEARBY_LOGS(INFO) << "Stream cancelation received.";
 
   tx->Close();
   rx.Close();
 
-  NEARBY_LOG(INFO, "Test completed.");
+  NEARBY_LOGS(INFO) << "Test completed.";
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -282,7 +328,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
-  NEARBY_LOG(INFO, "Stream extracted.");
+  NEARBY_LOGS(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
       [&message](const PayloadProgressInfo& info) {
@@ -291,10 +337,10 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, message);
-  NEARBY_LOG(INFO, "Packet 1 handled.");
+  NEARBY_LOGS(INFO) << "Packet 1 handled.";
 
   EXPECT_EQ(user_b.CancelPayload(), Status{Status::kSuccess});
-  NEARBY_LOG(INFO, "Stream canceled on sender side.");
+  NEARBY_LOGS(INFO) << "Stream canceled on sender side.";
 
   // Sender will only handle cancel event if it is sending.
   // Once cancel is handled, write will fail.
@@ -310,12 +356,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
       [status = PayloadProgressInfo::Status::kCanceled](
           const PayloadProgressInfo& info) { return info.status == status; },
       kProgressTimeout));
-  NEARBY_LOG(INFO, "Stream cancelation received.");
+  NEARBY_LOGS(INFO) << "Stream cancelation received.";
 
   tx->Close();
   rx.Close();
 
-  NEARBY_LOG(INFO, "Test completed.");
+  NEARBY_LOGS(INFO) << "Test completed.";
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -340,7 +386,7 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
   ASSERT_NE(user_a.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_a.GetPayload().AsStream();
-  NEARBY_LOG(INFO, "Stream extracted.");
+  NEARBY_LOGS(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
       [&message](const PayloadProgressInfo& info) {
@@ -349,7 +395,7 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, ByteArray("sage"));
-  NEARBY_LOG(INFO, "Packet 1 handled.");
+  NEARBY_LOGS(INFO) << "Packet 1 handled.";
 
   tx->Write(message);
   EXPECT_TRUE(user_a.WaitForProgress(
@@ -359,13 +405,26 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
       kProgressTimeout));
   ByteArray result2 = rx.Read(kChunkSize).result();
   EXPECT_EQ(result2, message);
-  NEARBY_LOG(INFO, "Packet 2 handled.");
+  NEARBY_LOGS(INFO) << "Packet 2 handled.";
 
   rx.Close();
   tx->Close();
-  NEARBY_LOG(INFO, "Test completed.");
+  NEARBY_LOGS(INFO) << "Test completed.";
   user_a.Stop();
   user_b.Stop();
+  env_.Stop();
+}
+
+TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
+  env_.Start();
+  PayloadSimulationUser user(kDeviceB, GetParam());
+  auto [input, tx] = CreatePipe();
+  const ByteArray message{std::string(kMessage)};
+  tx->Write(message);
+  Payload payload(std::move(input));
+  user.ReceivePayload(std::move(payload), "1234");
+  ASSERT_EQ(user.GetPayload().AsStream(), nullptr);
+  user.Stop();
   env_.Stop();
 }
 

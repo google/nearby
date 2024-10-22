@@ -24,6 +24,7 @@
 #include "absl/base/const_init.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
@@ -91,7 +92,7 @@ bool SessionManager::RegisterSessionListener(
     absl::string_view listener_name,
     absl::AnyInvocable<void(SessionState)> callback) {
   absl::MutexLock lock(&session_mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Registering listener: " << listener_name;
+  LOG(INFO) << __func__ << ": Registering listener: " << listener_name;
 
   // Create session thread if no running thread.
   if (session_thread_ == nullptr) {
@@ -114,38 +115,36 @@ bool SessionManager::RegisterSessionListener(
 
   session_callbacks_->emplace(listener_name, std::move(callback));
   listeners_.emplace(listener_name);
-  NEARBY_LOGS(INFO) << __func__ << ": Session listener: " << listener_name
-                    << " is registered.";
+  LOG(INFO) << __func__ << ": Session listener: " << listener_name
+            << " is registered.";
   return true;
 }
 
 bool SessionManager::UnregisterSessionListener(
     absl::string_view listener_name) {
   absl::MutexLock lock(&session_mutex_);
-  NEARBY_LOGS(INFO) << __func__
-                    << ": Unregistering listener: " << listener_name;
+  LOG(INFO) << __func__ << ": Unregistering listener: " << listener_name;
   if (session_thread_ == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": No running listener.";
+    LOG(ERROR) << __func__ << ": No running listener.";
     return false;
   }
   if (!session_callbacks_->contains(listener_name) ||
       !listeners_.contains(listener_name)) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": No listener with name:" << listener_name;
+    LOG(ERROR) << __func__ << ": No listener with name:" << listener_name;
     return false;
   }
   session_callbacks_->erase(listener_name);
   listeners_.erase(listener_name);
 
   if (!session_callbacks_->empty()) {
-    NEARBY_LOGS(INFO) << __func__ << ": Session listener: " << listener_name
-                      << " is unregistered.";
+    LOG(INFO) << __func__ << ": Session listener: " << listener_name
+              << " is unregistered.";
     return true;
   }
 
   CleanUp();
-  NEARBY_LOGS(INFO) << __func__ << ": Session listener: " << listener_name
-                    << " is unregistered.";
+  LOG(INFO) << __func__ << ": Session listener: " << listener_name
+            << " is unregistered.";
   return true;
 }
 
@@ -178,8 +177,7 @@ bool SessionManager::PreventSleep() const {
   EXECUTION_STATE execution_state =
       SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
   if (execution_state == 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to set execution state of the thread.";
+    LOG(ERROR) << __func__ << ": Failed to set execution state of the thread.";
     return false;
   }
   return true;
@@ -188,16 +186,15 @@ bool SessionManager::PreventSleep() const {
 bool SessionManager::AllowSleep() const {
   EXECUTION_STATE execution_state = SetThreadExecutionState(ES_CONTINUOUS);
   if (execution_state == 0) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to set execution state of the thread.";
+    LOG(ERROR) << __func__ << ": Failed to set execution state of the thread.";
     return false;
   }
   return true;
 }
 
 void SessionManager::NotifySessionState(SessionState state) {
-  NEARBY_LOGS(INFO) << __func__
-                    << ": Notifying session state: " << static_cast<int>(state);
+  LOG(INFO) << __func__
+            << ": Notifying session state: " << static_cast<int>(state);
   if (state == SessionManager::SessionState::kLock) {
     absl::MutexLock lock(&session_mutex_);
     for (auto& it : *SessionManager::session_callbacks_) {
@@ -214,19 +211,18 @@ void SessionManager::NotifySessionState(SessionState state) {
 void SessionManager::StartSession(absl::Notification& notification) {
   session_hwnd_ = CreateNearbyWindow();
   if (session_hwnd_ == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to create session Window.";
+    LOG(ERROR) << __func__ << ": Failed to create session Window.";
     return;
   }
 
   if (!WTSRegisterSessionNotification(session_hwnd_, NOTIFY_FOR_THIS_SESSION)) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ":Failed to register session notification.";
+    LOG(ERROR) << __func__ << ":Failed to register session notification.";
     return;
   }
 
   notification.Notify();
 
-  NEARBY_LOGS(INFO) << __func__ << ": Session thread started.";
+  LOG(INFO) << __func__ << ": Session thread started.";
 
   // Main message loop
   MSG msg = {};
@@ -237,17 +233,16 @@ void SessionManager::StartSession(absl::Notification& notification) {
   }
 
   if (!WTSUnRegisterSessionNotification(session_hwnd_)) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Failed to register session notification.";
+    LOG(ERROR) << __func__ << ": Failed to register session notification.";
     return;
   }
 
   if (!UnregisterClassA(/*lpClassName=*/kMessageWindowClass,
                         /*hInstance=*/(HINSTANCE)GetModuleHandle(nullptr))) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Failed to unregister window class.";
+    LOG(ERROR) << __func__ << ": Failed to unregister window class.";
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": Completed Message loop.";
+  LOG(INFO) << __func__ << ": Completed Message loop.";
 }
 
 void SessionManager::StopSession() {

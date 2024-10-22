@@ -58,6 +58,7 @@ namespace connections {
 class ServiceControllerRouter {
  public:
   ServiceControllerRouter();
+  explicit ServiceControllerRouter(bool enable_ble_v2);
   virtual ~ServiceControllerRouter();
   // Not copyable or movable
   ServiceControllerRouter(const ServiceControllerRouter&) = delete;
@@ -76,7 +77,7 @@ class ServiceControllerRouter {
 
   virtual void StartDiscovery(ClientProxy* client, absl::string_view service_id,
                               const DiscoveryOptions& discovery_options,
-                              const DiscoveryListener& listener,
+                              DiscoveryListener listener,
                               ResultCallback callback);
 
   virtual void StopDiscovery(ClientProxy* client, ResultCallback callback);

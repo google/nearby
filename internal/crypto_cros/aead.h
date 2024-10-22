@@ -26,10 +26,9 @@
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
+#include <openssl/base.h>
 
-struct evp_aead_st;
-
-namespace crypto {
+namespace nearby::crypto {
 
 // This class exposes the AES-128-CTR-HMAC-SHA256 and AES_256_GCM AEAD. Note
 // that there are two versions of most methods: an historical version based
@@ -87,9 +86,9 @@ class CRYPTO_EXPORT Aead {
             size_t* output_length, size_t max_output_length) const;
 
   absl::optional<absl::Span<const uint8_t>> key_;
-  const evp_aead_st* aead_;
+  const EVP_AEAD* aead_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_AEAD_H_

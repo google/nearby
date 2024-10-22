@@ -34,19 +34,19 @@ namespace mediums {
 // OutputStreamImpl
 Exception WebRtcSocket::OutputStreamImpl::Write(const ByteArray& data) {
   if (data.size() > kMaxDataSize) {
-    NEARBY_LOG(WARNING, "Sending data larger than 1MB");
+    NEARBY_LOGS(WARNING) << "Sending data larger than 1MB";
     return {Exception::kIo};
   }
 
   socket_->BlockUntilSufficientSpaceInBuffer(data.size());
 
   if (socket_->IsClosed()) {
-    NEARBY_LOG(WARNING, "Tried sending message while socket is closed");
+    NEARBY_LOGS(WARNING) << "Tried sending message while socket is closed";
     return {Exception::kIo};
   }
 
   if (!socket_->SendMessage(data)) {
-    NEARBY_LOG(INFO, "Unable to write data to socket.");
+    NEARBY_LOGS(INFO) << "Unable to write data to socket.";
     return {Exception::kIo};
   }
   return {Exception::kSuccess};
@@ -90,9 +90,9 @@ InputStream& WebRtcSocket::GetInputStream() { return *pipe_input_; }
 
 OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
-void WebRtcSocket::Close() {
+Exception WebRtcSocket::Close() {
   NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this;
-  if (closed_.Set(true)) return;
+  if (closed_.Set(true)) return {Exception::kSuccess};
 
   ClosePipe();
   // NOTE: This call blocks and triggers a state change on the siginaling thread
@@ -101,6 +101,7 @@ void WebRtcSocket::Close() {
   data_channel_->Close();
   NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
                     << " done";
+  return {Exception::kSuccess};
 }
 
 void WebRtcSocket::OnStateChange() {
@@ -119,9 +120,8 @@ void WebRtcSocket::OnStateChange() {
     case webrtc::DataChannelInterface::DataState::kClosing:
       break;
     case webrtc::DataChannelInterface::DataState::kClosed:
-      NEARBY_LOG(
-          ERROR,
-          "WebRtcSocket::OnStateChange() unregistering data channel observer.");
+      NEARBY_LOGS(ERROR) << "WebRtcSocket::OnStateChange() unregistering data "
+                            "channel observer.";
       // This will trigger a destruction of the owning connection flow
       // We implicitly depend on the |socket_listener_| to offload from
       // the signaling thread so it does not get blocked.

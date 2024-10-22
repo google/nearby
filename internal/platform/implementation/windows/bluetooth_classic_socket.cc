@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2020-2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/windows/bluetooth_classic_socket.h"
 
+#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <memory>
@@ -21,32 +22,46 @@
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/implementation/windows/bluetooth_classic_device.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
-#include "winrt/Windows.Devices.Bluetooth.h"
-#include "winrt/Windows.Networking.Sockets.h"
-#include "winrt/base.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 using ::winrt::Windows::Devices::Bluetooth::BluetoothConnectionStatus;
+using ::winrt::Windows::Networking::HostName;
+using ::winrt::Windows::Networking::Sockets::StreamSocket;
+using ::winrt::Windows::Storage::Streams::Buffer;
+using ::winrt::Windows::Storage::Streams::IInputStream;
+using ::winrt::Windows::Storage::Streams::InputStreamOptions;
+using ::winrt::Windows::Storage::Streams::IOutputStream;
+
 constexpr int kMaxConnectRetryCount = 3;
 constexpr absl::Duration kConnectInterval = absl::Seconds(3);
 }  // namespace
 
-BluetoothSocket::BluetoothSocket(StreamSocket streamSocket)
-    : windows_socket_(streamSocket) {
-  NEARBY_LOGS(INFO) << __func__ << ": Initialize bluetooth socket.";
+BluetoothSocket::BluetoothSocket(StreamSocket stream_socket)
+    : windows_socket_(stream_socket) {
+  LOG(INFO) << __func__ << ": Initialize bluetooth socket.";
   native_bluetooth_device_ =
-      winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
+      ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromHostNameAsync(
           windows_socket_.Information().RemoteHostName())
           .get();
   if (FeatureFlags::GetInstance()
           .GetFlags()
           .enable_bluetooth_connection_status_track) {
-    NEARBY_LOGS(INFO)
-        << "Flag enable_bluetooth_connection_status_track is enabled.";
+    LOG(INFO) << "Flag enable_bluetooth_connection_status_track is enabled.";
     connection_status_changed_token_ =
         native_bluetooth_device_.ConnectionStatusChanged(
             {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
@@ -78,7 +93,7 @@ OutputStream& BluetoothSocket::GetOutputStream() { return output_stream_; }
 // After this call object should be treated as not connected.
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception BluetoothSocket::Close() {
-  NEARBY_LOGS(INFO) << __func__ << ": Close bluetooth socket.";
+  LOG(INFO) << __func__ << ": Close bluetooth socket.";
 
   // The Close method aborts any pending operations and releases all unmanaged
   // resources associated with the StreamSocket object, including the Input and
@@ -103,14 +118,14 @@ Exception BluetoothSocket::Close() {
     is_bluetooth_socket_closed_ = true;
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -125,26 +140,37 @@ api::BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 // Starts an asynchronous operation on a StreamSocket object to connect to a
 // remote network destination specified by a remote hostname and a remote
 // service name.
-bool BluetoothSocket::Connect(HostName connectionHostName,
-                              winrt::hstring connectionServiceName) {
-  NEARBY_LOGS(INFO) << __func__ << ": start to connect to bluetooth service:"
-                    << winrt::to_string(connectionServiceName);
+bool BluetoothSocket::Connect(HostName connection_host_name,
+                              ::winrt::hstring connection_service_name) {
+  LOG(INFO) << __func__ << ": start to connect to bluetooth service:"
+            << winrt::to_string(connection_service_name);
 
-  connect_called_count_ = 0;
-  while (connect_called_count_ < kMaxConnectRetryCount) {
-    connect_called_count_ += 1;
+  if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableNewBluetoothRefactor)) {
     bool connect_result =
-        InternalConnect(connectionHostName, connectionServiceName);
+        InternalConnect(connection_host_name, connection_service_name);
     if (connect_result) {
       return connect_result;
     }
+  } else {
+    int connect_called_count = 0;
+    while (connect_called_count < kMaxConnectRetryCount) {
+      connect_called_count += 1;
+      bool connect_result =
+          InternalConnect(connection_host_name, connection_service_name);
+      if (connect_result) {
+        return connect_result;
+      }
 
-    NEARBY_LOGS(WARNING) << __func__ << ": Failed to connect bluetooth at the "
-                         << connect_called_count_ << "th call.";
+      LOG(WARNING) << __func__ << ": Failed to connect bluetooth at the "
+                   << connect_called_count << "th call.";
 
-    absl::SleepFor(kConnectInterval);
+      absl::SleepFor(kConnectInterval);
+    }
   }
 
+  LOG(WARNING) << __func__ << ": Failed to connect bluetooth";
   return false;
 }
 
@@ -157,14 +183,13 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
     std::int64_t size) {
   try {
     if (size <= 0) {
-      NEARBY_LOGS(ERROR) << __func__
-                         << ": Invalid transmit packet size: " << size;
+      LOG(ERROR) << __func__ << ": Invalid transmit packet size: " << size;
       return {Exception::kIo};
     }
 
     if (size > read_buffer_.Capacity()) {
-      NEARBY_LOGS(WARNING) << __func__
-                         << ": resize receive buffer to packet size: " << size;
+      LOG(WARNING) << __func__
+                   << ": resize receive buffer to packet size: " << size;
       read_buffer_ = Buffer(size);
     }
 
@@ -176,27 +201,27 @@ ExceptionOr<ByteArray> BluetoothSocket::BluetoothInputStream::Read(
                        .get();
 
     if (ibuffer.Length() != size) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Got " << ibuffer.Length()
-                           << " bytes of total " << size << " bytes.";
+      LOG(WARNING) << __func__ << ": Got " << ibuffer.Length()
+                   << " bytes of total " << size << " bytes.";
     }
 
     ByteArray data((char*)ibuffer.data(), ibuffer.Length());
     return ExceptionOr(data);
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
 
 Exception BluetoothSocket::BluetoothInputStream::Close() {
-  NEARBY_LOGS(INFO) << __func__ << ": Close bluetooth input stream.";
+  LOG(INFO) << __func__ << ": Close bluetooth input stream.";
 
   try {
     if (winrt_input_stream_ != nullptr) {
@@ -204,14 +229,14 @@ Exception BluetoothSocket::BluetoothInputStream::Close() {
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -224,9 +249,8 @@ BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
 Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
   try {
     if (data.size() > write_buffer_.Capacity()) {
-      NEARBY_LOGS(WARNING) << __func__
-                         << ": resize write buffer to packet size: "
-                         << data.size();
+      LOG(WARNING) << __func__
+                   << ": resize write buffer to packet size: " << data.size();
       write_buffer_ = Buffer(data.size());
     }
 
@@ -237,14 +261,14 @@ Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
         winrt_output_stream_.WriteAsync(write_buffer_).get();
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -258,59 +282,56 @@ Exception BluetoothSocket::BluetoothOutputStream::Flush() {
     winrt_output_stream_.FlushAsync().get();
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
 
 Exception BluetoothSocket::BluetoothOutputStream::Close() {
-  NEARBY_LOGS(INFO) << __func__ << ": Close bluetooth output stream.";
+  LOG(INFO) << __func__ << ": Close bluetooth output stream.";
   try {
     if (winrt_output_stream_ != nullptr) {
       winrt_output_stream_.Close();
     }
     return {Exception::kSuccess};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
 
-bool BluetoothSocket::InternalConnect(HostName connectionHostName,
-                                      winrt::hstring connectionServiceName) {
+bool BluetoothSocket::InternalConnect(HostName connection_host_name,
+                                      winrt::hstring connection_service_name) {
   try {
-    if (connectionHostName == nullptr || connectionServiceName.empty()) {
-      NEARBY_LOGS(ERROR)
-          << __func__
-          << ": Bluetooth socket connection failed. Attempting to "
-             "connect to empty HostName/MAC address or ServiceName.";
+    if (connection_host_name == nullptr || connection_service_name.empty()) {
+      LOG(ERROR) << __func__
+                 << ": Bluetooth socket connection failed. Attempting to "
+                    "connect to empty HostName/MAC address or ServiceName.";
       return false;
     }
 
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Bluetooth socket connection to host name:"
-                      << winrt::to_string(connectionHostName.DisplayName())
-                      << ", service name:"
-                      << winrt::to_string(connectionServiceName);
+    LOG(INFO) << __func__ << ": Bluetooth socket connection to host name:"
+              << winrt::to_string(connection_host_name.DisplayName())
+              << ", service name:" << winrt::to_string(connection_service_name);
 
     windows_socket_ = winrt::Windows::Networking::Sockets::StreamSocket();
 
     // https://docs.microsoft.com/en-us/uwp/api/windows.networking.sockets.streamsocket.connectasync?view=winrt-20348
-    windows_socket_.ConnectAsync(connectionHostName, connectionServiceName)
+    windows_socket_.ConnectAsync(connection_host_name, connection_service_name)
         .get();
 
     auto info = windows_socket_.Information();
@@ -324,8 +345,7 @@ bool BluetoothSocket::InternalConnect(HostName connectionHostName,
     if (FeatureFlags::GetInstance()
             .GetFlags()
             .enable_bluetooth_connection_status_track) {
-      NEARBY_LOGS(INFO)
-          << "Flag enable_bluetooth_connection_status_track is enabled.";
+      LOG(INFO) << "Flag enable_bluetooth_connection_status_track is enabled.";
       connection_status_changed_token_ =
           native_bluetooth_device_.ConnectionStatusChanged(
               {this, &BluetoothSocket::Listener_ConnectionStatusChanged});
@@ -337,19 +357,18 @@ bool BluetoothSocket::InternalConnect(HostName connectionHostName,
     input_stream_ = BluetoothInputStream(windows_socket_.InputStream());
     output_stream_ = BluetoothOutputStream(windows_socket_.OutputStream());
 
-    NEARBY_LOGS(INFO) << __func__
-                      << ": Bluetooth socket successfully connected to "
-                      << bluetooth_device_->GetName();
+    LOG(INFO) << __func__ << ": Bluetooth socket successfully connected to "
+              << bluetooth_device_->GetName();
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return false;
   } catch (const winrt::hresult_error& error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return false;
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return false;
   }
 }
@@ -362,12 +381,10 @@ winrt::fire_and_forget BluetoothSocket::Listener_ConnectionStatusChanged(
   // Based on the test, the args are empty, so cannot provide more information
   // on the status change.
   BluetoothConnectionStatus connection_status = device.ConnectionStatus();
-  NEARBY_LOGS(WARNING) << __func__
-                       << ": Bluetooth connection status changed to:"
-                       << ((connection_status ==
-                            BluetoothConnectionStatus::Connected)
-                               ? "Connected"
-                               : "Disconnected");
+  LOG(WARNING) << __func__ << ": Bluetooth connection status changed to:"
+               << ((connection_status == BluetoothConnectionStatus::Connected)
+                       ? "Connected"
+                       : "Disconnected");
   return {};
 }
 

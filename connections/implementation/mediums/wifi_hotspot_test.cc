@@ -15,9 +15,12 @@
 
 #include "connections/implementation/mediums/wifi_hotspot.h"
 
+#include <cstddef>
+#include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/wifi_hotspot.h"
@@ -42,6 +45,7 @@ constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kSsid{"Direct-357a2d8c"};
 constexpr absl::string_view kPassword{"12345678"};
 constexpr absl::string_view kIp = "123.234.23.1";
+constexpr int kFrequency = 2412;
 constexpr const size_t kPort = 20;
 
 class WifiHotspotTest : public testing::TestWithParam<FeatureFlags> {
@@ -86,7 +90,7 @@ TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {
   std::string ssid(kSsid);
   std::string password(kPassword);
 
-  EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(ssid, password));
+  EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(ssid, password, kFrequency));
   EXPECT_TRUE(wifi_hotspot_a->DisconnectWifiHotspot());
 }
 
@@ -108,7 +112,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
       wifi_hotspot_a->GetCredentials(service_id);
 
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
-      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword()));
+      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword(),
+      hotspot_credentials->GetFrequency()));
 
   WifiHotspotSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
@@ -144,7 +149,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
       wifi_hotspot_a->GetCredentials(service_id);
 
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
-      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword()));
+      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword(),
+      hotspot_credentials->GetFrequency()));
 
   WifiHotspotSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
@@ -175,7 +181,7 @@ TEST_F(WifiHotspotTest, CanStartHotspotTheOtherFailConnect) {
   std::string ssid(kSsid);
   std::string password(kPassword);
 
-  EXPECT_FALSE(wifi_hotspot_b->ConnectWifiHotspot(ssid, password));
+  EXPECT_FALSE(wifi_hotspot_b->ConnectWifiHotspot(ssid, password, kFrequency));
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
 
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());

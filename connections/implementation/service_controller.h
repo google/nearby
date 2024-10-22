@@ -29,6 +29,7 @@
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/listeners.h"
+#include "internal/interop/device.h"
 
 namespace nearby {
 namespace connections {
@@ -73,7 +74,7 @@ class ServiceController {
   virtual Status StartDiscovery(ClientProxy* client,
                                 const std::string& service_id,
                                 const DiscoveryOptions& discovery_options,
-                                const DiscoveryListener& listener) = 0;
+                                DiscoveryListener listener) = 0;
   virtual void StopDiscovery(ClientProxy* client) = 0;
 
   virtual void InjectEndpoint(ClientProxy* client,
@@ -90,6 +91,11 @@ class ServiceController {
 
   virtual Status RequestConnection(
       ClientProxy* client, const std::string& endpoint_id,
+      const ConnectionRequestInfo& info,
+      const ConnectionOptions& connection_options) = 0;
+
+  virtual Status RequestConnectionV3(
+      ClientProxy* client, const NearbyDevice& remote_device,
       const ConnectionRequestInfo& info,
       const ConnectionOptions& connection_options) = 0;
   virtual Status AcceptConnection(ClientProxy* client,

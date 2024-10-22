@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/medium_environment.h"
 #include "presence/presence_client.h"
@@ -30,31 +31,32 @@
 namespace nearby {
 namespace presence {
 namespace {
-
-using Metadata = ::nearby::internal::Metadata;
+using DeviceIdentityMetaData = ::nearby::internal::DeviceIdentityMetaData;
 
 constexpr absl::string_view kManagerAppId = "TEST_MANAGER_APP";
-constexpr absl::string_view kAccountName = "test account";
+constexpr absl::string_view kAccountName = "dummy account";
 
 class PresenceServiceTest : public testing::Test {
  protected:
   nearby::MediumEnvironment& env_{nearby::MediumEnvironment::Instance()};
 };
 
-Metadata CreateTestMetadata(absl::string_view account_name) {
-  Metadata metadata;
-  metadata.set_account_name(account_name);
-  metadata.set_device_name("NP test device");
-  metadata.set_device_profile_url("test_image.test.com");
-  metadata.set_bluetooth_mac_address("\xFF\xFF\xFF\xFF\xFF\xFF");
-  return metadata;
+DeviceIdentityMetaData CreateTestDeviceIdentityMetaData() {
+  DeviceIdentityMetaData device_identity_metadata;
+  device_identity_metadata.set_device_type(
+      internal::DeviceType::DEVICE_TYPE_PHONE);
+  device_identity_metadata.set_device_name("NP test device");
+  device_identity_metadata.set_bluetooth_mac_address(
+      "\xFF\xFF\xFF\xFF\xFF\xFF");
+  device_identity_metadata.set_device_id("\x12\xab\xcd");
+  return device_identity_metadata;
 }
 
 CredentialSelector BuildDefaultCredentialSelector() {
   CredentialSelector credential_selector;
   credential_selector.manager_app_id = std::string(kManagerAppId);
   credential_selector.account_name = std::string(kAccountName);
-  credential_selector.identity_type = internal::IDENTITY_TYPE_PRIVATE;
+  credential_selector.identity_type = internal::IDENTITY_TYPE_PRIVATE_GROUP;
   return credential_selector;
 }
 
@@ -89,12 +91,12 @@ TEST_F(PresenceServiceTest, StartThenStopScan) {
   env_.Stop();
 }
 
-TEST_F(PresenceServiceTest, UpdatingLocalMetadataWorks) {
+TEST_F(PresenceServiceTest, UpdatingDeviceIdentityMetaDataWorks) {
   PresenceServiceImpl presence_service;
-  presence_service.UpdateLocalDeviceMetadata(CreateTestMetadata("Test account"),
-                                             false, "Test app", {}, 3, 1, {});
-  EXPECT_EQ(presence_service.GetLocalDeviceMetadata().SerializeAsString(),
-            CreateTestMetadata("Test account").SerializeAsString());
+  presence_service.UpdateDeviceIdentityMetaData(
+      CreateTestDeviceIdentityMetaData(), false, "Test app", {}, 3, 1, {});
+  EXPECT_EQ(presence_service.GetDeviceIdentityMetaData().SerializeAsString(),
+            CreateTestDeviceIdentityMetaData().SerializeAsString());
 }
 
 TEST_F(PresenceServiceTest, TestGetDeviceProvider) {
@@ -124,7 +126,7 @@ TEST_F(PresenceServiceTest, TestUpdateRemotePublicCredentials) {
   PresenceServiceImpl presence_service;
   internal::SharedCredential public_credential_for_test;
   public_credential_for_test.set_identity_type(
-      internal::IdentityType::IDENTITY_TYPE_TRUSTED);
+      internal::IdentityType::IDENTITY_TYPE_CONTACTS_GROUP);
   std::vector<internal::SharedCredential> public_credentials{
       {public_credential_for_test}};
 

@@ -15,15 +15,20 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_TEST_FAST_PAIR_FAKE_HTTP_CLIENT_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_INTERNAL_TEST_FAST_PAIR_FAKE_HTTP_CLIENT_H_
 
-#include <functional>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "internal/network/http_client.h"
+#include "internal/network/http_request.h"
+#include "internal/network/http_response.h"
+#include "internal/network/http_status_code.h"
 
 namespace nearby {
 namespace network {
@@ -32,7 +37,7 @@ class FastPairFakeHttpClient : public HttpClient {
  public:
   struct RequestInfo {
     HttpRequest request;
-    std::function<void(const absl::StatusOr<HttpResponse>&)> callback;
+    absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback;
   };
 
   FastPairFakeHttpClient() = default;
@@ -44,18 +49,19 @@ class FastPairFakeHttpClient : public HttpClient {
   FastPairFakeHttpClient(FastPairFakeHttpClient&&) = default;
   FastPairFakeHttpClient& operator=(FastPairFakeHttpClient&&) = default;
 
-  void StartRequest(const HttpRequest& request,
-                    std::function<void(const absl::StatusOr<HttpResponse>&)>
-                        callback) override {
+  void StartRequest(
+      const HttpRequest& request,
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
+      override {
     RequestInfo request_info;
     request_info.request = request;
-    request_info.callback = callback;
+    request_info.callback = std::move(callback);
     request_infos_.push_back(std::move(request_info));
   }
 
   void StartCancellableRequest(
       std::unique_ptr<CancellableRequest> request,
-      std::function<void(const absl::StatusOr<HttpResponse>&)> callback)
+      absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override {}
 
   absl::StatusOr<HttpResponse> GetResponse(
@@ -70,8 +76,8 @@ class FastPairFakeHttpClient : public HttpClient {
       return;
     }
 
-    auto request_info = request_infos_.at(pos);
-    if (request_info.callback != nullptr) {
+    auto& request_info = request_infos_.at(pos);
+    if (request_info.callback) {
       request_info.callback(response);
     }
 

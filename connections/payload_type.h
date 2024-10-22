@@ -18,8 +18,8 @@
 namespace nearby {
 namespace connections {
 
-enum class PayloadType { kUnknown = 0, kBytes = 1, kStream = 2, kFile = 3 };
-enum PayloadDirection {
+enum class PayloadType { kUnknown = 0, kBytes = 1, kFile = 2, kStream = 3 };
+enum class PayloadDirection {
   UNKNOWN_DIRECTION_PAYLOAD = 0,
   INCOMING_PAYLOAD = 1,
   OUTGOING_PAYLOAD = 2,

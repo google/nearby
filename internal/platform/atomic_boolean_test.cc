@@ -14,8 +14,6 @@
 
 #include "internal/platform/atomic_boolean.h"
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 
 namespace nearby {

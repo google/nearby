@@ -23,8 +23,27 @@ cc_library(
         "//fastpair:__subpackages__",
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/experiments:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
-    deps = ["@com_google_protobuf//:protobuf"],
+    deps = [
+        "//internal/proto/analytics:connections_log_cc_proto",
+        "//internal/proto/analytics:fast_pair_log_cc_proto",
+        "//sharing/proto/analytics:sharing_log_cc_proto",
+    ],
+)
+
+cc_library(
+    name = "mock_event_logger",
+    testonly = True,
+    hdrs = [
+        "mock_event_logger.h",
+        "sharing_log_matchers.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":event_logger",
+        "@com_google_googletest//:gtest_for_library_testonly",
+        "@com_google_protobuf//:protobuf_lite",
+    ],
 )

@@ -15,20 +15,32 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SCAN_MANAGER_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_SCAN_MANAGER_H_
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/mutex.h"
+#include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.pb.h"
 #include "presence/data_types.h"
-#include "presence/implementation/advertisement_decoder.h"
+#include "presence/implementation/advertisement_filter.h"
 #include "presence/implementation/credential_manager.h"
 #include "presence/implementation/mediums/mediums.h"
 #include "presence/scan_request.h"
+
+#ifdef USE_RUST_DECODER
+#include "presence/implementation/advertisement_decoder_rust_impl.h"
+#else
+#include "presence/implementation/advertisement_decoder_impl.h"
+#endif
+
 
 namespace nearby {
 namespace presence {
@@ -65,11 +77,14 @@ class ScanManager {
     ScanCallback callback;
     absl::flat_hash_map<IdentityType, std::vector<SharedCredential>>
         credentials;
-    AdvertisementDecoder decoder;
+    AdvertisementDecoderImpl decoder;
+    AdvertisementFilter advertisement_filter;
     std::unique_ptr<ScanningSession> scanning_session;
   };
   void NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
                       absl::string_view remote_address)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
+  void NotifyLostBle(ScanSessionId id, absl::string_view remote_address)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void FetchCredentials(ScanSessionId id, const ScanRequest& scan_request)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
@@ -82,6 +97,9 @@ class ScanManager {
   Mediums* mediums_;
   CredentialManager* credential_manager_;
   absl::flat_hash_map<ScanSessionId, ScanSessionState> scan_sessions_
+      ABSL_GUARDED_BY(*executor_);
+  absl::flat_hash_map<std::string, std::string>
+      device_address_to_endpoint_id_map_
       ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
 };

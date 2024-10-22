@@ -14,10 +14,7 @@
 
 #include "internal/platform/credential_storage_impl.h"
 
-#include <memory>
-#include <optional>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -25,6 +22,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/proto/credential.pb.h"
@@ -67,19 +65,19 @@ SharedCredential CreatePublicCredential(absl::string_view secret_id,
 
 std::vector<LocalCredential> BuildPrivateCreds(absl::string_view secret_id) {
   std::vector<LocalCredential> private_credentials = {
-      CreateLocalCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
-      CreateLocalCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
       CreateLocalCredential(secret_id,
-                            IdentityType::IDENTITY_TYPE_PROVISIONED)};
+                            IdentityType::IDENTITY_TYPE_PRIVATE_GROUP),
+      CreateLocalCredential(secret_id,
+                            IdentityType::IDENTITY_TYPE_CONTACTS_GROUP)};
   return private_credentials;
 }
 
 std::vector<SharedCredential> BuildPublicCreds(absl::string_view secret_id) {
   std::vector<SharedCredential> public_credentials = {
-      CreatePublicCredential(secret_id, IdentityType::IDENTITY_TYPE_PRIVATE),
-      CreatePublicCredential(secret_id, IdentityType::IDENTITY_TYPE_TRUSTED),
       CreatePublicCredential(secret_id,
-                             IdentityType::IDENTITY_TYPE_PROVISIONED)};
+                             IdentityType::IDENTITY_TYPE_PRIVATE_GROUP),
+      CreatePublicCredential(secret_id,
+                             IdentityType::IDENTITY_TYPE_CONTACTS_GROUP)};
   return public_credentials;
 }
 
@@ -450,9 +448,10 @@ TEST_P(IdentityFilterTest, FilterLocalCredentialsByIdentityType) {
 TEST_P(IdentityFilterTest, FilterLocalCredentialsFailsWhenNoCredentialsMatch) {
   IdentityType identity_type = GetParam();
   // Create a credential of a different identity type than the one we query.
-  IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
-                                ? IdentityType::IDENTITY_TYPE_TRUSTED
-                                : IdentityType::IDENTITY_TYPE_PRIVATE;
+  IdentityType other_type =
+      identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP
+          ? IdentityType::IDENTITY_TYPE_CONTACTS_GROUP
+          : IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
   std::vector<LocalCredential> private_creds = {
       CreateLocalCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
@@ -486,9 +485,10 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsByIdentityType) {
 TEST_P(IdentityFilterTest, FilterPublicCredentialsFailsWhenNoCredentialsMatch) {
   IdentityType identity_type = GetParam();
   // Create a credential of a different identity type than the one we query.
-  IdentityType other_type = identity_type == IdentityType::IDENTITY_TYPE_PRIVATE
-                                ? IdentityType::IDENTITY_TYPE_TRUSTED
-                                : IdentityType::IDENTITY_TYPE_PRIVATE;
+  IdentityType other_type =
+      identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP
+          ? IdentityType::IDENTITY_TYPE_CONTACTS_GROUP
+          : IdentityType::IDENTITY_TYPE_PRIVATE_GROUP;
   std::vector<SharedCredential> public_creds = {
       CreatePublicCredential(kSecretId, other_type)};
   CredentialStorageImpl credential_storage;
@@ -503,9 +503,8 @@ TEST_P(IdentityFilterTest, FilterPublicCredentialsFailsWhenNoCredentialsMatch) {
 
 INSTANTIATE_TEST_SUITE_P(
     CredentialStorageImplTest, IdentityFilterTest,
-    testing::Values(IdentityType::IDENTITY_TYPE_PRIVATE,
-                    IdentityType::IDENTITY_TYPE_TRUSTED,
-                    IdentityType::IDENTITY_TYPE_PROVISIONED));
+    testing::Values(IdentityType::IDENTITY_TYPE_PRIVATE_GROUP,
+                    IdentityType::IDENTITY_TYPE_CONTACTS_GROUP));
 
 }  // namespace
 }  // namespace nearby

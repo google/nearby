@@ -122,15 +122,14 @@ absl::StatusOr<BlePacket> BlePacket::CreateDataPacket(
 
 BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
   if (ble_packet_bytes.Empty()) {
-    NEARBY_LOG(ERROR, "Cannot deserialize BlePacket: null bytes passed in");
+    NEARBY_LOGS(ERROR) << "Cannot deserialize BlePacket: null bytes passed in";
     return;
   }
 
   if (ble_packet_bytes.size() < kServiceIdHashLength) {
-    NEARBY_LOG(
-        INFO,
-        "Cannot deserialize BlePacket: expecting min %u raw bytes, got %zu",
-        kServiceIdHashLength, ble_packet_bytes.size());
+    NEARBY_LOGS(INFO) << "Cannot deserialize BlePacket: expecting min "
+                      << kServiceIdHashLength << " raw bytes, got "
+                      << ble_packet_bytes.size();
     return;
   }
 

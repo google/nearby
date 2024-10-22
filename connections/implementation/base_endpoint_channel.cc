@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -31,6 +32,9 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::analytics::proto::ConnectionsLog;
+using DisconnectionReason =
+    ::location::nearby::proto::connections::DisconnectionReason;
 
 std::int32_t BytesToInt(const ByteArray& bytes) {
   const char* int_bytes = bytes.data();
@@ -135,6 +139,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
 
   {
     MutexLock crypto_lock(&crypto_mutex_);
+    Exception message_exception{Exception::kInvalidProtocolBuffer};
     if (IsEncryptionEnabledLocked()) {
       // If encryption is enabled, decode the message.
       std::string input(std::move(result));
@@ -165,6 +170,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
                 << parser::GetFrameType(parsed.result());
           }
         } else {
+          message_exception.value = parsed.exception();
           NEARBY_LOGS(WARNING)
               << __func__ << ": Unable to parse data as unencrypted message.";
         }
@@ -172,7 +178,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
       packet_meta_data.StopEncryption();
       if (result.Empty()) {
         NEARBY_LOGS(WARNING) << __func__ << ": Unable to parse read result.";
-        return ExceptionOr<ByteArray>(Exception::kInvalidProtocolBuffer);
+        return ExceptionOr<ByteArray>(message_exception);
       }
     }
   }
@@ -266,7 +272,7 @@ void BaseEndpointChannel::Close() {
     // In case channel is paused, resume it first thing.
     MutexLock lock(&is_paused_mutex_);
     if (is_closed_) {
-      NEARBY_LOGS(VERBOSE) << "EndpointChannel already closed";
+      NEARBY_VLOG(1) << "EndpointChannel already closed";
       return;
     }
     is_closed_ = true;
@@ -309,12 +315,19 @@ void BaseEndpointChannel::SetAnalyticsRecorder(
 
 void BaseEndpointChannel::Close(
     location::nearby::proto::connections::DisconnectionReason reason) {
+  Close(reason, ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+}
+
+void BaseEndpointChannel::Close(
+    location::nearby::proto::connections::DisconnectionReason reason,
+    SafeDisconnectionResult result) {
   NEARBY_LOGS(INFO) << __func__
                     << ": Closing endpoint channel, reason: " << reason;
   Close();
 
   if (analytics_recorder_ != nullptr && !endpoint_id_.empty()) {
-    analytics_recorder_->OnConnectionClosed(endpoint_id_, GetMedium(), reason);
+    analytics_recorder_->OnConnectionClosed(endpoint_id_, GetMedium(), reason,
+                                            result);
   }
 }
 

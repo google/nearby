@@ -17,8 +17,10 @@
 
 #include <memory>
 
+#include "internal/platform/single_thread_executor.h"
 #include "internal/weave/base_socket.h"
 #include "internal/weave/connection.h"
+#include "internal/weave/packet.h"
 #include "internal/weave/socket_callback.h"
 #include "internal/weave/sockets/initial_data_provider.h"
 

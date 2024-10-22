@@ -17,14 +17,15 @@
 #include <array>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -269,13 +270,19 @@ TEST(OfflineFramesTest, CanGenerateConnectionResponse) {
         status: 1
         response: REJECT
         os_info { type: LINUX }
-        safe_to_disconnect_version: 0
+        multiplex_socket_bitmask: 0x01
+        safe_to_disconnect_version: 5
       >
     >)pb";
 
   OsInfo os_info;
   os_info.set_type(OsInfo::LINUX);
-  ByteArray bytes = ForConnectionResponse(1, os_info);
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kSafeToDisconnectVersion,
+      5);
+  ByteArray bytes =
+      ForConnectionResponse(1, os_info, /*multiplex_socket_bitmask=*/0x01);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
@@ -337,6 +344,24 @@ TEST(OfflineFramesTest, CanGenerateDataPayloadTransfer) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
+TEST(OfflineFramesTest, CanGeneratePayloadAckPayloadTransfer) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: PAYLOAD_TRANSFER
+      payload_transfer: <
+        packet_type: PAYLOAD_ACK,
+        payload_header: < id: 12345 total_size: -1 >
+      >
+    >)pb";
+  ByteArray bytes = ForPayloadAckPayloadTransfer(12345);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
 TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
   constexpr absl::string_view kExpected =
       R"pb(
@@ -352,14 +377,15 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
             password: "password"
             port: 1234
             gateway: "0.0.0.0"
+            frequency: 2412
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiHotspotPathAvailable("ssid", "password", 1234,
-                                                   "0.0.0.0", false);
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
+      "ssid", "password", 1234, /*frequency=*/2412, "0.0.0.0", false);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
@@ -557,6 +583,43 @@ TEST(OfflineFramesTest, CanGenerateDisconnection) {
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
+
+TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroduction) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: AUTO_RECONNECT
+      auto_reconnect: <
+        event_type: CLIENT_INTRODUCTION
+        endpoint_id: "ABC"
+      >
+    >)pb";
+  ByteArray bytes = ForAutoReconnectIntroduction(std::string(kEndpointId));
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: AUTO_RECONNECT
+      auto_reconnect: <
+        event_type: CLIENT_INTRODUCTION_ACK
+        endpoint_id: "ABC"
+      >
+    >)pb";
+  ByteArray bytes = ForAutoReconnectIntroductionAck(std::string(kEndpointId));
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
 
 }  // namespace
 }  // namespace parser

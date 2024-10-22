@@ -23,7 +23,7 @@ cc_library(
     name = "fake_initial_pair_plugin",
     hdrs = ["fake_initial_pair_plugin.h"],
     compatible_with = ["//buildenv/target:non_prod"],
-    visibility = ["//:__subpackages__"],
+    visibility = ["//visibility:private"],
     deps = [
         "//fastpair:fast_pair_events",
         "//fastpair:fast_pair_plugin",

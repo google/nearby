@@ -21,6 +21,8 @@
 
 #include "gtest/gtest.h"
 
+namespace nearby {
+
 TEST(Sha256Test, Test1) {
   // Example B.1 from FIPS 180-2: one-block message.
   std::string input1 = "abc";
@@ -96,3 +98,5 @@ TEST(Sha256Test, Test3) {
   for (size_t i = 0; i < sizeof(output_truncated3); i++)
     EXPECT_EQ(expected3[i], static_cast<int>(output_truncated3[i]));
 }
+
+}  // namespace nearby

@@ -14,10 +14,13 @@
 
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
 
+#include <functional>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
@@ -42,6 +45,23 @@ TEST(BleV2GattServer, DISABLED_Stop) {
   BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
 
   blev2_gatt_server.Stop();
+}
+
+TEST(BleV2GattServer, DISABLED_StopNotifierIsCalled) {
+  BluetoothAdapter bluetoothAdapter;
+  BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
+  bool is_close_notifier_called = false;
+  absl::Notification notification;
+  std::function<void()> notifier = [&is_close_notifier_called,
+                                    &notification]() {
+    is_close_notifier_called = true;
+    notification.Notify();
+  };
+  blev2_gatt_server.SetCloseNotifier(std::move(notifier));
+
+  blev2_gatt_server.Stop();
+  notification.WaitForNotificationWithTimeout(absl::Seconds(1));
+  EXPECT_TRUE(is_close_notifier_called);
 }
 
 TEST(BleV2GattServer, DISABLED_CreateCharacteristic) {

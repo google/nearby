@@ -29,12 +29,12 @@ cc_library(
     ],
     deps = [
         "//internal/crypto_cros",
+        "//internal/platform:types",
         "@boringssl//:crypto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/types:optional",
-        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -50,6 +50,7 @@ cc_test(
     ],
     deps = [
         ":crypto",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",

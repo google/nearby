@@ -32,7 +32,7 @@ BluetoothRadio::~BluetoothRadio() {
     NEARBY_LOGS(INFO) << "BT adapter was not used. Not touching HW.";
     return;
   }
-  NEARBY_LOG(INFO, "Bring BT adapter to original state");
+  NEARBY_LOGS(INFO) << "Bring BT adapter to original state";
   if (!SetBluetoothState(originally_enabled_.Get())) {
     NEARBY_LOGS(INFO) << "Failed to restore BT adapter original state.";
   }

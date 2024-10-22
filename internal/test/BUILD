@@ -15,35 +15,51 @@
 licenses(["notice"])
 
 cc_library(
+    name = "mocks",
+    testonly = 1,
+    hdrs = [
+        "mock_account_manager.h",
+        "mock_account_observer.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/platform/implementation:account_manager",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_for_library_testonly",
+    ],
+)
+
+cc_library(
     name = "test",
     srcs = [
+        "fake_account_manager.cc",
         "fake_clock.cc",
         "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
         "fake_timer.cc",
-        "fake_webrtc.cc",
     ],
     hdrs = [
+        "fake_account_manager.h",
         "fake_clock.h",
-        "fake_data_set.h",
         "fake_device_info.h",
         "fake_http_client.h",
         "fake_http_client_factory.h",
         "fake_single_thread_executor.h",
         "fake_task_runner.h",
         "fake_timer.h",
-        "fake_webrtc.h",
     ],
     copts = [
         "-Ithird_party",
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/base:bluetooth_address",
-        "//internal/data:data_manager",
+        "//internal/base",
         "//internal/network:types",
         "//internal/platform:comm",
         "//internal/platform:types",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -63,7 +79,6 @@ cc_test(
     timeout = "short",
     srcs = [
         "fake_clock_test.cc",
-        "fake_data_set_test.cc",
         "fake_device_info_test.cc",
         "fake_http_client_test.cc",
         "fake_task_runner_test.cc",
@@ -75,8 +90,8 @@ cc_test(
     shard_count = 8,
     deps = [
         ":test",
-        "//internal/data:data_manager",
         "//internal/network:types",
+        "//internal/network:url",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep

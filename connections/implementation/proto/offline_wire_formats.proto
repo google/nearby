@@ -16,6 +16,8 @@ syntax = "proto2";
 
 package location.nearby.connections;
 
+// import "storage/datapol/annotations/proto/semantic_annotations.proto";
+
 option optimize_for = LITE_RUNTIME;
 option java_outer_classname = "OfflineWireFormatsProto";
 option java_package = "com.google.location.nearby.connections.proto";
@@ -82,6 +84,14 @@ message ConnectionRequestFrame {
     WEB_RTC = 9;
     BLE_L2CAP = 10;
     USB = 11;
+    WEB_RTC_NON_CELLULAR = 12;
+  }
+  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
+
+  // LINT.IfChange
+  enum ConnectionMode {
+    LEGACY = 0;
+    INSTANT = 1;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
@@ -109,6 +119,7 @@ message ConnectionRequestFrame {
     ConnectionsDevice connections_device = 12;
     PresenceDevice presence_device = 13;
   }
+  optional ConnectionMode connection_mode = 14;
 }
 
 message ConnectionResponseFrame {
@@ -149,6 +160,7 @@ message PayloadTransferFrame {
     UNKNOWN_PACKET_TYPE = 0;
     DATA = 1;
     CONTROL = 2;
+    PAYLOAD_ACK = 3;
   }
 
   message PayloadHeader {
@@ -183,7 +195,8 @@ message PayloadTransferFrame {
       UNKNOWN_EVENT_TYPE = 0;
       PAYLOAD_ERROR = 1;
       PAYLOAD_CANCELED = 2;
-      PAYLOAD_RECEIVED_ACK = 3;
+      // Use PacketType.PAYLOAD_ACK instead
+      PAYLOAD_RECEIVED_ACK = 3 [deprecated = true];
     }
 
     optional EventType event = 1;
@@ -225,12 +238,14 @@ message BandwidthUpgradeNegotiationFrame {
       WEB_RTC = 9;
       // 10 is reserved.
       USB = 11;
+      WEB_RTC_NON_CELLULAR = 12;
     }
 
     // Accompanies Medium.WIFI_HOTSPOT.
     message WifiHotspotCredentials {
       optional string ssid = 1;
-      optional string password = 2;
+      optional string password = 2
+          /* type = ST_ACCOUNT_CREDENTIAL */;
       optional int32 port = 3;
       optional string gateway = 4 [default = "0.0.0.0"];
       // This field can be a band or frequency
@@ -253,13 +268,15 @@ message BandwidthUpgradeNegotiationFrame {
     message WifiAwareCredentials {
       optional string service_id = 1;
       optional bytes service_info = 2;
-      optional string password = 3;
+      optional string password = 3
+          /* type = ST_ACCOUNT_CREDENTIAL */;
     }
 
     // Accompanies Medium.WIFI_DIRECT.
     message WifiDirectCredentials {
       optional string ssid = 1;
-      optional string password = 2;
+      optional string password = 2
+          /* type = ST_ACCOUNT_CREDENTIAL */;
       optional int32 port = 3;
       optional int32 frequency = 4;
       optional string gateway = 5 [default = "0.0.0.0"];
@@ -292,6 +309,11 @@ message BandwidthUpgradeNegotiationFrame {
     optional bool supports_client_introduction_ack = 9;
   }
 
+  // Accompanies SAFE_TO_CLOSE_PRIOR_CHANNEL events.
+  message SafeToClosePriorChannel {
+    optional int32 sta_frequency = 1;
+  }
+
   // Accompanies CLIENT_INTRODUCTION events.
   message ClientIntroduction {
     optional string endpoint_id = 1;
@@ -307,6 +329,7 @@ message BandwidthUpgradeNegotiationFrame {
   optional UpgradePathInfo upgrade_path_info = 2;
   optional ClientIntroduction client_introduction = 3;
   optional ClientIntroductionAck client_introduction_ack = 4;
+  optional SafeToClosePriorChannel safe_to_close_prior_channel = 5;
 }
 
 message BandwidthUpgradeRetryFrame {
@@ -325,6 +348,7 @@ message BandwidthUpgradeRetryFrame {
     WEB_RTC = 9;
     BLE_L2CAP = 10;
     USB = 11;
+    WEB_RTC_NON_CELLULAR = 12;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 

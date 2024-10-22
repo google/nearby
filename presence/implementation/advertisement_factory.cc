@@ -14,13 +14,21 @@
 
 #include "presence/implementation/advertisement_factory.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/status/status.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
+#include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "internal/proto/credential.pb.h"
@@ -55,8 +63,8 @@ absl::Status AppendDataElement(unsigned data_type,
                                std::string& output) {
   auto header = CreateDataElementHeader(data_element.size(), data_type);
   if (!header.ok()) {
-    NEARBY_LOG(WARNING, "Can't add Data element type: %d, length: %d",
-               data_type, data_element.size());
+    NEARBY_LOGS(WARNING) << "Can't add Data element type: " << data_type
+                         << ", length: " << data_element.size();
     return header.status();
   }
   output.push_back(*header);
@@ -66,16 +74,14 @@ absl::Status AppendDataElement(unsigned data_type,
 
 uint8_t GetIdentityFieldType(IdentityType type) {
   switch (type) {
-    case IdentityType::IDENTITY_TYPE_PRIVATE:
-      return DataElement::kPrivateIdentityFieldType;
-    case IdentityType::IDENTITY_TYPE_TRUSTED:
-      return DataElement::kTrustedIdentityFieldType;
+    case IdentityType::IDENTITY_TYPE_PRIVATE_GROUP:
+      return DataElement::kPrivateGroupIdentityFieldType;
+    case IdentityType::IDENTITY_TYPE_CONTACTS_GROUP:
+      return DataElement::kContactsGroupIdentityFieldType;
     case IdentityType::IDENTITY_TYPE_PUBLIC:
-      return DataElement::kPublicIdentityFieldType;
-    case IdentityType::IDENTITY_TYPE_PROVISIONED:
       ABSL_FALLTHROUGH_INTENDED;
     default:
-      return DataElement::kProvisionedIdentityFieldType;
+      return DataElement::kPublicIdentityFieldType;
   }
 }
 
@@ -94,9 +100,8 @@ std::string SerializeAction(const Action& action) {
 }
 
 bool RequiresCredentials(IdentityType identity_type) {
-  return identity_type == IdentityType::IDENTITY_TYPE_PRIVATE ||
-         identity_type == IdentityType::IDENTITY_TYPE_TRUSTED ||
-         identity_type == IdentityType::IDENTITY_TYPE_PROVISIONED;
+  return identity_type == IdentityType::IDENTITY_TYPE_PRIVATE_GROUP ||
+         identity_type == IdentityType::IDENTITY_TYPE_CONTACTS_GROUP;
 }
 }  // namespace
 
@@ -146,8 +151,8 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
     if (!result.ok()) {
       return result;
     }
-    NEARBY_LOGS(VERBOSE) << "Unencrypted advertisement payload "
-                         << absl::BytesToHexString(unencrypted);
+    NEARBY_VLOG(1) << "Unencrypted advertisement payload "
+                   << absl::BytesToHexString(unencrypted);
     absl::StatusOr<std::string> encrypted =
         EncryptDataElements(*credential, request.salt, unencrypted);
     if (!encrypted.ok()) {

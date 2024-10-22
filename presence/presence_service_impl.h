@@ -16,16 +16,27 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_PRESENCE_SERVICE_IMPL_H_
 
 #include <memory>
-#include <utility>
 #include <vector>
 
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/borrowable.h"
+#include "internal/platform/implementation/credential_callbacks.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/metadata.pb.h"
+#include "presence/broadcast_request.h"
 #include "presence/data_types.h"
-#include "presence/implementation/service_controller.h"
+#include "presence/implementation/broadcast_manager.h"
+#include "presence/implementation/connection_authenticator_impl.h"
+#include "presence/implementation/credential_manager_impl.h"
+#include "presence/implementation/mediums/mediums.h"
+#include "presence/implementation/scan_manager.h"
+#include "presence/implementation/service_controller_impl.h"
 #include "presence/presence_client.h"
 #include "presence/presence_device_provider.h"
 #include "presence/presence_service.h"
+#include "presence/scan_request.h"
+#include "internal/interop/device_provider.h"
 
 namespace nearby {
 namespace presence {
@@ -37,7 +48,7 @@ namespace presence {
  */
 class PresenceServiceImpl : public PresenceService {
  public:
-  PresenceServiceImpl();
+  PresenceServiceImpl() = default;
   ~PresenceServiceImpl() override { lender_.Release(); }
 
   std::unique_ptr<PresenceClient> CreatePresenceClient() override;
@@ -51,19 +62,21 @@ class PresenceServiceImpl : public PresenceService {
 
   void StopBroadcast(BroadcastSessionId session_id) override;
 
-  void UpdateLocalDeviceMetadata(
-      const ::nearby::internal::Metadata& metadata, bool regen_credentials,
-      absl::string_view manager_app_id,
+  void UpdateDeviceIdentityMetaData(
+      const ::nearby::internal::DeviceIdentityMetaData&
+          device_identity_metadata,
+      bool regen_credentials, absl::string_view manager_app_id,
       const std::vector<nearby::internal::IdentityType>& identity_types,
       int credential_life_cycle_days, int contiguous_copy_of_credentials,
       GenerateCredentialsResultCallback credentials_generated_cb) override;
 
-  PresenceDeviceProvider* GetLocalDeviceProvider() override {
-    return provider_.get();
+  NearbyDeviceProvider* GetLocalDeviceProvider() override {
+    return &provider_;
   }
 
-  ::nearby::internal::Metadata GetLocalDeviceMetadata() override {
-    return service_controller_->GetLocalDeviceMetadata();
+  ::nearby::internal::DeviceIdentityMetaData GetDeviceIdentityMetaData()
+      override {
+    return service_controller_.GetDeviceIdentityMetaData();
   }
 
   void GetLocalPublicCredentials(
@@ -77,9 +90,17 @@ class PresenceServiceImpl : public PresenceService {
       UpdateRemotePublicCredentialsCallback credentials_updated_cb) override;
 
  private:
-  std::unique_ptr<ServiceController> service_controller_;
+  SingleThreadExecutor executor_;
+  Mediums mediums_;
+  CredentialManagerImpl credential_manager_{&executor_};
+  ScanManager scan_manager_{mediums_, credential_manager_, executor_};
+  BroadcastManager broadcast_manager_{mediums_, credential_manager_, executor_};
+  ServiceControllerImpl service_controller_{
+      &executor_, &credential_manager_, &scan_manager_, &broadcast_manager_};
+  ConnectionAuthenticatorImpl connection_authenticator_;
   ::nearby::Lender<PresenceService*> lender_{this};
-  std::unique_ptr<PresenceDeviceProvider> provider_;
+  PresenceDeviceProvider provider_{&service_controller_,
+                                   &connection_authenticator_};
 };
 
 }  // namespace presence

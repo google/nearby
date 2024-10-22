@@ -14,6 +14,18 @@
 licenses(["notice"])
 
 cc_library(
+    name = "crypto",
+    srcs = [
+        "crypto.cc",
+    ],
+    visibility = ["//internal/platform/implementation:__subpackages__"],
+    deps = [
+        "@boringssl//:crypto",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
     name = "posix_mutex",
     srcs = [
         "posix_mutex.cc",
@@ -45,10 +57,7 @@ cc_library(
     name = "file",
     srcs = ["file.cc"],
     hdrs = ["file.h"],
-    visibility = [
-        "//connections/implementation:__subpackages__",
-        "//internal/platform/implementation:__subpackages__",
-    ],
+    visibility = ["//internal/platform/implementation:__subpackages__"],
     deps = [
         "//internal/platform:base",
         "//internal/platform/implementation:types",

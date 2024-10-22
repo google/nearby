@@ -17,7 +17,7 @@ package(default_visibility = [
     "//connections:__subpackages__",
     "//internal/platform/implementation/apple:__subpackages__",
     "//location/nearby:__subpackages__",
-    "//third_party/nearby/sharing:__subpackages__",
+    "//sharing:__subpackages__",
 ])
 
 objc_library(
@@ -25,7 +25,6 @@ objc_library(
     srcs = [
         "crypto.mm",
         "device_info.mm",
-        "log_message.mm",
         "multi_thread_executor.mm",
         "platform.mm",
         "preferences_manager.mm",
@@ -35,7 +34,6 @@ objc_library(
     ],
     hdrs = [
         "device_info.h",
-        "log_message.h",
         "multi_thread_executor.h",
         "preferences_manager.h",
         "scheduled_executor.h",
@@ -50,23 +48,25 @@ objc_library(
         ":Platform_cc",
         ":Shared",
         ":ble_v2",
-        "//internal/platform:base",
-        "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:platform",
-        "//internal/platform/implementation:types",
-        "//internal/platform/implementation/apple/Mediums",
-        "//internal/platform/implementation/shared:file",
-        "//third_party/apple_frameworks:CoreBluetooth",
-        "//third_party/apple_frameworks:Foundation",
-        "//third_party/apple_frameworks:Network",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
+        # Required Reason API File: third_party/nearby/internal/platform/implementation/apple/preferences_manager.mm
+        "//releasetools/apple/privacy/privacymanifests/requiredreasonsapi:user_defaults-user_defaults-read_write_app_data_ca92_1",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:Network",
         "@nlohmann_json//:json",
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/shared:file",
+        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",
@@ -148,8 +148,10 @@ cc_library(
         "mutex.h",
     ],
     deps = [
+        "//internal/platform:base",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
@@ -168,6 +170,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":Platform_cc",
+        "//internal/platform/implementation/g3:crypto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",

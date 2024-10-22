@@ -19,9 +19,9 @@
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/retroactive/retroactive_pairing_detector.h"
-#include "internal/account/account_manager.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/single_thread_executor.h"
 
 namespace nearby {

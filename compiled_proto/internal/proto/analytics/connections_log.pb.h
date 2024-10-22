@@ -47,7 +47,7 @@ struct TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[17]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[19]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -96,6 +96,12 @@ extern ConnectionsLog_ErrorCodeDefaultTypeInternal _ConnectionsLog_ErrorCode_def
 class ConnectionsLog_EstablishedConnection;
 struct ConnectionsLog_EstablishedConnectionDefaultTypeInternal;
 extern ConnectionsLog_EstablishedConnectionDefaultTypeInternal _ConnectionsLog_EstablishedConnection_default_instance_;
+class ConnectionsLog_OperationResult;
+struct ConnectionsLog_OperationResultDefaultTypeInternal;
+extern ConnectionsLog_OperationResultDefaultTypeInternal _ConnectionsLog_OperationResult_default_instance_;
+class ConnectionsLog_OperationResultWithMedium;
+struct ConnectionsLog_OperationResultWithMediumDefaultTypeInternal;
+extern ConnectionsLog_OperationResultWithMediumDefaultTypeInternal _ConnectionsLog_OperationResultWithMedium_default_instance_;
 class ConnectionsLog_Payload;
 struct ConnectionsLog_PayloadDefaultTypeInternal;
 extern ConnectionsLog_PayloadDefaultTypeInternal _ConnectionsLog_Payload_default_instance_;
@@ -126,6 +132,8 @@ template<> ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadat
 template<> ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryPhase* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_DiscoveryPhase>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_ErrorCode* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_ErrorCode>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection>(Arena*);
+template<> ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>(Arena*);
+template<> ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_Payload* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_Payload>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_RawUwbRangingEvent* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_RawUwbRangingEvent>(Arena*);
 template<> ::location::nearby::analytics::proto::ConnectionsLog_StrategySession* Arena::CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_StrategySession>(Arena*);
@@ -272,7 +280,9 @@ class ConnectionsLog_ClientSession final :
 
   enum : int {
     kStrategySessionFieldNumber = 2,
+    kConnectionTokenFieldNumber = 4,
     kDurationMillisFieldNumber = 1,
+    kClientFlowIdFieldNumber = 3,
   };
   // repeated .location.nearby.analytics.proto.ConnectionsLog.StrategySession strategy_session = 2;
   int strategy_session_size() const;
@@ -292,6 +302,24 @@ class ConnectionsLog_ClientSession final :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_StrategySession >&
       strategy_session() const;
 
+  // optional string connection_token = 4;
+  bool has_connection_token() const;
+  private:
+  bool _internal_has_connection_token() const;
+  public:
+  void clear_connection_token();
+  const std::string& connection_token() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_connection_token(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_connection_token();
+  PROTOBUF_NODISCARD std::string* release_connection_token();
+  void set_allocated_connection_token(std::string* connection_token);
+  private:
+  const std::string& _internal_connection_token() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_connection_token(const std::string& value);
+  std::string* _internal_mutable_connection_token();
+  public:
+
   // optional int64 duration_millis = 1;
   bool has_duration_millis() const;
   private:
@@ -305,6 +333,19 @@ class ConnectionsLog_ClientSession final :
   void _internal_set_duration_millis(int64_t value);
   public:
 
+  // optional int64 client_flow_id = 3;
+  bool has_client_flow_id() const;
+  private:
+  bool _internal_has_client_flow_id() const;
+  public:
+  void clear_client_flow_id();
+  int64_t client_flow_id() const;
+  void set_client_flow_id(int64_t value);
+  private:
+  int64_t _internal_client_flow_id() const;
+  void _internal_set_client_flow_id(int64_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.ClientSession)
  private:
   class _Internal;
@@ -315,7 +356,368 @@ class ConnectionsLog_ClientSession final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_StrategySession > strategy_session_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connection_token_;
   int64_t duration_millis_;
+  int64_t client_flow_id_;
+  friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ConnectionsLog_OperationResult final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.analytics.proto.ConnectionsLog.OperationResult) */ {
+ public:
+  inline ConnectionsLog_OperationResult() : ConnectionsLog_OperationResult(nullptr) {}
+  ~ConnectionsLog_OperationResult() override;
+  explicit constexpr ConnectionsLog_OperationResult(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ConnectionsLog_OperationResult(const ConnectionsLog_OperationResult& from);
+  ConnectionsLog_OperationResult(ConnectionsLog_OperationResult&& from) noexcept
+    : ConnectionsLog_OperationResult() {
+    *this = ::std::move(from);
+  }
+
+  inline ConnectionsLog_OperationResult& operator=(const ConnectionsLog_OperationResult& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ConnectionsLog_OperationResult& operator=(ConnectionsLog_OperationResult&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const ConnectionsLog_OperationResult& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ConnectionsLog_OperationResult* internal_default_instance() {
+    return reinterpret_cast<const ConnectionsLog_OperationResult*>(
+               &_ConnectionsLog_OperationResult_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  friend void swap(ConnectionsLog_OperationResult& a, ConnectionsLog_OperationResult& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ConnectionsLog_OperationResult* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ConnectionsLog_OperationResult* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ConnectionsLog_OperationResult* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ConnectionsLog_OperationResult>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const ConnectionsLog_OperationResult& from);
+  void MergeFrom(const ConnectionsLog_OperationResult& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(ConnectionsLog_OperationResult* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.analytics.proto.ConnectionsLog.OperationResult";
+  }
+  protected:
+  explicit ConnectionsLog_OperationResult(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kResultCategoryFieldNumber = 1,
+    kResultCodeFieldNumber = 2,
+  };
+  // optional .location.nearby.proto.connections.OperationResultCategory result_category = 1;
+  bool has_result_category() const;
+  private:
+  bool _internal_has_result_category() const;
+  public:
+  void clear_result_category();
+  ::location::nearby::proto::connections::OperationResultCategory result_category() const;
+  void set_result_category(::location::nearby::proto::connections::OperationResultCategory value);
+  private:
+  ::location::nearby::proto::connections::OperationResultCategory _internal_result_category() const;
+  void _internal_set_result_category(::location::nearby::proto::connections::OperationResultCategory value);
+  public:
+
+  // optional .location.nearby.proto.connections.OperationResultCode result_code = 2;
+  bool has_result_code() const;
+  private:
+  bool _internal_has_result_code() const;
+  public:
+  void clear_result_code();
+  ::location::nearby::proto::connections::OperationResultCode result_code() const;
+  void set_result_code(::location::nearby::proto::connections::OperationResultCode value);
+  private:
+  ::location::nearby::proto::connections::OperationResultCode _internal_result_code() const;
+  void _internal_set_result_code(::location::nearby::proto::connections::OperationResultCode value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.OperationResult)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  int result_category_;
+  int result_code_;
+  friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ConnectionsLog_OperationResultWithMedium final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium) */ {
+ public:
+  inline ConnectionsLog_OperationResultWithMedium() : ConnectionsLog_OperationResultWithMedium(nullptr) {}
+  ~ConnectionsLog_OperationResultWithMedium() override;
+  explicit constexpr ConnectionsLog_OperationResultWithMedium(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ConnectionsLog_OperationResultWithMedium(const ConnectionsLog_OperationResultWithMedium& from);
+  ConnectionsLog_OperationResultWithMedium(ConnectionsLog_OperationResultWithMedium&& from) noexcept
+    : ConnectionsLog_OperationResultWithMedium() {
+    *this = ::std::move(from);
+  }
+
+  inline ConnectionsLog_OperationResultWithMedium& operator=(const ConnectionsLog_OperationResultWithMedium& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ConnectionsLog_OperationResultWithMedium& operator=(ConnectionsLog_OperationResultWithMedium&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const ConnectionsLog_OperationResultWithMedium& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ConnectionsLog_OperationResultWithMedium* internal_default_instance() {
+    return reinterpret_cast<const ConnectionsLog_OperationResultWithMedium*>(
+               &_ConnectionsLog_OperationResultWithMedium_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(ConnectionsLog_OperationResultWithMedium& a, ConnectionsLog_OperationResultWithMedium& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ConnectionsLog_OperationResultWithMedium* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ConnectionsLog_OperationResultWithMedium* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ConnectionsLog_OperationResultWithMedium* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ConnectionsLog_OperationResultWithMedium>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const ConnectionsLog_OperationResultWithMedium& from);
+  void MergeFrom(const ConnectionsLog_OperationResultWithMedium& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(ConnectionsLog_OperationResultWithMedium* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium";
+  }
+  protected:
+  explicit ConnectionsLog_OperationResultWithMedium(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMediumFieldNumber = 1,
+    kUpdateIndexFieldNumber = 2,
+    kResultCategoryFieldNumber = 3,
+    kResultCodeFieldNumber = 4,
+    kConnectionModeFieldNumber = 5,
+  };
+  // optional .location.nearby.proto.connections.Medium medium = 1;
+  bool has_medium() const;
+  private:
+  bool _internal_has_medium() const;
+  public:
+  void clear_medium();
+  ::location::nearby::proto::connections::Medium medium() const;
+  void set_medium(::location::nearby::proto::connections::Medium value);
+  private:
+  ::location::nearby::proto::connections::Medium _internal_medium() const;
+  void _internal_set_medium(::location::nearby::proto::connections::Medium value);
+  public:
+
+  // optional int32 update_index = 2;
+  bool has_update_index() const;
+  private:
+  bool _internal_has_update_index() const;
+  public:
+  void clear_update_index();
+  int32_t update_index() const;
+  void set_update_index(int32_t value);
+  private:
+  int32_t _internal_update_index() const;
+  void _internal_set_update_index(int32_t value);
+  public:
+
+  // optional .location.nearby.proto.connections.OperationResultCategory result_category = 3;
+  bool has_result_category() const;
+  private:
+  bool _internal_has_result_category() const;
+  public:
+  void clear_result_category();
+  ::location::nearby::proto::connections::OperationResultCategory result_category() const;
+  void set_result_category(::location::nearby::proto::connections::OperationResultCategory value);
+  private:
+  ::location::nearby::proto::connections::OperationResultCategory _internal_result_category() const;
+  void _internal_set_result_category(::location::nearby::proto::connections::OperationResultCategory value);
+  public:
+
+  // optional .location.nearby.proto.connections.OperationResultCode result_code = 4;
+  bool has_result_code() const;
+  private:
+  bool _internal_has_result_code() const;
+  public:
+  void clear_result_code();
+  ::location::nearby::proto::connections::OperationResultCode result_code() const;
+  void set_result_code(::location::nearby::proto::connections::OperationResultCode value);
+  private:
+  ::location::nearby::proto::connections::OperationResultCode _internal_result_code() const;
+  void _internal_set_result_code(::location::nearby::proto::connections::OperationResultCode value);
+  public:
+
+  // optional .location.nearby.proto.connections.ConnectionMode connection_mode = 5;
+  bool has_connection_mode() const;
+  private:
+  bool _internal_has_connection_mode() const;
+  public:
+  void clear_connection_mode();
+  ::location::nearby::proto::connections::ConnectionMode connection_mode() const;
+  void set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  private:
+  ::location::nearby::proto::connections::ConnectionMode _internal_connection_mode() const;
+  void _internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  int medium_;
+  int32_t update_index_;
+  int result_category_;
+  int result_code_;
+  int connection_mode_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -366,7 +768,7 @@ class ConnectionsLog_StrategySession final :
                &_ConnectionsLog_StrategySession_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    1;
+    3;
 
   friend void swap(ConnectionsLog_StrategySession& a, ConnectionsLog_StrategySession& b) {
     a.Swap(&b);
@@ -662,7 +1064,7 @@ class ConnectionsLog_DiscoveryPhase final :
                &_ConnectionsLog_DiscoveryPhase_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    4;
 
   friend void swap(ConnectionsLog_DiscoveryPhase& a, ConnectionsLog_DiscoveryPhase& b) {
     a.Swap(&b);
@@ -733,9 +1135,11 @@ class ConnectionsLog_DiscoveryPhase final :
     kDiscoveredEndpointFieldNumber = 3,
     kSentConnectionRequestFieldNumber = 4,
     kUwbRangingFieldNumber = 5,
+    kAdvDisResultFieldNumber = 8,
     kDiscoveryMetadataFieldNumber = 7,
     kDurationMillisFieldNumber = 1,
     kClientFlowIdFieldNumber = 6,
+    kStopReasonFieldNumber = 9,
   };
   // repeated .location.nearby.proto.connections.Medium medium = 2;
   int medium_size() const;
@@ -808,6 +1212,24 @@ class ConnectionsLog_DiscoveryPhase final :
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_UwbRangingProcess >&
       uwb_ranging() const;
 
+  // repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 8;
+  int adv_dis_result_size() const;
+  private:
+  int _internal_adv_dis_result_size() const;
+  public:
+  void clear_adv_dis_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* mutable_adv_dis_result(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+      mutable_adv_dis_result();
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& _internal_adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _internal_add_adv_dis_result();
+  public:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* add_adv_dis_result();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+      adv_dis_result() const;
+
   // optional .location.nearby.analytics.proto.ConnectionsLog.DiscoveryMetadata discovery_metadata = 7;
   bool has_discovery_metadata() const;
   private:
@@ -852,6 +1274,19 @@ class ConnectionsLog_DiscoveryPhase final :
   void _internal_set_client_flow_id(int64_t value);
   public:
 
+  // optional .location.nearby.proto.connections.StopDiscoveringReason stop_reason = 9;
+  bool has_stop_reason() const;
+  private:
+  bool _internal_has_stop_reason() const;
+  public:
+  void clear_stop_reason();
+  ::location::nearby::proto::connections::StopDiscoveringReason stop_reason() const;
+  void set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value);
+  private:
+  ::location::nearby::proto::connections::StopDiscoveringReason _internal_stop_reason() const;
+  void _internal_set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase)
  private:
   class _Internal;
@@ -865,9 +1300,11 @@ class ConnectionsLog_DiscoveryPhase final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_DiscoveredEndpoint > discovered_endpoint_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest > sent_connection_request_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_UwbRangingProcess > uwb_ranging_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium > adv_dis_result_;
   ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadata* discovery_metadata_;
   int64_t duration_millis_;
   int64_t client_flow_id_;
+  int stop_reason_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -918,7 +1355,7 @@ class ConnectionsLog_DiscoveredEndpoint final :
                &_ConnectionsLog_DiscoveredEndpoint_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    5;
 
   friend void swap(ConnectionsLog_DiscoveredEndpoint& a, ConnectionsLog_DiscoveredEndpoint& b) {
     a.Swap(&b);
@@ -1075,7 +1512,7 @@ class ConnectionsLog_UwbRangingProcess final :
                &_ConnectionsLog_UwbRangingProcess_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    6;
 
   friend void swap(ConnectionsLog_UwbRangingProcess& a, ConnectionsLog_UwbRangingProcess& b) {
     a.Swap(&b);
@@ -1372,7 +1809,7 @@ class ConnectionsLog_RawUwbRangingEvent final :
                &_ConnectionsLog_RawUwbRangingEvent_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    7;
 
   friend void swap(ConnectionsLog_RawUwbRangingEvent& a, ConnectionsLog_RawUwbRangingEvent& b) {
     a.Swap(&b);
@@ -1544,7 +1981,7 @@ class ConnectionsLog_AdvertisingPhase final :
                &_ConnectionsLog_AdvertisingPhase_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    8;
 
   friend void swap(ConnectionsLog_AdvertisingPhase& a, ConnectionsLog_AdvertisingPhase& b) {
     a.Swap(&b);
@@ -1613,9 +2050,11 @@ class ConnectionsLog_AdvertisingPhase final :
   enum : int {
     kMediumFieldNumber = 2,
     kReceivedConnectionRequestFieldNumber = 3,
+    kAdvDisResultFieldNumber = 6,
     kAdvertisingMetadataFieldNumber = 5,
     kDurationMillisFieldNumber = 1,
     kClientFlowIdFieldNumber = 4,
+    kStopReasonFieldNumber = 7,
   };
   // repeated .location.nearby.proto.connections.Medium medium = 2;
   int medium_size() const;
@@ -1651,6 +2090,24 @@ class ConnectionsLog_AdvertisingPhase final :
   ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest* add_received_connection_request();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest >&
       received_connection_request() const;
+
+  // repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 6;
+  int adv_dis_result_size() const;
+  private:
+  int _internal_adv_dis_result_size() const;
+  public:
+  void clear_adv_dis_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* mutable_adv_dis_result(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+      mutable_adv_dis_result();
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& _internal_adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _internal_add_adv_dis_result();
+  public:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& adv_dis_result(int index) const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* add_adv_dis_result();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+      adv_dis_result() const;
 
   // optional .location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata advertising_metadata = 5;
   bool has_advertising_metadata() const;
@@ -1696,6 +2153,19 @@ class ConnectionsLog_AdvertisingPhase final :
   void _internal_set_client_flow_id(int64_t value);
   public:
 
+  // optional .location.nearby.proto.connections.StopAdvertisingReason stop_reason = 7;
+  bool has_stop_reason() const;
+  private:
+  bool _internal_has_stop_reason() const;
+  public:
+  void clear_stop_reason();
+  ::location::nearby::proto::connections::StopAdvertisingReason stop_reason() const;
+  void set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value);
+  private:
+  ::location::nearby::proto::connections::StopAdvertisingReason _internal_stop_reason() const;
+  void _internal_set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase)
  private:
   class _Internal;
@@ -1707,9 +2177,11 @@ class ConnectionsLog_AdvertisingPhase final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> medium_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionRequest > received_connection_request_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium > adv_dis_result_;
   ::location::nearby::analytics::proto::ConnectionsLog_AdvertisingMetadata* advertising_metadata_;
   int64_t duration_millis_;
   int64_t client_flow_id_;
+  int stop_reason_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -1760,7 +2232,7 @@ class ConnectionsLog_ConnectionRequest final :
                &_ConnectionsLog_ConnectionRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    9;
 
   friend void swap(ConnectionsLog_ConnectionRequest& a, ConnectionsLog_ConnectionRequest& b) {
     a.Swap(&b);
@@ -1962,7 +2434,7 @@ class ConnectionsLog_ConnectionAttempt final :
                &_ConnectionsLog_ConnectionAttempt_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    10;
 
   friend void swap(ConnectionsLog_ConnectionAttempt& a, ConnectionsLog_ConnectionAttempt& b) {
     a.Swap(&b);
@@ -2031,12 +2503,14 @@ class ConnectionsLog_ConnectionAttempt final :
   enum : int {
     kConnectionTokenFieldNumber = 7,
     kConnectionAttemptMetadataFieldNumber = 8,
+    kOperationResultFieldNumber = 9,
     kDurationMillisFieldNumber = 1,
     kTypeFieldNumber = 2,
     kDirectionFieldNumber = 3,
     kMediumFieldNumber = 4,
     kAttemptResultFieldNumber = 5,
     kClientFlowIdFieldNumber = 6,
+    kConnectionModeFieldNumber = 10,
   };
   // optional string connection_token = 7;
   bool has_connection_token() const;
@@ -2073,6 +2547,24 @@ class ConnectionsLog_ConnectionAttempt final :
   void unsafe_arena_set_allocated_connection_attempt_metadata(
       ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttemptMetadata* connection_attempt_metadata);
   ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttemptMetadata* unsafe_arena_release_connection_attempt_metadata();
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 9;
+  bool has_operation_result() const;
+  private:
+  bool _internal_has_operation_result() const;
+  public:
+  void clear_operation_result();
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& operation_result() const;
+  PROTOBUF_NODISCARD ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* release_operation_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* mutable_operation_result();
+  void set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& _internal_operation_result() const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _internal_mutable_operation_result();
+  public:
+  void unsafe_arena_set_allocated_operation_result(
+      ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* unsafe_arena_release_operation_result();
 
   // optional int64 duration_millis = 1;
   bool has_duration_millis() const;
@@ -2152,6 +2644,19 @@ class ConnectionsLog_ConnectionAttempt final :
   void _internal_set_client_flow_id(int64_t value);
   public:
 
+  // optional .location.nearby.proto.connections.ConnectionMode connection_mode = 10;
+  bool has_connection_mode() const;
+  private:
+  bool _internal_has_connection_mode() const;
+  public:
+  void clear_connection_mode();
+  ::location::nearby::proto::connections::ConnectionMode connection_mode() const;
+  void set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  private:
+  ::location::nearby::proto::connections::ConnectionMode _internal_connection_mode() const;
+  void _internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt)
  private:
   class _Internal;
@@ -2163,12 +2668,14 @@ class ConnectionsLog_ConnectionAttempt final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connection_token_;
   ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttemptMetadata* connection_attempt_metadata_;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result_;
   int64_t duration_millis_;
   int type_;
   int direction_;
   int medium_;
   int attempt_result_;
   int64_t client_flow_id_;
+  int connection_mode_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2219,7 +2726,7 @@ class ConnectionsLog_EstablishedConnection final :
                &_ConnectionsLog_EstablishedConnection_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    11;
 
   friend void swap(ConnectionsLog_EstablishedConnection& a, ConnectionsLog_EstablishedConnection& b) {
     a.Swap(&b);
@@ -2317,6 +2824,7 @@ class ConnectionsLog_EstablishedConnection final :
     kSentPayloadFieldNumber = 3,
     kReceivedPayloadFieldNumber = 4,
     kConnectionTokenFieldNumber = 7,
+    kOperationResultFieldNumber = 10,
     kDurationMillisFieldNumber = 1,
     kMediumFieldNumber = 2,
     kDisconnectionReasonFieldNumber = 5,
@@ -2377,6 +2885,24 @@ class ConnectionsLog_EstablishedConnection final :
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_connection_token(const std::string& value);
   std::string* _internal_mutable_connection_token();
   public:
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 10;
+  bool has_operation_result() const;
+  private:
+  bool _internal_has_operation_result() const;
+  public:
+  void clear_operation_result();
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& operation_result() const;
+  PROTOBUF_NODISCARD ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* release_operation_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* mutable_operation_result();
+  void set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& _internal_operation_result() const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _internal_mutable_operation_result();
+  public:
+  void unsafe_arena_set_allocated_operation_result(
+      ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* unsafe_arena_release_operation_result();
 
   // optional int64 duration_millis = 1;
   bool has_duration_millis() const;
@@ -2468,6 +2994,7 @@ class ConnectionsLog_EstablishedConnection final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_Payload > sent_payload_;
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_Payload > received_payload_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connection_token_;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result_;
   int64_t duration_millis_;
   int medium_;
   int disconnection_reason_;
@@ -2524,7 +3051,7 @@ class ConnectionsLog_Payload final :
                &_ConnectionsLog_Payload_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    12;
 
   friend void swap(ConnectionsLog_Payload& a, ConnectionsLog_Payload& b) {
     a.Swap(&b);
@@ -2591,13 +3118,34 @@ class ConnectionsLog_Payload final :
   // accessors -------------------------------------------------------
 
   enum : int {
+    kOperationResultFieldNumber = 8,
     kDurationMillisFieldNumber = 1,
     kTotalSizeBytesFieldNumber = 3,
     kTypeFieldNumber = 2,
     kNumChunksFieldNumber = 5,
     kNumBytesTransferredFieldNumber = 4,
     kStatusFieldNumber = 6,
+    kNumSuccessfulAutoResumeFieldNumber = 7,
+    kNumFailedAutoResumeFieldNumber = 9,
   };
+  // optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 8;
+  bool has_operation_result() const;
+  private:
+  bool _internal_has_operation_result() const;
+  public:
+  void clear_operation_result();
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& operation_result() const;
+  PROTOBUF_NODISCARD ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* release_operation_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* mutable_operation_result();
+  void set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& _internal_operation_result() const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _internal_mutable_operation_result();
+  public:
+  void unsafe_arena_set_allocated_operation_result(
+      ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* unsafe_arena_release_operation_result();
+
   // optional int64 duration_millis = 1;
   bool has_duration_millis() const;
   private:
@@ -2676,6 +3224,32 @@ class ConnectionsLog_Payload final :
   void _internal_set_status(::location::nearby::proto::connections::PayloadStatus value);
   public:
 
+  // optional int32 num_successful_auto_resume = 7;
+  bool has_num_successful_auto_resume() const;
+  private:
+  bool _internal_has_num_successful_auto_resume() const;
+  public:
+  void clear_num_successful_auto_resume();
+  int32_t num_successful_auto_resume() const;
+  void set_num_successful_auto_resume(int32_t value);
+  private:
+  int32_t _internal_num_successful_auto_resume() const;
+  void _internal_set_num_successful_auto_resume(int32_t value);
+  public:
+
+  // optional int32 num_failed_auto_resume = 9;
+  bool has_num_failed_auto_resume() const;
+  private:
+  bool _internal_has_num_failed_auto_resume() const;
+  public:
+  void clear_num_failed_auto_resume();
+  int32_t num_failed_auto_resume() const;
+  void set_num_failed_auto_resume(int32_t value);
+  private:
+  int32_t _internal_num_failed_auto_resume() const;
+  void _internal_set_num_failed_auto_resume(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.analytics.proto.ConnectionsLog.Payload)
  private:
   class _Internal;
@@ -2685,12 +3259,15 @@ class ConnectionsLog_Payload final :
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result_;
   int64_t duration_millis_;
   int64_t total_size_bytes_;
   int type_;
   int32_t num_chunks_;
   int64_t num_bytes_transferred_;
   int status_;
+  int32_t num_successful_auto_resume_;
+  int32_t num_failed_auto_resume_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2741,7 +3318,7 @@ class ConnectionsLog_BandwidthUpgradeAttempt final :
                &_ConnectionsLog_BandwidthUpgradeAttempt_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    13;
 
   friend void swap(ConnectionsLog_BandwidthUpgradeAttempt& a, ConnectionsLog_BandwidthUpgradeAttempt& b) {
     a.Swap(&b);
@@ -2809,6 +3386,7 @@ class ConnectionsLog_BandwidthUpgradeAttempt final :
 
   enum : int {
     kConnectionTokenFieldNumber = 8,
+    kOperationResultFieldNumber = 9,
     kDurationMillisFieldNumber = 2,
     kDirectionFieldNumber = 1,
     kFromMediumFieldNumber = 3,
@@ -2834,6 +3412,24 @@ class ConnectionsLog_BandwidthUpgradeAttempt final :
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_connection_token(const std::string& value);
   std::string* _internal_mutable_connection_token();
   public:
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 9;
+  bool has_operation_result() const;
+  private:
+  bool _internal_has_operation_result() const;
+  public:
+  void clear_operation_result();
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& operation_result() const;
+  PROTOBUF_NODISCARD ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* release_operation_result();
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* mutable_operation_result();
+  void set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  private:
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& _internal_operation_result() const;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _internal_mutable_operation_result();
+  public:
+  void unsafe_arena_set_allocated_operation_result(
+      ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result);
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* unsafe_arena_release_operation_result();
 
   // optional int64 duration_millis = 2;
   bool has_duration_millis() const;
@@ -2936,6 +3532,7 @@ class ConnectionsLog_BandwidthUpgradeAttempt final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr connection_token_;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result_;
   int64_t duration_millis_;
   int direction_;
   int from_medium_;
@@ -3011,7 +3608,7 @@ class ConnectionsLog_ErrorCode final :
                &_ConnectionsLog_ErrorCode_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    14;
 
   friend void swap(ConnectionsLog_ErrorCode& a, ConnectionsLog_ErrorCode& b) {
     a.Swap(&b);
@@ -3488,7 +4085,7 @@ class ConnectionsLog_AdvertisingMetadata final :
                &_ConnectionsLog_AdvertisingMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    15;
 
   friend void swap(ConnectionsLog_AdvertisingMetadata& a, ConnectionsLog_AdvertisingMetadata& b) {
     a.Swap(&b);
@@ -3559,6 +4156,9 @@ class ConnectionsLog_AdvertisingMetadata final :
     kSupportsExtendedBleAdvertisementsFieldNumber = 1,
     kSupportsNfcTechnologyFieldNumber = 3,
     kMultipleAdvertisementSupportedFieldNumber = 4,
+    kSupportsDualBandFieldNumber = 6,
+    kSupportsWifiAwareFieldNumber = 7,
+    kEndpointInfoSizeFieldNumber = 8,
     kPowerLevelFieldNumber = 5,
   };
   // optional int32 connected_ap_frequency = 2;
@@ -3613,6 +4213,45 @@ class ConnectionsLog_AdvertisingMetadata final :
   void _internal_set_multiple_advertisement_supported(bool value);
   public:
 
+  // optional bool supports_dual_band = 6;
+  bool has_supports_dual_band() const;
+  private:
+  bool _internal_has_supports_dual_band() const;
+  public:
+  void clear_supports_dual_band();
+  bool supports_dual_band() const;
+  void set_supports_dual_band(bool value);
+  private:
+  bool _internal_supports_dual_band() const;
+  void _internal_set_supports_dual_band(bool value);
+  public:
+
+  // optional bool supports_wifi_aware = 7;
+  bool has_supports_wifi_aware() const;
+  private:
+  bool _internal_has_supports_wifi_aware() const;
+  public:
+  void clear_supports_wifi_aware();
+  bool supports_wifi_aware() const;
+  void set_supports_wifi_aware(bool value);
+  private:
+  bool _internal_supports_wifi_aware() const;
+  void _internal_set_supports_wifi_aware(bool value);
+  public:
+
+  // optional int32 endpoint_info_size = 8;
+  bool has_endpoint_info_size() const;
+  private:
+  bool _internal_has_endpoint_info_size() const;
+  public:
+  void clear_endpoint_info_size();
+  int32_t endpoint_info_size() const;
+  void set_endpoint_info_size(int32_t value);
+  private:
+  int32_t _internal_endpoint_info_size() const;
+  void _internal_set_endpoint_info_size(int32_t value);
+  public:
+
   // optional .location.nearby.proto.connections.PowerLevel power_level = 5;
   bool has_power_level() const;
   private:
@@ -3639,6 +4278,9 @@ class ConnectionsLog_AdvertisingMetadata final :
   bool supports_extended_ble_advertisements_;
   bool supports_nfc_technology_;
   bool multiple_advertisement_supported_;
+  bool supports_dual_band_;
+  bool supports_wifi_aware_;
+  int32_t endpoint_info_size_;
   int power_level_;
   friend struct ::TableStruct_internal_2fproto_2fanalytics_2fconnections_5flog_2eproto;
 };
@@ -3690,7 +4332,7 @@ class ConnectionsLog_DiscoveryMetadata final :
                &_ConnectionsLog_DiscoveryMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    16;
 
   friend void swap(ConnectionsLog_DiscoveryMetadata& a, ConnectionsLog_DiscoveryMetadata& b) {
     a.Swap(&b);
@@ -3877,7 +4519,7 @@ class ConnectionsLog_ConnectionAttemptMetadata final :
                &_ConnectionsLog_ConnectionAttemptMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    17;
 
   friend void swap(ConnectionsLog_ConnectionAttemptMetadata& a, ConnectionsLog_ConnectionAttemptMetadata& b) {
     a.Swap(&b);
@@ -4239,7 +4881,7 @@ class ConnectionsLog final :
                &_ConnectionsLog_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    18;
 
   friend void swap(ConnectionsLog& a, ConnectionsLog& b) {
     a.Swap(&b);
@@ -4304,6 +4946,8 @@ class ConnectionsLog final :
   // nested types ----------------------------------------------------
 
   typedef ConnectionsLog_ClientSession ClientSession;
+  typedef ConnectionsLog_OperationResult OperationResult;
+  typedef ConnectionsLog_OperationResultWithMedium OperationResultWithMedium;
   typedef ConnectionsLog_StrategySession StrategySession;
   typedef ConnectionsLog_DiscoveryPhase DiscoveryPhase;
   typedef ConnectionsLog_DiscoveredEndpoint DiscoveredEndpoint;
@@ -4458,7 +5102,7 @@ class ConnectionsLog final :
 
 // optional int64 duration_millis = 1;
 inline bool ConnectionsLog_ClientSession::_internal_has_duration_millis() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ClientSession::has_duration_millis() const {
@@ -4466,7 +5110,7 @@ inline bool ConnectionsLog_ClientSession::has_duration_millis() const {
 }
 inline void ConnectionsLog_ClientSession::clear_duration_millis() {
   duration_millis_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline int64_t ConnectionsLog_ClientSession::_internal_duration_millis() const {
   return duration_millis_;
@@ -4476,7 +5120,7 @@ inline int64_t ConnectionsLog_ClientSession::duration_millis() const {
   return _internal_duration_millis();
 }
 inline void ConnectionsLog_ClientSession::_internal_set_duration_millis(int64_t value) {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   duration_millis_ = value;
 }
 inline void ConnectionsLog_ClientSession::set_duration_millis(int64_t value) {
@@ -4522,6 +5166,313 @@ inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::anal
 ConnectionsLog_ClientSession::strategy_session() const {
   // @@protoc_insertion_point(field_list:location.nearby.analytics.proto.ConnectionsLog.ClientSession.strategy_session)
   return strategy_session_;
+}
+
+// optional int64 client_flow_id = 3;
+inline bool ConnectionsLog_ClientSession::_internal_has_client_flow_id() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_ClientSession::has_client_flow_id() const {
+  return _internal_has_client_flow_id();
+}
+inline void ConnectionsLog_ClientSession::clear_client_flow_id() {
+  client_flow_id_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline int64_t ConnectionsLog_ClientSession::_internal_client_flow_id() const {
+  return client_flow_id_;
+}
+inline int64_t ConnectionsLog_ClientSession::client_flow_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ClientSession.client_flow_id)
+  return _internal_client_flow_id();
+}
+inline void ConnectionsLog_ClientSession::_internal_set_client_flow_id(int64_t value) {
+  _has_bits_[0] |= 0x00000004u;
+  client_flow_id_ = value;
+}
+inline void ConnectionsLog_ClientSession::set_client_flow_id(int64_t value) {
+  _internal_set_client_flow_id(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.ClientSession.client_flow_id)
+}
+
+// optional string connection_token = 4;
+inline bool ConnectionsLog_ClientSession::_internal_has_connection_token() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_ClientSession::has_connection_token() const {
+  return _internal_has_connection_token();
+}
+inline void ConnectionsLog_ClientSession::clear_connection_token() {
+  connection_token_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const std::string& ConnectionsLog_ClientSession::connection_token() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+  return _internal_connection_token();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void ConnectionsLog_ClientSession::set_connection_token(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000001u;
+ connection_token_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+}
+inline std::string* ConnectionsLog_ClientSession::mutable_connection_token() {
+  std::string* _s = _internal_mutable_connection_token();
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+  return _s;
+}
+inline const std::string& ConnectionsLog_ClientSession::_internal_connection_token() const {
+  return connection_token_.Get();
+}
+inline void ConnectionsLog_ClientSession::_internal_set_connection_token(const std::string& value) {
+  _has_bits_[0] |= 0x00000001u;
+  connection_token_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* ConnectionsLog_ClientSession::_internal_mutable_connection_token() {
+  _has_bits_[0] |= 0x00000001u;
+  return connection_token_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* ConnectionsLog_ClientSession::release_connection_token() {
+  // @@protoc_insertion_point(field_release:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+  if (!_internal_has_connection_token()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000001u;
+  auto* p = connection_token_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connection_token_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connection_token_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void ConnectionsLog_ClientSession::set_allocated_connection_token(std::string* connection_token) {
+  if (connection_token != nullptr) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  connection_token_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), connection_token,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (connection_token_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    connection_token_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.ClientSession.connection_token)
+}
+
+// -------------------------------------------------------------------
+
+// ConnectionsLog_OperationResult
+
+// optional .location.nearby.proto.connections.OperationResultCategory result_category = 1;
+inline bool ConnectionsLog_OperationResult::_internal_has_result_category() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResult::has_result_category() const {
+  return _internal_has_result_category();
+}
+inline void ConnectionsLog_OperationResult::clear_result_category() {
+  result_category_ = 0;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline ::location::nearby::proto::connections::OperationResultCategory ConnectionsLog_OperationResult::_internal_result_category() const {
+  return static_cast< ::location::nearby::proto::connections::OperationResultCategory >(result_category_);
+}
+inline ::location::nearby::proto::connections::OperationResultCategory ConnectionsLog_OperationResult::result_category() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResult.result_category)
+  return _internal_result_category();
+}
+inline void ConnectionsLog_OperationResult::_internal_set_result_category(::location::nearby::proto::connections::OperationResultCategory value) {
+  assert(::location::nearby::proto::connections::OperationResultCategory_IsValid(value));
+  _has_bits_[0] |= 0x00000001u;
+  result_category_ = value;
+}
+inline void ConnectionsLog_OperationResult::set_result_category(::location::nearby::proto::connections::OperationResultCategory value) {
+  _internal_set_result_category(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResult.result_category)
+}
+
+// optional .location.nearby.proto.connections.OperationResultCode result_code = 2;
+inline bool ConnectionsLog_OperationResult::_internal_has_result_code() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResult::has_result_code() const {
+  return _internal_has_result_code();
+}
+inline void ConnectionsLog_OperationResult::clear_result_code() {
+  result_code_ = 0;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline ::location::nearby::proto::connections::OperationResultCode ConnectionsLog_OperationResult::_internal_result_code() const {
+  return static_cast< ::location::nearby::proto::connections::OperationResultCode >(result_code_);
+}
+inline ::location::nearby::proto::connections::OperationResultCode ConnectionsLog_OperationResult::result_code() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResult.result_code)
+  return _internal_result_code();
+}
+inline void ConnectionsLog_OperationResult::_internal_set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
+  assert(::location::nearby::proto::connections::OperationResultCode_IsValid(value));
+  _has_bits_[0] |= 0x00000002u;
+  result_code_ = value;
+}
+inline void ConnectionsLog_OperationResult::set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
+  _internal_set_result_code(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResult.result_code)
+}
+
+// -------------------------------------------------------------------
+
+// ConnectionsLog_OperationResultWithMedium
+
+// optional .location.nearby.proto.connections.Medium medium = 1;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_medium() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_medium() const {
+  return _internal_has_medium();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_medium() {
+  medium_ = 0;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline ::location::nearby::proto::connections::Medium ConnectionsLog_OperationResultWithMedium::_internal_medium() const {
+  return static_cast< ::location::nearby::proto::connections::Medium >(medium_);
+}
+inline ::location::nearby::proto::connections::Medium ConnectionsLog_OperationResultWithMedium::medium() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.medium)
+  return _internal_medium();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_medium(::location::nearby::proto::connections::Medium value) {
+  assert(::location::nearby::proto::connections::Medium_IsValid(value));
+  _has_bits_[0] |= 0x00000001u;
+  medium_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_medium(::location::nearby::proto::connections::Medium value) {
+  _internal_set_medium(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.medium)
+}
+
+// optional int32 update_index = 2;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_update_index() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_update_index() const {
+  return _internal_has_update_index();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_update_index() {
+  update_index_ = 0;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline int32_t ConnectionsLog_OperationResultWithMedium::_internal_update_index() const {
+  return update_index_;
+}
+inline int32_t ConnectionsLog_OperationResultWithMedium::update_index() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.update_index)
+  return _internal_update_index();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_update_index(int32_t value) {
+  _has_bits_[0] |= 0x00000002u;
+  update_index_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_update_index(int32_t value) {
+  _internal_set_update_index(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.update_index)
+}
+
+// optional .location.nearby.proto.connections.OperationResultCategory result_category = 3;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_result_category() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_result_category() const {
+  return _internal_has_result_category();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_result_category() {
+  result_category_ = 0;
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline ::location::nearby::proto::connections::OperationResultCategory ConnectionsLog_OperationResultWithMedium::_internal_result_category() const {
+  return static_cast< ::location::nearby::proto::connections::OperationResultCategory >(result_category_);
+}
+inline ::location::nearby::proto::connections::OperationResultCategory ConnectionsLog_OperationResultWithMedium::result_category() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_category)
+  return _internal_result_category();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_result_category(::location::nearby::proto::connections::OperationResultCategory value) {
+  assert(::location::nearby::proto::connections::OperationResultCategory_IsValid(value));
+  _has_bits_[0] |= 0x00000004u;
+  result_category_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_result_category(::location::nearby::proto::connections::OperationResultCategory value) {
+  _internal_set_result_category(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_category)
+}
+
+// optional .location.nearby.proto.connections.OperationResultCode result_code = 4;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_result_code() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_result_code() const {
+  return _internal_has_result_code();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_result_code() {
+  result_code_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::proto::connections::OperationResultCode ConnectionsLog_OperationResultWithMedium::_internal_result_code() const {
+  return static_cast< ::location::nearby::proto::connections::OperationResultCode >(result_code_);
+}
+inline ::location::nearby::proto::connections::OperationResultCode ConnectionsLog_OperationResultWithMedium::result_code() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_code)
+  return _internal_result_code();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
+  assert(::location::nearby::proto::connections::OperationResultCode_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  result_code_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_result_code(::location::nearby::proto::connections::OperationResultCode value) {
+  _internal_set_result_code(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.result_code)
+}
+
+// optional .location.nearby.proto.connections.ConnectionMode connection_mode = 5;
+inline bool ConnectionsLog_OperationResultWithMedium::_internal_has_connection_mode() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_OperationResultWithMedium::has_connection_mode() const {
+  return _internal_has_connection_mode();
+}
+inline void ConnectionsLog_OperationResultWithMedium::clear_connection_mode() {
+  connection_mode_ = 0;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_OperationResultWithMedium::_internal_connection_mode() const {
+  return static_cast< ::location::nearby::proto::connections::ConnectionMode >(connection_mode_);
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_OperationResultWithMedium::connection_mode() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.connection_mode)
+  return _internal_connection_mode();
+}
+inline void ConnectionsLog_OperationResultWithMedium::_internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  assert(::location::nearby::proto::connections::ConnectionMode_IsValid(value));
+  _has_bits_[0] |= 0x00000010u;
+  connection_mode_ = value;
+}
+inline void ConnectionsLog_OperationResultWithMedium::set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  _internal_set_connection_mode(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium.connection_mode)
 }
 
 // -------------------------------------------------------------------
@@ -5212,6 +6163,75 @@ inline void ConnectionsLog_DiscoveryPhase::set_allocated_discovery_metadata(::lo
   }
   discovery_metadata_ = discovery_metadata;
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.discovery_metadata)
+}
+
+// repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 8;
+inline int ConnectionsLog_DiscoveryPhase::_internal_adv_dis_result_size() const {
+  return adv_dis_result_.size();
+}
+inline int ConnectionsLog_DiscoveryPhase::adv_dis_result_size() const {
+  return _internal_adv_dis_result_size();
+}
+inline void ConnectionsLog_DiscoveryPhase::clear_adv_dis_result() {
+  adv_dis_result_.Clear();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_DiscoveryPhase::mutable_adv_dis_result(int index) {
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return adv_dis_result_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+ConnectionsLog_DiscoveryPhase::mutable_adv_dis_result() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return &adv_dis_result_;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_DiscoveryPhase::_internal_adv_dis_result(int index) const {
+  return adv_dis_result_.Get(index);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_DiscoveryPhase::adv_dis_result(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return _internal_adv_dis_result(index);
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_DiscoveryPhase::_internal_add_adv_dis_result() {
+  return adv_dis_result_.Add();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_DiscoveryPhase::add_adv_dis_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _add = _internal_add_adv_dis_result();
+  // @@protoc_insertion_point(field_add:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+ConnectionsLog_DiscoveryPhase::adv_dis_result() const {
+  // @@protoc_insertion_point(field_list:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.adv_dis_result)
+  return adv_dis_result_;
+}
+
+// optional .location.nearby.proto.connections.StopDiscoveringReason stop_reason = 9;
+inline bool ConnectionsLog_DiscoveryPhase::_internal_has_stop_reason() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_DiscoveryPhase::has_stop_reason() const {
+  return _internal_has_stop_reason();
+}
+inline void ConnectionsLog_DiscoveryPhase::clear_stop_reason() {
+  stop_reason_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::proto::connections::StopDiscoveringReason ConnectionsLog_DiscoveryPhase::_internal_stop_reason() const {
+  return static_cast< ::location::nearby::proto::connections::StopDiscoveringReason >(stop_reason_);
+}
+inline ::location::nearby::proto::connections::StopDiscoveringReason ConnectionsLog_DiscoveryPhase::stop_reason() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.stop_reason)
+  return _internal_stop_reason();
+}
+inline void ConnectionsLog_DiscoveryPhase::_internal_set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value) {
+  assert(::location::nearby::proto::connections::StopDiscoveringReason_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  stop_reason_ = value;
+}
+inline void ConnectionsLog_DiscoveryPhase::set_stop_reason(::location::nearby::proto::connections::StopDiscoveringReason value) {
+  _internal_set_stop_reason(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase.stop_reason)
 }
 
 // -------------------------------------------------------------------
@@ -5922,6 +6942,75 @@ inline void ConnectionsLog_AdvertisingPhase::set_allocated_advertising_metadata(
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.advertising_metadata)
 }
 
+// repeated .location.nearby.analytics.proto.ConnectionsLog.OperationResultWithMedium adv_dis_result = 6;
+inline int ConnectionsLog_AdvertisingPhase::_internal_adv_dis_result_size() const {
+  return adv_dis_result_.size();
+}
+inline int ConnectionsLog_AdvertisingPhase::adv_dis_result_size() const {
+  return _internal_adv_dis_result_size();
+}
+inline void ConnectionsLog_AdvertisingPhase::clear_adv_dis_result() {
+  adv_dis_result_.Clear();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_AdvertisingPhase::mutable_adv_dis_result(int index) {
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return adv_dis_result_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >*
+ConnectionsLog_AdvertisingPhase::mutable_adv_dis_result() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return &adv_dis_result_;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_AdvertisingPhase::_internal_adv_dis_result(int index) const {
+  return adv_dis_result_.Get(index);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium& ConnectionsLog_AdvertisingPhase::adv_dis_result(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return _internal_adv_dis_result(index);
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_AdvertisingPhase::_internal_add_adv_dis_result() {
+  return adv_dis_result_.Add();
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* ConnectionsLog_AdvertisingPhase::add_adv_dis_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium* _add = _internal_add_adv_dis_result();
+  // @@protoc_insertion_point(field_add:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::analytics::proto::ConnectionsLog_OperationResultWithMedium >&
+ConnectionsLog_AdvertisingPhase::adv_dis_result() const {
+  // @@protoc_insertion_point(field_list:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.adv_dis_result)
+  return adv_dis_result_;
+}
+
+// optional .location.nearby.proto.connections.StopAdvertisingReason stop_reason = 7;
+inline bool ConnectionsLog_AdvertisingPhase::_internal_has_stop_reason() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingPhase::has_stop_reason() const {
+  return _internal_has_stop_reason();
+}
+inline void ConnectionsLog_AdvertisingPhase::clear_stop_reason() {
+  stop_reason_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline ::location::nearby::proto::connections::StopAdvertisingReason ConnectionsLog_AdvertisingPhase::_internal_stop_reason() const {
+  return static_cast< ::location::nearby::proto::connections::StopAdvertisingReason >(stop_reason_);
+}
+inline ::location::nearby::proto::connections::StopAdvertisingReason ConnectionsLog_AdvertisingPhase::stop_reason() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.stop_reason)
+  return _internal_stop_reason();
+}
+inline void ConnectionsLog_AdvertisingPhase::_internal_set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value) {
+  assert(::location::nearby::proto::connections::StopAdvertisingReason_IsValid(value));
+  _has_bits_[0] |= 0x00000008u;
+  stop_reason_ = value;
+}
+inline void ConnectionsLog_AdvertisingPhase::set_stop_reason(::location::nearby::proto::connections::StopAdvertisingReason value) {
+  _internal_set_stop_reason(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase.stop_reason)
+}
+
 // -------------------------------------------------------------------
 
 // ConnectionsLog_ConnectionRequest
@@ -6074,7 +7163,7 @@ inline void ConnectionsLog_ConnectionRequest::set_client_flow_id(int64_t value) 
 
 // optional int64 duration_millis = 1;
 inline bool ConnectionsLog_ConnectionAttempt::_internal_has_duration_millis() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ConnectionAttempt::has_duration_millis() const {
@@ -6082,7 +7171,7 @@ inline bool ConnectionsLog_ConnectionAttempt::has_duration_millis() const {
 }
 inline void ConnectionsLog_ConnectionAttempt::clear_duration_millis() {
   duration_millis_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline int64_t ConnectionsLog_ConnectionAttempt::_internal_duration_millis() const {
   return duration_millis_;
@@ -6092,7 +7181,7 @@ inline int64_t ConnectionsLog_ConnectionAttempt::duration_millis() const {
   return _internal_duration_millis();
 }
 inline void ConnectionsLog_ConnectionAttempt::_internal_set_duration_millis(int64_t value) {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
   duration_millis_ = value;
 }
 inline void ConnectionsLog_ConnectionAttempt::set_duration_millis(int64_t value) {
@@ -6102,7 +7191,7 @@ inline void ConnectionsLog_ConnectionAttempt::set_duration_millis(int64_t value)
 
 // optional .location.nearby.proto.connections.ConnectionAttemptType type = 2;
 inline bool ConnectionsLog_ConnectionAttempt::_internal_has_type() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ConnectionAttempt::has_type() const {
@@ -6110,7 +7199,7 @@ inline bool ConnectionsLog_ConnectionAttempt::has_type() const {
 }
 inline void ConnectionsLog_ConnectionAttempt::clear_type() {
   type_ = 0;
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline ::location::nearby::proto::connections::ConnectionAttemptType ConnectionsLog_ConnectionAttempt::_internal_type() const {
   return static_cast< ::location::nearby::proto::connections::ConnectionAttemptType >(type_);
@@ -6121,7 +7210,7 @@ inline ::location::nearby::proto::connections::ConnectionAttemptType Connections
 }
 inline void ConnectionsLog_ConnectionAttempt::_internal_set_type(::location::nearby::proto::connections::ConnectionAttemptType value) {
   assert(::location::nearby::proto::connections::ConnectionAttemptType_IsValid(value));
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
   type_ = value;
 }
 inline void ConnectionsLog_ConnectionAttempt::set_type(::location::nearby::proto::connections::ConnectionAttemptType value) {
@@ -6131,7 +7220,7 @@ inline void ConnectionsLog_ConnectionAttempt::set_type(::location::nearby::proto
 
 // optional .location.nearby.proto.connections.ConnectionAttemptDirection direction = 3;
 inline bool ConnectionsLog_ConnectionAttempt::_internal_has_direction() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ConnectionAttempt::has_direction() const {
@@ -6139,7 +7228,7 @@ inline bool ConnectionsLog_ConnectionAttempt::has_direction() const {
 }
 inline void ConnectionsLog_ConnectionAttempt::clear_direction() {
   direction_ = 0;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline ::location::nearby::proto::connections::ConnectionAttemptDirection ConnectionsLog_ConnectionAttempt::_internal_direction() const {
   return static_cast< ::location::nearby::proto::connections::ConnectionAttemptDirection >(direction_);
@@ -6150,7 +7239,7 @@ inline ::location::nearby::proto::connections::ConnectionAttemptDirection Connec
 }
 inline void ConnectionsLog_ConnectionAttempt::_internal_set_direction(::location::nearby::proto::connections::ConnectionAttemptDirection value) {
   assert(::location::nearby::proto::connections::ConnectionAttemptDirection_IsValid(value));
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   direction_ = value;
 }
 inline void ConnectionsLog_ConnectionAttempt::set_direction(::location::nearby::proto::connections::ConnectionAttemptDirection value) {
@@ -6160,7 +7249,7 @@ inline void ConnectionsLog_ConnectionAttempt::set_direction(::location::nearby::
 
 // optional .location.nearby.proto.connections.Medium medium = 4;
 inline bool ConnectionsLog_ConnectionAttempt::_internal_has_medium() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ConnectionAttempt::has_medium() const {
@@ -6168,7 +7257,7 @@ inline bool ConnectionsLog_ConnectionAttempt::has_medium() const {
 }
 inline void ConnectionsLog_ConnectionAttempt::clear_medium() {
   medium_ = 0;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline ::location::nearby::proto::connections::Medium ConnectionsLog_ConnectionAttempt::_internal_medium() const {
   return static_cast< ::location::nearby::proto::connections::Medium >(medium_);
@@ -6179,7 +7268,7 @@ inline ::location::nearby::proto::connections::Medium ConnectionsLog_ConnectionA
 }
 inline void ConnectionsLog_ConnectionAttempt::_internal_set_medium(::location::nearby::proto::connections::Medium value) {
   assert(::location::nearby::proto::connections::Medium_IsValid(value));
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
   medium_ = value;
 }
 inline void ConnectionsLog_ConnectionAttempt::set_medium(::location::nearby::proto::connections::Medium value) {
@@ -6189,7 +7278,7 @@ inline void ConnectionsLog_ConnectionAttempt::set_medium(::location::nearby::pro
 
 // optional .location.nearby.proto.connections.ConnectionAttemptResult attempt_result = 5;
 inline bool ConnectionsLog_ConnectionAttempt::_internal_has_attempt_result() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ConnectionAttempt::has_attempt_result() const {
@@ -6197,7 +7286,7 @@ inline bool ConnectionsLog_ConnectionAttempt::has_attempt_result() const {
 }
 inline void ConnectionsLog_ConnectionAttempt::clear_attempt_result() {
   attempt_result_ = 0;
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline ::location::nearby::proto::connections::ConnectionAttemptResult ConnectionsLog_ConnectionAttempt::_internal_attempt_result() const {
   return static_cast< ::location::nearby::proto::connections::ConnectionAttemptResult >(attempt_result_);
@@ -6208,7 +7297,7 @@ inline ::location::nearby::proto::connections::ConnectionAttemptResult Connectio
 }
 inline void ConnectionsLog_ConnectionAttempt::_internal_set_attempt_result(::location::nearby::proto::connections::ConnectionAttemptResult value) {
   assert(::location::nearby::proto::connections::ConnectionAttemptResult_IsValid(value));
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
   attempt_result_ = value;
 }
 inline void ConnectionsLog_ConnectionAttempt::set_attempt_result(::location::nearby::proto::connections::ConnectionAttemptResult value) {
@@ -6218,7 +7307,7 @@ inline void ConnectionsLog_ConnectionAttempt::set_attempt_result(::location::nea
 
 // optional int64 client_flow_id = 6;
 inline bool ConnectionsLog_ConnectionAttempt::_internal_has_client_flow_id() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool ConnectionsLog_ConnectionAttempt::has_client_flow_id() const {
@@ -6226,7 +7315,7 @@ inline bool ConnectionsLog_ConnectionAttempt::has_client_flow_id() const {
 }
 inline void ConnectionsLog_ConnectionAttempt::clear_client_flow_id() {
   client_flow_id_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 inline int64_t ConnectionsLog_ConnectionAttempt::_internal_client_flow_id() const {
   return client_flow_id_;
@@ -6236,7 +7325,7 @@ inline int64_t ConnectionsLog_ConnectionAttempt::client_flow_id() const {
   return _internal_client_flow_id();
 }
 inline void ConnectionsLog_ConnectionAttempt::_internal_set_client_flow_id(int64_t value) {
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000100u;
   client_flow_id_ = value;
 }
 inline void ConnectionsLog_ConnectionAttempt::set_client_flow_id(int64_t value) {
@@ -6403,13 +7492,132 @@ inline void ConnectionsLog_ConnectionAttempt::set_allocated_connection_attempt_m
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.connection_attempt_metadata)
 }
 
+// optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 9;
+inline bool ConnectionsLog_ConnectionAttempt::_internal_has_operation_result() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  PROTOBUF_ASSUME(!value || operation_result_ != nullptr);
+  return value;
+}
+inline bool ConnectionsLog_ConnectionAttempt::has_operation_result() const {
+  return _internal_has_operation_result();
+}
+inline void ConnectionsLog_ConnectionAttempt::clear_operation_result() {
+  if (operation_result_ != nullptr) operation_result_->Clear();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_ConnectionAttempt::_internal_operation_result() const {
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* p = operation_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&>(
+      ::location::nearby::analytics::proto::_ConnectionsLog_OperationResult_default_instance_);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_ConnectionAttempt::operation_result() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.operation_result)
+  return _internal_operation_result();
+}
+inline void ConnectionsLog_ConnectionAttempt::unsafe_arena_set_allocated_operation_result(
+    ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(operation_result_);
+  }
+  operation_result_ = operation_result;
+  if (operation_result) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.operation_result)
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_ConnectionAttempt::release_operation_result() {
+  _has_bits_[0] &= ~0x00000004u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_ConnectionAttempt::unsafe_arena_release_operation_result() {
+  // @@protoc_insertion_point(field_release:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.operation_result)
+  _has_bits_[0] &= ~0x00000004u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_ConnectionAttempt::_internal_mutable_operation_result() {
+  _has_bits_[0] |= 0x00000004u;
+  if (operation_result_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>(GetArenaForAllocation());
+    operation_result_ = p;
+  }
+  return operation_result_;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_ConnectionAttempt::mutable_operation_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _msg = _internal_mutable_operation_result();
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.operation_result)
+  return _msg;
+}
+inline void ConnectionsLog_ConnectionAttempt::set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete operation_result_;
+  }
+  if (operation_result) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>::GetOwningArena(operation_result);
+    if (message_arena != submessage_arena) {
+      operation_result = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, operation_result, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  operation_result_ = operation_result;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.operation_result)
+}
+
+// optional .location.nearby.proto.connections.ConnectionMode connection_mode = 10;
+inline bool ConnectionsLog_ConnectionAttempt::_internal_has_connection_mode() const {
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_ConnectionAttempt::has_connection_mode() const {
+  return _internal_has_connection_mode();
+}
+inline void ConnectionsLog_ConnectionAttempt::clear_connection_mode() {
+  connection_mode_ = 0;
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_ConnectionAttempt::_internal_connection_mode() const {
+  return static_cast< ::location::nearby::proto::connections::ConnectionMode >(connection_mode_);
+}
+inline ::location::nearby::proto::connections::ConnectionMode ConnectionsLog_ConnectionAttempt::connection_mode() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.connection_mode)
+  return _internal_connection_mode();
+}
+inline void ConnectionsLog_ConnectionAttempt::_internal_set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  assert(::location::nearby::proto::connections::ConnectionMode_IsValid(value));
+  _has_bits_[0] |= 0x00000200u;
+  connection_mode_ = value;
+}
+inline void ConnectionsLog_ConnectionAttempt::set_connection_mode(::location::nearby::proto::connections::ConnectionMode value) {
+  _internal_set_connection_mode(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt.connection_mode)
+}
+
 // -------------------------------------------------------------------
 
 // ConnectionsLog_EstablishedConnection
 
 // optional int64 duration_millis = 1;
 inline bool ConnectionsLog_EstablishedConnection::_internal_has_duration_millis() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool ConnectionsLog_EstablishedConnection::has_duration_millis() const {
@@ -6417,7 +7625,7 @@ inline bool ConnectionsLog_EstablishedConnection::has_duration_millis() const {
 }
 inline void ConnectionsLog_EstablishedConnection::clear_duration_millis() {
   duration_millis_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline int64_t ConnectionsLog_EstablishedConnection::_internal_duration_millis() const {
   return duration_millis_;
@@ -6427,7 +7635,7 @@ inline int64_t ConnectionsLog_EstablishedConnection::duration_millis() const {
   return _internal_duration_millis();
 }
 inline void ConnectionsLog_EstablishedConnection::_internal_set_duration_millis(int64_t value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   duration_millis_ = value;
 }
 inline void ConnectionsLog_EstablishedConnection::set_duration_millis(int64_t value) {
@@ -6437,7 +7645,7 @@ inline void ConnectionsLog_EstablishedConnection::set_duration_millis(int64_t va
 
 // optional .location.nearby.proto.connections.Medium medium = 2;
 inline bool ConnectionsLog_EstablishedConnection::_internal_has_medium() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ConnectionsLog_EstablishedConnection::has_medium() const {
@@ -6445,7 +7653,7 @@ inline bool ConnectionsLog_EstablishedConnection::has_medium() const {
 }
 inline void ConnectionsLog_EstablishedConnection::clear_medium() {
   medium_ = 0;
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline ::location::nearby::proto::connections::Medium ConnectionsLog_EstablishedConnection::_internal_medium() const {
   return static_cast< ::location::nearby::proto::connections::Medium >(medium_);
@@ -6456,7 +7664,7 @@ inline ::location::nearby::proto::connections::Medium ConnectionsLog_Established
 }
 inline void ConnectionsLog_EstablishedConnection::_internal_set_medium(::location::nearby::proto::connections::Medium value) {
   assert(::location::nearby::proto::connections::Medium_IsValid(value));
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
   medium_ = value;
 }
 inline void ConnectionsLog_EstablishedConnection::set_medium(::location::nearby::proto::connections::Medium value) {
@@ -6546,7 +7754,7 @@ ConnectionsLog_EstablishedConnection::received_payload() const {
 
 // optional .location.nearby.proto.connections.DisconnectionReason disconnection_reason = 5;
 inline bool ConnectionsLog_EstablishedConnection::_internal_has_disconnection_reason() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool ConnectionsLog_EstablishedConnection::has_disconnection_reason() const {
@@ -6554,7 +7762,7 @@ inline bool ConnectionsLog_EstablishedConnection::has_disconnection_reason() con
 }
 inline void ConnectionsLog_EstablishedConnection::clear_disconnection_reason() {
   disconnection_reason_ = 0;
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline ::location::nearby::proto::connections::DisconnectionReason ConnectionsLog_EstablishedConnection::_internal_disconnection_reason() const {
   return static_cast< ::location::nearby::proto::connections::DisconnectionReason >(disconnection_reason_);
@@ -6565,7 +7773,7 @@ inline ::location::nearby::proto::connections::DisconnectionReason ConnectionsLo
 }
 inline void ConnectionsLog_EstablishedConnection::_internal_set_disconnection_reason(::location::nearby::proto::connections::DisconnectionReason value) {
   assert(::location::nearby::proto::connections::DisconnectionReason_IsValid(value));
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
   disconnection_reason_ = value;
 }
 inline void ConnectionsLog_EstablishedConnection::set_disconnection_reason(::location::nearby::proto::connections::DisconnectionReason value) {
@@ -6575,7 +7783,7 @@ inline void ConnectionsLog_EstablishedConnection::set_disconnection_reason(::loc
 
 // optional int64 client_flow_id = 6;
 inline bool ConnectionsLog_EstablishedConnection::_internal_has_client_flow_id() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ConnectionsLog_EstablishedConnection::has_client_flow_id() const {
@@ -6583,7 +7791,7 @@ inline bool ConnectionsLog_EstablishedConnection::has_client_flow_id() const {
 }
 inline void ConnectionsLog_EstablishedConnection::clear_client_flow_id() {
   client_flow_id_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline int64_t ConnectionsLog_EstablishedConnection::_internal_client_flow_id() const {
   return client_flow_id_;
@@ -6593,7 +7801,7 @@ inline int64_t ConnectionsLog_EstablishedConnection::client_flow_id() const {
   return _internal_client_flow_id();
 }
 inline void ConnectionsLog_EstablishedConnection::_internal_set_client_flow_id(int64_t value) {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   client_flow_id_ = value;
 }
 inline void ConnectionsLog_EstablishedConnection::set_client_flow_id(int64_t value) {
@@ -6672,7 +7880,7 @@ inline void ConnectionsLog_EstablishedConnection::set_allocated_connection_token
 
 // optional .location.nearby.proto.connections.ConnectionAttemptType type = 8;
 inline bool ConnectionsLog_EstablishedConnection::_internal_has_type() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool ConnectionsLog_EstablishedConnection::has_type() const {
@@ -6680,7 +7888,7 @@ inline bool ConnectionsLog_EstablishedConnection::has_type() const {
 }
 inline void ConnectionsLog_EstablishedConnection::clear_type() {
   type_ = 0;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline ::location::nearby::proto::connections::ConnectionAttemptType ConnectionsLog_EstablishedConnection::_internal_type() const {
   return static_cast< ::location::nearby::proto::connections::ConnectionAttemptType >(type_);
@@ -6691,7 +7899,7 @@ inline ::location::nearby::proto::connections::ConnectionAttemptType Connections
 }
 inline void ConnectionsLog_EstablishedConnection::_internal_set_type(::location::nearby::proto::connections::ConnectionAttemptType value) {
   assert(::location::nearby::proto::connections::ConnectionAttemptType_IsValid(value));
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
   type_ = value;
 }
 inline void ConnectionsLog_EstablishedConnection::set_type(::location::nearby::proto::connections::ConnectionAttemptType value) {
@@ -6701,7 +7909,7 @@ inline void ConnectionsLog_EstablishedConnection::set_type(::location::nearby::p
 
 // optional .location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.SafeDisconnectionResult safe_disconnection_result = 9;
 inline bool ConnectionsLog_EstablishedConnection::_internal_has_safe_disconnection_result() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionsLog_EstablishedConnection::has_safe_disconnection_result() const {
@@ -6709,7 +7917,7 @@ inline bool ConnectionsLog_EstablishedConnection::has_safe_disconnection_result(
 }
 inline void ConnectionsLog_EstablishedConnection::clear_safe_disconnection_result() {
   safe_disconnection_result_ = 0;
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection_SafeDisconnectionResult ConnectionsLog_EstablishedConnection::_internal_safe_disconnection_result() const {
   return static_cast< ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection_SafeDisconnectionResult >(safe_disconnection_result_);
@@ -6720,12 +7928,102 @@ inline ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnectio
 }
 inline void ConnectionsLog_EstablishedConnection::_internal_set_safe_disconnection_result(::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection_SafeDisconnectionResult value) {
   assert(::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection_SafeDisconnectionResult_IsValid(value));
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
   safe_disconnection_result_ = value;
 }
 inline void ConnectionsLog_EstablishedConnection::set_safe_disconnection_result(::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection_SafeDisconnectionResult value) {
   _internal_set_safe_disconnection_result(value);
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.safe_disconnection_result)
+}
+
+// optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 10;
+inline bool ConnectionsLog_EstablishedConnection::_internal_has_operation_result() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  PROTOBUF_ASSUME(!value || operation_result_ != nullptr);
+  return value;
+}
+inline bool ConnectionsLog_EstablishedConnection::has_operation_result() const {
+  return _internal_has_operation_result();
+}
+inline void ConnectionsLog_EstablishedConnection::clear_operation_result() {
+  if (operation_result_ != nullptr) operation_result_->Clear();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_EstablishedConnection::_internal_operation_result() const {
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* p = operation_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&>(
+      ::location::nearby::analytics::proto::_ConnectionsLog_OperationResult_default_instance_);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_EstablishedConnection::operation_result() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.operation_result)
+  return _internal_operation_result();
+}
+inline void ConnectionsLog_EstablishedConnection::unsafe_arena_set_allocated_operation_result(
+    ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(operation_result_);
+  }
+  operation_result_ = operation_result;
+  if (operation_result) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.operation_result)
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_EstablishedConnection::release_operation_result() {
+  _has_bits_[0] &= ~0x00000002u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_EstablishedConnection::unsafe_arena_release_operation_result() {
+  // @@protoc_insertion_point(field_release:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.operation_result)
+  _has_bits_[0] &= ~0x00000002u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_EstablishedConnection::_internal_mutable_operation_result() {
+  _has_bits_[0] |= 0x00000002u;
+  if (operation_result_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>(GetArenaForAllocation());
+    operation_result_ = p;
+  }
+  return operation_result_;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_EstablishedConnection::mutable_operation_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _msg = _internal_mutable_operation_result();
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.operation_result)
+  return _msg;
+}
+inline void ConnectionsLog_EstablishedConnection::set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete operation_result_;
+  }
+  if (operation_result) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>::GetOwningArena(operation_result);
+    if (message_arena != submessage_arena) {
+      operation_result = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, operation_result, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  operation_result_ = operation_result;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.operation_result)
 }
 
 // -------------------------------------------------------------------
@@ -6734,7 +8032,7 @@ inline void ConnectionsLog_EstablishedConnection::set_safe_disconnection_result(
 
 // optional int64 duration_millis = 1;
 inline bool ConnectionsLog_Payload::_internal_has_duration_millis() const {
-  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
   return value;
 }
 inline bool ConnectionsLog_Payload::has_duration_millis() const {
@@ -6742,7 +8040,7 @@ inline bool ConnectionsLog_Payload::has_duration_millis() const {
 }
 inline void ConnectionsLog_Payload::clear_duration_millis() {
   duration_millis_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000001u;
+  _has_bits_[0] &= ~0x00000002u;
 }
 inline int64_t ConnectionsLog_Payload::_internal_duration_millis() const {
   return duration_millis_;
@@ -6752,7 +8050,7 @@ inline int64_t ConnectionsLog_Payload::duration_millis() const {
   return _internal_duration_millis();
 }
 inline void ConnectionsLog_Payload::_internal_set_duration_millis(int64_t value) {
-  _has_bits_[0] |= 0x00000001u;
+  _has_bits_[0] |= 0x00000002u;
   duration_millis_ = value;
 }
 inline void ConnectionsLog_Payload::set_duration_millis(int64_t value) {
@@ -6762,7 +8060,7 @@ inline void ConnectionsLog_Payload::set_duration_millis(int64_t value) {
 
 // optional .location.nearby.proto.connections.PayloadType type = 2;
 inline bool ConnectionsLog_Payload::_internal_has_type() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ConnectionsLog_Payload::has_type() const {
@@ -6770,7 +8068,7 @@ inline bool ConnectionsLog_Payload::has_type() const {
 }
 inline void ConnectionsLog_Payload::clear_type() {
   type_ = 0;
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline ::location::nearby::proto::connections::PayloadType ConnectionsLog_Payload::_internal_type() const {
   return static_cast< ::location::nearby::proto::connections::PayloadType >(type_);
@@ -6781,7 +8079,7 @@ inline ::location::nearby::proto::connections::PayloadType ConnectionsLog_Payloa
 }
 inline void ConnectionsLog_Payload::_internal_set_type(::location::nearby::proto::connections::PayloadType value) {
   assert(::location::nearby::proto::connections::PayloadType_IsValid(value));
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
   type_ = value;
 }
 inline void ConnectionsLog_Payload::set_type(::location::nearby::proto::connections::PayloadType value) {
@@ -6791,7 +8089,7 @@ inline void ConnectionsLog_Payload::set_type(::location::nearby::proto::connecti
 
 // optional int64 total_size_bytes = 3;
 inline bool ConnectionsLog_Payload::_internal_has_total_size_bytes() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool ConnectionsLog_Payload::has_total_size_bytes() const {
@@ -6799,7 +8097,7 @@ inline bool ConnectionsLog_Payload::has_total_size_bytes() const {
 }
 inline void ConnectionsLog_Payload::clear_total_size_bytes() {
   total_size_bytes_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline int64_t ConnectionsLog_Payload::_internal_total_size_bytes() const {
   return total_size_bytes_;
@@ -6809,7 +8107,7 @@ inline int64_t ConnectionsLog_Payload::total_size_bytes() const {
   return _internal_total_size_bytes();
 }
 inline void ConnectionsLog_Payload::_internal_set_total_size_bytes(int64_t value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   total_size_bytes_ = value;
 }
 inline void ConnectionsLog_Payload::set_total_size_bytes(int64_t value) {
@@ -6819,7 +8117,7 @@ inline void ConnectionsLog_Payload::set_total_size_bytes(int64_t value) {
 
 // optional int64 num_bytes_transferred = 4;
 inline bool ConnectionsLog_Payload::_internal_has_num_bytes_transferred() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ConnectionsLog_Payload::has_num_bytes_transferred() const {
@@ -6827,7 +8125,7 @@ inline bool ConnectionsLog_Payload::has_num_bytes_transferred() const {
 }
 inline void ConnectionsLog_Payload::clear_num_bytes_transferred() {
   num_bytes_transferred_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline int64_t ConnectionsLog_Payload::_internal_num_bytes_transferred() const {
   return num_bytes_transferred_;
@@ -6837,7 +8135,7 @@ inline int64_t ConnectionsLog_Payload::num_bytes_transferred() const {
   return _internal_num_bytes_transferred();
 }
 inline void ConnectionsLog_Payload::_internal_set_num_bytes_transferred(int64_t value) {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   num_bytes_transferred_ = value;
 }
 inline void ConnectionsLog_Payload::set_num_bytes_transferred(int64_t value) {
@@ -6847,7 +8145,7 @@ inline void ConnectionsLog_Payload::set_num_bytes_transferred(int64_t value) {
 
 // optional int32 num_chunks = 5;
 inline bool ConnectionsLog_Payload::_internal_has_num_chunks() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool ConnectionsLog_Payload::has_num_chunks() const {
@@ -6855,7 +8153,7 @@ inline bool ConnectionsLog_Payload::has_num_chunks() const {
 }
 inline void ConnectionsLog_Payload::clear_num_chunks() {
   num_chunks_ = 0;
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline int32_t ConnectionsLog_Payload::_internal_num_chunks() const {
   return num_chunks_;
@@ -6865,7 +8163,7 @@ inline int32_t ConnectionsLog_Payload::num_chunks() const {
   return _internal_num_chunks();
 }
 inline void ConnectionsLog_Payload::_internal_set_num_chunks(int32_t value) {
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
   num_chunks_ = value;
 }
 inline void ConnectionsLog_Payload::set_num_chunks(int32_t value) {
@@ -6875,7 +8173,7 @@ inline void ConnectionsLog_Payload::set_num_chunks(int32_t value) {
 
 // optional .location.nearby.proto.connections.PayloadStatus status = 6;
 inline bool ConnectionsLog_Payload::_internal_has_status() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool ConnectionsLog_Payload::has_status() const {
@@ -6883,7 +8181,7 @@ inline bool ConnectionsLog_Payload::has_status() const {
 }
 inline void ConnectionsLog_Payload::clear_status() {
   status_ = 0;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline ::location::nearby::proto::connections::PayloadStatus ConnectionsLog_Payload::_internal_status() const {
   return static_cast< ::location::nearby::proto::connections::PayloadStatus >(status_);
@@ -6894,12 +8192,158 @@ inline ::location::nearby::proto::connections::PayloadStatus ConnectionsLog_Payl
 }
 inline void ConnectionsLog_Payload::_internal_set_status(::location::nearby::proto::connections::PayloadStatus value) {
   assert(::location::nearby::proto::connections::PayloadStatus_IsValid(value));
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
   status_ = value;
 }
 inline void ConnectionsLog_Payload::set_status(::location::nearby::proto::connections::PayloadStatus value) {
   _internal_set_status(value);
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.Payload.status)
+}
+
+// optional int32 num_successful_auto_resume = 7;
+inline bool ConnectionsLog_Payload::_internal_has_num_successful_auto_resume() const {
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_Payload::has_num_successful_auto_resume() const {
+  return _internal_has_num_successful_auto_resume();
+}
+inline void ConnectionsLog_Payload::clear_num_successful_auto_resume() {
+  num_successful_auto_resume_ = 0;
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline int32_t ConnectionsLog_Payload::_internal_num_successful_auto_resume() const {
+  return num_successful_auto_resume_;
+}
+inline int32_t ConnectionsLog_Payload::num_successful_auto_resume() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.Payload.num_successful_auto_resume)
+  return _internal_num_successful_auto_resume();
+}
+inline void ConnectionsLog_Payload::_internal_set_num_successful_auto_resume(int32_t value) {
+  _has_bits_[0] |= 0x00000080u;
+  num_successful_auto_resume_ = value;
+}
+inline void ConnectionsLog_Payload::set_num_successful_auto_resume(int32_t value) {
+  _internal_set_num_successful_auto_resume(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.Payload.num_successful_auto_resume)
+}
+
+// optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 8;
+inline bool ConnectionsLog_Payload::_internal_has_operation_result() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  PROTOBUF_ASSUME(!value || operation_result_ != nullptr);
+  return value;
+}
+inline bool ConnectionsLog_Payload::has_operation_result() const {
+  return _internal_has_operation_result();
+}
+inline void ConnectionsLog_Payload::clear_operation_result() {
+  if (operation_result_ != nullptr) operation_result_->Clear();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_Payload::_internal_operation_result() const {
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* p = operation_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&>(
+      ::location::nearby::analytics::proto::_ConnectionsLog_OperationResult_default_instance_);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_Payload::operation_result() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.Payload.operation_result)
+  return _internal_operation_result();
+}
+inline void ConnectionsLog_Payload::unsafe_arena_set_allocated_operation_result(
+    ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(operation_result_);
+  }
+  operation_result_ = operation_result;
+  if (operation_result) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.analytics.proto.ConnectionsLog.Payload.operation_result)
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_Payload::release_operation_result() {
+  _has_bits_[0] &= ~0x00000001u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_Payload::unsafe_arena_release_operation_result() {
+  // @@protoc_insertion_point(field_release:location.nearby.analytics.proto.ConnectionsLog.Payload.operation_result)
+  _has_bits_[0] &= ~0x00000001u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_Payload::_internal_mutable_operation_result() {
+  _has_bits_[0] |= 0x00000001u;
+  if (operation_result_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>(GetArenaForAllocation());
+    operation_result_ = p;
+  }
+  return operation_result_;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_Payload::mutable_operation_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _msg = _internal_mutable_operation_result();
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.Payload.operation_result)
+  return _msg;
+}
+inline void ConnectionsLog_Payload::set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete operation_result_;
+  }
+  if (operation_result) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>::GetOwningArena(operation_result);
+    if (message_arena != submessage_arena) {
+      operation_result = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, operation_result, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  operation_result_ = operation_result;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.Payload.operation_result)
+}
+
+// optional int32 num_failed_auto_resume = 9;
+inline bool ConnectionsLog_Payload::_internal_has_num_failed_auto_resume() const {
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_Payload::has_num_failed_auto_resume() const {
+  return _internal_has_num_failed_auto_resume();
+}
+inline void ConnectionsLog_Payload::clear_num_failed_auto_resume() {
+  num_failed_auto_resume_ = 0;
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline int32_t ConnectionsLog_Payload::_internal_num_failed_auto_resume() const {
+  return num_failed_auto_resume_;
+}
+inline int32_t ConnectionsLog_Payload::num_failed_auto_resume() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.Payload.num_failed_auto_resume)
+  return _internal_num_failed_auto_resume();
+}
+inline void ConnectionsLog_Payload::_internal_set_num_failed_auto_resume(int32_t value) {
+  _has_bits_[0] |= 0x00000100u;
+  num_failed_auto_resume_ = value;
+}
+inline void ConnectionsLog_Payload::set_num_failed_auto_resume(int32_t value) {
+  _internal_set_num_failed_auto_resume(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.Payload.num_failed_auto_resume)
 }
 
 // -------------------------------------------------------------------
@@ -6908,7 +8352,7 @@ inline void ConnectionsLog_Payload::set_status(::location::nearby::proto::connec
 
 // optional .location.nearby.proto.connections.ConnectionAttemptDirection direction = 1;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_direction() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_direction() const {
@@ -6916,7 +8360,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_direction() const {
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_direction() {
   direction_ = 0;
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline ::location::nearby::proto::connections::ConnectionAttemptDirection ConnectionsLog_BandwidthUpgradeAttempt::_internal_direction() const {
   return static_cast< ::location::nearby::proto::connections::ConnectionAttemptDirection >(direction_);
@@ -6927,7 +8371,7 @@ inline ::location::nearby::proto::connections::ConnectionAttemptDirection Connec
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_direction(::location::nearby::proto::connections::ConnectionAttemptDirection value) {
   assert(::location::nearby::proto::connections::ConnectionAttemptDirection_IsValid(value));
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
   direction_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_direction(::location::nearby::proto::connections::ConnectionAttemptDirection value) {
@@ -6937,7 +8381,7 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_direction(::location::ne
 
 // optional int64 duration_millis = 2;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_duration_millis() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_duration_millis() const {
@@ -6945,7 +8389,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_duration_millis() const 
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_duration_millis() {
   duration_millis_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline int64_t ConnectionsLog_BandwidthUpgradeAttempt::_internal_duration_millis() const {
   return duration_millis_;
@@ -6955,7 +8399,7 @@ inline int64_t ConnectionsLog_BandwidthUpgradeAttempt::duration_millis() const {
   return _internal_duration_millis();
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_duration_millis(int64_t value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   duration_millis_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_duration_millis(int64_t value) {
@@ -6965,7 +8409,7 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_duration_millis(int64_t 
 
 // optional .location.nearby.proto.connections.Medium from_medium = 3;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_from_medium() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_from_medium() const {
@@ -6973,7 +8417,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_from_medium() const {
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_from_medium() {
   from_medium_ = 0;
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline ::location::nearby::proto::connections::Medium ConnectionsLog_BandwidthUpgradeAttempt::_internal_from_medium() const {
   return static_cast< ::location::nearby::proto::connections::Medium >(from_medium_);
@@ -6984,7 +8428,7 @@ inline ::location::nearby::proto::connections::Medium ConnectionsLog_BandwidthUp
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_from_medium(::location::nearby::proto::connections::Medium value) {
   assert(::location::nearby::proto::connections::Medium_IsValid(value));
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
   from_medium_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_from_medium(::location::nearby::proto::connections::Medium value) {
@@ -6994,7 +8438,7 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_from_medium(::location::
 
 // optional .location.nearby.proto.connections.Medium to_medium = 4;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_to_medium() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_to_medium() const {
@@ -7002,7 +8446,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_to_medium() const {
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_to_medium() {
   to_medium_ = 0;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline ::location::nearby::proto::connections::Medium ConnectionsLog_BandwidthUpgradeAttempt::_internal_to_medium() const {
   return static_cast< ::location::nearby::proto::connections::Medium >(to_medium_);
@@ -7013,7 +8457,7 @@ inline ::location::nearby::proto::connections::Medium ConnectionsLog_BandwidthUp
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_to_medium(::location::nearby::proto::connections::Medium value) {
   assert(::location::nearby::proto::connections::Medium_IsValid(value));
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   to_medium_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_to_medium(::location::nearby::proto::connections::Medium value) {
@@ -7023,7 +8467,7 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_to_medium(::location::ne
 
 // optional .location.nearby.proto.connections.BandwidthUpgradeResult upgrade_result = 5;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_upgrade_result() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_upgrade_result() const {
@@ -7031,7 +8475,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_upgrade_result() const {
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_upgrade_result() {
   upgrade_result_ = 0;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline ::location::nearby::proto::connections::BandwidthUpgradeResult ConnectionsLog_BandwidthUpgradeAttempt::_internal_upgrade_result() const {
   return static_cast< ::location::nearby::proto::connections::BandwidthUpgradeResult >(upgrade_result_);
@@ -7042,7 +8486,7 @@ inline ::location::nearby::proto::connections::BandwidthUpgradeResult Connection
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_upgrade_result(::location::nearby::proto::connections::BandwidthUpgradeResult value) {
   assert(::location::nearby::proto::connections::BandwidthUpgradeResult_IsValid(value));
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
   upgrade_result_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_upgrade_result(::location::nearby::proto::connections::BandwidthUpgradeResult value) {
@@ -7052,7 +8496,7 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_upgrade_result(::locatio
 
 // optional .location.nearby.proto.connections.BandwidthUpgradeErrorStage error_stage = 6;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_error_stage() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_error_stage() const {
@@ -7060,7 +8504,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_error_stage() const {
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_error_stage() {
   error_stage_ = 0;
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 inline ::location::nearby::proto::connections::BandwidthUpgradeErrorStage ConnectionsLog_BandwidthUpgradeAttempt::_internal_error_stage() const {
   return static_cast< ::location::nearby::proto::connections::BandwidthUpgradeErrorStage >(error_stage_);
@@ -7071,7 +8515,7 @@ inline ::location::nearby::proto::connections::BandwidthUpgradeErrorStage Connec
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_error_stage(::location::nearby::proto::connections::BandwidthUpgradeErrorStage value) {
   assert(::location::nearby::proto::connections::BandwidthUpgradeErrorStage_IsValid(value));
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000100u;
   error_stage_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_error_stage(::location::nearby::proto::connections::BandwidthUpgradeErrorStage value) {
@@ -7081,7 +8525,7 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_error_stage(::location::
 
 // optional int64 client_flow_id = 7;
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_client_flow_id() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_client_flow_id() const {
@@ -7089,7 +8533,7 @@ inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_client_flow_id() const {
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_client_flow_id() {
   client_flow_id_ = int64_t{0};
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline int64_t ConnectionsLog_BandwidthUpgradeAttempt::_internal_client_flow_id() const {
   return client_flow_id_;
@@ -7099,7 +8543,7 @@ inline int64_t ConnectionsLog_BandwidthUpgradeAttempt::client_flow_id() const {
   return _internal_client_flow_id();
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::_internal_set_client_flow_id(int64_t value) {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
   client_flow_id_ = value;
 }
 inline void ConnectionsLog_BandwidthUpgradeAttempt::set_client_flow_id(int64_t value) {
@@ -7174,6 +8618,96 @@ inline void ConnectionsLog_BandwidthUpgradeAttempt::set_allocated_connection_tok
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt.connection_token)
+}
+
+// optional .location.nearby.analytics.proto.ConnectionsLog.OperationResult operation_result = 9;
+inline bool ConnectionsLog_BandwidthUpgradeAttempt::_internal_has_operation_result() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  PROTOBUF_ASSUME(!value || operation_result_ != nullptr);
+  return value;
+}
+inline bool ConnectionsLog_BandwidthUpgradeAttempt::has_operation_result() const {
+  return _internal_has_operation_result();
+}
+inline void ConnectionsLog_BandwidthUpgradeAttempt::clear_operation_result() {
+  if (operation_result_ != nullptr) operation_result_->Clear();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_BandwidthUpgradeAttempt::_internal_operation_result() const {
+  const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* p = operation_result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&>(
+      ::location::nearby::analytics::proto::_ConnectionsLog_OperationResult_default_instance_);
+}
+inline const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& ConnectionsLog_BandwidthUpgradeAttempt::operation_result() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt.operation_result)
+  return _internal_operation_result();
+}
+inline void ConnectionsLog_BandwidthUpgradeAttempt::unsafe_arena_set_allocated_operation_result(
+    ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(operation_result_);
+  }
+  operation_result_ = operation_result;
+  if (operation_result) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt.operation_result)
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_BandwidthUpgradeAttempt::release_operation_result() {
+  _has_bits_[0] &= ~0x00000002u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_BandwidthUpgradeAttempt::unsafe_arena_release_operation_result() {
+  // @@protoc_insertion_point(field_release:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt.operation_result)
+  _has_bits_[0] &= ~0x00000002u;
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* temp = operation_result_;
+  operation_result_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_BandwidthUpgradeAttempt::_internal_mutable_operation_result() {
+  _has_bits_[0] |= 0x00000002u;
+  if (operation_result_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>(GetArenaForAllocation());
+    operation_result_ = p;
+  }
+  return operation_result_;
+}
+inline ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* ConnectionsLog_BandwidthUpgradeAttempt::mutable_operation_result() {
+  ::location::nearby::analytics::proto::ConnectionsLog_OperationResult* _msg = _internal_mutable_operation_result();
+  // @@protoc_insertion_point(field_mutable:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt.operation_result)
+  return _msg;
+}
+inline void ConnectionsLog_BandwidthUpgradeAttempt::set_allocated_operation_result(::location::nearby::analytics::proto::ConnectionsLog_OperationResult* operation_result) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete operation_result_;
+  }
+  if (operation_result) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::analytics::proto::ConnectionsLog_OperationResult>::GetOwningArena(operation_result);
+    if (message_arena != submessage_arena) {
+      operation_result = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, operation_result, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  operation_result_ = operation_result;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt.operation_result)
 }
 
 // -------------------------------------------------------------------
@@ -8135,7 +9669,7 @@ inline void ConnectionsLog_AdvertisingMetadata::set_multiple_advertisement_suppo
 
 // optional .location.nearby.proto.connections.PowerLevel power_level = 5;
 inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_power_level() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionsLog_AdvertisingMetadata::has_power_level() const {
@@ -8143,7 +9677,7 @@ inline bool ConnectionsLog_AdvertisingMetadata::has_power_level() const {
 }
 inline void ConnectionsLog_AdvertisingMetadata::clear_power_level() {
   power_level_ = -1;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline ::location::nearby::proto::connections::PowerLevel ConnectionsLog_AdvertisingMetadata::_internal_power_level() const {
   return static_cast< ::location::nearby::proto::connections::PowerLevel >(power_level_);
@@ -8154,12 +9688,96 @@ inline ::location::nearby::proto::connections::PowerLevel ConnectionsLog_Adverti
 }
 inline void ConnectionsLog_AdvertisingMetadata::_internal_set_power_level(::location::nearby::proto::connections::PowerLevel value) {
   assert(::location::nearby::proto::connections::PowerLevel_IsValid(value));
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000080u;
   power_level_ = value;
 }
 inline void ConnectionsLog_AdvertisingMetadata::set_power_level(::location::nearby::proto::connections::PowerLevel value) {
   _internal_set_power_level(value);
   // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.power_level)
+}
+
+// optional bool supports_dual_band = 6;
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_supports_dual_band() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::has_supports_dual_band() const {
+  return _internal_has_supports_dual_band();
+}
+inline void ConnectionsLog_AdvertisingMetadata::clear_supports_dual_band() {
+  supports_dual_band_ = false;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_supports_dual_band() const {
+  return supports_dual_band_;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::supports_dual_band() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_dual_band)
+  return _internal_supports_dual_band();
+}
+inline void ConnectionsLog_AdvertisingMetadata::_internal_set_supports_dual_band(bool value) {
+  _has_bits_[0] |= 0x00000010u;
+  supports_dual_band_ = value;
+}
+inline void ConnectionsLog_AdvertisingMetadata::set_supports_dual_band(bool value) {
+  _internal_set_supports_dual_band(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_dual_band)
+}
+
+// optional bool supports_wifi_aware = 7;
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_supports_wifi_aware() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::has_supports_wifi_aware() const {
+  return _internal_has_supports_wifi_aware();
+}
+inline void ConnectionsLog_AdvertisingMetadata::clear_supports_wifi_aware() {
+  supports_wifi_aware_ = false;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_supports_wifi_aware() const {
+  return supports_wifi_aware_;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::supports_wifi_aware() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_wifi_aware)
+  return _internal_supports_wifi_aware();
+}
+inline void ConnectionsLog_AdvertisingMetadata::_internal_set_supports_wifi_aware(bool value) {
+  _has_bits_[0] |= 0x00000020u;
+  supports_wifi_aware_ = value;
+}
+inline void ConnectionsLog_AdvertisingMetadata::set_supports_wifi_aware(bool value) {
+  _internal_set_supports_wifi_aware(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.supports_wifi_aware)
+}
+
+// optional int32 endpoint_info_size = 8;
+inline bool ConnectionsLog_AdvertisingMetadata::_internal_has_endpoint_info_size() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool ConnectionsLog_AdvertisingMetadata::has_endpoint_info_size() const {
+  return _internal_has_endpoint_info_size();
+}
+inline void ConnectionsLog_AdvertisingMetadata::clear_endpoint_info_size() {
+  endpoint_info_size_ = 0;
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline int32_t ConnectionsLog_AdvertisingMetadata::_internal_endpoint_info_size() const {
+  return endpoint_info_size_;
+}
+inline int32_t ConnectionsLog_AdvertisingMetadata::endpoint_info_size() const {
+  // @@protoc_insertion_point(field_get:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.endpoint_info_size)
+  return _internal_endpoint_info_size();
+}
+inline void ConnectionsLog_AdvertisingMetadata::_internal_set_endpoint_info_size(int32_t value) {
+  _has_bits_[0] |= 0x00000040u;
+  endpoint_info_size_ = value;
+}
+inline void ConnectionsLog_AdvertisingMetadata::set_endpoint_info_size(int32_t value) {
+  _internal_set_endpoint_info_size(value);
+  // @@protoc_insertion_point(field_set:location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata.endpoint_info_size)
 }
 
 // -------------------------------------------------------------------
@@ -9170,6 +10788,10 @@ inline void ConnectionsLog::set_allocated_files_migration_phase(std::string* fil
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

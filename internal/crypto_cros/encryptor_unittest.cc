@@ -27,6 +27,8 @@
 #include "internal/crypto_cros/nearby_base.h"
 #include "internal/crypto_cros/symmetric_key.h"
 
+namespace nearby {
+
 TEST(EncryptorTest, EncryptDecrypt) {
   std::unique_ptr<crypto::SymmetricKey> key(
       crypto::SymmetricKey::DeriveKeyFromPasswordUsingPbkdf2(
@@ -570,3 +572,5 @@ TEST(EncryptorTest, CipherTextNotMultipleOfBlockSize) {
   EXPECT_FALSE(
       encryptor.Decrypt(absl::string_view(ciphertext.get(), 1), &plaintext));
 }
+
+}  // namespace nearby

@@ -14,38 +14,29 @@
 
 #include "fastpair/analytics/analytics_recorder.h"
 
-#include <memory>
-
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/analytics/event_logger.h"
+#include "internal/analytics/mock_event_logger.h"
 #include "internal/proto/analytics/fast_pair_log.proto.h"
 #include "proto/fast_pair_enums.proto.h"
-#include "third_party/protobuf/message_lite.h"
 
 namespace nearby {
 namespace fastpair {
 namespace analytics {
 namespace {
 
+using ::nearby::analytics::MockEventLogger;
 using ::nearby::proto::fastpair::FastPairEvent;
 using ::nearby::proto::fastpair::FastPairLog;
-
-class MockEventLogger : public ::nearby::analytics::EventLogger {
- public:
-  MockEventLogger() = default;
-  ~MockEventLogger() override = default;
-
-  MOCK_METHOD(void, Log, (const ::google::protobuf::MessageLite& message), (override));
-};
+using ::testing::An;
 
 class AnalyticsRecorderTest : public ::testing::Test {
  public:
   AnalyticsRecorderTest() = default;
   ~AnalyticsRecorderTest() override = default;
 
-  const MockEventLogger& event_logger() { return event_logger_; }
+  MockEventLogger& event_logger() { return event_logger_; }
 
   AnalyticsRecorder analytics_recoder() { return analytics_recorder_; }
 
@@ -55,22 +46,18 @@ class AnalyticsRecorderTest : public ::testing::Test {
 };
 
 TEST_F(AnalyticsRecorderTest, NewGattEvent) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        EXPECT_EQ(log->gatt_event().error_from_os(), 1);
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        EXPECT_EQ(message.gatt_event().error_from_os(), 1);
       });
 
   analytics_recoder().NewGattEvent(1);
 }
 
 TEST_F(AnalyticsRecorderTest, NewBrEdrHandoverEvent) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        ASSERT_EQ(log->br_edr_handover_event().error_code(),
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        ASSERT_EQ(message.br_edr_handover_event().error_code(),
                   FastPairEvent::BLUETOOTH_MAC_INVALID);
       });
   analytics_recoder().NewBrEdrHandoverEvent(
@@ -78,58 +65,50 @@ TEST_F(AnalyticsRecorderTest, NewBrEdrHandoverEvent) {
 }
 
 TEST_F(AnalyticsRecorderTest, NewCreateBondEvent) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        ASSERT_EQ(log->bond_event().error_code(), FastPairEvent::NO_PERMISSION);
-        ASSERT_EQ(log->bond_event().unbond_reason(), 12);
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        ASSERT_EQ(message.bond_event().error_code(),
+                  FastPairEvent::NO_PERMISSION);
+        ASSERT_EQ(message.bond_event().unbond_reason(), 12);
       });
   analytics_recoder().NewCreateBondEvent(FastPairEvent::NO_PERMISSION, 12);
 }
 
 TEST_F(AnalyticsRecorderTest, NewConnectEvent) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        ASSERT_EQ(log->connect_event().error_code(),
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        ASSERT_EQ(message.connect_event().error_code(),
                   FastPairEvent::GET_PROFILE_PROXY_FAILED);
-        ASSERT_EQ(log->connect_event().profile_uuid(), 13);
+        ASSERT_EQ(message.connect_event().profile_uuid(), 13);
       });
   analytics_recoder().NewConnectEvent(FastPairEvent::GET_PROFILE_PROXY_FAILED,
                                       13);
 }
 
 TEST_F(AnalyticsRecorderTest, NewProviderInfo) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        ASSERT_EQ(log->provider_info().number_account_keys_on_provider(), 14);
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        ASSERT_EQ(message.provider_info().number_account_keys_on_provider(),
+                  14);
       });
   analytics_recoder().NewProviderInfo(14);
 }
 
 TEST_F(AnalyticsRecorderTest, NewFootprintsInfo) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        ASSERT_EQ(log->footprints_info().number_devices_on_footprints(), 15);
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        ASSERT_EQ(message.footprints_info().number_devices_on_footprints(), 15);
       });
   analytics_recoder().NewFootprintsInfo(15);
 }
 
 TEST_F(AnalyticsRecorderTest, NewKeyBasedPairingInfo) {
-  EXPECT_CALL(event_logger(), Log)
-      .WillOnce([=](const ::google::protobuf::MessageLite& message) {
-        auto log = dynamic_cast<const FastPairLog*>(&message);
-        ASSERT_NE(log, nullptr);
-        ASSERT_EQ(log->key_based_pairing_info().request_flag(), 16);
-        ASSERT_EQ(log->key_based_pairing_info().response_type(), 17);
-        ASSERT_EQ(log->key_based_pairing_info().response_flag(), 18);
-        ASSERT_EQ(log->key_based_pairing_info().response_device_count(), 19);
+  EXPECT_CALL(event_logger(), Log(An<const FastPairLog&>()))
+      .WillOnce([=](const FastPairLog& message) {
+        ASSERT_EQ(message.key_based_pairing_info().request_flag(), 16);
+        ASSERT_EQ(message.key_based_pairing_info().response_type(), 17);
+        ASSERT_EQ(message.key_based_pairing_info().response_flag(), 18);
+        ASSERT_EQ(message.key_based_pairing_info().response_device_count(), 19);
       });
   analytics_recoder().NewKeyBasedPairingInfo(16, 17, 18, 19);
 }

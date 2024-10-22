@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "fastpair/common/account_key.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/internal/mediums/mediums.h"
@@ -145,7 +146,7 @@ TEST_F(ScannerBrokerImplTest, FoundDiscoverableAdvertisement) {
   scanning_session.reset();
 }
 
-TEST_F(ScannerBrokerImplTest, FoundNonDiscoverableAdvertisement) {
+TEST_F(ScannerBrokerImplTest, DISABLED_FoundNonDiscoverableAdvertisement) {
   SingleThreadExecutor executor;
   FastPairDeviceRepository devices{&executor};
 

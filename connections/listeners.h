@@ -31,6 +31,7 @@
 #include "connections/connection_options.h"
 #include "connections/payload.h"
 #include "connections/status.h"
+#include "internal/interop/authentication_status.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
 
@@ -56,6 +57,10 @@ struct ConnectionResponseInfo {
   ByteArray raw_authentication_token;
   bool is_incoming_connection = false;
   bool is_connection_verified = false;
+
+  // Result of authentication via the DeviceProvider, if available. Only used
+  // for `RequestConnectionV3()`.
+  AuthenticationStatus authentication_status = AuthenticationStatus::kUnknown;
 };
 
 struct PayloadProgressInfo {
@@ -136,9 +141,9 @@ struct DiscoveryListener {
   // endpoint_id   - The ID of the remote endpoint that was discovered.
   // endpoint_info - The info of the remote endpoint representd by ByteArray.
   // service_id    - The ID of the service advertised by the remote endpoint.
-  std::function<void(const std::string& endpoint_id,
-                     const ByteArray& endpoint_info,
-                     const std::string& service_id)>
+  absl::AnyInvocable<void(const std::string& endpoint_id,
+                          const ByteArray& endpoint_info,
+                          const std::string& service_id)>
       endpoint_found_cb =
           [](const std::string&, const ByteArray&, const std::string&) {};
 
@@ -147,7 +152,7 @@ struct DiscoveryListener {
   // #onEndpointFound(String, DiscoveredEndpointInfo)}.
   //
   // endpoint_id - The ID of the remote endpoint that was lost.
-  std::function<void(const std::string& endpoint_id)> endpoint_lost_cb =
+  absl::AnyInvocable<void(const std::string& endpoint_id)> endpoint_lost_cb =
       [](const std::string&) {};
 
   // Called when a remote endpoint is found with an updated distance.
@@ -155,7 +160,7 @@ struct DiscoveryListener {
   // arguments:
   //   endpoint_id - The ID of the remote endpoint that was lost.
   //   info        - The distance info, encoded as enum value.
-  std::function<void(const std::string& endpoint_id, DistanceInfo info)>
+  absl::AnyInvocable<void(const std::string& endpoint_id, DistanceInfo info)>
       endpoint_distance_changed_cb = [](const std::string&, DistanceInfo) {};
 };
 

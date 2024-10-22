@@ -142,9 +142,9 @@ void FppManager::CheckPresenceZoneChanged(uint64_t device_id,
                                           ProximityEstimate old_estimate,
                                           ProximityEstimate new_estimate) {
   if (old_estimate.proximity_state != new_estimate.proximity_state) {
-    NEARBY_LOG(WARNING,
-               "Updating zone transition callbacks with new zone. Zone=%p",
-               new_estimate.proximity_state);
+    NEARBY_LOGS(WARNING)
+        << "Updating zone transition callbacks with new zone. Zone="
+        << static_cast<int>(new_estimate.proximity_state);
     for (auto& pair : zone_transition_callbacks_) {
       pair.second.on_proximity_zone_changed(
           device_id,

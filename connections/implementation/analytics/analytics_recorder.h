@@ -119,7 +119,7 @@ class AnalyticsRecorder {
       bool wifi_hotspot_enabled = false, int max_wifi_tx_speed = 0,
       int max_wifi_rx_speed = 0, int channel_width = -1);
 
-  // Connection established
+  // Connection establishedSafeDisconnectionResult
   void OnConnectionEstablished(
       const std::string &endpoint_id,
       location::nearby::proto::connections::Medium medium,
@@ -127,7 +127,9 @@ class AnalyticsRecorder {
   void OnConnectionClosed(
       const std::string &endpoint_id,
       location::nearby::proto::connections::Medium medium,
-      location::nearby::proto::connections ::DisconnectionReason reason)
+      location::nearby::proto::connections::DisconnectionReason reason,
+      location::nearby::analytics::proto::ConnectionsLog::
+          EstablishedConnection::SafeDisconnectionResult result)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Payload
@@ -246,7 +248,9 @@ class AnalyticsRecorder {
         const std::string &connection_token);
     void PhysicalConnectionClosed(
         location::nearby::proto::connections::Medium medium,
-        location::nearby::proto::connections::DisconnectionReason reason);
+        location::nearby::proto::connections::DisconnectionReason reason,
+        location::nearby::analytics::proto::ConnectionsLog::
+            EstablishedConnection::SafeDisconnectionResult result);
     void CloseAllPhysicalConnections();
 
     void IncomingPayloadStarted(
@@ -274,7 +278,9 @@ class AnalyticsRecorder {
     void FinishPhysicalConnection(
         location::nearby::analytics::proto::ConnectionsLog::
             EstablishedConnection *established_connection,
-        location::nearby::proto::connections::DisconnectionReason reason);
+        location::nearby::proto::connections::DisconnectionReason reason,
+        location::nearby::analytics::proto::ConnectionsLog::
+            EstablishedConnection::SafeDisconnectionResult result);
     std::vector<location::nearby::analytics::proto::ConnectionsLog::Payload>
     ResolvePendingPayloads(
         absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>

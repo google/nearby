@@ -22,7 +22,7 @@
 
 #include "fastpair/internal/mediums/mediums.h"
 #include "fastpair/repository/fast_pair_repository.h"
-#include "internal/account/account_manager.h"
+#include "internal/platform/implementation/account_manager.h"
 
 namespace nearby {
 namespace fastpair {

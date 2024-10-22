@@ -15,8 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_PRESENCE_SCAN_CALLBACK_H_
 #define THIRD_PARTY_NEARBY_PRESENCE_SCAN_CALLBACK_H_
 
-#include <functional>
-#include <utility>
+#include <cstdint>
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/logging.h"
@@ -59,15 +58,6 @@ struct BroadcastCallback {
   };
 };
 
-// Chromium uses its own crypto library instead of nearby/internal/crypto,
-// in which base::span is used instead of absl::Span. See b/276368162.
-#ifdef NEARBY_CHROMIUM
-template <typename T>
-using CryptoSpan = base::span<T>;
-#else
-template <typename T>
-using CryptoSpan = absl::Span<T>;
-#endif
 }  // namespace presence
 }  // namespace nearby
 

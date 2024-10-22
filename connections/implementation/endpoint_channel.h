@@ -15,7 +15,6 @@
 #ifndef CORE_INTERNAL_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_ENDPOINT_CHANNEL_H_
 
-#include <cstdint>
 #include <string>
 
 #include "securegcm/d2d_connection_context_v1.h"
@@ -23,7 +22,6 @@
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/mutex.h"
 
 namespace nearby {
 namespace connections {
@@ -53,6 +51,13 @@ class EndpointChannel {
   // Closes this EndpointChannel and records the closure with the given reason.
   virtual void Close(
       location::nearby::proto::connections::DisconnectionReason reason) = 0;
+
+  // Closes this EndpointChannel and records the closure with the given reason
+  // and safe disconnection result.
+  virtual void Close(
+      location::nearby::proto::connections::DisconnectionReason reason,
+      location::nearby::analytics::proto::ConnectionsLog::
+          EstablishedConnection::SafeDisconnectionResult result) = 0;
 
   // Returns a one-word type descriptor for the concrete EndpointChannel
   // implementation that can be used in log messages; eg: BLUETOOTH, BLE, WIFI.
@@ -121,6 +126,9 @@ class EndpointChannel {
   virtual void SetAnalyticsRecorder(
       analytics::AnalyticsRecorder* analytics_recorder,
       const std::string& endpoint_id) = 0;
+
+  // Enables the multiplex socket on the EndpointChannel.
+  virtual bool EnableMultiplexSocket() {return false;}
 };
 
 inline bool operator==(const EndpointChannel& lhs, const EndpointChannel& rhs) {

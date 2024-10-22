@@ -15,14 +15,19 @@
 #ifndef PLATFORM_PUBLIC_BLUETOOTH_CLASSIC_H_
 #define PLATFORM_PUBLIC_BLUETOOTH_CLASSIC_H_
 
+#include <stdbool.h>
+
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/blocking_queue_stream.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -34,29 +39,79 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.
-class BluetoothSocket final {
+class BluetoothSocket : public MediumSocket {
  public:
-  BluetoothSocket() = default;
+  BluetoothSocket()
+      : MediumSocket(location::nearby::proto::connections::Medium::BLUETOOTH) {
+        };
   BluetoothSocket(const BluetoothSocket&) = default;
   BluetoothSocket& operator=(const BluetoothSocket&) = default;
+
+  // Creates a physical BluetoothSocket from a platform implementation.
   explicit BluetoothSocket(std::unique_ptr<api::BluetoothSocket> socket)
-      : impl_(socket.release()) {}
-  ~BluetoothSocket() = default;
+      : MediumSocket(location::nearby::proto::connections::Medium::BLUETOOTH),
+        impl_(socket.release()) {}
+
+  // Creates a virtual BluetoothSocket from a virtual output stream.
+  explicit BluetoothSocket(OutputStream* virtual_output_stream)
+      : MediumSocket(location::nearby::proto::connections::Medium::BLUETOOTH),
+        blocking_queue_input_stream_(std::make_shared<BlockingQueueStream>()),
+        virtual_output_stream_(virtual_output_stream),
+        is_virtual_socket_(true) {}
+
+  ~BluetoothSocket() override = default;
 
   // Returns the InputStream of this connected BluetoothSocket.
-  InputStream& GetInputStream() { return impl_->GetInputStream(); }
+  InputStream& GetInputStream() override {
+    return IsVirtualSocket() ? *blocking_queue_input_stream_
+                             : impl_->GetInputStream();
+  }
 
   // Returns the OutputStream of this connected BluetoothSocket.
-  OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
+  OutputStream& GetOutputStream() override {
+    return IsVirtualSocket() ? *virtual_output_stream_
+                             : impl_->GetOutputStream();
+  }
 
   // Closes both input and output streams, marks Socket as closed.
   // After this call object should be treated as not connected.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() { return impl_->Close(); }
+  Exception Close() override {
+    if (IsVirtualSocket()) {
+      NEARBY_LOGS(INFO) << "Multiplex: Closing virtual socket: " << this;
+      blocking_queue_input_stream_->Close();
+      virtual_output_stream_->Close();
+      CloseLocal();
+      return {Exception::kSuccess};
+    }
+    NEARBY_LOGS(INFO) << "Multiplex: Closing physical socket: " << this;
+    return impl_->Close();
+  }
+
+  // Returns true if this is a virtual socket.
+  bool IsVirtualSocket() override { return is_virtual_socket_; }
+
+  // Creates a virtual socket only with outputstream.
+  MediumSocket* CreateVirtualSocket(OutputStream* outputstream) override;
+  MediumSocket* CreateVirtualSocket(
+      const std::string& salted_service_id_hash_key, OutputStream* outputstream,
+      location::nearby::proto::connections::Medium medium,
+      absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
+          virtual_sockets_ptr) override;
+
+  /** Feeds the received incoming data to the client. */
+  void FeedIncomingData(ByteArray data) override {
+    if (!IsVirtualSocket()) {
+      NEARBY_LOGS(INFO) << "Feeding data on a physical socket is not allowed.";
+      return;
+    }
+    blocking_queue_input_stream_->Write(data);
+  }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html#getRemoteDevice()
   BluetoothDevice GetRemoteDevice() {
@@ -73,7 +128,10 @@ class BluetoothSocket final {
   // BluetoothServerSocket::Accept().
   // These methods may also return an invalid socket if connection failed for
   // any reason.
-  bool IsValid() const { return impl_ != nullptr; }
+  bool IsValid() const {
+    if (is_virtual_socket_) return true;
+    return impl_ != nullptr;
+  }
 
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging purposes.
@@ -84,6 +142,11 @@ class BluetoothSocket final {
 
  private:
   std::shared_ptr<api::BluetoothSocket> impl_;
+  absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
+      virtual_sockets_ptr_ = nullptr;
+  std::shared_ptr<BlockingQueueStream> blocking_queue_input_stream_ = nullptr;
+  OutputStream* virtual_output_stream_ = nullptr;
+  bool is_virtual_socket_ = false;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothServerSocket.html.

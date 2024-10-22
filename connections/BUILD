@@ -23,10 +23,10 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
         ":core_types",
@@ -69,17 +69,19 @@ cc_library(
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
+        "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/testing:__subpackages__",
-        "//third_party/nearby/sharing:__subpackages__",
+        "//sharing:__subpackages__",
     ],
     deps = [
+        "//internal/interop:authentication_status",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/types:variant",
     ],
 )

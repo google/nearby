@@ -14,14 +14,14 @@
 
 #include "connections/implementation/offline_frames_validator.h"
 
-#include <algorithm>
+#include <cstddef>
 #include <regex>  //NOLINT
 #include <string>
 
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -72,8 +72,8 @@ inline bool WithinRange(int value, int min, int max) {
 
 Exception EnsureValidConnectionRequestFrame(
     const ConnectionRequestFrame& frame) {
-  if (!frame.has_endpoint_id()) return {Exception::kInvalidProtocolBuffer};
-  if (!frame.has_endpoint_name()) return {Exception::kInvalidProtocolBuffer};
+  if (frame.endpoint_id().empty()) return {Exception::kInvalidProtocolBuffer};
+  if (frame.endpoint_name().empty()) return {Exception::kInvalidProtocolBuffer};
 
   // For backwards compatibility reasons, no other fields should be
   // null-checked for this frame. Parameter checking (eg. must be within this
@@ -90,18 +90,26 @@ Exception EnsureValidConnectionResponseFrame(
 
 Exception EnsureValidPayloadTransferDataFrame(const PayloadChunk& payload_chunk,
                                               std::int64_t totalSize) {
-  if (!payload_chunk.has_flags()) return {Exception::kInvalidProtocolBuffer};
+  if (!payload_chunk.has_flags()) {
+    LOG(ERROR) << "Missing payload chunk flags";
+    return {Exception::kInvalidProtocolBuffer};
+  }
 
   // Special case. The body can be null iff the chunk is flagged as the last
   // chunk.
   bool is_last_chunk = (payload_chunk.flags() &
                         PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
-  if (!payload_chunk.has_body() && !is_last_chunk)
+  if (!payload_chunk.has_body() && !is_last_chunk) {
+    LOG(ERROR) << "Missing payload chunk body";
     return {Exception::kInvalidProtocolBuffer};
-  if (!payload_chunk.has_offset() || payload_chunk.offset() < 0)
+  }
+  if (!payload_chunk.has_offset() || payload_chunk.offset() < 0) {
+    LOG(ERROR) << "Invalid payload chunk offset";
     return {Exception::kInvalidProtocolBuffer};
+  }
   if (totalSize != InternalPayload::kIndeterminateSize &&
       totalSize < payload_chunk.offset()) {
+    LOG(ERROR) << "Payload chunk offset > totalSize";
     return {Exception::kInvalidProtocolBuffer};
   }
 
@@ -112,10 +120,13 @@ Exception EnsureValidPayloadTransferDataFrame(const PayloadChunk& payload_chunk,
 
 Exception EnsureValidPayloadTransferControlFrame(
     const ControlMessage& control_message, std::int64_t totalSize) {
-  if (!control_message.has_offset() || control_message.offset() < 0)
+  if (!control_message.has_offset() || control_message.offset() < 0) {
+    LOG(ERROR) << "Invalid control message offset";
     return {Exception::kInvalidProtocolBuffer};
+  }
   if (totalSize != InternalPayload::kIndeterminateSize &&
       totalSize < control_message.offset()) {
+    LOG(ERROR) << "Control message offset > totalSize";
     return {Exception::kInvalidProtocolBuffer};
   }
 
@@ -124,21 +135,83 @@ Exception EnsureValidPayloadTransferControlFrame(
   return {Exception::kSuccess};
 }
 
+bool CheckForIllegalCharacters(std::string toBeValidated,
+                               const absl::string_view illegalPatterns[],
+                               size_t illegalPatternsSize) {
+  if (toBeValidated.empty()) {
+    return false;
+  }
+
+  CHECK_GT(illegalPatternsSize, 0);
+
+  size_t found = 0;
+  for (int index = 0; index < illegalPatternsSize; index++) {
+    found = toBeValidated.find(std::string(illegalPatterns[index]));
+
+    if (found != std::string::npos) {
+      // TODO(jfcarroll): Find a way to issue a log statement here.
+      // Currently, this breaks the fuzzer, as a logging dep is not
+      // included for it in the BUILD file.
+      // NEARBY_LOGS(ERROR) << "In path " << toBeValidated
+      //                   << " found illegal character/pattern "
+      //                   << illegalPatterns[index];
+      return true;
+    }
+  }
+  return false;
+}
+
 Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
-  if (!frame.has_payload_header()) return {Exception::kInvalidProtocolBuffer};
+  if (!frame.has_payload_header()) {
+    LOG(ERROR) << "Missing payload header";
+    return {Exception::kInvalidProtocolBuffer};
+  }
+  if (frame.packet_type() == PayloadTransferFrame::PAYLOAD_ACK) {
+    // Phone side code doesn't set "total_size" for "payload_header", so skip
+    // checking it.
+    return {Exception::kSuccess};
+  }
   if (!frame.payload_header().has_total_size() ||
       (frame.payload_header().total_size() < 0 &&
        frame.payload_header().total_size() !=
-           InternalPayload::kIndeterminateSize))
+           InternalPayload::kIndeterminateSize)) {
+    LOG(ERROR) << "Invalid payload header size";
     return {Exception::kInvalidProtocolBuffer};
-  if (!frame.has_packet_type()) return {Exception::kInvalidProtocolBuffer};
-
+  }
+  if (frame.payload_header().has_type() &&
+        frame.payload_header().type() ==
+            location::nearby::connections::PayloadTransferFrame::
+                PayloadHeader::FILE) {
+    if (frame.payload_header()
+            .has_file_name()) {
+      if (CheckForIllegalCharacters(frame.payload_header()
+                                        .file_name(),
+                                    kIllegalFileNamePatterns,
+                                    kIllegalFileNamePatternsSize)) {
+        return {Exception::kIllegalCharacters};
+      }
+    }
+    if (frame.payload_header()
+            .has_parent_folder()) {
+      if (CheckForIllegalCharacters(frame.payload_header()
+                                        .parent_folder(),
+                                    kIllegalParentFolderPatterns,
+                                    kIllegalParentFolderPatternsSize)) {
+        return {Exception::kIllegalCharacters};
+      }
+    }
+  }
+  if (!frame.has_packet_type()) {
+    LOG(ERROR) << "Missing packet type";
+    return {Exception::kInvalidProtocolBuffer};
+  }
   switch (frame.packet_type()) {
     case PayloadTransferFrame::DATA:
       if (frame.has_payload_chunk()) {
         return EnsureValidPayloadTransferDataFrame(
             frame.payload_chunk(), frame.payload_header().total_size());
       }
+      LOG(ERROR) << "Missing payload chunk";
       return {Exception::kInvalidProtocolBuffer};
 
     case PayloadTransferFrame::CONTROL:
@@ -146,6 +219,7 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
         return EnsureValidPayloadTransferControlFrame(
             frame.control_message(), frame.payload_header().total_size());
       }
+      LOG(ERROR) << "Missing control message";
       return {Exception::kInvalidProtocolBuffer};
 
     default:
@@ -341,32 +415,6 @@ Exception EnsureValidBandwidthUpgradeNegotiationFrame(
   return {Exception::kSuccess};
 }
 
-bool CheckForIllegalCharacters(std::string toBeValidated,
-                               const absl::string_view illegalPatterns[],
-                               size_t illegalPatternsSize) {
-  if (toBeValidated.empty()) {
-    return false;
-  }
-
-  CHECK_GT(illegalPatternsSize, 0);
-
-  size_t found = 0;
-  for (int index = 0; index < illegalPatternsSize; index++) {
-    found = toBeValidated.find(std::string(illegalPatterns[index]));
-
-    if (found != std::string::npos) {
-      // TODO(jfcarroll): Find a way to issue a log statement here.
-      // Currently, this breaks the fuzzer, as a logging dep is not
-      // included for it in the BUILD file.
-      // NEARBY_LOGS(ERROR) << "In path " << toBeValidated
-      //                   << " found illegal character/pattern "
-      //                   << illegalPatterns[index];
-      return true;
-    }
-  }
-  return false;
-}
-
 }  // namespace
 
 Exception EnsureValidOfflineFrame(
@@ -379,6 +427,7 @@ Exception EnsureValidOfflineFrame(
         return EnsureValidConnectionRequestFrame(
             offline_frame.v1().connection_request());
       }
+      LOG(ERROR) << "Missing connection request";
       return {Exception::kInvalidProtocolBuffer};
 
     case V1Frame::CONNECTION_RESPONSE:
@@ -387,46 +436,15 @@ Exception EnsureValidOfflineFrame(
         return EnsureValidConnectionResponseFrame(
             offline_frame.v1().connection_response());
       }
+      LOG(ERROR) << "Missing connection response";
       return {Exception::kInvalidProtocolBuffer};
 
     case V1Frame::PAYLOAD_TRANSFER:
-      if (offline_frame.has_v1() &&
-          (offline_frame.v1().payload_transfer().payload_header().has_type() &&
-           offline_frame.v1().payload_transfer().payload_header().type() ==
-               location::nearby::connections::
-                   PayloadTransferFrame_PayloadHeader_PayloadType::
-                       PayloadTransferFrame_PayloadHeader_PayloadType_FILE)) {
-        if (offline_frame.v1()
-                .payload_transfer()
-                .payload_header()
-                .has_file_name()) {
-          if (CheckForIllegalCharacters(offline_frame.v1()
-                                            .payload_transfer()
-                                            .payload_header()
-                                            .file_name(),
-                                        kIllegalFileNamePatterns,
-                                        kIllegalFileNamePatternsSize)) {
-            return {Exception::kIllegalCharacters};
-          }
-        }
-        if (offline_frame.v1()
-                .payload_transfer()
-                .payload_header()
-                .has_parent_folder()) {
-          if (CheckForIllegalCharacters(offline_frame.v1()
-                                            .payload_transfer()
-                                            .payload_header()
-                                            .parent_folder(),
-                                        kIllegalParentFolderPatterns,
-                                        kIllegalParentFolderPatternsSize)) {
-            return {Exception::kIllegalCharacters};
-          }
-        }
-      }
       if (offline_frame.has_v1() && offline_frame.v1().has_payload_transfer()) {
         return EnsureValidPayloadTransferFrame(
             offline_frame.v1().payload_transfer());
       }
+      LOG(ERROR) << "Missing payload transfer";
       return {Exception::kInvalidProtocolBuffer};
 
     case V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION:
@@ -435,6 +453,7 @@ Exception EnsureValidOfflineFrame(
         return EnsureValidBandwidthUpgradeNegotiationFrame(
             offline_frame.v1().bandwidth_upgrade_negotiation());
       }
+      LOG(ERROR) << "Missing bandwidth upgrade negotiation";
       return {Exception::kInvalidProtocolBuffer};
 
     case V1Frame::KEEP_ALIVE:

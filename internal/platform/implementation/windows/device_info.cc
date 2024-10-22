@@ -18,19 +18,16 @@
 #include <windows.h>
 #include <wtsapi32.h>
 
-#include <array>
-#include <filesystem>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
-#include <utility>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/base/bluetooth_address.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/windows/session_manager.h"
+#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Foundation.h"
@@ -56,25 +53,25 @@ constexpr char logs_relative_path[] = "Google\\Nearby\\Sharing\\Logs";
 constexpr char crash_dumps_relative_path[] =
     "Google\\Nearby\\Sharing\\CrashDumps";
 
-std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
+std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   DWORD size = 0;
 
   // Get length of the computer name.
   if (!GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size)) {
     if (GetLastError() != ERROR_MORE_DATA) {
-      NEARBY_LOGS(ERROR) << ": Failed to get device name size, error:"
-                         << GetLastError();
+      LOG(ERROR) << ": Failed to get device name size, error:"
+                 << GetLastError();
       return std::nullopt;
     }
   }
 
-  WCHAR device_name[size];
-  if (GetComputerNameExW(ComputerNameDnsHostname, device_name, &size)) {
-    std::wstring wide_name(device_name);
-    return std::u16string(wide_name.begin(), wide_name.end());
+  std::wstring device_name(size, L' ');
+  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size)) {
+    winrt::hstring device_name_str(device_name);
+    return winrt::to_string(device_name_str);
   }
 
-  NEARBY_LOGS(ERROR) << ": Failed to get device name, error:" << GetLastError();
+  LOG(ERROR) << ": Failed to get device name, error:" << GetLastError();
   return std::nullopt;
 }
 
@@ -87,7 +84,7 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
-std::optional<std::u16string> DeviceInfo::GetFullName() const {
+std::optional<std::string> DeviceInfo::GetGivenName() const {
   // FindAllAsync finds all users that are using this app. When we "Switch User"
   // on Desktop,FindAllAsync() will still return the current user instead of all
   // of them because the users who are switched out are not using the apps of
@@ -100,52 +97,7 @@ std::optional<std::u16string> DeviceInfo::GetFullName() const {
                          UserAuthenticationStatus::LocallyAuthenticated)
           .get();
   if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> full_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::DisplayName());
-  IInspectable full_name_obj = full_name_obj_async.get();
-  if (full_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error retrieving full name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring full_name = full_name_obj.as<winrt::hstring>();
-  std::wstring wstr(full_name);
-  std::u16string u16str(wstr.begin(), wstr.end());
-
-  if (u16str.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error unboxing string value for full name of user.";
-    return std::nullopt;
-  }
-
-  return u16str;
-}
-
-std::optional<std::u16string> DeviceInfo::GetGivenName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
+    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
     return std::nullopt;
   }
 
@@ -159,109 +111,19 @@ std::optional<std::u16string> DeviceInfo::GetGivenName() const {
       current_user.GetPropertyAsync(KnownUserProperties::FirstName());
   IInspectable given_name_obj = given_name_obj_async.get();
   if (given_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error retrieving first name of user.";
+    LOG(ERROR) << __func__ << ": Error retrieving first name of user.";
     return std::nullopt;
   }
   winrt::hstring given_name = given_name_obj.as<winrt::hstring>();
-  std::wstring wstr(given_name);
-  std::u16string u16str(wstr.begin(), wstr.end());
+  std::string given_name_str = winrt::to_string(given_name);
 
-  if (u16str.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error unboxing string value for first name of user.";
+  if (given_name_str.empty()) {
+    LOG(ERROR) << __func__
+               << ": Error unboxing string value for first name of user.";
     return std::nullopt;
   }
 
-  return u16str;
-}
-
-std::optional<std::u16string> DeviceInfo::GetLastName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> last_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::LastName());
-  IInspectable last_name_obj = last_name_obj_async.get();
-  if (last_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error retrieving last name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring last_name = last_name_obj.as<winrt::hstring>();
-  std::wstring wstr(last_name);
-  std::u16string u16str(wstr.begin(), wstr.end());
-
-  if (u16str.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__ << ": Error unboxing string value for last name of user.";
-    return std::nullopt;
-  }
-
-  return u16str;
-}
-
-std::optional<std::string> DeviceInfo::GetProfileUserName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> account_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::AccountName());
-  IInspectable account_name_obj = account_name_obj_async.get();
-  if (account_name_obj == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Error retrieving account name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring account_name = account_name_obj.as<winrt::hstring>();
-  std::string account_name_string = winrt::to_string(account_name);
-
-  if (account_name_string.empty()) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Error unboxing string value for profile username of user.";
-    return std::nullopt;
-  }
-
-  return account_name_string;
+  return given_name_str;
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
@@ -307,7 +169,7 @@ std::optional<std::filesystem::path> DeviceInfo::GetCommonAppDataPath() const {
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
-  return std::filesystem::temp_directory_path();
+  return nearby::sharing::GetTemporaryDirectory();
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {

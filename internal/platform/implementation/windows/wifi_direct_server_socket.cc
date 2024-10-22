@@ -20,9 +20,13 @@
 #include <vector>
 
 // ABSL headers
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/match.h"
 
 // Nearby connections headers
+#include "absl/synchronization/mutex.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
@@ -67,7 +71,7 @@ int WifiDirectServerSocket::GetPort() const {
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Accept is called.";
+  LOG(INFO) << __func__ << ": Accept is called.";
 
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
@@ -77,7 +81,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   StreamSocket wifi_direct_socket = pending_sockets_.front();
   pending_sockets_.pop_front();
 
-  NEARBY_LOGS(INFO) << __func__ << ": Accepted a remote connection.";
+  LOG(INFO) << __func__ << ": Accepted a remote connection.";
   return std::make_unique<WifiDirectSocket>(wifi_direct_socket);
 }
 
@@ -89,7 +93,7 @@ void WifiDirectServerSocket::SetCloseNotifier(
 Exception WifiDirectServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
-    NEARBY_LOGS(INFO) << __func__ << ": Close is called.";
+    LOG(INFO) << __func__ << ": Close is called.";
 
     if (closed_) {
       return {Exception::kSuccess};
@@ -112,23 +116,23 @@ Exception WifiDirectServerSocket::Close() {
       close_notifier_();
     }
 
-    NEARBY_LOGS(INFO) << __func__ << ": Close completed succesfully.";
+    LOG(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
   } catch (std::exception exception) {
     closed_ = true;
     cond_.SignalAll();
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error &error) {
     closed_ = true;
     cond_.SignalAll();
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
     closed_ = true;
     cond_.SignalAll();
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {Exception::kIo};
   }
 }
@@ -138,17 +142,17 @@ bool WifiDirectServerSocket::listen() {
   for (int i = 0; i < kMaxRetries; i++) {
     wifi_direct_go_ipaddr_ = GetDirectGOIpAddresses();
     if (wifi_direct_go_ipaddr_.empty()) {
-      NEARBY_LOGS(WARNING)
-          << "Failed to find WifiDirect GO's IP addr for the try: " << i + 1
-          << ". Wait " << kRetryIntervalMilliSeconds << "ms snd try again";
+      LOG(WARNING) << "Failed to find WifiDirect GO's IP addr for the try: "
+                   << i + 1 << ". Wait " << kRetryIntervalMilliSeconds
+                   << "ms snd try again";
       Sleep(kRetryIntervalMilliSeconds);
     } else {
       break;
     }
   }
   if (wifi_direct_go_ipaddr_.empty()) {
-    NEARBY_LOGS(WARNING) << "Failed to start accepting connection without IP "
-                            "addresses configured on computer.";
+    LOG(WARNING) << "Failed to start accepting connection without IP "
+                    "addresses configured on computer.";
     return false;
   }
 
@@ -176,17 +180,16 @@ bool WifiDirectServerSocket::listen() {
 
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR)
-        << __func__
-        << ": Cannot accept connection on preferred port. Exception: "
-        << exception.what();
+    LOG(ERROR) << __func__
+               << ": Cannot accept connection on preferred port. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error &error) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ":Cannot accept connection on preferred port.  WinRT exception: "
         << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   try {
@@ -194,18 +197,17 @@ bool WifiDirectServerSocket::listen() {
     // need to save the port information.
     port_ =
         std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
-    NEARBY_LOGS(INFO) << "Server Socket port: " << port_;
+    LOG(INFO) << "Server Socket port: " << port_;
     return true;
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Cannot bind to any port. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__
+               << ": Cannot bind to any port. Exception: " << exception.what();
   } catch (const winrt::hresult_error &error) {
-    NEARBY_LOGS(ERROR) << __func__
-                       << ": Cannot bind to any port. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+    LOG(ERROR) << __func__
+               << ": Cannot bind to any port. WinRT exception: " << error.code()
+               << ": " << winrt::to_string(error.message());
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
 
   return false;
@@ -215,7 +217,7 @@ fire_and_forget WifiDirectServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const &args) {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << __func__ << ": Received connection.";
+  LOG(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {
     return fire_and_forget{};
@@ -236,7 +238,7 @@ std::vector<std::string> WifiDirectServerSocket::GetIpAddresses() const {
       std::string ipv4_s = winrt::to_string(host_name.ToString());
 
       if (absl::EndsWith(ipv4_s, ".1")) {
-        NEARBY_LOGS(INFO) << "Found WifiDirect GO IP: " << ipv4_s;
+        LOG(INFO) << "Found WifiDirect GO IP: " << ipv4_s;
         result.push_back(ipv4_s);
       }
     }
@@ -256,7 +258,7 @@ std::string WifiDirectServerSocket::GetDirectGOIpAddresses() const {
           if (absl::EndsWith(ipv4_s, ".1")) {
             // TODO(b/228541380): replace when we find a better way to
             // identifying the WifiDirect GO IP address
-            NEARBY_LOGS(INFO) << "Found WifiDirect GO IP: " << ipv4_s;
+            LOG(INFO) << "Found WifiDirect GO IP: " << ipv4_s;
             return ipv4_s;
           }
         }
@@ -264,14 +266,14 @@ std::string WifiDirectServerSocket::GetDirectGOIpAddresses() const {
     }
     return {};
   } catch (std::exception exception) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Exception: " << exception.what();
+    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {};
   } catch (const winrt::hresult_error &error) {
-    NEARBY_LOGS(ERROR) << __func__ << ": WinRT exception: " << error.code()
-                       << ": " << winrt::to_string(error.message());
+    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+               << winrt::to_string(error.message());
     return {};
   } catch (...) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown exeption.";
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
     return {};
   }
 }
