@@ -14,9 +14,21 @@
 
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <string>
 
+#include "absl/base/attributes.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "connections/implementation/mediums/ble_v2/ble_packet.h"
+#include "connections/implementation/mediums/utils.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace connections {
