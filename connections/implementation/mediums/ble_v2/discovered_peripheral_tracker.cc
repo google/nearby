@@ -219,6 +219,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
 
 void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
   MutexLock lock(&mutex_);
+  int lost_count = 0;
 
   for (auto& it : service_id_infos_) {
     const std::string& service_id = it.first;
@@ -238,11 +239,15 @@ void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
               std::move(lost_peripheral), service_id,
               gatt_advertisement.GetData(),
               gatt_advertisement.IsFastAdvertisement());
+          ++lost_count;
         }
       }
       ClearGattAdvertisement(gatt_advertisement);
     }
   }
+
+  LOG(INFO) << __func__ << ": Lost " << lost_count
+            << " GATT advertisements due to peripheral timeout.";
 }
 
 void DiscoveredPeripheralTracker::ClearDataForServiceId(
