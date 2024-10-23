@@ -461,6 +461,7 @@ cc_test(
         ":internal_test",
         "//connections:core_types",
         "//connections/implementation/mediums",
+        "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
