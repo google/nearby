@@ -94,6 +94,9 @@ constexpr auto kUpdateTrack =
 // Enable the info banner to display duplicate Quick Share apps.
 constexpr auto kEnableConflictBanner =
     flags::Flag<bool>(kConfigPackage, "45661130", false);
+// Enable a persistent BETA label.
+constexpr auto kEnableMacosBetaLabel =
+    flags::Flag<bool>(kConfigPackage, "45662570", true);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -114,6 +117,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
       {45661130, kEnableConflictBanner},
+      {45662570, kEnableMacosBetaLabel},
   };
 }
 
