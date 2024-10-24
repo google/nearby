@@ -35,8 +35,8 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/future.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/webrtc.h"
@@ -744,29 +744,27 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
           }},
       },
       {
-          .adapter_type_changed_cb =
-              {[this](/*rtc::AdapterType*/ int adapter_type) {
-                OffloadFromThread(
-                    "rtc-adapter-type-changed", [this, adapter_type]() {
-                      if (FeatureFlags::GetInstance()
-                              .GetFlags()
-                              .support_web_rtc_non_cellular_medium) {
-                        AdapterTypeChangedHandler(adapter_type);
-                      }
-                    });
-              }},
+          .adapter_type_changed_cb = {[this](rtc::AdapterType adapter_type) {
+            OffloadFromThread("rtc-adapter-type-changed",
+                              [this, adapter_type]() {
+                                if (FeatureFlags::GetInstance()
+                                        .GetFlags()
+                                        .support_web_rtc_non_cellular_medium) {
+                                  AdapterTypeChangedHandler(adapter_type);
+                                }
+                              });
+          }},
       },
       *medium_);
 }
 
-void WebRtc::AdapterTypeChangedHandler(/*rtc::AdapterType*/ int adapter_type) {
-  // TODO(edwinwu): Uncomment this once OSS supports WEB_RTC
-  // MutexLock lock(&mutex_);
-  // is_using_cellular_ = adapter_type == rtc::ADAPTER_TYPE_CELLULAR ||
-  //                      adapter_type == rtc::ADAPTER_TYPE_CELLULAR_2G ||
-  //                      adapter_type == rtc::ADAPTER_TYPE_CELLULAR_3G ||
-  //                      adapter_type == rtc::ADAPTER_TYPE_CELLULAR_4G ||
-  //                      adapter_type == rtc::ADAPTER_TYPE_CELLULAR_5G;
+void WebRtc::AdapterTypeChangedHandler(rtc::AdapterType adapter_type) {
+  MutexLock lock(&mutex_);
+  is_using_cellular_ = adapter_type == rtc::ADAPTER_TYPE_CELLULAR ||
+                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_2G ||
+                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_3G ||
+                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_4G ||
+                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_5G;
 }
 
 void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {

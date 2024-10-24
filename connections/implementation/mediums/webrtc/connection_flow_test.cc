@@ -81,7 +81,7 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
              offerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
-           [](/*rtc::AdapterType*/ int adapter_type) {
+           [](rtc::AdapterType adapter_type) {
              // Do nothing
            }},
       webrtc_medium_offerer);
@@ -101,7 +101,7 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
              answerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
-           [](/*rtc::AdapterType*/ int adapter_type) {
+           [](rtc::AdapterType adapter_type) {
              // Do nothing
            }},
       webrtc_medium_answerer);
@@ -280,7 +280,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
              offerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
-           [](/*rtc::AdapterType*/ int adapter_type) {
+           [](rtc::AdapterType adapter_type) {
              // Do nothing
            }},
       webrtc_medium_offerer);
@@ -300,7 +300,7 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
              answerer_socket_future.Set(std::move(wrapper));
            }},
       {.adapter_type_changed_cb =
-           [](/*rtc::AdapterType*/ int adapter_type) {
+           [](rtc::AdapterType adapter_type) {
              // Do nothing
            }},
       webrtc_medium_answerer);
@@ -369,7 +369,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
              offerer_socket_future.Set(std::move(socket));
            }},
       {.adapter_type_changed_cb =
-           [](/*rtc::AdapterType*/ int adapter_type) {
+           [](rtc::AdapterType adapter_type) {
              // Do nothing
            }},
       webrtc_medium_offerer);
@@ -389,7 +389,7 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
              answerer_socket_future.Set(std::move(wrapper));
            }},
       {.adapter_type_changed_cb =
-           [](/*rtc::AdapterType*/ int adapter_type) {
+           [](rtc::AdapterType adapter_type) {
              // Do nothing
            }},
       webrtc_medium_answerer);
