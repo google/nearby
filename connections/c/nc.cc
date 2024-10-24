@@ -480,8 +480,9 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
         nc_payload.direction = NC_PAYLOAD_DIRECTION_INCOMING;
         nc_payload.type = static_cast<NC_PAYLOAD_TYPE>(payload.GetType());
         if (nc_payload.type == NC_PAYLOAD_TYPE_BYTES) {
-          nearby::ByteArray bytes = payload.AsBytes();
-          nc_payload.content.bytes.content.data = bytes.data();
+          const nearby::ByteArray& bytes = payload.AsBytes();
+          nc_payload.content.bytes.content.data =
+              const_cast<char*>(bytes.data());
           nc_payload.content.bytes.content.size = bytes.size();
         } else if (nc_payload.type == NC_PAYLOAD_TYPE_FILE) {
           nc_payload.content.file.file_name =
