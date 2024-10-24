@@ -14,14 +14,19 @@
 
 #include "connections/implementation/mediums/wifi_lan.h"
 
-#include <memory>
+#include <cstdint>
 #include <string>
 #include <utility>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "connections/implementation/mediums/utils.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_lan.h"
 
 namespace nearby {
 namespace connections {
