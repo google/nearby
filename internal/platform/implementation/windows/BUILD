@@ -223,6 +223,7 @@ cc_library(
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
+        "//connections:partners",
         "//fastpair:__subpackages__",
         "//internal/platform:__subpackages__",
         "//location/nearby:__subpackages__",
