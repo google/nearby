@@ -29,6 +29,7 @@ cc_library(
         "//internal/base",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
+        "//internal/platform/implementation:types",
         "//sharing/common",
         "//sharing/common:enum",
         "//sharing/internal/api:platform",
