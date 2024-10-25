@@ -17,19 +17,19 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdint>
 #include <cstring>
 #include <string>
-#include <type_traits>
 #include <utility>
 
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 
 namespace nearby {
 
 class ByteArray {
  public:
+  using iterator = std::string::iterator;
+  using const_iterator = std::string::const_iterator;
+
   // Create an empty ByteArray
   ByteArray() = default;
   template <size_t N>
@@ -83,6 +83,16 @@ class ByteArray {
   const char* data() const { return data_.data(); }
   size_t size() const { return data_.size(); }
   bool Empty() const { return data_.empty(); }
+
+  // Iterators. These allow `ByteArray` to meet the requirements of
+  // `std::ranges::contiguous_range`, which in turn make it implicitly
+  // convertible to e.g. `std::span`.
+  iterator begin() { return data_.begin(); }
+  const_iterator begin() const { return data_.begin(); }
+  const_iterator cbegin() const { return data_.cbegin(); }
+  iterator end() { return data_.end(); }
+  const_iterator end() const { return data_.end(); }
+  const_iterator cend() const { return data_.cend(); }
 
   friend bool operator==(const ByteArray& lhs, const ByteArray& rhs);
   friend bool operator!=(const ByteArray& lhs, const ByteArray& rhs);
