@@ -62,6 +62,7 @@ cc_library(
     visibility = [
         "//:__subpackages__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
+        "//connections:partners",
     ],
     deps = [
         "//proto:connections_enums_cc_proto",
@@ -89,6 +90,7 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
+        "//connections:partners",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
