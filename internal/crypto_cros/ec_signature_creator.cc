@@ -18,7 +18,7 @@
 
 #include "internal/crypto_cros/ec_signature_creator_impl.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // static
 std::unique_ptr<ECSignatureCreator> ECSignatureCreator::Create(
@@ -26,4 +26,4 @@ std::unique_ptr<ECSignatureCreator> ECSignatureCreator::Create(
   return std::make_unique<ECSignatureCreatorImpl>(key);
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

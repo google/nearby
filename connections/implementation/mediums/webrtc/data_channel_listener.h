@@ -26,7 +26,7 @@ namespace mediums {
 
 // Callbacks from the data channel.
 struct DataChannelListener {
-  // Called when the data channel is open and the socket wraper is ready to
+  // Called when the data channel is open and the socket wrapper is ready to
   // read and write.
   absl::AnyInvocable<void(WebRtcSocketWrapper)> data_channel_open_cb =
       [](WebRtcSocketWrapper) {};

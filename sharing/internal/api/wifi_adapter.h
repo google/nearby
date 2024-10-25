@@ -59,18 +59,12 @@ class WifiAdapter {
   // Indicates whether the adapter radio is powered.
   virtual bool IsPowered() const = 0;
 
-  // Returns the status of the browser's Wi-Fi permission status.
-  virtual PermissionStatus GetOsPermissionStatus() const = 0;
-
   // Requests a change to the adapter radio power. Setting `powered` to true
   // will turn on the radio and false will turn it off. On success,
   // `success_callback` will be called. On failure, `error_callback` will be
   // called.
   virtual void SetPowered(bool powered, std::function<void()> success_callback,
                           std::function<void()> error_callback) = 0;
-
-  // The unique ID/name of this adapter.
-  virtual std::optional<std::string> GetAdapterId() const = 0;
 
   // Adds and removes observers for events on this Wi-Fi adapter. If
   // monitoring multiple adapters, check the `adapter` parameter of observer

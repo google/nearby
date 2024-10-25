@@ -78,6 +78,7 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
     case location::nearby::proto::connections::WIFI_AWARE:
     case location::nearby::proto::connections::WIFI_DIRECT:
     case location::nearby::proto::connections::WEB_RTC:
+    case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:
       return v3::Quality::kHigh;
     default:
       return v3::Quality::kUnknown;

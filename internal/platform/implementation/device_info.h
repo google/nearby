@@ -46,10 +46,7 @@ class DeviceInfo {
   virtual OsType GetOsType() const = 0;
 
   // Gets basic information of current user.
-  virtual std::optional<std::string> GetFullName() const = 0;
   virtual std::optional<std::string> GetGivenName() const = 0;
-  virtual std::optional<std::string> GetLastName() const = 0;
-  virtual std::optional<std::string> GetProfileUserName() const = 0;
 
   // Gets known paths of current user.
   virtual std::optional<std::filesystem::path> GetDownloadPath() const = 0;

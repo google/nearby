@@ -26,18 +26,22 @@ using Medium = ::location::nearby::proto::connections::Medium;
 struct BooleanMediumSelector {
   bool bluetooth = false;
   bool ble = false;
+  bool web_rtc_no_cellular = false;
   bool web_rtc = false;
   bool wifi_lan = false;
   bool wifi_hotspot = false;
   bool wifi_direct = false;
 
+
   constexpr bool Any(bool value) const {
-    return bluetooth == value || ble == value || web_rtc == value ||
-           wifi_lan == value || wifi_hotspot == value || wifi_direct == value;
+    return bluetooth == value || ble == value || web_rtc_no_cellular == value ||
+           web_rtc == value || wifi_lan == value || wifi_hotspot == value ||
+           wifi_direct == value;
   }
 
   constexpr bool All(bool value) const {
-    return bluetooth == value && ble == value && web_rtc == value &&
+    return bluetooth == value && ble == value &&
+           (web_rtc == value || web_rtc_no_cellular == value) &&
            wifi_lan == value && wifi_hotspot == value && wifi_direct == value;
   }
 
@@ -48,7 +52,7 @@ struct BooleanMediumSelector {
     if (wifi_lan == value) count++;
     if (wifi_hotspot == value) count++;
     if (wifi_direct == value) count++;
-    if (web_rtc == value) count++;
+    if (web_rtc == value || web_rtc_no_cellular == value) count++;
     return count;
   }
 
@@ -68,7 +72,15 @@ struct BooleanMediumSelector {
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
     if (wifi_direct == value) mediums.push_back(Medium::WIFI_DIRECT);
     if (wifi_hotspot == value) mediums.push_back(Medium::WIFI_HOTSPOT);
-    if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
+    // if both web_rtc and web_rtc_no_cellular are true/false, we only add one
+    // web_rtc medium.
+    if (web_rtc == value && web_rtc_no_cellular == value) {
+      mediums.push_back(Medium::WEB_RTC);
+    } else {
+      if (web_rtc == value) mediums.push_back(Medium::WEB_RTC);
+      if (web_rtc_no_cellular == value)
+        mediums.push_back(Medium::WEB_RTC_NON_CELLULAR);
+    }
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
     if (ble == value) mediums.push_back(Medium::BLE);
     return mediums;

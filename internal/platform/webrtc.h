@@ -18,7 +18,13 @@
 #ifndef NO_WEBRTC
 
 #include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
@@ -74,11 +80,22 @@ class WebRtcMedium {
     return impl_->GetDefaultCountryCode();
   }
 
+  void SetNonCellular(bool non_cellular) {
+    non_cellular_ = non_cellular;
+  }
+
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
   void CreatePeerConnection(webrtc::PeerConnectionObserver* observer,
                             PeerConnectionCallback callback) {
-    impl_->CreatePeerConnection(observer, std::move(callback));
+    if (FeatureFlags::GetInstance()
+            .GetFlags()
+            .support_web_rtc_non_cellular_medium) {
+      // TODO(edwinwu): Add support for non-cellular networks.
+      impl_->CreatePeerConnection(std::nullopt, observer, std::move(callback));
+    } else {
+      impl_->CreatePeerConnection(observer, std::move(callback));
+    }
   }
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
@@ -93,6 +110,7 @@ class WebRtcMedium {
 
  private:
   std::unique_ptr<api::WebRtcMedium> impl_;
+  bool non_cellular_ = false;
 };
 
 }  // namespace nearby

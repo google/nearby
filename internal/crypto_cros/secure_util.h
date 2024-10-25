@@ -19,7 +19,7 @@
 
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // Performs a constant-time comparison of two strings, returning true if the
 // strings are equal.
@@ -33,6 +33,6 @@ namespace crypto {
 // http://groups.google.com/group/keyczar-discuss/browse_thread/thread/5571eca0948b2a13
 CRYPTO_EXPORT bool SecureMemEqual(const void* s1, const void* s2, size_t n);
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_SECURE_UTIL_H_

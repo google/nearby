@@ -337,7 +337,7 @@ void EndpointManager::ProcessDisconnectionFrame(
         endpoint_id, /* is_safe_to_disconnect */ true,
         /* notify_stop_waiting */ false);
     RunOnEndpointManagerThread(
-        "safe-to-disconnect", [this, client, &endpoint_id]() {
+        "safe-to-disconnect", [this, client, endpoint_id]() {
           RemoveEndpoint(client, endpoint_id, /*notify=*/true,
                          DisconnectionReason::REMOTE_DISCONNECTION);
         });

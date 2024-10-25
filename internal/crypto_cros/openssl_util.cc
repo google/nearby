@@ -30,7 +30,7 @@
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 void EnsureOpenSSLInit() {
   // CRYPTO_library_init may be safely called concurrently.
@@ -41,4 +41,4 @@ void ClearOpenSSLERRStack() {
     ERR_clear_error();
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

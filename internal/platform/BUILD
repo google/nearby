@@ -62,6 +62,7 @@ cc_library(
     visibility = [
         "//:__subpackages__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
+        "//connections:partners",
     ],
     deps = [
         "//proto:connections_enums_cc_proto",
@@ -89,6 +90,7 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
+        "//connections:partners",
         "//internal/platform/implementation:__subpackages__",
     ],
     deps = [
@@ -261,7 +263,7 @@ cc_library(
         "//internal/weave:__subpackages__",
         "//location/nearby/apps:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
-        "//location/nearby/sharing/sdk/test_client:__pkg__",
+        "//location/nearby/sharing/sdk:__subpackages__",
         "//location/nearby/testing/nearby_native:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
@@ -333,12 +335,11 @@ cc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
         # TODO: Support WebRTC
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:optional",
     ],
 )

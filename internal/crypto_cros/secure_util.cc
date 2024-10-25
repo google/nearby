@@ -16,10 +16,10 @@
 
 #include <openssl/mem.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 bool SecureMemEqual(const void* s1, const void* s2, size_t n) {
   return CRYPTO_memcmp(s1, s2, n) == 0;
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

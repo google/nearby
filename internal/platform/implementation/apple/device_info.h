@@ -34,10 +34,7 @@ class DeviceInfo : public api::DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::optional<std::string> GetFullName() const override;
   std::optional<std::string> GetGivenName() const override;
-  std::optional<std::string> GetLastName() const override;
-  std::optional<std::string> GetProfileUserName() const override;
 
   std::optional<std::filesystem::path> GetDownloadPath() const override;
 

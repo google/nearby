@@ -23,7 +23,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 // The SignatureVerifier class verifies a signature using a bare public key
 // (as opposed to a certificate).
@@ -76,6 +76,6 @@ class CRYPTO_EXPORT SignatureVerifier {
   std::unique_ptr<VerifyContext> verify_context_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_SIGNATURE_VERIFIER_H_

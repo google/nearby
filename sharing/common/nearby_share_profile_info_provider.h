@@ -28,10 +28,6 @@ class NearbyShareProfileInfoProvider {
   // Returns UTF-8 encoded given name of current account.
   // Returns absl::nullopt if a valid given name cannot be returned.
   virtual std::optional<std::string> GetGivenName() const = 0;
-
-  // Proxy for Profile::GetProfileUserName(). Returns absl::nullopt if a valid
-  // username cannot be returned.
-  virtual std::optional<std::string> GetProfileUserName() const = 0;
 };
 }  // namespace sharing
 }  // namespace nearby

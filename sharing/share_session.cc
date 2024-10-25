@@ -24,7 +24,6 @@
 #include <vector>
 
 #include "absl/strings/str_format.h"
-#include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -43,6 +42,7 @@
 namespace nearby::sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::AttachmentTransmissionStatus;
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
@@ -67,11 +67,46 @@ std::string TokenToFourDigitString(const std::vector<uint8_t>& bytes) {
 
 }  // namespace
 
-ShareSession::ShareSession(TaskRunner& service_thread,
+/* static */
+AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
+    TransferMetadata::Status status) {
+  switch (status) {
+    case TransferMetadata::Status::kComplete:
+      return AttachmentTransmissionStatus::
+          COMPLETE_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kCancelled:
+      return AttachmentTransmissionStatus::
+          CANCELED_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kFailed:
+      return AttachmentTransmissionStatus::
+          FAILED_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kIncompletePayloads:
+      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
+    case TransferMetadata::Status::kMediaUnavailable:
+      return AttachmentTransmissionStatus::MEDIA_UNAVAILABLE_ATTACHMENT;
+    case TransferMetadata::Status::kDeviceAuthenticationFailed:
+      return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
+    case TransferMetadata::Status::kRejected:
+      return AttachmentTransmissionStatus::REJECTED_ATTACHMENT;
+    case TransferMetadata::Status::kTimedOut:
+      return AttachmentTransmissionStatus::TIMED_OUT_ATTACHMENT;
+    case TransferMetadata::Status::kUnsupportedAttachmentType:
+      return AttachmentTransmissionStatus::
+          UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT;
+    default:
+      return AttachmentTransmissionStatus::
+          UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
+  }
+}
+
+ShareSession::ShareSession(Clock* clock, TaskRunner& service_thread,
+                           NearbyConnectionsManager* connections_manager,
                            analytics::AnalyticsRecorder& analytics_recorder,
                            std::string endpoint_id,
                            const ShareTarget& share_target)
-    : service_thread_(service_thread),
+    : clock_(*clock),
+      service_thread_(service_thread),
+      connections_manager_(*connections_manager),
       analytics_recorder_(analytics_recorder),
       endpoint_id_(std::move(endpoint_id)),
       self_share_(share_target.for_self_share),
@@ -114,19 +149,10 @@ void ShareSession::set_disconnect_status(
   }
 }
 
-bool ShareSession::OnConnected(absl::Time connect_start_time,
-                               NearbyConnectionsManager* connections_manager,
-                               NearbyConnection* connection) {
-  NL_DCHECK(connections_manager) << "Connections manager must not be null";
-  connections_manager_ = connections_manager;
-  if (!OnNewConnection(connection)) {
-    return false;
-  }
-  connection_start_time_ = connect_start_time;
+void ShareSession::SetConnection(NearbyConnection* connection) {
   connection_ = connection;
   frames_reader_ =
       std::make_shared<IncomingFramesReader>(service_thread_, connection_);
-  return true;
 }
 
 void ShareSession::Disconnect() {
@@ -155,18 +181,23 @@ void ShareSession::Abort(TransferMetadata::Status status) {
 }
 
 void ShareSession::RunPairedKeyVerification(
-    Clock* clock, OSType os_type,
+    OSType os_type,
     const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
     NearbyShareCertificateManager* certificate_manager,
-    const std::vector<uint8_t>& token,
     std::function<void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                        OSType)>
         callback) {
-  token_ = TokenToFourDigitString(token);
+  std::optional<std::vector<uint8_t>> token =
+      connections_manager_.GetRawAuthenticationToken(endpoint_id());
+  if (!token.has_value()) {
+    Abort(TransferMetadata::Status::kDeviceAuthenticationFailed);
+    return;
+  }
+  token_ = TokenToFourDigitString(*token);
 
   key_verification_runner_ = std::make_shared<PairedKeyVerificationRunner>(
-      clock, os_type, IsIncoming(), visibility_history, token,
-      connection_, certificate_, certificate_manager, frames_reader_.get(),
+      &clock_, os_type, IsIncoming(), visibility_history, *token, connection_,
+      certificate_, certificate_manager, frames_reader_.get(),
       kReadFramesTimeout);
   key_verification_runner_->Run(std::move(callback));
 }
@@ -186,11 +217,8 @@ void ShareSession::SetAttachmentPayloadId(int64_t attachment_id,
 }
 
 void ShareSession::CancelPayloads() {
-  if (connections_manager_ == nullptr) {
-    return;
-  }
   for (const auto& [attachment_id, payload_id] : attachment_payload_map_) {
-    connections_manager_->Cancel(payload_id);
+    connections_manager_.Cancel(payload_id);
   }
 }
 

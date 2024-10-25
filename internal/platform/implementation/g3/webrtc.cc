@@ -15,9 +15,17 @@
 #include "internal/platform/implementation/g3/webrtc.h"
 
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/medium_environment.h"
+#include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/scoped_refptr.h"
 #include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/checks.h"
 
@@ -56,6 +64,12 @@ const std::string WebRtcMedium::GetDefaultCountryCode() { return "US"; }
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
+  CreatePeerConnection(std::nullopt, observer, std::move(callback));
+}
+
+void WebRtcMedium::CreatePeerConnection(
+    std::optional<webrtc::PeerConnectionFactoryInterface::Options> options,
+    webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   auto& env = MediumEnvironment::Instance();
   if (!env.GetUseValidPeerConnection()) {
     callback(nullptr);
@@ -75,10 +89,17 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
+  rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
+      peer_connection_factory = webrtc::CreateModularPeerConnectionFactory(
+          std::move(factory_dependencies));
+  RTC_CHECK(peer_connection_factory != nullptr)
+      << "Failed to create peer connection factory";
+  if (options.has_value()) {
+    peer_connection_factory->SetOptions(options.value());
+  }
   auto peer_connection_or_error =
-      webrtc::CreateModularPeerConnectionFactory(
-          std::move(factory_dependencies))
-          ->CreatePeerConnectionOrError(rtc_config, std::move(dependencies));
+      peer_connection_factory->CreatePeerConnectionOrError(
+          rtc_config, std::move(dependencies));
   RTC_CHECK(peer_connection_or_error.ok())
       << "Failed to create peer connection";
 

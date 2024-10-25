@@ -15,21 +15,27 @@
 #ifndef CORE_CORE_H_
 #define CORE_CORE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "connections/advertising_options.h"
 #include "connections/connection_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/service_controller.h"
 #include "connections/implementation/service_controller_router.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
 #include "connections/params.h"
 #include "connections/payload.h"
 #include "connections/v3/advertising_options.h"
 #include "connections/v3/connection_listening_options.h"
+#include "connections/v3/connections_device_provider.h"
 #include "connections/v3/discovery_options.h"
 #include "connections/v3/listeners.h"
 #include "connections/v3/listening_result.h"

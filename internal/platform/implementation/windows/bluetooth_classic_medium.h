@@ -15,10 +15,12 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
+#include <list>
 #include <map>
 #include <memory>
 #include <string>
 
+#include "absl/container/flat_hash_map.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -150,8 +152,12 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::string service_uuid_;
 
   // Map MAC address to bluetooth device.
-  std::map<std::string, std::unique_ptr<BluetoothDevice>>
+  absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
       mac_address_to_bluetooth_device_map_;
+
+  // Track removed devices.
+  absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
+      removed_bluetooth_devices_map_;
 
   BluetoothAdapter& bluetooth_adapter_;
 

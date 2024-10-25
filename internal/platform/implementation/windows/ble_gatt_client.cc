@@ -374,8 +374,8 @@ absl::optional<std::string> BleGattClient::ReadCharacteristic(
     IBuffer buffer = result.Value();
     int size = buffer.Length();
     if (size == 0) {
-      LOG(WARNING) << __func__ << ": No characteristic value.";
-      return absl::nullopt;
+      VLOG(1) << __func__ << ": No characteristic value.";
+      return "";
     }
 
     DataReader data_reader = DataReader::FromBuffer(buffer);

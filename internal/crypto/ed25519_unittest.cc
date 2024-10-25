@@ -21,7 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
 
-namespace crypto {
+namespace nearby::crypto {
 namespace {
 
 using ::absl::StatusCode;
@@ -211,4 +211,4 @@ TEST(Ed25519SignerVerifierTest, NewKeypairFromRandomSeedRoundtrip) {
 }
 
 }  // namespace
-}  // namespace crypto
+}  // namespace nearby::crypto

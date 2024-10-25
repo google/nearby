@@ -39,7 +39,6 @@ cc_library(
         "fake_single_thread_executor.cc",
         "fake_task_runner.cc",
         "fake_timer.cc",
-        "fake_webrtc.cc",
     ],
     hdrs = [
         "fake_account_manager.h",
@@ -50,7 +49,6 @@ cc_library(
         "fake_single_thread_executor.h",
         "fake_task_runner.h",
         "fake_timer.h",
-        "fake_webrtc.h",
     ],
     copts = [
         "-Ithird_party",

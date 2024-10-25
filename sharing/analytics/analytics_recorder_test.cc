@@ -24,6 +24,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
@@ -885,6 +886,23 @@ TEST_F(AnalyticsRecorderTest, NewVerifyAPKStatus) {
   analytics_recoder().NewVerifyAPKStatus(
       ::location::nearby::proto::sharing::VerifyAPKStatus::INSTALLABLE,
       ::location::nearby::proto::sharing::ApkSource::APK_FROM_SD_CARD);
+}
+
+TEST_F(AnalyticsRecorderTest, NewRpcCallStatus) {
+  EXPECT_CALL(event_logger(), Log(An<const SharingLog&>()))
+      .WillOnce([](const SharingLog& log) {
+        EXPECT_EQ(log.event_type(), EventType::RPC_CALL_STATUS);
+        EXPECT_EQ(log.event_category(), EventCategory::RPC_EVENT);
+        EXPECT_EQ(log.rpc_call_status().rpc_name(), "service.rpc_name");
+        EXPECT_EQ(log.rpc_call_status().direction(),
+                  SharingLog::RpcCallStatus::OUTGOING);
+        EXPECT_EQ(log.rpc_call_status().error_code(), 123);
+        EXPECT_EQ(log.rpc_call_status().latency_millis(), 456);
+      });
+
+  analytics_recoder().NewRpcCallStatus(
+      "service.rpc_name", SharingLog::RpcCallStatus::OUTGOING, 123,
+      absl::Milliseconds(456));
 }
 
 TEST_F(AnalyticsRecorderTest, GenerateID) {

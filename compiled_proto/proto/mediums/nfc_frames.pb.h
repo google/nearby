@@ -187,6 +187,7 @@ class AdvertisementData final :
   enum : int {
     kTagFieldNumber = 1,
     kPublicKeyFieldNumber = 2,
+    kRxAdvertisementFieldNumber = 3,
   };
   // optional bytes tag = 1;
   bool has_tag() const;
@@ -224,6 +225,24 @@ class AdvertisementData final :
   std::string* _internal_mutable_public_key();
   public:
 
+  // optional bytes rx_advertisement = 3;
+  bool has_rx_advertisement() const;
+  private:
+  bool _internal_has_rx_advertisement() const;
+  public:
+  void clear_rx_advertisement();
+  const std::string& rx_advertisement() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_rx_advertisement(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_rx_advertisement();
+  PROTOBUF_NODISCARD std::string* release_rx_advertisement();
+  void set_allocated_rx_advertisement(std::string* rx_advertisement);
+  private:
+  const std::string& _internal_rx_advertisement() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_rx_advertisement(const std::string& value);
+  std::string* _internal_mutable_rx_advertisement();
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.mediums.AdvertisementData)
  private:
   class _Internal;
@@ -235,6 +254,7 @@ class AdvertisementData final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr tag_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr public_key_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr rx_advertisement_;
   friend struct ::TableStruct_proto_2fmediums_2fnfc_5fframes_2eproto;
 };
 // -------------------------------------------------------------------
@@ -571,6 +591,75 @@ inline void AdvertisementData::set_allocated_public_key(std::string* public_key)
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:location.nearby.mediums.AdvertisementData.public_key)
+}
+
+// optional bytes rx_advertisement = 3;
+inline bool AdvertisementData::_internal_has_rx_advertisement() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool AdvertisementData::has_rx_advertisement() const {
+  return _internal_has_rx_advertisement();
+}
+inline void AdvertisementData::clear_rx_advertisement() {
+  rx_advertisement_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const std::string& AdvertisementData::rx_advertisement() const {
+  // @@protoc_insertion_point(field_get:location.nearby.mediums.AdvertisementData.rx_advertisement)
+  return _internal_rx_advertisement();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void AdvertisementData::set_rx_advertisement(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000004u;
+ rx_advertisement_.SetBytes(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.mediums.AdvertisementData.rx_advertisement)
+}
+inline std::string* AdvertisementData::mutable_rx_advertisement() {
+  std::string* _s = _internal_mutable_rx_advertisement();
+  // @@protoc_insertion_point(field_mutable:location.nearby.mediums.AdvertisementData.rx_advertisement)
+  return _s;
+}
+inline const std::string& AdvertisementData::_internal_rx_advertisement() const {
+  return rx_advertisement_.Get();
+}
+inline void AdvertisementData::_internal_set_rx_advertisement(const std::string& value) {
+  _has_bits_[0] |= 0x00000004u;
+  rx_advertisement_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* AdvertisementData::_internal_mutable_rx_advertisement() {
+  _has_bits_[0] |= 0x00000004u;
+  return rx_advertisement_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* AdvertisementData::release_rx_advertisement() {
+  // @@protoc_insertion_point(field_release:location.nearby.mediums.AdvertisementData.rx_advertisement)
+  if (!_internal_has_rx_advertisement()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000004u;
+  auto* p = rx_advertisement_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (rx_advertisement_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    rx_advertisement_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void AdvertisementData::set_allocated_rx_advertisement(std::string* rx_advertisement) {
+  if (rx_advertisement != nullptr) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  rx_advertisement_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), rx_advertisement,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (rx_advertisement_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    rx_advertisement_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.mediums.AdvertisementData.rx_advertisement)
 }
 
 // -------------------------------------------------------------------

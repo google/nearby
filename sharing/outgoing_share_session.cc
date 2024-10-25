@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -48,24 +49,79 @@
 #include "sharing/wifi_credentials_attachment.h"
 
 namespace nearby::sharing {
+namespace {
 
+using ::location::nearby::proto::sharing::ConnectionLayerStatus;
+using ::location::nearby::proto::sharing::EstablishConnectionStatus;
+using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::Frame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::V1Frame;
 
+ConnectionLayerStatus ConvertToConnectionLayerStatus(Status status) {
+  switch (status) {
+    case Status::kUnknown:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_UNKNOWN;
+    case Status::kSuccess:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_SUCCESS;
+    case Status::kError:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ERROR;
+    case Status::kOutOfOrderApiCall:
+      return ConnectionLayerStatus::
+          CONNECTION_LAYER_STATUS_OUT_OF_ORDER_API_CALL;
+    case Status::kAlreadyHaveActiveStrategy:
+      return ConnectionLayerStatus::
+          CONNECTION_LAYER_STATUS_ALREADY_HAVE_ACTIVE_STRATEGY;
+    case Status::kAlreadyAdvertising:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ALREADY_ADVERTISING;
+    case Status::kAlreadyDiscovering:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ALREADY_DISCOVERING;
+    case Status::kAlreadyListening:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_ALREADY_LISTENING;
+    case Status::kEndpointIOError:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_END_POINT_IO_ERROR;
+    case Status::kEndpointUnknown:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_END_POINT_UNKNOWN;
+    case Status::kConnectionRejected:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_CONNECTION_REJECTED;
+    case Status::kAlreadyConnectedToEndpoint:
+      return ConnectionLayerStatus::
+          CONNECTION_LAYER_STATUS_ALREADY_CONNECTED_TO_END_POINT;
+    case Status::kNotConnectedToEndpoint:
+      return ConnectionLayerStatus::
+          CONNECTION_LAYER_STATUS_NOT_CONNECTED_TO_END_POINT;
+    case Status::kBluetoothError:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_BLUETOOTH_ERROR;
+    case Status::kBleError:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_BLE_ERROR;
+    case Status::kWifiLanError:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_WIFI_LAN_ERROR;
+    case Status::kPayloadUnknown:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_PAYLOAD_UNKNOWN;
+    case Status::kReset:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_RESET;
+    case Status::kTimeout:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_TIMEOUT;
+    default:
+      return ConnectionLayerStatus::CONNECTION_LAYER_STATUS_UNKNOWN;
+  }
+}
+
+}  // namespace
+
 OutgoingShareSession::OutgoingShareSession(
-    TaskRunner& service_thread,
+    Clock* clock, TaskRunner& service_thread,
+    NearbyConnectionsManager* connections_manager,
     analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
     std::function<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(service_thread, analytics_recorder, std::move(endpoint_id),
-                   share_target),
+    : ShareSession(clock, service_thread, connections_manager,
+                   analytics_recorder, std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
-OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) =
-    default;
+OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) = default;
 
 OutgoingShareSession::~OutgoingShareSession() = default;
 
@@ -74,27 +130,25 @@ void OutgoingShareSession::InvokeTransferUpdateCallback(
   transfer_update_callback_(*this, metadata);
 }
 
+void OutgoingShareSession::InitiateSendAttachments(
+    std::unique_ptr<AttachmentContainer> attachment_container) {
+  SetAttachmentContainer(std::move(*attachment_container));
+
+  // Set session ID.
+  set_session_id(analytics_recorder().GenerateNextId());
+
+  // Log analytics event of sending start.
+  analytics_recorder().NewSendStart(
+      session_id(),
+      /*transfer_position=*/1,
+      /*concurrent_connections=*/1,
+      share_target());
+}
+
 bool OutgoingShareSession::ProcessKeyVerificationResult(
     PairedKeyVerificationRunner::PairedKeyVerificationResult result,
     location::nearby::proto::sharing::OSType share_target_os_type) {
   return HandleKeyVerificationResult(result, share_target_os_type);
-}
-
-bool OutgoingShareSession::OnNewConnection(NearbyConnection* connection) {
-  if (!connection) {
-    NL_LOG(WARNING) << __func__
-                    << ": Failed to initiate connection to share target "
-                    << share_target().id;
-    if (connection_layer_status_ == Status::kTimeout) {
-      set_disconnect_status(TransferMetadata::Status::kTimedOut);
-      connection_layer_status_ = Status::kUnknown;
-    } else {
-      set_disconnect_status(TransferMetadata::Status::kFailed);
-    }
-    return false;
-  }
-  set_disconnect_status(TransferMetadata::Status::kFailed);
-  return true;
 }
 
 void OutgoingShareSession::OnConnectionDisconnected() {
@@ -104,9 +158,7 @@ void OutgoingShareSession::OnConnectionDisconnected() {
   }
 }
 
-
-std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths()
-    const {
+std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths() const {
   std::vector<std::filesystem::path> file_paths;
   file_paths.reserve(attachment_container().GetFileAttachments().size());
   for (const FileAttachment& file_attachment :
@@ -242,12 +294,11 @@ bool OutgoingShareSession::AcceptTransfer(
     std::function<void(std::optional<ConnectionResponseFrame>)>
         response_callback) {
   if (!IsConnected()) {
-    NL_LOG(WARNING) << __func__
-                    << ": Accept invoked for unconnected share target";
+    LOG(WARNING) << "Accept invoked for unconnected share target";
     return false;
   }
   if (!ready_for_accept_) {
-    NL_LOG(WARNING) << __func__ << ": out of order API call.";
+    LOG(WARNING) << "out of order API call.";
     return false;
   }
   ready_for_accept_ = false;
@@ -257,8 +308,7 @@ bool OutgoingShareSession::AcceptTransfer(
           .set_token(token())
           .set_status(TransferMetadata::Status::kAwaitingRemoteAcceptance)
           .build());
-  NL_VLOG(1) << __func__ << ": Waiting for response frame from "
-             << share_target().id;
+  VLOG(1) << "Waiting for response frame from " << share_target().id;
   frames_reader()->ReadFrame(
       nearby::sharing::service::proto::V1Frame::RESPONSE,
       [callback = std::move(response_callback)](std::optional<V1Frame> frame) {
@@ -273,14 +323,13 @@ bool OutgoingShareSession::AcceptTransfer(
 }
 
 void OutgoingShareSession::SendPayloads(
-    bool enable_transfer_cancellation_optimization, Clock* clock,
+    bool enable_transfer_cancellation_optimization,
     std::function<
         void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
         frame_read_callback,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   if (!IsConnected()) {
-    NL_LOG(WARNING) << __func__
-                    << ": SendPayloads invoked for unconnected share target";
+    LOG(WARNING) << "SendPayloads invoked for unconnected share target";
     return;
   }
   frames_reader()->ReadFrame(std::move(frame_read_callback));
@@ -290,53 +339,69 @@ void OutgoingShareSession::SendPayloads(
                                                attachment_container(),
                                                /*transfer_position=*/1,
                                                /*concurrent_connections=*/1);
-  NL_VLOG(1) << __func__
-             << ": The connection was accepted. Payloads are now being sent.";
+  VLOG(1) << "The connection was accepted. Payloads are now being sent.";
   if (enable_transfer_cancellation_optimization) {
-    InitSendPayload(clock, std::move(update_callback));
+    InitSendPayload(std::move(update_callback));
     SendNextPayload();
   } else {
-    SendAllPayloads(clock, std::move(update_callback));
+    SendAllPayloads(std::move(update_callback));
   }
 }
 
 void OutgoingShareSession::SendAllPayloads(
-    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
-      clock, share_target().id, attachment_container(),
+      &clock(), share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
   for (auto& payload : ExtractTextPayloads()) {
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
   for (auto& payload : ExtractFilePayloads()) {
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
   for (auto& payload : ExtractWifiCredentialsPayloads()) {
-    connections_manager()->Send(
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
   }
 }
 
 void OutgoingShareSession::InitSendPayload(
-    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   set_payload_tracker(std::make_unique<PayloadTracker>(
-      clock, share_target().id, attachment_container(),
+      &clock(), share_target().id, attachment_container(),
       attachment_payload_map(), std::move(update_callback)));
 }
 
 void OutgoingShareSession::SendNextPayload() {
   std::optional<Payload> payload = ExtractNextPayload();
   if (payload.has_value()) {
-    NL_LOG(INFO) << __func__ << ": Send  payload " << payload->id;
-    connections_manager()->Send(
+    LOG(INFO) << "Send  payload " << payload->id;
+    connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(*payload), payload_tracker());
   } else {
-    NL_LOG(WARNING) << __func__ << ": There is no paylaods to send.";
+    LOG(WARNING) << "There is no paylaods to send.";
   }
+}
+
+void OutgoingShareSession::SendAttachmentsCompleted(
+    const TransferMetadata& metadata) {
+  if (!metadata.is_final_status()) {
+    LOG(DFATAL) << "SendAttachmentsCompleted called with non-final status: "
+                << static_cast<int>(metadata.status());
+  }
+  int64_t sent_bytes = attachment_container().GetTotalAttachmentsSize() *
+                       metadata.progress() / 100;
+
+  analytics_recorder().NewSendAttachmentsEnd(
+      session_id(), sent_bytes, share_target(),
+      ConvertToTransmissionStatus(metadata.status()),
+      /*transfer_position=*/1,
+      /*concurrent_connections=*/1,
+      absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
+      /*referrer_package=*/std::nullopt,
+      ConvertToConnectionLayerStatus(connection_layer_status_), os_type());
 }
 
 bool OutgoingShareSession::SendIntroduction(
@@ -356,7 +421,7 @@ bool OutgoingShareSession::SendIntroduction(
                                            /*transfer_position=*/1,
                                            /*concurrent_connections=*/1,
                                            os_type());
-  NL_VLOG(1) << __func__ << ": Successfully wrote the introduction frame";
+  VLOG(1) << "Successfully wrote the introduction frame";
   ready_for_accept_ = true;
   mutual_acceptance_timeout_ = std::make_unique<ThreadTimer>(
       service_thread(), "outgoing_mutual_acceptance_timeout",
@@ -371,14 +436,12 @@ OutgoingShareSession::HandleConnectionResponse(
   mutual_acceptance_timeout_.reset();
 
   if (!response.has_value()) {
-    NL_LOG(WARNING)
-        << __func__
-        << ": Failed to read a response from the remote device. Disconnecting.";
+    LOG(WARNING)
+        << "Failed to read a response from the remote device. Disconnecting.";
     return TransferMetadata::Status::kFailed;
   }
 
-  NL_VLOG(1) << __func__
-             << ": Successfully read the connection response frame.";
+  VLOG(1) << "Successfully read the connection response frame.";
 
   switch (response->status()) {
     case ConnectionResponseFrame::ACCEPT: {
@@ -389,30 +452,25 @@ OutgoingShareSession::HandleConnectionResponse(
       return std::nullopt;
     }
     case ConnectionResponseFrame::REJECT:
-      NL_VLOG(1)
-          << __func__
-          << ": The connection was rejected. The connection has been closed.";
+      VLOG(1)
+          << "The connection was rejected. The connection has been closed.";
       return TransferMetadata::Status::kRejected;
     case ConnectionResponseFrame::NOT_ENOUGH_SPACE:
-      NL_VLOG(1) << __func__
-                 << ": The connection was rejected because the remote device "
-                    "does not have enough space for our attachments. The "
-                    "connection has been closed.";
+      VLOG(1) << "The connection was rejected because the remote device does "
+                 "not have enough space for our attachments. The connection "
+                 "has been closed.";
       return TransferMetadata::Status::kNotEnoughSpace;
     case ConnectionResponseFrame::UNSUPPORTED_ATTACHMENT_TYPE:
-      NL_VLOG(1) << __func__
-                 << ": The connection was rejected because the remote device "
-                    "does not support the attachments we were sending. The "
-                    "connection has been closed.";
+      VLOG(1) << "The connection was rejected because the remote device does "
+                 "not support the attachments we were sending. The connection "
+                 "has been closed.";
       return TransferMetadata::Status::kUnsupportedAttachmentType;
     case ConnectionResponseFrame::TIMED_OUT:
-      NL_VLOG(1) << __func__
-                 << ": The connection was rejected because the remote device "
-                    "timed out. The connection has been closed.";
+      VLOG(1) << "The connection was rejected because the remote device timed "
+                 "out. The connection has been closed.";
       return TransferMetadata::Status::kTimedOut;
     default:
-      NL_VLOG(1) << __func__
-                 << ": The connection failed. The connection has been closed.";
+      VLOG(1) << "The connection failed. The connection has been closed.";
       break;
   }
   return TransferMetadata::Status::kFailed;
@@ -484,4 +542,73 @@ void OutgoingShareSession::UpdateSessionForDedup(
     clear_certificate();
   }
 }
+
+void OutgoingShareSession::Connect(
+    std::vector<uint8_t> endpoint_info,
+    std::optional<std::vector<uint8_t>> bluetooth_mac_address,
+    DataUsage data_usage, bool disable_wifi_hotspot,
+    std::function<void(NearbyConnection* connection, Status status)> callback) {
+  connection_start_time_ = clock().Now();
+  connections_manager().Connect(
+      std::move(endpoint_info), endpoint_id(), std::move(bluetooth_mac_address),
+      data_usage, GetTransportType(disable_wifi_hotspot), std::move(callback));
+}
+
+bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
+                                           Status status) {
+  connection_layer_status_ = status;
+  if (connection == nullptr) {
+    analytics_recorder().NewEstablishConnection(
+        session_id(), EstablishConnectionStatus::CONNECTION_STATUS_FAILURE,
+        share_target(),
+        /*transfer_position=*/1,
+        /*concurrent_connections=*/1,
+        absl::ToInt64Milliseconds(clock().Now() - connection_start_time_),
+        std::nullopt);
+    LOG(WARNING) << "Failed to initiate connection to share target "
+                 << share_target().id;
+    if (connection_layer_status_ == Status::kTimeout) {
+      set_disconnect_status(TransferMetadata::Status::kTimedOut);
+      connection_layer_status_ = Status::kUnknown;
+    } else {
+      set_disconnect_status(TransferMetadata::Status::kFailed);
+    }
+    Abort(disconnect_status());
+    return false;
+  }
+  set_disconnect_status(TransferMetadata::Status::kFailed);
+  SetConnection(connection);
+
+  // Log analytics event of establishing connection.
+  analytics_recorder().NewEstablishConnection(
+      session_id(), EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS,
+      share_target(),
+      /*transfer_position=*/1,
+      /*concurrent_connections=*/1,
+      absl::ToInt64Milliseconds((clock().Now() - connection_start_time_)),
+      /*referrer_package=*/std::nullopt);
+  return true;
+}
+
+TransportType OutgoingShareSession::GetTransportType(
+    bool disable_wifi_hotspot) const {
+  if (attachment_container().GetTotalAttachmentsSize() >
+      kAttachmentsSizeThresholdOverHighQualityMedium) {
+    if (disable_wifi_hotspot) {
+      LOG(INFO) << "Transport type is kHighQuality|kNonDisruptive";
+      return TransportType::kHighQualityNonDisruptive;
+    }
+    LOG(INFO) << "Transport type is kHighQuality";
+    return TransportType::kHighQuality;
+  }
+
+  if (attachment_container().GetFileAttachments().empty()) {
+    LOG(INFO) << "Transport type is kNonDisruptive";
+    return TransportType::kNonDisruptive;
+  }
+
+  LOG(INFO) << "Transport type is kAny";
+  return TransportType::kAny;
+}
+
 }  // namespace nearby::sharing

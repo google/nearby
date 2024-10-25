@@ -283,11 +283,13 @@ struct ConnectionOptions {
       MediumSelection allowed_mediums,
       std::optional<std::vector<uint8_t>> remote_bluetooth_mac_address,
       std::optional<absl::Duration> keep_alive_interval,
-      std::optional<absl::Duration> keep_alive_timeout) {
+      std::optional<absl::Duration> keep_alive_timeout,
+      bool non_disruptive_hotspot_mode) {
     this->allowed_mediums = allowed_mediums;
     this->remote_bluetooth_mac_address = remote_bluetooth_mac_address;
     this->keep_alive_interval = keep_alive_interval;
     this->keep_alive_timeout = keep_alive_timeout;
+    this->non_disruptive_hotspot_mode = non_disruptive_hotspot_mode;
   }
 
   // Describes which mediums are allowed to be used for connection. Note that
@@ -304,6 +306,9 @@ struct ConnectionOptions {
   // for this length of time. An unspecified or negative value will result in
   // the Nearby Connections default of 30 seconds being used.
   std::optional<absl::Duration> keep_alive_timeout;
+  // If true, only use WiFi Hotspot for connection when Wifi LAN is not
+  // connected.
+  bool non_disruptive_hotspot_mode = false;
 };
 
 // The status of the payload transfer at the time of this update.
@@ -485,8 +490,23 @@ struct Payload {
   }
 };
 
-// Transport type to decide whether to upgrade to a high quality medium.
-enum class TransportType { kAny = 0, kNonDisruptive = 1, kHighQuality = 2 };
+// This is a bitmask field that determines the transport type to upgrade to.
+enum class TransportType {
+  kAny = 0,
+  // Allows use of WiFi Hotspot for connection when Wifi LAN is not connected.
+  kNonDisruptive = 1,
+  // Allows use of Wifi Hotspot for connection.
+  kHighQuality = 2,
+  // kNonDisruptive | kHighQuality
+  kHighQualityNonDisruptive = 3,
+};
+
+// Returns true if all flags in `mask` are enabled in `transport_type`.
+inline bool IsTransportTypeFlagsSet(TransportType transport_type,
+                                    TransportType mask) {
+  return (static_cast<int>(transport_type) &
+          static_cast<int>(mask)) == static_cast<int>(mask);
+}
 
 }  // namespace sharing
 }  // namespace nearby

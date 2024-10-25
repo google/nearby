@@ -51,22 +51,23 @@ namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::OSType;
+using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
-using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::nearby::sharing::service::proto::V1Frame;
 using ::nearby::sharing::service::proto::WifiCredentials;
 
 }  // namespace
 
 IncomingShareSession::IncomingShareSession(
-    TaskRunner& service_thread,
+    Clock* clock, TaskRunner& service_thread,
+    NearbyConnectionsManager* connections_manager,
     analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
     std::function<void(const IncomingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
-    : ShareSession(service_thread, analytics_recorder, std::move(endpoint_id),
-                   share_target),
+    : ShareSession(clock, service_thread, connections_manager,
+                   analytics_recorder, std::move(endpoint_id), share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;
@@ -78,11 +79,6 @@ void IncomingShareSession::InvokeTransferUpdateCallback(
   transfer_update_callback_(*this, metadata);
 }
 
-bool IncomingShareSession::OnNewConnection(NearbyConnection* connection) {
-  set_disconnect_status(TransferMetadata::Status::kFailed);
-  return true;
-}
-
 std::optional<TransferMetadata::Status>
 IncomingShareSession::ProcessIntroduction(
     const IntroductionFrame& introduction_frame) {
@@ -90,26 +86,23 @@ IncomingShareSession::ProcessIntroduction(
   AttachmentContainer& container = mutable_attachment_container();
   for (const auto& file : introduction_frame.file_metadata()) {
     if (file.size() <= 0) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Ignore introduction, due to invalid attachment size";
+      LOG(WARNING) << "Ignore introduction, due to invalid attachment size";
       return TransferMetadata::Status::kUnsupportedAttachmentType;
     }
 
-    NL_VLOG(1) << __func__ << ": Found file attachment: id=" << file.id()
-               << ", type= " << file.type() << ", size=" << file.size()
-               << ", payload_id=" << file.payload_id()
-               << ", parent_folder=" << file.parent_folder()
-               << ", mime_type=" << file.mime_type();
+    VLOG(1) << "Found file attachment: id=" << file.id()
+            << ", type= " << file.type() << ", size=" << file.size()
+            << ", payload_id=" << file.payload_id()
+            << ", parent_folder=" << file.parent_folder()
+            << ", mime_type=" << file.mime_type();
     container.AddFileAttachment(
         FileAttachment(file.id(), file.size(), file.name(), file.mime_type(),
                        file.type(), file.parent_folder()));
     SetAttachmentPayloadId(file.id(), file.payload_id());
 
     if (std::numeric_limits<int64_t>::max() - file.size() < file_size_sum) {
-      NL_LOG(WARNING) << __func__
-                      << ": Ignoring introduction, total file size overflowed "
-                         "64 bit integer.";
+      LOG(WARNING) << "Ignoring introduction, total file size overflowed 64 "
+                      "bit integer.";
       container.Clear();
       return TransferMetadata::Status::kNotEnoughSpace;
     }
@@ -118,15 +111,13 @@ IncomingShareSession::ProcessIntroduction(
 
   for (const auto& text : introduction_frame.text_metadata()) {
     if (text.size() <= 0) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Ignore introduction, due to invalid attachment size";
+      LOG(WARNING) << "Ignore introduction, due to invalid attachment size";
       return TransferMetadata::Status::kUnsupportedAttachmentType;
     }
 
-    NL_VLOG(1) << __func__ << ": Found text attachment: id=" << text.id()
-               << ", type= " << text.type() << ", size=" << text.size()
-               << ", payload_id=" << text.payload_id();
+    VLOG(1) << "Found text attachment: id=" << text.id()
+            << ", type= " << text.type() << ", size=" << text.size()
+            << ", payload_id=" << text.payload_id();
     container.AddTextAttachment(
         TextAttachment(text.id(), text.type(), text.text_title(), text.size()));
     SetAttachmentPayloadId(text.id(), text.payload_id());
@@ -135,10 +126,9 @@ IncomingShareSession::ProcessIntroduction(
   if (kSupportReceivingWifiCredentials) {
     for (const auto& wifi_credentials :
          introduction_frame.wifi_credentials_metadata()) {
-      NL_VLOG(1) << __func__ << ": Found WiFi credentials attachment: id="
-                 << wifi_credentials.id()
-                 << ", ssid= " << wifi_credentials.ssid()
-                 << ", payload_id=" << wifi_credentials.payload_id();
+      VLOG(1) << "Found WiFi credentials attachment: id="
+              << wifi_credentials.id() << ", ssid= " << wifi_credentials.ssid()
+              << ", payload_id=" << wifi_credentials.payload_id();
       container.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
           wifi_credentials.id(), wifi_credentials.ssid(),
           wifi_credentials.security_type()));
@@ -148,9 +138,9 @@ IncomingShareSession::ProcessIntroduction(
   }
 
   if (!container.HasAttachments()) {
-    NL_LOG(WARNING) << __func__
-                    << ": No attachment is found for this share target. It can "
-                       "be result of unrecognizable attachment type";
+    LOG(WARNING) << __func__
+                 << ": No attachment is found for this share target. It can "
+                    "be result of unrecognizable attachment type";
     return TransferMetadata::Status::kUnsupportedAttachmentType;
   }
   return std::nullopt;
@@ -164,8 +154,7 @@ bool IncomingShareSession::ProcessKeyVerificationResult(
   if (!HandleKeyVerificationResult(result, share_target_os_type)) {
     return false;
   }
-  NL_LOG(INFO) << __func__ << ": Waiting for introduction from "
-               << share_target().id;
+  LOG(INFO) << ":Waiting for introduction from " << share_target().id;
 
   frames_reader()->ReadFrame(
       V1Frame::INTRODUCTION,
@@ -185,7 +174,7 @@ bool IncomingShareSession::ReadyForTransfer(
     std::function<void()> accept_timeout_callback,
     std::function<void(std::optional<V1Frame> frame)> frame_read_callback) {
   if (!IsConnected()) {
-    NL_LOG(WARNING) << __func__ << ": out of order API call.";
+    LOG(WARNING) << "ReadyForTransfer called when not connected";
     return false;
   }
   ready_for_accept_ = true;
@@ -209,26 +198,24 @@ bool IncomingShareSession::ReadyForTransfer(
 }
 
 bool IncomingShareSession::AcceptTransfer(
-    Clock* clock,
     std::function<void(int64_t, TransferMetadata)> update_callback) {
   if (!ready_for_accept_ || !IsConnected()) {
-    NL_LOG(WARNING) << __func__ << ": out of order API call.";
+    LOG(WARNING) << "AcceptTransfer call not expected";
     return false;
   }
   ready_for_accept_ = false;
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
   set_payload_tracker(std::make_shared<PayloadTracker>(
-      clock, share_target().id, attachment_container(), payload_map,
+      &clock(), share_target().id, attachment_container(), payload_map,
       std::move(update_callback)));
 
   // Register status listener for all payloads.
   for (auto it = payload_map.begin(); it != payload_map.end(); ++it) {
-    NL_VLOG(1) << __func__
-               << ": Started listening for progress on payload: " << it->second
-               << " for attachment: " << it->first;
+    VLOG(1) << "Started listening for progress on payload: " << it->second
+            << " for attachment: " << it->first;
 
-    connections_manager()->RegisterPayloadStatusListener(it->second,
+    connections_manager().RegisterPayloadStatusListener(it->second,
                                                         payload_tracker());
 
     NL_VLOG(1) << __func__ << ": Accepted incoming files from share target - "
@@ -251,7 +238,7 @@ bool IncomingShareSession::AcceptTransfer(
     // the system or the user has verified the sender's identity; the
     // stable identifiers potentially exposed by performing a bandwidth
     // upgrade are no longer a concern.
-    NL_LOG(INFO) << __func__ << ": Upgrade bandwidth when sending accept.";
+    LOG(INFO) << "Upgrade bandwidth when sending accept.";
   }
   // Log analytics event of starting to receive payloads.
   analytics_recorder().NewReceiveAttachmentsStart(session_id(),
@@ -270,17 +257,15 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
     }
     const auto it = attachment_payload_map().find(file.id());
     if (it == attachment_payload_map().end()) {
-      NL_LOG(WARNING) << __func__ << ": No payload id found for file - "
-                      << file.id();
+      LOG(WARNING) << "Payload id missing for file attachment: " << file.id();
       result = false;
       continue;
     }
 
     const Payload* incoming_payload =
-        connections_manager()->GetIncomingPayload(it->second);
+        connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_file()) {
-      NL_LOG(WARNING) << __func__ << ": No payload found for file - "
-                      << file.id();
+      LOG(WARNING) << "No payload found for file attachment: " << file.id();
       result = false;
       continue;
     }
@@ -304,24 +289,20 @@ bool IncomingShareSession::UpdatePayloadContents() {
     if (it == attachment_payload_map().end()) {
       // This should never happen unless IntroductionFrame has not been
       // processed.
-      NL_LOG(WARNING) << __func__ << ": No payload id found for text - "
-                      << text.id();
+      LOG(WARNING) << "Payload id missing for text attachment: " << text.id();
       return false;
     }
     const Payload* incoming_payload =
-        connections_manager()->GetIncomingPayload(it->second);
+        connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
-      NL_LOG(WARNING) << __func__ << ": No payload found for text - "
-                      << text.id();
+      LOG(WARNING) << "No payload found for text attachment: " << text.id();
       return false;
     }
 
     std::vector<uint8_t> bytes = incoming_payload->content.bytes_payload.bytes;
     if (bytes.empty()) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Incoming bytes is empty for text payload with payload_id - "
-          << it->second;
+      LOG(WARNING) << "Incoming bytes is empty for text attachment: "
+                   << text.id() << " with payload_id: " << it->second;
       return false;
     }
 
@@ -337,36 +318,32 @@ bool IncomingShareSession::UpdatePayloadContents() {
     if (it == attachment_payload_map().end()) {
       // This should never happen unless IntroductionFrame has not been
       // processed.
-      NL_LOG(WARNING) << __func__
-                      << ": No payload id found for WiFi credentials - "
-                      << wifi_credentials_attachment.id();
+      LOG(WARNING) << "Payload id missing for WiFi credentials: "
+                   << wifi_credentials_attachment.id();
       return false;
     }
 
     const Payload* incoming_payload =
-        connections_manager()->GetIncomingPayload(it->second);
+        connections_manager().GetIncomingPayload(it->second);
     if (!incoming_payload || !incoming_payload->content.is_bytes()) {
-      NL_LOG(WARNING) << __func__
-                      << ": No payload found for WiFi credentials - "
-                      << wifi_credentials_attachment.id();
+      LOG(WARNING) << "No payload found for WiFi credentials: "
+                   << wifi_credentials_attachment.id();
       return false;
     }
 
     std::vector<uint8_t> bytes = incoming_payload->content.bytes_payload.bytes;
     if (bytes.empty()) {
-      NL_LOG(WARNING) << __func__
-                      << ": Incoming bytes is empty for WiFi credentials "
-                         "payload with payload_id - "
-                      << it->second;
+      LOG(WARNING) << "Incoming bytes is empty for WiFi credentials: "
+                   << wifi_credentials_attachment.id()
+                   << " with payload_id: " << it->second;
       return false;
     }
 
     WifiCredentials wifi_credentials;
     if (!wifi_credentials.ParseFromArray(bytes.data(), bytes.size())) {
-      NL_LOG(WARNING) << __func__
-                      << ": Incoming bytes is invalid for WiFi credentials "
-                         "payload with payload_id - "
-                      << it->second;
+      LOG(WARNING) << "Incoming bytes is invalid for WiFi credentials: "
+                   << wifi_credentials_attachment.id()
+                   << " with payload_id: " << it->second;
       return false;
     }
 
@@ -407,7 +384,7 @@ bool IncomingShareSession::TryUpgradeBandwidth() {
   if (!bandwidth_upgrade_requested_ &&
       attachment_container().GetTotalAttachmentsSize() >=
           kAttachmentsSizeThresholdOverHighQualityMedium) {
-    connections_manager()->UpgradeBandwidth(endpoint_id());
+    connections_manager().UpgradeBandwidth(endpoint_id());
     bandwidth_upgrade_requested_ = true;
     return true;
   }
@@ -439,8 +416,7 @@ void IncomingShareSession::SendFailureResponse(
   WriteResponseFrame(response_status);
   NL_DCHECK(TransferMetadata::IsFinalStatus(status))
       << "SendFailureResponse should only be called with a final status";
-  UpdateTransferMetadata(
-      TransferMetadataBuilder().set_status(status).build());
+  UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
 }
 
 std::pair<bool, bool> IncomingShareSession::PayloadTransferUpdate(
@@ -480,6 +456,11 @@ std::pair<bool, bool> IncomingShareSession::PayloadTransferUpdate(
     }
   }
   return std::make_pair(/*completed=*/false, /*success=*/false);
+}
+
+void IncomingShareSession::OnConnected(NearbyConnection* connection) {
+  set_disconnect_status(TransferMetadata::Status::kFailed);
+  SetConnection(connection);
 }
 
 }  // namespace nearby::sharing

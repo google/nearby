@@ -31,10 +31,5 @@ std::optional<std::string> FakeNearbyShareProfileInfoProvider::GetGivenName()
   return given_name_;
 }
 
-std::optional<std::string>
-FakeNearbyShareProfileInfoProvider::GetProfileUserName() const {
-  return profile_user_name_;
-}
-
 }  // namespace sharing
 }  // namespace nearby

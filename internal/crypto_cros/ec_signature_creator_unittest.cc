@@ -26,6 +26,8 @@
 #include "internal/crypto_cros/nearby_base.h"
 #include "internal/crypto_cros/signature_verifier.h"
 
+namespace nearby {
+
 TEST(ECSignatureCreatorTest, BasicTest) {
   // Do a verify round trip.
   std::unique_ptr<crypto::ECPrivateKey> key_original(
@@ -59,3 +61,5 @@ TEST(ECSignatureCreatorTest, BasicTest) {
   verifier.VerifyUpdate(nearbybase::as_bytes(absl::MakeSpan(data)));
   ASSERT_TRUE(verifier.VerifyFinal());
 }
+
+}  // namespace nearby

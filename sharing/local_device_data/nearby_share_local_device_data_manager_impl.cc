@@ -17,6 +17,7 @@
 #include <stddef.h>
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -33,6 +34,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
+#include "internal/platform/implementation/device_info.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/common/nearby_share_profile_info_provider.h"
@@ -51,6 +53,7 @@
 namespace nearby {
 namespace sharing {
 namespace {
+using ::nearby::api::DeviceInfo;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::SharingRpcClientFactory;
 using ::nearby::sharing::proto::UpdateDeviceRequest;
@@ -77,13 +80,16 @@ constexpr absl::Duration kDeviceDataDownloadPeriod = absl::Hours(12);
 
 constexpr absl::string_view kDefaultDeviceName = "$0\'s $1";
 
-// Returns a truncated version of |name| that is |overflow_length| characters
-// too long. For example, name="Reallylongname" with overflow_length=5 will
-// return "Really...".
-std::string GetTruncatedName(std::string name, size_t overflow_length) {
+// Returns a truncated version of |name| that is |max_length| characters long.
+// For example, name="Reallylongname" with max_length=9 will return "Really...".
+// name="Reallylongname" with max_length=20 will return "Reallylongname".
+std::string GetTruncatedName(std::string name, size_t max_length) {
+  if (name.length() <= max_length) {
+    return name;
+  }
+
   std::string ellipsis("...");
-  size_t max_name_length = name.length() - overflow_length - ellipsis.length();
-  // DCHECK_GT(max_name_length, 0u);
+  size_t max_name_length = max_length - ellipsis.length();
 
   std::string truncated;
   nearby::utils::TruncateUtf8ToByteSize(name, max_name_length, &truncated);
@@ -362,23 +368,29 @@ void NearbyShareLocalDeviceDataManagerImpl::OnStop() {
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
     const {
-  std::string device_type_name = device_info_.GetDeviceTypeName();
   std::string device_name = device_info_.GetOsDeviceName();
+  DeviceInfo::OsType os_type = device_info_.GetOsType();
+  std::string device_type = device_info_.GetDeviceTypeName();
   std::optional<std::string> given_name =
       profile_info_provider_->GetGivenName();
-  if (!given_name.has_value()) return device_name;
 
-  std::string default_device_name =
-      absl::Substitute(kDefaultDeviceName, *given_name, device_type_name);
+  // For iOS and macOS, the device name is already localized and generally works
+  // well for Quick Share purposes (i.e. "Niko's MacBook Pro"), so avoid using
+  // the non-localized account name and device type concatenation.
+  if (os_type == DeviceInfo::OsType::kMacOS ||
+      os_type == DeviceInfo::OsType::kIos || !given_name.has_value()) {
+    return GetTruncatedName(device_name, kNearbyShareDeviceNameMaxLength);
+  }
 
-  if (default_device_name.length() <= kNearbyShareDeviceNameMaxLength)
-    return default_device_name;
+  uint64_t untruncated_length =
+      absl::Substitute(kDefaultDeviceName, *given_name, device_type).length();
+  uint64_t overflow_length =
+      untruncated_length - kNearbyShareDeviceNameMaxLength;
 
   std::string truncated_name =
-      GetTruncatedName(*given_name, default_device_name.length() -
-                                        kNearbyShareDeviceNameMaxLength);
+      GetTruncatedName(*given_name, given_name->length() - overflow_length);
 
-  return absl::Substitute(kDefaultDeviceName, truncated_name, device_type_name);
+  return absl::Substitute(kDefaultDeviceName, truncated_name, device_type);
 }
 
 void NearbyShareLocalDeviceDataManagerImpl::HandleUpdateDeviceResponse(

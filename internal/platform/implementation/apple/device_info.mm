@@ -78,10 +78,7 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
 #endif
 }
 
-std::optional<std::string> DeviceInfo::GetFullName() const { return std::nullopt; }
 std::optional<std::string> DeviceInfo::GetGivenName() const { return std::nullopt; }
-std::optional<std::string> DeviceInfo::GetLastName() const { return std::nullopt; }
-std::optional<std::string> DeviceInfo::GetProfileUserName() const { return std::nullopt; }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
   NSFileManager *manager = [NSFileManager defaultManager];

@@ -25,14 +25,18 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
+#include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
 #include "sharing/paired_key_verification_runner.h"
+#include "sharing/proto/enums.pb.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/thread_timer.h"
@@ -45,7 +49,8 @@ namespace nearby::sharing {
 class OutgoingShareSession : public ShareSession {
  public:
   OutgoingShareSession(
-      TaskRunner& service_thread,
+      Clock* clock, TaskRunner& service_thread,
+      NearbyConnectionsManager* connections_manager,
       analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
       const ShareTarget& share_target,
       std::function<void(OutgoingShareSession&, const TransferMetadata&)>
@@ -71,11 +76,8 @@ class OutgoingShareSession : public ShareSession {
 
   const std::vector<Payload>& file_payloads() const { return file_payloads_; }
 
-  Status connection_layer_status() const { return connection_layer_status_; }
-
-  void set_connection_layer_status(Status status) {
-    connection_layer_status_ = status;
-  }
+  void InitiateSendAttachments(
+      std::unique_ptr<AttachmentContainer> attachment_container);
 
   bool ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
@@ -117,7 +119,7 @@ class OutgoingShareSession : public ShareSession {
   // `update_callback`.
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
-      bool enable_transfer_cancellation_optimization, Clock* clock,
+      bool enable_transfer_cancellation_optimization,
       std::function<
           void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
@@ -125,6 +127,9 @@ class OutgoingShareSession : public ShareSession {
   // Send the next payload to NearbyConnectionManager.
   // Used only if enable_transfer_cancellation_optimization is true.
   void SendNextPayload();
+
+  // Called when all payloads have been sent.
+  void SendAttachmentsCompleted(const TransferMetadata& metadata);
 
   // Cache the kComplete metadata in pending_complete_metadata_ and forward a
   // modified copy that changes kComplete into kInProgress.
@@ -137,22 +142,35 @@ class OutgoingShareSession : public ShareSession {
       std::optional<NearbyShareDecryptedPublicCertificate> certificate,
       absl::string_view endpoint_id);
 
+  // Establish a connection to the remote device identified by `endpoint_info`.
+  // `callback` is called when with the connection establishment status..
+  void Connect(std::vector<uint8_t> endpoint_info,
+               std::optional<std::vector<uint8_t>> bluetooth_mac_address,
+               nearby::sharing::proto::DataUsage data_usage,
+               bool disable_wifi_hotspot,
+               std::function<void(NearbyConnection* connection, Status status)>
+                   callback);
+
+  // Called to process the result of a connection attempt.
+  // Returns true if the connection was successful.
+  bool OnConnectResult(NearbyConnection* connection, Status status);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
-  bool OnNewConnection(NearbyConnection* connection) override;
   void OnConnectionDisconnected() override;
 
  private:
+  // Calculates transport type based on attachment size.
+  TransportType GetTransportType(bool disable_wifi_hotspot) const;
+
   // Create a payload status listener to send status change to
   // `update_callback`.  Send all payloads to NearbyConnectionManager.
   void SendAllPayloads(
-      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Create a payload status listener to send status change to
   // `update_callback`.
   void InitSendPayload(
-      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   std::vector<Payload> ExtractTextPayloads();
@@ -162,13 +180,12 @@ class OutgoingShareSession : public ShareSession {
   bool FillIntroductionFrame(
       nearby::sharing::service::proto::IntroductionFrame* introduction) const;
 
-
   std::optional<std::string> obfuscated_gaia_id_;
   // All payloads are in the same order as the attachments in the share target.
   std::vector<Payload> text_payloads_;
   std::vector<Payload> file_payloads_;
   std::vector<Payload> wifi_credentials_payloads_;
-  Status connection_layer_status_;
+  Status connection_layer_status_ = Status::kUnknown;
   std::function<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
   bool ready_for_accept_ = false;
@@ -176,6 +193,7 @@ class OutgoingShareSession : public ShareSession {
   // not press accept within the timeout.
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
   std::optional<TransferMetadata> pending_complete_metadata_;
+  absl::Time connection_start_time_;
 };
 
 }  // namespace nearby::sharing

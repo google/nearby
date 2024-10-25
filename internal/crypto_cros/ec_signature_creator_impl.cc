@@ -27,7 +27,7 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 ECSignatureCreatorImpl::ECSignatureCreatorImpl(ECPrivateKey* key) : key_(key) {
   EnsureOpenSSLInit();
@@ -80,4 +80,4 @@ bool ECSignatureCreatorImpl::DecodeSignature(
   return true;
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

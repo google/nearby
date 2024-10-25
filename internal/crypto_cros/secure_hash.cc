@@ -22,7 +22,7 @@
 #include <openssl/mem.h>
 #include <openssl/sha.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 namespace {
 
@@ -73,4 +73,4 @@ std::unique_ptr<SecureHash> SecureHash::Create(Algorithm algorithm) {
   }
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

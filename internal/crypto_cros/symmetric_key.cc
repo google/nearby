@@ -35,7 +35,7 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 namespace {
 
@@ -144,4 +144,4 @@ std::unique_ptr<SymmetricKey> SymmetricKey::Import(Algorithm algorithm,
 
 SymmetricKey::SymmetricKey() = default;
 
-}  // namespace crypto
+}  // namespace nearby::crypto

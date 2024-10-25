@@ -24,7 +24,7 @@
 #include "internal/crypto_cros/secure_hash.h"
 #include <openssl/sha.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 std::array<uint8_t, kSHA256Length> SHA256Hash(absl::Span<const uint8_t> input) {
   std::array<uint8_t, kSHA256Length> digest;
@@ -44,4 +44,4 @@ std::string SHA256HashString(absl::string_view str) {
   return output;
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

@@ -104,7 +104,7 @@ ByteArray ForKeepAlive();
 ByteArray ForDisconnection(bool request_safe_to_disconnect,
                            bool ack_safe_to_disconnect);
 ByteArray ForAutoReconnectIntroduction(const std::string& endpoint_id);
-ByteArray ForAutoReconnectIntroductionAck(const std::string& endpoint_id);
+ByteArray ForAutoReconnectIntroductionAck();
 UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium);
 Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium);
 

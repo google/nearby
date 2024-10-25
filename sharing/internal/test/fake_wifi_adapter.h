@@ -46,17 +46,10 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
     return is_powered_;
   }
 
-  sharing::api::WifiAdapter::PermissionStatus GetOsPermissionStatus()
-      const override {
-    return sharing::api::WifiAdapter::PermissionStatus::kAllowed;
-  }
-
   void SetPowered(bool powered, std::function<void()> success_callback,
                   std::function<void()> error_callback) override {
     success_callback();
   }
-
-  std::optional<std::string> GetAdapterId() const override { return "nearby"; }
 
   void AddObserver(Observer* observer) override {
     observer_list_.AddObserver(observer);

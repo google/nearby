@@ -26,7 +26,7 @@
 #include <openssl/base.h>
 #include <openssl/evp.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 constexpr size_t kEd25519SignatureSize = 64;
 constexpr size_t kEd25519PrivateKeySize = 32;
@@ -181,4 +181,4 @@ absl::Status Ed25519Verifier::Verify(absl::string_view data,
              : absl::InternalError("Signature is invalid.");
 }
 
-}  // namespace crypto
+}  // namespace nearby::crypto

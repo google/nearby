@@ -25,7 +25,7 @@
 #include <openssl/digest.h>
 #include <openssl/evp.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 #ifdef OPENSSL_IS_BORINGSSL
 using CryptoKeyUniquePtr = ::bssl::UniquePtr<EVP_PKEY>;
@@ -73,6 +73,6 @@ class CRYPTO_EXPORT Ed25519Verifier {
   CryptoKeyUniquePtr public_key_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_ED25519_H_

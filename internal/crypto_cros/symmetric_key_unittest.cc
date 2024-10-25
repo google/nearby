@@ -21,6 +21,8 @@
 #include "absl/strings/ascii.h"
 #include "internal/crypto_cros/nearby_base.h"
 
+namespace nearby {
+
 TEST(SymmetricKeyTest, GenerateRandomKey) {
   std::unique_ptr<crypto::SymmetricKey> key(
       crypto::SymmetricKey::GenerateRandomKey(crypto::SymmetricKey::AES, 256));
@@ -260,3 +262,5 @@ INSTANTIATE_TEST_SUITE_P(All, SymmetricKeyDeriveKeyFromPasswordUsingPbkdf2Test,
 
 INSTANTIATE_TEST_SUITE_P(All, SymmetricKeyDeriveKeyFromPasswordUsingScryptTest,
                          testing::ValuesIn(kTestVectorsScrypt));
+
+}  // namespace nearby

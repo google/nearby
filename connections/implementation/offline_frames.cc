@@ -503,14 +503,13 @@ ByteArray ForAutoReconnectIntroduction(const std::string& endpoint_id) {
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForAutoReconnectIntroductionAck(const std::string& endpoint_id) {
+ByteArray ForAutoReconnectIntroductionAck() {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();
   v1_frame->set_type(V1Frame::AUTO_RECONNECT);
   auto* auto_reconnect = v1_frame->mutable_auto_reconnect();
-  auto_reconnect->set_endpoint_id(endpoint_id);
   auto_reconnect->set_event_type(AutoReconnectFrame::CLIENT_INTRODUCTION_ACK);
 
   return ToBytes(std::move(frame));
@@ -536,6 +535,8 @@ UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium) {
       return UpgradePathInfo::WIFI_DIRECT;
     case Medium::WEB_RTC:
       return UpgradePathInfo::WEB_RTC;
+    case Medium::WEB_RTC_NON_CELLULAR:
+      return UpgradePathInfo::WEB_RTC_NON_CELLULAR;
     default:
       return UpgradePathInfo::UNKNOWN_MEDIUM;
   }
@@ -561,6 +562,8 @@ Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium) {
       return Medium::WIFI_DIRECT;
     case UpgradePathInfo::WEB_RTC:
       return Medium::WEB_RTC;
+    case UpgradePathInfo::WEB_RTC_NON_CELLULAR:
+      return Medium::WEB_RTC_NON_CELLULAR;
     default:
       return Medium::UNKNOWN_MEDIUM;
   }
@@ -586,6 +589,8 @@ ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium) {
       return ConnectionRequestFrame::WIFI_DIRECT;
     case Medium::WEB_RTC:
       return ConnectionRequestFrame::WEB_RTC;
+    case Medium::WEB_RTC_NON_CELLULAR:
+      return ConnectionRequestFrame::WEB_RTC_NON_CELLULAR;
     default:
       return ConnectionRequestFrame::UNKNOWN_MEDIUM;
   }
@@ -611,6 +616,8 @@ Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium) {
       return Medium::WIFI_DIRECT;
     case ConnectionRequestFrame::WEB_RTC:
       return Medium::WEB_RTC;
+    case ConnectionRequestFrame::WEB_RTC_NON_CELLULAR:
+      return Medium::WEB_RTC_NON_CELLULAR;
     default:
       return Medium::UNKNOWN_MEDIUM;
   }

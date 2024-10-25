@@ -25,7 +25,7 @@
 #include "internal/crypto_cros/crypto_export.h"
 #include <openssl/base.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 // Encapsulates an RSA private key. Can be used to generate new keys, export
 // keys to other formats, or to extract a public key.
@@ -69,6 +69,6 @@ class CRYPTO_EXPORT RSAPrivateKey {
   bssl::UniquePtr<EVP_PKEY> key_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_RSA_PRIVATE_KEY_H_

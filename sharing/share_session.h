@@ -21,11 +21,9 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "proto/sharing_enums.pb.h"
@@ -48,7 +46,11 @@ namespace nearby::sharing {
 // This class is thread-compatible.
 class ShareSession {
  public:
-  ShareSession(TaskRunner& service_thread,
+  static location::nearby::proto::sharing::AttachmentTransmissionStatus
+  ConvertToTransmissionStatus(TransferMetadata::Status status);
+
+  ShareSession(Clock* clock, TaskRunner& service_thread,
+               NearbyConnectionsManager* connections_manager,
                analytics::AnalyticsRecorder& analytics_recorder,
                std::string endpoint_id, const ShareTarget& share_target);
   ShareSession(ShareSession&&);
@@ -84,10 +86,6 @@ class ShareSession {
 
   void set_session_id(int64_t session_id) { session_id_ = session_id; }
 
-  std::optional<absl::Time> connection_start_time() const {
-    return connection_start_time_;
-  }
-
   location::nearby::proto::sharing::OSType os_type() const { return os_type_; }
 
   bool self_share() const { return self_share_; }
@@ -102,30 +100,21 @@ class ShareSession {
   TransferMetadata::Status disconnect_status() const {
     return disconnect_status_;
   }
-  // Notifies the ShareTargetInfo that the connection has been established.
-  // Returns true if the connection was successfully established.
-  bool OnConnected(absl::Time connect_start_time,
-                   NearbyConnectionsManager* connections_manager,
-                   NearbyConnection* connection);
 
   // Send TransferMetadataUpdate with the final status.
   // If connected, also close the connection.
   void Abort(TransferMetadata::Status status);
 
   void RunPairedKeyVerification(
-      Clock* clock, location::nearby::proto::sharing::OSType os_type,
+      location::nearby::proto::sharing::OSType os_type,
       const PairedKeyVerificationRunner::VisibilityHistory& visibility_history,
       NearbyShareCertificateManager* certificate_manager,
-      const std::vector<uint8_t>& token,
       std::function<
           void(PairedKeyVerificationRunner::PairedKeyVerificationResult,
                location::nearby::proto::sharing::OSType)>
           callback);
 
   void OnDisconnect();
-  void SetAttachmentContainer(AttachmentContainer container) {
-    attachment_container_ = std::move(container);
-  }
   const AttachmentContainer& attachment_container() const {
     return attachment_container_;
   }
@@ -148,8 +137,13 @@ class ShareSession {
  protected:
   virtual void InvokeTransferUpdateCallback(
       const TransferMetadata& metadata) = 0;
-  virtual bool OnNewConnection(NearbyConnection* connection) = 0;
   virtual void OnConnectionDisconnected() {}
+  void SetConnection(NearbyConnection* connection);
+  void SetAttachmentContainer(AttachmentContainer container) {
+    attachment_container_ = std::move(container);
+  }
+
+  Clock& clock() const { return clock_; }
 
   analytics::AnalyticsRecorder& analytics_recorder() {
     return analytics_recorder_;
@@ -172,7 +166,7 @@ class ShareSession {
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
-  NearbyConnectionsManager* connections_manager() {
+  NearbyConnectionsManager& connections_manager() {
     return connections_manager_;
   }
   void set_endpoint_id(absl::string_view endpoint_id) {
@@ -184,11 +178,12 @@ class ShareSession {
   }
 
  private:
+  Clock& clock_;
   TaskRunner& service_thread_;
+  NearbyConnectionsManager& connections_manager_;
   analytics::AnalyticsRecorder& analytics_recorder_;
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
-  NearbyConnectionsManager* connections_manager_ = nullptr;
   NearbyConnection* connection_ = nullptr;
   // If not empty, this is the 4 digit token used to verify the connection.
   // If token is empty, it means self-share and verification is not needed.
@@ -196,8 +191,7 @@ class ShareSession {
   std::shared_ptr<IncomingFramesReader> frames_reader_;
   std::shared_ptr<PairedKeyVerificationRunner> key_verification_runner_;
   std::shared_ptr<PayloadTracker> payload_tracker_;
-  int64_t session_id_;
-  std::optional<absl::Time> connection_start_time_;
+  int64_t session_id_ = 0;
   ::location::nearby::proto::sharing::OSType os_type_ =
       ::location::nearby::proto::sharing::OSType::UNKNOWN_OS_TYPE;
   bool self_share_ = false;

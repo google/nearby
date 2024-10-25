@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 68
+// Next id: 71
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -297,6 +297,15 @@ enum EventType {
   // Show accept button on Quick Share receive UI
   WAITING_FOR_ACCEPT = 67;
 
+  // High quality event setup
+  HIGH_QUALITY_MEDIUM_SETUP = 68;
+
+  // RPC call status
+  RPC_CALL_STATUS = 69;
+
+  // A QR code sharing session has started
+  START_QR_CODE_SESSION = 70;
+
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
 
@@ -307,6 +316,7 @@ enum EventCategory {
   SENDING_EVENT = 1;
   RECEIVING_EVENT = 2;
   SETTINGS_EVENT = 3;
+  RPC_EVENT = 4;
 }
 
 // Status of nearby sharing.
@@ -322,7 +332,7 @@ enum Visibility {
 
   CONTACTS_ONLY = 1;
   EVERYONE = 2;
-  SELECTED_CONTACTS_ONLY = 3;
+  SELECTED_CONTACTS_ONLY = 3 [deprecated = true];
   HIDDEN = 4;
   SELF_SHARE = 5;
 }

@@ -15,10 +15,10 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SERVICE_FACTORY_H_
 #define THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_SERVICE_FACTORY_H_
 
-#include <cstdint>
 #include <memory>
 
 #include "internal/analytics/event_logger.h"
+#include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/nearby_sharing_service.h"
@@ -31,15 +31,14 @@ class NearbySharingServiceFactory {
   static NearbySharingServiceFactory* GetInstance();
 
   NearbySharingService* CreateSharingService(
-      int32_t vendor_id,
       nearby::sharing::api::SharingPlatform& sharing_platform,
-      ::nearby::analytics::EventLogger* event_logger);
+      analytics::AnalyticsRecorder* analytics_recorder,
+      nearby::analytics::EventLogger* event_logger);
 
  private:
   NearbySharingServiceFactory() = default;
 
   std::unique_ptr<Context> context_;
-  ::nearby::analytics::EventLogger* event_logger_ = nullptr;
   std::unique_ptr<NearbySharingService> nearby_sharing_service_;
 };
 

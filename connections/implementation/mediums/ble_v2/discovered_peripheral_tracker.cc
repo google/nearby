@@ -115,15 +115,14 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
   MutexLock lock(&mutex_);
 
   if (service_id_infos_.empty()) {
-    NEARBY_LOGS(INFO) << "Ignoring BLE advertisement header because we are not "
-                         "tracking any service IDs.";
+    LOG(INFO) << "Ignoring BLE advertisement header because we are not "
+                 "tracking any service IDs.";
     return;
   }
 
   if (!peripheral.IsValid() || advertisement_data.service_data.empty()) {
-    NEARBY_LOGS(INFO)
-        << "Ignoring BLE advertisement header because the peripheral is "
-           "invalid or the given service data is empty.";
+    LOG(INFO) << "Ignoring BLE advertisement header because the peripheral is "
+                 "invalid or the given service data is empty.";
     return;
   }
 
@@ -132,7 +131,7 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
   }
 
   if (IsSkippableGattAdvertisement(advertisement_data)) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Ignore GATT advertisement and wait for extended advertisement.";
     return;
   }
@@ -168,8 +167,8 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
     return false;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": Found OnLost advertisement for hash:"
-                    << absl::BytesToHexString(on_lost_advertisement->ToBytes());
+  LOG(INFO) << __func__ << ": Found OnLost advertisement for hash:"
+            << absl::BytesToHexString(on_lost_advertisement->ToBytes());
 
   for (const auto& hash : on_lost_advertisement->hashes()) {
     for (const auto& it : gatt_advertisement_infos_) {
@@ -177,7 +176,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
           hash) {
         auto discovery_cb_it = service_id_infos_.find(it.second.service_id);
         if (discovery_cb_it == service_id_infos_.end()) {
-          NEARBY_LOGS(INFO)
+          LOG(INFO)
               << __func__
               << ": Discarding OnLost advertisement for untracked service_id";
           break;
@@ -205,9 +204,8 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
                                       gatt_advertisement.GetData(),
                                       gatt_advertisement.IsFastAdvertisement());
             }
-            NEARBY_LOGS(INFO)
-                << __func__ << ": OnLost triggered for service_id "
-                << it.second.service_id;
+            LOG(INFO) << __func__ << ": OnLost triggered for service_id "
+                      << it.second.service_id;
           }
 
           ClearGattAdvertisement(gatt_advertisement);
@@ -221,6 +219,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
 
 void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
   MutexLock lock(&mutex_);
+  int lost_count = 0;
 
   for (auto& it : service_id_infos_) {
     const std::string& service_id = it.first;
@@ -240,11 +239,15 @@ void DiscoveredPeripheralTracker::ProcessLostGattAdvertisements() {
               std::move(lost_peripheral), service_id,
               gatt_advertisement.GetData(),
               gatt_advertisement.IsFastAdvertisement());
+          ++lost_count;
         }
       }
       ClearGattAdvertisement(gatt_advertisement);
     }
   }
+
+  LOG(INFO) << __func__ << ": Lost " << lost_count
+            << " GATT advertisements due to peripheral timeout.";
 }
 
 void DiscoveredPeripheralTracker::ClearDataForServiceId(
@@ -427,9 +430,9 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
       // the client.
       const auto sii_it = service_id_infos_.find(service_id);
       if (sii_it == service_id_infos_.end()) {
-        NEARBY_LOGS(WARNING) << "HandleRawGattAdvertisements, failed to find "
-                                "callback for service_id="
-                             << service_id;
+        LOG(WARNING) << "HandleRawGattAdvertisements, failed to find "
+                        "callback for service_id="
+                     << service_id;
         continue;
       }
       if (peripheral.IsValid()) {
@@ -438,14 +441,21 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
         discovered_peripheral.SetId(ByteArray(gatt_advertisement));
 
         if (IsInstantLostAdvertisement(new_advertisement_header)) {
-          NEARBY_LOGS(INFO)
-              << "Skip the advertisement with hash "
-              << absl::BytesToHexString(
-                     new_advertisement_header.GetAdvertisementHash()
-                         .AsStringView())
-              << " due to it was reported lost.";
+          LOG(INFO) << "Skip the advertisement header with hash "
+                    << absl::BytesToHexString(
+                           new_advertisement_header.GetAdvertisementHash()
+                               .AsStringView())
+                    << " due to it was reported lost.";
           continue;
         }
+
+        LOG(INFO)
+            << "Report new peripheral for the advertisement header with hash "
+            << absl::BytesToHexString(
+                   new_advertisement_header.GetAdvertisementHash()
+                       .AsStringView())
+            << ", IsFastAdvertisement "
+            << gatt_advertisement.IsFastAdvertisement();
         sii_it->second.discovered_peripheral_callback.peripheral_discovered_cb(
             std::move(discovered_peripheral), service_id,
             gatt_advertisement.GetData(),
@@ -475,6 +485,7 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
     gatt_advertisement_infos_.insert_or_assign(
         gatt_advertisement, std::move(gatt_advertisement_info));
   }
+
   // Insert the list of read GATT advertisements for this advertisement
   // header.
   gatt_advertisements_.insert(
@@ -496,7 +507,7 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
     auto gatt_advertisement_status_or =
         BleAdvertisement::CreateBleAdvertisement(*gatt_advertisement_bytes);
     if (!gatt_advertisement_status_or.ok()) {
-      NEARBY_LOGS(INFO) << gatt_advertisement_status_or.status().ToString();
+      VLOG(1) << gatt_advertisement_status_or.status();
       continue;
     }
     auto gatt_advertisement = gatt_advertisement_status_or.value();
@@ -519,12 +530,12 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
         const auto sii_it = service_id_infos_.find(service_id);
         if (sii_it != service_id_infos_.end()) {
           if (sii_it->second.fast_advertisement_service_uuid == service_uuid) {
-            NEARBY_LOGS(INFO)
-                << "This GATT advertisement:"
-                << absl::BytesToHexString(gatt_advertisement_bytes->data())
-                << " is a fast advertisement and matched UUID="
-                << service_uuid.Get16BitAsString()
-                << " in a map with service_id=" << service_id;
+            VLOG(1) << "This GATT advertisement:"
+                    << absl::BytesToHexString(
+                           gatt_advertisement_bytes->AsStringView())
+                    << " is a fast advertisement and matched UUID="
+                    << service_uuid.Get16BitAsString()
+                    << " in a map with service_id=" << service_id;
             parsed_gatt_advertisements.insert({service_id, gatt_advertisement});
           }
         }
@@ -534,10 +545,10 @@ DiscoveredPeripheralTracker::ParseRawGattAdvertisements(
       // Map the service ID to the advertisement if the service_id_hash match.
       if (bleutils::GenerateServiceIdHash(service_id) ==
           gatt_advertisement.GetServiceIdHash()) {
-        NEARBY_LOGS(INFO) << "Matched service_id=" << service_id
-                          << " to GATT advertisement="
-                          << absl::BytesToHexString(
-                                 gatt_advertisement_bytes->data());
+        LOG(INFO) << "Matched service_id=" << service_id
+                  << " to GATT advertisement="
+                  << absl::BytesToHexString(
+                         gatt_advertisement_bytes->AsStringView());
         parsed_gatt_advertisements.insert({service_id, gatt_advertisement});
         break;
       }
@@ -599,18 +610,17 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   BleAdvertisementHeader advertisement_header(
       ExtractAdvertisementHeaderBytes(advertisement_data));
   if (!advertisement_header.IsValid()) {
-    NEARBY_LOGS(INFO)
-        << "Failed to deserialize BLE advertisement header. Ignoring.";
+    VLOG(1) << "Failed to deserialize BLE advertisement header. Ignoring.";
     return;
   }
 
   // Check if the advertisement header contains a service ID we're tracking.
   if (!IsInterestingAdvertisementHeader(advertisement_header)) {
-    NEARBY_VLOG(1) << "Ignoring BLE advertisement header="
-                   << absl::BytesToHexString(
-                          ByteArray(advertisement_header).data())
-                   << " because it does not contain any service IDs "
-                      "we're interested in.";
+    VLOG(1) << "Ignoring BLE advertisement header with hash"
+            << absl::BytesToHexString(
+                   advertisement_header.GetAdvertisementHash().AsStringView())
+            << " because it does not contain any service IDs "
+               "we're interested in.";
     return;
   }
 
@@ -633,14 +643,14 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableGattQueryInThread)) {
-      NEARBY_VLOG(1) << ": Handle GATT advertisement "
-                     << absl::BytesToHexString(
-                            ByteArray(advertisement_header).data())
-                     << " in thread";
+      VLOG(1) << ": Handle GATT advertisement header with hash "
+              << absl::BytesToHexString(
+                     advertisement_header.GetAdvertisementHash().AsStringView())
+              << " in thread";
 
       if (!fetching_advertisements_.insert(advertisement_header).second) {
-        NEARBY_VLOG(1) << ": Ignore the advertisement header due to it "
-                          "is already in fetching.";
+        VLOG(1) << ": Ignore the advertisement header due to it "
+                   "is already in fetching.";
         return;
       }
 
@@ -710,11 +720,11 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
   ByteArray advertisement_header_bytes(advertisement_header);
   const auto it = advertisement_read_results_.find(advertisement_header);
   if (it == advertisement_read_results_.end()) {
-    NEARBY_LOGS(INFO) << "Received advertisement header="
-                      << absl::BytesToHexString(
-                             advertisement_header_bytes.data())
-                      << ", but we have never seen it before. Caller should "
-                         "try reading its GATT advertisement.";
+    LOG(INFO) << "Received advertisement header with hash "
+              << absl::BytesToHexString(
+                     advertisement_header.GetAdvertisementHash().AsStringView())
+              << ", but we have never seen it before. Caller should "
+                 "try reading its GATT advertisement.";
     return true;
   }
 
@@ -724,21 +734,23 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
   // Now evaluate if we should retry reading.
   switch (advertisement_read_result->EvaluateRetryStatus()) {
     case AdvertisementReadResult::RetryStatus::kRetry:
-      NEARBY_LOGS(INFO)
-          << "Received advertisement header="
-          << absl::BytesToHexString(advertisement_header_bytes.data())
+      LOG(INFO)
+          << "Received advertisement header with hash "
+          << absl::BytesToHexString(
+                 advertisement_header.GetAdvertisementHash().AsStringView())
           << ". Caller should retry reading its GATT advertisement.";
       return true;
     case AdvertisementReadResult::RetryStatus::kPreviouslySucceeded:
-      NEARBY_LOGS(INFO) << "Received advertisement header="
-                        << absl::BytesToHexString(
-                               advertisement_header_bytes.data())
-                        << ", but we have already read its GATT advertisement.";
+      VLOG(1) << "Received advertisement header with hash "
+              << absl::BytesToHexString(
+                     advertisement_header.GetAdvertisementHash().AsStringView())
+              << ", but we have already read its GATT advertisement.";
       return false;
     case AdvertisementReadResult::RetryStatus::kTooSoon:
-      NEARBY_LOGS(INFO)
-          << "Received advertisement header="
-          << absl::BytesToHexString(advertisement_header_bytes.data())
+      LOG(INFO)
+          << "Received advertisement header with hash "
+          << absl::BytesToHexString(
+                 advertisement_header.GetAdvertisementHash().AsStringView())
           << ", but we have recently failed to read its GATT advertisement.";
       return false;
     case AdvertisementReadResult::RetryStatus::kUnknown:
@@ -746,11 +758,11 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
       break;
   }
 
-  NEARBY_LOGS(INFO)
-      << "Received advertisement header="
-      << absl::BytesToHexString(advertisement_header_bytes.data())
-      << ", but we do not know whether or not to retry reading "
-         "its GATT advertisement. Caller should retry to be safe.";
+  LOG(INFO) << "Received advertisement header with hash "
+            << absl::BytesToHexString(
+                   advertisement_header.GetAdvertisementHash().AsStringView())
+            << ", but we do not know whether or not to retry reading "
+               "its GATT advertisement. Caller should retry to be safe.";
   return true;
 }
 
@@ -786,9 +798,8 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
   {
     MutexLock lock(&mutex_);
     if (!IsInterestingAdvertisementHeader(advertisement_header)) {
-      NEARBY_LOGS(INFO)
-          << ": Ignore to read raw advertisement from server due to it "
-             "is not interesting header now.";
+      LOG(INFO) << ": Ignore to read raw advertisement from server due to it "
+                   "is not interesting header now.";
       fetching_advertisements_.erase(advertisement_header);
       return;
     }
@@ -807,7 +818,7 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
     // could change during that time. We need to double-check if the result
     // is still valid afterward.
     if (!IsInterestingAdvertisementHeader(advertisement_header)) {
-      NEARBY_LOGS(WARNING)
+      LOG(WARNING)
           << ": Ignore the fetched GATT advertisement from server due to it "
              "is not interesting header now.";
       return;
@@ -829,10 +840,10 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
                                 /*service_uuid=*/{});
     UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
     fetching_advertisements_.erase(advertisement_header);
-    NEARBY_VLOG(1) << ": Completed to handle GATT advertisement "
-                   << absl::BytesToHexString(
-                          ByteArray(advertisement_header).data())
-                   << " in thread";
+    VLOG(1) << ": Completed to handle GATT advertisement header with hash "
+            << absl::BytesToHexString(
+                   advertisement_header.GetAdvertisementHash().AsStringView())
+            << " in thread";
   }
 }
 
@@ -840,9 +851,10 @@ void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(
     const BleAdvertisementHeader& advertisement_header) {
   const auto ga_it = gatt_advertisements_.find(advertisement_header);
   if (ga_it == gatt_advertisements_.end()) {
-    NEARBY_LOGS(INFO)
-        << "No GATT advertisements found for advertisement header="
-        << absl::BytesToHexString(ByteArray(advertisement_header).data());
+    LOG(INFO)
+        << "No GATT advertisements found for advertisement header with hash "
+        << absl::BytesToHexString(
+               advertisement_header.GetAdvertisementHash().AsStringView());
     return;
   }
 
@@ -858,10 +870,10 @@ void DiscoveredPeripheralTracker::UpdateCommonStateForFoundBleAdvertisement(
     if (sii_it != service_id_infos_.end()) {
       auto* lost_entity_tracker = sii_it->second.lost_entity_tracker.get();
       if (!lost_entity_tracker) {
-        NEARBY_LOGS(WARNING) << "UpdateCommonStateForFoundBleAdvertisement, "
-                                "failed to find entity "
-                                "tracker for service_id="
-                             << gatt_advertisement_info.service_id;
+        LOG(WARNING) << "UpdateCommonStateForFoundBleAdvertisement, "
+                        "failed to find entity "
+                        "tracker for service_id="
+                     << gatt_advertisement_info.service_id;
         continue;
       }
       lost_entity_tracker->RecordFoundEntity(gatt_advertisement);
@@ -889,10 +901,9 @@ bool DiscoveredPeripheralTracker::IsInstantLostAdvertisement(
 
 void DiscoveredPeripheralTracker::AddInstantLostAdvertisement(
     const BleAdvertisementHeader& advertisement_header) {
-  NEARBY_LOGS(INFO)
-      << "Add instant lost advertisement "
-      << absl::BytesToHexString(
-             advertisement_header.GetAdvertisementHash().AsStringView());
+  LOG(INFO) << "Add instant lost advertisement header with hash "
+            << absl::BytesToHexString(
+                   advertisement_header.GetAdvertisementHash().AsStringView());
   lost_advertisment_infos_[std::string(
       advertisement_header.GetAdvertisementHash())] =
       SystemClock::ElapsedRealtime();
@@ -907,7 +918,7 @@ void DiscoveredPeripheralTracker::RemoveExpiredInstantLostAdvertisements() {
   auto it = lost_advertisment_infos_.begin(),
        end = lost_advertisment_infos_.end();
 
-  NEARBY_LOGS(INFO) << "Start to remove expired lost advertisements.";
+  LOG(INFO) << "Start to remove expired lost advertisements.";
   int count = 0;
   while (it != end) {
     if (now - it->second >= kInstantLostAdvertisementTimeout) {
@@ -919,7 +930,7 @@ void DiscoveredPeripheralTracker::RemoveExpiredInstantLostAdvertisements() {
   }
 
   last_lost_info_update_time_ = now;
-  NEARBY_LOGS(INFO) << "Removed " << count << " expired lost advertisements.";
+  LOG(INFO) << "Removed " << count << " expired lost advertisements.";
 }
 
 }  // namespace mediums

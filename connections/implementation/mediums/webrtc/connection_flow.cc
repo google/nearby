@@ -18,14 +18,21 @@
 
 #include <iterator>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/time/time.h"
+#include "connections/implementation/mediums/webrtc/data_channel_listener.h"
+#include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
 #include "connections/implementation/mediums/webrtc/session_description_wrapper.h"
 #include "connections/implementation/mediums/webrtc/webrtc_socket_impl.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/data_channel_interface.h"
 #include "webrtc/api/jsep.h"
@@ -118,10 +125,11 @@ using PeerConnectionState =
 
 std::unique_ptr<ConnectionFlow> ConnectionFlow::Create(
     LocalIceCandidateListener local_ice_candidate_listener,
-    DataChannelListener data_channel_listener, WebRtcMedium& webrtc_medium) {
-  auto connection_flow = absl::WrapUnique(
-      new ConnectionFlow(std::move(local_ice_candidate_listener),
-                         std::move(data_channel_listener)));
+    DataChannelListener data_channel_listener,
+    AdapterTypeListener adapter_type_listener, WebRtcMedium& webrtc_medium) {
+  auto connection_flow = absl::WrapUnique(new ConnectionFlow(
+      std::move(local_ice_candidate_listener), std::move(data_channel_listener),
+      std::move(adapter_type_listener)));
   if (connection_flow->InitPeerConnection(webrtc_medium)) {
     return connection_flow;
   }
@@ -131,9 +139,11 @@ std::unique_ptr<ConnectionFlow> ConnectionFlow::Create(
 
 ConnectionFlow::ConnectionFlow(
     LocalIceCandidateListener local_ice_candidate_listener,
-    DataChannelListener data_channel_listener)
+    DataChannelListener data_channel_listener,
+    AdapterTypeListener adapter_type_listener)
     : data_channel_listener_(std::move(data_channel_listener)),
-      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)) {}
+      local_ice_candidate_listener_(std::move(local_ice_candidate_listener)),
+      adapter_type_listener_(std::move(adapter_type_listener)) {}
 
 ConnectionFlow::~ConnectionFlow() {
   NEARBY_LOGS(INFO) << "~ConnectionFlow";
@@ -306,7 +316,7 @@ bool ConnectionFlow::OnRemoteIceCandidatesReceived(
   pc->signaling_thread()->PostTask(
       [this, can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
        candidates = std::move(ice_candidates)]() mutable {
-        // don't run the task if the weak_ptr is no longer valid.
+        // Don't run the task if the weak_ptr is no longer valid.
         if (!can_run_tasks.lock()) {
           return;
         }
@@ -529,7 +539,7 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
   pc->signaling_thread()->PostTask(
       [can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
        task = std::move(runnable)]() mutable {
-        // don't run the task if the weak_ptr is no longer valid.
+        // Don't run the task if the weak_ptr is no longer valid.
         // shared_ptr |can_run_tasks_| is destroyed on the same thread
         // (signaling thread). This guarantees that if the weak_ptr is valid
         // when this task starts, it will stay valid until the task ends.
@@ -563,6 +573,7 @@ ConnectionFlow::GetAndResetPeerConnection() {
   MutexLock lock(&mutex_);
   return std::move(peer_connection_);
 }
+
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby

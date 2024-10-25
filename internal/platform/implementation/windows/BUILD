@@ -53,6 +53,7 @@ cc_library(
         "//internal/platform:logging",
         "//internal/platform:uuid",
         "//internal/platform/implementation:types",
+        "//internal/platform/implementation/windows:string_utils",
         "//internal/platform/implementation/windows/generated:types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -222,6 +223,7 @@ cc_library(
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
+        "//connections:partners",
         "//fastpair:__subpackages__",
         "//internal/platform:__subpackages__",
         "//location/nearby:__subpackages__",

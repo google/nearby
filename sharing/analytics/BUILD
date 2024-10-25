@@ -34,6 +34,8 @@ cc_library(
         "//sharing/proto:enums_cc_proto",
         "//sharing/proto/analytics:sharing_log_cc_proto",
         "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
         "@com_google_protobuf//:protobuf",
         "@com_google_protobuf//:protobuf_lite",
     ],
@@ -55,8 +57,8 @@ cc_test(
         "//sharing/proto/analytics:sharing_log_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
         "@com_google_protobuf//:protobuf",
-        "@com_google_protobuf//:protobuf_lite",
     ],
 )

@@ -1253,6 +1253,16 @@ bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
   }
 }
 
+bool ClientProxy::GetWebRtcNonCellular() { return webrtc_non_cellular_; }
+
+void ClientProxy::SetWebRtcNonCellular(bool webrtc_non_cellular) {
+  std::string allow_webrtc_cellular_str =
+      webrtc_non_cellular ? "disallow" : "allow";
+  NEARBY_LOGS(INFO) << "ClientProxy: client=" << GetClientId()
+                    << allow_webrtc_cellular_str << " to use mobile data.",
+      webrtc_non_cellular_ = webrtc_non_cellular;
+}
+
 std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
   switch (status) {
     case PayloadProgressInfo::Status::kSuccess:

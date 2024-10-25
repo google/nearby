@@ -28,6 +28,7 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connections_manager.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/share_session.h"
@@ -42,7 +43,8 @@ namespace nearby::sharing {
 class IncomingShareSession : public ShareSession {
  public:
   IncomingShareSession(
-      TaskRunner& service_thread,
+      Clock* clock, TaskRunner& service_thread,
+      NearbyConnectionsManager* connections_manager,
       analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
       const ShareTarget& share_target,
       std::function<void(const IncomingShareSession&, const TransferMetadata&)>
@@ -82,7 +84,6 @@ class IncomingShareSession : public ShareSession {
   // Accept the transfer and begin listening for payload transfer updates.
   // Returns false if session is not in a state to accept the transfer.
   bool AcceptTransfer(
-      Clock* clock,
       std::function<void(int64_t, TransferMetadata)> update_callback);
 
   // Returns the file paths of all file payloads.
@@ -106,9 +107,11 @@ class IncomingShareSession : public ShareSession {
   std::pair<bool, bool> PayloadTransferUpdate(
       bool update_file_paths_in_progress, const TransferMetadata& metadata);
 
+  // Called when an incoming connection is established.
+  void OnConnected(NearbyConnection* connection);
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
-  bool OnNewConnection(NearbyConnection* connection) override;
 
  private:
   // Update file attachment paths with payload paths.

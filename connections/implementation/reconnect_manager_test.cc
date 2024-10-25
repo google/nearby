@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -26,6 +27,7 @@
 #include "connections/implementation/simulation_user.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -63,7 +65,7 @@ class ReconnectSimulatorUser : public SimulationUser {
 };
 
 class ReconnectManagerTest
-    : public ::testing::TestWithParam<BooleanMediumSelector> {
+    : public ::testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
  protected:
   bool SetupConnection(ReconnectSimulatorUser& user_a,
                        ReconnectSimulatorUser& user_b) {
@@ -96,9 +98,13 @@ class ReconnectManagerTest
 };
 
 TEST_P(ReconnectManagerTest, AllowReconnect) {
+  FeatureFlags::Flags feature_flags = {
+      .enable_cancellation_flag = std::get<1>(GetParam())};
+  env_.SetFeatureFlags(feature_flags);
   env_.Start();
-  ReconnectSimulatorUser user_a(kDeviceA, GetParam());
-  ReconnectSimulatorUser user_b(kDeviceB, GetParam());
+
+  ReconnectSimulatorUser user_a(kDeviceA, std::get<0>(GetParam()));
+  ReconnectSimulatorUser user_b(kDeviceB, std::get<0>(GetParam()));
   ASSERT_TRUE(SetupConnection(user_a, user_b));
 
   Mediums mediums;
@@ -140,7 +146,8 @@ TEST_P(ReconnectManagerTest, AllowReconnect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedReconnectManagerTest, ReconnectManagerTest,
-                         ::testing::ValuesIn(kTestCases));
+                         ::testing::Combine(::testing::ValuesIn(kTestCases),
+                                            ::testing::Bool()));
 
 // More test will be added later.
 

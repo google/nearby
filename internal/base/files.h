@@ -56,6 +56,11 @@ bool CreateDirectories(const std::filesystem::path& path);
 bool CreateHardLink(const std::filesystem::path& target,
                     const std::filesystem::path& link_path);
 
+// Copies the file at old_path to new_path.
+// Returns true on success.
+bool CopyFileSafely(const std::filesystem::path& old_path,
+                    const std::filesystem::path& new_path);
+
 }  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_

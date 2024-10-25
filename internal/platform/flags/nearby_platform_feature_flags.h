@@ -47,7 +47,7 @@ constexpr auto kWifiHotspotScanMaxRetries =
 
 // The maximum IP check times during Wi-Fi hotspot connection.
 constexpr auto kWifiHotspotCheckIpMaxRetries =
-    flags::Flag<int64_t>(kConfigPackage, "45415884", 10);
+    flags::Flag<int64_t>(kConfigPackage, "45415884", 20);
 
 // The interval between 2 IP check attempts.
 constexpr auto kWifiHotspotCheckIpIntervalMillis =

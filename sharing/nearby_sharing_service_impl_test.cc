@@ -380,6 +380,8 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetBluetoothIsPowered(true);
     SetScreenLocked(false);
     SetConnectionType(ConnectionType::kWifi);
+    analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorder>(
+        /*vendor_id=*/0, /*event_logger=*/nullptr);
 
     service_ = CreateService(std::move(fake_task_runner));
   }
@@ -408,9 +410,9 @@ class NearbySharingServiceImplTest : public testing::Test {
       std::unique_ptr<FakeTaskRunner> task_runner) {
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     return std::make_unique<NearbySharingServiceImpl>(
-        /*vendor_id=*/0, std::move(task_runner), &fake_context_,
-        mock_sharing_platform_,
-        absl::WrapUnique(fake_nearby_connections_manager_));
+        std::move(task_runner), &fake_context_, mock_sharing_platform_,
+        absl::WrapUnique(fake_nearby_connections_manager_),
+        analytics_recorder_.get());
   }
 
   void SetVisibility(DeviceVisibility visibility) {
@@ -630,16 +632,14 @@ class NearbySharingServiceImplTest : public testing::Test {
                 default_instance()
                     .New();
     paired_key_encryption_frame->set_signed_data(
-        is_incoming
-            ? std::string(GetIncomingConnectionSignedData().begin(),
-                          GetIncomingConnectionSignedData().end())
-            : std::string(GetOutgoingConnectionSignedData().begin(),
-                          GetOutgoingConnectionSignedData().end()));
+        is_incoming ? std::string(GetIncomingConnectionSignedData().begin(),
+                                  GetIncomingConnectionSignedData().end())
+                    : std::string(GetOutgoingConnectionSignedData().begin(),
+                                  GetOutgoingConnectionSignedData().end()));
     paired_key_encryption_frame->set_secret_id_hash(
         std::string(GetPrivateCertificateHashAuthToken().begin(),
                     GetPrivateCertificateHashAuthToken().end()));
-    v1_frame->set_allocated_paired_key_encryption(
-        paired_key_encryption_frame);
+    v1_frame->set_allocated_paired_key_encryption(paired_key_encryption_frame);
     std::vector<uint8_t> encryption_bytes(frame.ByteSizeLong());
     frame.SerializeToArray(encryption_bytes.data(), encryption_bytes.size());
 
@@ -661,7 +661,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   std::vector<uint8_t> CreateTestEndpointInfo(uint8_t vendor_id = kVendorId) {
-      std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
+    std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
         GetNearbyShareTestEncryptedMetadataKey().salt(),
         GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
         kDeviceName, vendor_id);
@@ -1014,7 +1014,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   std::vector<uint8_t> CreateInvalidTestEndpointInfo() {
-      std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
+    std::unique_ptr<Advertisement> advertisement = Advertisement::NewInstance(
         GetNearbyShareTestEncryptedMetadataKey().salt(),
         GetNearbyShareTestEncryptedMetadataKey().encrypted_key(), kDeviceType,
         std::nullopt, kVendorId);
@@ -1146,8 +1146,9 @@ class NearbySharingServiceImplTest : public testing::Test {
     EXPECT_TRUE(
         success_notification.WaitForNotificationWithTimeout(kWaitTimeout));
     FlushTesting();
-    EXPECT_FALSE(fake_nearby_connections_manager_->connection_endpoint_info(
-        kEndpointId).has_value());
+    EXPECT_FALSE(
+        fake_nearby_connections_manager_->connection_endpoint_info(kEndpointId)
+            .has_value());
     EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
     // To avoid UAF in OnIncomingTransferUpdate().
@@ -1208,6 +1209,7 @@ class NearbySharingServiceImplTest : public testing::Test {
       nearby_fast_initiation_factory_;
   std::unique_ptr<FakeNearbyConnection> connection_;
   StrictMock<MockAppInfo>* mock_app_info_ = nullptr;
+  std::unique_ptr<analytics::AnalyticsRecorder> analytics_recorder_;
   std::unique_ptr<NearbySharingServiceImpl> service_;
   int expect_transfer_updates_count_ = 0;
   std::function<void()> expect_transfer_updates_callback_;
@@ -1306,9 +1308,7 @@ class TestObserver : public NearbySharingService::Observer {
 
   void OnLanStatusChanged(AdapterState state) override { lan_state_ = state; }
 
-  void OnCredentialError() override {
-    credential_error_called_ = true;
-  }
+  void OnCredentialError() override { credential_error_called_ = true; }
 
   void OnShutdown() override {
     shutdown_called_ = true;
@@ -2555,8 +2555,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
   nearby::sharing::service::proto::FileMetadata* file_metadata =
       introduction_frame->add_file_metadata();
   file_metadata->set_name("name");
-  file_metadata->set_type(
-      nearby::sharing::service::proto::FileMetadata::AUDIO);
+  file_metadata->set_type(nearby::sharing::service::proto::FileMetadata::AUDIO);
   file_metadata->set_payload_id(1);
   file_metadata->set_size(kFreeDiskSpace + 1);
   file_metadata->set_mime_type("mime type");
@@ -2611,8 +2610,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionFileSizeOverflow) {
   nearby::sharing::service::proto::FileMetadata* file_metadata =
       introduction_frame->add_file_metadata();
   file_metadata->set_name("name_1");
-  file_metadata->set_type(
-      nearby::sharing::service::proto::FileMetadata::AUDIO);
+  file_metadata->set_type(nearby::sharing::service::proto::FileMetadata::AUDIO);
   file_metadata->set_payload_id(1);
   file_metadata->set_size(std::numeric_limits<int64_t>::max());
   file_metadata->set_mime_type("mime type");
@@ -3268,11 +3266,10 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedToConnect) {
       DiscoverShareTarget(transfer_callback, discovery_callback);
 
   absl::Notification notification;
-  ExpectTransferUpdates(
-      transfer_callback, target_id,
-      {TransferMetadata::Status::kConnecting,
-       TransferMetadata::Status::kFailed},
-      [&]() { notification.Notify(); });
+  ExpectTransferUpdates(transfer_callback, target_id,
+                        {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kFailed},
+                        [&]() { notification.Notify(); });
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
 
   EXPECT_EQ(SendAttachments(target_id, CreateTextAttachments({kTextPayload})),
@@ -3289,11 +3286,10 @@ TEST_F(NearbySharingServiceImplTest, SendTextFailedKeyVerification) {
       DiscoverShareTarget(transfer_callback, discovery_callback);
 
   absl::Notification notification;
-  ExpectTransferUpdates(
-      transfer_callback, target_id,
-      {TransferMetadata::Status::kConnecting,
-       TransferMetadata::Status::kDeviceAuthenticationFailed},
-      [&]() { notification.Notify(); });
+  ExpectTransferUpdates(transfer_callback, target_id,
+                        {TransferMetadata::Status::kConnecting,
+                         TransferMetadata::Status::kDeviceAuthenticationFailed},
+                        [&]() { notification.Notify(); });
 
   SetUpKeyVerification(/*is_incoming=*/false, PairedKeyResultFrame::FAIL);
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
@@ -4138,6 +4134,131 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
 }
 
 TEST_F(NearbySharingServiceImplTest,
+       OnLostDedupSameEndpointIdBeforeExpiryNoOnShareTargetLost) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      true);
+  // Start discovery.
+  SetConnectionType(ConnectionType::kWifi);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  RegisterSendSurface(&transfer_callback, &discovery_callback,
+                      SendSurfaceState::kForeground);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            1u);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+  {
+    absl::Notification notification;
+    ::testing::InSequence s;
+    ShareTarget share_target_1;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_1));
+    // vendor_id is default to 0.
+    FindEndpoint(/*endpoint_id=*/"1");
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    // Finish processing all the HandleEndpointDiscovered events.
+    FlushTesting();
+
+    // No call to OnShareTargetLost.
+    LoseEndpoint(/*endpoint_id=*/"1");
+
+    // Fastforward to just before the cache expiry time.
+    FastForward(
+        absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+                               config_package_nearby::nearby_sharing_feature::
+                                   kDiscoveryCacheLostExpiryMs) -
+                           10));
+    FindEndpointWithVendorId(
+        /*endpoint_id=*/"1",
+        static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    ShareTarget share_target_2;
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_2 = share_target;
+          notification.Notify();
+        });
+
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/true);
+    EXPECT_EQ(share_target_1.id, share_target_2.id);
+    // Vendor_id updated.
+    EXPECT_EQ(share_target_1.vendor_id, 0);
+    EXPECT_EQ(share_target_2.vendor_id,
+              static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
+  Shutdown();
+  service_.reset();
+}
+
+TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
+      true);
+  // Start discovery.
+  SetConnectionType(ConnectionType::kWifi);
+  MockTransferUpdateCallback transfer_callback;
+  MockShareTargetDiscoveredCallback discovery_callback;
+  RegisterSendSurface(&transfer_callback, &discovery_callback,
+                      SendSurfaceState::kForeground);
+  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
+            1u);
+  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
+  {
+    absl::Notification notification;
+    ::testing::InSequence s;
+    ShareTarget share_target_1;
+
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_1));
+    // vendor_id is default to 0.
+    FindEndpoint(/*endpoint_id=*/"1");
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    // Finish processing all the HandleEndpointDiscovered related events before
+    // fast forwarding to avoid race condition.
+    FlushTesting();
+
+    ShareTarget share_target_1_lost;
+    EXPECT_CALL(discovery_callback, OnShareTargetLost)
+        .WillOnce(SaveArg<0>(&share_target_1_lost));
+    LoseEndpoint(/*endpoint_id=*/"1");
+
+    // Fast forward to after the cache expiry time.
+    FastForward(
+        absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+                               config_package_nearby::nearby_sharing_feature::
+                                   kDiscoveryCacheLostExpiryMs) +
+                           10));
+    FindEndpointWithVendorId(
+        /*endpoint_id=*/"1",
+        static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    ShareTarget share_target_2;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_2 = share_target;
+          notification.Notify();
+        });
+
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/true);
+    EXPECT_EQ(share_target_1_lost.id, share_target_1.id);
+    // Cache entry expires and the share_target ID is not preserved.
+    EXPECT_NE(share_target_1.id, share_target_2.id);
+
+    EXPECT_EQ(share_target_1.vendor_id, 0);
+    EXPECT_EQ(share_target_2.vendor_id,
+              static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  }
+  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
+  Shutdown();
+  service_.reset();
+}
+
+TEST_F(NearbySharingServiceImplTest,
        RetryDiscoveredEndpointsDownloadCertsAndRetryDecryption) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
@@ -4208,6 +4329,12 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
       true);
+  // Make kDiscoveryCacheLostExpiryMs larger than
+  // kCertificateDownloadDuringDiscoveryPeriod (10s).
+  NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      config_package_nearby::nearby_sharing_feature::
+          kDiscoveryCacheLostExpiryMs,
+      20000);  // 20s
   // Start discovery.
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
@@ -4223,50 +4350,61 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   // - Discover endpoint 3 --> decrypts public certificate
   //                       --> De-dup endpoint 1 with endpoint 3
   // - Discover endpoint 4 --> cannot decrypt public certificate
-  // - Lose endpoint 3     --> endpoint 3 is purged from map
+  // - Lose endpoint 3     --> endpoint 3 is added to discovery_cache
   // ----------------------------------------------------------------
   // - Fire certificate download timer --> certificates downloaded
   // - {x|y} can be 2 or 4, as the (Re)discover order is non-deterministic
-  // - (Re)discover endpoints x --> endpoint x is insert into map
+  // - (Re)discover endpoints x before endpoint 3 discovery cache expiry
+  //                            --> De-dup endpoint 3 with endpoint x
   // - (Re)discover endpoints y --> De-dup endpoint x with endpoint y
   {
     absl::Notification notification;
+    ::testing::InSequence s;
     // vendor_id is default to 0.
     FindEndpoint(/*endpoint_id=*/"1");
+    ShareTarget share_target_ep_1;
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
+        .WillOnce(SaveArg<0>(&share_target_ep_1));
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
+                                             /*success=*/true);
+    FlushTesting();
+
     FindInvalidEndpoint(/*endpoint_id=*/"2");
+    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
+                                             /*success=*/false);
+    FlushTesting();
+
     FindEndpointWithVendorId(
         /*endpoint_id=*/"3",
         static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
-    FindInvalidEndpoint(/*endpoint_id=*/"4");
-    LoseEndpoint(/*endpoint_id=*/"3");
-    ::testing::InSequence s;
-    ShareTarget share_target_ep_1;
-    ShareTarget share_target_ep_3;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered(_))
-        .WillOnce(SaveArg<0>(&share_target_ep_1));
-
     // Update endpoint 1 to endpoint 3
+    ShareTarget share_target_ep_3;
     EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
-        .WillOnce(SaveArg<0>(&share_target_ep_3));
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_ep_3 = share_target;
+          notification.Notify();
+        });
 
-    // Lost endpoint 3
-    EXPECT_CALL(discovery_callback, OnShareTargetLost)
-        .WillOnce([&](ShareTarget share_target) { notification.Notify(); });
-
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
-                                             /*success=*/true);
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
-                                             /*success=*/false);
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/3,
                                              /*success=*/true);
+    FlushTesting();
+
+    FindInvalidEndpoint(/*endpoint_id=*/"4");
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/4,
                                              /*success=*/false);
+    FlushTesting();
+
+    LoseEndpoint(/*endpoint_id=*/"3");
+    FlushTesting();
+
     EXPECT_EQ(share_target_ep_1.id, share_target_ep_3.id);
     // Vendor_id updated.
     EXPECT_EQ(share_target_ep_3.vendor_id,
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
+  // kDiscoveryCacheLostExpiryMs is set to be larger than
+  // kCertificateDownloadDuringDiscoveryPeriod so the cache_entry is unexpired.
   FastForward(kCertificateDownloadDuringDiscoveryPeriod);
   EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
             2u);
@@ -4276,7 +4414,8 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   {
     absl::Notification notification;
     ::testing::InSequence s;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered);
+    // Update endpoint 3
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_)).Times(1);
     // One of the re-discovered endpoint updates the other one. The ordering
     // is non-deterministic.
     EXPECT_CALL(discovery_callback, OnShareTargetUpdated)
@@ -4915,7 +5054,8 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   ShareTarget share_target;
   share_target.is_incoming = true;
   IncomingShareSession session(
-      *sharing_service_task_runner_, analytics_recorder, "endpoint_id",
+      fake_context_.fake_clock(), *sharing_service_task_runner_,
+      fake_nearby_connections_manager_, analytics_recorder, "endpoint_id",
       share_target,
       [](const IncomingShareSession&, const TransferMetadata&) {});
   service_->RemoveIncomingPayloads(session);

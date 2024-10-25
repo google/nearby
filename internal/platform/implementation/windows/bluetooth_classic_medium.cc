@@ -509,6 +509,7 @@ bool BluetoothClassicMedium::StartScanning() {
     }
 
     mac_address_to_bluetooth_device_map_.clear();
+    removed_bluetooth_devices_map_.clear();
 
     // The Start method can only be called when the DeviceWatcher is in the
     // Created, Stopped or Aborted state.
@@ -720,7 +721,8 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     observer->DeviceRemoved(*mac_address_to_bluetooth_device_map_[mac_address]);
   }
 
-  mac_address_to_bluetooth_device_map_.erase(mac_address);
+  auto node = mac_address_to_bluetooth_device_map_.extract(mac_address);
+  removed_bluetooth_devices_map_[mac_address] = std::move(node.mapped());
 
   return winrt::fire_and_forget();
 }

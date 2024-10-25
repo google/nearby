@@ -28,7 +28,7 @@
 #include "absl/types/span.h"
 #include "internal/crypto_cros/crypto_export.h"
 
-namespace crypto {
+namespace nearby::crypto {
 
 class SymmetricKey;
 
@@ -105,6 +105,6 @@ class CRYPTO_EXPORT Encryptor {
   std::vector<uint8_t> iv_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_ENCRYPTOR_H_

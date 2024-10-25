@@ -31,7 +31,6 @@ class FakeNearbyShareProfileInfoProvider
 
   // NearbyShareProfileInfoProvider:
   std::optional<std::string> GetGivenName() const override;
-  std::optional<std::string> GetProfileUserName() const override;
 
   void set_given_name(const std::optional<std::string>& given_name) {
     given_name_ = given_name;
@@ -39,7 +38,6 @@ class FakeNearbyShareProfileInfoProvider
 
  private:
   std::optional<std::string> given_name_;
-  std::optional<std::string> profile_user_name_;
 };
 
 }  // namespace sharing

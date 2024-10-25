@@ -137,7 +137,7 @@ class ReconnectManager {
     void OnIncomingConnection(const std::string& reconnect_service_id);
 
    private:
-    bool RehostForIncomingConnections();
+    bool RehostForIncomingConnections(bool is_last_medium);
     bool ReconnectToRemoteDevice();
 
     std::string ReadClientIntroductionFrame(EndpointChannel* endpoint_channel);
@@ -168,8 +168,9 @@ class ReconnectManager {
     void CancelClearHostTimeoutAlarm(const std::string& service_id);
     void ClearReconnectData(const std::string& service_id, bool is_incoming);
 
+    mutable Mutex mutex_;
     std::unique_ptr<CountDownLatch> wait_encryption_to_finish_;
-    bool replace_channel_succeed_;
+    bool replace_channel_succeed_ ABSL_GUARDED_BY(mutex_)= false;
   };
 
   class BluetoothImpl : public BaseMediumImpl {

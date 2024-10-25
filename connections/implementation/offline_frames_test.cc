@@ -610,10 +610,9 @@ TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
       type: AUTO_RECONNECT
       auto_reconnect: <
         event_type: CLIENT_INTRODUCTION_ACK
-        endpoint_id: "ABC"
       >
     >)pb";
-  ByteArray bytes = ForAutoReconnectIntroductionAck(std::string(kEndpointId));
+  ByteArray bytes = ForAutoReconnectIntroductionAck();
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

@@ -28,7 +28,7 @@
 #include "internal/crypto_cros/crypto_export.h"
 #include <openssl/base.h>
 
-namespace crypto {
+namespace nearby::crypto {
 
 // This class exposes the AES-128-CTR-HMAC-SHA256 and AES_256_GCM AEAD. Note
 // that there are two versions of most methods: an historical version based
@@ -89,6 +89,6 @@ class CRYPTO_EXPORT Aead {
   const EVP_AEAD* aead_;
 };
 
-}  // namespace crypto
+}  // namespace nearby::crypto
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_CRYPTO_AEAD_H_

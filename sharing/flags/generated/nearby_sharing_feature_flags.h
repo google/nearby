@@ -76,6 +76,12 @@ constexpr auto kUseGrpcClient =
 // When true, dedup discovered endpoints.
 constexpr auto kApplyEndpointsDedup =
     flags::Flag<bool>(kConfigPackage, "45656298", false);
+// When true, delete the file payload which received unexpectedly.
+constexpr auto kDeleteUnexpectedReceivedFileFix =
+    flags::Flag<bool>(kConfigPackage, "45657036", false);
+// The time in milliseconds a cached entry can be in LOST state.
+constexpr auto kDiscoveryCacheLostExpiryMs =
+    flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
 // Enable/disable QR Code UI
 constexpr auto kEnableQrCodeUi =
     flags::Flag<bool>(kConfigPackage, "45417647", false);
@@ -85,6 +91,12 @@ constexpr auto kShowAdminModeWarning =
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
+// Enable the info banner to display duplicate Quick Share apps.
+constexpr auto kEnableConflictBanner =
+    flags::Flag<bool>(kConfigPackage, "45661130", false);
+// Enable a persistent BETA label.
+constexpr auto kEnableMacosBetaLabel =
+    flags::Flag<bool>(kConfigPackage, "45662570", true);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -101,8 +113,11 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
       {45656298, kApplyEndpointsDedup},
+      {45657036, kDeleteUnexpectedReceivedFileFix},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
+      {45661130, kEnableConflictBanner},
+      {45662570, kEnableMacosBetaLabel},
   };
 }
 
@@ -110,6 +125,7 @@ inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
   return {
       {45632386, kDelayEndpointLossMs},
       {45401358, kLoggingLevel},
+      {45658774, kDiscoveryCacheLostExpiryMs},
   };
 }
 
