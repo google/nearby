@@ -21,8 +21,12 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/linux/preferences_manager.h"
+
+#include "absl/strings/str_cat.h"
+
 #include "internal/platform/implementation/linux/preferences_repository.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/implementation/platform.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 

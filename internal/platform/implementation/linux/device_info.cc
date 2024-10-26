@@ -63,12 +63,11 @@ DeviceInfo::DeviceInfo(sdbus::IConnection &system_bus)
       current_user_session_(std::make_unique<CurrentUserSession>(system_bus_)),
       login_manager_(std::make_unique<LoginManager>(system_bus_)) {}
 
-std::optional<std::u16string> DeviceInfo::GetOsDeviceName() const {
+std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   avahi::Server avahi(system_bus_);
   try {
     std::string hostname = avahi.GetHostNameFqdn();
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    return convert.from_bytes(hostname);
+    return hostname;
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(&avahi, "GetHostNameFqdn", e);
     return std::nullopt;
@@ -94,21 +93,14 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
   }
 }
 
-std::optional<std::u16string> DeviceInfo::GetFullName() const {
+std::optional<std::string> DeviceInfo::GetFullName() const {
   struct passwd *pwd = getpwuid(getuid());
   if (pwd == nullptr) {
     return std::nullopt;
   }
   char *name = strtok(pwd->pw_gecos, ",");
 
-  std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-  return convert.from_bytes(name != nullptr ? name : pwd->pw_gecos);
-}
-
-std::optional<std::string> DeviceInfo::GetProfileUserName() const {
-  char *logname = secure_getenv("LOGNAME");
-  return logname == nullptr ? std::nullopt
-                            : std::optional(std::string(logname));
+  return std::string(name != nullptr ? name : pwd->pw_gecos);
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {

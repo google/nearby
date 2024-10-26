@@ -23,33 +23,33 @@
 #include "device_info.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
-#include "internal/platform/implementation/bluetooth_adapter.h"
+// #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/linux/atomic_boolean.h"
 #include "internal/platform/implementation/linux/atomic_uint32.h"
-#include "internal/platform/implementation/linux/ble_medium.h"
-#include "internal/platform/implementation/linux/ble_v2_medium.h"
-#include "internal/platform/implementation/linux/bluetooth_adapter.h"
-#include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
-#include "internal/platform/implementation/linux/bluez.h"
+// #include "internal/platform/implementation/linux/ble_medium.h"
+// #include "internal/platform/implementation/linux/ble_v2_medium.h"
+// #include "internal/platform/implementation/linux/bluetooth_adapter.h"
+// #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
+// #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/implementation/linux/condition_variable.h"
 #include "internal/platform/implementation/linux/dbus.h"
-#include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
+// #include "internal/platform/implementation/linux/generated/dbus/bluez/adapter_client.h"
 #include "internal/platform/implementation/linux/mutex.h"
 #include "internal/platform/implementation/linux/preferences_manager.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
 #include "internal/platform/implementation/linux/timer.h"
-#include "internal/platform/implementation/linux/wifi_direct.h"
-#include "internal/platform/implementation/linux/wifi_hotspot.h"
+// #include "internal/platform/implementation/linux/wifi_direct.h"
+// #include "internal/platform/implementation/linux/wifi_hotspot.h"
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/submittable_executor.h"
-#include "internal/platform/implementation/wifi_hotspot.h"
+// #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/payload_id.h"
 #include "log_message.h"
@@ -166,43 +166,46 @@ ImplementationPlatform::CreateScheduledExecutor() {
 
 std::unique_ptr<api::BluetoothAdapter>
 ImplementationPlatform::CreateBluetoothAdapter() {
-  auto manager =
-      linux::bluez::BluezObjectManager(linux::getSystemBusConnection());
-  try {
-    auto interfaces = manager.GetManagedObjects();
-    for (auto &[object, properties] : interfaces) {
-      if (properties.count(org::bluez::Adapter1_proxy::INTERFACE_NAME) == 1) {
-        NEARBY_LOGS(INFO) << __func__ << ": found bluetooth adapter " << object;
-        return std::make_unique<linux::BluetoothAdapter>(
-            linux::getSystemBusConnection(), object);
-      }
-    }
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(&manager, "GetManagedObjects", e);
-    return nullptr;
-  }
+  // auto manager =
+  //     linux::bluez::BluezObjectManager(linux::getSystemBusConnection());
+  // try {
+  //   auto interfaces = manager.GetManagedObjects();
+  //   for (auto &[object, properties] : interfaces) {
+  //     if (properties.count(org::bluez::Adapter1_proxy::INTERFACE_NAME) == 1) {
+  //       NEARBY_LOGS(INFO) << __func__ << ": found bluetooth adapter " << object;
+  //       return std::make_unique<linux::BluetoothAdapter>(
+  //           linux::getSystemBusConnection(), object);
+  //     }
+  //   }
+  // } catch (const sdbus::Error &e) {
+  //   DBUS_LOG_METHOD_CALL_ERROR(&manager, "GetManagedObjects", e);
+  //   return nullptr;
+  // }
 
-  NEARBY_LOGS(ERROR) << __func__
-                     << ": couldn't find a bluetooth adapter on this system";
-  return nullptr;
+  // NEARBY_LOGS(ERROR) << __func__
+  //                    << ": couldn't find a bluetooth adapter on this system";
+  return nullptr; //TODO: implement bluetooth adapter
 }
 
 std::unique_ptr<api::BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     BluetoothAdapter &adapter) {
-  return std::make_unique<linux::BluetoothClassicMedium>(
-      linux::getSystemBusConnection(),
-      dynamic_cast<linux::BluetoothAdapter &>(adapter));
+  // return std::make_unique<linux::BluetoothClassicMedium>(
+  //     linux::getSystemBusConnection(),
+  //     dynamic_cast<linux::BluetoothAdapter &>(adapter));
+  return nullptr; //TODO: implement bluetooth classic medium
 }
-
+//
 std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
     BluetoothAdapter &) {
-  return std::make_unique<linux::BleMedium>();
+  return nullptr; //TODO: implement ble medium
+  // return std::make_unique<linux::BleMedium>();
 }
-
+//
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
-  return std::make_unique<linux::BleV2Medium>();
+  // return std::make_unique<linux::BleV2Medium>();
+  return nullptr; //TODO: implement ble_v2 medium
 }
 
 namespace {
@@ -263,32 +266,34 @@ ImplementationPlatform::CreateWifiLanMedium() {
 
 std::unique_ptr<api::WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
-  auto nm =
-      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
-  auto wifiMedium = createWifiMedium(nm);
-
-  if (wifiMedium == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
-    return nullptr;
-  }
-
-  return std::make_unique<linux::NetworkManagerWifiHotspotMedium>(
-      linux::getSystemBusConnection(), nm, std::move(wifiMedium));
+  return nullptr; //TODO: implement wifi hotspot medium
+  // auto nm =
+  //     std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+  // auto wifiMedium = createWifiMedium(nm);
+  //
+  // if (wifiMedium == nullptr) {
+  //   NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
+  //   return nullptr;
+  // }
+  //
+  // return std::make_unique<linux::NetworkManagerWifiHotspotMedium>(
+  //     linux::getSystemBusConnection(), nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::WifiDirectMedium>
 ImplementationPlatform::CreateWifiDirectMedium() {
-  auto nm =
-      std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
-  auto wifiMedium = createWifiMedium(nm);
-
-  if (wifiMedium == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
-    return nullptr;
-  }
-
-  return std::make_unique<linux::NetworkManagerWifiDirectMedium>(
-      linux::getSystemBusConnection(), nm, std::move(wifiMedium));
+  return nullptr; //TODO: implement wifidirect medium
+  // auto nm =
+  //     std::make_shared<linux::NetworkManager>(linux::getSystemBusConnection());
+  // auto wifiMedium = createWifiMedium(nm);
+  //
+  // if (wifiMedium == nullptr) {
+  //   NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
+  //   return nullptr;
+  // }
+//
+//   return std::make_unique<linux::NetworkManagerWifiDirectMedium>(
+//       linux::getSystemBusConnection(), nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {

@@ -29,7 +29,7 @@ Executor::Executor(size_t max_concurrency)
 
 void Executor::Execute(Runnable &&runnable) {
   if (shut_down_) {
-    NEARBY_LOGS(VERBOSE) << "Warning: " << __func__
+    NEARBY_VLOG(1) << "Warning: " << __func__
                          << ": Attempt to execute on a shut down pool.";
     return;
   }

@@ -25,14 +25,14 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
                                const std::string &type,
                                const std::string &domain,
                                const uint32_t &flags) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  NEARBY_VLOG(1) << __func__ << ": " << getObjectPath()
                        << ": Found new item through the ServiceBrowser: "
                        << "interface: " << interface << ", protocol: "
                        << protocol << ", name: '" << name << "', type: '"
                        << type << "', domain: '" << domain
                        << "', flags: " << flags;
   if (flags & kAvahiLookupResultLocal) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Ignoring local service.";
+    NEARBY_VLOG(1) << __func__ << ": Ignoring local service.";
     return;
   }
 
@@ -46,7 +46,7 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
     info.SetServiceName(r_name);
     info.SetIPAddress(r_address);
     info.SetPort(r_port);
-    info.SetServiceType(r_type);
+    info.SetServiceType(r_type + "."); // extra . at the end is required. Otherwise, self generated service type and type returned by avahi wont match
     for (auto &attr : r_txt) {
       auto attr_str = std::string(attr.begin(), attr.end());
       size_t pos = attr_str.find('=');
@@ -67,14 +67,14 @@ void ServiceBrowser::onItemRemove(
     const int32_t &interface, const int32_t &protocol, const std::string &name,
     const std::string &type, const std::string &domain, const uint32_t &flags) {
   // TODO: Can we even resolve removed items?
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  NEARBY_VLOG(1) << __func__ << ": " << getObjectPath()
                        << ": Item removed through the ServiceBrowser: "
                        << "interface: " << interface << ", protocol: "
                        << protocol << ", name: '" << name << "', type: '"
                        << type << "', domain: '" << domain
                        << "', flags: " << flags;
   if (flags & kAvahiLookupResultLocal) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Ignoring local service.";
+    NEARBY_VLOG(1) << __func__ << ": Ignoring local service.";
     return;
   }
 
@@ -111,13 +111,13 @@ void ServiceBrowser::onFailure(const std::string &error) {
 }
 
 void ServiceBrowser::onAllForNow() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  NEARBY_VLOG(1) << __func__ << ": " << getObjectPath()
                        << ": notified via ServiceBrowser that all records have "
                           "been added for now";
 }
 
 void ServiceBrowser::onCacheExhausted() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  NEARBY_VLOG(1) << __func__ << ": " << getObjectPath()
                        << ": notified via ServiceBrowser of cache exhaustion";
 }
 

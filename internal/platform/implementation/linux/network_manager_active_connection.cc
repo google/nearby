@@ -99,7 +99,7 @@ std::vector<std::string> NetworkManagerActiveConnection::GetIP4Addresses() {
 
 std::pair<std::optional<NetworkManagerActiveConnection::ActiveConnectionStateReason>, bool>
 NetworkManagerActiveConnection::WaitForConnection(absl::Duration timeout) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Waiting for an update to "
+  NEARBY_VLOG(1) << __func__ << ": Waiting for an update to "
                        << getObjectPath() << "'s state";
 
   auto state_changed = [this]() {
