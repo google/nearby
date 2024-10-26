@@ -157,7 +157,7 @@ bool WifiLanMedium::StartDiscovery(
         avahi_->ServiceBrowserPrepare(-1,  // AVAHI_IF_UNSPEC
                                       -1,  // AVAHI_PROTO_UNSPED
                                       service_type, std::string(), 0);
-    NEARBY_LOGS(VERBOSE)
+    NEARBY_VLOG(1)
         << __func__
         << ": Created a new org.freedesktop.Avahi.ServiceBrowser object at "
         << browser_object_path;
@@ -177,7 +177,7 @@ bool WifiLanMedium::StartDiscovery(
   service_browsers_mutex_.ReaderUnlock();
 
   try {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Starting service discovery for "
+    NEARBY_VLOG(1) << __func__ << ": Starting service discovery for "
                          << browser->getObjectPath();
     browser->Start();
   } catch (const sdbus::Error &e) {
@@ -211,7 +211,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
+  NEARBY_VLOG(1) << __func__ << ": Connecting to " << ip_address << ":"
                        << port;
   struct sockaddr_in addr;
   addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
@@ -259,7 +259,7 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << "Listening for services on port " << port;
+  NEARBY_VLOG(1) << __func__ << "Listening for services on port " << port;
 
   return std::make_unique<WifiLanServerSocket>(sock, network_manager_,
                                                system_bus_);

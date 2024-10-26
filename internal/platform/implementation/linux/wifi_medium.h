@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <ostream>
+#include "absl/container/flat_hash_map.h"
 
 #include <sdbus-c++/IConnection.h>
 #include <sdbus-c++/ProxyInterfaces.h>
