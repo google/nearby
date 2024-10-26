@@ -25,7 +25,7 @@ cc_library(
         "atomic_boolean.h",
         "atomic_reference.h",
         "atomic_uint32.h",
-        "bluetooth_adapter.h",
+        #        "bluetooth_adapter.h",
         "condition_variable.h",
         "device_info.h",
         "executor.h",
