@@ -39,7 +39,7 @@ namespace nearby {
 namespace linux {
 WifiLanMedium::WifiLanMedium(sdbus::IConnection &system_bus)
     : system_bus_(system_bus),
-      network_manager_(std::make_shared<linux::NetworkManager>(system_bus)),
+      network_manager_(std::make_shared<NetworkManager>(system_bus)),
       avahi_(std::make_shared<avahi::Server>(system_bus)) {}
 
 bool WifiLanMedium::IsNetworkConnected() const {
@@ -103,7 +103,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
 
   try {
     entry_group->AddService(
-        -1,  // AVAHI_IF_UNSPEC
+        -1,  // AVAHI_IF_UNSPEC. This will advertise on all possible interfaces
         -1,  // AVAHI_PROTO_UNSPED
         0, nsd_service_info.GetServiceName(), nsd_service_info.GetServiceType(),
         std::string(), std::string(), nsd_service_info.GetPort(), txt_records);
@@ -142,6 +142,10 @@ bool WifiLanMedium::StartDiscovery(
     const std::string &service_type,
     api::WifiLanMedium::DiscoveredServiceCallback callback) {
   {
+    // set up and start a new service discovery browser
+    // using Avahi's D-Bus API if a browser for the
+    // specified service type doesn't already exist
+
     absl::ReaderMutexLock l(&service_browsers_mutex_);
     if (service_browsers_.count(service_type) != 0) {
       auto &object = service_browsers_[service_type];
@@ -204,6 +208,10 @@ bool WifiLanMedium::StopDiscovery(const std::string &service_type) {
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string &ip_address, int port,
     CancellationFlag *cancellation_flag) {
+  //creates a TCP socket, connects it to a specified
+  //IP address and port, and then wraps the socket’s file descriptor in an
+  //sdbus::UnixFd object to pass it to another component
+
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     NEARBY_LOGS(ERROR) << __func__
@@ -225,7 +233,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
                        << std::strerror(errno);
     return nullptr;
   }
-
+  //creating a unix file descriptor representing the opened socket and passing it on
   sdbus::UnixFd fd(sock);
   return std::make_unique<WifiLanSocket>(std::move(fd));
 }

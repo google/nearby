@@ -26,6 +26,8 @@
 #include "internal/platform/implementation/linux/generated/dbus/avahi/servicebrowser_client.h"
 #include "internal/platform/implementation/wifi_lan.h"
 
+// Registers all the interface proxies to be used
+// All proxy interfaces are pre-generated using their xml definitions using something like sdbus_cpp_xml2cpp
 namespace nearby {
 namespace linux {
 namespace avahi {

@@ -33,7 +33,7 @@
 
 namespace nearby {
 namespace linux {
-
+    // Registering dbus proxy interfaces for getting device info
 class CurrentUserSession final
     : public sdbus::ProxyInterfaces<org::freedesktop::login1::Session_proxy> {
  public:
@@ -116,7 +116,7 @@ class LoginManager final
   void onPrepareForShutdown(const bool &start) override {}
   void onPrepareForSleep(const bool &start) override {}
 };
-
+    // Finished registering dbus proxy interfaces for getting device info
 class DeviceInfo final : public api::DeviceInfo {
  public:
   explicit DeviceInfo(sdbus::IConnection &system_bus);

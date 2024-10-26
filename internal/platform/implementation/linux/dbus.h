@@ -20,6 +20,7 @@
 #include <sdbus-c++/StandardInterfaces.h>
 #include "internal/platform/logging.h"
 
+// dbus error logging
 #define DBUS_LOG_METHOD_CALL_ERROR(p, m, e)                            \
   do {                                                                 \
     NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << (e).getName() \
