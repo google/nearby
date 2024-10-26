@@ -56,3 +56,5 @@ Cargo.lock
 
 # Bazel
 bazel-*
+
+.clwb
