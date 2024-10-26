@@ -913,6 +913,7 @@ message SharingLog {
     optional bool is_timeout = 4;
     optional int32 original_quality = 5;
     optional int32 connection_medium = 6;
+    optional int32 connection_mode = 7;
   }
 
   message RpcCallStatus {
