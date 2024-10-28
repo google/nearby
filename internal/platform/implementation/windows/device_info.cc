@@ -27,7 +27,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Foundation.Collections.h"
@@ -87,48 +86,6 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
 
 api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
-}
-
-std::optional<std::string> DeviceInfo::GetGivenName() const {
-  // FindAllAsync finds all users that are using this app. When we "Switch User"
-  // on Desktop,FindAllAsync() will still return the current user instead of all
-  // of them because the users who are switched out are not using the apps of
-  // the user who is switched in, so FindAllAsync() will not find them. (Under
-  // the UWP application model, each process runs under its own user account.
-  // That user account is different from the user account of the logged-in user.
-  // Processes aren't owned by the logged-in user for purposes of isolation.)
-  IVectorView<User> users =
-      User::FindAllAsync(UserType::LocalUser,
-                         UserAuthenticationStatus::LocallyAuthenticated)
-          .get();
-  if (users == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving locally authenticated user.";
-    return std::nullopt;
-  }
-
-  // On Windows Desktop apps, the first Windows.System.User instance
-  // returned in the IVectorView is always the current user.
-  // https://github.com/microsoft/Windows-task-snippets/blob/master/tasks/User-info.md
-  User current_user = users.GetAt(0);
-
-  // Retrieve the human-readable properties for the current user
-  IAsyncOperation<IInspectable> given_name_obj_async =
-      current_user.GetPropertyAsync(KnownUserProperties::FirstName());
-  IInspectable given_name_obj = given_name_obj_async.get();
-  if (given_name_obj == nullptr) {
-    LOG(ERROR) << __func__ << ": Error retrieving first name of user.";
-    return std::nullopt;
-  }
-  winrt::hstring given_name = given_name_obj.as<winrt::hstring>();
-  std::string given_name_str = winrt::to_string(given_name);
-
-  if (given_name_str.empty()) {
-    LOG(ERROR) << __func__
-               << ": Error unboxing string value for first name of user.";
-    return std::nullopt;
-  }
-
-  return given_name_str;
 }
 
 std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {

@@ -39,11 +39,6 @@ TEST(DeviceInfo, GetOsType) {
   EXPECT_EQ(DeviceInfo().GetOsType(), api::DeviceInfo::OsType::kWindows);
 }
 
-TEST(DeviceInfo, DISABLED_GetGivenName) {
-  EXPECT_TRUE(DeviceInfo().GetGivenName().has_value());
-}
-
-
 TEST(DeviceInfo, DISABLED_GetLocalAppDataPath) {
   EXPECT_TRUE(DeviceInfo().GetLocalAppDataPath().has_value());
 }

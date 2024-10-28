@@ -15,8 +15,10 @@
 #ifndef PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 #define PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
+#include <string>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
@@ -34,7 +36,6 @@ class DeviceInfo : public api::DeviceInfo {
   std::optional<std::string> GetOsDeviceName() const override;
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
-  std::optional<std::string> GetGivenName() const override;
 
   std::optional<std::filesystem::path> GetDownloadPath() const override;
   std::optional<std::filesystem::path> GetLocalAppDataPath() const override;

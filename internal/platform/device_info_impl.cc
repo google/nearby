@@ -43,10 +43,6 @@ api::DeviceInfo::OsType DeviceInfoImpl::GetOsType() const {
   return device_info_impl_->GetOsType();
 }
 
-std::optional<std::string> DeviceInfoImpl::GetGivenName() const {
-  return device_info_impl_->GetGivenName();
-}
-
 std::filesystem::path DeviceInfoImpl::GetDownloadPath() const {
   std::optional<std::filesystem::path> path =
       device_info_impl_->GetDownloadPath();

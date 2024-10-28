@@ -31,7 +31,6 @@
 namespace nearby {
 namespace sharing {
 class NearbyShareClientFactory;
-class NearbyShareProfileInfoProvider;
 
 namespace {
 
@@ -48,10 +47,8 @@ FakeNearbyShareLocalDeviceDataManager::Factory::~Factory() = default;
 
 std::unique_ptr<NearbyShareLocalDeviceDataManager>
 FakeNearbyShareLocalDeviceDataManager::Factory::CreateInstance(
-    nearby::Context* context, SharingRpcClientFactory* rpc_client_factory,
-    NearbyShareProfileInfoProvider* profile_info_provider) {
+    nearby::Context* context, SharingRpcClientFactory* rpc_client_factory) {
   latest_rpc_client_factory_ = rpc_client_factory;
-  latest_profile_info_provider_ = profile_info_provider;
 
   auto instance = std::make_unique<FakeNearbyShareLocalDeviceDataManager>(
       kDefaultDeviceName);

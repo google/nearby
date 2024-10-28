@@ -247,7 +247,6 @@ cc_library(
         "nearby_connections_service.cc",
         "nearby_connections_service_impl.cc",
         "nearby_connections_stream_buffer_manager.cc",
-        "nearby_share_profile_info_provider_impl.cc",
         "nearby_sharing_service.cc",
         "nearby_sharing_service_factory.cc",
         "nearby_sharing_service_impl.cc",
@@ -264,7 +263,6 @@ cc_library(
         "nearby_connections_service.h",
         "nearby_connections_service_impl.h",
         "nearby_connections_stream_buffer_manager.h",
-        "nearby_share_profile_info_provider_impl.h",
         "nearby_sharing_service.h",
         "nearby_sharing_service_extension.h",
         "nearby_sharing_service_factory.h",
@@ -623,19 +621,6 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "nearby_share_profile_info_provider_impl_test",
-    srcs = ["nearby_share_profile_info_provider_impl_test.cc"],
-    deps = [
-        ":nearby_sharing_service",
-        "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
-        "//internal/test",
-        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

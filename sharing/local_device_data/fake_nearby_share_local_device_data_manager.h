@@ -57,21 +57,16 @@ class FakeNearbyShareLocalDeviceDataManager
       return latest_rpc_client_factory_;
     }
 
-    NearbyShareProfileInfoProvider* latest_profile_info_provider() const {
-      return latest_profile_info_provider_;
-    }
-
    protected:
     std::unique_ptr<NearbyShareLocalDeviceDataManager> CreateInstance(
         nearby::Context* context,
-        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory,
-        NearbyShareProfileInfoProvider* profile_info_provider) override;
+        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory)
+        override;
 
    private:
     std::vector<FakeNearbyShareLocalDeviceDataManager*> instances_;
     nearby::sharing::api::SharingRpcClientFactory* latest_rpc_client_factory_ =
         nullptr;
-    NearbyShareProfileInfoProvider* latest_profile_info_provider_ = nullptr;
   };
 
   struct UploadContactsCall {

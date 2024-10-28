@@ -43,14 +43,6 @@ TEST(FakeDeviceInfo, OsType) {
   EXPECT_EQ(device_info.GetOsType(), api::DeviceInfo::OsType::kWindows);
 }
 
-TEST(FakeDeviceInfo, GivenName) {
-  FakeDeviceInfo device_info;
-  device_info.SetGivenName("windows");
-  EXPECT_EQ(device_info.GetGivenName(), "windows");
-  device_info.SetGivenName(std::nullopt);
-  EXPECT_FALSE(device_info.GetGivenName().has_value());
-}
-
 TEST(FakeDeviceInfo, GetDownloadPath) {
   FakeDeviceInfo device_info;
   EXPECT_EQ(device_info.GetDownloadPath(),

@@ -40,10 +40,6 @@ class FakeDeviceInfo : public DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override { return os_type_; }
 
-  std::optional<std::string> GetGivenName() const override {
-    return given_name_;
-  }
-
   std::filesystem::path GetDownloadPath() const override {
     return download_path_;
   }
@@ -96,14 +92,6 @@ class FakeDeviceInfo : public DeviceInfo {
 
   void SetOsType(api::DeviceInfo::OsType os_type) { os_type_ = os_type; }
 
-  void SetGivenName(std::optional<std::string> given_name) {
-    if (given_name.has_value() && !given_name->empty()) {
-      given_name_ = given_name;
-    } else {
-      given_name_ = std::nullopt;
-    }
-  }
-
   void SetDownloadPath(std::filesystem::path path) { download_path_ = path; }
 
   void SetAppDataPath(std::filesystem::path path) { app_data_path_ = path; }
@@ -133,7 +121,6 @@ class FakeDeviceInfo : public DeviceInfo {
   api::DeviceInfo::DeviceType device_type_ =
       api::DeviceInfo::DeviceType::kLaptop;
   api::DeviceInfo::OsType os_type_ = api::DeviceInfo::OsType::kWindows;
-  std::optional<std::string> given_name_ = "Nearby";
   std::filesystem::path download_path_ = std::filesystem::temp_directory_path();
   std::filesystem::path app_data_path_ = std::filesystem::temp_directory_path();
   std::filesystem::path temp_path_ = std::filesystem::temp_directory_path();

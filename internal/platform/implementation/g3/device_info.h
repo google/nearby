@@ -42,10 +42,6 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
-  std::optional<std::string> GetGivenName() const override {
-    return "nearby";
-  }
-
   std::optional<std::filesystem::path> GetDownloadPath() const override {
     return std::filesystem::temp_directory_path();
   }

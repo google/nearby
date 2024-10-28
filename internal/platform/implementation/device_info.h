@@ -15,7 +15,7 @@
 #ifndef PLATFORM_API_DEVICE_INFO_H_
 #define PLATFORM_API_DEVICE_INFO_H_
 
-#include <filesystem>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -44,9 +44,6 @@ class DeviceInfo {
   virtual std::optional<std::string> GetOsDeviceName() const = 0;
   virtual DeviceType GetDeviceType() const = 0;
   virtual OsType GetOsType() const = 0;
-
-  // Gets basic information of current user.
-  virtual std::optional<std::string> GetGivenName() const = 0;
 
   // Gets known paths of current user.
   virtual std::optional<std::filesystem::path> GetDownloadPath() const = 0;

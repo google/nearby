@@ -34,8 +34,6 @@ class DeviceInfo : public api::DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::optional<std::string> GetGivenName() const override;
-
   std::optional<std::filesystem::path> GetDownloadPath() const override;
 
   std::optional<std::filesystem::path> GetLocalAppDataPath() const override;

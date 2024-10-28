@@ -86,7 +86,6 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
-#include "sharing/nearby_share_profile_info_provider_impl.h"
 #include "sharing/nearby_sharing_decoder.h"
 #include "sharing/nearby_sharing_service.h"
 #include "sharing/nearby_sharing_service_extension.h"
@@ -202,14 +201,10 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       nearby_connections_manager_(std::move(nearby_connections_manager)),
       nearby_share_client_factory_(
           sharing_platform.CreateSharingRpcClientFactory(&analytics_recorder_)),
-      profile_info_provider_(
-          std::make_unique<NearbyShareProfileInfoProviderImpl>(
-              device_info_, account_manager_)),
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
               context_, preference_manager_, account_manager_, device_info_,
-              nearby_share_client_factory_.get(),
-              profile_info_provider_.get())),
+              nearby_share_client_factory_.get())),
       contact_manager_(NearbyShareContactManagerImpl::Factory::Create(
           context_, preference_manager_, account_manager_,
           nearby_share_client_factory_.get(),

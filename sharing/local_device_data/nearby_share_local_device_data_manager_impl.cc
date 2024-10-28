@@ -37,7 +37,6 @@
 #include "internal/platform/implementation/device_info.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
-#include "sharing/common/nearby_share_profile_info_provider.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/base/utf_string_conversions.h"
@@ -108,16 +107,14 @@ std::unique_ptr<NearbyShareLocalDeviceDataManager>
 NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
     Context* context, PreferenceManager& preference_manager,
     AccountManager& account_manager, nearby::DeviceInfo& device_info,
-    SharingRpcClientFactory* rpc_client_factory,
-    NearbyShareProfileInfoProvider* profile_info_provider) {
+    SharingRpcClientFactory* rpc_client_factory) {
   if (test_factory_) {
-    return test_factory_->CreateInstance(context, rpc_client_factory,
-                                         profile_info_provider);
+    return test_factory_->CreateInstance(context, rpc_client_factory);
   }
 
   return absl::WrapUnique(new NearbyShareLocalDeviceDataManagerImpl(
       context, preference_manager, account_manager, device_info,
-      rpc_client_factory, profile_info_provider));
+      rpc_client_factory));
 }
 
 // static
@@ -131,12 +128,10 @@ NearbyShareLocalDeviceDataManagerImpl::Factory::~Factory() = default;
 NearbyShareLocalDeviceDataManagerImpl::NearbyShareLocalDeviceDataManagerImpl(
     Context* context, PreferenceManager& preference_manager,
     AccountManager& account_manager, nearby::DeviceInfo& device_info,
-    SharingRpcClientFactory* rpc_client_factory,
-    NearbyShareProfileInfoProvider* profile_info_provider)
+    SharingRpcClientFactory* rpc_client_factory)
     : preference_manager_(preference_manager),
       account_manager_(account_manager),
       device_info_(device_info),
-      profile_info_provider_(profile_info_provider),
       nearby_share_client_(rpc_client_factory->CreateInstance()),
       device_id_(GetId()),
       download_device_data_scheduler_(
@@ -222,17 +217,17 @@ DeviceNameValidationResult NearbyShareLocalDeviceDataManagerImpl::SetDeviceName(
 
 void NearbyShareLocalDeviceDataManagerImpl::DownloadDeviceData() {
   executor_->PostTask([&]() {
-    NL_LOG(INFO) << __func__ << ": started";
+    LOG(INFO) << __func__ << ": started";
     if (!is_running()) {
-      NL_LOG(WARNING) << "DownloadDeviceData: skip to download device data due "
-                         "to manager is stopped.";
+      LOG(WARNING) << "DownloadDeviceData: skip to download device data due "
+                      "to manager is stopped.";
       return;
     }
 
     if (!account_manager_.GetCurrentAccount().has_value()) {
-      NL_LOG(WARNING) << __func__
-                      << ": skip to download device data due "
-                         "to no login account.";
+      LOG(WARNING) << __func__
+                   << ": skip to download device data due "
+                      "to no login account.";
       download_device_data_scheduler_->HandleResult(/*success=*/true);
       return;
     }
@@ -244,17 +239,17 @@ void NearbyShareLocalDeviceDataManagerImpl::DownloadDeviceData() {
         request, [this](const absl::StatusOr<UpdateDeviceResponse>& response) {
           // check whether the manager is running again
           if (!is_running()) {
-            NL_LOG(WARNING)
+            LOG(WARNING)
                 << "DownloadDeviceData: skip to download device data due "
                    "to manager is stopped.";
             return;
           }
 
           if (response.ok()) {
-            NL_LOG(WARNING) << "DownloadDeviceData: Got response from backend.";
+            LOG(WARNING) << "DownloadDeviceData: Got response from backend.";
             HandleUpdateDeviceResponse(*response);
           } else {
-            NL_LOG(WARNING)
+            LOG(WARNING)
                 << "DownloadDeviceData: Failed to get response from backend: "
                 << response.status();
           }
@@ -270,18 +265,18 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
     UploadCompleteCallback callback) {
   executor_->PostTask(
       [&, contacts = std::move(contacts), callback = std::move(callback)]() {
-        NL_LOG(INFO) << __func__ << ": size=" << contacts.size();
+        LOG(INFO) << __func__ << ": size=" << contacts.size();
         if (!is_running()) {
-          NL_LOG(WARNING) << "UploadContacts: skip to upload contacts due "
-                             "to manager is stopped.";
+          LOG(WARNING) << "UploadContacts: skip to upload contacts due "
+                          "to manager is stopped.";
           callback(false);
           return;
         }
 
         if (!account_manager_.GetCurrentAccount().has_value()) {
-          NL_LOG(WARNING) << __func__
-                          << ": skip to upload contacts due "
-                             "to no login account.";
+          LOG(WARNING) << __func__
+                       << ": skip to upload contacts due "
+                          "to no login account.";
           callback(/*success=*/true);
           return;
         }
@@ -297,7 +292,7 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
             request, [callback = std::move(callback)](
                          const absl::StatusOr<UpdateDeviceResponse>& response) {
               if (!response.ok()) {
-                NL_LOG(WARNING)
+                LOG(WARNING)
                     << "UploadContacts: Failed to get response from backend: "
                     << response.status();
               }
@@ -311,19 +306,19 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
     UploadCompleteCallback callback) {
   executor_->PostTask([&, certificates = std::move(certificates),
                        callback = std::move(callback)]() {
-    NL_LOG(INFO) << __func__ << ": Upload " << certificates.size()
-                 << " certificates.";
+    LOG(INFO) << __func__ << ": Upload " << certificates.size()
+              << " certificates.";
     if (!is_running()) {
-      NL_LOG(WARNING) << "UploadContacts: skip to upload certificates due "
-                         "to manager is stopped.";
+      LOG(WARNING) << "UploadContacts: skip to upload certificates due "
+                      "to manager is stopped.";
       callback(false);
       return;
     }
 
     if (!account_manager_.GetCurrentAccount().has_value()) {
-      NL_LOG(WARNING) << __func__
-                      << ": skip to upload certificates due "
-                         "to no login account.";
+      LOG(WARNING) << __func__
+                   << ": skip to upload certificates due "
+                      "to no login account.";
       callback(/*success=*/true);
       return;
     }
@@ -337,17 +332,17 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
         std::string(kCertificatesFieldMaskPath));
     nearby_share_client_->UpdateDevice(
         request, [this, callback = std::move(callback)](
-                    const absl::StatusOr<UpdateDeviceResponse>& response) {
+                     const absl::StatusOr<UpdateDeviceResponse>& response) {
           // check whether the manager is running again
           if (!is_running()) {
-            NL_LOG(WARNING)
+            LOG(WARNING)
                 << "DownloadDeviceData: skip to upload certificates due "
                    "to manager is stopped.";
             callback(false);
             return;
           }
           if (!response.ok()) {
-            NL_LOG(WARNING)
+            LOG(WARNING)
                 << "UploadCertificates: Failed to get response from backend: "
                 << response.status();
           }
@@ -368,27 +363,29 @@ void NearbyShareLocalDeviceDataManagerImpl::OnStop() {
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
     const {
-  std::string device_name = device_info_.GetOsDeviceName();
+  std::optional<AccountManager::Account> account =
+      account_manager_.GetCurrentAccount();
   DeviceInfo::OsType os_type = device_info_.GetOsType();
-  std::string device_type = device_info_.GetDeviceTypeName();
-  std::optional<std::string> given_name =
-      profile_info_provider_->GetGivenName();
 
+  // If not logged in or account has not given name, use machine name instead.
   // For iOS and macOS, the device name is already localized and generally works
   // well for Quick Share purposes (i.e. "Niko's MacBook Pro"), so avoid using
   // the non-localized account name and device type concatenation.
   if (os_type == DeviceInfo::OsType::kMacOS ||
-      os_type == DeviceInfo::OsType::kIos || !given_name.has_value()) {
+      os_type == DeviceInfo::OsType::kIos || !account.has_value() ||
+      account->given_name.empty()) {
+    std::string device_name = device_info_.GetOsDeviceName();
     return GetTruncatedName(device_name, kNearbyShareDeviceNameMaxLength);
   }
-
+  std::string given_name = account->given_name;
+  std::string device_type = device_info_.GetDeviceTypeName();
   uint64_t untruncated_length =
-      absl::Substitute(kDefaultDeviceName, *given_name, device_type).length();
+      absl::Substitute(kDefaultDeviceName, given_name, device_type).length();
   uint64_t overflow_length =
       untruncated_length - kNearbyShareDeviceNameMaxLength;
 
   std::string truncated_name =
-      GetTruncatedName(*given_name, given_name->length() - overflow_length);
+      GetTruncatedName(given_name, given_name.length() - overflow_length);
 
   return absl::Substitute(kDefaultDeviceName, truncated_name, device_type);
 }

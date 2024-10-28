@@ -47,7 +47,6 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/common/nearby_share_profile_info_provider.h"
 #include "sharing/fast_initiation/nearby_fast_initiation.h"
 #include "sharing/incoming_share_session.h"
 #include "sharing/internal/api/app_info.h"
@@ -481,7 +480,6 @@ class NearbySharingServiceImpl
   std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
       nearby_share_client_factory_;
-  std::unique_ptr<NearbyShareProfileInfoProvider> profile_info_provider_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> local_device_data_manager_;
   std::unique_ptr<NearbyShareContactManager> contact_manager_;
   std::unique_ptr<NearbyShareCertificateManager> certificate_manager_;

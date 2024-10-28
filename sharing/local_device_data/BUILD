@@ -79,7 +79,6 @@ cc_test(
         "//internal/test",
         "//sharing/common",
         "//sharing/common:enum",
-        "//sharing/common:test_support",
         "//sharing/internal/api:mock_sharing_platform",
         "//sharing/internal/test:nearby_test",
         "//sharing/proto:share_cc_proto",

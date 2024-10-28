@@ -33,7 +33,6 @@
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "sharing/common/fake_nearby_share_profile_info_provider.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
@@ -130,11 +129,11 @@ class NearbyShareLocalDeviceDataManagerImplTest
     FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
-    profile_info_provider()->set_given_name(kFakeGivenName);
 
     AccountManager::Account account;
     account.id = kTestAccountId;
     account.email = kTestProfileUserName;
+    account.given_name = kFakeGivenName;
     fake_account_manager_.SetAccount(account);
   }
 
@@ -153,7 +152,7 @@ class NearbyShareLocalDeviceDataManagerImplTest
   void CreateManager() {
     manager_ = NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
         &context_, preference_manager_, fake_account_manager_,
-        fake_device_info_, &nearby_client_factory_, &profile_info_provider_);
+        fake_device_info_, &nearby_client_factory_);
     manager_->AddObserver(this);
     ++num_manager_creations_;
     num_download_device_data_ = 0;
@@ -247,9 +246,7 @@ class NearbyShareLocalDeviceDataManagerImplTest
 
   NearbyShareLocalDeviceDataManager* manager() { return manager_.get(); }
 
-  FakeNearbyShareProfileInfoProvider* profile_info_provider() {
-    return &profile_info_provider_;
-  }
+  FakeAccountManager& fake_account_manager() { return fake_account_manager_; }
 
   const std::vector<ObserverNotification>& notifications() {
     return notifications_;
@@ -299,7 +296,6 @@ class NearbyShareLocalDeviceDataManagerImplTest
   size_t num_download_device_data_ = 0;
   std::vector<ObserverNotification> notifications_;
   FakeNearbyShareClientFactory nearby_client_factory_;
-  FakeNearbyShareProfileInfoProvider profile_info_provider_;
   FakeNearbyShareSchedulerFactory scheduler_factory_;
   std::unique_ptr<NearbyShareLocalDeviceDataManager> manager_;
 };
@@ -322,14 +318,15 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, DeviceId) {
 TEST_F(NearbyShareLocalDeviceDataManagerImplTest, DefaultDeviceName) {
   CreateManager();
 
-  // If given name is null, only return the device type.
-  profile_info_provider()->set_given_name(std::nullopt);
+  AccountManager::Account account = *fake_account_manager().GetCurrentAccount();
+  // Clear login account.
+  fake_account_manager().SetAccount(std::nullopt);
   EXPECT_EQ(manager()->GetDeviceName(),
             GetDeviceName());
 
   // Set given name and expect full default device name of the form
   // "<given name>'s <device type>."
-  profile_info_provider()->set_given_name(kFakeGivenName);
+  fake_account_manager().SetAccount(account);
   EXPECT_EQ(absl::Substitute(kDefaultDeviceName,
                              kFakeGivenName,
                              GetDeviceTypeName()),
@@ -337,7 +334,8 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, DefaultDeviceName) {
 
   // Make sure that when we use a given name that is very long we truncate
   // correctly.
-  profile_info_provider()->set_given_name(kFakeTooLongGivenName);
+  account.given_name = kFakeTooLongGivenName;
+  fake_account_manager().SetAccount(account);
   EXPECT_EQ(kNearbyShareDeviceNameMaxLength, manager()->GetDeviceName().size());
 }
 
@@ -356,7 +354,6 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, ValidateDeviceName) {
 TEST_F(NearbyShareLocalDeviceDataManagerImplTest, SetDeviceName) {
   CreateManager();
 
-  profile_info_provider()->set_given_name(kFakeGivenName);
   std::string expected_default_device_name =
       absl::Substitute(kDefaultDeviceName, kFakeGivenName, GetDeviceTypeName());
   EXPECT_EQ(manager()->GetDeviceName(), expected_default_device_name);

@@ -51,16 +51,14 @@ class NearbyShareLocalDeviceDataManagerImpl
         Context* context,
         nearby::sharing::api::PreferenceManager& preference_manager,
         AccountManager& account_manager, nearby::DeviceInfo& device_info,
-        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory,
-        NearbyShareProfileInfoProvider* profile_info_provider);
+        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
     virtual ~Factory();
     virtual std::unique_ptr<NearbyShareLocalDeviceDataManager> CreateInstance(
         Context* context,
-        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory,
-        NearbyShareProfileInfoProvider* profile_info_provider) = 0;
+        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory) = 0;
 
    private:
     static Factory* test_factory_;
@@ -73,8 +71,7 @@ class NearbyShareLocalDeviceDataManagerImpl
       Context* context,
       nearby::sharing::api::PreferenceManager& preference_manager,
       AccountManager& account_manager, nearby::DeviceInfo& device_info,
-      nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory,
-      NearbyShareProfileInfoProvider* profile_info_provider);
+      nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory);
 
   // NearbyShareLocalDeviceDataManager:
   std::string GetId() override;
@@ -108,7 +105,6 @@ class NearbyShareLocalDeviceDataManagerImpl
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
   nearby::DeviceInfo& device_info_;
-  NearbyShareProfileInfoProvider* const profile_info_provider_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
   const std::string device_id_;
   std::unique_ptr<NearbyShareScheduler> download_device_data_scheduler_;
