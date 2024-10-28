@@ -26,6 +26,8 @@ typedef void* NC_INSTANCE;
 
 typedef int64_t NC_PAYLOAD_ID;
 
+typedef void* CALLER_CONTEXT;
+
 // NC_DATA is used to define a byte array. Its last byte is not zero.
 typedef struct NC_DATA {
   int64_t size;
@@ -180,20 +182,24 @@ typedef struct NC_CONNECTION_RESPONSE_INFO {
 
 // Defines callbacks in Nearby Connections.
 
-typedef void (*NcCallbackResult)(NC_STATUS status);
+typedef void (*NcCallbackResult)(NC_STATUS status, CALLER_CONTEXT context);
 
 typedef void (*NcCallbackConnectionInitiated)(
     NC_INSTANCE instance, int endpoint_id,
-    const NC_CONNECTION_RESPONSE_INFO* info);
+    const NC_CONNECTION_RESPONSE_INFO* info, CALLER_CONTEXT context);
 typedef void (*NcCallbackConnectionAccepted)(NC_INSTANCE instance,
-                                             int endpoint_id);
+                                             int endpoint_id,
+                                             CALLER_CONTEXT context);
 typedef void (*NcCallbackConnectionRejected)(NC_INSTANCE instance,
-                                             int endpoint_id, NC_STATUS status);
+                                             int endpoint_id, NC_STATUS status,
+                                             CALLER_CONTEXT context);
 typedef void (*NcCallbackConnectionDisconnected)(NC_INSTANCE instance,
-                                                 int endpoint_id);
+                                                 int endpoint_id,
+                                                 CALLER_CONTEXT context);
 typedef void (*NcCallbackConnectionBandwidthChanged)(NC_INSTANCE instance,
                                                      int endpoint_id,
-                                                     NC_MEDIUM medium);
+                                                     NC_MEDIUM medium,
+                                                     CALLER_CONTEXT context);
 
 typedef struct NC_CONNECTION_REQUEST_INFO {
   NC_DATA endpoint_info;
@@ -207,11 +213,14 @@ typedef struct NC_CONNECTION_REQUEST_INFO {
 typedef void (*NcCallbackDiscoveryEndpointFound)(NC_INSTANCE instance,
                                                  int endpoint_id,
                                                  const NC_DATA* endpoint_info,
-                                                 const NC_DATA* service_id);
+                                                 const NC_DATA* service_id,
+                                                 CALLER_CONTEXT context);
 typedef void (*NcCallbackDiscoveryEndpointLost)(NC_INSTANCE instance,
-                                                int endpoint_id);
+                                                int endpoint_id,
+                                                CALLER_CONTEXT context);
 typedef void (*NcCallbackDiscoveryEndpointDistanceChanged)(
-    NC_INSTANCE instance, int endpoint_id, NC_DISTANCE_INFO info);
+    NC_INSTANCE instance, int endpoint_id, NC_DISTANCE_INFO info,
+    CALLER_CONTEXT context);
 
 typedef struct NC_DISCOVERY_LISTENER {
   NcCallbackDiscoveryEndpointFound endpoint_found_callback;
@@ -224,9 +233,11 @@ typedef struct NC_BYTES_PAYLOAD {
 } NC_BYTES_PAYLOAD;
 
 typedef int (*NcCallbackStreamRead)(NC_INSTANCE stream, char* buffer,
-                                    int64_t size);
-typedef int (*NcCallbackStreamClose)(NC_INSTANCE stream);
-typedef int (*NcCallbackStreamSkip)(NC_INSTANCE stream, int64_t skip);
+                                    int64_t size, CALLER_CONTEXT context);
+typedef int (*NcCallbackStreamClose)(NC_INSTANCE stream,
+                                     CALLER_CONTEXT context);
+typedef int (*NcCallbackStreamSkip)(NC_INSTANCE stream, int64_t skip,
+                                    CALLER_CONTEXT context);
 
 typedef struct NC_STREAM_PAYLOAD {
   NC_INSTANCE stream;
@@ -269,10 +280,11 @@ typedef struct NC_PAYLOAD_PROGRESS_INFO {
 } NC_PAYLOAD_PROGRESS_INFO;
 
 typedef void (*NcCallbackPayloadReceived)(NC_INSTANCE instance, int endpoint_id,
-                                          const NC_PAYLOAD* payload);
+                                          const NC_PAYLOAD* payload,
+                                          CALLER_CONTEXT context);
 typedef void (*NcCallbackPayloadProgressUpdated)(
-    NC_INSTANCE instance, int endpoint_id,
-    const NC_PAYLOAD_PROGRESS_INFO* info);
+    NC_INSTANCE instance, int endpoint_id, const NC_PAYLOAD_PROGRESS_INFO* info,
+    CALLER_CONTEXT context);
 
 typedef struct NC_PAYLOAD_LISTENER {
   NcCallbackPayloadReceived received_callback;

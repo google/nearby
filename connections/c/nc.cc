@@ -27,7 +27,6 @@
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
@@ -100,27 +99,28 @@ NcContext* GetContext(NC_INSTANCE instance) {
 
 ::nearby::connections::ConnectionRequestInfo GetCppConnectionRequestInfo(
     NC_INSTANCE instance,
-    const NC_CONNECTION_REQUEST_INFO& connection_request_info) {
+    const NC_CONNECTION_REQUEST_INFO& connection_request_info,
+    CALLER_CONTEXT context) {
   ::nearby::connections::ConnectionRequestInfo cpp_connection_request_info;
   cpp_connection_request_info.endpoint_info =
       nearby::ByteArray(connection_request_info.endpoint_info.data,
                         connection_request_info.endpoint_info.size);
   ::nearby::connections::ConnectionListener cpp_connection_listener;
   cpp_connection_listener.accepted_cb = [=](const std::string& endpoint_id) {
-    connection_request_info.accepted_callback(instance,
-                                              convertStringToInt(endpoint_id));
+    connection_request_info.accepted_callback(
+        instance, convertStringToInt(endpoint_id), context);
   };
   cpp_connection_listener.bandwidth_changed_cb =
       [=](const std::string& endpoint_id,
           ::nearby::connections::Medium medium) {
         connection_request_info.bandwidth_changed_callback(
             instance, convertStringToInt(endpoint_id),
-            static_cast<NC_MEDIUM>(medium));
+            static_cast<NC_MEDIUM>(medium), context);
       };
   cpp_connection_listener.disconnected_cb =
       [=](const std::string& endpoint_id) {
         connection_request_info.disconnected_callback(
-            instance, convertStringToInt(endpoint_id));
+            instance, convertStringToInt(endpoint_id), context);
       };
   cpp_connection_listener.initiated_cb =
       [=](const std::string& endpoint_id,
@@ -145,7 +145,7 @@ NcContext* GetContext(NC_INSTANCE instance) {
 
         connection_request_info.initiated_callback(
             instance, convertStringToInt(endpoint_id),
-            &connection_response_info);
+            &connection_response_info, context);
       };
 
   cpp_connection_listener.rejected_cb =
@@ -153,7 +153,7 @@ NcContext* GetContext(NC_INSTANCE instance) {
           ::nearby::connections::Status status) {
         connection_request_info.rejected_callback(
             instance, convertStringToInt(endpoint_id),
-            static_cast<NC_STATUS>(status.value));
+            static_cast<NC_STATUS>(status.value), context);
       };
 
   cpp_connection_request_info.listener = std::move(cpp_connection_listener);
@@ -190,15 +190,15 @@ void NcStartAdvertising(
     NC_INSTANCE instance, const NC_DATA* service_id,
     const NC_ADVERTISING_OPTIONS* advertising_options,
     const NC_CONNECTION_REQUEST_INFO* connection_request_info,
-    NcCallbackResult result_callback) {
+    NcCallbackResult result_callback, CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   ::nearby::connections::ConnectionRequestInfo cpp_connection_request_info =
-      GetCppConnectionRequestInfo(instance, *connection_request_info);
+      GetCppConnectionRequestInfo(instance, *connection_request_info, context);
 
   ::nearby::connections::AdvertisingOptions cpp_advertising_options;
   cpp_advertising_options.allowed.ble =
@@ -255,29 +255,30 @@ void NcStartAdvertising(
       std::move(cpp_advertising_options),
       std::move(cpp_connection_request_info),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
-void NcStopAdvertising(NC_INSTANCE instance, NcCallbackResult result_callback) {
+void NcStopAdvertising(NC_INSTANCE instance, NcCallbackResult result_callback,
+                       CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->StopAdvertising([=](::nearby::connections::Status status) {
-    result_callback(static_cast<NC_STATUS>(status.value));
+    result_callback(static_cast<NC_STATUS>(status.value), context);
   });
 }
 
 void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
                       const NC_DISCOVERY_OPTIONS* discovery_options,
                       const NC_DISCOVERY_LISTENER* discovery_listener,
-                      NcCallbackResult result_callback) {
+                      NcCallbackResult result_callback, void* context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
@@ -326,7 +327,7 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
           ::nearby::connections::DistanceInfo info) {
         discovery_listener_copy.endpoint_distance_changed_callback(
             instance, convertStringToInt(endpoint_id),
-            static_cast<NC_DISTANCE_INFO>(info));
+            static_cast<NC_DISTANCE_INFO>(info), context);
       };
   listener.endpoint_found_cb = [=](const std::string& endpoint_id,
                                    const nearby::ByteArray& endpoint_info,
@@ -338,40 +339,42 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
                                .data = (char*)service_id.data()};
     discovery_listener_copy.endpoint_found_callback(
         instance, convertStringToInt(endpoint_id), &endpoint_info_data,
-        &service_id_data);
+        &service_id_data, context);
   };
 
   listener.endpoint_lost_cb = [=](const std::string& endpoint_id) {
     discovery_listener_copy.endpoint_lost_callback(
-        instance, convertStringToInt(endpoint_id));
+        instance, convertStringToInt(endpoint_id), context);
   };
   nc_context->core->StartDiscovery(
       std::string(service_id->data, service_id->size),
       std::move(cpp_discovery_options), std::move(listener),
-      [result_callback =
-           std::move(result_callback)](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+      [result_callback = std::move(result_callback),
+       context](::nearby::connections::Status status) {
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
-void NcStopDiscovery(NC_INSTANCE instance, NcCallbackResult result_callback) {
+void NcStopDiscovery(NC_INSTANCE instance, NcCallbackResult result_callback,
+                     CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->StopDiscovery([=](::nearby::connections::Status status) {
-    result_callback(static_cast<NC_STATUS>(status.value));
+    result_callback(static_cast<NC_STATUS>(status.value), context);
   });
 }
 
 void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
                       const NC_OUT_OF_BAND_CONNECTION_METADATA* metadata,
-                      NcCallbackResult result_callback) {
+                      NcCallbackResult result_callback,
+                      CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
@@ -391,7 +394,7 @@ void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
       std::string(service_id->data, service_id->size),
       cpp_out_of_band_connection_metadata,
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
@@ -399,15 +402,15 @@ void NcRequestConnection(
     NC_INSTANCE instance, int endpoint_id,
     const NC_CONNECTION_REQUEST_INFO* connection_request_info,
     const NC_CONNECTION_OPTIONS* connection_options,
-    NcCallbackResult result_callback) {
+    NcCallbackResult result_callback, CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   ::nearby::connections::ConnectionRequestInfo cpp_connection_request_info =
-      GetCppConnectionRequestInfo(instance, *connection_request_info);
+      GetCppConnectionRequestInfo(instance, *connection_request_info, context);
 
   ::nearby::connections::ConnectionOptions cpp_connection_options;
   cpp_connection_options.allowed.ble =
@@ -458,16 +461,17 @@ void NcRequestConnection(
       convertIntToString(endpoint_id), std::move(cpp_connection_request_info),
       std::move(cpp_connection_options),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
 void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
                         NC_PAYLOAD_LISTENER payload_listener,
-                        NcCallbackResult result_callback) {
+                        NcCallbackResult result_callback,
+                        CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
@@ -495,7 +499,7 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
         }
 
         payload_listener.received_callback(
-            instance, convertStringToInt(endpoint_id), &nc_payload);
+            instance, convertStringToInt(endpoint_id), &nc_payload, context);
       };
 
   cpp_payload_listener.payload_progress_cb =
@@ -509,37 +513,38 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
             static_cast<NC_PAYLOAD_PROGRESS_INFO_STATUS>(progress.status);
         payload_listener.progress_updated_callback(
             instance, convertStringToInt(endpoint_id),
-            &nc_payload_progress_info);
+            &nc_payload_progress_info, context);
       };
 
   nc_context->core->AcceptConnection(
       convertIntToString(endpoint_id), std::move(cpp_payload_listener),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
 void NcRejectConnection(NC_INSTANCE instance, int endpoint_id,
-                        NcCallbackResult result_callback) {
+                        NcCallbackResult result_callback,
+                        CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->RejectConnection(
       convertIntToString(endpoint_id),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
 void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
                    const int* endpoint_ids, const NC_PAYLOAD* payload,
-                   NcCallbackResult result_callback) {
+                   NcCallbackResult result_callback, CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
@@ -576,64 +581,66 @@ void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
   nc_context->core->SendPayload(
       endpoint_ids_span, std::move(cpp_payload),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
 void NcCancelPayload(NC_INSTANCE instance, NC_PAYLOAD_ID payload_id,
-                     NcCallbackResult result_callback) {
+                     NcCallbackResult result_callback, CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->CancelPayload(
       payload_id, [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
 void NcDisconnectFromEndpoint(NC_INSTANCE instance, int endpoint_id,
-                              NcCallbackResult result_callback) {
+                              NcCallbackResult result_callback,
+                              CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->DisconnectFromEndpoint(
       convertIntToString(endpoint_id),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
-void NcStopAllEndpoints(NC_INSTANCE instance,
-                        NcCallbackResult result_callback) {
+void NcStopAllEndpoints(NC_INSTANCE instance, NcCallbackResult result_callback,
+                        CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->StopAllEndpoints([=](::nearby::connections::Status status) {
-    result_callback(static_cast<NC_STATUS>(status.value));
+    result_callback(static_cast<NC_STATUS>(status.value), context);
   });
 }
 
 void NcInitiateBandwidthUpgrade(NC_INSTANCE instance, int endpoint_id,
-                                NcCallbackResult result_callback) {
+                                NcCallbackResult result_callback,
+                                CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->InitiateBandwidthUpgrade(
       convertIntToString(endpoint_id),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
 
@@ -648,25 +655,26 @@ int NcGetLocalEndpointId(NC_INSTANCE instance) {
 }
 
 void NcEnableBleV2(NC_INSTANCE instance, bool enable,
-                   NcCallbackResult result_callback) {
+                   NcCallbackResult result_callback, CALLER_CONTEXT context) {
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableBleV2,
       enable);
-  result_callback(NC_STATUS_SUCCESS);
+  result_callback(NC_STATUS_SUCCESS, context);
 }
 
 void NcSetCustomSavePath(NC_INSTANCE instance, const NC_DATA* save_path,
-                         NcCallbackResult result_callback) {
+                         NcCallbackResult result_callback,
+                         CALLER_CONTEXT context) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    result_callback(NC_STATUS_ERROR);
+    result_callback(NC_STATUS_ERROR, context);
     return;
   }
 
   nc_context->core->SetCustomSavePath(
       std::string(save_path->data, save_path->size),
       [=](::nearby::connections::Status status) {
-        result_callback(static_cast<NC_STATUS>(status.value));
+        result_callback(static_cast<NC_STATUS>(status.value), context);
       });
 }
