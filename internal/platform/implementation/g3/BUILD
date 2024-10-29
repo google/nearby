@@ -135,6 +135,7 @@ cc_library(
     defines = ["NO_WEBRTC"],
     visibility = [
         "//connections:__subpackages__",
+        "//connections:partners",
         "//fastpair:__subpackages__",
         "//internal/account:__subpackages__",
         "//internal/auth:__subpackages__",
