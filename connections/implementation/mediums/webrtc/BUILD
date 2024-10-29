@@ -68,7 +68,6 @@ cc_library(
         "//connections:core_types",
         "//internal/platform:base",
         "//internal/platform:types",
-        # TODO: Support WebRTC
     ],
 )
 

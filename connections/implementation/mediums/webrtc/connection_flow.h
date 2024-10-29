@@ -86,12 +86,9 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
     kEnded,
   };
 
-  // The listener that notifies the AdapterType has been changed.
-  // TODO(edwinwu): replace param |int| to |rtc::AdapterType| once OSS supports
-  // WebRtc.
   struct AdapterTypeListener {
-    absl::AnyInvocable<void(/*rtc::AdapterType*/ int adapter_type)>
-        adapter_type_changed_cb = DefaultCallback</*rtc::AdapterType*/ int>();
+    absl::AnyInvocable<void(rtc::AdapterType adapter_type)>
+        adapter_type_changed_cb = DefaultCallback<rtc::AdapterType>();
   };
 
   // This method blocks on the creation of the peer connection object.
@@ -149,9 +146,8 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   void OnConnectionChange(
       webrtc::PeerConnectionInterface::PeerConnectionState new_state) override;
   void OnRenegotiationNeeded() override;
-  // TODO(edwinwu): Implement once OSS supports WebRtc.
-  // void OnIceSelectedCandidatePairChanged(
-  //     const cricket::CandidatePairChangeEvent& event) override;
+  void OnIceSelectedCandidatePairChanged(
+      const cricket::CandidatePairChangeEvent& event) override;
 
   // Public because it's used in tests too.
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> GetPeerConnection();

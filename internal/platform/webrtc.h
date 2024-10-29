@@ -90,9 +90,10 @@ class WebRtcMedium {
                             PeerConnectionCallback callback) {
     if (FeatureFlags::GetInstance()
             .GetFlags()
-            .support_web_rtc_non_cellular_medium) {
-      // TODO(edwinwu): Add support for non-cellular networks.
-      impl_->CreatePeerConnection(std::nullopt, observer, std::move(callback));
+            .support_web_rtc_non_cellular_medium && non_cellular_) {
+      std::optional<webrtc::PeerConnectionFactoryInterface::Options> options;
+      options->network_ignore_mask |= rtc::ADAPTER_TYPE_CELLULAR;
+      impl_->CreatePeerConnection(options, observer, std::move(callback));
     } else {
       impl_->CreatePeerConnection(observer, std::move(callback));
     }

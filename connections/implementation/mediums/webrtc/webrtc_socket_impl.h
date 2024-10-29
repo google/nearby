@@ -31,7 +31,6 @@
 #include "internal/platform/output_stream.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/socket.h"
-#include "webrtc/api/data_channel_interface.h"
 
 namespace nearby {
 namespace connections {

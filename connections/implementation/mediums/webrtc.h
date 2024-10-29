@@ -235,7 +235,7 @@ class WebRtc {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
-  void AdapterTypeChangedHandler(/*rtc::AdapterType*/ int adapter_type)
+  void AdapterTypeChangedHandler(rtc::AdapterType adapter_type)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   void OffloadFromThread(const std::string& name, Runnable runnable);

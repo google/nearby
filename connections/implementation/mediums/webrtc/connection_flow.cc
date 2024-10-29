@@ -485,6 +485,16 @@ void ConnectionFlow::OnRenegotiationNeeded() {
   CHECK(IsRunningOnSignalingThread());
 }
 
+void ConnectionFlow::OnIceSelectedCandidatePairChanged(
+    const cricket::CandidatePairChangeEvent& event) {
+  NEARBY_LOGS(INFO) << "OnIceSelectedCandidatePairChanged";
+  CHECK(IsRunningOnSignalingThread());
+  // TODO(edwinwu) - Implement the unit test for this. We should be able to get
+  // the adapter type from the PeerConnection.
+  adapter_type_listener_.adapter_type_changed_cb(
+      event.selected_candidate_pair.local_candidate().network_type());
+}
+
 bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   CHECK(IsRunningOnSignalingThread());
   if (current_state != state_) {
