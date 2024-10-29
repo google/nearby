@@ -20,7 +20,6 @@ proto_library(
     name = "credential_proto",
     srcs = ["credential.proto"],
     visibility = [
-        "//google/internal/location/nearby/sharing/v1:__pkg__",
         "//location/nearby/presence/proto:__pkg__",
         "//location/nearby/sharing/proto:__pkg__",
     ],
