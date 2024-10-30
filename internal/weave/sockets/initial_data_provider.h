@@ -15,12 +15,11 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_WEAVE_SOCKETS_INITIAL_DATA_PROVIDER_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_WEAVE_SOCKETS_INITIAL_DATA_PROVIDER_H_
 
-#include <cmath>
 #include <cstdint>
 #include <string>
 
 #include "absl/random/random.h"
-#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 
 namespace nearby {
 namespace weave {
@@ -37,8 +36,8 @@ class RandomDataProvider : public InitialDataProvider {
       : number_of_bytes_(number_of_bytes) {}
   std::string Provide() override {
     uint64_t res = absl::uniform_int_distribution<uint64_t>(
-        1, pow(10, static_cast<double>(number_of_bytes_)))(prng_);
-    return absl::StrCat(res);
+        1, 1 << (number_of_bytes_ * 8))(prng_);
+    return absl::StrFormat("%0*x", number_of_bytes_, res);
   }
 
  private:

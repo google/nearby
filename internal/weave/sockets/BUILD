@@ -27,9 +27,11 @@ cc_library(
     deps = [
         "//internal/platform:types",
         "//internal/weave",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
     ],
 )
 

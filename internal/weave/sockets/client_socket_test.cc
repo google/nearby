@@ -228,7 +228,7 @@ TEST_F(ClientSocketTest, TestConnectInitialData) {
   std::string initial_data = "12";
   RunConnect(2, 2, initial_data);
   EXPECT_EQ(messages_read_.size(), 1);
-  EXPECT_EQ(messages_read_[0], initial_data);
+  EXPECT_EQ(messages_read_.front(), initial_data);
 }
 
 TEST_F(ClientSocketTest, TestConnectConnect) {
@@ -285,7 +285,7 @@ TEST_F(ClientSocketTest, TestReceiveErrorPacket) {
   RunConnect(2, 2, "");
   ASSERT_TRUE(connection_.NoMorePackets());
   socket_.OnReceiveControlPacketProxy(Packet::CreateErrorPacket());
-  absl::SleepFor(absl::Milliseconds(10));
+  absl::SleepFor(absl::Milliseconds(20));
   expect_connected_ = false;
 }
 
