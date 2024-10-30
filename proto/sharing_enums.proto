@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 71
+// Next id: 72
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -305,6 +305,10 @@ enum EventType {
 
   // A QR code sharing session has started
   START_QR_CODE_SESSION = 70;
+
+  // A QR code URL has been opened in a web client/browser instead of in a
+  // native Quick Share app.
+  QR_CODE_OPENED_IN_WEB_CLIENT = 71;
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)
 }
