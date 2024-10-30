@@ -27,6 +27,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/throughput_recorder.h"
 #include "connections/implementation/client_proxy.h"
@@ -57,6 +58,10 @@ using ::location::nearby::proto::connections::PayloadStatus;
 using ::nearby::analytics::PacketMetaData;
 using ::nearby::analytics::ThroughputRecorderContainer;
 using ::nearby::connections::PayloadDirection;
+
+namespace {
+constexpr absl::Duration kMinTransferUpdateInterval = absl::Milliseconds(50);
+}
 
 // C++14 requires to declare this.
 // TODO(apolyudov): remove when migration to c++17 is possible.
@@ -1083,17 +1088,32 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
                     kEnablePayloadManagerToSkipChunkUpdate)) {
           MutexLock lock(&chunk_update_mutex_);
           --outgoing_chunk_update_count_;
-          if (outgoing_chunk_update_count_ > 0 && payload_header.has_type() &&
+          if (payload_header.has_type() &&
               payload_header.type() ==
                   PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
                       FILE) {
-            if (!is_last_chunk && payload_chunk_offset != 0) {
-              LOG(INFO) << "Skip the outgoing chunk update with offset="
-                        << payload_chunk_offset;
+            if (outgoing_chunk_update_count_ > 0 && !is_last_chunk &&
+                payload_chunk_offset != 0) {
+              VLOG(1) << "Skip the outgoing chunk update with offset="
+                      << payload_chunk_offset;
               client->GetAnalyticsRecorder().OnPayloadChunkSent(
                   endpoint_id, payload_header.id(), payload_chunk_body_size);
               return;
             }
+
+            absl::Time current_time = absl::Now();
+            if (!is_last_chunk && payload_chunk_offset != 0 &&
+                current_time - last_outgoing_chunk_update_time_ <
+                    kMinTransferUpdateInterval) {
+              VLOG(1) << "Skip the outgoing chunk update with offset="
+                      << payload_chunk_offset
+                      << " because it's too close to the previous update.";
+              client->GetAnalyticsRecorder().OnPayloadChunkSent(
+                  endpoint_id, payload_header.id(), payload_chunk_body_size);
+              return;
+            }
+
+            last_outgoing_chunk_update_time_ = current_time;
           }
         }
 
@@ -1166,17 +1186,32 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
                     kEnablePayloadManagerToSkipChunkUpdate)) {
           MutexLock lock(&chunk_update_mutex_);
           --incoming_chunk_update_count_;
-          if (incoming_chunk_update_count_ > 0 && payload_header.has_type() &&
+          if (payload_header.has_type() &&
               payload_header.type() ==
                   PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
                       FILE) {
-            if (!is_last_chunk && payload_chunk_offset != 0) {
-              LOG(INFO) << "Skip the incoming chunk update with offset="
-                        << payload_chunk_offset;
+            if (incoming_chunk_update_count_ > 0 && !is_last_chunk &&
+                payload_chunk_offset != 0) {
+              VLOG(1) << "Skip the incoming chunk update with offset="
+                      << payload_chunk_offset;
               client->GetAnalyticsRecorder().OnPayloadChunkReceived(
                   endpoint_id, payload_header.id(), payload_chunk_body_size);
               return;
             }
+
+            absl::Time current_time = absl::Now();
+            if (!is_last_chunk && payload_chunk_offset != 0 &&
+                current_time - last_incoming_chunk_update_time_ <
+                    kMinTransferUpdateInterval) {
+              VLOG(1) << "Skip the incoming chunk update with offset="
+                      << payload_chunk_offset
+                      << " because it's too close to the previous update.";
+              client->GetAnalyticsRecorder().OnPayloadChunkSent(
+                  endpoint_id, payload_header.id(), payload_chunk_body_size);
+              return;
+            }
+
+            last_incoming_chunk_update_time_ = current_time;
           }
         }
 

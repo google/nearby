@@ -23,8 +23,10 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/time/time.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_manager.h"
@@ -333,9 +335,10 @@ class PayloadManager : public EndpointManager::FrameProcessor {
       std::int64_t num_bytes_successfully_transferred,
       PayloadTransferFrame::ControlMessage::EventType event_type);
 
-  void SendPayloadReceivedAck(
-      ClientProxy* client, PendingPayload& pending_payload,
-      const std::string& endpoint_id, bool is_last_chunk);
+  void SendPayloadReceivedAck(ClientProxy* client,
+                              PendingPayload& pending_payload,
+                              const std::string& endpoint_id,
+                              bool is_last_chunk);
 
   bool WaitForReceivedAck(
       ClientProxy* client, const std::string& endpoint_id,
@@ -380,7 +383,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                             const std::string& from_endpoint_id,
                             PayloadTransferFrame& payload_transfer_frame);
   void ProcessPayloadAckPacket(const std::string& from_endpoint_id,
-                            PayloadTransferFrame& payload_transfer_frame);
+                               PayloadTransferFrame& payload_transfer_frame);
 
   void NotifyClientOfIncomingPayloadProgressInfo(
       ClientProxy* client, const std::string& endpoint_id,
@@ -434,7 +437,11 @@ class PayloadManager : public EndpointManager::FrameProcessor {
   // non-important callbacks during file transfer.
   mutable Mutex chunk_update_mutex_;
   int outgoing_chunk_update_count_ ABSL_GUARDED_BY(chunk_update_mutex_) = 0;
+  absl::Time last_outgoing_chunk_update_time_
+      ABSL_GUARDED_BY(chunk_update_mutex_) = absl::InfinitePast();
   int incoming_chunk_update_count_ ABSL_GUARDED_BY(chunk_update_mutex_) = 0;
+  absl::Time last_incoming_chunk_update_time_
+      ABSL_GUARDED_BY(chunk_update_mutex_) = absl::InfinitePast();
 };
 
 }  // namespace connections
