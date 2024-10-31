@@ -18,6 +18,7 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
 # Placeholder: load py_proto_library
+load("//third_party/protobuf/bazel:java_mutable_proto_library.bzl", "java_mutable_proto_library")
 
 licenses(["notice"])
 
@@ -75,5 +76,10 @@ cc_proto_library(
 
 java_proto_library(
     name = "sharing_enums_java_proto",
+    deps = [":sharing_enums_proto"],
+)
+
+java_mutable_proto_library(
+    name = "sharing_enums_java_proto_mutable",
     deps = [":sharing_enums_proto"],
 )
