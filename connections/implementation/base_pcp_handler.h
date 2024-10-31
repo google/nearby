@@ -647,6 +647,7 @@ class BasePcpHandler : public PcpHandler,
   void OptionsAllowed(const BooleanMediumSelector& allowed,
                       std::ostringstream& result) const;
 
+  AtomicBoolean closed_{false};
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor serial_executor_;
   Mutex discovered_endpoint_mutex_;
@@ -682,7 +683,6 @@ class BasePcpHandler : public PcpHandler,
   Strategy strategy_{PcpToStrategy(pcp_)};
   EncryptionRunner encryption_runner_;
   BwuManager* bwu_manager_;
-  AtomicBoolean closed_{false};
 };
 
 }  // namespace connections

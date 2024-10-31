@@ -191,6 +191,7 @@ bool BluetoothClassicMedium::StopDiscovery() {
 
   if (IsWatcherStarted()) {
     result = StopScanning();
+    discovery_callback_ = {};
   }
 
   return result;
@@ -659,8 +660,10 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
       LOG(INFO) << "Updated device name:"
                 << mac_address_to_bluetooth_device_map_[mac_address]->GetName();
 
-      discovery_callback_.device_name_changed_cb(
-          *mac_address_to_bluetooth_device_map_[mac_address]);
+      if (discovery_callback_.device_name_changed_cb != nullptr) {
+        discovery_callback_.device_name_changed_cb(
+            *mac_address_to_bluetooth_device_map_[mac_address]);
+      }
     }
   }
 

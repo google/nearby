@@ -75,6 +75,9 @@ class BluetoothClassic {
   // if it is the last call to stop discovery, will disable BT discovery mode.
   bool StopDiscovery(const std::string& serviceId) ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Stops BT discovery for all services.
+  void StopAllDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Starts a worker thread, creates a BT server socket, associates it with a
   // service ID; in a worker thread repeatedly calls ServerSocket::Accept().
   // Any connected sockets returned from Accept() are passed to a callback.
@@ -177,8 +180,6 @@ class BluetoothClassic {
   bool IsDiscoveringLocked(const std::string& serviceId) const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  void StopAllDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
-
   // Establishes connection to BT service that was might be started on another
   // device with StartAcceptingConnections() using the same service_id.
   // Blocks until connection is established, or server-side is terminated.
@@ -234,12 +235,10 @@ class BluetoothClassic {
 
   // Whether the multiplex feature is enabled.
   bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplex);
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
 
   // A map of Bluetooth MacAddress -> MultiplexSocket.
-  absl::flat_hash_map<std::string,
-                      mediums::multiplex::MultiplexSocket*>
+  absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
       multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 

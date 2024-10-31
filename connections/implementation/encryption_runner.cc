@@ -31,6 +31,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -356,12 +357,7 @@ class ClientRunnable final {
 
 }  // namespace
 
-EncryptionRunner::~EncryptionRunner() {
-  // Stop all the ongoing Runnables (as gracefully as possible).
-  client_executor_.Shutdown();
-  server_executor_.Shutdown();
-  alarm_executor_.Shutdown();
-}
+EncryptionRunner::~EncryptionRunner() { Shutdown(); }
 
 void EncryptionRunner::StartServer(ClientProxy* client,
                                    const std::string& endpoint_id,
@@ -379,6 +375,17 @@ void EncryptionRunner::StartClient(ClientProxy* client,
   ClientRunnable runnable(client, &alarm_executor_, endpoint_id,
                           endpoint_channel, std::move(listener));
   client_executor_.Execute("encryption-client", std::move(runnable));
+}
+
+void EncryptionRunner::Shutdown() {
+  if (is_stopped_.Set(true)) {
+    return;
+  }
+
+  // Stop all the ongoing Runnables (as gracefully as possible).
+  client_executor_.Shutdown();
+  server_executor_.Shutdown();
+  alarm_executor_.Shutdown();
 }
 
 void EncryptionRunner::ResultListener::CallSuccessCallback(

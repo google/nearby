@@ -136,6 +136,12 @@ void BasePcpHandler::Shutdown() {
   // Stop all the ongoing Runnables (as gracefully as possible).
   NEARBY_LOGS(INFO) << "BasePcpHandler(" << strategy_.GetName()
                     << ") is bringing down executors.";
+
+  encryption_runner_.Shutdown();
+
+  // Stop discovery of Bluetooth Classic.
+  mediums_->GetBluetoothClassic().StopAllDiscovery();
+
   serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
   NEARBY_LOGS(INFO) << "BasePcpHandler(" << strategy_.GetName()
@@ -513,6 +519,12 @@ Status BasePcpHandler::WaitForResult(const std::string& method_name,
 
 void BasePcpHandler::RunOnPcpHandlerThread(const std::string& name,
                                            Runnable runnable) {
+  if (closed_.Get()) {
+    NEARBY_LOGS(WARNING) << "Skip to run PCP Handler task " << name
+                         << " due to PCP Handler is closed";
+    return;
+  }
+
   serial_executor_.Execute(name, std::move(runnable));
 }
 

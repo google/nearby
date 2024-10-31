@@ -15,13 +15,14 @@
 #ifndef CORE_INTERNAL_ENCRYPTION_RUNNER_H_
 #define CORE_INTERNAL_ENCRYPTION_RUNNER_H_
 
+#include <memory>
 #include <string>
 
 #include "securegcm/ukey2_handshake.h"
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/listeners.h"
+#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/platform/single_thread_executor.h"
@@ -78,7 +79,11 @@ class EncryptionRunner {
                    EndpointChannel* endpoint_channel,
                    ResultListener result_listener);
 
+  // @AnyThread
+  void Shutdown();
+
  private:
+  AtomicBoolean is_stopped_{false};
   ScheduledExecutor alarm_executor_;
   SingleThreadExecutor server_executor_;
   SingleThreadExecutor client_executor_;
