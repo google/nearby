@@ -35,9 +35,15 @@ class RandomDataProvider : public InitialDataProvider {
   explicit RandomDataProvider(int number_of_bytes)
       : number_of_bytes_(number_of_bytes) {}
   std::string Provide() override {
+    // We multiply by 4, because while multiplying by 8 would give us a
+    // 64-bit number, the hex string would be double the length due to two
+    // hex characters representing one byte.
+    uint32_t power = number_of_bytes_ * 4;
     uint64_t res = absl::uniform_int_distribution<uint64_t>(
-        1, 1 << (number_of_bytes_ * 8))(prng_);
-    return absl::StrFormat("%0*x", number_of_bytes_, res);
+        1, 1ULL << power)(prng_);
+    std::string res_str = absl::StrFormat("%0*x", number_of_bytes_, res);
+    res_str.resize(number_of_bytes_);
+    return res_str;
   }
 
  private:
