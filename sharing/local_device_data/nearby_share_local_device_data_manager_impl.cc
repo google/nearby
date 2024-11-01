@@ -75,8 +75,6 @@ constexpr absl::string_view kDeviceIdPrefix = "users/me/devices/";
 constexpr absl::string_view kContactsFieldMaskPath = "contacts";
 constexpr absl::string_view kCertificatesFieldMaskPath = "public_certificates";
 
-constexpr absl::Duration kDeviceDataDownloadPeriod = absl::Hours(12);
-
 constexpr absl::string_view kDefaultDeviceName = "$0\'s $1";
 
 // Returns a truncated version of |name| that is |max_length| characters long.
@@ -134,13 +132,6 @@ NearbyShareLocalDeviceDataManagerImpl::NearbyShareLocalDeviceDataManagerImpl(
       device_info_(device_info),
       nearby_share_client_(rpc_client_factory->CreateInstance()),
       device_id_(GetId()),
-      download_device_data_scheduler_(
-          NearbyShareSchedulerFactory::CreatePeriodicScheduler(
-              context, preference_manager_, kDeviceDataDownloadPeriod,
-              /*retry_failures=*/true,
-              /*require_connectivity=*/true,
-              prefs::kNearbySharingSchedulerDownloadDeviceDataName,
-              [&]() { DownloadDeviceData(); })),
       executor_(context->CreateSequencedTaskRunner()) {}
 
 NearbyShareLocalDeviceDataManagerImpl::
@@ -179,11 +170,6 @@ std::optional<std::string> NearbyShareLocalDeviceDataManagerImpl::GetIconUrl()
                                        std::string());
 }
 
-std::optional<std::string> NearbyShareLocalDeviceDataManagerImpl::GetIconToken()
-    const {
-  return preference_manager_.GetString(prefs::kNearbySharingIconTokenName,
-                                       std::string());
-}
 
 DeviceNameValidationResult
 NearbyShareLocalDeviceDataManagerImpl::ValidateDeviceName(
@@ -213,51 +199,6 @@ DeviceNameValidationResult NearbyShareLocalDeviceDataManagerImpl::SetDeviceName(
                                /*did_icon_change=*/false);
 
   return DeviceNameValidationResult::kValid;
-}
-
-void NearbyShareLocalDeviceDataManagerImpl::DownloadDeviceData() {
-  executor_->PostTask([&]() {
-    LOG(INFO) << __func__ << ": started";
-    if (!is_running()) {
-      LOG(WARNING) << "DownloadDeviceData: skip to download device data due "
-                      "to manager is stopped.";
-      return;
-    }
-
-    if (!account_manager_.GetCurrentAccount().has_value()) {
-      LOG(WARNING) << __func__
-                   << ": skip to download device data due "
-                      "to no login account.";
-      download_device_data_scheduler_->HandleResult(/*success=*/true);
-      return;
-    }
-
-    UpdateDeviceRequest request;
-    request.mutable_device()->set_name(
-        absl::StrCat(kDeviceIdPrefix, device_id_));
-    nearby_share_client_->UpdateDevice(
-        request, [this](const absl::StatusOr<UpdateDeviceResponse>& response) {
-          // check whether the manager is running again
-          if (!is_running()) {
-            LOG(WARNING)
-                << "DownloadDeviceData: skip to download device data due "
-                   "to manager is stopped.";
-            return;
-          }
-
-          if (response.ok()) {
-            LOG(WARNING) << "DownloadDeviceData: Got response from backend.";
-            HandleUpdateDeviceResponse(*response);
-          } else {
-            LOG(WARNING)
-                << "DownloadDeviceData: Failed to get response from backend: "
-                << response.status();
-          }
-
-          download_device_data_scheduler_->HandleResult(
-              /*success=*/response.ok());
-        });
-  });
 }
 
 void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
@@ -351,16 +292,6 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
   });
 }
 
-void NearbyShareLocalDeviceDataManagerImpl::OnStart() {
-  // This schedules an immediate download of the full name and icon URL from the
-  // server if that has never happened before.
-  download_device_data_scheduler_->Start();
-}
-
-void NearbyShareLocalDeviceDataManagerImpl::OnStop() {
-  download_device_data_scheduler_->Stop();
-}
-
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
     const {
   std::optional<AccountManager::Account> account =
@@ -388,45 +319,6 @@ std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
       GetTruncatedName(given_name, given_name.length() - overflow_length);
 
   return absl::Substitute(kDefaultDeviceName, truncated_name, device_type);
-}
-
-void NearbyShareLocalDeviceDataManagerImpl::HandleUpdateDeviceResponse(
-    const std::optional<nearby::sharing::proto::UpdateDeviceResponse>&
-        response) {
-  if (!response) return;
-
-  bool did_full_name_change = response->person_name() != GetFullName();
-  if (did_full_name_change) {
-    preference_manager_.SetString(prefs::kNearbySharingFullNameName,
-                                  response->person_name());
-  }
-
-  // NOTE(http://crbug.com/1211189): An icon URL can change without the
-  // underlying image changing. For example, icon URLs for some child accounts
-  // can rotate on every UpdateDevice RPC call; a timestamp is included in the
-  // URL. The icon token is used to detect changes in the underlying image. If a
-  // new URL is sent and the token doesn't change, the old URL may still be
-  // valid for a couple of weeks, for example. So, private certificates do not
-  // necessarily need to update the icon URL whenever it changes. Also, we don't
-  // expect the token to change without the URL changing; regardless, we don't
-  // consider the icon changed unless the URL changes. That way, private
-  // certificates will not be unnecessarily regenerated.
-  bool did_icon_url_change = response->image_url() != GetIconUrl();
-  bool did_icon_token_change = response->image_token() != GetIconToken();
-  bool did_icon_change = did_icon_url_change && did_icon_token_change;
-  if (did_icon_url_change) {
-    preference_manager_.SetString(prefs::kNearbySharingIconUrlName,
-                                  response->image_url());
-  }
-  if (did_icon_token_change) {
-    preference_manager_.SetString(prefs::kNearbySharingIconTokenName,
-                                  response->image_token());
-  }
-
-  if (!did_full_name_change && !did_icon_change) return;
-
-  NotifyLocalDeviceDataChanged(/*did_device_name_change=*/false,
-                               did_full_name_change, did_icon_change);
 }
 
 }  // namespace sharing

@@ -125,10 +125,6 @@ DeviceNameValidationResult FakeNearbyShareLocalDeviceDataManager::SetDeviceName(
   return DeviceNameValidationResult::kValid;
 }
 
-void FakeNearbyShareLocalDeviceDataManager::DownloadDeviceData() {
-  ++num_download_device_data_calls_;
-}
-
 void FakeNearbyShareLocalDeviceDataManager::UploadContacts(
     std::vector<nearby::sharing::proto::Contact> contacts,
     UploadCompleteCallback callback) {
@@ -167,10 +163,6 @@ void FakeNearbyShareLocalDeviceDataManager::SetIconUrl(
       /*did_full_name_change=*/false,
       /*did_icon_change=*/true);
 }
-
-void FakeNearbyShareLocalDeviceDataManager::OnStart() {}
-
-void FakeNearbyShareLocalDeviceDataManager::OnStop() {}
 
 }  // namespace sharing
 }  // namespace nearby

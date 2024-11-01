@@ -112,6 +112,8 @@ class NearbyShareCertificateManagerImplTest
     contact_manager_ = std::make_unique<FakeNearbyShareContactManager>();
 
     AccountManager::Account account{
+        .display_name = GetNearbyShareTestMetadata().full_name(),
+        .picture_url = GetNearbyShareTestMetadata().icon_url(),
         .email = kTestMetadataAccountName,
     };
 
@@ -815,9 +817,12 @@ TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_MissingFullNameAndIconUrl) {
   cert_store_->ReplacePrivateCertificates({});
 
-  // Full name and icon URL are missing in the local device data manager.
-  local_device_data_manager_->SetFullName(std::nullopt);
-  local_device_data_manager_->SetIconUrl(std::nullopt);
+  // Full name and icon URL are missing in the account.
+  AccountManager::Account account{
+      .email = kTestMetadataAccountName,
+  };
+
+  fake_account_manager_.SetAccount(account);
 
   cert_manager_->Start();
   HandlePrivateCertificateRefresh(/*expect_private_cert_refresh=*/true,

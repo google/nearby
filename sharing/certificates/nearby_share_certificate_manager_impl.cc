@@ -634,10 +634,24 @@ void NearbyShareCertificateManagerImpl::FinishPrivateCertificateRefresh() {
             ? account->email
             : static_cast<std::optional<std::string>>(std::nullopt);
 
-    std::optional<EncryptedMetadata> metadata = BuildMetadata(
-        local_device_data_manager_->GetDeviceName(),
-        local_device_data_manager_->GetFullName(),
-        local_device_data_manager_->GetIconUrl(), email, context_);
+    std::optional<std::string> icon_url =
+        account.has_value()
+            ? (account->picture_url.empty()
+                   ? static_cast<std::optional<std::string>>(std::nullopt)
+                   : account->picture_url)
+            : static_cast<std::optional<std::string>>(std::nullopt);
+
+    std::optional<std::string> full_name =
+        account.has_value()
+            ? (account->display_name.empty()
+                   ? static_cast<std::optional<std::string>>(std::nullopt)
+                   : account->display_name)
+            : static_cast<std::optional<std::string>>(std::nullopt);
+
+    std::optional<EncryptedMetadata> metadata =
+        BuildMetadata(local_device_data_manager_->GetDeviceName(), full_name,
+                      icon_url, email, context_);
+
     if (!metadata.has_value()) {
       NL_LOG(WARNING)
           << __func__

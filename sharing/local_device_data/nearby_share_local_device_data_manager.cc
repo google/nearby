@@ -47,14 +47,12 @@ void NearbyShareLocalDeviceDataManager::Start() {
   if (is_running_) return;
 
   is_running_ = true;
-  OnStart();
 }
 
 void NearbyShareLocalDeviceDataManager::Stop() {
   if (!is_running_) return;
 
   is_running_ = false;
-  OnStop();
 }
 
 void NearbyShareLocalDeviceDataManager::NotifyLocalDeviceDataChanged(

@@ -71,6 +71,8 @@ class NearbyShareLocalDeviceDataManager {
   // This can be modified by SetDeviceName().
   virtual std::string GetDeviceName() const = 0;
 
+  // TODO(b/690916264): NearbyShareLocalDeviceDataManager FullName & IconUrl
+  // are no longer used, delete them.
   // Returns the user's full name, for example, "Barack Obama". Returns
   // absl::nullopt if the name has not yet been set from an UpdateDevice RPC
   // response.
@@ -92,12 +94,6 @@ class NearbyShareLocalDeviceDataManager {
   // are notified via OnLocalDeviceDataChanged() if the device name changes.
   virtual DeviceNameValidationResult SetDeviceName(absl::string_view name) = 0;
 
-  // Makes an UpdateDevice RPC call to the Nearby Share server to retrieve all
-  // available device data, which includes the full name and icon URL for now.
-  // This action is also scheduled periodically. Observers are notified via
-  // OnLocalDeviceDataChanged() if any device data changes.
-  virtual void DownloadDeviceData() = 0;
-
   // Uses the UpdateDevice RPC to send the local device's contact list to the
   // Nearby Share server, including which contacts are allowed for
   // selected-contacts visibility mode. This should only be invoked by the
@@ -116,9 +112,6 @@ class NearbyShareLocalDeviceDataManager {
       UploadCompleteCallback callback) = 0;
 
  protected:
-  virtual void OnStart() = 0;
-  virtual void OnStop() = 0;
-
   void NotifyLocalDeviceDataChanged(bool did_device_name_change,
                                     bool did_full_name_change,
                                     bool did_icon_change);

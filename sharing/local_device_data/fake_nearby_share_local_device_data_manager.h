@@ -102,7 +102,6 @@ class FakeNearbyShareLocalDeviceDataManager
   DeviceNameValidationResult ValidateDeviceName(
       absl::string_view name) override;
   DeviceNameValidationResult SetDeviceName(absl::string_view name) override;
-  void DownloadDeviceData() override;
   void UploadContacts(std::vector<nearby::sharing::proto::Contact> contacts,
                       UploadCompleteCallback callback) override;
   void UploadCertificates(
@@ -116,10 +115,6 @@ class FakeNearbyShareLocalDeviceDataManager
   void SetId(absl::string_view id) { id_ = std::string(id); }
   void SetFullName(const std::optional<std::string>& full_name);
   void SetIconUrl(const std::optional<std::string>& icon_url);
-
-  size_t num_download_device_data_calls() const {
-    return num_download_device_data_calls_;
-  }
 
   std::vector<UploadContactsCall>& upload_contacts_calls() {
     return upload_contacts_calls_;
@@ -146,14 +141,11 @@ class FakeNearbyShareLocalDeviceDataManager
 
  private:
   // NearbyShareLocalDeviceDataManager:
-  void OnStart() override;
-  void OnStop() override;
 
   std::string id_;
   std::string device_name_;
   std::optional<std::string> full_name_;
   std::optional<std::string> icon_url_;
-  size_t num_download_device_data_calls_ = 0;
   std::vector<UploadContactsCall> upload_contacts_calls_;
   std::vector<UploadCertificatesCall> upload_certificates_calls_;
   DeviceNameValidationResult next_validation_result_ =

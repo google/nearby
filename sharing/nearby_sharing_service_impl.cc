@@ -496,11 +496,8 @@ void NearbySharingServiceImpl::RegisterSendSurface(
         // user to be blocked for hours waiting for a periodic sync.
         if (state == SendSurfaceState::kForeground &&
             !last_outgoing_metadata_) {
-          VLOG(1) << __func__
-                  << ": Downloading local device data, contacts, and "
-                     "certificates from "
+          VLOG(1) << __func__ << ": Downloading contacts & certificates from "
                   << "Nearby server at start of sending flow.";
-          local_device_data_manager_->DownloadDeviceData();
           contact_manager_->DownloadContacts();
           certificate_manager_->DownloadPublicCertificates();
         }
@@ -1028,10 +1025,8 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   // need to wait for these calls to finish. The periodic server requests will
   // typically be sufficient, but we don't want the user to be blocked for
   // hours waiting for a periodic sync.
-  VLOG(1) << __func__
-          << ": Downloading local device data, contacts, and certificates from "
+  VLOG(1) << __func__ << ": Downloading contacts, and certificates from "
           << "Nearby server at start of receiving flow.";
-  local_device_data_manager_->DownloadDeviceData();
   contact_manager_->DownloadContacts();
   certificate_manager_->DownloadPublicCertificates();
 
@@ -1204,11 +1199,6 @@ std::string NearbySharingServiceImpl::Dump() const {
           << ConvertToReadableSchedule(
                  preference_manager_,
                  prefs::kNearbySharingSchedulerContactDownloadAndUploadName)
-          << std::endl;
-  sstream << " Download device data: "
-          << ConvertToReadableSchedule(
-                 preference_manager_,
-                 prefs::kNearbySharingSchedulerDownloadDeviceDataName)
           << std::endl;
   sstream << " Download public certificates: "
           << ConvertToReadableSchedule(

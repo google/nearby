@@ -60,8 +60,6 @@ ABSL_CONST_INIT const char kNearbySharingFullNameName[] =
     "nearby_sharing.full_name";
 ABSL_CONST_INIT const char kNearbySharingIconUrlName[] =
     "nearby_sharing.icon_url";
-ABSL_CONST_INIT const char kNearbySharingIconTokenName[] =
-    "nearby_sharing.icon_token";
 ABSL_CONST_INIT const char kNearbySharingPublicCertificateExpirationDictName[] =
     "nearbyshare.public_certificate_expiration_dict";
 ABSL_CONST_INIT const char kNearbySharingPrivateCertificateListName[] =
@@ -69,8 +67,6 @@ ABSL_CONST_INIT const char kNearbySharingPrivateCertificateListName[] =
 ABSL_CONST_INIT const char
     kNearbySharingSchedulerContactDownloadAndUploadName[] =
         "nearby_sharing.scheduler.contact_download_and_upload";
-ABSL_CONST_INIT const char kNearbySharingSchedulerDownloadDeviceDataName[] =
-    "nearby_sharing.scheduler.download_device_data";
 ABSL_CONST_INIT const char
     kNearbySharingSchedulerDownloadPublicCertificatesName[] =
         "nearby_sharing.scheduler.download_public_certificates";
@@ -131,13 +127,10 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
 
   preference_manager.SetString(kNearbySharingIconUrlName, std::string());
 
-  preference_manager.SetString(kNearbySharingIconTokenName, std::string());
-
   preference_manager.Remove(kNearbySharingPublicCertificateExpirationDictName);
   preference_manager.Remove(kNearbySharingPrivateCertificateListName);
   preference_manager.Remove(
       kNearbySharingSchedulerContactDownloadAndUploadName);
-  preference_manager.Remove(kNearbySharingSchedulerDownloadDeviceDataName);
   preference_manager.Remove(
       kNearbySharingSchedulerDownloadPublicCertificatesName);
   preference_manager.Remove(
@@ -155,7 +148,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
 void ResetSchedulers(PreferenceManager& preference_manager) {
   preference_manager.Remove(
       kNearbySharingSchedulerContactDownloadAndUploadName);
-  preference_manager.Remove(kNearbySharingSchedulerDownloadDeviceDataName);
   preference_manager.Remove(
       kNearbySharingSchedulerDownloadPublicCertificatesName);
   preference_manager.Remove(
