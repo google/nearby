@@ -130,10 +130,6 @@ class NearbyShareCertificateManagerImplTest
     // Set default device data.
     local_device_data_manager_->SetDeviceName(
         GetNearbyShareTestMetadata().device_name());
-    local_device_data_manager_->SetFullName(
-        GetNearbyShareTestMetadata().full_name());
-    local_device_data_manager_->SetIconUrl(
-        GetNearbyShareTestMetadata().icon_url());
     SetBluetoothMacAddress(kTestUnparsedBluetoothMacAddress);
     SetMockBluetoothAddress(kTestUnparsedBluetoothMacAddress);
 

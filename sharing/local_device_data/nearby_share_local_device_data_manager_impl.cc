@@ -158,19 +158,6 @@ std::string NearbyShareLocalDeviceDataManagerImpl::GetDeviceName() const {
   return device_name.empty() ? GetDefaultDeviceName() : device_name;
 }
 
-std::optional<std::string> NearbyShareLocalDeviceDataManagerImpl::GetFullName()
-    const {
-  return preference_manager_.GetString(prefs::kNearbySharingFullNameName,
-                                       std::string());
-}
-
-std::optional<std::string> NearbyShareLocalDeviceDataManagerImpl::GetIconUrl()
-    const {
-  return preference_manager_.GetString(prefs::kNearbySharingIconUrlName,
-                                       std::string());
-}
-
-
 DeviceNameValidationResult
 NearbyShareLocalDeviceDataManagerImpl::ValidateDeviceName(
     absl::string_view name) {

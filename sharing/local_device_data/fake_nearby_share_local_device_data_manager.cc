@@ -15,7 +15,6 @@
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -93,16 +92,6 @@ std::string FakeNearbyShareLocalDeviceDataManager::GetDeviceName() const {
   return device_name_;
 }
 
-std::optional<std::string> FakeNearbyShareLocalDeviceDataManager::GetFullName()
-    const {
-  return full_name_;
-}
-
-std::optional<std::string> FakeNearbyShareLocalDeviceDataManager::GetIconUrl()
-    const {
-  return icon_url_;
-}
-
 DeviceNameValidationResult
 FakeNearbyShareLocalDeviceDataManager::ValidateDeviceName(
     absl::string_view name) {
@@ -141,27 +130,6 @@ void FakeNearbyShareLocalDeviceDataManager::UploadCertificates(
   if (is_sync_mode_) {
     callback(upload_certificate_result_);
   }
-}
-void FakeNearbyShareLocalDeviceDataManager::SetFullName(
-    const absl::optional<std::string>& full_name) {
-  if (full_name_ == full_name) return;
-
-  full_name_ = full_name;
-  NotifyLocalDeviceDataChanged(
-      /*did_device_name_change=*/false,
-      /*did_full_name_change=*/true,
-      /*did_icon_change=*/false);
-}
-
-void FakeNearbyShareLocalDeviceDataManager::SetIconUrl(
-    const absl::optional<std::string>& icon_url) {
-  if (icon_url_ == icon_url) return;
-
-  icon_url_ = icon_url;
-  NotifyLocalDeviceDataChanged(
-      /*did_device_name_change=*/false,
-      /*did_full_name_change=*/false,
-      /*did_icon_change=*/true);
 }
 
 }  // namespace sharing

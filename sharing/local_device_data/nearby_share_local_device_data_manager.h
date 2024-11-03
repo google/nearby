@@ -34,11 +34,7 @@ namespace sharing {
 // a std::string, which will not contain a null terminator.
 extern const size_t kNearbyShareDeviceNameMaxLength;
 
-// Manages local device data related to the UpdateDevice RPC such as the device
-// ID, name, and icon URL; provides the user's full name and icon URL returned
-// from the Nearby server; and handles uploading contacts and certificates to
-// the Nearby server. The uploading of contacts and certificates might seem out
-// of place, but this class is the entry point for  all UpdateDevice RPC calls.
+// Handles uploading contacts and certificates to the Nearby server.
 class NearbyShareLocalDeviceDataManager {
  public:
   class Observer {
@@ -70,17 +66,6 @@ class NearbyShareLocalDeviceDataManager {
   // Returns the name of the local device, for example, "Josh's Chromebook."
   // This can be modified by SetDeviceName().
   virtual std::string GetDeviceName() const = 0;
-
-  // TODO(b/690916264): NearbyShareLocalDeviceDataManager FullName & IconUrl
-  // are no longer used, delete them.
-  // Returns the user's full name, for example, "Barack Obama". Returns
-  // absl::nullopt if the name has not yet been set from an UpdateDevice RPC
-  // response.
-  virtual std::optional<std::string> GetFullName() const = 0;
-
-  // Returns the URL of the user's image. Returns absl::nullopt if the URL has
-  // not yet been set from an UpdateDevice RPC response.
-  virtual std::optional<std::string> GetIconUrl() const = 0;
 
   // Validates the provided device name and returns an error if validation
   // fails. This is just a check and the device name is not persisted.

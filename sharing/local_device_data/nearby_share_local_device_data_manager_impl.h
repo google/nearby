@@ -76,8 +76,6 @@ class NearbyShareLocalDeviceDataManagerImpl
   // NearbyShareLocalDeviceDataManager:
   std::string GetId() override;
   std::string GetDeviceName() const override;
-  std::optional<std::string> GetFullName() const override;
-  std::optional<std::string> GetIconUrl() const override;
   DeviceNameValidationResult ValidateDeviceName(
       absl::string_view name) override;
   DeviceNameValidationResult SetDeviceName(absl::string_view name) override;

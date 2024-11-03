@@ -56,10 +56,6 @@ ABSL_CONST_INIT const char kNearbySharingDeviceNameName[] =
     "nearby_sharing.device_name";
 ABSL_CONST_INIT const char kNearbySharingFastInitiationNotificationStateName[] =
     "nearby_sharing.fast_initiation_notification_state";
-ABSL_CONST_INIT const char kNearbySharingFullNameName[] =
-    "nearby_sharing.full_name";
-ABSL_CONST_INIT const char kNearbySharingIconUrlName[] =
-    "nearby_sharing.icon_url";
 ABSL_CONST_INIT const char kNearbySharingPublicCertificateExpirationDictName[] =
     "nearbyshare.public_certificate_expiration_dict";
 ABSL_CONST_INIT const char kNearbySharingPrivateCertificateListName[] =
@@ -122,10 +118,6 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
 
   preference_manager.SetStringArray(kNearbySharingAllowedContactsName,
                                     std::vector<std::string>());
-
-  preference_manager.SetString(kNearbySharingFullNameName, std::string());
-
-  preference_manager.SetString(kNearbySharingIconUrlName, std::string());
 
   preference_manager.Remove(kNearbySharingPublicCertificateExpirationDictName);
   preference_manager.Remove(kNearbySharingPrivateCertificateListName);
