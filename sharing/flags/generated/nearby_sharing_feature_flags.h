@@ -76,6 +76,8 @@ constexpr auto kUseGrpcClient =
 // When true, dedup discovered endpoints.
 constexpr auto kApplyEndpointsDedup =
     flags::Flag<bool>(kConfigPackage, "45656298", false);
+constexpr auto kDedupInUnregisterShareTarget =
+    flags::Flag<bool>(kConfigPackage, "45664277", false);
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFileFix =
     flags::Flag<bool>(kConfigPackage, "45657036", false);
@@ -97,6 +99,10 @@ constexpr auto kEnableConflictBanner =
 // Enable a persistent BETA label.
 constexpr auto kEnableMacosBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
+// When UnregisterShareTarget, the time in milliseconds a cached entry can be in
+// LOST state.
+constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
+    flags::Flag<int64_t>(kConfigPackage, "45663103", 10000);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -113,6 +119,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
       {45656298, kApplyEndpointsDedup},
+      {45664277, kDedupInUnregisterShareTarget},
       {45657036, kDeleteUnexpectedReceivedFileFix},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
@@ -126,6 +133,7 @@ inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
       {45632386, kDelayEndpointLossMs},
       {45401358, kLoggingLevel},
       {45658774, kDiscoveryCacheLostExpiryMs},
+      {45663103, kUnregisterTargetDiscoveryCacheLostExpiryMs},
   };
 }
 

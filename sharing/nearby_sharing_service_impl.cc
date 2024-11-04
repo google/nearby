@@ -39,6 +39,7 @@
 #include "absl/random/random.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -1699,7 +1700,10 @@ void NearbySharingServiceImpl::HandleEndpointLost(
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
               kApplyEndpointsDedup)) {
-    MoveToDiscoveryCache(endpoint_id);
+    MoveToDiscoveryCache(endpoint_id,
+                         NearbyFlags::GetInstance().GetInt64Flag(
+                             config_package_nearby::nearby_sharing_feature::
+                                 kDiscoveryCacheLostExpiryMs));
   } else {
     RemoveOutgoingShareTargetAndReportLost(endpoint_id);
   }
@@ -2149,7 +2153,6 @@ void NearbySharingServiceImpl::StartScanning() {
   InvalidateReceiveSurfaceState();
 
   ClearOutgoingShareSessionMap();
-  discovery_cache_.clear();
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
@@ -2191,8 +2194,6 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::StopScanning() {
   certificate_download_during_discovery_timer_.reset();
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
-
-  TriggerDiscoveryCacheExpiryTimers();
 
   // Note: We don't know if we stopped scanning in preparation to send a file,
   // or we stopped because the user left the page. We'll invalidate after a
@@ -3274,7 +3275,7 @@ bool NearbySharingServiceImpl::FindDuplicateInOutgoingShareTargets(
 std::optional<ShareTarget>
 NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
     absl::string_view endpoint_id) {
-  VLOG(1) << "Outgoing connection to " << endpoint_id
+  VLOG(1) << __func__ << ":Outgoing connection to " << endpoint_id
           << " disconnected, cancel disconnection timer";
   disconnection_timeout_alarms_.erase(endpoint_id);
   auto it = outgoing_share_target_map_.find(endpoint_id);
@@ -3316,7 +3317,7 @@ void NearbySharingServiceImpl::TriggerDiscoveryCacheExpiryTimers() {
 }
 
 void NearbySharingServiceImpl::MoveToDiscoveryCache(
-    absl::string_view endpoint_id) {
+    absl::string_view endpoint_id, uint64_t expiry_ms) {
   std::optional<ShareTarget> share_target_opt =
       RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
   if (!share_target_opt.has_value()) {
@@ -3325,20 +3326,18 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
   DiscoveryCacheEntry cache_entry;
   cache_entry.share_target = std::move(share_target_opt.value());
   cache_entry.expiry_timer = std::make_unique<ThreadTimer>(
-      *service_thread_, "discovery_cache_timeout",
-      absl::Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
-          config_package_nearby::nearby_sharing_feature::
-              kDiscoveryCacheLostExpiryMs)),
-      [this, endpoint_id = std::string(endpoint_id)]() {
+      *service_thread_, absl::StrCat("discovery_cache_timeout_", expiry_ms),
+      absl::Milliseconds(expiry_ms),
+      [this, expiry_ms, endpoint_id = std::string(endpoint_id)]() {
         auto it = discovery_cache_.find(endpoint_id);
         if (it == discovery_cache_.end()) {
           LOG(WARNING) << "Trying to remove endpoint_id: " << endpoint_id
-                       << " from discovery cache, but cannot find it";
+                       << " from discovery_cache, but cannot find it";
           return;
         }
         LOG(INFO) << ": Removing (endpoint_id=" << endpoint_id
                   << ", share_target.id=" << it->second.share_target.id
-                  << ") from discovery cache";
+                  << ") from discovery_cache after " << expiry_ms << "ms";
         ShareTarget share_target =
             std::move(discovery_cache_.extract(it).mapped().share_target);
 
@@ -3349,7 +3348,8 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
           entry.second.OnShareTargetLost(share_target);
         }
 
-        VLOG(1) << __func__
+        VLOG(1) << "discovery_cache entry: " << endpoint_id << " timeout after "
+                << expiry_ms << "ms"
                 << ": [Dedupped] Reported OnShareTargetLost to all surfaces "
                    "for share_target: "
                 << share_target.ToString();
@@ -3432,7 +3432,7 @@ void NearbySharingServiceImpl::ClearOutgoingShareSessionMap() {
 }
 
 void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
-  LOG(INFO) << __func__ << ": Unregistering share target " << share_target_id;
+  LOG(INFO) << __func__ << ": Unregister share target " << share_target_id;
 
   // For metrics.
   all_cancelled_share_target_ids_.erase(share_target_id);
@@ -3456,10 +3456,25 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
     // Find the endpoint id that matches the given share target.
     auto it = outgoing_share_session_map_.find(share_target_id);
     if (it != outgoing_share_session_map_.end()) {
-      RemoveOutgoingShareTargetAndReportLost(it->second.endpoint_id());
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_sharing_feature::
+                  kApplyEndpointsDedup) &&
+          NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_sharing_feature::
+                  kDedupInUnregisterShareTarget)) {
+        LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
+                  << it->second.endpoint_id() << " to discovery_cache.";
+        MoveToDiscoveryCache(
+            it->second.endpoint_id(),
+            NearbyFlags::GetInstance().GetInt64Flag(
+                config_package_nearby::nearby_sharing_feature::
+                    kUnregisterTargetDiscoveryCacheLostExpiryMs));
+      } else {
+        RemoveOutgoingShareTargetAndReportLost(it->second.endpoint_id());
+      }
     } else {
-      // Be careful not to clear out the share session map if a new session was
-      // started during the cancellation delay.
+      // Be careful not to clear out the share session map if a new session
+      // was started during the cancellation delay.
       if (!is_scanning_ && !is_transferring_) {
         LOG(INFO) << "Cannot find session for target " << share_target_id
                   << " clearing all outgoing sessions.";
@@ -3468,7 +3483,8 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
       TriggerDiscoveryCacheExpiryTimers();
     }
 
-    VLOG(1) << __func__ << ": Unregister share target: " << share_target_id;
+    VLOG(1) << __func__
+            << ": Unregister outgoing share target: " << share_target_id;
   }
 }
 
@@ -3515,8 +3531,9 @@ void NearbySharingServiceImpl::OnStartDiscoveryResult(Status status) {
     VLOG(1) << __func__
             << ": StartDiscovery over Nearby Connections was successful.";
 
-    // Periodically download certificates if there are discovered, contact-based
-    // advertisements that cannot decrypt any currently stored certificates.
+    // Periodically download certificates if there are discovered,
+    // contact-based advertisements that cannot decrypt any currently stored
+    // certificates.
     ScheduleCertificateDownloadDuringDiscovery(/*attempt_count=*/0);
   } else {
     LOG(ERROR) << __func__

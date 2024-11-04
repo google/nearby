@@ -377,10 +377,12 @@ class NearbySharingServiceImpl
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
-  void MoveToDiscoveryCache(absl::string_view endpoint_id);
+  // Move the endpoint to the discovery cache with the given expiry time.
+  void MoveToDiscoveryCache(absl::string_view endpoint_id, uint64_t expiry_ms);
   // Immediately expire all timers in the discovery cache. (i.e. report
   // ShareTargetLost)
   void TriggerDiscoveryCacheExpiryTimers();
+
   // Update the entry in outgoing_share_session_map_ with the new share target
   // and OnShareTargetUpdated is called.
   void DeduplicateInOutgoingShareTarget(
