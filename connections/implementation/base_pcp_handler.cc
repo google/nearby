@@ -786,7 +786,7 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
                       << "; bssid=" << connection_info.bssid
                       << "; ap_frequency=" << connection_info.ap_frequency
                       << "Mhz; ip_address in bytes format="
-                      << connection_info.ip_address;
+                      << absl::BytesToHexString(connection_info.ip_address);
   }
   connection_info.supported_mediums =
       GetSupportedConnectionMediumsByPriority(connection_options);
@@ -1953,7 +1953,7 @@ Exception BasePcpHandler::OnIncomingConnection(
                     << "; bssid=" << connection_info.bssid
                     << "; ap_frequency=" << connection_info.ap_frequency
                     << "Mhz; ip_address in bytes format="
-                    << connection_info.ip_address;
+                    << absl::BytesToHexString(connection_info.ip_address);
 
   // We've successfully connected to the device, and are now about to jump on to
   // the EncryptionRunner thread to start running our encryption protocol. We'll
