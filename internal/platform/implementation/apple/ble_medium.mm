@@ -127,12 +127,17 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
     data.service_data[CPPUUIDFromObjC(key)] = ByteArrayFromNSData(serviceData[key]);
   }
 
-  // Add the peripheral to the map if we haven't discovered it yet.
+  // Always add the peripheral to the map. We may have discovered it before, but it's possible that
+  // the MAC address has rotated, so we should always hold on to the latest peripheral object.
+  // See: b/375176623
   auto ble_peripheral = std::make_unique<BlePeripheral>(peripheral);
   auto unique_id = ble_peripheral->GetUniqueId();
   auto it = peripherals_.find(unique_id);
   if (it == peripherals_.end()) {
+    
     peripherals_[unique_id] = std::move(ble_peripheral);
+  } else {
+    peripherals_[unique_id]->peripheral_ = peripheral;
   }
   if (scanning_cb_.advertisement_found_cb) {
     scanning_cb_.advertisement_found_cb(*peripherals_[unique_id], data);
