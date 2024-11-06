@@ -14,6 +14,30 @@
 licenses(["notice"])
 
 cc_library(
+    name = "auth_status",
+    hdrs = ["auth_status.h"],
+    visibility = [
+        "//internal/auth:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+)
+
+cc_library(
+    name = "account_info",
+    hdrs = ["account_info.h"],
+    visibility = [
+        "//internal/account:__pkg__",
+        "//internal/auth:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+        "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+)
+
+cc_library(
     name = "account_manager",
     hdrs = ["account_manager.h"],
     visibility = [
@@ -26,8 +50,29 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        ":account_info",
+        ":signin_attempt",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "signin_attempt",
+    hdrs = ["signin_attempt.h"],
+    visibility = [
+        "//internal/account:__pkg__",
+        "//internal/auth:__pkg__",
+        "//internal/platform/implementation:__subpackages__",
+        "//internal/test:__subpackages__",
+        "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
+        "//sharing:__subpackages__",
+    ],
+    deps = [
+        ":account_info",
+        ":auth_status",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings:string_view",
     ],
 )

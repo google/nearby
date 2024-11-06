@@ -548,7 +548,9 @@ cc_test(
         ":types",
         "//base:casts",
         "//internal/analytics:mock_event_logger",
+        "//internal/auth:auth_status_util",
         "//internal/flags:nearby_flags",
+        "//internal/platform/implementation:signin_attempt",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//internal/test:mocks",

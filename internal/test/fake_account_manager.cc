@@ -14,6 +14,7 @@
 
 #include "internal/test/fake_account_manager.h"
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,45 +23,17 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/account_manager.h"
+#include "internal/platform/implementation/signin_attempt.h"
 
 namespace nearby {
 
 std::optional<AccountManager::Account> FakeAccountManager::GetCurrentAccount() {
-  if (user_name_.has_value()) {
-    return account_;
-  }
-  return std::nullopt;
+  return account_;
 }
 
-void FakeAccountManager::Login(
-    absl::AnyInvocable<void(Account)> login_success_callback,
-    absl::AnyInvocable<void(absl::Status)> login_failure_callback) {
-  if (account_.has_value()) {
-    UpdateCurrentUser(account_->id);
-    NotifyLogin(account_->id);
-    // Invoke callback after all operations have been performed since test cases
-    // may rely on the callback for synchronization.
-    login_success_callback(*account_);
-    return;
-  }
-
-  login_failure_callback(absl::InternalError("No account."));
-}
-
-void FakeAccountManager::Login(
-    absl::string_view client_id, absl::string_view client_secret,
-    absl::AnyInvocable<void(Account)> login_success_callback,
-    absl::AnyInvocable<void(absl::Status)> login_failure_callback) {
-  if (account_.has_value()) {
-    UpdateCurrentUser(account_->id);
-    NotifyLogin(account_->id);
-    // Invoke callback after all operations have been performed since test cases
-    // may rely on the callback for synchronization.
-    login_success_callback(*account_);
-    return;
-  }
-
-  login_failure_callback(absl::InternalError("No account."));
+std::unique_ptr<SigninAttempt> FakeAccountManager::Login(
+    absl::string_view client_id, absl::string_view client_secret) {
+  return nullptr;
 }
 
 void FakeAccountManager::Logout(
@@ -97,19 +70,6 @@ FakeAccountManager::GetOAuthClientCredential() {
 
 void FakeAccountManager::SetAccount(std::optional<Account> account) {
   account_ = account;
-  if (account_.has_value()) {
-    UpdateCurrentUser(account_->id);
-  } else {
-    ClearCurrentUser();
-  }
-}
-
-void FakeAccountManager::UpdateCurrentUser(absl::string_view current_user) {
-  user_name_ = current_user;
-}
-
-void FakeAccountManager::ClearCurrentUser() {
-  user_name_.reset();
 }
 
 void FakeAccountManager::AddObserver(Observer* observer) {

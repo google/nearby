@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_TEST_MOCK_ACCOUNT_MANAGER_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_TEST_MOCK_ACCOUNT_MANAGER_H_
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -24,20 +25,15 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/account_manager.h"
+#include "internal/platform/implementation/signin_attempt.h"
 
 namespace nearby {
 
 class MockAccountManager : public AccountManager {
  public:
   MOCK_METHOD(std::optional<Account>, GetCurrentAccount, (), (override));
-  MOCK_METHOD(void, Login,
-              (absl::AnyInvocable<void(Account)> login_success_callback,
-               absl::AnyInvocable<void(absl::Status)> login_failure_callback),
-              (override));
-  MOCK_METHOD(void, Login,
-              (absl::string_view client_id, absl::string_view client_secret,
-               absl::AnyInvocable<void(Account)> login_success_callback,
-               absl::AnyInvocable<void(absl::Status)> login_failure_callback),
+  MOCK_METHOD(std::unique_ptr<SigninAttempt>, Login,
+              (absl::string_view client_id, absl::string_view client_secret),
               (override));
   MOCK_METHOD(void, Logout,
               (absl::AnyInvocable<void(absl::Status)> logout_callback),
@@ -51,6 +47,10 @@ class MockAccountManager : public AccountManager {
               (), (override));
   MOCK_METHOD(void, AddObserver, (Observer * observer), (override));
   MOCK_METHOD(void, RemoveObserver, (Observer * observer), (override));
+  MOCK_METHOD(void, SaveAccountPrefs,
+              (absl::string_view user_id, absl::string_view client_id,
+               absl::string_view client_secret),
+              (override));
 };
 
 }  // namespace nearby
