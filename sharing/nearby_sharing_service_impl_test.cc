@@ -42,6 +42,7 @@
 #include "absl/types/span.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/implementation/signin_attempt.h"
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
@@ -2201,16 +2202,11 @@ TEST_F(NearbySharingServiceImplTest, ValidateLoginStateWhenSettingVisibility) {
   AccountManager::Account account;
   account.id = kTestAccountId;
   // Log in.
-  absl::Notification login_notification;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
+  account_manager().NotifyLogin(kTestAccountId);
   // We are now logged in, so we should be able to set all contacts visibility.
   absl::Notification set_visibility_notification2;
   NearbySharingService::StatusCodes set_visibility_status2;
@@ -4796,14 +4792,10 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
   AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        notification.Notify();
-      },
-      [](absl::Status status) {});
-  EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
+  account_manager().NotifyLogin(kTestAccountId);
   EXPECT_CALL(account_observer, OnLogoutSucceeded(kTestAccountId, false))
       .Times(1);
   absl::Notification logout_notification;
@@ -4827,16 +4819,10 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   account.id = kTestAccountId;
 
   // Login user.
-  absl::Notification login_notification;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
   ASSERT_TRUE(service_->GetAccountManager()->GetCurrentAccount().has_value());
@@ -4865,17 +4851,11 @@ TEST_F(NearbySharingServiceImplTest, LoginShouldSetContactsVisibility) {
   account.id = kTestAccountId;
 
   // Login user.
-  absl::Notification login_notification;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login_notification.Notify();
-      },
-      [](absl::Status status) {});
-
-  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
+  account_manager().NotifyLogin(kTestAccountId);
   ASSERT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
   EXPECT_EQ(service_->GetSettings()->GetVisibility(),
@@ -4890,16 +4870,10 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
   account.id = kTestAccountId;
 
   // Login user.
-  absl::Notification login_notification;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
   // Set visibility.
@@ -4918,16 +4892,10 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
             DeviceVisibility::DEVICE_VISIBILITY_HIDDEN);
 
   // Login user.
-  absl::Notification login2_notification;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        login2_notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(login2_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt2 =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 
   // Set visibility.
@@ -4949,7 +4917,6 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
 }
 
 TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
-  absl::Notification notification;
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
@@ -4963,14 +4930,9 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
   AccountManager::Account account;
   account.id = kTestAccountId;
   account_manager().SetAccount(account);
-  service_->GetAccountManager()->Login(
-      "test_client_id", "test_client_secret",
-      [&](AccountManager::Account account) {
-        EXPECT_EQ(account.id, kTestAccountId);
-        notification.Notify();
-      },
-      [](absl::Status status) {});
-  ASSERT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  std::unique_ptr<SigninAttempt> signin_attempt =
+      service_->GetAccountManager()->Login("test_client_id",
+                                           "test_client_secret");
   EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
 
   // Logout user.

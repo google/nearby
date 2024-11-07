@@ -15,6 +15,7 @@
 #ifndef PLATFORM_API_ACCOUNT_MANAGER_H_
 #define PLATFORM_API_ACCOUNT_MANAGER_H_
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,6 +23,8 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/account_info.h"
+#include "internal/platform/implementation/signin_attempt.h"
 
 namespace nearby {
 
@@ -29,16 +32,7 @@ namespace nearby {
 // In current design, AccountManager only support one active account.
 class AccountManager {
  public:
-  // Describes a Nearby account. The account class will have more properties
-  // and methods in the future based on the new feature added.
-  struct Account {
-    std::string id;  // The unique identify of the account.
-    std::string display_name;
-    std::string family_name;
-    std::string given_name;
-    std::string picture_url;
-    std::string email;
-  };
+  using Account = AccountInfo;
 
   // Observes the activity of the account manager.
   class Observer {
@@ -56,24 +50,13 @@ class AccountManager {
   // Gets current active account. If no login user, return std::nullopt.
   virtual std::optional<Account> GetCurrentAccount() = 0;
 
-  // Initializes the login process for a Google account from 1P client.
-  // |login_success_callback| is called when the login succeeded. Account
-  // information is passed to callback.
-  // |login_failure_callback| is called when the login fails.
-  virtual void Login(
-      absl::AnyInvocable<void(Account)> login_success_callback,
-      absl::AnyInvocable<void(absl::Status)> login_failure_callback) = 0;
-
   // Initializes the login process for a Google account from an oauth client.
   // |client_id| GCP client_id of the client
   // |client_secret| GCP client_secret of the client
-  // |login_success_callback| is called when the login succeeded. Account
-  // information is passed to callback.
-  // |login_failure_callback| is called when the login fails.
-  virtual void Login(
-      absl::string_view client_id, absl::string_view client_secret,
-      absl::AnyInvocable<void(Account)> login_success_callback,
-      absl::AnyInvocable<void(absl::Status)> login_failure_callback) = 0;
+  // Returns a SigninAttempt object that can be used to complete the login
+  // process.
+  virtual std::unique_ptr<SigninAttempt> Login(
+      absl::string_view client_id, absl::string_view client_secret) = 0;
 
   // Logs out current active account. |logout_callback| is called when logout is
   // completed.
@@ -97,6 +80,10 @@ class AccountManager {
 
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;
+
+  virtual void SaveAccountPrefs(absl::string_view user_id,
+                                absl::string_view client_id,
+                                absl::string_view client_secret) = 0;
 };
 
 }  // namespace nearby
