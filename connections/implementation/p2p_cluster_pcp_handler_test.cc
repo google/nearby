@@ -1057,14 +1057,21 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
   EXPECT_EQ(client_b_.GetApFrequency(discovered.endpoint_id), kFreq);
   EXPECT_EQ(client_b_.GetIPAddress(discovered.endpoint_id),
             std::string(kIp4Bytes));
-  EXPECT_EQ(client_a_.Is5GHzSupported(client_b_local_endpoint),
-            mediums_b.GetWifi().GetCapability().supports_5_ghz);
-  EXPECT_EQ(client_a_.GetBssid(client_b_local_endpoint),
-            mediums_b.GetWifi().GetInformation().bssid);
-  EXPECT_EQ(client_a_.GetApFrequency(client_b_local_endpoint),
-            mediums_b.GetWifi().GetInformation().ap_frequency);
-  EXPECT_EQ(client_a_.GetIPAddress(client_b_local_endpoint),
-            mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
+  // When connection is established, EndpointManager will setup KeepAliveManager
+  // loop. When it fails, the connection will be dismantled. Since this a unit
+  // test, KeepAliveManager won't be really up. The disconnection may happen
+  // before the following check, which cause the check fail. So we check the
+  // connection status first.
+  if (client_b_.IsConnectedToEndpoint(discovered.endpoint_id)) {
+    EXPECT_EQ(client_a_.Is5GHzSupported(client_b_local_endpoint),
+              mediums_b.GetWifi().GetCapability().supports_5_ghz);
+    EXPECT_EQ(client_a_.GetBssid(client_b_local_endpoint),
+              mediums_b.GetWifi().GetInformation().bssid);
+    EXPECT_EQ(client_a_.GetApFrequency(client_b_local_endpoint),
+              mediums_b.GetWifi().GetInformation().ap_frequency);
+    EXPECT_EQ(client_a_.GetIPAddress(client_b_local_endpoint),
+              mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
+  }
 
   handler_b.StopDiscovery(&client_b_);
   bwu_a.Shutdown();

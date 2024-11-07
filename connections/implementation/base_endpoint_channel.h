@@ -28,7 +28,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/socket.h"
 
 namespace nearby {
 namespace connections {
@@ -63,6 +62,7 @@ class BaseEndpointChannel : public EndpointChannel {
       location::nearby::proto::connections::DisconnectionReason reason,
       location::nearby::analytics::proto::ConnectionsLog::
           EstablishedConnection::SafeDisconnectionResult result) override;
+  bool IsClosed() const ABSL_LOCKS_EXCLUDED(is_paused_mutex_) override;
   std::string GetType() const override;
   std::string GetServiceId() const override;
   std::string GetName() const override;

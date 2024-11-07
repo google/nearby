@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_SOCKET_H_
 #define CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_SOCKET_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -48,11 +49,12 @@ class MultiplexSocket {
  public:
   MultiplexSocket(const MultiplexSocket&) = delete;
   MultiplexSocket& operator=(const MultiplexSocket&) = delete;
+  ~MultiplexSocket() { ShutdownAll(); };
 
   // Creates a new incoming MultiplexSocket.
   static MultiplexSocket* CreateIncomingSocket(
       std::shared_ptr<MediumSocket> physical_socket,
-      const std::string& service_id);
+      const std::string& service_id, std::int32_t first_frame_len);
   // Creates a new outgoing MultiplexSocket.
   static MultiplexSocket* CreateOutgoingSocket(
       std::shared_ptr<MediumSocket> physical_socket,
@@ -111,7 +113,6 @@ class MultiplexSocket {
 
  private:
   explicit MultiplexSocket(std::shared_ptr<MediumSocket> physical_socket);
-  ~MultiplexSocket() { ShutdownAll(); };
 
   // Creates the first virtual socket for the service id. The first virtual
   // socket is created by the sender.
@@ -128,7 +129,7 @@ class MultiplexSocket {
   void UnRegisterConnectionResponse(const std::string& service_id);
   // Starts the reader thread to read the incoming MultiplexFrame from the
   // physical socket.
-  void StartReaderThread();
+  void StartReaderThread(std::int32_t first_frame_len);
   // Handles the offline frame from the physical socket.
   void HandleOfflineFrame(const ByteArray& bytes);
   // Handles the control frame from the physical socket.
@@ -206,8 +207,10 @@ class MultiplexSocket {
   // enable it once two devices negotiated finished.
   AtomicBoolean enabled_{false};
 
+  std::int32_t first_frame_len_ = 0;
   // If the socket is already shutdown and no longer in use.
   bool is_shutdown_ = false;
+  static AtomicBoolean is_shutting_down_;
   std::unique_ptr<CountDownLatch> reader_thread_shutdown_barrier_;
 };
 

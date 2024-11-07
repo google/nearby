@@ -331,6 +331,11 @@ void BaseEndpointChannel::Close(
   }
 }
 
+bool BaseEndpointChannel::IsClosed() const {
+  MutexLock lock(&is_paused_mutex_);
+  return is_closed_;
+}
+
 std::string BaseEndpointChannel::GetType() const {
   MutexLock crypto_lock(&crypto_mutex_);
   std::string subtype = IsEncryptionEnabledLocked() ? "ENCRYPTED_" : "";

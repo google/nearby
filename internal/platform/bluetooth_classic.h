@@ -96,8 +96,7 @@ class BluetoothSocket : public MediumSocket {
   // Returns true if this is a virtual socket.
   bool IsVirtualSocket() override { return is_virtual_socket_; }
 
-  // Creates a virtual socket only with outputstream.
-  MediumSocket* CreateVirtualSocket(OutputStream* outputstream) override;
+  // Creates a virtual socket.
   MediumSocket* CreateVirtualSocket(
       const std::string& salted_service_id_hash_key, OutputStream* outputstream,
       location::nearby::proto::connections::Medium medium,

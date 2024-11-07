@@ -401,7 +401,7 @@ bool BluetoothClassic::StartAcceptingConnections(
               std::make_shared<BluetoothSocket>(client_socket_bak);
           MultiplexSocket* multiplex_socket =
               MultiplexSocket::CreateIncomingSocket(physical_socket_ptr,
-                                                    service_id);
+                                                    service_id, 0);
 
           if (multiplex_socket != nullptr &&
               multiplex_socket->GetVirtualSocket(service_id)) {

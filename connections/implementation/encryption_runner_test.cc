@@ -28,7 +28,6 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
-#include "internal/platform/system_clock.h"
 #include "proto/connections_enums.pb.h"
 #include "third_party/ukey2/src/main/cpp/include/securegcm/ukey2_handshake.h"
 
@@ -74,6 +73,7 @@ class FakeEndpointChannel : public EndpointChannel {
           EstablishedConnection::SafeDisconnectionResult result) override {
     Close();
   }
+  bool IsClosed() const override { return false; }
   location::nearby::proto::connections::ConnectionTechnology GetTechnology()
       const override {
     return location::nearby::proto::connections::ConnectionTechnology::

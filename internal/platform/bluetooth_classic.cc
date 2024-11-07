@@ -31,16 +31,6 @@
 namespace nearby {
 using location::nearby::proto::connections::Medium;
 
-MediumSocket* BluetoothSocket::CreateVirtualSocket(OutputStream* outputstream) {
-  if (IsVirtualSocket()) {
-    LOG(WARNING)
-        << "Creating the virtual socket on a virtual socket is not allowed.";
-    return nullptr;
-  }
-  auto virtual_socket = std::make_shared<BluetoothSocket>(outputstream);
-  return virtual_socket.get();
-}
-
 MediumSocket* BluetoothSocket::CreateVirtualSocket(
     const std::string& salted_service_id_hash_key, OutputStream* outputstream,
     Medium medium,

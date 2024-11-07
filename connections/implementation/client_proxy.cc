@@ -1193,9 +1193,11 @@ std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableMultiplex)) {
+    std::int32_t multiplex_bitmask =
+        kBtMultiplexEnabled | kWifiLanMultiplexEnabled;
     NEARBY_LOGS(INFO) << "ClientProxy [GetLocalMultiplexSocketBitmask]: "
-                      << kBtMultiplexEnabled;
-    return kBtMultiplexEnabled;
+                      << multiplex_bitmask;
+    return multiplex_bitmask;
   }
   return 0;
 }

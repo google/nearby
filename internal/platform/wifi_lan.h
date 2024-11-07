@@ -15,47 +15,100 @@
 #ifndef PLATFORM_PUBLIC_WIFI_LAN_H_
 #define PLATFORM_PUBLIC_WIFI_LAN_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/types/optional.h"
+#include "internal/platform/blocking_queue_stream.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/socket.h"
 
 namespace nearby {
 
-class WifiLanSocket final {
+class WifiLanSocket : public MediumSocket {
  public:
-  WifiLanSocket() = default;
+  WifiLanSocket()
+      : MediumSocket(location::nearby::proto::connections::Medium::WIFI_LAN) {}
   WifiLanSocket(const WifiLanSocket&) = default;
   WifiLanSocket& operator=(const WifiLanSocket&) = default;
-  ~WifiLanSocket() = default;
+  ~WifiLanSocket() override = default;
+
+  // Creates a physical WifiLanSocket from a platform implementation.
   explicit WifiLanSocket(std::unique_ptr<api::WifiLanSocket> socket)
-      : impl_(std::move(socket)) {}
+      : MediumSocket(location::nearby::proto::connections::Medium::WIFI_LAN),
+        impl_(socket.release()) {}
+
+  // Creates a virtual WifiLanSocket from a virtual output stream.
+  explicit WifiLanSocket(OutputStream* virtual_output_stream)
+      : MediumSocket(location::nearby::proto::connections::Medium::WIFI_LAN),
+        blocking_queue_input_stream_(std::make_shared<BlockingQueueStream>()),
+        virtual_output_stream_(virtual_output_stream),
+        is_virtual_socket_(true) {}
 
   // Returns the InputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  InputStream& GetInputStream() { return impl_->GetInputStream(); }
+  InputStream& GetInputStream() override {
+    return IsVirtualSocket() ? *blocking_queue_input_stream_
+                             : impl_->GetInputStream();
+  }
 
   // Returns the OutputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
+  OutputStream& GetOutputStream() override {
+    return IsVirtualSocket() ? *virtual_output_stream_
+                             : impl_->GetOutputStream();
+  }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() { return impl_->Close(); }
+  Exception Close() override {
+    if (IsVirtualSocket()) {
+      NEARBY_LOGS(INFO) << "Multiplex: Closing virtual socket: " << this;
+      blocking_queue_input_stream_->Close();
+      virtual_output_stream_->Close();
+      CloseLocal();  // This will trigger MultiplexSocket::OnVirtualSocketClosed
+      return {Exception::kSuccess};
+    }
+    return impl_->Close();
+  }
+
+  // Returns true if this is a virtual socket.
+  bool IsVirtualSocket() override { return is_virtual_socket_; }
+
+  // Creates a virtual socket only with outputstream.
+  MediumSocket* CreateVirtualSocket(
+      const std::string& salted_service_id_hash_key, OutputStream* outputstream,
+      location::nearby::proto::connections::Medium medium,
+      absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
+          virtual_sockets_ptr) override;
+
+  /** Feeds the received incoming data to the client. */
+  void FeedIncomingData(ByteArray data) override {
+    if (!IsVirtualSocket()) {
+      NEARBY_LOGS(INFO) << "Feeding data on a physical socket is not allowed.";
+      return;
+    }
+    blocking_queue_input_stream_->Write(data);
+  }
 
   // Returns true if a socket is usable. If this method returns false,
   // it is not safe to call any other method.
@@ -66,7 +119,10 @@ class WifiLanSocket final {
   // an object returned by WifiLanMedium::Connect
   // These methods may also return an invalid socket if connection failed for
   // any reason.
-  bool IsValid() const { return impl_ != nullptr; }
+  bool IsValid() const {
+    if (is_virtual_socket_) return true;
+    return impl_ != nullptr;
+  }
 
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging purposes.
@@ -77,6 +133,11 @@ class WifiLanSocket final {
 
  private:
   std::shared_ptr<api::WifiLanSocket> impl_;
+  absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
+      virtual_sockets_ptr_ = nullptr;
+  std::shared_ptr<BlockingQueueStream> blocking_queue_input_stream_ = nullptr;
+  OutputStream* virtual_output_stream_ = nullptr;
+  bool is_virtual_socket_ = false;
 };
 
 class WifiLanServerSocket final {

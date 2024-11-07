@@ -23,12 +23,10 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/condition_variable.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -229,13 +227,14 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
 
-  MarkEndpointStopWaitToDisconnect(endpoint_id,
-                                   /* is_safe_to_disconnect */ true,
-                                   /* notify_stop_waiting */ true);
+  MarkEndpointStopWaitToDisconnect(
+      endpoint_id,
+      /* is_safe_to_disconnect */ true,
+      /* notify_stop_waiting */ true);
   item->second.disconnect_reason = reason;
   auto channel = item->second.channel;
 
-  if (channel && !safe_to_disconnect_enabled) {
+  if (channel && !channel->IsClosed() && !safe_to_disconnect_enabled) {
     // If the channel was paused (i.e. during a bandwidth upgrade negotiation)
     // we resume to ensure the thread won't hang when trying to write to it.
     channel->Resume();

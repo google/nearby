@@ -160,8 +160,8 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::BLUETOOTH);
   MultiplexSocket* multiplex_socket_incoming =
-      MultiplexSocket::CreateIncomingSocket(fake_socket_ptr,
-                                            std::string(SERVICE_ID_1));
+      MultiplexSocket::CreateIncomingSocket(
+          fake_socket_ptr, std::string(SERVICE_ID_1), /*first_frame_len*/ 0);
   ASSERT_NE(multiplex_socket_incoming, nullptr);
   FakeSocket* virtual_socket =
       (FakeSocket*)multiplex_socket_incoming->GetVirtualSocket(
@@ -209,8 +209,8 @@ TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::WEB_RTC);
   MultiplexSocket* multiplex_socket_incoming =
-      MultiplexSocket::CreateIncomingSocket(fake_socket_ptr,
-                                            std::string(SERVICE_ID_1));
+      MultiplexSocket::CreateIncomingSocket(
+          fake_socket_ptr, std::string(SERVICE_ID_1), /*first_frame_len*/ 0);
 
   ASSERT_EQ(multiplex_socket_incoming, nullptr);
 }
