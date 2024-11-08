@@ -46,8 +46,7 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
   ~PayloadTracker() override;
 
   // NearbyConnectionsManager::PayloadStatusListener:
-  void OnStatusUpdate(std::unique_ptr<PayloadTransferUpdate> update,
-                      std::optional<Medium> upgraded_medium) override;
+  void OnStatusUpdate(std::unique_ptr<PayloadTransferUpdate> update) override;
 
  private:
   struct State {
@@ -103,7 +102,6 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
   size_t num_wifi_credentials_attachments_ = 0;
   uint64_t num_first_update_bytes_ = 0;
   std::optional<absl::Time> first_update_timestamp_;
-  std::optional<Medium> last_upgraded_medium_;
 };
 
 }  // namespace sharing

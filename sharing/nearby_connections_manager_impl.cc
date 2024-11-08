@@ -27,6 +27,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/bind_front.h"
 #include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
@@ -78,7 +79,7 @@ bool ShouldUseInternet(ConnectivityManager& connectivity_manager,
 
   // Verify that this network has an internet connection.
   if (connection_type == ConnectivityManager::ConnectionType::kNone) {
-    NL_VLOG(1) << __func__ << ": No internet connection.";
+    VLOG(1) << __func__ << ": No internet connection.";
     return false;
   }
 
@@ -168,8 +169,8 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
     std::vector<uint8_t> endpoint_info, IncomingConnectionListener* listener,
     PowerLevel power_level, DataUsage data_usage, bool use_stable_endpoint_id,
     ConnectionsCallback callback) {
-  NL_DCHECK(listener);
-  NL_DCHECK(!incoming_connection_listener_);
+  DCHECK(listener);
+  DCHECK(!incoming_connection_listener_);
 
   if (!nearby_connections_service_) {
     std::move(callback)(ConnectionsStatus::kError);
@@ -189,11 +190,10 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
       /*wifi_lan=*/
       ShouldEnableWifiLan(connectivity_manager_),
       /*wifi_hotspot=*/true);
-  NL_VLOG(1) << __func__ << ": "
-             << "is_high_power=" << (is_high_power ? "yes" : "no")
-             << ", data_usage=" << static_cast<int>(data_usage)
-             << ", allowed_mediums="
-             << MediumSelectionToString(allowed_mediums);
+  VLOG(1) << __func__ << ": "
+          << "is_high_power=" << (is_high_power ? "yes" : "no")
+          << ", data_usage=" << static_cast<int>(data_usage)
+          << ", allowed_mediums=" << MediumSelectionToString(allowed_mediums);
 
   // Nearby Sharing manually controls Wi-Fi/Bluetooth upgrade. Frequent
   // Bluetooth connection drops were observed during upgrades for Bluetooth
@@ -271,7 +271,7 @@ void NearbyConnectionsManagerImpl::StopAdvertising(
 void NearbyConnectionsManagerImpl::StartDiscovery(
     DiscoveryListener* listener, DataUsage data_usage,
     ConnectionsCallback callback) {
-  NL_DCHECK(listener);
+  DCHECK(listener);
 
   if (!nearby_connections_service_) {
     std::move(callback)(ConnectionsStatus::kError);
@@ -287,10 +287,9 @@ void NearbyConnectionsManagerImpl::StartDiscovery(
       /*wifi_lan=*/
       ShouldEnableWifiLan(connectivity_manager_),
       /*wifi_hotspot=*/true);
-  NL_VLOG(1) << __func__ << ": "
-             << "data_usage=" << static_cast<int>(data_usage)
-             << ", allowed_mediums="
-             << MediumSelectionToString(allowed_mediums);
+  VLOG(1) << __func__ << ": "
+          << "data_usage=" << static_cast<int>(data_usage)
+          << ", allowed_mediums=" << MediumSelectionToString(allowed_mediums);
 
   discovery_listener_ = listener;
 
@@ -321,10 +320,10 @@ void NearbyConnectionsManagerImpl::StopDiscovery() {
 
   nearby_connections_service_->StopDiscovery(
       kServiceId, [&](ConnectionsStatus status) {
-        NL_VLOG(1) << __func__
-                   << ": Stop discovery attempted over Nearby "
-                      "Connections with result: "
-                   << ConnectionsStatusToString(status);
+        VLOG(1) << __func__
+                << ": Stop discovery attempted over Nearby "
+                   "Connections with result: "
+                << ConnectionsStatusToString(status);
       });
 }
 
@@ -352,13 +351,12 @@ void NearbyConnectionsManagerImpl::Connect(
       ShouldEnableWifiLan(connectivity_manager_),
       /*wifi_hotspot=*/
       IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality));
-  NL_VLOG(1) << __func__ << ": "
-             << "data_usage=" << static_cast<int>(data_usage)
-             << ", allowed_mediums="
-             << MediumSelectionToString(allowed_mediums);
+  VLOG(1) << __func__ << ": "
+          << "data_usage=" << static_cast<int>(data_usage)
+          << ", allowed_mediums=" << MediumSelectionToString(allowed_mediums);
   [[maybe_unused]] auto result =
       pending_outgoing_connections_.emplace(endpoint_id, std::move(callback));
-  NL_DCHECK(result.second);
+  DCHECK(result.second);
 
   auto timeout_timer = context_->CreateTimer();
   timeout_timer->Start(
@@ -468,10 +466,9 @@ void NearbyConnectionsManagerImpl::Disconnect(absl::string_view endpoint_id) {
   nearby_connections_service_->DisconnectFromEndpoint(
       kServiceId, endpoint_id,
       [&, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
-        NL_VLOG(1) << __func__ << ": Disconnecting from endpoint "
-                   << endpoint_id
-                   << " attempted over Nearby Connections with result: "
-                   << ConnectionsStatusToString(status);
+        VLOG(1) << __func__ << ": Disconnecting from endpoint " << endpoint_id
+                << " attempted over Nearby Connections with result: "
+                << ConnectionsStatusToString(status);
 
         connections_callback_task_runner_->PostTask([this, endpoint_id]() {
           OnDisconnected(endpoint_id);
@@ -551,18 +548,17 @@ void NearbyConnectionsManagerImpl::Cancel(int64_t payload_id) {
     // with another payload in the same transfer.
     if (auto status_listener = listener.lock()) {
       status_listener->OnStatusUpdate(std::make_unique<PayloadTransferUpdate>(
-                                          payload_id, PayloadStatus::kCanceled,
-                                          /*total_bytes=*/0,
-                                          /*bytes_transferred=*/0),
-                                      /*upgraded_medium=*/std::nullopt);
+          payload_id, PayloadStatus::kCanceled,
+          /*total_bytes=*/0,
+          /*bytes_transferred=*/0));
     }
   }
 
   nearby_connections_service_->CancelPayload(
       kServiceId, payload_id, [&, payload_id](ConnectionsStatus status) {
-        NL_VLOG(1) << __func__ << ": Cancelling payload to id " << payload_id
-                   << " attempted over Nearby Connections with result: "
-                   << ConnectionsStatusToString(status);
+        VLOG(1) << __func__ << ": Cancelling payload to id " << payload_id
+                << " attempted over Nearby Connections with result: "
+                << ConnectionsStatusToString(status);
       });
 
   LOG(INFO) << "Cancelling payload: " << payload_id;
@@ -605,9 +601,9 @@ void NearbyConnectionsManagerImpl::UpgradeBandwidth(
   nearby_connections_service_->InitiateBandwidthUpgrade(
       kServiceId, endpoint_id,
       [&, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
-        NL_VLOG(1) << __func__ << ": Bandwidth upgrade attempted to endpoint "
-                   << endpoint_id << "over Nearby Connections with result: "
-                   << ConnectionsStatusToString(status);
+        VLOG(1) << __func__ << ": Bandwidth upgrade attempted to endpoint "
+                << endpoint_id << "over Nearby Connections with result: "
+                << ConnectionsStatusToString(status);
       });
 }
 
@@ -660,7 +656,7 @@ void NearbyConnectionsManagerImpl::OnConnectionInitiated(
   MutexLock lock(&mutex_);
   [[maybe_unused]] auto result =
       connection_info_map_.emplace(endpoint_id, std::move(info));
-  NL_DCHECK(result.second);
+  DCHECK(result.second);
 
   NearbyConnectionsService::PayloadListener payload_listener;
 
@@ -669,21 +665,15 @@ void NearbyConnectionsManagerImpl::OnConnectionInitiated(
     OnPayloadReceived(endpoint_id, payload);
   };
 
-  payload_listener.payload_progress_cb =
-      [this](absl::string_view endpoint_id,
-             const PayloadTransferUpdate& update) {
-        connections_callback_task_runner_->PostTask(
-            [this, endpoint_id = std::string(endpoint_id), update = update]() {
-              OnPayloadTransferUpdate(endpoint_id, update);
-            });
-      };
+  payload_listener.payload_progress_cb = absl::bind_front(
+      &NearbyConnectionsManagerImpl::OnPayloadTransferUpdate, this);
 
   nearby_connections_service_->AcceptConnection(
       kServiceId, endpoint_id, std::move(payload_listener),
       [endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
-        NL_VLOG(1) << __func__ << ": Accept connection attempted to endpoint "
-                   << endpoint_id << " over Nearby Connections with result: "
-                   << ConnectionsStatusToString(status);
+        VLOG(1) << __func__ << ": Accept connection attempted to endpoint "
+                << endpoint_id << " over Nearby Connections with result: "
+                << ConnectionsStatusToString(status);
       });
 }
 
@@ -703,7 +693,7 @@ void NearbyConnectionsManagerImpl::OnConnectionAccepted(
     auto result = connections_.emplace(std::string(endpoint_id),
                                        std::make_unique<NearbyConnectionImpl>(
                                            device_info_, this, endpoint_id));
-    NL_DCHECK(result.second);
+    DCHECK(result.second);
     incoming_connection_listener_->OnIncomingConnection(
         endpoint_id, it->second.endpoint_info, result.first->second.get());
   } else {
@@ -716,7 +706,7 @@ void NearbyConnectionsManagerImpl::OnConnectionAccepted(
     auto result = connections_.emplace(
         endpoint_id, std::make_unique<NearbyConnectionImpl>(device_info_, this,
                                                             endpoint_id));
-    NL_DCHECK(result.second);
+    DCHECK(result.second);
     std::move(it->second)(result.first->second.get(), Status::kSuccess);
     pending_outgoing_connections_.erase(it);
     connect_timeout_timers_.erase(endpoint_id);
@@ -768,9 +758,9 @@ void NearbyConnectionsManagerImpl::OnDisconnected(
 void NearbyConnectionsManagerImpl::OnBandwidthChanged(
     absl::string_view endpoint_id, Medium medium) {
   MutexLock lock(&mutex_);
-  NL_VLOG(1) << __func__
-             << ": Bandwidth changed to medium=" << static_cast<int>(medium)
-             << "; endpoint_id=" << endpoint_id;
+  VLOG(1) << __func__
+          << ": Bandwidth changed to medium=" << static_cast<int>(medium)
+          << "; endpoint_id=" << endpoint_id;
 
   if (transfer_managers_.contains(endpoint_id)) {
     transfer_managers_[endpoint_id]->OnMediumQualityChanged(medium);
@@ -789,8 +779,7 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
               kDeleteUnexpectedReceivedFileFix)) {
     if (payload.content.type != PayloadContent::Type::kBytes &&
         !payload_status_listeners_.contains(payload.id)) {
-      LOG(WARNING) << __func__
-                   << ": Received unknown payload. Canceling.";
+      LOG(WARNING) << __func__ << ": Received unknown payload. Canceling.";
       DeleteUnknownFilePayloadAndCancel(payload);
       return;
     }
@@ -803,7 +792,7 @@ void NearbyConnectionsManagerImpl::OnPayloadReceived(
   } else {
     [[maybe_unused]] auto result =
         incoming_payloads_.emplace(payload.id, std::move(payload));
-    NL_DCHECK(result.second);
+    DCHECK(result.second);
   }
 }
 
@@ -882,11 +871,12 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 
     // Note: The listener might be invalidated, for example, if it is shared
     // with another payload in the same transfer.
-    if (auto status_listener = listener->lock()) {
-      status_listener->OnStatusUpdate(
-          std::make_unique<PayloadTransferUpdate>(update),
-          GetUpgradedMedium(endpoint_id));
-    }
+    connections_callback_task_runner_->PostTask([listener, update = update]() {
+      if (auto status_listener = listener->lock()) {
+        status_listener->OnStatusUpdate(
+            std::make_unique<PayloadTransferUpdate>(update));
+      }
+    });
     return;
   }
 
@@ -921,10 +911,10 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 void NearbyConnectionsManagerImpl::Reset() {
   MutexLock lock(&mutex_);
   nearby_connections_service_->StopAllEndpoints([](ConnectionsStatus status) {
-    NL_VLOG(1) << __func__
-               << ": Stop all endpoints attempted over Nearby "
-                  "Connections with result: "
-               << ConnectionsStatusToString(status);
+    VLOG(1) << __func__
+            << ": Stop all endpoints attempted over Nearby "
+               "Connections with result: "
+            << ConnectionsStatusToString(status);
   });
 
   discovered_endpoints_.clear();
@@ -963,10 +953,10 @@ void NearbyConnectionsManagerImpl::SetCustomSavePath(
   MutexLock lock(&mutex_);
   nearby_connections_service_->SetCustomSavePath(
       custom_save_path, [&](Status status) {
-        NL_VLOG(1) << __func__
-                   << ": SetCustomSavePath attempted over Nearby "
-                      "Connections with result: "
-                   << static_cast<int>(status);
+        VLOG(1) << __func__
+                << ": SetCustomSavePath attempted over Nearby "
+                   "Connections with result: "
+                << static_cast<int>(status);
       });
 }
 

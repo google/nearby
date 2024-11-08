@@ -68,7 +68,7 @@ class PayloadTrackerTest : public ::testing::Test {
     auto transfer_update = std::make_unique<PayloadTransferUpdate>(
         /*payload_id=*/kFileId, PayloadStatus::kInProgress,
         /*total_bytes=*/kFileSize, /*bytes_transferred=*/bytes_transferred);
-    payload_tracker_->OnStatusUpdate(std::move(transfer_update), std::nullopt);
+    payload_tracker_->OnStatusUpdate(std::move(transfer_update));
   }
 
  private:

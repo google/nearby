@@ -40,8 +40,7 @@ namespace nearby {
 namespace sharing {
 
 PayloadTracker::PayloadTracker(
-    Clock* clock, int64_t share_target_id,
-    const AttachmentContainer& container,
+    Clock* clock, int64_t share_target_id, const AttachmentContainer& container,
     const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map,
     std::function<void(int64_t, TransferMetadata)> update_callback)
     : clock_(clock),
@@ -53,10 +52,9 @@ PayloadTracker::PayloadTracker(
   for (const auto& file : container.GetFileAttachments()) {
     auto it = attachment_payload_map.find(file.id());
     if (it == attachment_payload_map.end()) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Failed to retrieve payload for file attachment id - "
-          << file.id();
+      LOG(WARNING) << __func__
+                   << ": Failed to retrieve payload for file attachment id - "
+                   << file.id();
       continue;
     }
 
@@ -68,10 +66,9 @@ PayloadTracker::PayloadTracker(
   for (const auto& text : container.GetTextAttachments()) {
     auto it = attachment_payload_map.find(text.id());
     if (it == attachment_payload_map.end()) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Failed to retrieve payload for text attachment id - "
-          << text.id();
+      LOG(WARNING) << __func__
+                   << ": Failed to retrieve payload for text attachment id - "
+                   << text.id();
       continue;
     }
 
@@ -84,10 +81,10 @@ PayloadTracker::PayloadTracker(
        container.GetWifiCredentialsAttachments()) {
     auto it = attachment_payload_map.find(wifi_credentials.id());
     if (it == attachment_payload_map.end()) {
-      NL_LOG(WARNING) << __func__
-                      << ": Failed to retrieve payload for WiFi credentials "
-                         "attachment id - "
-                      << wifi_credentials.id();
+      LOG(WARNING) << __func__
+                   << ": Failed to retrieve payload for WiFi credentials "
+                      "attachment id - "
+                   << wifi_credentials.id();
       continue;
     }
 
@@ -101,8 +98,7 @@ PayloadTracker::PayloadTracker(
 PayloadTracker::~PayloadTracker() = default;
 
 void PayloadTracker::OnStatusUpdate(
-    std::unique_ptr<PayloadTransferUpdate> update,
-    std::optional<Medium> upgraded_medium) {
+    std::unique_ptr<PayloadTransferUpdate> update) {
   auto it = payload_state_.find(update->payload_id);
   if (it == payload_state_.end()) return;
 
@@ -111,20 +107,16 @@ void PayloadTracker::OnStatusUpdate(
     first_update_timestamp_ = absl::Now();
     num_first_update_bytes_ = update->bytes_transferred;
   }
-  if (upgraded_medium.has_value()) {
-    last_upgraded_medium_ = upgraded_medium;
-  }
-
   if (it->second.status != update->status) {
     it->second.status = update->status;
 
-    NL_VLOG(1) << __func__ << ": Payload id " << update->payload_id
-               << " had status change: " << update->status;
+    VLOG(1) << __func__ << ": Payload id " << update->payload_id
+            << " had status change: " << update->status;
   }
 
   if (it->second.status == PayloadStatus::kSuccess) {
-    NL_LOG(INFO) << __func__ << ": Completed transfer of payload " << it->first
-                 << " with attachment id " << it->second.attachment_id;
+    LOG(INFO) << __func__ << ": Completed transfer of payload " << it->first
+              << " with attachment id " << it->second.attachment_id;
     transferred_attachments_count_++;
     confirmed_transfer_size_ += update->bytes_transferred;
   }
@@ -147,7 +139,7 @@ void PayloadTracker::OnStatusUpdate(
 
 void PayloadTracker::OnTransferUpdate(const State& state) {
   if (IsComplete()) {
-    NL_VLOG(1) << __func__ << ": All payloads are complete.";
+    VLOG(1) << __func__ << ": All payloads are complete.";
     update_callback_(
         share_target_id_,
         TransferMetadataBuilder()
@@ -160,7 +152,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   }
 
   if (IsCancelled(state)) {
-    NL_VLOG(1) << __func__ << ": Payloads cancelled.";
+    VLOG(1) << __func__ << ": Payloads cancelled.";
     update_callback_(
         share_target_id_,
         TransferMetadataBuilder()
@@ -172,7 +164,7 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   }
 
   if (HasFailed(state)) {
-    NL_VLOG(1) << __func__ << ": Payloads failed.";
+    VLOG(1) << __func__ << ": Payloads failed.";
     update_callback_(
         share_target_id_,
         TransferMetadataBuilder()
@@ -275,7 +267,7 @@ uint64_t PayloadTracker::GetTotalTransferred(const State& state) const {
 
 double PayloadTracker::CalculateProgressPercent(const State& state) const {
   if (!total_transfer_size_) {
-    NL_LOG(WARNING) << __func__ << ": Total attachment size is 0";
+    LOG(WARNING) << __func__ << ": Total attachment size is 0";
     return 100.0;
   }
 

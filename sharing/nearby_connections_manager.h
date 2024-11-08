@@ -84,11 +84,8 @@ class NearbyConnectionsManager {
       return weak_from_this();
     }
 
-    // Note: `upgraded_medium` is passed in for use in metrics, and it is
-    // absl::nullopt if the bandwidth has not upgraded yet or if the upgrade
-    // status is not known.
-    virtual void OnStatusUpdate(std::unique_ptr<PayloadTransferUpdate> update,
-                                std::optional<Medium> upgraded_medium) = 0;
+    virtual void OnStatusUpdate(
+        std::unique_ptr<PayloadTransferUpdate> update) = 0;
   };
 
   // Converts the status to a logging-friendly string.

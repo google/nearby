@@ -1000,8 +1000,7 @@ class NearbySharingServiceImplTest : public testing::Test {
           /*total_bytes=*/strlen(kTextPayload),
           /*bytes_transferred=*/strlen(kTextPayload));
       if (auto listener = info.listener.lock()) {
-        listener->OnStatusUpdate(std::move(payload_transfer_update),
-                                 /*upgraded_medium=*/std::nullopt);
+        listener->OnStatusUpdate(std::move(payload_transfer_update));
       }
     });
     EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kWaitTimeout));
@@ -1096,8 +1095,7 @@ class NearbySharingServiceImplTest : public testing::Test {
                                   /*bytes_transferred=*/kPayloadSize);
         if (auto locked_listener = listener.lock()) {
           locked_listener->OnStatusUpdate(
-              std::make_unique<PayloadTransferUpdate>(payload),
-              /*upgraded_medium=*/std::nullopt);
+              std::make_unique<PayloadTransferUpdate>(payload));
         }
       });
 
@@ -1141,8 +1139,7 @@ class NearbySharingServiceImplTest : public testing::Test {
                                 /*bytes_transferred=*/kPayloadSize);
       if (auto locked_listener = listener.lock()) {
         locked_listener->OnStatusUpdate(
-            std::make_unique<PayloadTransferUpdate>(payload),
-            /*upgraded_medium=*/std::nullopt);
+            std::make_unique<PayloadTransferUpdate>(payload));
       }
     });
 
@@ -2774,8 +2771,7 @@ TEST_F(NearbySharingServiceImplTest,
           /*total_bytes=*/kPayloadSize,
           /*bytes_transferred=*/kPayloadSize);
       if (auto locked_listener = listener.lock()) {
-        locked_listener->OnStatusUpdate(std::move(payload),
-                                        /*upgraded_medium=*/std::nullopt);
+        locked_listener->OnStatusUpdate(std::move(payload));
       }
     });
     EXPECT_TRUE(
@@ -2809,8 +2805,7 @@ TEST_F(NearbySharingServiceImplTest,
         /*total_bytes=*/kPayloadSize,
         /*bytes_transferred=*/kPayloadSize);
     if (auto locked_listener = listener.lock()) {
-      locked_listener->OnStatusUpdate(std::move(payload),
-                                      /*upgraded_medium=*/std::nullopt);
+      locked_listener->OnStatusUpdate(std::move(payload));
     }
   });
   EXPECT_TRUE(
@@ -2859,8 +2854,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
         /*total_bytes=*/kPayloadSize,
         /*bytes_transferred=*/kPayloadSize);
     if (auto locked_listener = listener.lock()) {
-      locked_listener->OnStatusUpdate(std::move(payload),
-                                      /*upgraded_medium=*/std::nullopt);
+      locked_listener->OnStatusUpdate(std::move(payload));
     }
   });
 
@@ -2910,8 +2904,7 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
         /*total_bytes=*/kPayloadSize,
         /*bytes_transferred=*/kPayloadSize);
     if (auto locked_listener = listener.lock()) {
-      locked_listener->OnStatusUpdate(std::move(payload),
-                                      /*upgraded_medium=*/std::nullopt);
+      locked_listener->OnStatusUpdate(std::move(payload));
     }
   });
   EXPECT_TRUE(

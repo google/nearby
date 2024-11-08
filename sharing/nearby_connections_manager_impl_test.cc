@@ -124,8 +124,7 @@ class MockPayloadStatusListener
     : public NearbyConnectionsManager::PayloadStatusListener {
  public:
   MOCK_METHOD(void, OnStatusUpdate,
-              (std::unique_ptr<PayloadTransferUpdate> update,
-               std::optional<Medium> upgraded_medium),
+              (std::unique_ptr<PayloadTransferUpdate> update),
               (override));
 };
 
@@ -1085,13 +1084,11 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectSendPayload) {
                                         kTotalSize, kBytesTransferred);
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         EXPECT_EQ(update->payload_id, expected_update.payload_id);
         EXPECT_EQ(update->bytes_transferred, expected_update.bytes_transferred);
         EXPECT_EQ(update->total_bytes, expected_update.total_bytes);
         EXPECT_EQ(update->status, expected_update.status);
-        EXPECT_FALSE(upgraded_medium.has_value());
         payload_notification.Notify();
       });
 
@@ -1130,13 +1127,11 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectCancelPayload) {
 
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         EXPECT_EQ(update->payload_id, kPayloadId);
         EXPECT_EQ(update->status, PayloadStatus::kCanceled);
         EXPECT_EQ(update->total_bytes, 0u);
         EXPECT_EQ(update->bytes_transferred, 0u);
-        EXPECT_FALSE(upgraded_medium.has_value());
         payload_notification.Notify();
       });
 
@@ -1194,13 +1189,11 @@ TEST_F(NearbyConnectionsManagerImplTest,
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
       .Times(1)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         EXPECT_EQ(update->payload_id, kPayloadId);
         EXPECT_EQ(update->status, PayloadStatus::kCanceled);
         EXPECT_EQ(update->total_bytes, 0u);
         EXPECT_EQ(update->bytes_transferred, 0u);
-        EXPECT_FALSE(upgraded_medium.has_value());
 
         // Destroy the PayloadStatusListener after the first payload is
         // cancelled.
@@ -1309,11 +1302,9 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingPayloadStatusListener) {
                                         kTotalSize, kBytesTransferred);
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         EXPECT_THAT(*update, FieldsAre(kPayloadId, PayloadStatus::kInProgress,
                                        kTotalSize, kBytesTransferred));
-        EXPECT_FALSE(upgraded_medium.has_value());
         payload_notification.Notify();
       });
 
@@ -1325,8 +1316,7 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingPayloadStatusListener) {
   // After success status, send another progress update.
   absl::Notification payload_notification_2;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         payload_notification_2.Notify();
       });
 
@@ -1403,13 +1393,11 @@ TEST_F(NearbyConnectionsManagerImplTest,
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
       .Times(1)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         EXPECT_EQ(update->payload_id, kPayloadId);
         EXPECT_EQ(update->status, PayloadStatus::kFailure);
         EXPECT_EQ(update->total_bytes, kTotalSize);
         EXPECT_EQ(update->bytes_transferred, 0u);
-        EXPECT_FALSE(upgraded_medium.has_value());
 
         // Destroy the PayloadStatusListener after the first payload fails.
         payload_listener.reset();
@@ -1458,7 +1446,7 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingBytesPayload) {
                                      Payload(kPayloadId, expected_payload));
 
   absl::Notification payload_notification;
-  EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_, ::testing::_))
+  EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_))
       .WillOnce([&]() { payload_notification.Notify(); });
 
   payload_listener_remote.payload_progress_cb(
@@ -1503,7 +1491,7 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
                                      Payload(kPayloadId, InputFile(file)));
 
   absl::Notification payload_notification;
-  EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_, ::testing::_))
+  EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_))
       .WillOnce([&]() { payload_notification.Notify(); });
 
   payload_listener_remote.payload_progress_cb(
@@ -1553,7 +1541,7 @@ TEST_F(NearbyConnectionsManagerImplTest, ClearIncomingPayloads) {
                                      Payload(kPayloadId, InputFile(file)));
 
   absl::Notification payload_notification;
-  EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_, ::testing::_))
+  EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_))
       .WillOnce([&]() { payload_notification.Notify(); });
 
   payload_listener_remote.payload_progress_cb(
@@ -1943,13 +1931,11 @@ TEST_F(NearbyConnectionsManagerImplTest,
 
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate)
-      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update,
-                    std::optional<Medium> upgraded_medium) {
+      .WillOnce([&](std::unique_ptr<PayloadTransferUpdate> update) {
         EXPECT_EQ(update->payload_id, kPayloadId);
         EXPECT_EQ(update->status, PayloadStatus::kCanceled);
         EXPECT_EQ(update->total_bytes, 0u);
         EXPECT_EQ(update->bytes_transferred, 0u);
-        EXPECT_FALSE(upgraded_medium.has_value());
         payload_notification.Notify();
       });
 
