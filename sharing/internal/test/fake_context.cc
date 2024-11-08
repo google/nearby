@@ -16,9 +16,7 @@
 
 #include <stdint.h>
 
-#include <functional>
 #include <memory>
-#include <utility>
 
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -69,8 +67,8 @@ api::FastInitiationManager& FakeContext::GetFastInitiationManager() const {
 }
 
 std::unique_ptr<TaskRunner> FakeContext::CreateSequencedTaskRunner() const {
-  std::unique_ptr<TaskRunner> task_runner =
-      std::make_unique<FakeTaskRunner>(fake_clock_.get(), 1);
+  auto task_runner = std::make_unique<FakeTaskRunner>(fake_clock_.get(), 1);
+  last_sequenced_task_runner_ = task_runner.get();
   return task_runner;
 }
 

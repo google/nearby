@@ -41,7 +41,6 @@
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/device_rpc.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
-#include "sharing/scheduling/fake_nearby_share_scheduler.h"
 #include "sharing/scheduling/fake_nearby_share_scheduler_factory.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
 
@@ -234,8 +233,8 @@ class NearbyShareLocalDeviceDataManagerImplTest
   }
 
   void Sync() {
-    EXPECT_TRUE(
-        context_.fake_task_runner()->SyncWithTimeout(absl::Milliseconds(1000)));
+    EXPECT_TRUE(context_.last_sequenced_task_runner()->SyncWithTimeout(
+        absl::Milliseconds(1000)));
   }
 
  private:

@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 
-#include <functional>
 #include <memory>
 
 #include "internal/platform/clock.h"
@@ -70,6 +69,10 @@ class FakeContext : public Context {
     return executor_.get();
   }
 
+  FakeTaskRunner* last_sequenced_task_runner() const {
+    return last_sequenced_task_runner_;
+  }
+
  private:
   std::unique_ptr<FakeClock> fake_clock_;
   std::unique_ptr<FakeConnectivityManager> fake_connectivity_manager_;
@@ -77,6 +80,7 @@ class FakeContext : public Context {
   std::unique_ptr<FakeWifiAdapter> fake_wifi_adapter_;
   std::unique_ptr<FakeFastInitiationManager> fake_fast_initiation_manager_;
   std::unique_ptr<FakeTaskRunner> executor_;
+  mutable FakeTaskRunner* last_sequenced_task_runner_ = nullptr;
 };
 
 }  // namespace nearby
