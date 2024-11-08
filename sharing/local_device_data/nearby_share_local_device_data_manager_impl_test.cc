@@ -124,7 +124,6 @@ class NearbyShareLocalDeviceDataManagerImplTest
   ~NearbyShareLocalDeviceDataManagerImplTest() override = default;
 
   void SetUp() override {
-    FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
 
@@ -235,8 +234,8 @@ class NearbyShareLocalDeviceDataManagerImplTest
   }
 
   void Sync() {
-    EXPECT_TRUE(FakeTaskRunner::WaitForRunningTasksWithTimeout(
-        absl::Milliseconds(1000)));
+    EXPECT_TRUE(
+        context_.fake_task_runner()->SyncWithTimeout(absl::Milliseconds(1000)));
   }
 
  private:

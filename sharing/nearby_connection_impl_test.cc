@@ -32,7 +32,6 @@ namespace sharing {
 namespace {
 
 TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
-  FakeTaskRunner::ResetPendingTasksCount();
   FakeNearbyConnectionsManager connection_manager;
   FakeClock fake_clock;
   FakeTaskRunner fake_task_runner(&fake_clock, 1);
@@ -50,14 +49,13 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
         called = true;
         notification.Notify();
       });
-  EXPECT_TRUE(FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Seconds(1)));
+  EXPECT_TRUE(fake_task_runner.SyncWithTimeout(absl::Seconds(1)));
   connection.reset();
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(1)));
   EXPECT_TRUE(called);
 }
 
 TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
-  FakeTaskRunner::ResetPendingTasksCount();
   FakeNearbyConnectionsManager connection_manager;
   FakeClock fake_clock;
   FakeTaskRunner fake_task_runner(&fake_clock, 1);
@@ -76,7 +74,7 @@ TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
         notification.Notify();
       });
 
-  EXPECT_TRUE(FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Seconds(1)));
+  EXPECT_TRUE(fake_task_runner.SyncWithTimeout(absl::Seconds(1)));
   frames_reader.reset();
   connection.reset();
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(1)));

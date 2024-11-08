@@ -118,7 +118,6 @@ class NearbyShareSettingsTest : public ::testing::Test {
  public:
   NearbyShareSettingsTest()
       : local_device_data_manager_(kDefaultDeviceName) {
-    FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     nearby_share_settings_ = std::make_unique<NearbyShareSettings>(
         &context_, context_.GetClock(), fake_device_info_, preference_manager_,
@@ -146,7 +145,7 @@ class NearbyShareSettingsTest : public ::testing::Test {
   // Waits for running tasks to complete.
   void Flush() {
     absl::SleepFor(absl::Seconds(1));
-    FakeTaskRunner::WaitForRunningTasksWithTimeout(absl::Milliseconds(200));
+    context_.fake_task_runner()->SyncWithTimeout(absl::Milliseconds(200));
   }
 
   void FastForward(absl::Duration duration) {
