@@ -207,7 +207,6 @@ class MultiplexSocket {
   // enable it once two devices negotiated finished.
   AtomicBoolean enabled_{false};
 
-  std::int32_t first_frame_len_ = 0;
   // If the socket is already shutdown and no longer in use.
   bool is_shutdown_ = false;
   static AtomicBoolean is_shutting_down_;
@@ -218,4 +217,5 @@ class MultiplexSocket {
 }  // namespace mediums
 }  // namespace connections
 }  // namespace nearby
+
 #endif  // CORE_INTERNAL_MEDIUMS_MULTIPLEX_MULTIPLEX_SOCKET_H_
