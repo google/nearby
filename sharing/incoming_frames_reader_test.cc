@@ -108,7 +108,6 @@ class IncomingFramesReaderTest : public testing::Test {
   ~IncomingFramesReaderTest() override = default;
 
   void SetUp() override {
-    FakeTaskRunner::ResetPendingTasksCount();
     frames_reader_ = std::make_shared<IncomingFramesReader>(
         fake_task_runner_, nearby_connection_.get());
   }

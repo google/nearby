@@ -34,7 +34,6 @@
 #include "absl/time/time.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
-#include "internal/test/fake_task_runner.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/contacts/nearby_share_contacts_sorter.h"
@@ -67,7 +66,6 @@ constexpr char kTestDefaultContactsHash[] = "last_hash";
 const char* kTestPersonNames[] = {"BBB BBB", "CCC CCC", "AAA AAA"};
 
 // From nearby_share_contact_manager_impl.cc.
-constexpr absl::Duration kContactUploadPeriod = absl::Hours(24);
 constexpr absl::Duration kContactDownloadPeriod = absl::Hours(12);
 
 std::string GetTestContactId(size_t index) {
@@ -173,7 +171,6 @@ class NearbyShareContactManagerImplTest
   ~NearbyShareContactManagerImplTest() override = default;
 
   void SetUp() override {
-    FakeTaskRunner::ResetPendingTasksCount();
     prefs::RegisterNearbySharingPrefs(preference_manager_);
     NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
     AccountManager::Account account;
@@ -203,7 +200,7 @@ class NearbyShareContactManagerImplTest
   }
 
   void Sync() {
-    EXPECT_TRUE(FakeTaskRunner::WaitForRunningTasksWithTimeout(
+    EXPECT_TRUE(fake_context_.last_sequenced_task_runner()->SyncWithTimeout(
         absl::Milliseconds(1000)));
   }
 

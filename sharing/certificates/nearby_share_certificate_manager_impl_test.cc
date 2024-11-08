@@ -37,7 +37,6 @@
 #include "absl/types/span.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
-#include "internal/test/fake_task_runner.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -95,7 +94,6 @@ class NearbyShareCertificateManagerImplTest
   ~NearbyShareCertificateManagerImplTest() override = default;
 
   void SetUp() override {
-    FakeTaskRunner::ResetPendingTasksCount();
     ON_CALL(mock_sharing_platform_, GetPreferenceManager)
         .WillByDefault(ReturnRef(preference_manager_));
     ON_CALL(mock_sharing_platform_, GetAccountManager)
@@ -199,7 +197,7 @@ class NearbyShareCertificateManagerImplTest
   }
 
   void Sync() {
-    EXPECT_TRUE(FakeTaskRunner::WaitForRunningTasksWithTimeout(
+    EXPECT_TRUE(fake_context_.last_sequenced_task_runner()->SyncWithTimeout(
         absl::Milliseconds(1000)));
   }
 
