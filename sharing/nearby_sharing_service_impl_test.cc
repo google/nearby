@@ -590,7 +590,8 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   void ProcessLatestPublicCertificateDecryption(size_t expected_num_calls,
                                                 bool success,
-                                                bool for_self_share = false) {
+                                                bool for_self_share = false,
+                                                uint8_t vendor_id = 0) {
     // Ensure that all pending mojo messages are processed and the certificate
     // manager state is as expected up to this point.
     std::vector<
@@ -607,7 +608,8 @@ class NearbySharingServiceImplTest : public testing::Test {
     if (success) {
       nearby::sharing::proto::PublicCertificate cert =
           GetNearbyShareTestPublicCertificate(
-              DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+              DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+              GetNearbyShareTestNotBefore(), vendor_id);
       cert.set_for_self_share(for_self_share);
       std::move(calls.back().callback)(
           NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
@@ -4115,9 +4117,9 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
         });
 
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
-                                             /*success=*/true);
+                                             /*success=*/false);
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
-                                             /*success=*/true);
+                                             /*success=*/false);
     EXPECT_EQ(share_target_1.id, share_target_2.id);
     // Vendor_id updated.
     EXPECT_EQ(share_target_1.vendor_id, 0);
@@ -4176,7 +4178,7 @@ TEST_F(NearbySharingServiceImplTest,
         });
 
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
-                                             /*success=*/true);
+                                             /*success=*/false);
     EXPECT_EQ(share_target_1.id, share_target_2.id);
     // Vendor_id updated.
     EXPECT_EQ(share_target_1.vendor_id, 0);
@@ -4212,7 +4214,7 @@ TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
     // vendor_id is default to 0.
     FindEndpoint(/*endpoint_id=*/"1");
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
-                                             /*success=*/true);
+                                             /*success=*/false);
     // Finish processing all the HandleEndpointDiscovered related events before
     // fast forwarding to avoid race condition.
     FlushTesting();
@@ -4239,7 +4241,7 @@ TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
         });
 
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
-                                             /*success=*/true);
+                                             /*success=*/false);
     EXPECT_EQ(share_target_1_lost.id, share_target_1.id);
     // Cache entry expires and the share_target ID is not preserved.
     EXPECT_NE(share_target_1.id, share_target_2.id);
@@ -4382,7 +4384,9 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
         });
 
     ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/3,
-                                             /*success=*/true);
+                                             /*success=*/true,
+                                             /*for_self_share=*/false,
+                                             /*vendor_id*/ 1);
     FlushTesting();
 
     FindInvalidEndpoint(/*endpoint_id=*/"4");

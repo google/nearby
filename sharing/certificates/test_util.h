@@ -54,7 +54,8 @@ const NearbyShareEncryptedMetadataKey& GetNearbyShareTestEncryptedMetadataKey();
 absl::Time GetNearbyShareTestNotBefore();
 absl::Duration GetNearbyShareTestValidityOffset();
 
-const nearby::sharing::proto::EncryptedMetadata& GetNearbyShareTestMetadata();
+const nearby::sharing::proto::EncryptedMetadata& GetNearbyShareTestMetadata(
+    uint8_t vendor_id = 0);
 const std::vector<uint8_t>& GetNearbyShareTestEncryptedMetadata();
 
 const std::vector<uint8_t>& GetNearbyShareTestPayloadToSign();
@@ -63,10 +64,12 @@ const std::vector<uint8_t>& GetNearbyShareTestPayloadHashUsingSecretKey();
 
 NearbySharePrivateCertificate GetNearbyShareTestPrivateCertificate(
     proto::DeviceVisibility visibility,
-    absl::Time not_before = GetNearbyShareTestNotBefore());
+    absl::Time not_before = GetNearbyShareTestNotBefore(),
+    uint8_t vendor_id = 0);
 nearby::sharing::proto::PublicCertificate GetNearbyShareTestPublicCertificate(
     proto::DeviceVisibility visibility,
-    absl::Time not_before = GetNearbyShareTestNotBefore());
+    absl::Time not_before = GetNearbyShareTestNotBefore(),
+    uint8_t vendor_id = 0);
 
 // Returns a list of |kNearbyShareNumPrivateCertificates| private/public
 // certificates, spanning contiguous validity periods.

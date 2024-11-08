@@ -766,6 +766,20 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,
+       RefreshPrivateCertificates_OnVendorIdChanged) {
+  cert_store_->ReplacePrivateCertificates({});
+  cert_manager_->Start();
+
+  cert_manager_->SetVendorId(12345);
+  HandlePrivateCertificateRefresh(/*expect_private_cert_refresh=*/true,
+                                  /*expected_success=*/true);
+  RunUpload(/*success=*/true);
+  auto metadata = GetNearbyShareTestMetadata();
+  metadata.set_vendor_id(12345);
+  VerifyPrivateCertificates(/*expected_metadata=*/metadata);
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_ExpiredCertificate) {
   // First certificates are expired;
   FastForward(kNearbyShareCertificateValidityPeriod * 1.5);

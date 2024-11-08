@@ -105,7 +105,8 @@ size_t NumExpectedPrivateCertificates() {
 std::optional<EncryptedMetadata> BuildMetadata(
     std::string device_name, std::optional<std::string> full_name,
     std::optional<std::string> icon_url,
-    std::optional<std::string> account_name, Context* context) {
+    std::optional<std::string> account_name, int32_t vendor_id,
+    Context* context) {
   EncryptedMetadata metadata;
   if (device_name.empty()) {
     NL_LOG(WARNING) << __func__
@@ -124,6 +125,7 @@ std::optional<EncryptedMetadata> BuildMetadata(
   if (account_name.has_value()) {
     metadata.set_account_name(*account_name);
   }
+  metadata.set_vendor_id(vendor_id);
 
   auto bluetooth_mac_address = context->GetBluetoothAdapter().GetAddress();
   if (!bluetooth_mac_address) return std::nullopt;
@@ -544,6 +546,27 @@ void NearbyShareCertificateManagerImpl::OnLocalDeviceDataChanged(
   });
 }
 
+void NearbyShareCertificateManagerImpl::SetVendorId(int32_t vendor_id) {
+  LOG(INFO) << "Setting certificate vendor ID to " << vendor_id;
+  vendor_id_ = vendor_id;
+
+  auto certificate = GetValidPrivateCertificate(
+      proto::DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
+  auto self_certificate = GetValidPrivateCertificate(
+      proto::DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
+  if (certificate.has_value() && self_certificate.has_value()) {
+    if (certificate->unencrypted_metadata().vendor_id() == vendor_id_ &&
+        self_certificate->unencrypted_metadata().vendor_id() == vendor_id_) {
+      LOG(INFO) << "Requested vendor ID is already set in latest valid private "
+                   "certificates. Skipping certificate refresh.";
+      return;
+    }
+  }
+  // Recreate all private certificates to ensure up-to-date metadata.
+  certificate_storage_->ClearPrivateCertificates();
+  private_certificate_expiration_scheduler_->MakeImmediateRequest();
+}
+
 std::string NearbyShareCertificateManagerImpl::Dump() const {
   std::stringstream sstream;
   sstream << "Public Certificates" << std::endl;
@@ -650,7 +673,7 @@ void NearbyShareCertificateManagerImpl::FinishPrivateCertificateRefresh() {
 
     std::optional<EncryptedMetadata> metadata =
         BuildMetadata(local_device_data_manager_->GetDeviceName(), full_name,
-                      icon_url, email, context_);
+                      icon_url, email, vendor_id_, context_);
 
     if (!metadata.has_value()) {
       NL_LOG(WARNING)

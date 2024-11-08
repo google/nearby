@@ -26,6 +26,7 @@
 #include "internal/platform/clock.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
+#include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_settings.h"
@@ -39,7 +40,6 @@ class AccountManager;
 namespace sharing {
 
 class NearbyNotificationDelegate;
-class NearbyShareCertificateManager;
 class NearbyShareContactManager;
 class NearbyShareHttpNotifier;
 

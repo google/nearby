@@ -88,6 +88,8 @@ class NearbyShareCertificateManagerImpl
 
   ~NearbyShareCertificateManagerImpl() override;
 
+  void SetVendorId(int32_t vendor_id) override;
+
  private:
   // Class for maintaining a single instance of public certificate download
   // request.  It is responsible for downloading all available pages and making
@@ -114,7 +116,7 @@ class NearbyShareCertificateManagerImpl
     void FetchNextPage();
 
    private:
-     nearby::sharing::api::SharingRpcClient* const nearby_share_client_;
+    nearby::sharing::api::SharingRpcClient* const nearby_share_client_;
     std::string device_id_;
     std::optional<std::string> next_page_token_;
     int page_number_ = 1;
@@ -198,6 +200,7 @@ class NearbyShareCertificateManagerImpl
   AccountManager& account_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
   NearbyShareContactManager* const contact_manager_;
+  int32_t vendor_id_ = 0;  // Defaults to GOOGLE.
   std::unique_ptr< nearby::sharing::api::SharingRpcClient> nearby_client_;
 
   std::shared_ptr<NearbyShareCertificateStorage> certificate_storage_;
