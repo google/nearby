@@ -18,6 +18,7 @@
 #include <string>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/account_info.h"
 #include "internal/platform/implementation/auth_status.h"
 
@@ -29,11 +30,13 @@ class SigninAttempt {
   virtual ~SigninAttempt() = default;
 
   // Starts a new sign-in attempt.
-  // `callback` is called with the status of the request and the user_id if the
-  // request is successful.
-  // Returns the auth url if the request is successful.
+  // `callback` is called with the status of the request, client_id,
+  // client_secret, and account_info if the request is successful. Returns the
+  // auth url if the request is successful.
   virtual std::string Start(
-      absl::AnyInvocable<void(AuthStatus, const AccountInfo&)> callback) = 0;
+      absl::AnyInvocable<void(AuthStatus, absl::string_view, absl::string_view,
+                              const AccountInfo&)>
+          callback) = 0;
 
   // Tears down the machinery set up to request auth tokens, including the HTTP
   // server.
