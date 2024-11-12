@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Mendel flags, auto-generated. DO NOT EDIT.
+/************* DO NOT EDIT *******************
+ * After updating nearby_sharing_feature.gcl, regenerate this file by running:
+ *   blaze build
+ *   //third_party/nearby/sharing/flags:nearby_sharing_feature_flags_cpp_consts
+ * Copy the generated file here:
+ * blaze-genfiles/third_party/nearby/sharing/flags/nearby_sharing_feature_flags.h
+ **********************************************/
+
 #ifndef THIRD_PARTY_NEARBY_SHARING_FLAGS_NEARBY_SHARING_FEATURE_FLAGS_H_
 #define THIRD_PARTY_NEARBY_SHARING_FLAGS_NEARBY_SHARING_FEATURE_FLAGS_H_
 
@@ -76,14 +83,22 @@ constexpr auto kUseGrpcClient =
 // When true, dedup discovered endpoints.
 constexpr auto kApplyEndpointsDedup =
     flags::Flag<bool>(kConfigPackage, "45656298", false);
+// When true, dedup in UnregisterShareTarget.
 constexpr auto kDedupInUnregisterShareTarget =
     flags::Flag<bool>(kConfigPackage, "45664277", false);
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFileFix =
     flags::Flag<bool>(kConfigPackage, "45657036", false);
-// The time in milliseconds a cached entry can be in LOST state.
+// The default time in milliseconds a cached entry can be in LOST state.
 constexpr auto kDiscoveryCacheLostExpiryMs =
     flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
+// When true, honor 3P client_id & client_secret in the gRPC request
+constexpr auto kHonor3PClientIdAndSecret =
+    flags::Flag<bool>(kConfigPackage, "45665616", false);
+// When UnregisterShareTarget, the time in milliseconds a cached entry can be in
+// LOST state.
+constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
+    flags::Flag<int64_t>(kConfigPackage, "45663103", 10000);
 // Enable/disable QR Code UI
 constexpr auto kEnableQrCodeUi =
     flags::Flag<bool>(kConfigPackage, "45417647", false);
@@ -99,10 +114,6 @@ constexpr auto kEnableConflictBanner =
 // Enable a persistent BETA label.
 constexpr auto kEnableMacosBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
-// When UnregisterShareTarget, the time in milliseconds a cached entry can be in
-// LOST state.
-constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
-    flags::Flag<int64_t>(kConfigPackage, "45663103", 10000);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -121,6 +132,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45656298, kApplyEndpointsDedup},
       {45664277, kDedupInUnregisterShareTarget},
       {45657036, kDeleteUnexpectedReceivedFileFix},
+      {45665616, kHonor3PClientIdAndSecret},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
       {45661130, kEnableConflictBanner},
