@@ -21,6 +21,7 @@ cc_library(
         "bluetooth_adapter.h",
         "fast_init_ble_beacon.h",
         "fast_initiation_manager.h",
+        "identity_rpc_client.h",
         "network_monitor.h",
         "preference_manager.h",
         "private_certificate_data.h",
@@ -40,6 +41,7 @@ cc_library(
     deps = [
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
+        "//proto/identity/v1:rpcs_cc_proto",
         "//sharing/analytics",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/functional:any_invocable",

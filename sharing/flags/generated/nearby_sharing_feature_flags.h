@@ -111,7 +111,7 @@ constexpr auto kUpdateTrack =
 // Enable the info banner to display duplicate Quick Share apps.
 constexpr auto kEnableConflictBanner =
     flags::Flag<bool>(kConfigPackage, "45661130", false);
-// Enable a persistent BETA label.
+// Enable a persistent BETA label across the Quick Share macOS app.
 constexpr auto kEnableMacosBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
 
