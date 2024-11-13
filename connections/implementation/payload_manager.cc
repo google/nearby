@@ -67,6 +67,7 @@ constexpr absl::Duration kMinTransferUpdateInterval = absl::Milliseconds(50);
 // TODO(apolyudov): remove when migration to c++17 is possible.
 constexpr absl::Duration PayloadManager::kWaitCloseTimeout;
 
+// TODO(edwinwu): Add OperationResultCode to analytics.
 bool PayloadManager::SendPayloadLoop(
     ClientProxy* client, PendingPayload& pending_payload,
     PayloadTransferFrame::PayloadHeader& payload_header,
@@ -622,10 +623,14 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
 
           if (pending_payload->IsIncoming()) {
             client->GetAnalyticsRecorder().OnIncomingPayloadDone(
-                endpoint_id, pending_payload->GetId(), payload_status);
+                endpoint_id, pending_payload->GetId(), payload_status,
+                location::nearby::proto::connections::OperationResultCode::
+                    DETAIL_UNKNOWN);
           } else {
             client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
-                endpoint_id, pending_payload->GetId(), payload_status);
+                endpoint_id, pending_payload->GetId(), payload_status,
+                location::nearby::proto::connections::OperationResultCode::
+                    DETAIL_UNKNOWN);
           }
         });
 
@@ -805,7 +810,9 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
 
           // Mark this payload as done for analytics.
           client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
-              endpoint_id, payload_header.id(), status);
+              endpoint_id, payload_header.id(), status,
+              location::nearby::proto::connections::OperationResultCode::
+                  DETAIL_UNKNOWN);
         }
 
         // Remove these endpoints from our tracking list for this payload.
@@ -845,7 +852,9 @@ void PayloadManager::SendClientCallbacksForFinishedIncomingPayload(
 
         // Analyze
         client->GetAnalyticsRecorder().OnIncomingPayloadDone(
-            endpoint_id, payload_header.id(), status);
+            endpoint_id, payload_header.id(), status,
+            location::nearby::proto::connections::OperationResultCode::
+                DETAIL_UNKNOWN);
       });
 }
 
@@ -1139,7 +1148,9 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
         if (is_last_chunk) {
           client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
               endpoint_id, payload_header.id(),
-              location::nearby::proto::connections::SUCCESS);
+              location::nearby::proto::connections::SUCCESS,
+              location::nearby::proto::connections::OperationResultCode::
+                  DETAIL_UNKNOWN);
 
           // Stop tracking this endpoint.
           pending_payload->RemoveEndpoints({endpoint_id});
@@ -1236,7 +1247,9 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
           DestroyPendingPayload(payload_header.id());
           client->GetAnalyticsRecorder().OnIncomingPayloadDone(
               endpoint_id, payload_header.id(),
-              location::nearby::proto::connections::SUCCESS);
+              location::nearby::proto::connections::SUCCESS,
+              location::nearby::proto::connections::OperationResultCode::
+                  DETAIL_UNKNOWN);
         } else {
           client->GetAnalyticsRecorder().OnPayloadChunkReceived(
               endpoint_id, payload_header.id(), payload_chunk_body_size);
@@ -1487,7 +1500,9 @@ void PayloadManager::RecordInvalidPayloadAnalytics(
   for (const auto& endpoint_id : endpoint_ids) {
     client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
         endpoint_id, payload_id,
-        location::nearby::proto::connections::LOCAL_ERROR);
+        location::nearby::proto::connections::LOCAL_ERROR,
+        location::nearby::proto::connections::OperationResultCode::
+            DETAIL_UNKNOWN);
   }
 }
 
