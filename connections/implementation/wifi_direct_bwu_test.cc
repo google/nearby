@@ -16,16 +16,27 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_bwu_handler.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
 
 namespace {
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::proto::connections::OperationResultCode;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 }  // namespace
 
@@ -97,10 +108,12 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 
-    std::unique_ptr<EndpointChannel> new_channel =
+    std::pair<std::unique_ptr<EndpointChannel>, OperationResultCode> result =
         handler_2->CreateUpgradedEndpointChannel(
             &wifi_direct_gc, /*service_id=*/"A",
             /*endpoint_id=*/"1", bwu_frame.upgrade_path_info());
+    auto new_channel = std::move(result.first);
+    OperationResultCode result_code = result.second;
     if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
       EXPECT_EQ(new_channel->GetMedium(),
@@ -109,6 +122,7 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
       accept_latch.CountDown();
       EXPECT_EQ(new_channel, nullptr);
     }
+    EXPECT_EQ(result_code, OperationResultCode::DETAIL_UNKNOWN);
     EXPECT_TRUE(mediums_2.GetWifiDirect().IsConnectedToGO());
     handler_2->RevertResponderState(/*service_id=*/"A");
     end_latch.CountDown();

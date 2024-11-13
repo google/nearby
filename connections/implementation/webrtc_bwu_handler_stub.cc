@@ -29,6 +29,10 @@
 namespace nearby {
 namespace connections {
 
+namespace {
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
     const std::string& name, mediums::WebRtcSocketWrapper socket)
     : name_(name), socket_(socket) {}
@@ -44,11 +48,12 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WebRTC using this info.
-std::unique_ptr<EndpointChannel>
+std::pair<std::unique_ptr<EndpointChannel>,
+            location::nearby::proto::connections::OperationResultCode>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
-  return nullptr;
+  return {nullptr, OperationResultCode::DETAIL_UNKNOWN};
 }
 
 void WebrtcBwuHandler::HandleRevertInitiatorStateForService(

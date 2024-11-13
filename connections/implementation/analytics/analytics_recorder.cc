@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -48,7 +47,6 @@ namespace {
 const char kVersion[] = "v1.0.0";
 constexpr absl::string_view kOnStartClientSession = "OnStartClientSession";
 const absl::Duration kConnectionTokenMaxLife = absl::Hours(24);
-}  // namespace
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::ACCEPTED;
@@ -76,6 +74,8 @@ using ::location::nearby::proto::connections::INITIAL;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::MOVED_TO_NEW_MEDIUM;
 using ::location::nearby::proto::connections::NOT_SENT;
+using ::location::nearby::proto::connections::OperationResultCategory;
+using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::OUTGOING;
 using ::location::nearby::proto::connections::P2P_CLUSTER;
 using ::location::nearby::proto::connections::P2P_POINT_TO_POINT;
@@ -102,6 +102,56 @@ using ::location::nearby::proto::connections::UPGRADED;
 using ::nearby::analytics::EventLogger;
 using SafeDisconnectionResult = ::location::nearby::analytics::proto::
     ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
+
+OperationResultCategory GetOperationResultCateory(
+    OperationResultCode result_code) {
+  if (result_code == OperationResultCode::DETAIL_SUCCESS) {
+    return OperationResultCategory::CATEGORY_SUCCESS;
+  }
+  // Section of CATEGORY_NEARBY_ERROR, starting from 4500
+  if (result_code >=
+      OperationResultCode::NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR) {
+    return OperationResultCategory::CATEGORY_NEARBY_ERROR;
+  }
+  // Section of CATEGORY_CONNECTIVITY_ERROR, starting from 3500 to 4499
+  if (result_code >=
+      OperationResultCode::CONNECTIVITY_WIFI_AWARE_ATTACH_FAILURE) {
+    return OperationResultCategory::CATEGORY_CONNECTIVITY_ERROR;
+  }
+  // Section of CATEGORY_IO_ERROR, from 3000 to 3499
+  if (result_code >= OperationResultCode::IO_FILE_OPENING_ERROR) {
+    return OperationResultCategory::CATEGORY_IO_ERROR;
+  }
+  // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
+  if (result_code >=
+      OperationResultCode::MISCELLEANEOUS_BLUETOOTH_MAC_ADDRESS_NULL) {
+    return OperationResultCategory::CATEGORY_MISCELLANEOUS;
+  }
+  // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
+  if (result_code >=
+      OperationResultCode::
+          CLIENT_WIFI_DIRECT_ALREADY_HOSTING_DIRECT_GROUP_FOR_THIS_CLIENT) {
+    return OperationResultCategory::CATEGORY_CLIENT_ERROR;
+  }
+  // Section of CATEGORY_MEDIUM_UNAVAILABLE, from 1500 to 1999
+  if (result_code >= OperationResultCode::
+                         MEDIUM_UNAVAILABLE_WIFI_AWARE_RESOURCE_NOT_AVAILABLE) {
+    return OperationResultCategory::CATEGORY_MEDIUM_UNAVAILABLE;
+  }
+  // Section of CATEGORY_DEVICE_STATE_ERROR, from 1000 to 1499
+  if (result_code >=
+      OperationResultCode::DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS) {
+    return OperationResultCategory::CATEGORY_DEVICE_STATE_ERROR;
+  }
+  // Section of CATEGORY_CLIENT_CANCELLATION, from 500 to 999
+  if (result_code >=
+      OperationResultCode::CLIENT_CANCELLATION_REMOTE_IN_CANCELED_STATE) {
+    return OperationResultCategory::CATEGORY_CLIENT_CANCELLATION;
+  }
+  // Clarify other non success cases as unknown
+  return OperationResultCategory::CATEGORY_UNKNOWN;
+}
+}  // namespace
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
@@ -338,7 +388,7 @@ void AnalyticsRecorder::OnLocalEndpointRejected(
   LocalEndpointRespondedLocked(remote_endpoint_id, REJECTED);
 }
 
-void AnalyticsRecorder::OnIncomingConnectionAttempt(
+void AnalyticsRecorder::OnIncomingConnectionAttemptWithMetadata(
     ConnectionAttemptType type, Medium medium, ConnectionAttemptResult result,
     absl::Duration duration, const std::string &connection_token,
     ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
@@ -351,6 +401,43 @@ void AnalyticsRecorder::OnIncomingConnectionAttempt(
                          "null current_strategy_session_";
     return;
   }
+
+  ConnectionAttemptMetadataParams default_params = {};
+  if (connection_attempt_metadata_params == nullptr) {
+    connection_attempt_metadata_params = &default_params;
+  }
+  OnIncomingConnectionAttemptLocked(type, medium, result, duration,
+                                    connection_token,
+                                    connection_attempt_metadata_params);
+}
+
+void AnalyticsRecorder::OnIncomingConnectionAttempt(
+    ConnectionAttemptType type, Medium medium, ConnectionAttemptResult result,
+    absl::Duration duration, const std::string &connection_token,
+    OperationResultCode operation_result_code) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnIncomingConnectionAttempt")) {
+    return;
+  }
+  if (current_strategy_session_ == nullptr) {
+    NEARBY_LOGS(INFO) << "Unable to record incoming connection attempt due to "
+                         "null current_strategy_session_";
+    return;
+  }
+
+  ConnectionAttemptMetadataParams default_params = {};
+  default_params.operation_result_code = operation_result_code;
+
+  OnIncomingConnectionAttemptLocked(type, medium, result, duration,
+                                    connection_token, &default_params);
+}
+
+void AnalyticsRecorder::OnIncomingConnectionAttemptLocked(
+    location::nearby::proto::connections::ConnectionAttemptType type,
+    location::nearby::proto::connections::Medium medium,
+    location::nearby::proto::connections::ConnectionAttemptResult result,
+    absl::Duration duration, const std::string &connection_token,
+    ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
   auto *connection_attempt =
       current_strategy_session_->add_connection_attempt();
   connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
@@ -360,10 +447,6 @@ void AnalyticsRecorder::OnIncomingConnectionAttempt(
   connection_attempt->set_attempt_result(result);
   connection_attempt->set_connection_token(connection_token);
 
-  ConnectionAttemptMetadataParams default_params = {};
-  if (connection_attempt_metadata_params == nullptr) {
-    connection_attempt_metadata_params = &default_params;
-  }
   auto *connection_attempt_metadata =
       connection_attempt->mutable_connection_attempt_metadata();
   connection_attempt_metadata->set_technology(
@@ -390,9 +473,18 @@ void AnalyticsRecorder::OnIncomingConnectionAttempt(
       connection_attempt_metadata_params->max_wifi_rx_speed);
   connection_attempt_metadata->set_wifi_channel_width(
       connection_attempt_metadata_params->channel_width);
+
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(
+      connection_attempt_metadata_params->operation_result_code);
+  operation_result_proto->set_result_category(GetOperationResultCateory(
+      connection_attempt_metadata_params->operation_result_code));
+  connection_attempt->set_allocated_operation_result(
+      operation_result_proto.release());
 }
 
-void AnalyticsRecorder::OnOutgoingConnectionAttempt(
+void AnalyticsRecorder::OnOutgoingConnectionAttemptWithMetadata(
     const std::string &remote_endpoint_id, ConnectionAttemptType type,
     Medium medium, ConnectionAttemptResult result, absl::Duration duration,
     const std::string &connection_token,
@@ -406,6 +498,62 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
                          "null current_strategy_session_";
     return;
   }
+
+  ConnectionAttemptMetadataParams default_params = {};
+  if (connection_attempt_metadata_params == nullptr) {
+    connection_attempt_metadata_params = &default_params;
+  }
+
+  // For the case of transfer a big file and the upgrades always failure, then
+  // there will have repeating upgrade attempt and cause many same attempt value
+  // be log. So add a method to skip.
+  if (ConnectionAttemptResultCodeExistedLocked(
+          medium, OUTGOING, connection_token, type,
+          connection_attempt_metadata_params->operation_result_code)) {
+    return;
+  }
+
+  OnOutgoingConnectionAttemptLocked(remote_endpoint_id, type, medium, result,
+                                    duration, connection_token,
+                                    connection_attempt_metadata_params);
+}
+
+void AnalyticsRecorder::OnOutgoingConnectionAttempt(
+    const std::string &remote_endpoint_id, ConnectionAttemptType type,
+    Medium medium, ConnectionAttemptResult result, absl::Duration duration,
+    const std::string &connection_token,
+    OperationResultCode operation_result_code) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("OnOutgoingConnectionAttempt")) {
+    return;
+  }
+  if (current_strategy_session_ == nullptr) {
+    NEARBY_LOGS(INFO) << "Unable to record outgoing connection attempt due to "
+                         "null current_strategy_session_";
+    return;
+  }
+
+  ConnectionAttemptMetadataParams default_params = {};
+  default_params.operation_result_code = operation_result_code;
+
+  // For the case of transfer a big file and the upgrades always failure, then
+  // there will have repeating upgrade attempt and cause many same attempt value
+  // be log. So add a method to skip.
+  if (ConnectionAttemptResultCodeExistedLocked(
+          medium, OUTGOING, connection_token, type, operation_result_code)) {
+    return;
+  }
+
+  OnOutgoingConnectionAttemptLocked(remote_endpoint_id, type, medium, result,
+                                    duration, connection_token,
+                                    &default_params);
+}
+
+void AnalyticsRecorder::OnOutgoingConnectionAttemptLocked(
+    const std::string &remote_endpoint_id, ConnectionAttemptType type,
+    Medium medium, ConnectionAttemptResult result, absl::Duration duration,
+    const std::string &connection_token,
+    ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
   auto *connection_attempt =
       current_strategy_session_->add_connection_attempt();
   connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
@@ -415,10 +563,6 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
   connection_attempt->set_attempt_result(result);
   connection_attempt->set_connection_token(connection_token);
 
-  ConnectionAttemptMetadataParams default_params = {};
-  if (connection_attempt_metadata_params == nullptr) {
-    connection_attempt_metadata_params = &default_params;
-  }
   auto *connection_attempt_metadata =
       connection_attempt->mutable_connection_attempt_metadata();
   connection_attempt_metadata->set_technology(
@@ -445,6 +589,15 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
       connection_attempt_metadata_params->max_wifi_rx_speed);
   connection_attempt_metadata->set_wifi_channel_width(
       connection_attempt_metadata_params->channel_width);
+
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(
+      connection_attempt_metadata_params->operation_result_code);
+  operation_result_proto->set_result_category(GetOperationResultCateory(
+      connection_attempt_metadata_params->operation_result_code));
+  connection_attempt->set_allocated_operation_result(
+      operation_result_proto.release());
 
   if (type == INITIAL && result != RESULT_SUCCESS) {
     auto it = outgoing_connection_requests_.find(remote_endpoint_id);
@@ -553,9 +706,9 @@ void AnalyticsRecorder::OnPayloadChunkReceived(const std::string &endpoint_id,
   logical_connection->ChunkReceived(payload_id, chunk_size_bytes);
 }
 
-void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
-                                              std::int64_t payload_id,
-                                              PayloadStatus status) {
+void AnalyticsRecorder::OnIncomingPayloadDone(
+    const std::string &endpoint_id, std::int64_t payload_id,
+    PayloadStatus status, OperationResultCode operation_result_code) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnIncomingPayloadDone")) {
     return;
@@ -565,7 +718,8 @@ void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
     return;
   }
   const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
-  logical_connection->IncomingPayloadDone(payload_id, status);
+  logical_connection->IncomingPayloadDone(payload_id, status,
+                                          operation_result_code);
 }
 
 void AnalyticsRecorder::OnOutgoingPayloadStarted(
@@ -601,9 +755,9 @@ void AnalyticsRecorder::OnPayloadChunkSent(const std::string &endpoint_id,
   logical_connection->ChunkSent(payload_id, chunk_size_bytes);
 }
 
-void AnalyticsRecorder::OnOutgoingPayloadDone(const std::string &endpoint_id,
-                                              std::int64_t payload_id,
-                                              PayloadStatus status) {
+void AnalyticsRecorder::OnOutgoingPayloadDone(
+    const std::string &endpoint_id, std::int64_t payload_id,
+    PayloadStatus status, OperationResultCode operation_result_code) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnOutgoingPayloadDone")) {
     return;
@@ -612,8 +766,10 @@ void AnalyticsRecorder::OnOutgoingPayloadDone(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
+
   const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
-  logical_connection->OutgoingPayloadDone(payload_id, status);
+  logical_connection->OutgoingPayloadDone(payload_id, status,
+                                          operation_result_code);
 }
 
 void AnalyticsRecorder::OnBandwidthUpgradeStarted(
@@ -637,12 +793,19 @@ void AnalyticsRecorder::OnBandwidthUpgradeStarted(
 
 void AnalyticsRecorder::OnBandwidthUpgradeError(
     const std::string &endpoint_id, BandwidthUpgradeResult result,
-    BandwidthUpgradeErrorStage error_stage) {
+    BandwidthUpgradeErrorStage error_stage,
+    OperationResultCode operation_result_code) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnBandwidthUpgradeError")) {
     return;
   }
-  FinishUpgradeAttemptLocked(endpoint_id, result, error_stage);
+  // If the same records existed, drop this one.
+  if (EraseIfBandwidthUpgradeRecordExistedLocked(
+          endpoint_id, result, error_stage, operation_result_code)) {
+    return;
+  }
+  FinishUpgradeAttemptLocked(endpoint_id, result, error_stage,
+                             operation_result_code);
 }
 
 void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
@@ -652,7 +815,8 @@ void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
     return;
   }
   FinishUpgradeAttemptLocked(endpoint_id, UPGRADE_RESULT_SUCCESS,
-                             UPGRADE_SUCCESS);
+                             UPGRADE_SUCCESS,
+                             OperationResultCode::DETAIL_SUCCESS);
 }
 
 void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
@@ -757,7 +921,7 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
     int try_count, const std::string &network_operator,
     const std::string &country_code, bool is_tdls_used,
     bool wifi_hotspot_enabled, int max_wifi_tx_speed, int max_wifi_rx_speed,
-    int channel_width) {
+    int channel_width, OperationResultCode operation_result_code) {
   auto params = std::make_unique<ConnectionAttemptMetadataParams>();
   params->technology = technology;
   params->band = band;
@@ -770,7 +934,35 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
   params->max_wifi_tx_speed = max_wifi_tx_speed;
   params->max_wifi_rx_speed = max_wifi_rx_speed;
   params->channel_width = channel_width;
+  params->operation_result_code = operation_result_code;
   return params;
+}
+
+OperationResultCode AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
+    Medium medium) {
+  switch (medium) {
+    case Medium::BLUETOOTH:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_BT;
+    case Medium::WIFI_HOTSPOT:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_HOTSPOT;
+    case Medium::BLE:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE;
+    case Medium::BLE_L2CAP:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE_L2CAP;
+    case Medium::WIFI_LAN:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_LAN;
+    case Medium::WIFI_AWARE:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_AWARE;
+    case Medium::NFC:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_NFC;
+    case Medium::WIFI_DIRECT:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_DIRECT;
+    case Medium::WEB_RTC:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WEB_RTC;
+    default:
+      return OperationResultCode::
+          CONNECTIVITY_CHANNEL_IO_ERROR_ON_UNKNOWN_MEDIUM;
+  }
 }
 
 bool AnalyticsRecorder::CanRecordAnalyticsLocked(
@@ -1004,9 +1196,62 @@ void AnalyticsRecorder::MarkConnectionRequestIgnoredLocked(
   }
 }
 
+bool AnalyticsRecorder::ConnectionAttemptResultCodeExistedLocked(
+    Medium medium, ConnectionAttemptDirection direction,
+    const std::string &connection_token, ConnectionAttemptType type,
+    OperationResultCode operation_result_code) {
+  if (current_strategy_session_ == nullptr ||
+      current_strategy_session_->connection_attempt_size() == 0) {
+    return false;
+  }
+  for (auto &connection_attempt :
+       current_strategy_session_->connection_attempt()) {
+    if (connection_attempt.medium() == medium &&
+        connection_attempt.direction() == direction &&
+        connection_attempt.connection_token() == connection_token &&
+        connection_attempt.type() == type &&
+        connection_attempt.operation_result().result_code() ==
+            operation_result_code) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// If bandwidth upgrade always failed on the same fromMedium, toMedium, result,
+// stage and result code, we'll drop the duplicate logs for preventing the waste
+// of log storage space
+bool AnalyticsRecorder::EraseIfBandwidthUpgradeRecordExistedLocked(
+    const std::string &endpoint_id, BandwidthUpgradeResult result,
+    BandwidthUpgradeErrorStage error_stage,
+    OperationResultCode operation_result_code) {
+  if (current_strategy_session_ == nullptr) {
+    return false;
+  }
+  auto it = bandwidth_upgrade_attempts_.find(endpoint_id);
+  if (it != bandwidth_upgrade_attempts_.end()) {
+    ConnectionsLog::BandwidthUpgradeAttempt *attempt = it->second.get();
+    for (auto &existing_attempt :
+         current_strategy_session_->upgrade_attempt()) {
+      if (attempt->from_medium() == existing_attempt.from_medium() &&
+          attempt->to_medium() == existing_attempt.to_medium() &&
+          result == existing_attempt.upgrade_result() &&
+          error_stage == existing_attempt.error_stage() &&
+          operation_result_code ==
+              existing_attempt.operation_result().result_code()) {
+        bandwidth_upgrade_attempts_.erase(it);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void AnalyticsRecorder::FinishUpgradeAttemptLocked(
     const std::string &endpoint_id, BandwidthUpgradeResult result,
-    BandwidthUpgradeErrorStage error_stage, bool erase_item) {
+    BandwidthUpgradeErrorStage error_stage,
+    OperationResultCode operation_result_code, bool erase_item) {
   if (current_strategy_session_ == nullptr) {
     NEARBY_LOGS(INFO) << "Unable to record upgrade attempt due to null "
                          "current_strategy_session_";
@@ -1021,6 +1266,13 @@ void AnalyticsRecorder::FinishUpgradeAttemptLocked(
         attempt->duration_millis());
     attempt->set_error_stage(error_stage);
     attempt->set_upgrade_result(result);
+
+    auto operation_result_proto =
+        std::make_unique<ConnectionsLog::OperationResult>();
+    operation_result_proto->set_result_code(operation_result_code);
+    operation_result_proto->set_result_category(
+        GetOperationResultCateory(operation_result_code));
+    attempt->set_allocated_operation_result(operation_result_proto.release());
     *current_strategy_session_->add_upgrade_attempt() = *attempt;
     if (erase_item) {
       bandwidth_upgrade_attempts_.erase(it);
@@ -1047,8 +1299,10 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
 
     // Finish any pending upgrade attempts.
     for (const auto &item : bandwidth_upgrade_attempts_) {
-      FinishUpgradeAttemptLocked(item.first, UNFINISHED_ERROR,
-                                 UPGRADE_UNFINISHED, /*erase_item=*/false);
+      FinishUpgradeAttemptLocked(
+          item.first, UNFINISHED_ERROR, UPGRADE_UNFINISHED,
+          OperationResultCode::DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS,
+          /*erase_item=*/false);
     }
     bandwidth_upgrade_attempts_.clear();
 
@@ -1111,6 +1365,13 @@ ConnectionsLog::Payload AnalyticsRecorder::PendingPayload::GetProtoPayload(
   payload.set_num_chunks(num_chunks_);
   payload.set_status(status);
 
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(operation_result_code_);
+  operation_result_proto->set_result_category(
+      GetOperationResultCateory(operation_result_code_));
+  payload.set_allocated_operation_result(operation_result_proto.release());
+
   return payload;
 }
 
@@ -1128,6 +1389,14 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionEstablished(
   established_connection->set_duration_millis(
       absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
   established_connection->set_connection_token(connection_token);
+
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(OperationResultCode::DETAIL_SUCCESS);
+  operation_result_proto->set_result_category(
+      OperationResultCategory::CATEGORY_SUCCESS);
+  established_connection->set_allocated_operation_result(
+      operation_result_proto.release());
   physical_connections_.insert({medium, std::move(established_connection)});
   current_medium_ = medium;
 }
@@ -1229,7 +1498,8 @@ void AnalyticsRecorder::LogicalConnection::ChunkReceived(
 }
 
 void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
-    std::int64_t payload_id, PayloadStatus status) {
+    std::int64_t payload_id, PayloadStatus status,
+    OperationResultCode operation_result_code) {
   if (current_medium_ == UNKNOWN_MEDIUM) {
     NEARBY_LOGS(WARNING) << "Unexpected call to incomingPayloadDone() while "
                             "AnalyticsRecorder has no active current medium.";
@@ -1241,6 +1511,7 @@ void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
         &established_connection = it->second;
     auto it = incoming_payloads_.find(payload_id);
     if (it != incoming_payloads_.end()) {
+      it->second->SetOperationResultCode(operation_result_code);
       *established_connection->add_received_payload() =
           it->second->GetProtoPayload(status);
       incoming_payloads_.erase(it);
@@ -1265,7 +1536,8 @@ void AnalyticsRecorder::LogicalConnection::ChunkSent(std::int64_t payload_id,
 }
 
 void AnalyticsRecorder::LogicalConnection::OutgoingPayloadDone(
-    std::int64_t payload_id, PayloadStatus status) {
+    std::int64_t payload_id, PayloadStatus status,
+    OperationResultCode operation_result_code) {
   if (current_medium_ == UNKNOWN_MEDIUM) {
     NEARBY_LOGS(WARNING) << "Unexpected call to outgoingPayloadDone() while "
                             "AnalyticsRecorder has no active current medium.";
@@ -1277,6 +1549,7 @@ void AnalyticsRecorder::LogicalConnection::OutgoingPayloadDone(
         &established_connection = it->second;
     auto it = outgoing_payloads_.find(payload_id);
     if (it != outgoing_payloads_.end()) {
+      it->second->SetOperationResultCode(operation_result_code);
       *established_connection->add_sent_payload() =
           it->second->GetProtoPayload(status);
       outgoing_payloads_.erase(it);
@@ -1316,16 +1589,21 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
       upgraded_payloads;
   PayloadStatus status =
       reason == UPGRADED ? MOVED_TO_NEW_MEDIUM : CONNECTION_CLOSED;
+
+  OperationResultCode operation_result_code =
+      GetPendingPayloadResultCodeFromReason(reason);
   for (const auto &item : pending_payloads) {
     const std::unique_ptr<PendingPayload> &pending_payload = item.second;
+    pending_payload->SetOperationResultCode(operation_result_code);
     ConnectionsLog::Payload proto_payload =
         pending_payload->GetProtoPayload(status);
     completed_payloads.push_back(proto_payload);
     if (reason == UPGRADED) {
       upgraded_payloads.insert(
           {item.first,
-           std::make_unique<PendingPayload>(
-               pending_payload->type(), pending_payload->total_size_bytes())});
+           std::make_unique<PendingPayload>(pending_payload->type(),
+                                            pending_payload->total_size_bytes(),
+                                            operation_result_code)});
     }
   }
   pending_payloads.clear();
@@ -1338,6 +1616,21 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
   // Return the list of completed payloads to be added to the current
   // EstablishedConnection.
   return completed_payloads;
+}
+
+OperationResultCode
+AnalyticsRecorder::LogicalConnection::GetPendingPayloadResultCodeFromReason(
+    DisconnectionReason reason) {
+  switch (reason) {
+    case UPGRADED:
+      return OperationResultCode::MISCELLEANEOUS_MOVE_TO_NEW_MEDIUM;
+    case DisconnectionReason::LOCAL_DISCONNECTION:
+      return OperationResultCode::CLIENT_CANCELLATION_LOCAL_DISCONNECT;
+    case DisconnectionReason::REMOTE_DISCONNECTION:
+      return OperationResultCode::CLIENT_CANCELLATION_REMOTE_DISCONNECT;
+    default:
+      return OperationResultCode::NEARBY_GENERIC_CONNECTION_CLOSED;
+  }
 }
 
 void AnalyticsRecorder::Sync() {
