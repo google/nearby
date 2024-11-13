@@ -57,6 +57,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":analytics",
+        "//connections:core_types",
         "//internal/analytics:mock_event_logger",
         "//internal/platform:base",
         "//internal/platform:error_code_recorder",

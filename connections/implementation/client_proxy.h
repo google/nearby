@@ -179,6 +179,9 @@ class ClientProxy final {
   // ConnectionListener.disconnected_cb() callback.
   void OnDisconnected(const std::string& endpoint_id, bool notify);
 
+  // Returns the medium we're currently connected to the endpoint over, or
+  // UNKNOWN if we don't know or don't have a connection.
+  Medium GetConnectedMedium(const std::string& endpoint_id) const;
   // Returns all mediums eligible for upgrade.
   BooleanMediumSelector GetUpgradeMediums(const std::string& endpoint_id) const;
   // Returns if this endpoint support 5G for WIFI.
@@ -363,6 +366,7 @@ class ClientProxy final {
       kConnected = 1 << 4,
     };
     bool is_incoming{false};
+    Medium connected_medium{Medium::UNKNOWN_MEDIUM};
     Status status{kPending};
     ConnectionListener connection_listener;
     ConnectionOptions connection_options;
