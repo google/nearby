@@ -274,6 +274,9 @@ class BasePcpHandler : public PcpHandler,
     location::nearby::proto::connections::Medium medium =
         location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM;
     Status status = {Status::kError};
+    location::nearby::proto::connections::OperationResultCode
+        operation_result_code = location::nearby::proto::connections::
+            OperationResultCode::DETAIL_UNKNOWN;
     std::unique_ptr<EndpointChannel> endpoint_channel;
   };
 
@@ -567,7 +570,10 @@ class BasePcpHandler : public PcpHandler,
   void ProcessPreConnectionInitiationFailure(
       ClientProxy* client, Medium medium, const std::string& endpoint_id,
       EndpointChannel* channel, bool is_incoming, absl::Time start_time,
-      Status status, Future<Status>* result);
+      Status status,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code,
+      Future<Status>* result);
   void ProcessPreConnectionResultFailure(ClientProxy* client,
                                          const std::string& endpoint_id,
                                          bool should_call_disconnect_endpoint,
@@ -593,11 +599,12 @@ class BasePcpHandler : public PcpHandler,
   // array.
   std::string GetHashedConnectionToken(const ByteArray& token_bytes);
 
-  static void LogConnectionAttemptFailure(ClientProxy* client, Medium medium,
-                                          const std::string& endpoint_id,
-                                          bool is_incoming,
-                                          absl::Time start_time,
-                                          EndpointChannel* endpoint_channel);
+  static void LogConnectionAttemptFailure(
+      ClientProxy* client, Medium medium, const std::string& endpoint_id,
+      bool is_incoming, absl::Time start_time,
+      EndpointChannel* endpoint_channel,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code);
 
   static void LogConnectionAttemptSuccess(
       const std::string& endpoint_id,
