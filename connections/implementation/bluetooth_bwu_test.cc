@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
@@ -35,6 +36,7 @@ namespace connections {
 
 namespace {
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::proto::connections::OperationResultCode;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 }  // namespace
 
@@ -101,10 +103,12 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 
-    std::unique_ptr<EndpointChannel> new_channel =
+    std::pair<std::unique_ptr<EndpointChannel>, OperationResultCode> result =
         handler_2->CreateUpgradedEndpointChannel(&client_2, /*service_id=*/"A",
                                                  /*endpoint_id=*/"1",
                                                  bwu_frame.upgrade_path_info());
+    auto new_channel = std::move(result.first);
+    OperationResultCode result_code = result.second;
     if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
       EXPECT_EQ(new_channel->GetMedium(),
@@ -113,6 +117,7 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
       accept_latch.CountDown();
       EXPECT_EQ(new_channel, nullptr);
     }
+    EXPECT_EQ(result_code, OperationResultCode::DETAIL_UNKNOWN);
     EXPECT_FALSE(mediums_2.GetBluetoothClassic().GetMacAddress().empty());
     handler_2->RevertResponderState(/*service_id=*/"A");
     end_latch.CountDown();
