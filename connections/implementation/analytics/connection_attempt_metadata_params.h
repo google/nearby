@@ -37,6 +37,9 @@ struct ConnectionAttemptMetadataParams {
   int max_wifi_tx_speed = 0;
   int max_wifi_rx_speed = 0;
   int channel_width = -1;  // -1 as Unknown.
+  location::nearby::proto::connections::OperationResultCode
+      operation_result_code = location::nearby::proto::connections::
+          OperationResultCode::DETAIL_UNKNOWN;
 };
 
 }  // namespace nearby

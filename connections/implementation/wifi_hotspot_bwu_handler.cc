@@ -15,7 +15,6 @@
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 
 #include <cstdint>
-#include <locale>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,7 +24,6 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
 #include "connections/strategy.h"
@@ -37,6 +35,11 @@
 namespace nearby {
 namespace connections {
 
+namespace {
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+
+// TODO(edwinwu): Add exact OperationResultCode for WifiHotspotBwuHandler.
 WifiHotspotBwuHandler::WifiHotspotBwuHandler(
     Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
@@ -108,13 +111,13 @@ void WifiHotspotBwuHandler::HandleRevertInitiatorStateForService(
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WifiHotspot using this info.
-std::unique_ptr<EndpointChannel>
+std::pair<std::unique_ptr<EndpointChannel>, OperationResultCode>
 WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_hotspot_credentials()) {
     NEARBY_LOGS(INFO) << "No Hotspot Credential";
-    return nullptr;
+    return {nullptr, OperationResultCode::DETAIL_UNKNOWN};
   }
   const UpgradePathInfo::WifiHotspotCredentials& upgrade_path_info_credentials =
       upgrade_path_info.wifi_hotspot_credentials();
@@ -131,7 +134,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
   if (!wifi_hotspot_medium_.ConnectWifiHotspot(ssid, password, frequency)) {
     NEARBY_LOGS(ERROR) << "Connect to Hotspot failed";
-    return nullptr;
+    return {nullptr, OperationResultCode::DETAIL_UNKNOWN};
   }
 
   WifiHotspotSocket socket = wifi_hotspot_medium_.Connect(
@@ -140,7 +143,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     NEARBY_LOGS(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("
         << gateway << ":" << port << ") for endpoint " << endpoint_id;
-    return nullptr;
+    return {nullptr, OperationResultCode::DETAIL_UNKNOWN};
   }
 
   NEARBY_VLOG(1)
@@ -151,7 +154,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   auto channel = std::make_unique<WifiHotspotEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket);
 
-  return channel;
+  return {std::move(channel), OperationResultCode::DETAIL_SUCCESS};
 }
 
 // Accept Connection Callback.

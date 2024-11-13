@@ -22,17 +22,16 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
-#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/simulation_user.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/payload.h"
 #include "connections/status.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/pipe.h"
@@ -41,6 +40,7 @@ namespace nearby {
 namespace connections {
 namespace {
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
 using ::nearby::analytics::PacketMetaData;
 using ::location::nearby::proto::connections::Medium;
 
