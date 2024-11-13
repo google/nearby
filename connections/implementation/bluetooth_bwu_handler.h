@@ -15,14 +15,19 @@
 #ifndef CORE_INTERNAL_BLUETOOTH_BWU_HANDLER_H_
 #define CORE_INTERNAL_BLUETOOTH_BWU_HANDLER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/bluetooth_classic.h"
+#include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/utils.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/bluetooth_classic.h"
-#include "internal/platform/count_down_latch.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
@@ -51,10 +56,12 @@ class BluetoothBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler implementation:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final;
+  std::pair<std::unique_ptr<EndpointChannel>,
+            location::nearby::proto::connections::OperationResultCode>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) final;
   Medium GetUpgradeMedium() const final { return Medium::BLUETOOTH; }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}
