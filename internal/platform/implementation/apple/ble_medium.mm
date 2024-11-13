@@ -119,8 +119,6 @@ bool BleMedium::StopAdvertising() {
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                          NSDictionary<CBUUID *, NSData *> *serviceData) {
   absl::MutexLock lock(&peripherals_mutex_);
-  [socketCentralManager_ retrievePeripheralWithIdentifier:peripheral.identifier
-                                        advertisementData:@{}];
 
   api::ble_v2::BleAdvertisementData data;
   for (CBUUID *key in serviceData.allKeys) {
