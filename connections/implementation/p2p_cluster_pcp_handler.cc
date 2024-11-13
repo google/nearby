@@ -343,6 +343,12 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
       "p2p-bt-device-discovered",
       [this, client, service_id, device]()
           RUN_ON_PCP_HANDLER_THREAD() {
+            if (!device.IsValid()) {
+              NEARBY_LOGS(WARNING) << "BluetoothDeviceDiscoveredHandler: "
+                                      "Skipping the invalid Bluetooth device";
+              return;
+            }
+
             // Make sure we are still discovering before proceeding.
             if (!client->IsDiscovering()) {
               NEARBY_LOGS(WARNING) << "Skipping discovery of BluetoothDevice "
@@ -388,6 +394,12 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
       "p2p-bt-name-changed",
       [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
+        if (!device.IsValid()) {
+          NEARBY_LOGS(WARNING) << "BluetoothNameChangedHandler: Skipping the "
+                                  "invalid Bluetooth device";
+          return;
+        }
+
         if (!client->IsDiscovering()) {
           NEARBY_LOGS(WARNING)
               << "Ignoring lost BluetoothDevice " << device.GetName()
@@ -462,6 +474,12 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
 void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
     ClientProxy* client, const std::string& service_id,
     BluetoothDevice& device) {
+  if (!device.IsValid()) {
+    NEARBY_LOGS(WARNING)
+        << "BluetoothDeviceLostHandler:Skipping the invalid Bluetooth device";
+    return;
+  }
+
   const std::string& device_name_string = device.GetName();
   RunOnPcpHandlerThread(
       "p2p-bt-device-lost", [this, client, service_id,
