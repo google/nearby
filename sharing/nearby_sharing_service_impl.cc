@@ -137,7 +137,9 @@ constexpr absl::Duration kFastInitiationScannerCooldown = absl::Seconds(8);
 
 // The maximum number of certificate downloads that can be performed during a
 // discovery session.
-constexpr size_t kMaxCertificateDownloadsDuringDiscovery = 3u;
+// Assuming a 2min discovery session and 10s download interval.
+// This allows us to try to re-download certificates for the entire session.
+constexpr size_t kMaxCertificateDownloadsDuringDiscovery = 12u;
 // The time between certificate downloads during a discovery session. The
 // download is only attempted if there are discovered, contact-based
 // advertisements that cannot decrypt any currently stored public certificates.
