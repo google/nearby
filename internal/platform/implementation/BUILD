@@ -20,6 +20,7 @@ cc_library(
         "//internal/auth:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
+        "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
         "//sharing:__subpackages__",
     ],
 )
