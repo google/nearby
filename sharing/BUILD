@@ -133,6 +133,18 @@ cc_library(
 )
 
 cc_library(
+    name = "worker_queue",
+    hdrs = ["worker_queue.h"],
+    deps = [
+        "//internal/platform:types",
+        "//sharing/internal/public:logging",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
     name = "incoming_frame_reader",
     srcs = ["incoming_frames_reader.cc"],
     hdrs = ["incoming_frames_reader.h"],
@@ -860,6 +872,19 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "worker_queue_test",
+    srcs = ["worker_queue_test.cc"],
+    deps = [
+        ":worker_queue",
+        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/test",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/synchronization",
         "@com_google_googletest//:gtest_main",
     ],
 )
