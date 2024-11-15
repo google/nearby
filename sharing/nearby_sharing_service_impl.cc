@@ -802,10 +802,10 @@ void NearbySharingServiceImpl::Accept(
             GetIncomingShareSession(share_target_id);
         if (incoming_session != nullptr) {
           // Incoming session.
-          bool accept_success =
-              incoming_session->AcceptTransfer(absl::bind_front(
-                  &NearbySharingServiceImpl::IncomingPayloadTransferUpdate,
-                  this));
+          bool accept_success = incoming_session->AcceptTransfer(
+              absl::bind_front(
+                  &NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates,
+                  this, share_target_id));
           std::move(status_codes_callback)(
               accept_success ? StatusCodes::kOk
                              : StatusCodes::kOutOfOrderApiCall);
@@ -2860,8 +2860,9 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target_id, std::move(frame));
       },
-      absl::bind_front(&NearbySharingServiceImpl::OutgoingPayloadTransferUpdate,
-                       this));
+      absl::bind_front(
+          &NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates, this,
+          share_target_id));
 }
 
 void NearbySharingServiceImpl::OnStorageCheckCompleted(
@@ -2883,8 +2884,10 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
   }
   // Don't need to wait for user to accept for Self share.
   LOG(INFO) << __func__ << ": Auto-accepting self share.";
-  session.AcceptTransfer(absl::bind_front(
-      &NearbySharingServiceImpl::IncomingPayloadTransferUpdate, this));
+  session.AcceptTransfer(
+      absl::bind_front(
+          &NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates, this,
+          session.share_target().id));
   OnTransferStarted(/*is_incoming=*/true);
 }
 
@@ -2997,28 +3000,43 @@ std::optional<ShareTarget> NearbySharingServiceImpl::CreateShareTarget(
   return target;
 }
 
-void NearbySharingServiceImpl::IncomingPayloadTransferUpdate(
-    int64_t share_target_id, TransferMetadata metadata) {
-  IncomingShareSession* session = GetIncomingShareSession(share_target_id);
-  if (!session) {
-    // ShareTarget already disconnected.
-    LOG(WARNING) << "Received payload update after share target disconnected: "
-                 << share_target_id;
+void NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates(
+    int64_t share_target_id) {
+  IncomingShareSession* incoming_session =
+      GetIncomingShareSession(share_target_id);
+  if (incoming_session == nullptr) {
     return;
   }
-  std::pair<bool, bool> result =
-      session->PayloadTransferUpdate(update_file_paths_in_progress_, metadata);
-  if (result.first) {
-    if (!result.second) {
-      OnIncomingFilesMetadataUpdated(share_target_id, std::move(metadata),
-                                     /*success=*/false);
-      return;
-    }
+  std::optional<TransferMetadata> metadata =
+      incoming_session->ProcessPayloadTransferUpdates(
+          update_file_paths_in_progress_);
+  if (!metadata.has_value()) {
+    return;
+  }
+
+  if (metadata->status() == TransferMetadata::Status::kIncompletePayloads) {
+    OnIncomingFilesMetadataUpdated(share_target_id,
+                                    std::move(*metadata),
+                                    /*success=*/false);
+    return;
+  }
+  if (metadata->status() == TransferMetadata::Status::kComplete) {
     file_handler_.UpdateFilesOriginMetadata(
-        session->GetPayloadFilePaths(),
+        incoming_session->GetPayloadFilePaths(),
         absl::bind_front(
             &NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated, this,
-            share_target_id, std::move(metadata)));
+            share_target_id, std::move(*metadata)));
+    return;
+  }
+  incoming_session->UpdateTransferMetadata(*metadata);
+
+  if (TransferMetadata::IsFinalStatus(metadata->status())) {
+    // Cancellation has its own disconnection strategy, possibly adding a
+    // delay before disconnection to provide the other party time to
+    // process the cancellation.
+    if (metadata->status() != TransferMetadata::Status::kCancelled) {
+      incoming_session->Disconnect();
+    }
   }
 }
 
@@ -3060,8 +3078,8 @@ void NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated(
       });
 }
 
-void NearbySharingServiceImpl::OutgoingPayloadTransferUpdate(
-    int64_t share_target_id, TransferMetadata metadata) {
+void NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates(
+    int64_t share_target_id) {
   OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
   if (!session) {
     // ShareTarget already disconnected.
@@ -3070,12 +3088,18 @@ void NearbySharingServiceImpl::OutgoingPayloadTransferUpdate(
     return;
   }
 
+  std::optional<TransferMetadata> metadata =
+      session->ProcessPayloadTransferUpdates();
+  if (!metadata.has_value()) {
+    return;
+  }
+
   // kInProgress status is logged extensively elsewhere so avoid the spam.
-  if (metadata.status() != TransferMetadata::Status::kInProgress) {
+  if (metadata->status() != TransferMetadata::Status::kInProgress) {
     VLOG(1) << __func__ << ": Nearby Share service: "
             << "Payload transfer update for share target with ID "
             << share_target_id << ": "
-            << TransferMetadata::StatusToString(metadata.status());
+            << TransferMetadata::StatusToString(metadata->status());
   }
 
   // When kComplete is received from PayloadTracker, we need to wait for
@@ -3083,8 +3107,8 @@ void NearbySharingServiceImpl::OutgoingPayloadTransferUpdate(
   // succeeded.  Here we delay the kComplete update until receiver disconnects.
   // A 1 min timer is setup so that if we do not receive disconnect from
   // receiver, we assume the transfer has failed.
-  if (metadata.status() == TransferMetadata::Status::kComplete) {
-    session->DelayCompleteMetadata(metadata);
+  if (metadata->status() == TransferMetadata::Status::kComplete) {
+    session->DelayCompleteMetadata(*metadata);
     auto timer = std::make_unique<ThreadTimer>(
         *service_thread_, "disconnection_timeout_alarm",
         kOutgoingDisconnectionDelay,
@@ -3101,13 +3125,13 @@ void NearbySharingServiceImpl::OutgoingPayloadTransferUpdate(
   // Make sure to call this before calling Disconnect, or we risk losing some
   // transfer updates in the receive case due to the Disconnect call cleaning up
   // share targets.
-  session->UpdateTransferMetadata(metadata);
+  session->UpdateTransferMetadata(*metadata);
 
   // Cancellation has its own disconnection strategy, possibly adding a delay
   // before disconnection to provide the other party time to process the
   // cancellation.
-  if (TransferMetadata::IsFinalStatus(metadata.status()) &&
-      metadata.status() != TransferMetadata::Status::kCancelled) {
+  if (TransferMetadata::IsFinalStatus(metadata->status()) &&
+      metadata->status() != TransferMetadata::Status::kCancelled) {
     // Failed to send. No point in continuing, so disconnect immediately.
     session->Disconnect();
   }

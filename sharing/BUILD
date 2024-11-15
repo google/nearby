@@ -216,6 +216,7 @@ cc_library(
         ":thread_timer",
         ":transfer_metadata",
         ":types",
+        ":worker_queue",
         "//internal/base:files",
         "//internal/platform:types",
         "//proto:sharing_enums_cc_proto",

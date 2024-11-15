@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_task_runner.h"
 #include "sharing/attachment_container.h"
 #include "sharing/file_attachment.h"
 #include "sharing/nearby_connections_types.h"
@@ -51,52 +52,53 @@ class PayloadTrackerTest : public ::testing::Test {
     attachment_payload_map_.clear();
     attachment_payload_map_.emplace(container_.GetFileAttachments()[0].id(),
                                  kFileId);
+    auto payload_updates_queue =
+        std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner_);
     payload_tracker_ = std::make_unique<PayloadTracker>(
         &fake_clock_, kShareTargetId, container_, attachment_payload_map_,
-        [&](int64_t share_target_id, TransferMetadata transfer_metadata) {
-          current_percentage_ = transfer_metadata.progress();
-        });
+        std::move(payload_updates_queue));
   }
-
-  float percentage() const { return current_percentage_; }
 
   void FastForward(absl::Duration duration) {
     fake_clock_.FastForward(duration);
   }
 
-  void PayloadUpdate(int bytes_transferred) {
+  std::optional<TransferMetadata> PayloadUpdate(int bytes_transferred) {
     auto transfer_update = std::make_unique<PayloadTransferUpdate>(
         /*payload_id=*/kFileId, PayloadStatus::kInProgress,
         /*total_bytes=*/kFileSize, /*bytes_transferred=*/bytes_transferred);
-    payload_tracker_->OnStatusUpdate(std::move(transfer_update));
+    return payload_tracker_->ProcessPayloadUpdate(std::move(transfer_update));
   }
 
  private:
   FakeClock fake_clock_;
+  FakeTaskRunner task_runner_{&fake_clock_, 1};
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
-  float current_percentage_ = 0.0;
   AttachmentContainer container_;
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
 };
 
 TEST_F(PayloadTrackerTest, StatusUpdateWithoutTimeUpdate) {
-  EXPECT_EQ(percentage(), 0.0);
-  PayloadUpdate(1024);
-  EXPECT_EQ(percentage(), 1.0);
-  PayloadUpdate(2048);
-  EXPECT_EQ(percentage(), 2.0);
+  std::optional<TransferMetadata> metadata = PayloadUpdate(1024);
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->progress(), 1.0);
+  metadata = PayloadUpdate(2048);
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->progress(), 2.0);
 }
 
 TEST_F(PayloadTrackerTest, StatusUpdateWithTimeUpdate) {
-  EXPECT_EQ(percentage(), 0.0);
-  PayloadUpdate(1024);
-  EXPECT_EQ(percentage(), 1.0);
+  std::optional<TransferMetadata> metadata = PayloadUpdate(1024);
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->progress(), 1.0);
   FastForward(absl::Milliseconds(100));
-  PayloadUpdate(2048);
-  EXPECT_EQ(percentage(), 2.0);
+  metadata = PayloadUpdate(2048);
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->progress(), 2.0);
   FastForward(absl::Milliseconds(100));
-  PayloadUpdate(3072);
-  EXPECT_EQ(percentage(), 3.0);
+  metadata = PayloadUpdate(3072);
+  EXPECT_TRUE(metadata.has_value());
+  EXPECT_EQ(metadata->progress(), 3.0);
 }
 
 }  // namespace

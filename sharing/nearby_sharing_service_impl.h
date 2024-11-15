@@ -363,10 +363,8 @@ class NearbySharingServiceImpl
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       bool is_incoming);
 
-  void IncomingPayloadTransferUpdate(int64_t share_target_id,
-                                     TransferMetadata metadata);
-  void OutgoingPayloadTransferUpdate(int64_t share_target_id,
-                                     TransferMetadata metadata);
+  void OnIncomingPayloadTransferUpdates(int64_t share_target_id);
+  void OnOutgoingPayloadTransferUpdates(int64_t share_target_id);
 
   void RemoveIncomingPayloads(const IncomingShareSession& session);
 

@@ -20,11 +20,13 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -198,18 +200,15 @@ bool IncomingShareSession::ReadyForTransfer(
 }
 
 bool IncomingShareSession::AcceptTransfer(
-    std::function<void(int64_t, TransferMetadata)> update_callback) {
+    absl::AnyInvocable<void()> payload_transfer_updates_callback) {
   if (!ready_for_accept_ || !IsConnected()) {
     LOG(WARNING) << "AcceptTransfer call not expected";
     return false;
   }
   ready_for_accept_ = false;
+  InitializePayloadTracker(std::move(payload_transfer_updates_callback));
   const absl::flat_hash_map<int64_t, int64_t>& payload_map =
       attachment_payload_map();
-  set_payload_tracker(std::make_shared<PayloadTracker>(
-      &clock(), share_target().id, attachment_container(), payload_map,
-      std::move(update_callback)));
-
   // Register status listener for all payloads.
   for (auto it = payload_map.begin(); it != payload_map.end(); ++it) {
     VLOG(1) << "Started listening for progress on payload: " << it->second
@@ -218,11 +217,11 @@ bool IncomingShareSession::AcceptTransfer(
     connections_manager().RegisterPayloadStatusListener(it->second,
                                                         payload_tracker());
 
-    NL_VLOG(1) << __func__ << ": Accepted incoming files from share target - "
-               << share_target().id;
+    VLOG(1) << __func__ << ": Accepted incoming files from share target - "
+            << share_target().id;
   }
   WriteResponseFrame(ConnectionResponseFrame::ACCEPT);
-  NL_VLOG(1) << __func__ << ": Successfully wrote response frame";
+  VLOG(1) << __func__ << ": Successfully wrote response frame";
   // Log analytics event of responding to introduction.
   analytics_recorder().NewRespondToIntroduction(
       ResponseToIntroduction::ACCEPT_INTRODUCTION, session_id());
@@ -271,8 +270,8 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
     }
 
     auto file_path = incoming_payload->content.file_payload.file.path;
-    NL_VLOG(1) << __func__ << ": Updated file_path="
-               << GetCompatibleU8String(file_path.u8string());
+    VLOG(1) << __func__ << ": Updated file_path="
+            << GetCompatibleU8String(file_path.u8string());
     file.set_file_path(file_path);
   }
   return result;
@@ -370,8 +369,8 @@ std::vector<std::filesystem::path> IncomingShareSession::GetPayloadFilePaths()
   for (const auto& file : container.GetFileAttachments()) {
     if (!file.file_path().has_value()) continue;
     auto file_path = *file.file_path();
-    NL_VLOG(1) << __func__
-               << ": file_path=" << GetCompatibleU8String(file_path.u8string());
+    VLOG(1) << __func__
+            << ": file_path=" << GetCompatibleU8String(file_path.u8string());
     if (attachment_paylod_map.find(file.id()) == attachment_paylod_map.end()) {
       continue;
     }
@@ -414,53 +413,65 @@ void IncomingShareSession::SendFailureResponse(
   }
 
   WriteResponseFrame(response_status);
-  NL_DCHECK(TransferMetadata::IsFinalStatus(status))
+  DCHECK(TransferMetadata::IsFinalStatus(status))
       << "SendFailureResponse should only be called with a final status";
   UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
 }
 
-std::pair<bool, bool> IncomingShareSession::PayloadTransferUpdate(
-    bool update_file_paths_in_progress, const TransferMetadata& metadata) {
+std::optional<TransferMetadata>
+IncomingShareSession::ProcessPayloadTransferUpdates(
+    bool update_file_paths_in_progress) {
+  std::queue<std::unique_ptr<PayloadTransferUpdate>> updates =
+      payload_updates_queue()->ReadAll();
+  VLOG(1) << "Processing " << updates.size() << " PayloadTransferUpdates";
+  if (updates.empty()) {
+    return std::nullopt;
+  }
   // Cancel acceptance timer when payload transfer update is received.
   // This mean sender has begun sending payload.
-  mutual_acceptance_timeout_.reset();
+  mutual_acceptance_timeout_ = nullptr;
+  std::optional<TransferMetadata> metadata;
+  // If there is a batch of updates in the queue, only return the latest
+  // TransferMetadata.
+  for (; !updates.empty(); updates.pop()) {
+    metadata =
+        get_payload_tracker()->ProcessPayloadUpdate(std::move(updates.front()));
+    if (!metadata.has_value()) {
+      continue;
+    }
 
-  if (metadata.status() == TransferMetadata::Status::kComplete) {
-    bool success = FinalizePayloads();
-    return std::make_pair(/*completed=*/true, success);
-  }
+    if (metadata->status() == TransferMetadata::Status::kComplete) {
+      if (!FinalizePayloads()) {
+        return TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kIncompletePayloads)
+            .build();
+      }
+      return metadata;
+    }
 
-  // Update file paths during progress. It may impact transfer speed.
-  // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
-  // MacOS.
-  if (update_file_paths_in_progress) {
-    UpdateFilePayloadPaths();
-  } else {
-    if (metadata.status() == TransferMetadata::Status::kCancelled) {
-      NL_VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
+    // Update file paths during progress. It may impact transfer speed.
+    // TODO: b/289290115 - Revisit UpdateFilePath to enhance transfer speed for
+    // MacOS.
+    if (update_file_paths_in_progress) {
       UpdateFilePayloadPaths();
+    } else {
+      if (metadata->status() == TransferMetadata::Status::kCancelled) {
+        VLOG(1) << __func__ << ": Update file paths for cancelled transfer";
+        UpdateFilePayloadPaths();
+      }
     }
   }
-
-  // Make sure to call this before calling Disconnect, or we risk losing some
-  // transfer updates in the receive case due to the Disconnect call cleaning up
-  // share targets.
-  UpdateTransferMetadata(metadata);
-
-  if (TransferMetadata::IsFinalStatus(metadata.status())) {
-    // Cancellation has its own disconnection strategy, possibly adding a
-    // delay before disconnection to provide the other party time to process
-    // the cancellation.
-    if (metadata.status() != TransferMetadata::Status::kCancelled) {
-      Disconnect();
-    }
-  }
-  return std::make_pair(/*completed=*/false, /*success=*/false);
+  return metadata;
 }
 
 void IncomingShareSession::OnConnected(NearbyConnection* connection) {
   set_disconnect_status(TransferMetadata::Status::kFailed);
   SetConnection(connection);
+}
+
+void IncomingShareSession::PushPayloadTransferUpdateForTest(
+    std::unique_ptr<PayloadTransferUpdate> update) {
+  payload_updates_queue()->Queue(std::move(update));
 }
 
 }  // namespace nearby::sharing

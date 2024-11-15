@@ -18,8 +18,6 @@
 #include <stddef.h>
 
 #include <cstdint>
-#include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 
@@ -30,20 +28,26 @@
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/transfer_metadata.h"
+#include "sharing/worker_queue.h"
 
 namespace nearby {
 namespace sharing {
 
-// Listens for incoming or outgoing transfer updates from Nearby Connections and
-// forwards the transfer progress to the |update_callback|.
+// Listens for incoming or outgoing transfer updates from Nearby Connections.
 class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
  public:
+  using PayloadUpdateQueue =
+      WorkerQueue<std::unique_ptr<PayloadTransferUpdate>>;
+
   PayloadTracker(
       Clock* clock, int64_t share_target_id,
       const AttachmentContainer& container,
       const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map,
-      std::function<void(int64_t, TransferMetadata)> update_callback);
+      std::unique_ptr<PayloadUpdateQueue> payload_queue);
   ~PayloadTracker() override;
+
+  std::optional<TransferMetadata> ProcessPayloadUpdate(
+      std::unique_ptr<PayloadTransferUpdate> update);
 
   // NearbyConnectionsManager::PayloadStatusListener:
   void OnStatusUpdate(std::unique_ptr<PayloadTransferUpdate> update) override;
@@ -60,7 +64,7 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
     PayloadStatus status = PayloadStatus::kInProgress;
   };
 
-  void OnTransferUpdate(const State& state);
+  std::optional<TransferMetadata> OnTransferUpdate(const State& state);
 
   bool IsComplete() const;
   bool IsCancelled(const State& state) const;
@@ -71,19 +75,15 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
 
   Clock* const clock_;
   const int64_t share_target_id_;
-  std::function<void(int64_t, TransferMetadata)> update_callback_;
+  std::unique_ptr<PayloadUpdateQueue> payload_update_queue_;
 
   // Map of payload id to state of payload.
-  std::map<int64_t, State> payload_state_;
-
-  // Tracks in progress payload.
-  std::optional<int64_t> in_progress_payload_id_ = std::nullopt;
+  absl::flat_hash_map<int64_t, State> payload_state_;
 
   uint64_t total_transfer_size_;
   uint64_t confirmed_transfer_size_;
 
-  int last_update_progress_ = 0;
-  absl::Time last_update_timestamp_;  // progress percentage
+  int last_update_progress_ = 0;  // progress percentage
   absl::Time last_transfer_speed_update_timestamp_;
   absl::Time last_eta_update_timestamp_;
   uint64_t last_transferred_size_ = 0;
@@ -100,8 +100,6 @@ class PayloadTracker : public NearbyConnectionsManager::PayloadStatusListener {
   size_t num_text_attachments_ = 0;
   size_t num_file_attachments_ = 0;
   size_t num_wifi_credentials_attachments_ = 0;
-  uint64_t num_first_update_bytes_ = 0;
-  std::optional<absl::Time> first_update_timestamp_;
 };
 
 }  // namespace sharing

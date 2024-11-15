@@ -654,7 +654,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
   session_.CreateFilePayloads(file_infos);
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
-  MockFunction<void(int64_t, TransferMetadata)> transfer_metadata_callback;
+  MockFunction<void()> payload_transder_update_callback;
   StrictMock<MockFunction<void(
       std::unique_ptr<Payload>,
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
@@ -698,7 +698,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
   session_.SendPayloads(
       /*enable_transfer_cancellation_optimization=*/
       false, [](std::optional<V1Frame> frame) {},
-      transfer_metadata_callback.AsStdFunction());
+      payload_transder_update_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
   EXPECT_THAT(payload_listener, IsTrue());
@@ -715,7 +715,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
   session_.CreateFilePayloads(file_infos);
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
-  MockFunction<void(int64_t, TransferMetadata)> transfer_metadata_callback;
+  MockFunction<void()> payload_transder_update_callback;
   StrictMock<MockFunction<void(
       std::unique_ptr<Payload>,
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
@@ -741,7 +741,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
   session_.SendPayloads(
       /*enable_transfer_cancellation_optimization=*/
       true, [](std::optional<V1Frame> frame) {},
-      transfer_metadata_callback.AsStdFunction());
+      payload_transder_update_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
   EXPECT_THAT(payload_listener, IsTrue());
@@ -758,7 +758,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
   session_.CreateFilePayloads(file_infos);
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
-  MockFunction<void(int64_t, TransferMetadata)> transfer_metadata_callback;
+  MockFunction<void()> payload_transder_update_callback;
   StrictMock<MockFunction<void(
       std::unique_ptr<Payload>,
       std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
@@ -785,7 +785,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
   session_.SendPayloads(
       /*enable_transfer_cancellation_optimization=*/
       true, [](std::optional<V1Frame> frame) {},
-      transfer_metadata_callback.AsStdFunction());
+      payload_transder_update_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))
       .WillOnce(Invoke(

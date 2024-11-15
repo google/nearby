@@ -14,16 +14,14 @@
 
 #include "sharing/payload_tracker.h"
 
+#include <cmath>
 #include <cstdint>
-#include <functional>
 #include <limits>
-#include <map>
 #include <memory>
 #include <optional>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "sharing/attachment_container.h"
@@ -35,6 +33,7 @@
 #include "sharing/transfer_metadata.h"
 #include "sharing/transfer_metadata_builder.h"
 #include "sharing/wifi_credentials_attachment.h"
+#include "sharing/worker_queue.h"
 
 namespace nearby {
 namespace sharing {
@@ -42,10 +41,11 @@ namespace sharing {
 PayloadTracker::PayloadTracker(
     Clock* clock, int64_t share_target_id, const AttachmentContainer& container,
     const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map,
-    std::function<void(int64_t, TransferMetadata)> update_callback)
+    std::unique_ptr<WorkerQueue<std::unique_ptr<PayloadTransferUpdate>>>
+        payload_queue)
     : clock_(clock),
       share_target_id_(share_target_id),
-      update_callback_(std::move(update_callback)) {
+      payload_update_queue_(std::move(payload_queue)) {
   total_transfer_size_ = 0;
   confirmed_transfer_size_ = 0;
 
@@ -99,24 +99,32 @@ PayloadTracker::~PayloadTracker() = default;
 
 void PayloadTracker::OnStatusUpdate(
     std::unique_ptr<PayloadTransferUpdate> update) {
-  auto it = payload_state_.find(update->payload_id);
-  if (it == payload_state_.end()) return;
-
-  // For metrics.
-  if (!first_update_timestamp_.has_value()) {
-    first_update_timestamp_ = absl::Now();
-    num_first_update_bytes_ = update->bytes_transferred;
+  if (payload_state_.find(update->payload_id) == payload_state_.end()) {
+    LOG(ERROR) << "Got transfer update for untracked payload: "
+               << update->payload_id;
+    return;
   }
-  if (it->second.status != update->status) {
-    it->second.status = update->status;
+  payload_update_queue_->Queue(std::move(update));
+}
+
+std::optional<TransferMetadata> PayloadTracker::ProcessPayloadUpdate(
+    std::unique_ptr<PayloadTransferUpdate> update) {
+  auto it = payload_state_.find(update->payload_id);
+  if (it == payload_state_.end()) {
+    return std::nullopt;
+  }
+  State& state = it->second;
+  if (state.status != update->status) {
+    state.status = update->status;
 
     VLOG(1) << __func__ << ": Payload id " << update->payload_id
             << " had status change: " << update->status;
   }
 
-  if (it->second.status == PayloadStatus::kSuccess) {
-    LOG(INFO) << __func__ << ": Completed transfer of payload " << it->first
-              << " with attachment id " << it->second.attachment_id;
+  if (state.status == PayloadStatus::kSuccess) {
+    LOG(INFO) << __func__ << ": Completed transfer of payload "
+              << update->payload_id << " with attachment id "
+              << state.attachment_id;
     transferred_attachments_count_++;
     confirmed_transfer_size_ += update->bytes_transferred;
   }
@@ -124,55 +132,41 @@ void PayloadTracker::OnStatusUpdate(
   // The number of bytes transferred should never go down. That said, some
   // status updates like cancellation might send a value of 0. In that case, we
   // retain the last known value for use in metrics.
-  if (update->bytes_transferred > it->second.amount_transferred) {
-    it->second.amount_transferred = update->bytes_transferred;
+  if (update->bytes_transferred > state.amount_transferred) {
+    state.amount_transferred = update->bytes_transferred;
   }
 
-  // Handle in progress attachment.
-  if (!in_progress_payload_id_.has_value() ||
-      *in_progress_payload_id_ != update->payload_id) {
-    in_progress_payload_id_ = update->payload_id;
-  }
-
-  OnTransferUpdate(it->second);
+  return OnTransferUpdate(state);
 }
 
-void PayloadTracker::OnTransferUpdate(const State& state) {
+std::optional<TransferMetadata> PayloadTracker::OnTransferUpdate(
+    const State& state) {
   if (IsComplete()) {
     VLOG(1) << __func__ << ": All payloads are complete.";
-    update_callback_(
-        share_target_id_,
-        TransferMetadataBuilder()
-            .set_status(TransferMetadata::Status::kComplete)
-            .set_progress(100)
-            .set_total_attachments_count(payload_state_.size())
-            .set_transferred_attachments_count(transferred_attachments_count_)
-            .build());
-    return;
+    return TransferMetadataBuilder()
+        .set_status(TransferMetadata::Status::kComplete)
+        .set_progress(100)
+        .set_total_attachments_count(payload_state_.size())
+        .set_transferred_attachments_count(transferred_attachments_count_)
+        .build();
   }
 
   if (IsCancelled(state)) {
     VLOG(1) << __func__ << ": Payloads cancelled.";
-    update_callback_(
-        share_target_id_,
-        TransferMetadataBuilder()
-            .set_status(TransferMetadata::Status::kCancelled)
-            .set_total_attachments_count(payload_state_.size())
-            .set_transferred_attachments_count(transferred_attachments_count_)
-            .build());
-    return;
+    return TransferMetadataBuilder()
+        .set_status(TransferMetadata::Status::kCancelled)
+        .set_total_attachments_count(payload_state_.size())
+        .set_transferred_attachments_count(transferred_attachments_count_)
+        .build();
   }
 
   if (HasFailed(state)) {
     VLOG(1) << __func__ << ": Payloads failed.";
-    update_callback_(
-        share_target_id_,
-        TransferMetadataBuilder()
-            .set_status(TransferMetadata::Status::kFailed)
-            .set_total_attachments_count(payload_state_.size())
-            .set_transferred_attachments_count(transferred_attachments_count_)
-            .build());
-    return;
+    return TransferMetadataBuilder()
+        .set_status(TransferMetadata::Status::kFailed)
+        .set_total_attachments_count(payload_state_.size())
+        .set_transferred_attachments_count(transferred_attachments_count_)
+        .build();
   }
 
   double percent = CalculateProgressPercent(state);
@@ -181,9 +175,8 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   uint64_t current_transferred_size = GetTotalTransferred(state);
 
   if (current_progress == last_update_progress_ &&
-      (current_time - last_update_timestamp_) < kMinProgressUpdateFrequency &&
       state.status != PayloadStatus::kSuccess) {
-    return;
+    return std::nullopt;
   }
 
   // Update transfer speed approximately every `kTransferSpeedUpdateInterval`
@@ -226,24 +219,19 @@ void PayloadTracker::OnTransferUpdate(const State& state) {
   }
 
   last_update_progress_ = current_progress;
-  last_update_timestamp_ = current_time;
 
-  update_callback_(
-      share_target_id_,
-      TransferMetadataBuilder()
-          .set_status(TransferMetadata::Status::kInProgress)
-          .set_progress(percent)
-          .set_transferred_bytes(current_transferred_size)
-          .set_transfer_speed(static_cast<uint64_t>(current_speed_))
-          .set_estimated_time_remaining(
-              static_cast<uint64_t>(estimated_time_remaining_))
-          .set_total_attachments_count(payload_state_.size())
-          .set_transferred_attachments_count(transferred_attachments_count_)
-          .set_in_progress_attachment_id(state.attachment_id)
-          .set_in_progress_attachment_total_bytes(state.total_size)
-          .set_in_progress_attachment_transferred_bytes(
-              state.amount_transferred)
-          .build());
+  return TransferMetadataBuilder()
+      .set_status(TransferMetadata::Status::kInProgress)
+      .set_progress(percent)
+      .set_transferred_bytes(current_transferred_size)
+      .set_transfer_speed(static_cast<uint64_t>(current_speed_))
+      .set_estimated_time_remaining(std::llround(estimated_time_remaining_))
+      .set_total_attachments_count(payload_state_.size())
+      .set_transferred_attachments_count(transferred_attachments_count_)
+      .set_in_progress_attachment_id(state.attachment_id)
+      .set_in_progress_attachment_total_bytes(state.total_size)
+      .set_in_progress_attachment_transferred_bytes(state.amount_transferred)
+      .build();
 }
 
 bool PayloadTracker::IsComplete() const {

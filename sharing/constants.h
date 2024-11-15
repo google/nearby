@@ -50,9 +50,6 @@ constexpr absl::Duration kReadFramesTimeout = absl::Seconds(15);
 // Time to delay running the task to invalidate send and receive surfaces.
 constexpr absl::Duration kInvalidateDelay = absl::Milliseconds(500);
 
-// Time between successive progress updates.
-constexpr absl::Duration kMinProgressUpdateFrequency = absl::Milliseconds(100);
-
 // Attachments size threshold for transferring high quality medium. The default
 // value is 1MB to match the default setting on Android.
 constexpr int64_t kAttachmentsSizeThresholdOverHighQualityMedium = 1000000;

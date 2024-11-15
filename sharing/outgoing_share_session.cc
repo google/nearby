@@ -20,6 +20,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
@@ -327,7 +328,7 @@ void OutgoingShareSession::SendPayloads(
     std::function<
         void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
         frame_read_callback,
-    std::function<void(int64_t, TransferMetadata)> update_callback) {
+    std::function<void()> payload_transder_update_callback) {
   if (!IsConnected()) {
     LOG(WARNING) << "SendPayloads invoked for unconnected share target";
     return;
@@ -341,18 +342,16 @@ void OutgoingShareSession::SendPayloads(
                                                /*concurrent_connections=*/1);
   VLOG(1) << "The connection was accepted. Payloads are now being sent.";
   if (enable_transfer_cancellation_optimization) {
-    InitSendPayload(std::move(update_callback));
+    InitSendPayload(std::move(payload_transder_update_callback));
     SendNextPayload();
   } else {
-    SendAllPayloads(std::move(update_callback));
+    SendAllPayloads(std::move(payload_transder_update_callback));
   }
 }
 
 void OutgoingShareSession::SendAllPayloads(
-    std::function<void(int64_t, TransferMetadata)> update_callback) {
-  set_payload_tracker(std::make_unique<PayloadTracker>(
-      &clock(), share_target().id, attachment_container(),
-      attachment_payload_map(), std::move(update_callback)));
+    std::function<void()> payload_transder_update_callback) {
+  InitializePayloadTracker(std::move(payload_transder_update_callback));
   for (auto& payload : ExtractTextPayloads()) {
     connections_manager().Send(
         endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
@@ -368,10 +367,8 @@ void OutgoingShareSession::SendAllPayloads(
 }
 
 void OutgoingShareSession::InitSendPayload(
-    std::function<void(int64_t, TransferMetadata)> update_callback) {
-  set_payload_tracker(std::make_unique<PayloadTracker>(
-      &clock(), share_target().id, attachment_container(),
-      attachment_payload_map(), std::move(update_callback)));
+    std::function<void()> payload_transder_update_callback) {
+  InitializePayloadTracker(std::move(payload_transder_update_callback));
 }
 
 void OutgoingShareSession::SendNextPayload() {
@@ -609,6 +606,23 @@ TransportType OutgoingShareSession::GetTransportType(
 
   LOG(INFO) << "Transport type is kAny";
   return TransportType::kAny;
+}
+
+std::optional<TransferMetadata>
+OutgoingShareSession::ProcessPayloadTransferUpdates() {
+  std::queue<std::unique_ptr<PayloadTransferUpdate>> updates =
+      payload_updates_queue()->ReadAll();
+  VLOG(1) << "Received " << updates.size() << " PayloadTransferUpdates.";
+  if (updates.empty()) {
+    return std::nullopt;
+  }
+
+  std::optional<TransferMetadata> metadata;
+  for (; !updates.empty(); updates.pop()) {
+    metadata =
+        get_payload_tracker()->ProcessPayloadUpdate(std::move(updates.front()));
+  }
+  return metadata;
 }
 
 }  // namespace nearby::sharing

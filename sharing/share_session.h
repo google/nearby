@@ -156,6 +156,10 @@ class ShareSession {
     payload_tracker_ = std::move(payload_tracker);
   }
 
+  std::shared_ptr<PayloadTracker> get_payload_tracker() {
+    return payload_tracker_;
+  }
+
   AttachmentContainer& mutable_attachment_container() {
     return attachment_container_;
   }
@@ -176,6 +180,13 @@ class ShareSession {
     share_target_ = share_target;
     self_share_ = share_target.for_self_share;
   }
+
+  PayloadTracker::PayloadUpdateQueue* payload_updates_queue() {
+    return payload_updates_queue_;
+  }
+
+  void InitializePayloadTracker(
+      absl::AnyInvocable<void()> payload_transfer_updates_callback);
 
  private:
   Clock& clock_;
@@ -203,6 +214,7 @@ class ShareSession {
       TransferMetadata::Status::kUnknown;
   AttachmentContainer attachment_container_;
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
+  PayloadTracker::PayloadUpdateQueue* payload_updates_queue_ = nullptr;
 };
 
 }  // namespace nearby::sharing

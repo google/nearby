@@ -981,6 +981,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     // Kick off send process by accepting the transfer from the remote device.
     SendConnectionResponse(ConnectionResponseFrame::ACCEPT);
+    FlushTesting();
     return info;
   }
 
@@ -994,15 +995,13 @@ class NearbySharingServiceImplTest : public testing::Test {
                                     : TransferMetadata::Status::kFailed},
                           [] {});
 
-    sharing_service_task_runner_->PostTask([info = info]() {
-      auto payload_transfer_update = std::make_unique<PayloadTransferUpdate>(
-          info.payload_id, PayloadStatus::kSuccess,
-          /*total_bytes=*/strlen(kTextPayload),
-          /*bytes_transferred=*/strlen(kTextPayload));
-      if (auto listener = info.listener.lock()) {
-        listener->OnStatusUpdate(std::move(payload_transfer_update));
-      }
-    });
+    auto payload_transfer_update = std::make_unique<PayloadTransferUpdate>(
+        info.payload_id, PayloadStatus::kSuccess,
+        /*total_bytes=*/strlen(kTextPayload),
+        /*bytes_transferred=*/strlen(kTextPayload));
+    if (auto listener = info.listener.lock()) {
+      listener->OnStatusUpdate(std::move(payload_transfer_update));
+    }
     EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kWaitTimeout));
   }
 
@@ -1065,6 +1064,12 @@ class NearbySharingServiceImplTest : public testing::Test {
     fake_nearby_connections_manager_->SetIncomingPayload(
         kFilePayloadId, GetFilePayload(kFilePayloadId));
 
+    absl::Notification block_notification;
+    // Block the service thread so all PayloadTransferUpdate will be processed
+    // together..
+    sharing_service_task_runner_->PostTask([&block_notification]() {
+      block_notification.WaitForNotificationWithTimeout(absl::Seconds(5));
+    });
     for (int64_t id : GetValidIntroductionFramePayloadIds()) {
       // Update file payload at the end.
       if (id == kFilePayloadId) continue;
@@ -1076,33 +1081,30 @@ class NearbySharingServiceImplTest : public testing::Test {
           fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
               id);
 
-      absl::Notification progress_notification;
-
-      EXPECT_CALL(callback,
-                  OnTransferUpdate(testing::_, testing::_, testing::_))
-          .WillOnce(testing::Invoke([&](const ShareTarget& share_target,
-                                        const AttachmentContainer& container,
-                                        TransferMetadata metadata) {
-            EXPECT_FALSE(metadata.is_final_status());
-            EXPECT_EQ(metadata.status(), TransferMetadata::Status::kInProgress);
-            progress_notification.Notify();
-          }));
-
-      sharing_service_task_runner_->PostTask([id, listener = listener]() {
-        PayloadTransferUpdate payload =
-            PayloadTransferUpdate(id, PayloadStatus::kSuccess,
-                                  /*total_bytes=*/kPayloadSize,
-                                  /*bytes_transferred=*/kPayloadSize);
-        if (auto locked_listener = listener.lock()) {
-          locked_listener->OnStatusUpdate(
-              std::make_unique<PayloadTransferUpdate>(payload));
-        }
-      });
-
-      EXPECT_TRUE(
-          progress_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-      FastForward(kMinProgressUpdateFrequency);
+      PayloadTransferUpdate payload_update =
+          PayloadTransferUpdate(id, PayloadStatus::kSuccess,
+                                /*total_bytes=*/kPayloadSize,
+                                /*bytes_transferred=*/kPayloadSize);
+      if (auto locked_listener = listener.lock()) {
+        locked_listener->OnStatusUpdate(
+            std::make_unique<PayloadTransferUpdate>(payload_update));
+      }
     }
+    block_notification.Notify();
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            testing::Invoke([&](const ShareTarget& share_target,
+                                const AttachmentContainer& container,
+                                TransferMetadata metadata) {
+              EXPECT_FALSE(metadata.is_final_status());
+              EXPECT_EQ(metadata.status(),
+                        TransferMetadata::Status::kInProgress);
+            }));
+    FlushTesting();
+
+    std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
+        fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
+            kFilePayloadId);
 
     std::filesystem::path file_path;
     absl::Notification success_notification;
@@ -1112,7 +1114,6 @@ class NearbySharingServiceImplTest : public testing::Test {
                                       TransferMetadata metadata) {
           EXPECT_TRUE(metadata.is_final_status());
           EXPECT_EQ(metadata.status(), TransferMetadata::Status::kComplete);
-
           ASSERT_TRUE(container.HasAttachments());
           EXPECT_EQ(1u, container.GetFileAttachments().size());
           for (const FileAttachment& file : container.GetFileAttachments()) {
@@ -1127,21 +1128,15 @@ class NearbySharingServiceImplTest : public testing::Test {
 
           success_notification.Notify();
         }));
-
-    sharing_service_task_runner_->PostTask([this]() {
-      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
-          fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
-              kFilePayloadId);
-
-      PayloadTransferUpdate payload =
-          PayloadTransferUpdate(kFilePayloadId, PayloadStatus::kSuccess,
-                                /*total_bytes=*/kPayloadSize,
-                                /*bytes_transferred=*/kPayloadSize);
-      if (auto locked_listener = listener.lock()) {
-        locked_listener->OnStatusUpdate(
-            std::make_unique<PayloadTransferUpdate>(payload));
-      }
-    });
+    PayloadTransferUpdate payload =
+        PayloadTransferUpdate(kFilePayloadId, PayloadStatus::kSuccess,
+                              /*total_bytes=*/kPayloadSize,
+                              /*bytes_transferred=*/kPayloadSize);
+    if (auto locked_listener = listener.lock()) {
+      locked_listener->OnStatusUpdate(
+          std::make_unique<PayloadTransferUpdate>(payload));
+    }
+    FlushTesting();
 
     EXPECT_TRUE(
         success_notification.WaitForNotificationWithTimeout(kWaitTimeout));
@@ -2760,23 +2755,21 @@ TEST_F(NearbySharingServiceImplTest,
           progress_notification.Notify();
         }));
 
-    sharing_service_task_runner_->PostTask([this, id]() {
-      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
-          fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
-              id);
-      ASSERT_FALSE(listener.expired());
+    std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
+        fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
+            id);
+    ASSERT_FALSE(listener.expired());
 
-      auto payload = std::make_unique<PayloadTransferUpdate>(
-          id, PayloadStatus::kSuccess,
-          /*total_bytes=*/kPayloadSize,
-          /*bytes_transferred=*/kPayloadSize);
-      if (auto locked_listener = listener.lock()) {
-        locked_listener->OnStatusUpdate(std::move(payload));
-      }
-    });
+    auto payload = std::make_unique<PayloadTransferUpdate>(
+        id, PayloadStatus::kSuccess,
+        /*total_bytes=*/kPayloadSize,
+        /*bytes_transferred=*/kPayloadSize);
+    if (auto locked_listener = listener.lock()) {
+      locked_listener->OnStatusUpdate(std::move(payload));
+    }
+    FlushTesting();
     EXPECT_TRUE(
         progress_notification.WaitForNotificationWithTimeout(kWaitTimeout));
-    FastForward(kMinProgressUpdateFrequency);
   }
 
   absl::Notification success_notification;
@@ -2794,20 +2787,18 @@ TEST_F(NearbySharingServiceImplTest,
         success_notification.Notify();
       }));
 
-  sharing_service_task_runner_->PostTask([this]() {
-    std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
-        fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
-            kFilePayloadId);
-    ASSERT_FALSE(listener.expired());
+  std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
+      fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
+          kFilePayloadId);
+  ASSERT_FALSE(listener.expired());
 
-    auto payload = std::make_unique<PayloadTransferUpdate>(
-        kFilePayloadId, PayloadStatus::kSuccess,
-        /*total_bytes=*/kPayloadSize,
-        /*bytes_transferred=*/kPayloadSize);
-    if (auto locked_listener = listener.lock()) {
-      locked_listener->OnStatusUpdate(std::move(payload));
-    }
-  });
+  auto payload = std::make_unique<PayloadTransferUpdate>(
+      kFilePayloadId, PayloadStatus::kSuccess,
+      /*total_bytes=*/kPayloadSize,
+      /*bytes_transferred=*/kPayloadSize);
+  if (auto locked_listener = listener.lock()) {
+    locked_listener->OnStatusUpdate(std::move(payload));
+  }
   EXPECT_TRUE(
       success_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 
@@ -2843,20 +2834,18 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadFailed) {
         failure_notification.Notify();
       }));
 
-  sharing_service_task_runner_->PostTask([this]() {
-    std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
-        fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
-            kFilePayloadId);
-    ASSERT_FALSE(listener.expired());
+  std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
+      fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
+          kFilePayloadId);
+  ASSERT_FALSE(listener.expired());
 
-    auto payload = std::make_unique<PayloadTransferUpdate>(
-        kFilePayloadId, PayloadStatus::kFailure,
-        /*total_bytes=*/kPayloadSize,
-        /*bytes_transferred=*/kPayloadSize);
-    if (auto locked_listener = listener.lock()) {
-      locked_listener->OnStatusUpdate(std::move(payload));
-    }
-  });
+  auto payload = std::make_unique<PayloadTransferUpdate>(
+      kFilePayloadId, PayloadStatus::kFailure,
+      /*total_bytes=*/kPayloadSize,
+      /*bytes_transferred=*/kPayloadSize);
+  if (auto locked_listener = listener.lock()) {
+    locked_listener->OnStatusUpdate(std::move(payload));
+  }
 
   EXPECT_TRUE(
       failure_notification.WaitForNotificationWithTimeout(kWaitTimeout));
@@ -2893,20 +2882,18 @@ TEST_F(NearbySharingServiceImplTest, AcceptValidShareTargetPayloadCancelled) {
         failure_notification.Notify();
       }));
 
-  sharing_service_task_runner_->PostTask([this]() {
-    std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
-        fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
-            kFilePayloadId);
-    ASSERT_FALSE(listener.expired());
+  std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
+      fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
+          kFilePayloadId);
+  ASSERT_FALSE(listener.expired());
 
-    auto payload = std::make_unique<PayloadTransferUpdate>(
-        kFilePayloadId, PayloadStatus::kCanceled,
-        /*total_bytes=*/kPayloadSize,
-        /*bytes_transferred=*/kPayloadSize);
-    if (auto locked_listener = listener.lock()) {
-      locked_listener->OnStatusUpdate(std::move(payload));
-    }
-  });
+  auto payload = std::make_unique<PayloadTransferUpdate>(
+      kFilePayloadId, PayloadStatus::kCanceled,
+      /*total_bytes=*/kPayloadSize,
+      /*bytes_transferred=*/kPayloadSize);
+  if (auto locked_listener = listener.lock()) {
+    locked_listener->OnStatusUpdate(std::move(payload));
+  }
   EXPECT_TRUE(
       failure_notification.WaitForNotificationWithTimeout(kWaitTimeout));
 

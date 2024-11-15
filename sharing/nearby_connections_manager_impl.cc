@@ -871,12 +871,10 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 
     // Note: The listener might be invalidated, for example, if it is shared
     // with another payload in the same transfer.
-    connections_callback_task_runner_->PostTask([listener, update = update]() {
-      if (auto status_listener = listener->lock()) {
-        status_listener->OnStatusUpdate(
-            std::make_unique<PayloadTransferUpdate>(update));
-      }
-    });
+    if (auto status_listener = listener->lock()) {
+      status_listener->OnStatusUpdate(
+          std::make_unique<PayloadTransferUpdate>(update));
+    }
     return;
   }
 

@@ -116,14 +116,14 @@ class OutgoingShareSession : public ShareSession {
 
   // Begin sending payloads.
   // Listen to the payload status change and send the status to
-  // `update_callback`.
+  // `payload_transder_update_callback`.
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
       bool enable_transfer_cancellation_optimization,
       std::function<
           void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
-      std::function<void(int64_t, TransferMetadata)> update_callback);
+      std::function<void()> payload_transder_update_callback);
   // Send the next payload to NearbyConnectionManager.
   // Used only if enable_transfer_cancellation_optimization is true.
   void SendNextPayload();
@@ -155,6 +155,8 @@ class OutgoingShareSession : public ShareSession {
   // Returns true if the connection was successful.
   bool OnConnectResult(NearbyConnection* connection, Status status);
 
+  std::optional<TransferMetadata> ProcessPayloadTransferUpdates();
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;
@@ -164,14 +166,13 @@ class OutgoingShareSession : public ShareSession {
   TransportType GetTransportType(bool disable_wifi_hotspot) const;
 
   // Create a payload status listener to send status change to
-  // `update_callback`.  Send all payloads to NearbyConnectionManager.
-  void SendAllPayloads(
-      std::function<void(int64_t, TransferMetadata)> update_callback);
+  // `payload_transder_update_callback`.
+  // Send all payloads to NearbyConnectionManager.
+  void SendAllPayloads(std::function<void()> payload_transder_update_callback);
 
   // Create a payload status listener to send status change to
-  // `update_callback`.
-  void InitSendPayload(
-      std::function<void(int64_t, TransferMetadata)> update_callback);
+  // `payload_transder_update_callback`.
+  void InitSendPayload(std::function<void()> payload_transder_update_callback);
 
   std::vector<Payload> ExtractTextPayloads();
   std::vector<Payload> ExtractFilePayloads();
