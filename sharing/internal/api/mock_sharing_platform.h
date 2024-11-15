@@ -22,6 +22,7 @@
 
 #include "gmock/gmock.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
@@ -87,11 +88,11 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(std::unique_ptr<PublicCertificateDatabase>,
               CreatePublicCertificateDatabase,
               (absl::string_view database_path), (override));
-  MOCK_METHOD(std::unique_ptr<SharingRpcClientFactory>,
-              CreateSharingRpcClientFactory,
-              (nearby::sharing::analytics::AnalyticsRecorder *
-               analytics_recorder),
-              (override));
+  MOCK_METHOD(
+      std::unique_ptr<SharingRpcClientFactory>, CreateSharingRpcClientFactory,
+      (Clock * clock,
+       nearby::sharing::analytics::AnalyticsRecorder* analytics_recorder),
+      (override));
   MOCK_METHOD(bool, UpdateFileOriginMetadata, (
       std::vector<std::filesystem::path>& file_paths), (override));
 };

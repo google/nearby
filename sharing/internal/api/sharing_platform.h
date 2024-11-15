@@ -20,8 +20,8 @@
 #include <memory>
 #include <vector>
 
-#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
@@ -85,6 +85,7 @@ class SharingPlatform {
 
   virtual std::unique_ptr<SharingRpcClientFactory>
   CreateSharingRpcClientFactory(
+      Clock* clock,
       nearby::sharing::analytics::AnalyticsRecorder* analytics_recorder) = 0;
 
   // On platforms where it is supported, tag the transferred files as
