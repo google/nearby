@@ -45,6 +45,7 @@ cc_library(
         "byte_array.h",
         "callable.h",
         "exception.h",
+        "expected.h",
         "feature_flags.h",
         "input_stream.h",
         "listeners.h",
@@ -421,6 +422,17 @@ cc_test(
         ":cancellation_flag",
         ":test_util",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "expected_test",
+    srcs = ["expected_test.cc"],
+    deps = [
+        ":base",
+        "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

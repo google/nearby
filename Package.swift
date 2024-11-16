@@ -549,6 +549,7 @@ let package = Package(
         "internal/platform/implementation/wifi_utils_test.cc",
         "internal/platform/atomic_boolean_test.cc",
         "internal/platform/exception_test.cc",
+        "internal/platform/expected_test.cc",
         "internal/platform/error_code_recorder_test.cc",
         "internal/platform/future_test.cc",
         "internal/platform/cancellation_flag_test.cc",
