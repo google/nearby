@@ -252,7 +252,6 @@ cc_library(
         "//internal/base:__subpackages__",
         "//internal/crypto:__subpackages__",
         "//internal/data:__subpackages__",
-        "//internal/flags:__subpackages__",
         "//internal/interop:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__subpackages__",
