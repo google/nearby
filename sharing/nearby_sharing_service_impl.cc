@@ -873,19 +873,20 @@ void NearbySharingServiceImpl::Reject(
 void NearbySharingServiceImpl::Cancel(
     int64_t share_target_id,
     std::function<void(StatusCodes status_codes)> status_codes_callback) {
-  RunOnAnyThread("api_cancel", [this, share_target_id,
-                                status_codes_callback =
-                                    std::move(status_codes_callback)]() {
-    LOG(INFO) << __func__ << ": User canceled transfer";
-    if (locally_cancelled_share_target_ids_.contains(share_target_id)) {
-      LOG(WARNING) << __func__ << ": Cancel is called again.";
-      status_codes_callback(StatusCodes::kOutOfOrderApiCall);
-      return;
-    }
-    locally_cancelled_share_target_ids_.insert(share_target_id);
-    DoCancel(share_target_id, std::move(status_codes_callback),
-             /*is_initiator_of_cancellation=*/true);
-  });
+  RunOnNearbySharingServiceThread(
+      "api_cancel",
+      [this, share_target_id,
+       status_codes_callback = std::move(status_codes_callback)]() {
+        LOG(INFO) << __func__ << ": User canceled transfer";
+        if (locally_cancelled_share_target_ids_.contains(share_target_id)) {
+          LOG(WARNING) << __func__ << ": Cancel is called again.";
+          status_codes_callback(StatusCodes::kOutOfOrderApiCall);
+          return;
+        }
+        locally_cancelled_share_target_ids_.insert(share_target_id);
+        DoCancel(share_target_id, std::move(status_codes_callback),
+                 /*is_initiator_of_cancellation=*/true);
+      });
 }
 
 // Note: |share_target| is intentionally passed by value. A share target
@@ -2902,7 +2903,8 @@ void NearbySharingServiceImpl::OnFrameRead(
 
   switch (frame->type()) {
     case nearby::sharing::service::proto::V1Frame::CANCEL:
-      RunOnAnyThread("cancel_transfer", [this, share_target_id]() {
+      RunOnNearbySharingServiceThread("cancel_transfer", [this,
+                                                          share_target_id]() {
         LOG(INFO) << __func__ << ": Read the cancel frame, closing connection";
         DoCancel(
             share_target_id, [](StatusCodes status_codes) {},
@@ -3721,41 +3723,6 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
         LOG(INFO) << __func__ << ": Completed to run delayed task " << task_name
                   << " on API thread.";
       });
-}
-
-void NearbySharingServiceImpl::RunOnAnyThread(absl::string_view task_name,
-                                              absl::AnyInvocable<void()> task) {
-  if (IsShuttingDown()) {
-    LOG(WARNING) << __func__ << ": Skip the task " << task_name
-                 << " due to service is shutting down.";
-    return;
-  }
-
-  LOG(INFO) << __func__ << ": Scheduled to run task " << task_name
-            << " on runner thread.";
-  context_->GetTaskRunner()->PostTask(
-      [is_shutting_down = std::weak_ptr<bool>(is_shutting_down_),
-       task_name = std::string(task_name), task = std::move(task)]() mutable {
-        std::shared_ptr<bool> is_shutting = is_shutting_down.lock();
-        if (is_shutting == nullptr || *is_shutting) {
-          LOG(WARNING) << __func__ << ": Give up the task on runner thread "
-                       << task_name << " due to service is shutting down.";
-          return;
-        }
-
-        LOG(INFO) << __func__ << ": Started to run task " << task_name
-                  << " on runner thread.";
-        task();
-
-        LOG(INFO) << __func__ << ": Completed to run task " << task_name
-                  << " on runner thread.";
-      });
-}
-
-::location::nearby::proto::sharing::SharingUseCase
-NearbySharingServiceImpl::GetSenderUseCase() {
-  // Returns unknown before group sharing is enabled.
-  return ::location::nearby::proto::sharing::SharingUseCase::USE_CASE_UNKNOWN;
 }
 
 void NearbySharingServiceImpl::UpdateFilePathsInProgress(

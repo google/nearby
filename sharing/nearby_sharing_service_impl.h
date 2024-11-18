@@ -449,13 +449,6 @@ class NearbySharingServiceImpl
                                               absl::Duration delay,
                                               absl::AnyInvocable<void()> task);
 
-  // Runs API/task on a random thread.
-  void RunOnAnyThread(absl::string_view task_name,
-                      absl::AnyInvocable<void()> task);
-
-  // Returns use case of sender. It is used by group share feature.
-  ::location::nearby::proto::sharing::SharingUseCase GetSenderUseCase();
-
   // Update file path for the file attachment.
   void UpdateFilePath(AttachmentContainer& container);
   // Returns true if Shutdown() has been called.
