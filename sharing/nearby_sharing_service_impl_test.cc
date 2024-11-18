@@ -1063,6 +1063,15 @@ class NearbySharingServiceImplTest : public testing::Test {
 
     fake_nearby_connections_manager_->SetIncomingPayload(
         kFilePayloadId, GetFilePayload(kFilePayloadId));
+    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            testing::Invoke([&](const ShareTarget& share_target,
+                                const AttachmentContainer& container,
+                                TransferMetadata metadata) {
+              EXPECT_FALSE(metadata.is_final_status());
+              EXPECT_EQ(metadata.status(),
+                        TransferMetadata::Status::kInProgress);
+            }));
 
     absl::Notification block_notification;
     // Block the service thread so all PayloadTransferUpdate will be processed
@@ -1091,15 +1100,6 @@ class NearbySharingServiceImplTest : public testing::Test {
       }
     }
     block_notification.Notify();
-    EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
-        .WillRepeatedly(
-            testing::Invoke([&](const ShareTarget& share_target,
-                                const AttachmentContainer& container,
-                                TransferMetadata metadata) {
-              EXPECT_FALSE(metadata.is_final_status());
-              EXPECT_EQ(metadata.status(),
-                        TransferMetadata::Status::kInProgress);
-            }));
     FlushTesting();
 
     std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener> listener =
