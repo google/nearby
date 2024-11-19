@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>  // NOLINT
 #include <memory>
 #include <sstream>
 #include <string>
@@ -35,6 +36,7 @@
 #include "absl/base/attributes.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/ble.h"
@@ -76,6 +78,7 @@
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/payload_id.h"
 
@@ -228,20 +231,17 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     const std::string& file_path) {
-  std::string path(file_path);
-
-  auto folder_path = windows::string_utils::StringToWideString(
-      path.substr(0, path.find_last_of('/')));
+  std::filesystem::path path = std::filesystem::u8path(file_path);
+  std::filesystem::path folder_path = path.parent_path();
   // Verifies that a path is a valid directory.
-  // https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisdirectoryw
-  if (!PathIsDirectoryW(folder_path.data())) {
-    // This function creates a file system folder whose fully qualified path is
-    // given by pszPath. If one or more of the intermediate folders do not
-    // exist, they are created as well.
-    // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shcreatedirectoryexw
-    int result = SHCreateDirectoryExW(nullptr, folder_path.data(), nullptr);
+  if (!sharing::DirectoryExists(folder_path)) {
+    if (!sharing::CreateDirectories(folder_path)) {
+      LOG(ERROR) << "Failed to create directory: "
+                 << windows::string_utils::WideStringToString(
+                        folder_path.wstring());
+      return nullptr;
+    }
   }
-
   return windows::IOFile::CreateOutputFile(file_path);
 }
 

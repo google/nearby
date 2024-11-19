@@ -301,6 +301,7 @@ cc_test(
         "executor_test.cc",
         "file_path_test.cc",
         "http_loader_test.cc",
+        "platform_test.cc",
         "preferences_manager_test.cc",
         "preferences_repository_test.cc",
         "scheduled_executor_test.cc",
