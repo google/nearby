@@ -23,7 +23,6 @@ cc_library(
         "pairer_broker.h",
         "pairer_broker_impl.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",

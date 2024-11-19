@@ -20,7 +20,6 @@ cc_library(
     hdrs = [
         "fast_pair_seeker_impl.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//fastpair:__subpackages__",
     ],

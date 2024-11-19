@@ -47,7 +47,6 @@ cc_library(
     hdrs = [
         "proto_to_json.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
         ":fastpair_cc_proto",
@@ -66,7 +65,6 @@ cc_library(
     hdrs = [
         "proto_builder.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [
         ":fastpair_cc_proto",

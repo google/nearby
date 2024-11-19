@@ -44,7 +44,6 @@ cc_library(
     hdrs = [
         "fast_pair_repository_impl.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     copts = [
         "-Ithird_party",
     ],
@@ -70,7 +69,6 @@ cc_library(
     hdrs = [
         "fast_pair_device_repository.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//fastpair:__subpackages__"],
     deps = [
         "//fastpair/common",

@@ -67,7 +67,6 @@ proto_library(
         "tachyon_common.proto",
         "tachyon_enums.proto",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//frameworks/testing/rpcreplay/processors:rpc_replay_field_option_proto",
         "//google/api:annotations",
@@ -84,7 +83,6 @@ cc_proto_library(
 
 cc_proto_library(
     name = "tachyon_cc_proto",
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:public"],
     deps = [":tachyon_proto"],
 )

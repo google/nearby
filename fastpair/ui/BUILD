@@ -29,7 +29,6 @@ cc_library(
         "ui_broker.h",
         "ui_broker_impl.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//fastpair:__subpackages__",
     ],

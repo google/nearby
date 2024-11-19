@@ -25,7 +25,6 @@ cc_library(
         "retroactive_pairing_detector.h",
         "retroactive_pairing_detector_impl.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//:__subpackages__",
         "//fastpair:__subpackages__",

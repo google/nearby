@@ -22,7 +22,6 @@ cc_library(
     name = "fast_pair_controller",
     srcs = ["fast_pair_controller.cc"],
     hdrs = ["fast_pair_controller.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//:__subpackages__"],
     deps = [
         "//fastpair/common",
@@ -59,7 +58,6 @@ cc_test(
 cc_library(
     name = "fast_pair_seeker",
     hdrs = ["fast_pair_seeker.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//:__subpackages__"],
     deps = [
         "//fastpair/common",
@@ -71,7 +69,6 @@ cc_library(
 cc_library(
     name = "fast_pair_plugin",
     hdrs = ["fast_pair_plugin.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//:__subpackages__"],
     deps = [
         ":fast_pair_events",
@@ -82,7 +79,6 @@ cc_library(
 cc_library(
     name = "fast_pair_events",
     hdrs = ["fast_pair_events.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//:__subpackages__"],
     deps = [
     ],
@@ -92,7 +88,6 @@ cc_library(
     name = "fast_pair_service",
     srcs = ["fast_pair_service.cc"],
     hdrs = ["fast_pair_service.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//:__subpackages__"],
     deps = [
         ":fast_pair_plugin",

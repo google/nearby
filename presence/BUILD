@@ -62,7 +62,6 @@ cc_library(
         "fake_presence_client.h",
         "fake_presence_service.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":presence",
         ":types",

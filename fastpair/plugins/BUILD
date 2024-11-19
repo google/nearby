@@ -22,7 +22,6 @@ package_group(
 cc_library(
     name = "fake_initial_pair_plugin",
     hdrs = ["fake_initial_pair_plugin.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:private"],
     deps = [
         "//fastpair:fast_pair_events",
@@ -37,7 +36,6 @@ cc_library(
     name = "windows_admin_plugin",
     srcs = ["windows_admin_plugin.cc"],
     hdrs = ["windows_admin_plugin.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//:__subpackages__"],
     deps = [
         "//fastpair:fast_pair_events",
