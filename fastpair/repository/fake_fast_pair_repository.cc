@@ -28,9 +28,9 @@
 #include "fastpair/common/constant.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/proto/data.proto.h"
-#include "fastpair/proto/enum.proto.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/data.pb.h"
+#include "fastpair/proto/enum.pb.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "fastpair/repository/fast_pair_repository.h"
 
 namespace nearby {

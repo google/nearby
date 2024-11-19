@@ -44,7 +44,7 @@
 #include "fastpair/handshake/fast_pair_data_encryptor_impl.h"
 #include "fastpair/handshake/fast_pair_handshake_impl.h"
 #include "fastpair/pairing/fastpair/fast_pair_pairer.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/platform/ble_v2.h"

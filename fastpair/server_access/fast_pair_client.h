@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_CLIENT_H_
 
 #include "absl/status/statusor.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 
 namespace nearby {
 namespace fastpair {

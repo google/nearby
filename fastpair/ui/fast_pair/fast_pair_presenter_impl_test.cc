@@ -18,7 +18,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "fastpair/ui/actions.h"
 #include "fastpair/ui/fast_pair/fake_fast_pair_notification_controller_observer.h"
 #include "fastpair/ui/fast_pair/fast_pair_notification_controller.h"

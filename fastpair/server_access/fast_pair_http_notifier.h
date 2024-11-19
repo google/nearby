@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_HTTP_NOTIFIER_H_
 #define THIRD_PARTY_NEARBY_FASTPAIR_SERVER_ACCESS_FAST_PAIR_HTTP_NOTIFIER_H_
 
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "internal/base/observer_list.h"
 
 namespace nearby {

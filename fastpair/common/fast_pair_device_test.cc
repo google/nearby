@@ -25,7 +25,7 @@
 #include "fastpair/common/account_key.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/protocol.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 
 namespace nearby {
 namespace fastpair {

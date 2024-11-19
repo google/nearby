@@ -26,8 +26,8 @@
 #include "fastpair/common/account_key_filter.h"
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/proto/data.proto.h"
-#include "fastpair/proto/enum.proto.h"
+#include "fastpair/proto/data.pb.h"
+#include "fastpair/proto/enum.pb.h"
 
 namespace nearby {
 namespace fastpair {

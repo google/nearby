@@ -18,8 +18,8 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/analytics/mock_event_logger.h"
-#include "internal/proto/analytics/fast_pair_log.proto.h"
-#include "proto/fast_pair_enums.proto.h"
+#include "internal/proto/analytics/fast_pair_log.pb.h"
+#include "proto/fast_pair_enums.pb.h"
 
 namespace nearby {
 namespace fastpair {

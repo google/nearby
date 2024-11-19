@@ -16,8 +16,8 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_PROTO_PROTO_TO_JSON_H_
 
 #include "nlohmann/json_fwd.hpp"
-#include "fastpair/proto/data.proto.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/data.pb.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 
 namespace nearby {
 namespace fastpair {

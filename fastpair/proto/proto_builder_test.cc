@@ -20,10 +20,10 @@
 #include "fastpair/common/device_metadata.h"
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
-#include "fastpair/proto/data.proto.h"
-#include "fastpair/proto/enum.proto.h"
-#include "fastpair/proto/fast_pair_string.proto.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/data.pb.h"
+#include "fastpair/proto/enum.pb.h"
+#include "fastpair/proto/fast_pair_string.pb.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 
 namespace nearby {
 namespace fastpair {

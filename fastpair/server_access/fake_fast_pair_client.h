@@ -17,7 +17,7 @@
 
 #include <optional>
 
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "fastpair/server_access/fast_pair_client.h"
 
 namespace nearby {

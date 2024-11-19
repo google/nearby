@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_FASTPAIR_PROTO_PROTO_BUILDER_H_
 
 #include "fastpair/common/fast_pair_device.h"
-#include "fastpair/proto/data.proto.h"
+#include "fastpair/proto/data.pb.h"
 
 namespace nearby {
 namespace fastpair {

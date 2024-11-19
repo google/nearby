@@ -25,7 +25,7 @@
 #include "fastpair/common/fast_pair_device.h"
 #include "fastpair/common/protocol.h"
 #include "fastpair/internal/mediums/mediums.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 #include "fastpair/repository/fake_fast_pair_repository.h"
 #include "fastpair/repository/fast_pair_device_repository.h"
 #include "fastpair/scanning/scanner_broker.h"

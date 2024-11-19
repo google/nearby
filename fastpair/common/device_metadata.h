@@ -18,7 +18,7 @@
 #include <utility>
 
 #include "fastpair/common/fast_pair_version.h"
-#include "fastpair/proto/fastpair_rpcs.proto.h"
+#include "fastpair/proto/fastpair_rpcs.pb.h"
 
 namespace nearby {
 namespace fastpair {
