@@ -95,7 +95,7 @@ std::unique_ptr<BluetoothPairing> BluetoothClassic::CreatePairing(
     return nullptr;
   }
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(VERBOSE) << __func__
+    VLOG(1) << __func__
                          << "Can't create bluetooth pairing because "
                             "BluetoothClassic isn't available.";
     return nullptr;

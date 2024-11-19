@@ -166,7 +166,7 @@ void FastPairNonDiscoverableScanner::OnDeviceMetadataRetrieved(
 }
 
 void FastPairNonDiscoverableScanner::NotifyDeviceFound(FastPairDevice& device) {
-  NEARBY_LOGS(VERBOSE) << "Notify Device found:"
+  VLOG(1) << "Notify Device found:"
                        << "BluetoothAddress = " << device.GetBleAddress()
                        << ", Model id = " << device.GetModelId();
   {

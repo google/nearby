@@ -23,7 +23,10 @@
 #include <utility>
 #include <vector>
 
-#include "third_party/nearby//fastpair/crypto/fast_pair_decryption.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
+#include "fastpair/crypto/fast_pair_decryption.h"
 #include "fastpair/common/battery_notification.h"
 #include "fastpair/common/constant.h"
 #include "fastpair/common/non_discoverable_advertisement.h"
