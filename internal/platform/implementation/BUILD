@@ -68,6 +68,7 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
+        "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//sharing:__subpackages__",
     ],
     deps = [
