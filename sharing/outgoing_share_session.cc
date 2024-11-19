@@ -139,11 +139,10 @@ void OutgoingShareSession::InitiateSendAttachments(
   set_session_id(analytics_recorder().GenerateNextId());
 
   // Log analytics event of sending start.
-  analytics_recorder().NewSendStart(
-      session_id(),
-      /*transfer_position=*/1,
-      /*concurrent_connections=*/1,
-      share_target());
+  analytics_recorder().NewSendStart(session_id(),
+                                    /*transfer_position=*/1,
+                                    /*concurrent_connections=*/1,
+                                    share_target());
 }
 
 bool OutgoingShareSession::ProcessKeyVerificationResult(
@@ -259,6 +258,7 @@ bool OutgoingShareSession::FillIntroductionFrame(
     file_metadata->set_type(file.type());
     file_metadata->set_mime_type(std::string(file.mime_type()));
     file_metadata->set_size(file.size());
+    file_metadata->set_parent_folder(std::string(file.parent_folder()));
   }
 
   // Write introduction of text payloads.
@@ -449,8 +449,7 @@ OutgoingShareSession::HandleConnectionResponse(
       return std::nullopt;
     }
     case ConnectionResponseFrame::REJECT:
-      VLOG(1)
-          << "The connection was rejected. The connection has been closed.";
+      VLOG(1) << "The connection was rejected. The connection has been closed.";
       return TransferMetadata::Status::kRejected;
     case ConnectionResponseFrame::NOT_ENOUGH_SPACE:
       VLOG(1) << "The connection was rejected because the remote device does "
