@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package nearby.fastpair.proto;
 
-import "third_party/nearby/fastpair/proto/enum.proto";
+import "fastpair/proto/enum.proto";
 
 option java_multiple_files = true;
 

@@ -17,7 +17,7 @@ syntax = "proto3";
 package nearby.fastpair.proto;
 
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
-import "third_party/nearby/fastpair/proto/data.proto";
+import "fastpair/proto/data.proto";
 
 // Represents the type of device that is being registered.
 enum DeviceType {
