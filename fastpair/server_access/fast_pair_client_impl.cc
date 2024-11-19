@@ -108,7 +108,7 @@ FastPairClientImpl::FastPairClientImpl(
 absl::StatusOr<proto::GetObservedDeviceResponse>
 FastPairClientImpl::GetObservedDevice(
     const proto::GetObservedDeviceRequest& request) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start API call to get observed device";
+  VLOG(1) << __func__ << ": Start API call to get observed device";
   notifier_->NotifyOfRequest(request);
 
   // Sets up request mode.
@@ -148,7 +148,7 @@ FastPairClientImpl::GetObservedDevice(
 absl::StatusOr<proto::UserReadDevicesResponse>
 FastPairClientImpl::UserReadDevices(
     const proto::UserReadDevicesRequest& request) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start API call to read user's devices";
+  VLOG(1) << __func__ << ": Start API call to read user's devices";
   notifier_->NotifyOfRequest(request);
 
   absl::StatusOr<std::string> access_token = GetAccessToken();
@@ -189,7 +189,7 @@ FastPairClientImpl::UserReadDevices(
 absl::StatusOr<proto::UserWriteDeviceResponse>
 FastPairClientImpl::UserWriteDevice(
     const proto::UserWriteDeviceRequest& request) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start API call to write user device";
+  VLOG(1) << __func__ << ": Start API call to write user device";
   notifier_->NotifyOfRequest(request);
 
   absl::StatusOr<std::string> access_token = GetAccessToken();
@@ -229,7 +229,7 @@ FastPairClientImpl::UserWriteDevice(
 absl::StatusOr<proto::UserDeleteDeviceResponse>
 FastPairClientImpl::UserDeleteDevice(
     const proto::UserDeleteDeviceRequest& request) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Start API call to delete user device";
+  VLOG(1) << __func__ << ": Start API call to delete user device";
   notifier_->NotifyOfRequest(request);
 
   absl::StatusOr<std::string> access_token = GetAccessToken();
@@ -271,7 +271,7 @@ FastPairClientImpl::UserDeleteDevice(
 
 // Blocking function
 absl::StatusOr<std::string> FastPairClientImpl::GetAccessToken() {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   std::optional<AccountManager::Account> account =
       account_manager_->GetCurrentAccount();
   if (!account.has_value()) {
@@ -300,7 +300,7 @@ HttpRequest FastPairClientImpl::CreateHttpRequest(
     RequestType request_type,
     std::optional<QueryParameters> request_as_query_parameters,
     std::optional<std::string> body) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   HttpRequest request{url};
 
   // Handles query strings

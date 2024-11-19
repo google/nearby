@@ -48,7 +48,7 @@ FastPairDataEncryptorImpl::Factory* g_test_factory_ = nullptr;
 
 bool ValidateInputSize(const std::vector<uint8_t>& encrypted_bytes) {
   if (encrypted_bytes.size() != kAesBlockByteSize) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Encrypted bytes should have size = "
+    VLOG(1) << __func__ << ": Encrypted bytes should have size = "
                          << kAesBlockByteSize
                          << ", actual =  " << encrypted_bytes.size();
     return false;
@@ -88,7 +88,7 @@ void FastPairDataEncryptorImpl::Factory::CreateAsyncWithKeyExchange(
     const FastPairDevice& device,
     absl::AnyInvocable<void(std::unique_ptr<FastPairDataEncryptor>)>
         on_get_instance_callback) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   auto& metadata = device.GetMetadata();
   DCHECK(metadata);
   std::optional<KeyPair> key_pair =

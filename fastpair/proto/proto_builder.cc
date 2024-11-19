@@ -33,7 +33,7 @@ namespace fastpair {
 
 void BuildFastPairInfo(::nearby::fastpair::proto::FastPairInfo* fast_pair_info,
                        const FastPairDevice& fast_pair_device) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   const AccountKey& account_key = fast_pair_device.GetAccountKey();
   auto& metadata = fast_pair_device.GetMetadata();
   DCHECK(metadata);

@@ -311,7 +311,7 @@ void RobustGattClient::Unsubscribe(int uuid_pair_index) {
   MutexLock lock(&mutex_);
   int removed = notify_callbacks_.erase(uuid_pair_index);
   if (removed == 0) {
-    NEARBY_LOGS(VERBOSE) << "Not subscribed for characteristic no: "
+    VLOG(1) << "Not subscribed for characteristic no: "
                          << uuid_pair_index;
   }
   UnsubscribeInternal(uuid_pair_index);

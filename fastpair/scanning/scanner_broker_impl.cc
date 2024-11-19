@@ -61,7 +61,7 @@ std::unique_ptr<ScannerBroker::ScanningSession>
 ScannerBrokerImpl::StartScanning(Protocol protocol) {
   DCHECK(!fast_pair_discoverable_scanner_);
   DCHECK(!fast_pair_non_discoverable_scanner_);
-  NEARBY_LOGS(VERBOSE) << "Starting Fast Pair Scanning.";
+  VLOG(1) << "Starting Fast Pair Scanning.";
   scanner_ = std::make_unique<FastPairScannerImpl>(mediums_, executor_);
   fast_pair_discoverable_scanner_ =
       FastPairDiscoverableScanner::Factory::Create(
@@ -81,7 +81,7 @@ ScannerBrokerImpl::StartScanning(Protocol protocol) {
 }
 
 void ScannerBrokerImpl::StopScanning(Protocol protocol) {
-  NEARBY_LOGS(VERBOSE) << __func__ << " Stopping Fast Pair Scanning.";
+  VLOG(1) << __func__ << " Stopping Fast Pair Scanning.";
   scanning_session_.reset();
   observers_.Clear();
 

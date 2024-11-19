@@ -26,7 +26,7 @@ BluetoothRadio::BluetoothRadio() {
 }
 
 BluetoothRadio::~BluetoothRadio() {
-  NEARBY_LOGS(VERBOSE) << "~BluetoothRadio start";
+  VLOG(1) << "~BluetoothRadio start";
   // We never enabled Bluetooth, nothing to do.
   if (!ever_saved_state_.Get()) {
     NEARBY_LOGS(INFO) << "BT adapter was not used. Not touching HW.";
@@ -36,7 +36,7 @@ BluetoothRadio::~BluetoothRadio() {
   if (!SetBluetoothState(originally_enabled_.Get())) {
     NEARBY_LOGS(INFO) << "Failed to restore BT adapter original state.";
   }
-  NEARBY_LOGS(VERBOSE) << "~BluetoothRadio done";
+  VLOG(1) << "~BluetoothRadio done";
 }
 
 bool BluetoothRadio::Enable() {

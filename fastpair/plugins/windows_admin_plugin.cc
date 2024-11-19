@@ -98,7 +98,7 @@ void WindowsAdminPlugin::OnInitialDiscoveryEvent(
     return;
   }
   if (state_->foreground_currently_showing_notification) {
-    NEARBY_LOGS(VERBOSE) << __func__
+    VLOG(1) << __func__
                          << ": Already showing a notification for a device";
     return;
   }

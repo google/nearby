@@ -36,7 +36,7 @@ class ScanningSessionImpl : public FastPairScanner::ScanningSession {
   explicit ScanningSessionImpl(FastPairScannerImpl* scanner)
       : scanner_(scanner) {}
   ~ScanningSessionImpl() override {
-    NEARBY_LOGS(VERBOSE) << __func__;
+    VLOG(1) << __func__;
     scanner_->StopScanning();
   }
 
@@ -61,14 +61,14 @@ void FastPairScannerImpl::RemoveObserver(FastPairScanner::Observer* observer) {
 
 std::unique_ptr<FastPairScanner::ScanningSession>
 FastPairScannerImpl::StartScanning() {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   executor_->Execute("scanning", [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
                                      *executor_) { StartScanningInternal(); });
   return std::make_unique<ScanningSessionImpl>(this);
 }
 
 void FastPairScannerImpl::StartScanningInternal() {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   if (mediums_.GetBluetoothRadio().Enable() &&
       mediums_.GetBle().IsAvailable() &&
       mediums_.GetBle().StartScanning(
@@ -108,10 +108,10 @@ void FastPairScannerImpl::StartScanningInternal() {
 }
 
 void FastPairScannerImpl::StopScanning() {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   executor_->Execute("stop-scan",
                      [this]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                       NEARBY_LOGS(VERBOSE) << __func__ << " in background";
+                       VLOG(1) << __func__ << " in background";
                        timer_.reset();
                        mediums_.GetBle().StopScanning(kServiceId);
                      });

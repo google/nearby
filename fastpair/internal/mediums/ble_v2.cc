@@ -44,7 +44,7 @@ std::unique_ptr<RobustGattClient> BleV2::ConnectToGattServer(
     return nullptr;
   }
   if (!IsAvailableLocked()) {
-    NEARBY_LOGS(VERBOSE)
+    VLOG(1)
         << __func__
         << "Can't connect to GattServer because BleV2 isn't available.";
     return nullptr;

@@ -46,7 +46,7 @@ void UIBrokerImpl::ShowDiscovery(
     case Protocol::kFastPairSubsequentPairing:
       fast_pair_presenter_->ShowDiscovery(
           device, notification_controller, [&](DiscoveryAction action) {
-            NEARBY_LOGS(VERBOSE)
+            VLOG(1)
                 << __func__
                 << "ui broker notify discovery action of device: " << device;
             NotifyDiscoveryAction(device, action);
@@ -63,7 +63,7 @@ void UIBrokerImpl::ShowDiscovery(
 void UIBrokerImpl::ShowPairingResult(
     FastPairDevice& device,
     FastPairNotificationController& notification_controller, bool success) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   switch (device.GetProtocol()) {
     case Protocol::kFastPairInitialPairing:
     case Protocol::kFastPairSubsequentPairing:

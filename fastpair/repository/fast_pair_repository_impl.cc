@@ -265,7 +265,7 @@ void FastPairRepositoryImpl::IsDeviceSavedToAccount(
         for (const auto& info : response->fast_pair_info()) {
           if (info.has_device() &&
               IsDeviceSha256Matched(info.device(), mac_address)) {
-            NEARBY_LOGS(VERBOSE)
+            VLOG(1)
                 << __func__ << ": found a SHA256 match for device at address = "
                 << mac_address;
             std::move(callback)(absl::OkStatus());

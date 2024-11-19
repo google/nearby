@@ -53,7 +53,7 @@ void FastPairDeviceRepository::RemoveDevice(const FastPairDevice* device) {
     for (auto* callback : observers_.GetObservers()) {
       (*callback)(*fast_pair_device);
     }
-    NEARBY_LOGS(VERBOSE) << "Destroyed FP device: " << *fast_pair_device;
+    VLOG(1) << "Destroyed FP device: " << *fast_pair_device;
   });
 }
 

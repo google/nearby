@@ -32,7 +32,7 @@ void FastPairHttpNotifier::RemoveObserver(Observer* observer) {
 // Notifies all observers of GetObservedDeviceRequest/Response
 void FastPairHttpNotifier::NotifyOfRequest(
     const proto::GetObservedDeviceRequest& request) {
-  NEARBY_LOGS(VERBOSE) << ": GetObservedDeviceRequest="
+  VLOG(1) << ": GetObservedDeviceRequest="
                        << FastPairProtoToJson(request).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnGetObservedDeviceRequest(request);
@@ -40,7 +40,7 @@ void FastPairHttpNotifier::NotifyOfRequest(
 
 void FastPairHttpNotifier::NotifyOfResponse(
     const proto::GetObservedDeviceResponse& response) {
-  NEARBY_LOGS(VERBOSE) << ": GetObservedDeviceResponse="
+  VLOG(1) << ": GetObservedDeviceResponse="
                        << FastPairProtoToJson(response).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnGetObservedDeviceResponse(response);
@@ -49,7 +49,7 @@ void FastPairHttpNotifier::NotifyOfResponse(
 // Notifies all observers of UserReadDevicesRequest/Response
 void FastPairHttpNotifier::NotifyOfRequest(
     const proto::UserReadDevicesRequest& request) {
-  NEARBY_LOGS(VERBOSE) << ": UserReadDevicesRequest="
+  VLOG(1) << ": UserReadDevicesRequest="
                        << FastPairProtoToJson(request).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnUserReadDevicesRequest(request);
@@ -57,7 +57,7 @@ void FastPairHttpNotifier::NotifyOfRequest(
 
 void FastPairHttpNotifier::NotifyOfResponse(
     const proto::UserReadDevicesResponse& response) {
-  NEARBY_LOGS(VERBOSE) << ": UserReadDevicesResponse="
+  VLOG(1) << ": UserReadDevicesResponse="
                        << FastPairProtoToJson(response).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnUserReadDevicesResponse(response);
@@ -66,7 +66,7 @@ void FastPairHttpNotifier::NotifyOfResponse(
 // Notifies all observers of UserWriteDeviceRequest/Response
 void FastPairHttpNotifier::NotifyOfRequest(
     const proto::UserWriteDeviceRequest& request) {
-  NEARBY_LOGS(VERBOSE) << ": UserWriteDeviceRequest="
+  VLOG(1) << ": UserWriteDeviceRequest="
                        << FastPairProtoToJson(request).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnUserWriteDeviceRequest(request);
@@ -81,14 +81,14 @@ void FastPairHttpNotifier::NotifyOfResponse(
 // Notifies all observers of UserDeleteDeviceRequest/Response
 void FastPairHttpNotifier::NotifyOfRequest(
     const proto::UserDeleteDeviceRequest& request) {
-  NEARBY_LOGS(VERBOSE) << ": UserDeleteDeviceRequest="
+  VLOG(1) << ": UserDeleteDeviceRequest="
                        << FastPairProtoToJson(request).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnUserDeleteDeviceRequest(request);
 }
 void FastPairHttpNotifier::NotifyOfResponse(
     const proto::UserDeleteDeviceResponse& response) {
-  NEARBY_LOGS(VERBOSE) << ": UserDeleteDeviceResponse="
+  VLOG(1) << ": UserDeleteDeviceResponse="
                        << FastPairProtoToJson(response).dump();
   for (auto& observer : observers_.GetObservers())
     observer->OnUserDeleteDeviceResponse(response);

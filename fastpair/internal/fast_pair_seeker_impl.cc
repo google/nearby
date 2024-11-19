@@ -258,7 +258,7 @@ void FastPairSeekerImpl::InvalidateScanningState() {
   // Stop scanning when screen is off.
   if (is_screen_locked_) {
     absl::Status status = StopFastPairScan();
-    NEARBY_LOGS(VERBOSE) << __func__
+    VLOG(1) << __func__
                          << ": Stopping scanning because the screen is locked.";
     return;
   }
@@ -271,22 +271,22 @@ void FastPairSeekerImpl::InvalidateScanningState() {
 }
 
 void FastPairSeekerImpl::DeviceAdded(BluetoothDevice& device) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ")";
+  VLOG(1) << __func__ << "(" << device.GetMacAddress() << ")";
 }
 
 void FastPairSeekerImpl::DeviceRemoved(BluetoothDevice& device) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ")";
+  VLOG(1) << __func__ << "(" << device.GetMacAddress() << ")";
 }
 
 void FastPairSeekerImpl::DeviceAddressChanged(BluetoothDevice& device,
                                               absl::string_view old_address) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
+  VLOG(1) << __func__ << "(" << device.GetMacAddress() << ", "
                        << old_address << ")";
 }
 
 void FastPairSeekerImpl::DevicePairedChanged(BluetoothDevice& device,
                                              bool new_paired_status) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
+  VLOG(1) << __func__ << "(" << device.GetMacAddress() << ", "
                        << new_paired_status << ")";
   // Note, the FP service will be notified about paired events from the
   // retroactive pairing path if `device` is an FP device.
@@ -296,18 +296,18 @@ void FastPairSeekerImpl::DevicePairedChanged(BluetoothDevice& device,
 
 void FastPairSeekerImpl::DeviceConnectedStateChanged(BluetoothDevice& device,
                                                      bool connected) {
-  NEARBY_LOGS(VERBOSE) << __func__ << "(" << device.GetMacAddress() << ", "
+  VLOG(1) << __func__ << "(" << device.GetMacAddress() << ", "
                        << connected << ")";
 }
 
 void FastPairSeekerImpl::OnRetroactivePairFound(FastPairDevice& device) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << device;
+  VLOG(1) << __func__ << ": " << device;
   callbacks_.on_pair_event(device, PairEvent{.is_paired = true});
 }
 
 void FastPairSeekerImpl::ForgetDeviceByAccountKey(
     const AccountKey& account_key) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   auto opt_device = devices_->FindDevice(account_key);
   if (!opt_device.has_value()) {
     NEARBY_LOGS(INFO) << __func__ << "No FP device matching the account key.";
@@ -318,7 +318,7 @@ void FastPairSeekerImpl::ForgetDeviceByAccountKey(
   repository_->DeleteAssociatedDeviceByAccountKey(
       account_key, [&](absl::Status success) {
         if (!success.ok()) return;
-        NEARBY_LOGS(VERBOSE) << "Deleted associated devcie by account key";
+        VLOG(1) << "Deleted associated devcie by account key";
         // Temporary solution to refresh the saved_devices_sheet.
         repository_->GetUserSavedDevices();
       });

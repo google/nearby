@@ -137,16 +137,14 @@ void FakeProvider::LoadAntiSpoofingKey(absl::string_view private_key,
 }
 
 std::string FakeProvider::DecryptKbpRequest(absl::string_view request) {
-  NEARBY_LOGS(VERBOSE) << "Encrypted KBP request "
-                       << absl::BytesToHexString(request);
+  VLOG(1) << "Encrypted KBP request " << absl::BytesToHexString(request);
   CHECK_EQ(request.size(), kEncryptedDataByteSize + kPublicKeyByteSize);
   absl::string_view encrypted = request.substr(0, kEncryptedDataByteSize);
   absl::string_view remote_public_key =
       request.substr(kEncryptedDataByteSize, kPublicKeyByteSize);
   std::string shared_secret = CreateSharedSecret(remote_public_key);
   std::string decrypted = Aes128Decrypt(encrypted, shared_secret);
-  NEARBY_LOGS(VERBOSE) << "Decrypted KBP request "
-                       << absl::BytesToHexString(decrypted);
+  VLOG(1) << "Decrypted KBP request " << absl::BytesToHexString(decrypted);
   shared_secret_ = shared_secret;
   return decrypted;
 }
@@ -246,11 +244,10 @@ void FakeProvider::SetKeyBasedPairingCallback() {
   CHECK(key_based_characteristic_.has_value());
   fake_gatt_callbacks_->characteristics_[*key_based_characteristic_]
       .write_callback = [this](absl::string_view request) {
-    NEARBY_LOGS(VERBOSE) << "Encrypted request: "
-                         << absl::BytesToHexString(request);
+    VLOG(1) << "Encrypted request: " << absl::BytesToHexString(request);
     std::string decrypted_request = DecryptKbpRequest(request);
-    NEARBY_LOGS(VERBOSE) << "KBP decrypted request "
-                         << absl::BytesToHexString(decrypted_request);
+    VLOG(1) << "KBP decrypted request "
+            << absl::BytesToHexString(decrypted_request);
     fake_gatt_callbacks_->characteristics_[*key_based_characteristic_]
         .write_value.Set(std::string(decrypted_request));
     std::string response;
@@ -258,7 +255,7 @@ void FakeProvider::SetKeyBasedPairingCallback() {
     response.append(GetMacAddressAsBytes());
     response.resize(kEncryptedDataByteSize, 0);
     absl::Status status = NotifyKeyBasedPairing(ByteArray(Encrypt(response)));
-    NEARBY_LOGS(VERBOSE) << "KBP notify result: " << status;
+    VLOG(1) << "KBP notify result: " << status;
     return absl::OkStatus();
   };
 }
@@ -268,11 +265,10 @@ void FakeProvider::SetPasskeyCallback() {
   CHECK(passkey_characteristic_.has_value());
   fake_gatt_callbacks_->characteristics_[*passkey_characteristic_]
       .write_callback = [this](absl::string_view request) {
-    NEARBY_LOGS(VERBOSE) << "Passkey Encrypted request: "
-                         << absl::BytesToHexString(request);
+    VLOG(1) << "Passkey Encrypted request: " << absl::BytesToHexString(request);
     std::string decrypted = Aes128Decrypt(request, shared_secret_);
-    NEARBY_LOGS(VERBOSE) << "Passkey decrypted request "
-                         << absl::BytesToHexString(decrypted);
+    VLOG(1) << "Passkey decrypted request "
+            << absl::BytesToHexString(decrypted);
     fake_gatt_callbacks_->characteristics_[*passkey_characteristic_]
         .write_value.Set(std::string(decrypted));
     if (decrypted[0] != kSeekerPasskeyResponseCode) {
@@ -287,7 +283,7 @@ void FakeProvider::SetPasskeyCallback() {
     response.push_back(pass_key_);
     response.resize(kEncryptedDataByteSize, 0);
     absl::Status status = NotifyPasskey(ByteArray(Encrypt(response)));
-    NEARBY_LOGS(VERBOSE) << "Passkey notify result: " << status;
+    VLOG(1) << "Passkey notify result: " << status;
     return absl::OkStatus();
   };
 }
@@ -297,11 +293,11 @@ void FakeProvider::SetAccountkeyCallback() {
   CHECK(accountkey_characteristic_.has_value());
   fake_gatt_callbacks_->characteristics_[*accountkey_characteristic_]
       .write_callback = [this](absl::string_view request) {
-    NEARBY_LOGS(VERBOSE) << "Account key encrypted request: "
-                         << absl::BytesToHexString(request);
+    VLOG(1) << "Account key encrypted request: "
+            << absl::BytesToHexString(request);
     std::string decrypted = Aes128Decrypt(request, shared_secret_);
-    NEARBY_LOGS(VERBOSE) << "Account key decrypted request "
-                         << absl::BytesToHexString(decrypted);
+    VLOG(1) << "Account key decrypted request "
+            << absl::BytesToHexString(decrypted);
     fake_gatt_callbacks_->characteristics_[*accountkey_characteristic_]
         .write_value.Set(std::string(decrypted));
 
@@ -366,8 +362,7 @@ void FakeProvider::EnableProviderRfcommForRetro(PairingConfig &config) {
   provider_thread_.Execute([this]() {
     provider_socket_ = provider_server_socket_.Accept();
     if (provider_server_socket_.IsValid()) {
-      NEARBY_LOGS(VERBOSE)
-          << "Message stream connected. Sending Model Id and BLE address";
+      VLOG(1) << "Message stream connected. Sending Model Id and BLE address";
       provider_socket_.GetOutputStream().Write(GetModelIdMessage(model_id_));
       provider_socket_.GetOutputStream().Write(GetBleAddressMessage());
     }

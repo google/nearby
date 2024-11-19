@@ -275,7 +275,7 @@ void FastPairPairerImpl::AttemptSendAccountKey() {
   // pairing. For subsequent pairing, we have to save the account key
   // locally so that we can refer to it in API calls to the server.
   if (device_.GetProtocol() == Protocol::kFastPairSubsequentPairing) {
-    NEARBY_LOGS(VERBOSE) << __func__
+    VLOG(1) << __func__
                          << ": Saving Account Key locally for subsequent pair";
     // TODO(b/278807993): Saving Account Key locally for subsequent pair
     NotifyPairingCompleted();
@@ -297,7 +297,7 @@ void FastPairPairerImpl::AttemptSendAccountKey() {
     FastPairRepository::Get()->IsDeviceSavedToAccount(
         device_.GetPublicAddress().value(), [this](absl::Status status) {
           if (status.ok()) {
-            NEARBY_LOGS(VERBOSE)
+            VLOG(1)
                 << __func__
                 << ": Device is already saved, skipping write account key. "
                    "Pairing procedure complete.";

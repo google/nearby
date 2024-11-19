@@ -343,12 +343,12 @@ void FastPairGattServiceClientImpl::WriteAccountKey(
 
 void FastPairGattServiceClientImpl::NotifyInitializedError(
     PairFailure failure) {
-  NEARBY_LOGS(VERBOSE) << __func__ << failure;
+  VLOG(1) << __func__ << failure;
   ClearCurrentState();
 
   executor_->Execute("init-error", [this, failure]() {
     if (on_gatt_initialized_callback_) {
-      NEARBY_LOGS(VERBOSE) << __func__ << "Executing initialized callback";
+      VLOG(1) << __func__ << "Executing initialized callback";
       std::move(on_gatt_initialized_callback_)(failure);
     }
   });
@@ -356,7 +356,7 @@ void FastPairGattServiceClientImpl::NotifyInitializedError(
 
 void FastPairGattServiceClientImpl::NotifyWriteRequestResult(
     absl::string_view value, std::optional<PairFailure> failure) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   executor_->Execute(
       "key-based-response", [this, value = std::string(value), failure]() {
         if (key_based_write_response_callback_) {
@@ -367,7 +367,7 @@ void FastPairGattServiceClientImpl::NotifyWriteRequestResult(
 
 void FastPairGattServiceClientImpl::NotifyWritePasskeyResult(
     absl::string_view value, std::optional<PairFailure> failure) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   executor_->Execute(
       "passkey-response", [this, value = std::string(value), failure]() {
         if (passkey_write_response_callback_) {
@@ -378,7 +378,7 @@ void FastPairGattServiceClientImpl::NotifyWritePasskeyResult(
 
 void FastPairGattServiceClientImpl::NotifyWriteAccountKeyResult(
     std::optional<AccountKey> account_key, std::optional<PairFailure> failure) {
-  NEARBY_LOGS(VERBOSE) << __func__;
+  VLOG(1) << __func__;
   executor_->Execute("passkey-response", [this, account_key, failure]() {
     if (account_key_write_callback_) {
       std::move(account_key_write_callback_)(account_key, failure);

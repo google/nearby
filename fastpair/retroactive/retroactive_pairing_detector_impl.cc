@@ -91,7 +91,7 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
       device.GetMacAddress(),
       [this, mac_address = device.GetMacAddress()](absl::Status status) {
         if (status.ok()) {
-          NEARBY_LOGS(VERBOSE) << __func__
+          VLOG(1) << __func__
                                << ": Ignoring because device is already saved "
                                   "to the current account.";
           return;
@@ -102,7 +102,7 @@ void RetroactivePairingDetectorImpl::DevicePairedChanged(
 
 void RetroactivePairingDetectorImpl::NotifyRetroactiveDeviceFound(
     absl::string_view mac_address) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": mac_address = " << mac_address;
+  VLOG(1) << __func__ << ": mac_address = " << mac_address;
   auto fast_pair_device =
       std::make_unique<FastPairDevice>(Protocol::kFastPairRetroactivePairing);
   fast_pair_device->SetPublicAddress(mac_address);
