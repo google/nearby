@@ -50,7 +50,7 @@ jobs:
     - name: Build Presence
       run: CC=clang-15 CXX=clang-15++ bazel build --copt='-DGITHUB_BUILD' //presence
     - name: Build Sharing
-      run: CC=clang-15 CXX=clang-15++ bazel build --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/internal/public:nearby_context //sharing/common:all //sharing/scheduling //sharing/fast_initiation:nearby_fast_initiation //sharing/analytics
+      run: CC=clang-15 CXX=clang-15++ bazel build --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/analytics
 
   build-rust-linux:
     name: Build Rust on Linux
