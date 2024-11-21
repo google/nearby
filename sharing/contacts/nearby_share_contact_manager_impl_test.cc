@@ -226,6 +226,7 @@ class NearbyShareContactManagerImplTest
   void DownloadContacts(bool download_success, bool expect_upload,
                         bool upload_success,
                         std::optional<std::vector<ContactRecord>> contacts,
+                        bool expect_contacts_changed,
                         std::optional<std::vector<ContactRecord>>
                             expected_contacts = std::nullopt) {
     // Track for download contacts.
@@ -280,6 +281,11 @@ class NearbyShareContactManagerImplTest
       // Verify upload notification was sent on success.
       EXPECT_EQ(contacts_uploaded_notifications_.size(),
                 num_upload_notifications + (upload_success ? 1 : 0));
+      if (upload_success) {
+        EXPECT_EQ(contacts_uploaded_notifications_.back()
+                      .did_contacts_change_since_last_upload,
+                  expect_contacts_changed);
+      }
       // Verify that the result is sent to download/upload scheduler.
       EXPECT_EQ(download_and_upload_scheduler()->handled_results().size(),
                 num_download_and_upload_handled_results + 1);
@@ -373,6 +379,9 @@ class NearbyShareContactManagerImplTest
 };
 
 TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_WithFirstUpload) {
+  // Clear contact hash
+  preference_manager().SetString(prefs::kNearbySharingContactUploadHashName,
+                                 "");
   std::vector<ContactRecord> contact_records =
       TestContactRecordList(/*num_contacts=*/4u);
 
@@ -382,7 +391,8 @@ TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_WithFirstUpload) {
   // requested, which succeeds.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   SetDownloadSuccessResult(contact_records);
   SetUploadResult(true);
@@ -390,7 +400,8 @@ TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_WithFirstUpload) {
   // changed, so no upload should be made
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/false,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/false);
 }
 
 TEST_F(NearbyShareContactManagerImplTest,
@@ -404,7 +415,8 @@ TEST_F(NearbyShareContactManagerImplTest,
   // requested, which succeeds.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   // When contacts are downloaded again, we detect that contacts have changed
   // since the last upload.
@@ -413,7 +425,8 @@ TEST_F(NearbyShareContactManagerImplTest,
   SetUploadResult(true);
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 }
 
 TEST_F(NearbyShareContactManagerImplTest,
@@ -429,7 +442,8 @@ TEST_F(NearbyShareContactManagerImplTest,
   // requested, which succeeds.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   fake_context().fake_clock()->FastForward(absl::Hours(72));
   SetDownloadSuccessResult(contact_records);
@@ -438,7 +452,8 @@ TEST_F(NearbyShareContactManagerImplTest,
   // changed, but since the hash expired, we upload again.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 }
 
 TEST_F(NearbyShareContactManagerImplTest,
@@ -454,7 +469,8 @@ TEST_F(NearbyShareContactManagerImplTest,
   // requested, which succeeds.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   fake_context().fake_clock()->FastForward(absl::Hours(72));
   SetDownloadSuccessResult(contact_records);
@@ -463,7 +479,8 @@ TEST_F(NearbyShareContactManagerImplTest,
   // changed, but since the hash expired, we upload again.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/false,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   SetDownloadSuccessResult(contact_records);
   SetUploadResult(true);
@@ -471,14 +488,16 @@ TEST_F(NearbyShareContactManagerImplTest,
   // changed, last upload failed, we upload again.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 }
 
 TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_FailDownload) {
   SetDownloadFailureResult();
   DownloadContacts(/*download_success=*/false, /*expect_upload=*/false,
                    /*upload_success=*/false,
-                   /*contacts=*/std::nullopt);
+                   /*contacts=*/std::nullopt,
+                   /*expect_contacts_changed=*/false);
 }
 
 TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_RetryFailedUpload) {
@@ -492,7 +511,8 @@ TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_RetryFailedUpload) {
   // requested, which succeeds.
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   // When contacts are downloaded again, we detect that contacts have changed
   // since the last upload. Fail this upload.
@@ -501,7 +521,8 @@ TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_RetryFailedUpload) {
   SetUploadResult(false);
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/false,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   // When contacts are downloaded again, we should continue to indicate that
   // contacts have changed since the last upload, and attempt another upload.
@@ -511,7 +532,8 @@ TEST_F(NearbyShareContactManagerImplTest, DownloadContacts_RetryFailedUpload) {
   SetUploadResult(true);
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 }
 
 TEST_F(NearbyShareContactManagerImplTest,
@@ -531,6 +553,7 @@ TEST_F(NearbyShareContactManagerImplTest,
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
                    /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true,
                    /*expected_contacts=*/expected_contacts);
 
   ASSERT_EQ(contacts_downloaded_notifications().size(), 1);
@@ -556,7 +579,8 @@ TEST_F(NearbyShareContactManagerImplTest, ContactUploadHash) {
   SetUploadResult(true);
   DownloadContacts(/*download_success=*/true, /*expect_upload=*/true,
                    /*upload_success=*/true,
-                   /*contacts=*/contact_records);
+                   /*contacts=*/contact_records,
+                   /*expect_contacts_changed=*/true);
 
   // Hardcode expected contact upload hash to ensure that hashed value is
   // consistent across process starts. If this test starts to fail, check one
@@ -586,7 +610,8 @@ TEST_F(NearbyShareContactManagerImplTest, ContactUploadHash) {
     SetUploadResult(true);
     DownloadContacts(/*download_success=*/true, /*expect_upload=*/false,
                      /*upload_success=*/true,
-                     /*contacts=*/shuffled_contacts);
+                     /*contacts=*/shuffled_contacts,
+                     /*expect_contacts_changed=*/false);
 
     EXPECT_EQ(preference_manager().GetString(
                   prefs::kNearbySharingContactUploadHashName, std::string()),

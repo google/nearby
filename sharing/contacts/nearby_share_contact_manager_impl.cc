@@ -382,12 +382,10 @@ void NearbyShareContactManagerImpl::OnContactsUploadFinished(
                                  absl::ToUnixSeconds(upload_time));
 
     if (last_contact_upload_hash.empty()) {
-      // If no contacts are uploaded before, set the flag to false in order to
-      // prevent the certificate manager from regenerating certificates.
-      NL_LOG(WARNING) << __func__
-                      << ": Mark contacts change flag to false due to no "
-                         "contacts upload before.";
-      did_contacts_change_since_last_upload = false;
+      // If no contacts are uploaded before, set the flag to true in order to
+      // force a certificate regeneration and upload.
+      LOG(WARNING) << "Set contacts change flag to true, no previous upload.";
+      did_contacts_change_since_last_upload = true;
     }
     NotifyContactsUploaded(did_contacts_change_since_last_upload);
   }

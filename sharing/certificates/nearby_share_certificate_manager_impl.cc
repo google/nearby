@@ -513,10 +513,12 @@ void NearbyShareCertificateManagerImpl::OnContactsDownloaded(
 
 void NearbyShareCertificateManagerImpl::OnContactsUploaded(
     bool did_contacts_change_since_last_upload) {
-  executor_->PostTask([&, did_contacts_change_since_last_upload]() {
-    NL_LOG(INFO) << __func__ << ": Handle to Contacts uploaded.";
-    if (!did_contacts_change_since_last_upload) return;
-
+  if (!did_contacts_change_since_last_upload) {
+    LOG(INFO) << "Contacts not changed since last upload.";
+    return;
+  }
+  executor_->PostTask([this]() {
+    LOG(INFO) << "Handle Contacts uploaded.";
     // If any of the uploaded contact data - the contact list or the allowlist -
     // has changed since the previous successful upload, recreate certificates.
     // We do not want to continue using the current certificates because they
