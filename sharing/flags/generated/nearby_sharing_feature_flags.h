@@ -12,14 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/************* DO NOT EDIT *******************
- * After updating nearby_sharing_feature.gcl, regenerate this file by running:
- *   blaze build
- *   //third_party/nearby/sharing/flags:nearby_sharing_feature_flags_cpp_consts
- * Copy the generated file here:
- * blaze-genfiles/third_party/nearby/sharing/flags/nearby_sharing_feature_flags.h
- **********************************************/
-
+// Mendel flags, auto-generated. DO NOT EDIT.
 #ifndef THIRD_PARTY_NEARBY_SHARING_FLAGS_NEARBY_SHARING_FEATURE_FLAGS_H_
 #define THIRD_PARTY_NEARBY_SHARING_FLAGS_NEARBY_SHARING_FEATURE_FLAGS_H_
 
@@ -83,6 +76,9 @@ constexpr auto kUseGrpcClient =
 // When true, dedup discovered endpoints.
 constexpr auto kApplyEndpointsDedup =
     flags::Flag<bool>(kConfigPackage, "45656298", false);
+// When true, call the 3P Nearby Identity API instead of the 1P private API
+constexpr auto kCallNearbyIdentityApi =
+    flags::Flag<bool>(kConfigPackage, "45667328", false);
 // When true, dedup in UnregisterShareTarget.
 constexpr auto kDedupInUnregisterShareTarget =
     flags::Flag<bool>(kConfigPackage, "45664277", false);
@@ -130,6 +126,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
       {45656298, kApplyEndpointsDedup},
+      {45667328, kCallNearbyIdentityApi},
       {45664277, kDedupInUnregisterShareTarget},
       {45657036, kDeleteUnexpectedReceivedFileFix},
       {45665616, kHonor3PClientIdAndSecret},

@@ -69,11 +69,38 @@ void FakeNearbyShareClient::ListPublicCertificates(
   std::move(callback)(response);
 }
 
+void FakeNearbyIdentityClient::QuerySharedCredentials(
+    const google::nearby::identity::v1::QuerySharedCredentialsRequest& request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<
+             google::nearby::identity::v1::QuerySharedCredentialsResponse>&
+                 response) &&>
+        callback) {
+  query_shared_credentials_requests_.emplace_back(request);
+  std::move(callback)(query_shared_credentials_response_);
+}
+
+void FakeNearbyIdentityClient::PublishDevice(
+    const google::nearby::identity::v1::PublishDeviceRequest& request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<
+             google::nearby::identity::v1::PublishDeviceResponse>& response) &&>
+        callback) {
+  publish_device_requests_.emplace_back(request);
+  std::move(callback)(publish_device_response_);
+}
+
 std::unique_ptr<nearby::sharing::api::SharingRpcClient>
 FakeNearbyShareClientFactory::CreateInstance() {
   auto instance = std::make_unique<FakeNearbyShareClient>();
   instances_.push_back(instance.get());
+  return instance;
+}
 
+std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
+FakeNearbyShareClientFactory::CreateIdentityInstance() {
+  auto instance = std::make_unique<FakeNearbyIdentityClient>();
+  identity_instances_.push_back(instance.get());
   return instance;
 }
 

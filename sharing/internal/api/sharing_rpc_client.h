@@ -19,12 +19,36 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
+#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/device_rpc.pb.h"
 
 namespace nearby::sharing::api {
+
+// IdentityRpcClient is used to access Nearby Identity backend APIs.
+class IdentityRpcClient {
+ public:
+  IdentityRpcClient() = default;
+  virtual ~IdentityRpcClient() = default;
+
+  virtual void QuerySharedCredentials(
+      const google::nearby::identity::v1::QuerySharedCredentialsRequest&
+          request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<
+               google::nearby::identity::v1::QuerySharedCredentialsResponse>&
+                   response) &&>
+          callback) = 0;
+
+  virtual void PublishDevice(
+      const google::nearby::identity::v1::PublishDeviceRequest& request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        PublishDeviceResponse>& response) &&>
+          callback) = 0;
+};
 
 // SharingRpcClient is used to access Nearby Share backend APIs.
 class SharingRpcClient {
@@ -64,6 +88,7 @@ class SharingRpcClientFactory {
   virtual ~SharingRpcClientFactory() = default;
 
   virtual std::unique_ptr<SharingRpcClient> CreateInstance() = 0;
+  virtual std::unique_ptr<IdentityRpcClient> CreateIdentityInstance() = 0;
   virtual api::SharingRpcNotifier* GetRpcNotifier() const  = 0;
 };
 
