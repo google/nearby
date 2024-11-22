@@ -37,6 +37,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
@@ -48,6 +49,7 @@
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
@@ -384,11 +386,11 @@ void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
 }
 
 void NearbyShareCertificateManagerImpl::UploadLocalDeviceCertificates() {
-  executor_->PostTask([&]() {
-    NL_LOG(INFO) << __func__ << ": Start to upload local device certificates.";
+  executor_->PostTask([this]() {
+    LOG(INFO) << __func__ << ": Start to upload local device certificates.";
 
     if (!is_running()) {
-      NL_LOG(WARNING)
+      LOG(WARNING)
           << __func__
           << ": Ignore to upload local device certificates due to manager is "
              "not running.";
@@ -396,10 +398,9 @@ void NearbyShareCertificateManagerImpl::UploadLocalDeviceCertificates() {
     }
 
     if (!account_manager_.GetCurrentAccount().has_value()) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Ignore to upload local device certificates due to no "
-             "login account.";
+      LOG(WARNING) << __func__
+                   << ": Ignore to upload local device certificates due to no "
+                      "login account.";
       upload_local_device_certificates_scheduler_->HandleResult(
           /*success=*/true);
       return;
@@ -413,20 +414,50 @@ void NearbyShareCertificateManagerImpl::UploadLocalDeviceCertificates() {
       public_certs.push_back(*private_cert.ToPublicCertificate());
     }
 
-    NL_LOG(INFO) << __func__ << ": Uploading " << public_certs.size()
-                 << " local device certificates.";
     bool upload_certificates_result = false;
     absl::Notification notification;
-    local_device_data_manager_->UploadCertificates(
-        std::move(public_certs), [&](bool success) {
-          upload_certificates_result = success;
-          notification.Notify();
-        });
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_sharing_feature::
+                kCallNearbyIdentityApi)) {
+      LOG(INFO) << __func__ << ": [Call Identity API] PublishDevice: upload "
+                << public_certs.size() << " local device certificates.";
+      local_device_data_manager_->PublishDevice(
+          std::move(public_certs), call_publish_device_after_certs_regen_,
+          [this, &upload_certificates_result, &notification](
+              bool success, bool contact_removed) {
+            upload_certificates_result = success;
+            call_publish_device_after_certs_regen_ = contact_removed;
+            notification.Notify();
+          });
+    } else {
+      LOG(INFO) << __func__
+                << ": [Call NearbyShare API] UploadCertificates: upload"
+                << public_certs.size() << " local device certificates.";
+      local_device_data_manager_->UploadCertificates(
+          std::move(public_certs), [&](bool success) {
+            upload_certificates_result = success;
+            notification.Notify();
+          });
+    }
     notification.WaitForNotification();
-    NL_LOG(INFO) << __func__ << ": Upload of local device certificates "
-                 << (upload_certificates_result ? "succeeded" : "failed.");
+    LOG(INFO) << __func__ << ": Upload of local device certificates "
+              << (upload_certificates_result ? "succeeded" : "failed.");
     upload_local_device_certificates_scheduler_->HandleResult(
         upload_certificates_result);
+
+    // TODO(b/373780923): add Unit test for the two RPC calls and add a cap to
+    // the number of time you can keep calling PublishDevice due to contacts
+    // changes (it could indicate a server bug).
+    if (call_publish_device_after_certs_regen_ &&
+        NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_sharing_feature::
+                kCallNearbyIdentityApi)) {
+      LOG(INFO) << __func__
+                << ": [Call Identity API] Another call to PublishDevice after "
+                   "regenerating all Private certificates: ";
+      certificate_storage_->ClearPrivateCertificates();
+      private_certificate_expiration_scheduler_->MakeImmediateRequest();
+    }
   });
 }
 

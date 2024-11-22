@@ -149,6 +149,9 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
   std::unique_ptr<NearbyShareScheduler> contact_download_and_upload_scheduler_;
 
   std::unique_ptr<TaskRunner> executor_ = nullptr;
+  // Identity API does not support contacts upload/download. So essentially
+  // contact manager is inactive.
+  bool use_identity_api_ = false;
 };
 
 }  // namespace sharing

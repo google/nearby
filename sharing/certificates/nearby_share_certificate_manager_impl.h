@@ -213,6 +213,11 @@ class NearbyShareCertificateManagerImpl
   std::unique_ptr<NearbyShareScheduler> download_public_certificates_scheduler_;
 
   std::unique_ptr<TaskRunner> executor_;
+  // Whether we need to regenerate the certificates and make another
+  // PublishDevice call. At every PublishDevice call, we check
+  // PublishDeviceResponse to see if contacts are removed. In which case, we
+  // need to regenerate the certificates and make another PublishDevice call.
+  bool call_publish_device_after_certs_regen_ = false;
 };
 
 }  // namespace sharing

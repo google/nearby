@@ -31,11 +31,13 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/crypto_cros/secure_hash.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/contacts/nearby_share_contacts_sorter.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/base/encode.h"
@@ -172,7 +174,10 @@ NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
               /*require_connectivity=*/true,
               prefs::kNearbySharingSchedulerContactDownloadAndUploadName,
               [&] { DownloadContacts(); })),
-      executor_(context->CreateSequencedTaskRunner()) {}
+      executor_(context->CreateSequencedTaskRunner()),
+      use_identity_api_(NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_sharing_feature::
+              kCallNearbyIdentityApi)) {}
 
 NearbyShareContactManagerImpl::~NearbyShareContactManagerImpl() = default;
 
@@ -230,6 +235,10 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
 }
 
 void NearbyShareContactManagerImpl::DownloadContacts() {
+  if (use_identity_api_) {
+    LOG(INFO) << __func__ << ": [Call Identity API] Skipping DownloadContacts";
+    return;
+  }
   executor_->PostTask([this]() {
     NL_LOG(INFO) << __func__ << ": Start to download contacts";
     if (!is_running()) {
@@ -287,10 +296,22 @@ void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
 }
 
 void NearbyShareContactManagerImpl::OnStart() {
+  if (use_identity_api_) {
+    LOG(INFO) << __func__
+              << ": [Call Identity API] Skipping "
+                 "contact_download_and_upload_scheduler start.";
+    return;
+  }
   contact_download_and_upload_scheduler_->Start();
 }
 
 void NearbyShareContactManagerImpl::OnStop() {
+  if (use_identity_api_) {
+    LOG(INFO) << __func__
+              << ": [Call Identity API] Skipping "
+                 "contact_download_and_upload_scheduler stop.";
+    return;
+  }
   contact_download_and_upload_scheduler_->Stop();
 }
 

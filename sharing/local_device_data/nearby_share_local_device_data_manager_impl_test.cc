@@ -26,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/substitute.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
@@ -33,14 +34,18 @@
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
+#include "proto/identity/v1/resources.pb.h"
+#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
+#include "sharing/internal/public/logging.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/device_rpc.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
+#include "sharing/proto/timestamp.pb.h"
 #include "sharing/scheduling/fake_nearby_share_scheduler_factory.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
 
@@ -49,6 +54,7 @@ namespace sharing {
 namespace {
 
 using UpdateDeviceResponse = nearby::sharing::proto::UpdateDeviceResponse;
+using google::nearby::identity::v1::PublishDeviceResponse;
 using Contact = nearby::sharing::proto::Contact;
 
 const char kDefaultDeviceName[] = "$0\'s $1";
@@ -232,6 +238,10 @@ class NearbyShareLocalDeviceDataManagerImplTest
     return nearby_client_factory_.instances().back();
   }
 
+  FakeNearbyIdentityClient* identity_client() {
+    return nearby_client_factory_.identity_instances().back();
+  }
+
   void Sync() {
     EXPECT_TRUE(context_.last_sequenced_task_runner()->SyncWithTimeout(
         absl::Milliseconds(1000)));
@@ -358,6 +368,183 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, UploadCertificates_Success) {
 TEST_F(NearbyShareLocalDeviceDataManagerImplTest, UploadCertificates_Failure) {
   CreateManager();
   UploadCertificates(/*response=*/absl::InternalError(""));
+}
+
+std::vector<nearby::sharing::proto::PublicCertificate> GetTestCertificates() {
+  nearby::sharing::proto::PublicCertificate cert1;
+  cert1.set_secret_id("id1");
+  cert1.set_for_self_share(true);
+  cert1.mutable_end_time()->set_seconds(1000);
+  cert1.mutable_end_time()->set_nanos(2000);
+
+  nearby::sharing::proto::PublicCertificate cert2;
+  cert2.set_secret_id("id2");
+  cert2.set_for_self_share(false);
+  cert2.mutable_end_time()->set_seconds(2000);
+  cert2.mutable_end_time()->set_nanos(200);
+
+  nearby::sharing::proto::PublicCertificate cert3;
+  cert3.set_secret_id("id3");
+  cert3.set_for_self_share(true);
+  cert3.mutable_end_time()->set_seconds(3000);
+  cert3.mutable_end_time()->set_nanos(300);
+
+  nearby::sharing::proto::PublicCertificate cert4;
+  cert4.set_secret_id("id4");
+  cert4.set_for_self_share(false);
+  cert4.mutable_end_time()->set_seconds(4000);
+  cert4.mutable_end_time()->set_nanos(400);
+  return {cert1, cert2, cert3, cert4};
+}
+
+TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
+       PublishDeviceInitialCall_ContactUpdateAdded) {
+  CreateManager();
+  bool returned_success;
+  bool returned_make_another_call;
+  PublishDeviceResponse response;
+  response.add_contact_updates(google::nearby::identity::v1::
+                                   PublishDeviceResponse::CONTACT_UPDATE_ADDED);
+
+  identity_client()->SetPublishDeviceResponse(
+      absl::StatusOr<PublishDeviceResponse>(response));
+  manager()->PublishDevice(GetTestCertificates(), /*is_second_call=*/false,
+                           [&returned_success, &returned_make_another_call](
+                               bool success, bool make_another_call) {
+                             returned_success = success;
+                             returned_make_another_call = make_another_call;
+                           });
+
+  Sync();
+  auto request = identity_client()->publish_device_requests().back();
+  EXPECT_EQ(request.device().name(),
+            absl::StrCat("devices/", manager()->GetId()));
+  EXPECT_EQ(request.device().display_name(), "Barack奥巴马's PC");
+  EXPECT_EQ(
+      request.device().contact(),
+      google::nearby::identity::v1::Device::CONTACT_GOOGLE_CONTACT_LATEST);
+  ASSERT_EQ(request.device().per_visibility_shared_credentials_size(), 2);
+
+  auto self_credential = request.device().per_visibility_shared_credentials(0);
+  EXPECT_EQ(self_credential.visibility(),
+            google::nearby::identity::v1::PerVisibilitySharedCredentials::
+                VISIBILITY_SELF);
+  EXPECT_EQ(self_credential.shared_credentials_size(), 2);
+  EXPECT_EQ(self_credential.shared_credentials(0).id(), 4993322223562966528);
+
+  ASSERT_EQ(GetTestCertificates().size(), 4);
+  EXPECT_EQ(self_credential.shared_credentials(0).data(),
+            GetTestCertificates().at(0).SerializeAsString());
+  EXPECT_EQ(self_credential.shared_credentials(0).data_type(),
+            google::nearby::identity::v1::SharedCredential::
+                DATA_TYPE_PUBLIC_CERTIFICATE);
+  EXPECT_EQ(self_credential.shared_credentials(0).expiration_time().seconds(),
+            1000);
+  EXPECT_EQ(self_credential.shared_credentials(0).expiration_time().nanos(),
+            2000);
+
+  EXPECT_EQ(self_credential.shared_credentials(1).id(), 2903692628687846585);
+  EXPECT_EQ(self_credential.shared_credentials(1).data(),
+            GetTestCertificates().at(2).SerializeAsString());
+  EXPECT_EQ(self_credential.shared_credentials(1).data_type(),
+            google::nearby::identity::v1::SharedCredential::
+                DATA_TYPE_PUBLIC_CERTIFICATE);
+  EXPECT_EQ(self_credential.shared_credentials(1).expiration_time().seconds(),
+            3000);
+  EXPECT_EQ(self_credential.shared_credentials(1).expiration_time().nanos(),
+            300);
+
+  auto contact_credential =
+      request.device().per_visibility_shared_credentials(1);
+  EXPECT_EQ(contact_credential.visibility(),
+            google::nearby::identity::v1::PerVisibilitySharedCredentials::
+                VISIBILITY_CONTACTS);
+  ASSERT_EQ(contact_credential.shared_credentials_size(), 2);
+  EXPECT_EQ(contact_credential.shared_credentials(0).id(),
+            -5684021477085783942);
+  EXPECT_EQ(contact_credential.shared_credentials(0).data(),
+            GetTestCertificates().at(1).SerializeAsString());
+  EXPECT_EQ(contact_credential.shared_credentials(0).data_type(),
+            google::nearby::identity::v1::SharedCredential::
+                DATA_TYPE_PUBLIC_CERTIFICATE);
+  EXPECT_EQ(
+      contact_credential.shared_credentials(0).expiration_time().seconds(),
+      2000);
+  EXPECT_EQ(contact_credential.shared_credentials(0).expiration_time().nanos(),
+            200);
+
+  EXPECT_TRUE(returned_success);
+  EXPECT_FALSE(returned_make_another_call);
+}
+
+TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
+       PublishDeviceInitialCall_ContactUpdateRemoved) {
+  CreateManager();
+  bool returned_success;
+  bool returned_make_another_call;
+  PublishDeviceResponse response;
+  response.add_contact_updates(
+      google::nearby::identity::v1::PublishDeviceResponse::
+          CONTACT_UPDATE_REMOVED);
+
+  identity_client()->SetPublishDeviceResponse(
+      absl::StatusOr<PublishDeviceResponse>(response));
+  manager()->PublishDevice(GetTestCertificates(), /*is_second_call=*/false,
+                           [&returned_success, &returned_make_another_call](
+                               bool success, bool make_another_call) {
+                             returned_success = success;
+                             returned_make_another_call = make_another_call;
+                           });
+
+  Sync();
+
+  EXPECT_TRUE(returned_success);
+  // 2nd call is needed to regenerate all Private certificates.
+  EXPECT_TRUE(returned_make_another_call);
+}
+
+TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
+       PublishDeviceSecondCall_ContactUnchanged) {
+  CreateManager();
+  bool returned_success;
+  bool returned_make_another_call;
+  PublishDeviceResponse response;
+
+  identity_client()->SetPublishDeviceResponse(
+      absl::StatusOr<PublishDeviceResponse>(response));
+  manager()->PublishDevice(GetTestCertificates(), /*is_second_call=*/true,
+                           [&returned_success, &returned_make_another_call](
+                               bool success, bool make_another_call) {
+                             returned_success = success;
+                             returned_make_another_call = make_another_call;
+                           });
+
+  Sync();
+  auto request = identity_client()->publish_device_requests().back();
+
+  EXPECT_EQ(request.device().contact(),
+            google::nearby::identity::v1::Device::CONTACT_GOOGLE_CONTACT);
+
+  EXPECT_TRUE(returned_success);
+  // Contacts are not changed, no need to make another call.
+  EXPECT_FALSE(returned_make_another_call);
+}
+
+TEST_F(NearbyShareLocalDeviceDataManagerImplTest, PublishDevice_Failure) {
+  CreateManager();
+  bool returned_success;
+  bool returned_make_another_call;
+  identity_client()->SetPublishDeviceResponse(absl::InternalError(""));
+  manager()->PublishDevice(GetTestCertificates(), /*is_second_call=*/false,
+                           [&returned_success, &returned_make_another_call](
+                               bool success, bool make_another_call) {
+                             returned_success = success;
+                             returned_make_another_call = make_another_call;
+                           });
+
+  Sync();
+  EXPECT_FALSE(returned_success);
+  EXPECT_FALSE(returned_make_another_call);
 }
 
 }  // namespace

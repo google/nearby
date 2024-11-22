@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
@@ -131,6 +130,16 @@ void FakeNearbyShareLocalDeviceDataManager::UploadCertificates(
     callback(upload_certificate_result_);
   }
 }
+
+void FakeNearbyShareLocalDeviceDataManager::PublishDevice(
+    std::vector<nearby::sharing::proto::PublicCertificate> certificates,
+    bool is_second_call, PublishDeviceCallback callback) {
+  publish_device_calls_.emplace_back(std::move(certificates), is_second_call,
+                                     callback);
+  if (is_sync_mode_) {
+    callback(publish_device_result_, false);
+  }
+};
 
 }  // namespace sharing
 }  // namespace nearby

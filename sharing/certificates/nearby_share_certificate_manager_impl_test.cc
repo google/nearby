@@ -35,6 +35,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
 #include "sharing/certificates/constants.h"
@@ -47,6 +48,7 @@
 #include "sharing/certificates/test_util.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/fake_nearby_share_contact_manager.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
 #include "sharing/internal/public/logging.h"
@@ -167,6 +169,7 @@ class NearbyShareCertificateManagerImplTest
     cert_manager_->RemoveObserver(this);
     NearbyShareSchedulerFactory::SetFactoryForTesting(nullptr);
     NearbyShareCertificateStorageImpl::Factory::SetFactoryForTesting(nullptr);
+    NearbyFlags::GetInstance().ResetOverridedValues();
   }
 
   void SetBluetoothMacAddress(absl::string_view bluetooth_mac_address) {
@@ -314,6 +317,28 @@ class NearbyShareCertificateManagerImplTest
               initial_num_upload_calls + 1);
 
     EXPECT_EQ(local_device_data_manager_->upload_certificates_calls()
+                  .back()
+                  .certificates.size(),
+              3 * kNearbyShareNumPrivateCertificates);
+
+    EXPECT_EQ(upload_scheduler_->handled_results().size(),
+              initial_num_handled_results + 1);
+    EXPECT_EQ(upload_scheduler_->handled_results().back(), success);
+  }
+
+  void RunPublishDevice(bool success) {
+    size_t initial_num_upload_calls =
+        local_device_data_manager_->publish_device_calls().size();
+    local_device_data_manager_->SetPublishDeviceResult(success);
+    size_t initial_num_handled_results =
+        upload_scheduler_->handled_results().size();
+
+    upload_scheduler_->InvokeRequestCallback();
+    Sync();
+    EXPECT_EQ(local_device_data_manager_->publish_device_calls().size(),
+              initial_num_upload_calls + 1);
+
+    EXPECT_EQ(local_device_data_manager_->publish_device_calls()
                   .back()
                   .certificates.size(),
               3 * kNearbyShareNumPrivateCertificates);
@@ -700,6 +725,19 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   HandlePrivateCertificateRefresh(/*expect_private_cert_refresh=*/true,
                                   /*expected_success=*/true);
   RunUpload(/*success=*/true);
+  VerifyPrivateCertificates(/*expected_metadata=*/GetNearbyShareTestMetadata());
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       RefreshPrivateCertificates_PublishDevice_NoCertificates_UploadSuccess) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kCallNearbyIdentityApi,
+      true);
+  cert_store_->ReplacePrivateCertificates({});
+
+  HandlePrivateCertificateRefresh(/*expect_private_cert_refresh=*/true,
+                                  /*expected_success=*/true);
+  RunPublishDevice(/*success=*/true);
   VerifyPrivateCertificates(/*expected_metadata=*/GetNearbyShareTestMetadata());
 }
 

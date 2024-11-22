@@ -27,6 +27,7 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
+#include "sharing/internal/impl/common/nearby_identity_grpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/rpc_resources.pb.h"
@@ -85,6 +86,10 @@ class NearbyShareLocalDeviceDataManagerImpl
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,
       UploadCompleteCallback callback) override;
 
+  void PublishDevice(
+      std::vector<nearby::sharing::proto::PublicCertificate> certificates,
+      bool force_update_contacts, PublishDeviceCallback callback) override;
+
   // Creates a default device name of the form "<given name>'s <device type>."
   // For example, "Josh's Chromebook." If a given name cannot be found, returns
   // just the device type. If the resulting name is too long the user's name
@@ -95,6 +100,8 @@ class NearbyShareLocalDeviceDataManagerImpl
   AccountManager& account_manager_;
   nearby::DeviceInfo& device_info_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
+  std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
+      nearby_identity_client_;
   const std::string device_id_;
   std::unique_ptr<TaskRunner> executor_;
 };

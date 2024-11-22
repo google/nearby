@@ -500,9 +500,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
         // user to be blocked for hours waiting for a periodic sync.
         if (state == SendSurfaceState::kForeground &&
             !last_outgoing_metadata_) {
-          VLOG(1) << __func__ << ": Downloading contacts & certificates from "
-                  << "Nearby server at start of sending flow.";
           contact_manager_->DownloadContacts();
+          VLOG(1) << __func__
+                  << ": Downloading public certificates from Nearby server at "
+                     "start of sending flow.";
           certificate_manager_->DownloadPublicCertificates();
         }
 
@@ -1030,9 +1031,10 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   // need to wait for these calls to finish. The periodic server requests will
   // typically be sufficient, but we don't want the user to be blocked for
   // hours waiting for a periodic sync.
-  VLOG(1) << __func__ << ": Downloading contacts, and certificates from "
-          << "Nearby server at start of receiving flow.";
+
   contact_manager_->DownloadContacts();
+  VLOG(1) << __func__ << ": Downloading certificates from "
+          << "Nearby server at start of receiving flow.";
   certificate_manager_->DownloadPublicCertificates();
 
   ShareTarget placeholder_share_target;

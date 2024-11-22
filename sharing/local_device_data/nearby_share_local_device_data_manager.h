@@ -47,6 +47,8 @@ class NearbyShareLocalDeviceDataManager {
   };
 
   using UploadCompleteCallback = std::function<void(bool success)>;
+  using PublishDeviceCallback =
+      std::function<void(bool success, bool contact_removed)>;
 
   NearbyShareLocalDeviceDataManager();
   virtual ~NearbyShareLocalDeviceDataManager();
@@ -95,6 +97,12 @@ class NearbyShareLocalDeviceDataManager {
   virtual void UploadCertificates(
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,
       UploadCompleteCallback callback) = 0;
+
+  // Calls Identity PublishDevice RPC to upload local device's public
+  // certificates.
+  virtual void PublishDevice(
+      std::vector<nearby::sharing::proto::PublicCertificate> certificates,
+      bool force_update_contacts, PublishDeviceCallback callback) = 0;
 
  protected:
   void NotifyLocalDeviceDataChanged(bool did_device_name_change,
