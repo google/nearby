@@ -38,6 +38,7 @@
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
+#include "sharing/internal/impl/common/nearby_identity_grpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"
@@ -98,6 +99,7 @@ class NearbyShareCertificateManagerImpl
    public:
     CertificateDownloadContext(
         nearby::sharing::api::SharingRpcClient* nearby_share_client,
+        nearby::sharing::api::IdentityRpcClient* nearby_identity_client,
         std::string device_id,
         absl::AnyInvocable<void() &&> download_failure_callback,
         absl::AnyInvocable<
@@ -105,6 +107,7 @@ class NearbyShareCertificateManagerImpl
                      certificates) &&>
             download_success_callback)
         : nearby_share_client_(nearby_share_client),
+          nearby_identity_client_(nearby_identity_client),
           device_id_(std::move(device_id)),
           download_failure_callback_(std::move(download_failure_callback)),
           download_success_callback_(std::move(download_success_callback)) {}
@@ -115,8 +118,13 @@ class NearbyShareCertificateManagerImpl
     // |download_success_callback_| is invoked with all downloaded certificates.
     void FetchNextPage();
 
+    // Fetches the next page of certificates by calling Identity API
+    // QuerySharedCredentials.
+    void QuerySharedCredentialsFetchNextPage();
+
    private:
     nearby::sharing::api::SharingRpcClient* const nearby_share_client_;
+    nearby::sharing::api::IdentityRpcClient* const nearby_identity_client_;
     std::string device_id_;
     std::optional<std::string> next_page_token_;
     int page_number_ = 1;
@@ -202,6 +210,8 @@ class NearbyShareCertificateManagerImpl
   NearbyShareContactManager* const contact_manager_;
   int32_t vendor_id_ = 0;  // Defaults to GOOGLE.
   std::unique_ptr< nearby::sharing::api::SharingRpcClient> nearby_client_;
+  std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
+      nearby_identity_client_;
 
   std::shared_ptr<NearbyShareCertificateStorage> certificate_storage_;
   std::unique_ptr<NearbyShareScheduler>

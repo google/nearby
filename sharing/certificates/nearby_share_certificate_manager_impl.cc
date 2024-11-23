@@ -32,13 +32,17 @@
 #include "absl/functional/bind_front.h"
 #include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/strings/strip.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/account_manager.h"
+#include "proto/identity/v1/resources.pb.h"
+#include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -71,6 +75,8 @@ namespace nearby {
 namespace sharing {
 namespace {
 
+using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
+using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::PublicCertificateDatabase;
 using ::nearby::sharing::api::SharingPlatform;
@@ -227,6 +233,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
       local_device_data_manager_(local_device_data_manager),
       contact_manager_(contact_manager),
       nearby_client_(client_factory->CreateInstance()),
+      nearby_identity_client_(client_factory->CreateIdentityInstance()),
       certificate_storage_(NearbyShareCertificateStorageImpl::Factory::Create(
           preference_manager, std::move(public_certificate_database))),
       private_certificate_expiration_scheduler_(
@@ -295,9 +302,8 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
     request.set_page_token(*next_page_token_);
   }
   nearby_share_client_->ListPublicCertificates(
-      request, [this](
-                   const absl::StatusOr<ListPublicCertificatesResponse>&
-                       response) mutable {
+      request, [this](const absl::StatusOr<ListPublicCertificatesResponse>&
+                          response) mutable {
         if (!response.ok()) {
           NL_LOG(WARNING) << __func__ << ": Failed to download certificates: "
                           << response.status();
@@ -318,6 +324,65 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
         }
         next_page_token_ = response->next_page_token();
         FetchNextPage();
+      });
+}
+
+void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
+    QuerySharedCredentialsFetchNextPage() {
+  page_number_++;
+  LOG(INFO) << __func__
+            << ": [Call Identity API] Downloading page=" << page_number_;
+  QuerySharedCredentialsRequest request;
+  request.set_name(
+      absl::StrCat("devices/", absl::StripPrefix(device_id_, kDeviceIdPrefix)));
+  if (next_page_token_.has_value()) {
+    request.set_page_token(*next_page_token_);
+  }
+  nearby_identity_client_->QuerySharedCredentials(
+      request, [this](const absl::StatusOr<QuerySharedCredentialsResponse>&
+                          response) mutable {
+        if (!response.ok()) {
+          LOG(WARNING)
+              << __func__
+              << ": [Call Identity API] Failed to download certificates: "
+              << response.status();
+          std::move(download_failure_callback_)();
+          return;
+        }
+        for (const auto& credential : response->shared_credentials()) {
+          if (credential.data_type() !=
+              google::nearby::identity::v1::SharedCredential::
+                  DATA_TYPE_PUBLIC_CERTIFICATE) {
+            LOG(WARNING) << __func__
+                         << ": [Call Identity API] skipping non "
+                            "DATA_TYPE_PUBLIC_CERTIFICATE, credential.id: "
+                         << credential.id();
+            continue;
+          }
+          PublicCertificate certificate;
+          if (!certificate.ParseFromString(credential.data())) {
+            LOG(ERROR) << __func__
+                       << ": [Call Identity API] Failed parsing to "
+                          "PublicCertificate, credential.id: "
+                       << credential.id() << " data: "
+                       << absl::BytesToHexString(credential.data());
+            continue;
+          }
+          VLOG(1) << __func__
+                  << ": [Call Identity API] Successfully parsed credential: "
+                  << credential.id();
+          certificates_.push_back(certificate);
+        }
+
+        if (response->next_page_token().empty()) {
+          LOG(INFO) << __func__
+                    << ": [Call Identity API] Completed to download "
+                    << certificates_.size() << " certificates";
+          std::move(download_success_callback_)(certificates_);
+          return;
+        }
+        next_page_token_ = response->next_page_token();
+        QuerySharedCredentialsFetchNextPage();
       });
 }
 
@@ -373,7 +438,7 @@ void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
     // Currently certificates download is synchronous.  It completes after
     // FetchNextPage() returns.
     auto context = std::make_unique<CertificateDownloadContext>(
-        nearby_client_.get(),
+        nearby_client_.get(), nearby_identity_client_.get(),
         kDeviceIdPrefix + local_device_data_manager_->GetId(),
         absl::bind_front(&NearbyShareCertificateManagerImpl::
                              OnPublicCertificatesDownloadFailure,
@@ -381,7 +446,13 @@ void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
         absl::bind_front(&NearbyShareCertificateManagerImpl::
                              OnPublicCertificatesDownloadSuccess,
                          this));
-    context->FetchNextPage();
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_sharing_feature::
+                kCallNearbyIdentityApi)) {
+      context->QuerySharedCredentialsFetchNextPage();
+    } else {
+      context->FetchNextPage();
+    }
   });
 }
 

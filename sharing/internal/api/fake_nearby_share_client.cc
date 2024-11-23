@@ -77,7 +77,14 @@ void FakeNearbyIdentityClient::QuerySharedCredentials(
                  response) &&>
         callback) {
   query_shared_credentials_requests_.emplace_back(request);
-  std::move(callback)(query_shared_credentials_response_);
+  if (query_shared_credentials_responses_.empty()) {
+    std::move(callback)(absl::NotFoundError(""));
+    return;
+  }
+  auto response = query_shared_credentials_responses_[0];
+  query_shared_credentials_responses_.erase(
+      query_shared_credentials_responses_.begin());
+  std::move(callback)(response);
 }
 
 void FakeNearbyIdentityClient::PublishDevice(
