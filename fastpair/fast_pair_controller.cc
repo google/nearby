@@ -33,6 +33,7 @@
 namespace nearby {
 namespace fastpair {
 
+
 FastPairController::FastPairController(Mediums* mediums, FastPairDevice* device,
                                        SingleThreadExecutor* executor)
     : mediums_(mediums), device_(device), executor_(executor) {}
