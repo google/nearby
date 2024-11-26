@@ -131,3 +131,24 @@ enum OsType {
   ANDROID = 1;
   CHROME_OS = 2;
 }
+
+// How often to perform Bluetooth LE scans. The scan mode constants in
+// ScanSettings:
+// https://cs.corp.google.com/#piper///depot/google3/java/com/google/android/libraries/bluetoothle/scan/ScanSettings.java
+enum ScanMode {
+  // Do not initiate scans, but piggyback on BLE scans initiated by others
+  // (e.g. ULR).
+  SCAN_MODE_ZERO_POWER = 0;
+
+  // Pre-L, this means we scan 1% of the time (idle 99% of the time). On L, we
+  // might scan more often based on hardware support.
+  SCAN_MODE_LOW_POWER = 1;
+
+  // Pre-L, this means we scan 10% of the time. On L, we might scan more often,
+  // based on hardware support.
+  SCAN_MODE_BALANCED = 2;
+
+  // Pre-L, this means we scan 90% of the time. On L, we might scan more often,
+  // based on hardware support.
+  SCAN_MODE_LOW_LATENCY = 3;
+}
