@@ -60,10 +60,10 @@ constexpr auto kEnableTransferCancellationOptimization =
 constexpr auto kEnableWebrtcMedium =
     flags::Flag<bool>(kConfigPackage, "45411620", false);
 // Set the logging level in Nearby Sharing SDK. The default logging level is
-// WARNING. The mapping of logging level to number: INFO: 0, WARNING: 1, ERROR:
-// 2, FATAL: 3,  negative values are -(verbosity level).
+// WARNING. The mapping of logging level to number:VERBOSE: -1, INFO: 0,
+// WARNING: 1, ERROR: 2, FATAL: 3
 constexpr auto kLoggingLevel =
-    flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
+    flags::Flag<int64_t>(kConfigPackage, "45401358", 0);
 // When true, the sender will not require confirming the ukey2 token.
 constexpr auto kSenderSkipsConfirmation =
     flags::Flag<bool>(kConfigPackage, "45411353", true);
