@@ -68,13 +68,6 @@ class NearbyShareCertificateStorage {
   virtual void ReplacePrivateCertificates(
       absl::Span<const NearbySharePrivateCertificate> private_certificates) = 0;
 
-  // Deletes existing public certificates and replaces them with
-  // |public_certificates|.
-  virtual void ReplacePublicCertificates(
-      absl::Span<const nearby::sharing::proto::PublicCertificate>
-          public_certificates,
-      ResultCallback callback) = 0;
-
   // Overwrites an existing record with |private_certificate| if that record
   // has the same ID . If no such record exists in storage, no action is taken.
   // This method is necessary for updating the private certificate's list of

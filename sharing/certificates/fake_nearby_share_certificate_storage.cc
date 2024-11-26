@@ -117,15 +117,6 @@ void FakeNearbyShareCertificateStorage::ReplacePrivateCertificates(
       private_certificates.begin(), private_certificates.end());
 }
 
-void FakeNearbyShareCertificateStorage::ReplacePublicCertificates(
-    absl::Span<const PublicCertificate> public_certificates,
-    ResultCallback callback) {
-  replace_public_certificates_calls_.emplace_back(
-      std::vector<PublicCertificate>(public_certificates.begin(),
-                                     public_certificates.end()),
-      std::move(callback));
-}
-
 void FakeNearbyShareCertificateStorage::AddPublicCertificates(
     absl::Span<const PublicCertificate> public_certificates,
     ResultCallback callback) {

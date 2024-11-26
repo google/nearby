@@ -266,49 +266,6 @@ void NearbyShareCertificateStorageImpl::OnDatabaseDestroyed(
   std::move(callback)(true);
 }
 
-void NearbyShareCertificateStorageImpl::
-    ReplacePublicCertificatesDestroyCallback(
-        const std::vector<nearby::sharing::proto::PublicCertificate>&
-            new_certificates,
-        const ExpirationList& new_expirations, ResultCallback callback,
-        bool proceed) {
-  if (!proceed) {
-    std::move(callback)(false);
-    return;
-  }
-
-  NL_VLOG(1) << __func__ << ": Inserting " << new_certificates.size()
-             << " public certificates.";
-
-  public_certificate_database_->AddCertificates(
-      absl::MakeConstSpan(new_certificates),
-      [weak_this = weak_from_this(), new_expirations,
-       callback = std::move(callback)](bool success) {
-        if (auto storage = weak_this.lock()) {
-          storage->ReplacePublicCertificatesUpdateEntriesCallback(
-              std::make_unique<ExpirationList>(std::move(new_expirations)),
-              std::move(callback), success);
-        }
-      });
-}
-
-void NearbyShareCertificateStorageImpl::
-    ReplacePublicCertificatesUpdateEntriesCallback(
-        std::unique_ptr<ExpirationList> expirations, ResultCallback callback,
-        bool proceed) {
-  if (!proceed) {
-    NL_LOG(ERROR) << __func__ << ": Failed to replace public certificates.";
-    std::move(callback)(false);
-    return;
-  }
-  NL_VLOG(1) << __func__ << ": Successfully replaced public certificates.";
-
-  NL_CHECK(expirations);
-  public_certificate_expirations_.swap(*expirations);
-  SavePublicCertificateExpirations();
-  std::move(callback)(true);
-}
-
 void NearbyShareCertificateStorageImpl::AddPublicCertificatesCallback(
     std::unique_ptr<ExpirationList> new_expirations, ResultCallback callback,
     bool proceed) {
@@ -411,46 +368,6 @@ void NearbyShareCertificateStorageImpl::ReplacePrivateCertificates(
   }
   preference_manager_.SetPrivateCertificateArray(
       prefs::kNearbySharingPrivateCertificateListName, list);
-}
-
-void NearbyShareCertificateStorageImpl::ReplacePublicCertificates(
-    absl::Span<const nearby::sharing::proto::PublicCertificate>
-        public_certificates,
-    ResultCallback callback) {
-  if (init_status_ == InitStatus::kFailed) {
-    std::move(callback)(false);
-    return;
-  }
-
-  if (init_status_ == InitStatus::kUninitialized) {
-    deferred_callbacks_.push(
-        [this, public_certificates, callback = std::move(callback)]() {
-          ReplacePublicCertificates(public_certificates, std::move(callback));
-        });
-
-    return;
-  }
-
-  auto new_entries = std::vector<nearby::sharing::proto::PublicCertificate>();
-  ExpirationList new_expirations;
-  for (const nearby::sharing::proto::PublicCertificate& cert :
-       public_certificates) {
-    new_entries.emplace_back(cert);
-    new_expirations.emplace_back(cert.secret_id(),
-                                 TimestampToTime(cert.end_time()));
-  }
-  std::sort(new_expirations.begin(), new_expirations.end(), SortBySecond);
-
-  NL_VLOG(1) << __func__ << ": Clearing public certificate database.";
-
-  public_certificate_database_->Destroy(
-      [weak_this = weak_from_this(), new_entries, new_expirations,
-       callback = std::move(callback)](bool success) {
-        if (auto storage = weak_this.lock()) {
-          storage->ReplacePublicCertificatesDestroyCallback(
-              new_entries, new_expirations, std::move(callback), success);
-        }
-      });
 }
 
 void NearbyShareCertificateStorageImpl::AddPublicCertificates(

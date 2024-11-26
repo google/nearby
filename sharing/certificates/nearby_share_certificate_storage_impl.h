@@ -81,10 +81,6 @@ class NearbyShareCertificateStorageImpl : public NearbyShareCertificateStorage,
   void ReplacePrivateCertificates(
       absl::Span<const NearbySharePrivateCertificate> private_certificates)
       override;
-  void ReplacePublicCertificates(
-      absl::Span<const nearby::sharing::proto::PublicCertificate>
-          public_certificates,
-      ResultCallback callback) override;
   void AddPublicCertificates(
       absl::Span<const nearby::sharing::proto::PublicCertificate>
           public_certificates,
@@ -112,14 +108,6 @@ class NearbyShareCertificateStorageImpl : public NearbyShareCertificateStorage,
 
   void DestroyAndReinitialize();
 
-  void ReplacePublicCertificatesDestroyCallback(
-      const std::vector<nearby::sharing::proto::PublicCertificate>&
-          new_certificates,
-      const ExpirationList& new_expirations, ResultCallback callback,
-      bool proceed);
-  void ReplacePublicCertificatesUpdateEntriesCallback(
-      std::unique_ptr<ExpirationList> expirations, ResultCallback callback,
-      bool proceed);
   void AddPublicCertificatesCallback(
       std::unique_ptr<ExpirationList> new_expirations, ResultCallback callback,
       bool proceed);

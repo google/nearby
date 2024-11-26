@@ -428,47 +428,6 @@ TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificates) {
   EXPECT_THAT(cert_store.use_count(), Eq(1));
 }
 
-TEST_F(NearbyShareCertificateStorageImplTest, ReplacePublicCertificates) {
-  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
-      PrepopulatePublicCertificates());
-  nearby::FakePublicCertificateDb* fake_db = db.get();
-  std::vector<PublicCertificate> new_certs = {
-      CreatePublicCertificate(kSecretId4, kSecretKey4, kPublicKey4,
-                              kStartSeconds4, kStartNanos4, kEndSeconds4,
-                              kEndNanos4, kForSelectedContacts4,
-                              kMetadataEncryptionKey4, kEncryptedMetadataBytes4,
-                              kMetadataEncryptionKeyTag4),
-  };
-  auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
-      preference_manager_, std::move(db));
-  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
-
-  bool succeeded = false;
-  cert_store->ReplacePublicCertificates(
-      new_certs, [this, &succeeded](bool success) {
-        CaptureBoolCallback(&succeeded, success);
-      });
-  fake_db->InvokeDestroyCallback(true);
-  fake_db->InvokeAddCallback(true);
-
-  ASSERT_TRUE(succeeded);
-  auto cert_map = fake_db->GetCertificatesMap();
-  ASSERT_EQ(cert_map.size(), 1u);
-  ASSERT_EQ(cert_map.count(kSecretId4), 1u);
-  auto& cert = cert_map.find(kSecretId4)->second;
-  EXPECT_EQ(cert.secret_key(), kSecretKey4);
-  EXPECT_EQ(cert.public_key(), kPublicKey4);
-  EXPECT_EQ(cert.start_time().seconds(), kStartSeconds4);
-  EXPECT_EQ(cert.start_time().nanos(), kStartNanos4);
-  EXPECT_EQ(cert.end_time().seconds(), kEndSeconds4);
-  EXPECT_EQ(cert.end_time().nanos(), kEndNanos4);
-  EXPECT_EQ(cert.for_selected_contacts(), kForSelectedContacts4);
-  EXPECT_EQ(cert.metadata_encryption_key(), kMetadataEncryptionKey4);
-  EXPECT_EQ(cert.encrypted_metadata_bytes(), kEncryptedMetadataBytes4);
-  EXPECT_EQ(cert.metadata_encryption_key_tag(), kMetadataEncryptionKeyTag4);
-  EXPECT_THAT(cert_store.use_count(), Eq(1));
-}
-
 TEST_F(NearbyShareCertificateStorageImplTest, AddPublicCertificates) {
   auto db = std::make_unique<nearby::FakePublicCertificateDb>(
       PrepopulatePublicCertificates());
