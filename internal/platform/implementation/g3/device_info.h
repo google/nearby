@@ -15,7 +15,8 @@
 #ifndef PLATFORM_IMPL_G3_DEVICE_INFO_H_
 #define PLATFORM_IMPL_G3_DEVICE_INFO_H_
 
-#include <filesystem>
+#include <cstdlib>
+#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -47,7 +48,12 @@ class DeviceInfo : public api::DeviceInfo {
   }
 
   std::optional<std::filesystem::path> GetLocalAppDataPath() const override {
-    return std::filesystem::temp_directory_path();
+    const char* home_dir = getenv("HOME");
+    if (home_dir == nullptr) {
+      return std::filesystem::temp_directory_path();
+    }
+    // Yhis matches the .NET LocalAppData directory on Linux.
+    return std::filesystem::path(home_dir).append(".local").append("share");
   }
 
   std::optional<std::filesystem::path> GetCommonAppDataPath() const override {
