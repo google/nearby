@@ -44,4 +44,7 @@ message EncryptedMetadata {
 
   // The vendor ID of the local device.
   optional int32 vendor_id = 8;
+
+  // The icon token of the user whose device created the certificate.
+  optional string icon_token = 9;
 }
