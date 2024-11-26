@@ -97,6 +97,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
                             CountDownLatch barrier,
                             DisconnectionReason reason) override;
 
+  bool HasEndpointAttemptedToUpgrade(const std::string& endpoint_id) const;
+
   void Shutdown();
 
   // After this is called, all tasks intended for the serial executor are
@@ -236,6 +238,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // retry happen, then we can not find the last delay used in the alarm. Thus
   // using a different map to keep track of the delays per endpoint.
   absl::flat_hash_map<std::string, absl::Duration> retry_delays_;
+  absl::flat_hash_set<std::string> bwu_attempted_endpoints_;
 };
 
 }  // namespace connections
