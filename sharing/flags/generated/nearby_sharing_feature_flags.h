@@ -104,6 +104,9 @@ constexpr auto kShowAdminModeWarning =
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
+// Timeout between displays of the conflict banner.
+constexpr auto kConflictBannerTimeout =
+    flags::Flag<int64_t>(kConfigPackage, "45668886", 604800);
 // Enable the info banner to display duplicate Quick Share apps.
 constexpr auto kEnableConflictBanner =
     flags::Flag<bool>(kConfigPackage, "45661130", false);
@@ -143,6 +146,7 @@ inline absl::btree_map<int, const flags::Flag<int64_t>&> GetInt64Flags() {
       {45401358, kLoggingLevel},
       {45658774, kDiscoveryCacheLostExpiryMs},
       {45663103, kUnregisterTargetDiscoveryCacheLostExpiryMs},
+      {45668886, kConflictBannerTimeout},
   };
 }
 
