@@ -273,7 +273,8 @@ class NearbySharingServiceImpl
   // important because of the asynchronous steps required to process an
   // endpoint-discovered event.
   void AddEndpointDiscoveryEvent(std::function<void()> event);
-  void HandleEndpointDiscovered(absl::string_view endpoint_id,
+  void HandleEndpointDiscovered(absl::Time start_time,
+                                absl::string_view endpoint_id,
                                 absl::Span<const uint8_t> endpoint_info);
   void HandleEndpointLost(absl::string_view endpoint_id);
   void FinishEndpointDiscoveryEvent();

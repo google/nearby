@@ -1349,12 +1349,14 @@ void NearbySharingServiceImpl::OnEndpointDiscovered(
   // issue.
   std::vector<uint8_t> endpoint_info_copy{endpoint_info.begin(),
                                           endpoint_info.end()};
+  absl::Time start_time = context_->GetClock()->Now();
   RunOnNearbySharingServiceThread(
       "on_endpoint_discovered",
-      [this, endpoint_id = std::string(endpoint_id),
+      [this, start_time, endpoint_id = std::string(endpoint_id),
        endpoint_info_copy = std::move(endpoint_info_copy)]() {
-        AddEndpointDiscoveryEvent([this, endpoint_id, endpoint_info_copy]() {
-          HandleEndpointDiscovered(endpoint_id, endpoint_info_copy);
+        AddEndpointDiscoveryEvent([this, start_time, endpoint_id,
+                                   endpoint_info_copy]() {
+          HandleEndpointDiscovered(start_time, endpoint_id, endpoint_info_copy);
         });
       });
 }
@@ -1626,10 +1628,11 @@ void NearbySharingServiceImpl::AddEndpointDiscoveryEvent(
 }
 
 void NearbySharingServiceImpl::HandleEndpointDiscovered(
-    absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info) {
+    absl::Time start_time, absl::string_view endpoint_id,
+    absl::Span<const uint8_t> endpoint_info) {
   VLOG(1) << __func__ << ": endpoint_id=" << endpoint_id
           << ", endpoint_info=" << nearby::utils::HexEncode(endpoint_info)
-          << " time: " << context_->GetClock()->Now();
+          << " time: " << start_time;
   if (!is_scanning_) {
     VLOG(1)
         << __func__
@@ -1673,15 +1676,18 @@ void NearbySharingServiceImpl::HandleEndpointDiscovered(
                                           endpoint_info.end()};
   GetCertificateManager()->GetDecryptedPublicCertificate(
       std::move(encrypted_metadata_key),
-      [this, endpoint_id_copy, endpoint_info_copy,
+      [this, start_time, endpoint_id_copy, endpoint_info_copy,
        advertisement_copy =
            *advertisement](std::optional<NearbyShareDecryptedPublicCertificate>
                                decrypted_public_certificate) {
         RunOnNearbySharingServiceThread(
             "outgoing_decrypted_certificate",
-            [this, endpoint_id_copy, endpoint_info_copy, advertisement_copy,
-             decrypted_public_certificate]() {
-              LOG(INFO) << __func__ << ": Decrypted public certificate";
+            [this, start_time, endpoint_id_copy, endpoint_info_copy,
+             advertisement_copy, decrypted_public_certificate]() {
+              absl::Time now = context_->GetClock()->Now();
+              LOG(INFO) << "Decrypted public certificate, success: "
+                        << decrypted_public_certificate.has_value()
+                        << ", latency: " << now - start_time;
               OnOutgoingDecryptedCertificate(
                   endpoint_id_copy, endpoint_info_copy, advertisement_copy,
                   decrypted_public_certificate);
