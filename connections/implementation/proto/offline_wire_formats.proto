@@ -120,6 +120,7 @@ message ConnectionRequestFrame {
     PresenceDevice presence_device = 13;
   }
   optional ConnectionMode connection_mode = 14;
+  optional LocationHint location_hint = 15;
 }
 
 message ConnectionResponseFrame {
@@ -153,6 +154,7 @@ message ConnectionResponseFrame {
   optional int32 multiplex_socket_bitmask = 5;
   optional int32 nearby_connections_version = 6 [deprecated = true];
   optional int32 safe_to_disconnect_version = 7;
+  optional LocationHint location_hint = 8;
 }
 
 message PayloadTransferFrame {
