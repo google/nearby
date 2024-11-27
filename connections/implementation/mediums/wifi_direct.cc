@@ -52,7 +52,10 @@ bool WifiDirect::IsGCAvailable() const {
   return IsGCAvailableLocked();
 }
 
-bool WifiDirect::IsGCAvailableLocked() const { return medium_.IsValid(); }
+bool WifiDirect::IsGCAvailableLocked() const {
+  if (medium_.IsValid()) return medium_.IsInterfaceValid();
+  return false;
+}
 
 bool WifiDirect::IsGOStarted() {
   MutexLock lock(&mutex_);
