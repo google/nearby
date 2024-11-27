@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
@@ -51,6 +52,13 @@ class PublicCertificateDatabase {
       absl::AnyInvocable<
           void(bool, std::unique_ptr<std::vector<
                          nearby::sharing::proto::PublicCertificate>>) &&>
+          callback) = 0;
+
+  virtual void LoadCertificate(
+      absl::string_view id,
+      absl::AnyInvocable<
+          void(bool,
+               std::unique_ptr<nearby::sharing::proto::PublicCertificate>) &&>
           callback) = 0;
 
   // Asynchronously saves |certificates| to the database.

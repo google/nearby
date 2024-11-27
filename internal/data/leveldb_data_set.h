@@ -47,6 +47,9 @@ class LeveldbDataSet : public DataSet<T> {
   ~LeveldbDataSet() override = default;
 
   void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) override;
+  void LoadEntry(
+      absl::string_view key,
+      absl::AnyInvocable<void(bool, std::unique_ptr<T>) &&> callback) override;
   void LoadEntries(
       absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
           callback) override;
@@ -84,14 +87,14 @@ void LeveldbDataSet<T, isMessageLite>::Initialize(
 
   if (status.ok()) {
     status_ = InitStatus::kOK;
-    NEARBY_LOGS(INFO) << "Database is initialized successfully..";
+    LOG(INFO) << "Database is initialized successfully..";
   } else if (status.IsCorruption() || status.IsIOError()) {
     status_ = InitStatus::kCorrupt;
-    NEARBY_LOGS(INFO) << "Database is corrupt.";
+    LOG(INFO) << "Database is corrupt.";
 
   } else {
     status_ = InitStatus::kError;
-    NEARBY_LOGS(INFO) << "Failed to initialize database due to unknown error.";
+    LOG(INFO) << "Failed to initialize database due to unknown error.";
   }
   std::move(callback)(status_);
 }
@@ -118,14 +121,35 @@ void LeveldbDataSet<T, isMessageLite>::LoadEntries(
   }
 
   if (it->status().ok()) {
-    NEARBY_LOGS(INFO) << "Loaded " << result->size()
-                      << " entries from database.";
+    LOG(INFO) << "Loaded " << result->size() << " entries from database.";
     std::move(callback)(true, std::move(result));
   } else {
-    NEARBY_LOGS(INFO) << "Failed to load entries from database.";
+    LOG(INFO) << "Failed to load entries from database.";
     result->clear();
     std::move(callback)(false, std::move(result));
   }
+}
+
+template <typename T,
+          std::enable_if_t<std::is_base_of<proto2::MessageLite, T>::value, bool>
+              isMessageLite>
+void LeveldbDataSet<T, isMessageLite>::LoadEntry(
+    absl::string_view key,
+    absl::AnyInvocable<void(bool, std::unique_ptr<T>) &&> callback) {
+  auto result = std::make_unique<T>();
+  if (status_ != InitStatus::kOK) {
+    std::move(callback)(false, std::move(result));
+    return;
+  }
+
+  std::string value;
+  if (!db_->Get(leveldb::ReadOptions(), std::string(key), &value).ok()) {
+    LOG(INFO) << "Failed to load entry from database with key: " << key;
+    std::move(callback)(false, std::move(result));
+    return;
+  }
+  Deserialize(value, *result);
+  std::move(callback)(true, std::move(result));
 }
 
 template <typename T,
@@ -151,11 +175,10 @@ void LeveldbDataSet<T, isMessageLite>::LoadEntriesWithKeys(
   }
 
   if (it->status().ok()) {
-    NEARBY_LOGS(INFO) << "Loaded " << result->size()
-                      << " entries from database.";
+    LOG(INFO) << "Loaded " << result->size() << " entries from database.";
     std::move(callback)(true, std::move(result));
   } else {
-    NEARBY_LOGS(INFO) << "Failed to load entries from database.";
+    LOG(INFO) << "Failed to load entries from database.";
     result->clear();
     std::move(callback)(false, std::move(result));
   }
@@ -168,7 +191,7 @@ void LeveldbDataSet<T, isMessageLite>::UpdateEntries(
     std::unique_ptr<KeyEntryVector> entries_to_save,
     std::unique_ptr<std::vector<std::string>> keys_to_remove,
     absl::AnyInvocable<void(bool) &&> callback) {
-  NEARBY_LOGS(INFO) << "UpdateEntries is called.";
+  LOG(INFO) << "UpdateEntries is called.";
   if (status_ != InitStatus::kOK) {
     std::move(callback)(false);
     return;
@@ -196,7 +219,7 @@ template <typename T,
               isMessageLite>
 void LeveldbDataSet<T, isMessageLite>::Destroy(
     absl::AnyInvocable<void(bool) &&> callback) {
-  NEARBY_LOGS(INFO) << "Destroy is called.";
+  LOG(INFO) << "Destroy is called.";
   db_.reset();
   leveldb::DestroyDB(path_, leveldb::Options());
   std::move(callback)(true);

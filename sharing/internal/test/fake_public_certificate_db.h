@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/public_certificate_database.h"
 
@@ -42,6 +43,12 @@ class FakePublicCertificateDb
           void(bool, std::unique_ptr<std::vector<
                          nearby::sharing::proto::PublicCertificate>>) &&>
           callback) override;
+  void LoadCertificate(
+      absl::string_view id,
+      absl::AnyInvocable<
+          void(bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)
+              &&>
+          callback) override;
   void AddCertificates(
       absl::Span<const nearby::sharing::proto::PublicCertificate> certificates,
       absl::AnyInvocable<void(bool) &&> callback) override;
@@ -59,6 +66,7 @@ class FakePublicCertificateDb
   void InvokeInitStatusCallback(
       nearby::sharing::api::PublicCertificateDatabase::InitStatus init_status);
   void InvokeLoadCallback(bool success);
+  void InvokeLoadCertificateCallback(bool success);
   void InvokeAddCallback(bool success);
   void InvokeRemoveCallback(bool success);
   void InvokeDestroyCallback(bool success);
@@ -73,6 +81,10 @@ class FakePublicCertificateDb
           void(bool, std::unique_ptr<std::vector<
                          nearby::sharing::proto::PublicCertificate>>) &&>
           load_callback_;
+  std::string load_certificate_id_;
+  absl::AnyInvocable<
+      void(bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>) &&>
+      load_certificate_callback_;
   absl::AnyInvocable<void(bool) &&> add_callback_;
   absl::AnyInvocable<void(bool) &&> remove_callback_;
   absl::AnyInvocable<void(bool) &&> destroy_callback_;

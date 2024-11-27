@@ -57,7 +57,6 @@ cc_test(
     srcs = [
         "leveldb_data_set_test.cc",
     ],
-    shard_count = 8,
     deps = [
         ":data_manager",
         ":leveldb_data_set_test_cc_proto",

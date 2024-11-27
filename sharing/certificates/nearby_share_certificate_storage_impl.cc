@@ -44,8 +44,7 @@
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::PrivateCertificateData;
@@ -158,10 +157,10 @@ void NearbyShareCertificateStorageImpl::Initialize() {
         break;
       }
 
-      NL_VLOG(1) << __func__
-                 << ": Attempting to initialize public certificate "
-                    "database. Number of attempts: "
-                 << num_initialize_attempts_;
+      VLOG(1) << __func__
+              << ": Attempting to initialize public certificate "
+                 "database. Number of attempts: "
+              << num_initialize_attempts_;
       public_certificate_database_->Initialize(
           [weak_this =
                weak_from_this()](PublicCertificateDatabase::InitStatus status) {
@@ -171,23 +170,23 @@ void NearbyShareCertificateStorageImpl::Initialize() {
           });
       break;
     case InitStatus::kInitialized:
-      NL_LOG(INFO) << __func__ << " already initialized.";
+      LOG(INFO) << __func__ << " already initialized.";
       break;
   }
 }
 
 void NearbyShareCertificateStorageImpl::DestroyAndReinitialize() {
-  NL_LOG(ERROR) << __func__
-                << ": Public certificate database corrupt. Erasing and "
-                   "initializing new database.";
+  LOG(ERROR) << __func__
+             << ": Public certificate database corrupt. Erasing and "
+                "initializing new database.";
   init_status_ = InitStatus::kUninitialized;
   public_certificate_database_->Destroy(
       [weak_this = weak_from_this()](bool success) {
         if (auto storage = weak_this.lock()) {
           storage->OnDatabaseDestroyedReinitialize(
               [&](bool result) {
-                NL_LOG(INFO)
-                    << "Destroy and reinitialize database. result: " << result;
+                LOG(INFO) << "Destroy and reinitialize database. result: "
+                          << result;
               },
               success);
         }
@@ -197,8 +196,8 @@ void NearbyShareCertificateStorageImpl::DestroyAndReinitialize() {
 void NearbyShareCertificateStorageImpl::OnDatabaseInitialized(
     absl::Time initialize_start_time,
     PublicCertificateDatabase::InitStatus status) {
-  NL_LOG(INFO) << "Database is initialized for certificates. status="
-               << static_cast<int>(status);
+  LOG(INFO) << "Database is initialized for certificates. status="
+            << static_cast<int>(status);
   switch (status) {
     case PublicCertificateDatabase::InitStatus::kOk:
       FinishInitialization(true);
@@ -218,11 +217,11 @@ void NearbyShareCertificateStorageImpl::FinishInitialization(bool success) {
     // Need to reset the initialize attempts.
     num_initialize_attempts_ = 0;
 
-    NL_VLOG(1) << __func__
-               << "Public certificate database initialization succeeded.";
+    VLOG(1) << __func__
+            << "Public certificate database initialization succeeded.";
   } else {
-    NL_LOG(ERROR) << __func__
-                  << "Public certificate database initialization failed.";
+    LOG(ERROR) << __func__
+               << "Public certificate database initialization failed.";
   }
 
   // We run deferred callbacks even if initialization failed not to cause
@@ -237,8 +236,8 @@ void NearbyShareCertificateStorageImpl::FinishInitialization(bool success) {
 void NearbyShareCertificateStorageImpl::OnDatabaseDestroyedReinitialize(
     ResultCallback callback, bool success) {
   if (!success) {
-    NL_LOG(ERROR) << __func__
-                  << ": Failed to destroy public certificate database.";
+    LOG(ERROR) << __func__
+               << ": Failed to destroy public certificate database.";
     FinishInitialization(false);
     callback(false);
     return;
@@ -254,8 +253,8 @@ void NearbyShareCertificateStorageImpl::OnDatabaseDestroyedReinitialize(
 void NearbyShareCertificateStorageImpl::OnDatabaseDestroyed(
     ResultCallback callback, bool success) {
   if (!success) {
-    NL_LOG(ERROR) << __func__
-                  << ": Failed to destroy public certificate database.";
+    LOG(ERROR) << __func__
+               << ": Failed to destroy public certificate database.";
     std::move(callback)(false);
     return;
   }
@@ -270,11 +269,11 @@ void NearbyShareCertificateStorageImpl::AddPublicCertificatesCallback(
     std::unique_ptr<ExpirationList> new_expirations, ResultCallback callback,
     bool proceed) {
   if (!proceed) {
-    NL_LOG(ERROR) << __func__ << ": Failed to add public certificates.";
+    LOG(ERROR) << __func__ << ": Failed to add public certificates.";
     std::move(callback)(false);
     return;
   }
-  NL_VLOG(1) << __func__ << ": Successfully added public certificates.";
+  VLOG(1) << __func__ << ": Successfully added public certificates.";
 
   public_certificate_expirations_ =
       MergeExpirations(public_certificate_expirations_, *new_expirations);
@@ -286,13 +285,11 @@ void NearbyShareCertificateStorageImpl::RemoveExpiredPublicCertificatesCallback(
     const absl::flat_hash_set<std::string>& ids_to_remove,
     ResultCallback callback, bool proceed) {
   if (!proceed) {
-    NL_LOG(ERROR) << __func__
-                  << ": Failed to remove expired public certificates.";
+    LOG(ERROR) << __func__ << ": Failed to remove expired public certificates.";
     std::move(callback)(false);
     return;
   }
-  NL_VLOG(1) << __func__
-             << ": Expired public certificates successfully removed.";
+  VLOG(1) << __func__ << ": Expired public certificates successfully removed.";
 
   auto should_remove =
       [&](const std::pair<std::string, absl::Time>& pair) -> bool {
@@ -330,8 +327,29 @@ void NearbyShareCertificateStorageImpl::GetPublicCertificates(
     return;
   }
 
-  NL_VLOG(1) << __func__ << ": Calling LoadEntries on database.";
+  VLOG(1) << __func__ << ": Calling LoadEntries on database.";
   public_certificate_database_->LoadEntries(std::move(callback));
+}
+
+void NearbyShareCertificateStorageImpl::GetPublicCertificate(
+    absl::string_view id,
+    std::function<
+        void(bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
+        callback) {
+  if (init_status_ == InitStatus::kFailed) {
+    std::move(callback)(false, nullptr);
+    return;
+  }
+
+  if (init_status_ == InitStatus::kUninitialized) {
+    deferred_callbacks_.push(
+        [this, id = std::string(id), callback = std::move(callback)]() mutable {
+          GetPublicCertificate(id, std::move(callback));
+        });
+    return;
+  }
+  VLOG(1) << __func__ << ": Calling LoadCertificate on database, key: " << id;
+  public_certificate_database_->LoadCertificate(id, std::move(callback));
 }
 
 std::optional<std::vector<NearbySharePrivateCertificate>>
@@ -395,9 +413,9 @@ void NearbyShareCertificateStorageImpl::AddPublicCertificates(
   }
   std::sort(new_expirations.begin(), new_expirations.end(), SortBySecond);
 
-  NL_VLOG(1) << __func__
-             << ": Calling UpdateEntries on public certificate database with "
-             << public_certificates.size() << " certificates.";
+  VLOG(1) << __func__
+          << ": Calling UpdateEntries on public certificate database with "
+          << public_certificates.size() << " certificates.";
   public_certificate_database_->AddCertificates(
       public_certificates, [weak_this = weak_from_this(), new_expirations,
                             callback = std::move(callback)](bool success) {
@@ -443,10 +461,9 @@ void NearbyShareCertificateStorageImpl::RemoveExpiredPublicCertificates(
     return;
   }
 
-  NL_VLOG(1)
-      << __func__
-      << ": Calling UpdateEntries on public certificate database to remove "
-      << ids_to_remove.size() << " expired certificates.";
+  VLOG(1) << __func__
+          << ": Calling UpdateEntries on public certificate database to remove "
+          << ids_to_remove.size() << " expired certificates.";
   absl::flat_hash_set<std::string> remove_set(ids_to_remove.begin(),
                                               ids_to_remove.end());
   public_certificate_database_->RemoveCertificatesById(
@@ -467,7 +484,7 @@ void NearbyShareCertificateStorageImpl::ClearPublicCertificates(
     return;
   }
 
-  NL_VLOG(1) << __func__ << ": Calling Destroy on public certificate database.";
+  VLOG(1) << __func__ << ": Calling Destroy on public certificate database.";
   init_status_ = InitStatus::kUninitialized;
   public_certificate_database_->Destroy(
       [weak_this = weak_from_this(),
@@ -515,5 +532,4 @@ void NearbyShareCertificateStorageImpl::SavePublicCertificateExpirations() {
       prefs::kNearbySharingPublicCertificateExpirationDictName, expirations);
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

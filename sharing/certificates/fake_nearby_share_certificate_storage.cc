@@ -14,6 +14,7 @@
 
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -29,8 +30,7 @@
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 using ::nearby::sharing::proto::PublicCertificate;
 
@@ -101,6 +101,14 @@ void FakeNearbyShareCertificateStorage::GetPublicCertificates(
   get_public_certificates_callbacks_.push_back(std::move(callback));
 }
 
+void FakeNearbyShareCertificateStorage::GetPublicCertificate(
+    absl::string_view id,
+    std::function<
+        void(bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
+        callback) {
+  get_public_certificate_callback_ = std::move(callback);
+}
+
 std::optional<std::vector<NearbySharePrivateCertificate>>
 FakeNearbyShareCertificateStorage::GetPrivateCertificates() const {
   return private_certificates_;
@@ -152,5 +160,4 @@ void FakeNearbyShareCertificateStorage::SetNextPublicCertificateExpirationTime(
   next_public_certificate_expiration_time_ = time;
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

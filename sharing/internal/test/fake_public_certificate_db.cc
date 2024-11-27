@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/proto/rpc_resources.pb.h"
@@ -44,6 +45,14 @@ void FakePublicCertificateDb::LoadEntries(
                             std::unique_ptr<std::vector<PublicCertificate>>) &&>
         callback) {
   load_callback_ = std::move(callback);
+}
+
+void FakePublicCertificateDb::LoadCertificate(
+    absl::string_view id,
+    absl::AnyInvocable<void(bool, std::unique_ptr<PublicCertificate>) &&>
+        callback) {
+  load_certificate_id_ = id;
+  load_certificate_callback_ = std::move(callback);
 }
 
 void FakePublicCertificateDb::AddCertificates(
@@ -88,6 +97,16 @@ void FakePublicCertificateDb::InvokeLoadCallback(bool success) {
     ++it;
   }
   std::move(load_callback_)(success, std::move(result));
+}
+
+void FakePublicCertificateDb::InvokeLoadCertificateCallback(bool success) {
+  const auto& it = entries_.find(load_certificate_id_);
+  if (it == entries_.end()) {
+    std::move(load_certificate_callback_)(success, nullptr);
+    return;
+  }
+  std::move(load_certificate_callback_)(
+      success, std::make_unique<PublicCertificate>(it->second));
 }
 
 void FakePublicCertificateDb::InvokeAddCallback(bool success) {

@@ -34,8 +34,7 @@
 #include "internal/data/data_set.h"
 #include "internal/data/leveldb_data_set_test.proto.h"
 
-namespace nearby {
-namespace data {
+namespace nearby::data {
 namespace {
 
 using ::testing::SizeIs;
@@ -210,6 +209,36 @@ TEST(LeveldbDataSet, LoadEntriesDiceRoll) {
   EXPECT_EQ((*result)[1].nickname(), "boxcars");
 }
 
+TEST(LeveldbDataSet, LoadEntrysDiceRoll) {
+  std::filesystem::path path = GenerateLeveldbPath();
+  std::unique_ptr<LeveldbDataSet<DiceRoll>> diceroll_set =
+      CreateDataSet<DiceRoll>(path);
+
+  InitializeAndWait(diceroll_set);
+
+  DiceRoll diceroll1 = GenerateDiceRoll(2);
+  DiceRoll diceroll2 = GenerateDiceRoll(12);
+
+  auto entries = LeveldbDataSet<DiceRoll>::KeyEntryVector(
+      {{"id1", diceroll1}, {"id2", diceroll2}});
+  auto data =
+      std::make_unique<LeveldbDataSet<DiceRoll>::KeyEntryVector>(entries);
+  UpdateEntriesAndWait(diceroll_set, std::move(data), nullptr);
+
+  absl::Notification notification;
+  std::unique_ptr<DiceRoll> result;
+  diceroll_set->LoadEntry(
+      "id2", [&result, &notification](bool, std::unique_ptr<DiceRoll> res) {
+        result = std::move(res);
+        notification.Notify();
+      });
+  notification.WaitForNotificationWithTimeout(absl::Seconds(5));
+  WipeCleanAndWait(diceroll_set, path);
+
+  EXPECT_THAT(*result,
+              protobuf_matchers::EqualsProto<DiceRoll>("value: 12, nickname:'boxcars'"));
+}
+
 TEST(LeveldbDataSet, RemoveEntriesDiceRoll) {
   std::filesystem::path path = GenerateLeveldbPath();
   std::unique_ptr<LeveldbDataSet<DiceRoll>> diceroll_set =
@@ -255,5 +284,4 @@ TEST(LeveldbDataSet, RemoveEntriesDiceRoll) {
 }
 
 }  // namespace
-}  // namespace data
-}  // namespace nearby
+}  // namespace nearby::data

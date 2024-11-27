@@ -46,8 +46,7 @@
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 using ::nearby::sharing::api::MockPublicCertificateDb;
 using ::nearby::sharing::proto::DeviceVisibility;
@@ -428,6 +427,32 @@ TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificates) {
   EXPECT_THAT(cert_store.use_count(), Eq(1));
 }
 
+TEST_F(NearbyShareCertificateStorageImplTest, GetPublicCertificate) {
+  auto db = std::make_unique<nearby::FakePublicCertificateDb>(
+      PrepopulatePublicCertificates());
+  nearby::FakePublicCertificateDb* fake_db = db.get();
+
+  auto cert_store = NearbyShareCertificateStorageImpl::Factory::Create(
+      preference_manager_, std::move(db));
+  fake_db->InvokeInitStatusCallback(FakePublicCertificateDb::InitStatus::kOk);
+
+  std::unique_ptr<PublicCertificate> public_certificate;
+  cert_store->GetPublicCertificate(
+      kSecretId3, [&public_certificate](
+                      bool success, std::unique_ptr<PublicCertificate> result) {
+        public_certificate = std::move(result);
+      });
+  fake_db->InvokeLoadCertificateCallback(true);
+
+  std::string expected_serialized, actual_serialized;
+  ASSERT_TRUE(public_certificate->SerializeToString(&actual_serialized));
+  ASSERT_TRUE(fake_db->GetCertificatesMap()
+                  .find(kSecretId3)
+                  ->second.SerializeToString(&expected_serialized));
+  ASSERT_EQ(expected_serialized, actual_serialized);
+  EXPECT_THAT(cert_store.use_count(), Eq(1));
+}
+
 TEST_F(NearbyShareCertificateStorageImplTest, AddPublicCertificates) {
   auto db = std::make_unique<nearby::FakePublicCertificateDb>(
       PrepopulatePublicCertificates());
@@ -784,5 +809,4 @@ TEST_F(NearbyShareCertificateStorageImplTest,
   EXPECT_THAT(cert_store.use_count(), Eq(1));
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

@@ -21,6 +21,7 @@
 
 #include "gmock/gmock.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/internal/api/public_certificate_database.h"
 
@@ -39,6 +40,13 @@ class MockPublicCertificateDb : public PublicCertificateDatabase {
       (absl::AnyInvocable<
           void(bool, std::unique_ptr<std::vector<
                          nearby::sharing::proto::PublicCertificate>>) &&>
+           callback),
+      (override));
+  MOCK_METHOD(
+    void, LoadCertificate,
+      (absl::string_view id,
+       absl::AnyInvocable<void(
+           bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>) &&>
            callback),
       (override));
   MOCK_METHOD(

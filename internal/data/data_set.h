@@ -21,9 +21,9 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 
-namespace nearby {
-namespace data {
+namespace nearby::data {
 
 enum class InitStatus {
   kOK = 0,
@@ -42,19 +42,25 @@ class DataSet {
   virtual ~DataSet() = default;
 
   // Asynchronously initializes the object, which must have been created by the
-  // DataManager::GetDataSet<T> function. |callback| will be invoked on the
+  // DataManager::GetDataSet<T> function. `callback` will be invoked on the
   // calling thread when complete.
   virtual void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) = 0;
 
-  // Asynchronously loads all entries from the database and invokes |callback|
+  // Asynchronously loads all entries from the database and invokes `callback`
   // when complete.
   virtual void LoadEntries(
       absl::AnyInvocable<void(bool, std::unique_ptr<std::vector<T>>) &&>
           callback) = 0;
 
-  // Asynchronously saves |entries_to_save| and deletes entries from
-  // |keys_to_remove| from the database. |callback| will be invoked on the
-  // calling thread when complete. |entries_to_save| and |keys_to_remove| must
+  // Asynchronously loads an entry from the database with key `key` and invokes
+  // `callback` when complete.
+  virtual void LoadEntry(
+      absl::string_view key,
+      absl::AnyInvocable<void(bool, std::unique_ptr<T>) &&> callback) = 0;
+
+  // Asynchronously saves `entries_to_save` and deletes entries from
+  // `keys_to_remove` from the database. `callback` will be invoked on the
+  // calling thread when complete. `entries_to_save` and `keys_to_remove` must
   // be non-null.
   virtual void UpdateEntries(
       std::unique_ptr<KeyEntryVector> entries_to_save,
@@ -66,7 +72,6 @@ class DataSet {
   virtual void Destroy(absl::AnyInvocable<void(bool) &&> callback) = 0;
 };
 
-}  // namespace data
-}  // namespace nearby
+}  // namespace nearby::data
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_DATA_DATA_SET_H_

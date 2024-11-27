@@ -21,15 +21,14 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // Stores local-device private certificates and remote-device public
 // certificates. Provides methods to help manage certificate expiration. Due to
@@ -50,6 +49,13 @@ class NearbyShareCertificateStorage {
 
   // Returns all public certificates currently in storage. No RPC call is made.
   virtual void GetPublicCertificates(PublicCertificateCallback callback) = 0;
+
+  // Returns a single public certificate with the given id.
+  virtual void GetPublicCertificate(
+      absl::string_view id,
+      std::function<void(
+          bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
+          callback) = 0;
 
   // Returns all private certificates currently in storage. Will return
   // absl::nullopt if deserialization from prefs fails -- not expected to happen
@@ -102,7 +108,6 @@ class NearbyShareCertificateStorage {
   virtual void ClearPublicCertificates(ResultCallback callback) = 0;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_CERTIFICATES_NEARBY_SHARE_CERTIFICATE_STORAGE_H_
