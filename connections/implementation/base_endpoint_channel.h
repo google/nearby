@@ -15,11 +15,12 @@
 #ifndef CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
 
-#include <cstdint>
 #include <memory>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -92,11 +93,11 @@ class BaseEndpointChannel : public EndpointChannel {
   std::unique_ptr<std::string> EncodeMessageForTests(absl::string_view data);
 
  private:
-  // Used to sanity check that our frame sizes are reasonable.
-  static constexpr std::int32_t kMaxAllowedReadBytes = 1048576;  // 1MB
+  // Gets the maximum number of bytes that can be read from the channel.
+  int GetMaxAllowedReadBytes() const;
 
-  // The default maximum transmit unit/packet size.
-  static constexpr int kDefaultMaxTransmitPacketSize = 65536;  // 64 KB
+  // Gets the default maximum transmit unit/packet size.
+  int GetDefaultMaxTransmitPacketSize() const;
 
   bool IsEncryptionEnabledLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(crypto_mutex_);
@@ -118,6 +119,9 @@ class BaseEndpointChannel : public EndpointChannel {
 
   const std::string service_id_;
   const std::string channel_name_;
+
+  const int max_allowed_read_bytes_;
+  const int default_max_transmit_packet_size_;
 
   // The reader and writer are synchronized independently since we can't have
   // writes waiting on reads that might potentially block forever.

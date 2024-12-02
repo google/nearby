@@ -15,18 +15,29 @@
 #include "connections/implementation/base_endpoint_channel.h"
 
 #include <cassert>
+#include <climits>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace connections {
@@ -98,6 +109,8 @@ BaseEndpointChannel::BaseEndpointChannel(
     int try_count)
     : service_id_(service_id),
       channel_name_(channel_name),
+      max_allowed_read_bytes_(GetMaxAllowedReadBytes()),
+      default_max_transmit_packet_size_(GetDefaultMaxTransmitPacketSize()),
       reader_(reader),
       writer_(writer),
       technology_(technology),
@@ -122,7 +135,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
       return ExceptionOr<ByteArray>(read_int.exception());
     }
 
-    if (read_int.result() < 0 || read_int.result() > kMaxAllowedReadBytes) {
+    if (read_int.result() < 0 || read_int.result() > max_allowed_read_bytes_) {
       NEARBY_LOGS(WARNING) << __func__ << ": Read an invalid number of bytes: "
                            << read_int.result();
       return ExceptionOr<ByteArray>(Exception::kIo);
@@ -230,7 +243,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
     }
 
     size_t data_size = data_to_write->size();
-    if (data_size < 0 || data_size > kMaxAllowedReadBytes) {
+    if (data_size < 0 || data_size > max_allowed_read_bytes_) {
       NEARBY_LOGS(WARNING) << __func__ << ": Write an invalid number of bytes: "
                            << data_size;
       return {Exception::kIo};
@@ -357,7 +370,7 @@ std::string BaseEndpointChannel::GetName() const { return channel_name_; }
 
 int BaseEndpointChannel::GetMaxTransmitPacketSize() const {
   // Return default value if the medium never define it's chunk size.
-  return kDefaultMaxTransmitPacketSize;
+  return default_max_transmit_packet_size_;
 }
 
 void BaseEndpointChannel::EnableEncryption(
@@ -431,6 +444,23 @@ int BaseEndpointChannel::GetFrequency() const { return frequency_; }
 
 // Returns the try count of this EndpointChannel.
 int BaseEndpointChannel::GetTryCount() const { return try_count_; }
+
+int BaseEndpointChannel::GetMaxAllowedReadBytes() const {
+  int64_t max_allowed_read_bytes = NearbyFlags::GetInstance().GetInt64Flag(
+      config_package_nearby::nearby_connections_feature::
+          kMediumMaxAllowedReadBytes);
+  return max_allowed_read_bytes >= INT_MAX ? INT_MAX : max_allowed_read_bytes;
+}
+
+int BaseEndpointChannel::GetDefaultMaxTransmitPacketSize() const {
+  int32_t default_max_transmit_packet_size =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_connections_feature::
+              kMediumDefaultMaxTransmitPacketSize);
+  return default_max_transmit_packet_size >= INT_MAX
+             ? INT_MAX
+             : default_max_transmit_packet_size;
+}
 
 bool BaseEndpointChannel::IsEncryptionEnabledLocked() const {
   return crypto_context_ != nullptr;
