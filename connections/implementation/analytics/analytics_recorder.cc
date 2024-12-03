@@ -103,8 +103,10 @@ using ::nearby::analytics::EventLogger;
 using SafeDisconnectionResult = ::location::nearby::analytics::proto::
     ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
 
-AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
-    : event_logger_(event_logger) {
+AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger,
+                                     absl::string_view nearby_share_version_id)
+    : event_logger_(event_logger),
+      nearby_share_version_id_(nearby_share_version_id) {
   NEARBY_LOGS(INFO) << "Start AnalyticsRecorder ctor event_logger_="
                     << event_logger_;
   LogStartSession();
@@ -710,6 +712,10 @@ void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
         ConnectionsLog connections_log;
         connections_log.set_event_type(ERROR_CODE);
         connections_log.set_version(kVersion);
+        if (!nearby_share_version_id_.empty()) {
+          connections_log.set_nearby_sharing_sdk_version(
+              nearby_share_version_id_);
+        }
         connections_log.set_allocated_error_code(error_code);
 
         NEARBY_VLOG(1) << "AnalyticsRecorder LogErrorCode connections_log="
@@ -798,6 +804,10 @@ void AnalyticsRecorder::LogClientSessionLocked() {
         connections_log.set_event_type(CLIENT_SESSION);
         connections_log.set_allocated_client_session(client_session.release());
         connections_log.set_version(kVersion);
+        if (!nearby_share_version_id_.empty()) {
+          connections_log.set_nearby_sharing_sdk_version(
+              nearby_share_version_id_);
+        }
 
         NEARBY_VLOG(1) << "AnalyticsRecorder LogClientSession connections_log="
                        << connections_log.DebugString();  // NOLINT
@@ -812,6 +822,9 @@ void AnalyticsRecorder::LogEvent(EventType event_type) {
     ConnectionsLog connections_log;
     connections_log.set_event_type(event_type);
     connections_log.set_version(kVersion);
+    if (!nearby_share_version_id_.empty()) {
+      connections_log.set_nearby_sharing_sdk_version(nearby_share_version_id_);
+    }
 
     NEARBY_VLOG(1) << "AnalyticsRecorder LogEvent connections_log="
                    << connections_log.DebugString();  // NOLINT

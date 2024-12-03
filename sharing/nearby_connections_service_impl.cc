@@ -49,9 +49,10 @@ Core* GetService(NearbyConnectionsService::HANDLE handle) {
 }  // namespace
 
 NearbyConnectionsServiceImpl::NearbyConnectionsServiceImpl(
-    nearby::analytics::EventLogger* event_logger) {
+    nearby::analytics::EventLogger* event_logger,
+    absl::string_view nearby_share_version_id) {
   static ServiceControllerRouter* router = new ServiceControllerRouter();
-  static Core* core = new Core(event_logger, router);
+  static Core* core = new Core(event_logger, nearby_share_version_id, router);
   service_handle_ = core;
 }
 

@@ -65,8 +65,8 @@ class ClientProxy final {
   static constexpr absl::Duration
       kHighPowerAdvertisementEndpointIdCacheTimeout = absl::Seconds(30);
 
-  explicit ClientProxy(
-      ::nearby::analytics::EventLogger* event_logger = nullptr);
+  explicit ClientProxy(::nearby::analytics::EventLogger* event_logger = nullptr,
+                       absl::string_view nearby_share_version_id = {});
   ~ClientProxy();
   ClientProxy(ClientProxy&&) = default;
   ClientProxy& operator=(ClientProxy&&) = default;

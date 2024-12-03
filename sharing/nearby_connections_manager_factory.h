@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/task_runner.h"
@@ -34,7 +35,8 @@ class NearbyConnectionsManagerFactory {
   static std::unique_ptr<NearbyConnectionsManager> CreateConnectionsManager(
       nearby::TaskRunner* connections_callback_task_runner, Context* context,
       nearby::DeviceInfo& device_info,
-      nearby::analytics::EventLogger* event_logger = nullptr);
+      nearby::analytics::EventLogger* event_logger = nullptr,
+      absl::string_view nearby_share_version_id = {});
 
  private:
   NearbyConnectionsManagerFactory() = default;
