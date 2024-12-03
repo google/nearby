@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_H_
 #define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_H_
 
+#include <stdbool.h>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -57,6 +58,8 @@ struct ShareTarget {
   bool for_self_share = false;
   // Vendor ID of the target. This can change over the lifetime of the target.
   uint8_t vendor_id = 0;
+  // True if the share target is not ready for receiving.
+  bool receive_disabled = false;
 };
 
 }  // namespace sharing
