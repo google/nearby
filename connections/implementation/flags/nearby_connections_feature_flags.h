@@ -62,6 +62,13 @@ constexpr auto kEnableSafeToDisconnect =
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);
+// Default max transmit packet size for medium.
+constexpr auto kMediumDefaultMaxTransmitPacketSize =
+    flags::Flag<int64_t>(kConfigPackage, "45669529", 65536);
+// Default max allowed read bytes for medium.
+constexpr auto kMediumMaxAllowedReadBytes =
+    flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// Enable/Disable payload-received-ack feature.
 // Set the safe-to-disconnect version.
 // Enable 1. safe-to-disconnect check 2. reserved 3. auto-reconnect 4.
 // auto-resume 5. non-distance-constraint-recovery 6. payload_ack
