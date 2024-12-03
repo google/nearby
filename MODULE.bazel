@@ -4,7 +4,7 @@ bazel_dep(name = "rules_rust", version = "0.42.1")
 bazel_dep(name = "bazel_skylib", version = "1.5.0")
 
 bazel_dep(name = "abseil-cpp", version = "20240116.1", repo_name = "com_google_absl")
-bazel_dep(name = "protobuf", version = "21.7", repo_name = "com_google_protobuf")
+bazel_dep(name = "protobuf", version = "28.3", repo_name = "com_google_protobuf")
 bazel_dep(name = "googletest", version = "1.14.0", repo_name = "com_google_googletest")
 bazel_dep(name = "boringssl", version = "0.0.0-20240126-22d349c")
 

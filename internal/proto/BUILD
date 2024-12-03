@@ -13,8 +13,9 @@
 # limitations under the License.
 
 # NOTE: gRPC libraries not needed.
-load("@rules_cc//cc:defs.bzl", "cc_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+load("@com_google_protobuf//bazel:java_lite_proto_library.bzl", "java_lite_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 
 proto_library(
     name = "credential_proto",
