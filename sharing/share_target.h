@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_H_
 #define THIRD_PARTY_NEARBY_SHARING_SHARE_TARGET_H_
 
-#include <stdbool.h>
 #include <cstdint>
 #include <optional>
 #include <string>
