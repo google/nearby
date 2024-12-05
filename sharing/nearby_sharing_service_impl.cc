@@ -471,7 +471,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
 
         // Send items in discovery_cache as disabled.
         for (const auto& item : discovery_cache_) {
-          LOG(INFO) << "Reporting disabled cached target "
+          LOG(INFO) << "Reporting receive_disabled discovery cache target "
                     << item.second.share_target.ToString()
                     << " when registering send surface";
           wrapped_callback.OnShareTargetDiscovered(item.second.share_target);
@@ -3374,6 +3374,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
   }
   DiscoveryCacheEntry cache_entry;
   cache_entry.share_target = std::move(share_target_opt.value());
+  // Entries in Discovery Cache are all receive disabled.
   cache_entry.share_target.receive_disabled = true;
   cache_entry.expiry_timer = std::make_unique<ThreadTimer>(
       *service_thread_, absl::StrCat("discovery_cache_timeout_", expiry_ms),
