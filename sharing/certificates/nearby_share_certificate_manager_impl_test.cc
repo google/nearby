@@ -836,6 +836,27 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,
+       RefreshPrivateCertificates_PublishDevice_ForceUploadSuccess) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kCallNearbyIdentityApi,
+      true);
+  // All private certificates are valid.
+  cert_store_->ReplacePrivateCertificates(private_certificates_);
+  cert_manager_->PrivateCertificateRefresh(/*force_upload=*/true);
+  Sync();
+
+  local_device_data_manager_->SetPublishDeviceResult(true);
+  upload_scheduler_->InvokeRequestCallback();
+  Sync();
+
+  ASSERT_EQ(local_device_data_manager_->publish_device_calls().size(), 1);
+  EXPECT_EQ(local_device_data_manager_->publish_device_calls()
+                .back()
+                .certificates.size(),
+            3 * kNearbyShareNumPrivateCertificates);
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_NoCertificates_UploadFailure) {
   cert_store_->ReplacePrivateCertificates({});
 

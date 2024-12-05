@@ -154,6 +154,7 @@ class NearbyShareCertificateManagerImpl
       NearbyShareEncryptedMetadataKey encrypted_metadata_key,
       CertDecryptedCallback callback) override;
   void DownloadPublicCertificates() override;
+  void PrivateCertificateRefresh(bool force_upload) override;
   void ClearPublicCertificates(std::function<void(bool)> callback) override;
   void OnStart() override;
   void OnStop() override;
@@ -191,7 +192,6 @@ class NearbyShareCertificateManagerImpl
   // yet. New certificate(s) will be created, and an upload to the Nearby Share
   // server will be requested.
   void OnPrivateCertificateExpiration();
-  void FinishPrivateCertificateRefresh();
 
   // Invoked by the public certificate expiration scheduler when an expired
   // public certificate needs to be removed from storage.

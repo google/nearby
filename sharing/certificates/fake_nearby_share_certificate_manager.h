@@ -98,6 +98,7 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
       NearbyShareEncryptedMetadataKey encrypted_metadata_key,
       CertDecryptedCallback callback) override;
   void DownloadPublicCertificates() override;
+  void PrivateCertificateRefresh(bool force_upload) override {};
   void ClearPublicCertificates(std::function<void(bool)> callback) override;
   void SetVendorId(int32_t vendor_id) override {}
   std::string Dump() const override { return ""; }

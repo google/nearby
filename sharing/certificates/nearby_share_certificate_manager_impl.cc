@@ -710,11 +710,12 @@ void NearbyShareCertificateManagerImpl::OnPrivateCertificateExpiration() {
   VLOG(1)
       << "Private certificate expiration detected; refreshing certificates.";
 
-  FinishPrivateCertificateRefresh();
+  PrivateCertificateRefresh(/*force_upload=*/false);
 }
 
-void NearbyShareCertificateManagerImpl::FinishPrivateCertificateRefresh() {
-  executor_->PostTask([&]() {
+void NearbyShareCertificateManagerImpl::PrivateCertificateRefresh(
+    bool force_upload) {
+  executor_->PostTask([this, force_upload]() {
     LOG(INFO) << "Refreshed private certificates.";
     absl::Time now = context_->GetClock()->Now();
     certificate_storage_->RemoveExpiredPrivateCertificates(now);
@@ -722,8 +723,16 @@ void NearbyShareCertificateManagerImpl::FinishPrivateCertificateRefresh() {
     std::vector<NearbySharePrivateCertificate> certs =
         *certificate_storage_->GetPrivateCertificates();
     if (certs.size() == NumExpectedPrivateCertificates()) {
-      VLOG(1) << "All private certificates are still valid.";
-      private_certificate_expiration_scheduler_->HandleResult(/*success=*/true);
+      LOG(INFO) << "All private certificates are still valid. ";
+      if (force_upload) {
+        LOG(INFO) << "Force upload private certificates.";
+        upload_local_device_certificates_scheduler_->MakeImmediateRequest();
+        // Force upload is not called by the scheduler, no need to handle
+        // result.
+      } else {
+        private_certificate_expiration_scheduler_->HandleResult(
+            /*success=*/true);
+      }
       return;
     }
 
