@@ -18,6 +18,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -40,7 +41,8 @@ NearbySharingServiceFactory* NearbySharingServiceFactory::GetInstance() {
 NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
     SharingPlatform& sharing_platform,
     analytics::AnalyticsRecorder* analytics_recorder,
-    ::nearby::analytics::EventLogger* event_logger) {
+    ::nearby::analytics::EventLogger* event_logger,
+    absl::string_view nearby_share_version_id) {
   if (nearby_sharing_service_ != nullptr) {
     return nullptr;
   }
@@ -52,7 +54,8 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
   auto nearby_connections_manager =
       NearbyConnectionsManagerFactory::CreateConnectionsManager(
           service_thread.get(), context_.get(),
-          sharing_platform.GetDeviceInfo(), event_logger);
+          sharing_platform.GetDeviceInfo(),
+          event_logger, nearby_share_version_id);
 
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
       std::move(service_thread), context_.get(), sharing_platform,

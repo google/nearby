@@ -86,11 +86,12 @@ bool IsFeatureUseStableEndpointIdEnabled() {
 constexpr absl::Duration
     ClientProxy::kHighPowerAdvertisementEndpointIdCacheTimeout;
 
-ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
+ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger,
+                         absl::string_view nearby_share_version_id)
     : client_id_(Prng().NextInt64()) {
   NEARBY_LOGS(INFO) << "ClientProxy ctor event_logger=" << event_logger;
-  analytics_recorder_ =
-      std::make_unique<analytics::AnalyticsRecorder>(event_logger);
+  analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorder>(
+      event_logger, nearby_share_version_id);
   error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
       [this](const ErrorCodeParams& params) {
         analytics_recorder_->OnErrorCode(params);

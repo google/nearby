@@ -41,7 +41,8 @@ namespace analytics {
 
 class AnalyticsRecorder {
  public:
-  explicit AnalyticsRecorder(::nearby::analytics::EventLogger *event_logger);
+  explicit AnalyticsRecorder(::nearby::analytics::EventLogger *event_logger,
+                             absl::string_view nearby_share_version_id);
   virtual ~AnalyticsRecorder();
 
   // TODO(edwinwu): Implement to pass real values for AdvertisingMetadata and
@@ -359,6 +360,7 @@ class AnalyticsRecorder {
   // Not owned by AnalyticsRecorder. Pointer must refer to a valid object
   // that outlives the one constructed.
   ::nearby::analytics::EventLogger *event_logger_;
+  const std::string nearby_share_version_id_;
 
   SingleThreadExecutor serial_executor_;
   // Protects all sub-protos reading and writing in ConnectionLog.

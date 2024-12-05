@@ -75,6 +75,8 @@ using ::testing::Not;
 using ::testing::proto::Partially;
 
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
+constexpr absl::string_view kNearbyShareVersionId = {
+    "major.minor.build.revision"};
 
 class FakeEventLogger : public MockEventLogger {
  public:
@@ -142,7 +144,7 @@ class FakeEventLogger : public MockEventLogger {
 TEST(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.LogSession();
   analytics_recorder.LogSession();
@@ -159,7 +161,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLE, BLUETOOTH});
   analytics_recorder.OnStopAdvertising();
@@ -201,7 +203,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartDiscovery(
       strategy, /*mediums=*/{BLE, BLUETOOTH},
@@ -255,7 +257,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(strategy, mediums);
   analytics_recorder.OnStartDiscovery(strategy, mediums);
@@ -351,7 +353,7 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -418,7 +420,7 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH});
@@ -486,7 +488,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -544,7 +546,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH});
@@ -598,7 +600,7 @@ TEST(AnalyticsRecorderTest,
 TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -656,7 +658,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   auto connections_attempt_metadata_params =
       analytics_recorder.BuildConnectionAttemptMetadataParams(
@@ -728,7 +730,7 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -780,7 +782,7 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -859,7 +861,7 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -933,7 +935,7 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartedIncomingConnectionListening(
       connections::Strategy::kP2pStar);
@@ -983,7 +985,7 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{WEB_RTC});
 
@@ -1010,7 +1012,7 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
 TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLUETOOTH});
 
@@ -1040,7 +1042,7 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
 TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLUETOOTH});
 
@@ -1067,7 +1069,7 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
 TEST(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   // LogSession to count down client_session_done_latch.
   analytics_recorder.LogSession();
@@ -1083,7 +1085,7 @@ TEST(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   std::vector<EventType> event_types = event_logger.GetLoggedEventTypes();
@@ -1099,7 +1101,7 @@ TEST(AnalyticsRecorderTest,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1128,7 +1130,7 @@ TEST(AnalyticsRecorderTest,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1165,7 +1167,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -1268,7 +1270,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH});
@@ -1374,7 +1376,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(strategy, mediums);
 
@@ -1469,7 +1471,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -1613,7 +1615,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLUETOOTH});
@@ -1655,7 +1657,7 @@ TEST(AnalyticsRecorderTest,
      NotLogSameStrategySessionProtoAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   //// Via OnStartAdvertising, current_strategy_session_is set in
   //// UpdateStrategySessionLocked.
@@ -1711,7 +1713,7 @@ TEST(AnalyticsRecorderTest,
      NotLogDuplicateAdvertisingPhaseAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartAdvertising(
       connections::Strategy::kP2pStar,
@@ -1790,7 +1792,7 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   analytics_recorder.OnStartDiscovery(
       strategy, {BLUETOOTH}, /*is_extended_advertisement_supported=*/true,
@@ -1870,7 +1872,7 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger, kNearbyShareVersionId);
 
   // via OnStartAdvertising, current_strategy_session_ is set in
   // UpdateStrategySessionLocked.

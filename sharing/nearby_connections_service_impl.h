@@ -35,7 +35,8 @@ namespace sharing {
 class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
  public:
   explicit NearbyConnectionsServiceImpl(
-      nearby::analytics::EventLogger* event_logger = nullptr);
+      nearby::analytics::EventLogger* event_logger = nullptr,
+      absl::string_view nearby_share_version_id = {});
   NearbyConnectionsServiceImpl() = delete;
   ~NearbyConnectionsServiceImpl() override;
 

@@ -52,8 +52,9 @@ class Core {
   explicit Core(ServiceControllerRouter* router);
   // Client needs to call this constructor if analytics logger is needed.
   Core(::nearby::analytics::EventLogger* event_logger,
+       absl::string_view nearby_share_version_id,
        ServiceControllerRouter* router)
-      : client_(event_logger), router_(router) {}
+      : client_(event_logger, nearby_share_version_id), router_(router) {}
   ~Core();
   Core(Core&&);
   Core& operator=(Core&&);

@@ -17,6 +17,7 @@
 
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "internal/analytics/event_logger.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/internal/api/sharing_platform.h"
@@ -33,7 +34,8 @@ class NearbySharingServiceFactory {
   NearbySharingService* CreateSharingService(
       nearby::sharing::api::SharingPlatform& sharing_platform,
       analytics::AnalyticsRecorder* analytics_recorder,
-      nearby::analytics::EventLogger* event_logger);
+      nearby::analytics::EventLogger* event_logger,
+      absl::string_view nearby_share_version_id);
 
  private:
   NearbySharingServiceFactory() = default;
