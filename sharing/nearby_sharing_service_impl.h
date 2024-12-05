@@ -120,10 +120,6 @@ class NearbySharingServiceImpl
   void RegisterSendSurface(
       TransferUpdateCallback* transfer_callback,
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
-      std::function<void(StatusCodes)> status_codes_callback) override;
-  void RegisterSendSurface(
-      TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
       Advertisement::BlockedVendorId blocked_vendor_id,
       bool disable_wifi_hotspot,
       std::function<void(StatusCodes)> status_codes_callback) override;

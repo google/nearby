@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
@@ -60,19 +59,18 @@ void FakeNearbySharingService::Shutdown(
 void FakeNearbySharingService::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
+    Advertisement::BlockedVendorId blocked_vendor_id, bool disable_wifi_hotspot,
     std::function<void(StatusCodes)> status_codes_callback) {
   if (state == SendSurfaceState::kForeground) {
     foreground_send_surface_map_.insert(
         {transfer_callback,
          WrappedShareTargetDiscoveredCallback(
-             discovery_callback, Advertisement::BlockedVendorId::kNone,
-             /*disable_wifi_hotspot=*/false)});
+             discovery_callback, blocked_vendor_id, disable_wifi_hotspot)});
   } else {
     background_send_surface_map_.insert(
         {transfer_callback,
          WrappedShareTargetDiscoveredCallback(
-             discovery_callback, Advertisement::BlockedVendorId::kNone,
-             /*disable_wifi_hotspot=*/false)});
+             discovery_callback, blocked_vendor_id, disable_wifi_hotspot)});
   }
 
   status_codes_callback(StatusCodes::kOk);

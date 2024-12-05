@@ -141,14 +141,6 @@ class NearbySharingService {
       std::function<void(StatusCodes)> status_codes_callback) = 0;
 
   // Registers a send surface for handling payload transfer status and device
-  // discovery.
-  ABSL_DEPRECATED("Use the variant with vendor ID/blocking request instead.")
-  virtual void RegisterSendSurface(
-      TransferUpdateCallback* transfer_callback,
-      ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
-      std::function<void(StatusCodes)> status_codes_callback) = 0;
-
-  // Registers a send surface for handling payload transfer status and device
   // discovery, with optional blocking on a specified vendor ID.
   // `transfer_callback` is used as the main identity for the surface, so trying
   // to re-register the same transfer callback with a different

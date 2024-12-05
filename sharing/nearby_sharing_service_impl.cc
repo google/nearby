@@ -398,14 +398,6 @@ bool NearbySharingServiceImpl::HasObserver(
 void NearbySharingServiceImpl::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
-    std::function<void(StatusCodes)> status_codes_callback) {
-  RegisterSendSurface(transfer_callback, discovery_callback, state,
-                      BlockedVendorId::kNone, /*disable_wifi_hotspot=*/false,
-                      std::move(status_codes_callback));
-}
-void NearbySharingServiceImpl::RegisterSendSurface(
-    TransferUpdateCallback* transfer_callback,
-    ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
     BlockedVendorId blocked_vendor_id, bool disable_wifi_hotspot,
     std::function<void(StatusCodes)> status_codes_callback) {
   RunOnNearbySharingServiceThread(
@@ -475,6 +467,14 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           std::move(status_codes_callback)(
               StatusCodes::kTransferAlreadyInProgress);
           return;
+        }
+
+        // Send items in discovery_cache as disabled.
+        for (const auto& item : discovery_cache_) {
+          LOG(INFO) << "Reporting disabled cached target "
+                    << item.second.share_target.ToString()
+                    << " when registering send surface";
+          wrapped_callback.OnShareTargetDiscovered(item.second.share_target);
         }
 
         // If the share sheet to be registered is a foreground surface, let it
@@ -3374,6 +3374,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
   }
   DiscoveryCacheEntry cache_entry;
   cache_entry.share_target = std::move(share_target_opt.value());
+  cache_entry.share_target.receive_disabled = true;
   cache_entry.expiry_timer = std::make_unique<ThreadTimer>(
       *service_thread_, absl::StrCat("discovery_cache_timeout_", expiry_ms),
       absl::Milliseconds(expiry_ms),
@@ -3403,6 +3404,13 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
                    "for share_target: "
                 << share_target.ToString();
       });
+  // Send ShareTarget update to set receive disabled to true.
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(cache_entry.share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(cache_entry.share_target);
+  }
   discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
 }
 

@@ -48,11 +48,13 @@ std::vector<ShareTargetToStringTestData> GetTestData() {
           new std::vector<ShareTargetToStringTestData>({
               {share_target1,
                "ShareTarget<id: 1, type: 0, device_name: , is_known: 0, "
-               "is_incoming: 0, for_self_share: 0, vendor_id: 0>"},
+               "is_incoming: 0, for_self_share: 0, vendor_id: 0, "
+               "receive_disabled: 0>"},
               {share_target2,
                "ShareTarget<id: 2, type: 1, device_name: test_name, full_name: "
                "test_full_name, image_url: ://:0, device_id: test_device_id, "
-               "is_known: 0, is_incoming: 1, for_self_share: 1, vendor_id: 0>"},
+               "is_known: 0, is_incoming: 1, for_self_share: 1, vendor_id: 0, "
+               "receive_disabled: 0>"},
           });
 
   return *kShareTargetToStringTestData;

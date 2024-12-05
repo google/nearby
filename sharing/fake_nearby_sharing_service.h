@@ -21,7 +21,6 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
@@ -55,6 +54,8 @@ class FakeNearbySharingService : public NearbySharingService {
   void RegisterSendSurface(
       TransferUpdateCallback* transfer_callback,
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
+      Advertisement::BlockedVendorId blocked_vendor_id,
+      bool disable_wifi_hotspot,
       std::function<void(StatusCodes)> status_codes_callback) override;
 
   // Unregisters the current send surface.

@@ -4360,6 +4360,12 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
     EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
         .WillOnce([&](ShareTarget share_target) {
           share_target_ep_3 = share_target;
+        });
+    // Update endpoint 3 to receive disabled after on lost.
+    ShareTarget share_target_ep_3_disabled;
+    EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_))
+        .WillOnce([&](ShareTarget share_target) {
+          share_target_ep_3_disabled = share_target;
           notification.Notify();
         });
 
@@ -4381,6 +4387,10 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
     // Vendor_id updated.
     EXPECT_EQ(share_target_ep_3.vendor_id,
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
+    EXPECT_FALSE(share_target_ep_3.receive_disabled);
+
+    EXPECT_EQ(share_target_ep_1.id, share_target_ep_3_disabled.id);
+    EXPECT_TRUE(share_target_ep_3_disabled.receive_disabled);
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
   // kDiscoveryCacheLostExpiryMs is set to be larger than
