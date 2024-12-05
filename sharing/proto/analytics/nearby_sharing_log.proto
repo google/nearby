@@ -264,6 +264,11 @@ message SharingLog {
     // Phone number verification.
     optional location.nearby.proto.sharing.IdentityVerification
         identity_verification = 12;
+
+    // Stores the user's previous device visibility setting from the Nearby
+    // Share settings page. This is used to restore the original visibility
+    // after a temporary everyone mode duration expires.
+    optional location.nearby.proto.sharing.Visibility previous_visibility = 13;
   }
 
   // Used only for Nearby Share Windows app now. Here is the screenshot about
