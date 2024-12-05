@@ -31,6 +31,7 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_utils.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
@@ -46,8 +47,7 @@ constexpr absl::string_view kHotspotSsidFileName = "ssid.txt";
 WifiHotspotMedium::WifiHotspotMedium() {
   std::string ssid = GetStoredHotspotSsid();
   if (!ssid.empty()) {
-    LOG(INFO) << "Get stored Hotspot SSID: " << ssid
-                      << " from previous run";
+    LOG(INFO) << "Get stored Hotspot SSID: " << ssid << " from previous run";
     DeleteNetworkProfile(winrt::to_hstring(ssid));
     StoreHotspotSsid({});
   }
@@ -416,6 +416,17 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
     HotspotCredentials* hotspot_credentials_) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableWifiHotspotNative)) {
+    return ConnectWifiHotspotWithNative(hotspot_credentials_);
+  } else {
+    return ConnectWifiHotspotWithWinRt(hotspot_credentials_);
+  }
+}
+
+bool WifiHotspotMedium::ConnectWifiHotspotWithWinRt(
+    HotspotCredentials* hotspot_credentials) {
   absl::MutexLock lock(&mutex_);
 
   try {
@@ -463,7 +474,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableIntelPieSdk)) {
       auto channel = WifiUtils::ConvertFrequencyMhzToChannel(
-          hotspot_credentials_->GetFrequency());
+          hotspot_credentials->GetFrequency());
       WifiIntel& intel_wifi{WifiIntel::GetInstance()};
       intel_wifi_started = intel_wifi.Start();
       if (intel_wifi_started) {
@@ -472,7 +483,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     }
 
     LOG(INFO) << "Scanning for Nearby Hotspot SSID: "
-              << hotspot_credentials_->GetSSID();
+              << hotspot_credentials->GetSSID();
     // First time scan may not find our target hotspot, try 2 more times can
     // almost guarantee to find the Hotspot
     wifi_adapter_.ScanAsync().get();
@@ -491,7 +502,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
           wifi_original_network_ = network;
           LOG(INFO) << "Save the current connected network: " << ssid;
         } else if (!nearby_softap && winrt::to_string(network.Ssid()) ==
-                                         hotspot_credentials_->GetSSID()) {
+                                         hotspot_credentials->GetSSID()) {
           LOG(INFO) << "Found Nearby SSID: "
                     << winrt::to_string(network.Ssid());
           nearby_softap = network;
@@ -517,7 +528,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       return false;
     }
     PasswordCredential creds;
-    creds.Password(winrt::to_hstring(hotspot_credentials_->GetPassword()));
+    creds.Password(winrt::to_hstring(hotspot_credentials->GetPassword()));
 
     auto connect_result =
         wifi_adapter_
@@ -564,7 +575,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     LOG(INFO) << "Got IP address " << ip_address << " from hotspot.";
 
-    std::string last_ssid = hotspot_credentials_->GetSSID();
+    std::string last_ssid = hotspot_credentials->GetSSID();
     wifi_connected_hotspot_ssid_ = nearby_softap.Ssid();
     StoreHotspotSsid(winrt::to_string(wifi_connected_hotspot_ssid_));
     medium_status_ |= kMediumStatusConnected;
@@ -579,6 +590,129 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
                << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
+  }
+  return false;
+}
+
+bool WifiHotspotMedium::ConnectWifiHotspotWithNative(
+    HotspotCredentials* hotspot_credentials) {
+  absl::MutexLock lock(&mutex_);
+
+  try {
+    if (!wifi_connected_hotspot_ssid_.empty()) {
+      LOG(INFO) << "Before connecting to Hotspot, Delete the previous "
+                   "Hotspot profile with SSID: "
+                << winrt::to_string(wifi_connected_hotspot_ssid_);
+      wifi_hotspot_native_.DeleteWifiProfile(
+          wifi_connected_hotspot_ssid_.c_str());
+      wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
+      StoreHotspotSsid({});
+    }
+    if (IsConnected()) {
+      LOG(WARNING) << "Already connected to Hotspot, disconnect first.";
+      wifi_hotspot_native_.DisconnectWifiNetwork();
+    }
+
+    connected_hotspot_profile_name_ =
+        wifi_hotspot_native_.GetConnectedProfileName();
+    if (connected_hotspot_profile_name_.has_value()) {
+      LOG(INFO) << "Connected to Hotspot profile: "
+                << string_utils::WideStringToString(
+                       *connected_hotspot_profile_name_);
+    }
+
+    // Initialize Intel PIE scan if it is installed.
+    bool intel_wifi_started = false;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableIntelPieSdk)) {
+      auto channel = WifiUtils::ConvertFrequencyMhzToChannel(
+          hotspot_credentials->GetFrequency());
+      WifiIntel& intel_wifi{WifiIntel::GetInstance()};
+      intel_wifi_started = intel_wifi.Start();
+      if (intel_wifi_started) {
+        intel_wifi.SetScanFilter(channel);
+      }
+    }
+
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kEnableWifiHotspotNativeScan)) {
+      if (!wifi_hotspot_native_.Scan(hotspot_credentials->GetSSID())) {
+        LOG(INFO) << "Hotspot " << hotspot_credentials->GetSSID()
+                  << " is not found";
+
+        if (intel_wifi_started) {
+          WifiIntel& intel_wifi{WifiIntel::GetInstance()};
+          intel_wifi.ResetScanFilter();
+          intel_wifi.Stop();
+        }
+        return false;
+      }
+    }
+
+    bool connected =
+        wifi_hotspot_native_.ConnectToWifiNetwork(hotspot_credentials);
+
+    if (intel_wifi_started) {
+      WifiIntel& intel_wifi{WifiIntel::GetInstance()};
+      intel_wifi.ResetScanFilter();
+      intel_wifi.Stop();
+    }
+
+    if (!connected) {
+      LOG(INFO) << "Failed to connect to Hotspot.";
+      if (connected_hotspot_profile_name_.has_value()) {
+        wifi_hotspot_native_.ConnectToWifiNetwork(
+            connected_hotspot_profile_name_->c_str());
+      }
+      return false;
+    }
+
+    LOG(INFO) << "Connected to Hotspot successfully.";
+
+    // Make sure IP address is ready.
+    std::string ip_address;
+    int64_t ip_address_max_retries = 20;
+    int64_t ip_address_retry_interval_millis = 500;
+    LOG(INFO) << "maximum IP check retries=" << ip_address_max_retries
+              << ", IP check interval=" << ip_address_retry_interval_millis
+              << "ms";
+    for (int i = 0; i < ip_address_max_retries; i++) {
+      LOG(INFO) << "Check IP address at attempt " << i;
+      std::vector<std::string> ip_addresses = GetIpv4Addresses();
+      if (ip_addresses.empty()) {
+        Sleep(ip_address_retry_interval_millis);
+        continue;
+      }
+      ip_address = ip_addresses[0];
+      break;
+    }
+
+    if (ip_address.empty()) {
+      LOG(INFO) << "Failed to get IP address from hotspot.";
+      if (connected_hotspot_profile_name_.has_value()) {
+        wifi_hotspot_native_.ConnectToWifiNetwork(
+            *connected_hotspot_profile_name_);
+      } else {
+        wifi_hotspot_native_.DisconnectWifiNetwork();
+      }
+
+      return false;
+    }
+
+    LOG(INFO) << "Got IP address " << ip_address << " from hotspot.";
+
+    StoreHotspotSsid(hotspot_credentials->GetSSID());
+    medium_status_ |= kMediumStatusConnected;
+    LOG(INFO) << "Connected to hotspot: " << hotspot_credentials->GetSSID();
+
+    return true;
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+               << ": Cannot connet to Hotspot. Exception: " << exception.what();
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exception.";
   }
   return false;
 }
@@ -626,6 +760,16 @@ void WifiHotspotMedium::RestoreWifiConnection() {
 }
 
 bool WifiHotspotMedium::DisconnectWifiHotspot() {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableWifiHotspotNative)) {
+    return DisconnectWifiHotspotWithNative();
+  } else {
+    return DisconnectWifiHotspotWithWinRt();
+  }
+}
+
+bool WifiHotspotMedium::DisconnectWifiHotspotWithWinRt() {
   absl::MutexLock lock(&mutex_);
   try {
     return InternalDisconnectWifiHotspot();
@@ -640,6 +784,32 @@ bool WifiHotspotMedium::DisconnectWifiHotspot() {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
+}
+bool WifiHotspotMedium::DisconnectWifiHotspotWithNative() {
+  absl::MutexLock lock(&mutex_);
+
+  if (!IsConnected()) {
+    LOG(WARNING) << "Cannot disconnect SoftAP because it is not connected.";
+    return true;
+  }
+
+  if (connected_hotspot_profile_name_.has_value()) {
+    if (!wifi_hotspot_native_.ConnectToWifiNetwork(
+            *connected_hotspot_profile_name_)) {
+      LOG(ERROR) << __func__ << ": Failed to connect to hotspot profile.";
+    }
+  } else {
+    if (!wifi_hotspot_native_.DisconnectWifiNetwork()) {
+      LOG(ERROR) << __func__ << ": Failed to disconnect hotspot.";
+    }
+  }
+
+  wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
+  StoreHotspotSsid({});
+
+  medium_status_ &= (~kMediumStatusConnected);
+  LOG(INFO) << __func__ << ": Disconnected to hotspot successfully.";
+  return true;
 }
 
 bool WifiHotspotMedium::InternalDisconnectWifiHotspot() {
@@ -731,14 +901,12 @@ void WifiHotspotMedium::StoreHotspotSsid(std::string ssid) {
     ByteArray data(ssid);
     ssid_file->Write(data);
   } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-                       << ": Failed to store Hotspot SSID. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Failed to store Hotspot SSID. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
     LOG(ERROR) << __func__
-                       << ": Failed to store Hotspot SSID. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+               << ": Failed to store Hotspot SSID. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": unknown error.";
   }
@@ -769,21 +937,18 @@ std::string WifiHotspotMedium::GetStoredHotspotSsid() {
     nearby::ExceptionOr<ByteArray> raw_ssid = ssid_file->Read(total_size);
 
     if (!raw_ssid.ok()) {
-      LOG(ERROR) << __func__
-                         << ": Failed to read Hotspot ssid. Exception: "
-                         << raw_ssid.exception();
+      LOG(ERROR) << __func__ << ": Failed to read Hotspot ssid. Exception: "
+                 << raw_ssid.exception();
       return {};
     }
     return std::string(raw_ssid.GetResult().data());
   } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-                       << ": Failed to store Hotspot SSID. Exception: "
-                       << exception.what();
+    LOG(ERROR) << __func__ << ": Failed to store Hotspot SSID. Exception: "
+               << exception.what();
   } catch (const winrt::hresult_error& error) {
     LOG(ERROR) << __func__
-                       << ": Failed to store Hotspot SSID. WinRT exception: "
-                       << error.code() << ": "
-                       << winrt::to_string(error.message());
+               << ": Failed to store Hotspot SSID. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": unknown error.";
   }

@@ -39,6 +39,7 @@
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
+#include "internal/platform/implementation/windows/wifi_hotspot_native.h"
 
 // WinRT headers
 #include "absl/types/optional.h"
@@ -319,6 +320,11 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   // Discoverer is connected with the Hotspot
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
 
+  bool ConnectWifiHotspotWithWinRt(HotspotCredentials* hotspot_credentials);
+  bool ConnectWifiHotspotWithNative(HotspotCredentials* hotspot_credentials);
+  bool DisconnectWifiHotspotWithWinRt();
+  bool DisconnectWifiHotspotWithNative();
+
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
   WiFiDirectDevice wifi_direct_device_{nullptr};
@@ -354,6 +360,10 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Scheduled task for connection timeout.
   std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
+
+  // connects Wi-Fi hotspot using native API.
+  WifiHotspotNative wifi_hotspot_native_;
+  std::optional<std::wstring> connected_hotspot_profile_name_;
 };
 
 }  // namespace windows
