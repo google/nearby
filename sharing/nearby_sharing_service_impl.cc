@@ -469,7 +469,8 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           return;
         }
 
-        // Send items in discovery_cache as disabled.
+        // All share targets in discovery_cache have received_disabled set to
+        // true, send them to new send send surface in discovered events..
         for (const auto& item : discovery_cache_) {
           LOG(INFO) << "Reporting receive_disabled discovery cache target "
                     << item.second.share_target.ToString()
@@ -3274,6 +3275,8 @@ bool NearbySharingServiceImpl::FindDuplicateInDiscoveryCache(
                    "changed from: "
                 << share_target.id << " to " << it->second.share_target.id
                 << ". New endpoint_id: " << endpoint_id;
+      // Share targets in discovery cache have receive_disabled set to true.
+      // Copy only the id field from cache entry,
       share_target.id = it->second.share_target.id;
       discovery_cache_.erase(it);
       outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);

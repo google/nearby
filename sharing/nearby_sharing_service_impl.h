@@ -524,6 +524,7 @@ class NearbySharingServiceImpl
   absl::flat_hash_map<int64_t, OutgoingShareSession>
       outgoing_share_session_map_;
   // A map of Endpoint id to DiscoveryCacheEntry.
+  // All ShareTargets in discovery cache have received_disabled set to true.
   absl::flat_hash_map<std::string, DiscoveryCacheEntry> discovery_cache_;
   // For metrics. The IDs of ShareTargets that are cancelled while trying to
   // establish an outgoing connection.
