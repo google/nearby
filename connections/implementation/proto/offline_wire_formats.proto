@@ -155,6 +155,7 @@ message ConnectionResponseFrame {
   optional int32 nearby_connections_version = 6 [deprecated = true];
   optional int32 safe_to_disconnect_version = 7;
   optional LocationHint location_hint = 8;
+  optional int32 keep_alive_timeout_millis = 9;
 }
 
 message PayloadTransferFrame {
