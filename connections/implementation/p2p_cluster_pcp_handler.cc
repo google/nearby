@@ -413,7 +413,9 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
         NEARBY_LOGS(INFO) << "BT discovery handler (CHANGED) [client_id="
                           << client->GetClientId()
                           << ", service_id=" << service_id
-                          << "]: processing new name " << device_name_string;
+                          << "]: processing new name " << device_name_string
+                          << ", BluetoothDeviceName is  "
+                          << (device_name.IsValid() ? "valid" : "invalid");
 
         // By this point, the BluetoothDevice passed to us has a different
         // name than what we may have discovered before. We need to iterate
@@ -444,6 +446,8 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
           }
         }
 
+        NEARBY_VLOG(1)
+            << "Checking if it is a recognized Bluetooth device endpoint.";
         // Make sure the Bluetooth device name points to a valid
         // endpoint we're discovering.
         if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
