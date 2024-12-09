@@ -69,6 +69,11 @@
 namespace nearby {
 namespace connections {
 
+namespace {
+using ::location::nearby::analytics::proto::ConnectionsLog;
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+
 ByteArray P2pClusterPcpHandler::GenerateHash(const std::string& source,
                                              size_t size) {
   return Utils::Sha256Hash(source, size);
@@ -142,9 +147,13 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
     const AdvertisingOptions& advertising_options) {
   std::vector<Medium> mediums_started_successfully;
+  std::vector<ConnectionsLog::OperationResultWithMedium>
+      operation_result_with_mediums;
 
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
 
+  // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+  // for WifiLan.
   if (advertising_options.allowed.wifi_lan) {
     Medium wifi_lan_medium =
         StartWifiLanAdvertising(client, service_id, local_endpoint_id,
@@ -155,8 +164,15 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           << "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added";
       mediums_started_successfully.push_back(wifi_lan_medium);
     }
+    ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+        GetOperationResultWithMediumByResultCode(
+            client, location::nearby::proto::connections::WIFI_LAN,
+            /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
+    operation_result_with_mediums.push_back(operation_result_with_medium);
   }
 
+  // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+  // for Bluetooth.
   if (advertising_options.allowed.bluetooth) {
     const ByteArray bluetooth_hash =
         GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength);
@@ -169,6 +185,8 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           << "P2pClusterPcpHandler::StartAdvertisingImpl: BT started";
 
       // TODO(hais): update this after ble_v2 refactor.
+      // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+      // for BLE.
       if (api::ImplementationPlatform::GetCurrentOS() ==
               api::OSName::kChromeOS &&
           !NearbyFlags::GetInstance().GetBoolFlag(
@@ -190,6 +208,11 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           bluetooth_medium_.TurnOffDiscoverability();
           bluetooth_medium_.StopAcceptingConnections(service_id);
         }
+        ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+            GetOperationResultWithMediumByResultCode(
+                client, location::nearby::proto::connections::BLE,
+                /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
+        operation_result_with_mediums.push_back(operation_result_with_medium);
       } else if ((api::ImplementationPlatform::GetCurrentOS() ==
                       api::OSName::kChromeOS ||
                   api::ImplementationPlatform::GetCurrentOS() ==
@@ -211,6 +234,11 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           bluetooth_medium_.TurnOffDiscoverability();
           bluetooth_medium_.StopAcceptingConnections(service_id);
         }
+        ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+            GetOperationResultWithMediumByResultCode(
+                client, location::nearby::proto::connections::BLE,
+                /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
+        operation_result_with_mediums.push_back(operation_result_with_medium);
       } else {
         NEARBY_LOGS(INFO)
             << "P2pClusterPcpHandler::StartAdvertisingImpl: BT added";
@@ -218,8 +246,15 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
         bluetooth_classic_advertiser_client_id_ = client->GetClientId();
       }
     }
+    ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+        GetOperationResultWithMediumByResultCode(
+            client, location::nearby::proto::connections::BLUETOOTH,
+            /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
+    operation_result_with_mediums.push_back(operation_result_with_medium);
   }
 
+  // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+  // for BLE.
   if (advertising_options.allowed.ble) {
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
@@ -242,14 +277,21 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
         mediums_started_successfully.push_back(ble_medium);
       }
     }
+    ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+        GetOperationResultWithMediumByResultCode(
+            client, location::nearby::proto::connections::BLE,
+            /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
+    operation_result_with_mediums.push_back(operation_result_with_medium);
   }
 
   if (mediums_started_successfully.empty()) {
     NEARBY_LOGS(ERROR) << "Failed StartAdvertising("
                        << absl::BytesToHexString(local_endpoint_info.data())
                        << ") for client=" << client->GetClientId();
+    // TODO(edwinwu): Modify the status instead of kBluetoothError
     return {
         .status = {Status::kBluetoothError},
+      .operation_result_with_mediums = std::move(operation_result_with_mediums),
     };
   }
 
@@ -260,6 +302,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
   return {
       .status = {Status::kSuccess},
       .mediums = std::move(mediums_started_successfully),
+      .operation_result_with_mediums = std::move(operation_result_with_mediums),
   };
 }
 
@@ -1117,7 +1160,11 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   }
 
   std::vector<Medium> mediums_started_successfully;
+  std::vector<ConnectionsLog::OperationResultWithMedium>
+      operation_result_with_mediums;
 
+  // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+  // for WifiLan.
   if (discovery_options.allowed.wifi_lan) {
     Medium wifi_lan_medium = StartWifiLanDiscovery(client, service_id);
     if (wifi_lan_medium !=
@@ -1126,8 +1173,14 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
           << "P2pClusterPcpHandler::StartDiscoveryImpl: WifiLan added";
       mediums_started_successfully.push_back(wifi_lan_medium);
     }
+    ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+        GetOperationResultWithMediumByResultCode(
+            client, location::nearby::proto::connections::WIFI_LAN,
+            /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
   }
 
+  // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+  // for BLE.
   if (discovery_options.allowed.ble) {
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
@@ -1149,8 +1202,14 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
         mediums_started_successfully.push_back(ble_medium);
       }
     }
+    ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+        GetOperationResultWithMediumByResultCode(
+            client, location::nearby::proto::connections::BLE,
+            /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
   }
 
+  // TODO(edwinwu): Modify the returned code with a new OperationResultCode
+  // for Bluetooth.
   if (discovery_options.allowed.bluetooth) {
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
@@ -1168,6 +1227,10 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
             {client->GetClientId(), service_id});
       }
     }
+    ConnectionsLog::OperationResultWithMedium operation_result_with_medium =
+        GetOperationResultWithMediumByResultCode(
+            client, location::nearby::proto::connections::BLUETOOTH,
+            /*update_index=*/0, OperationResultCode::DETAIL_UNKNOWN);
   }
 
   if (mediums_started_successfully.empty()) {
@@ -1176,14 +1239,18 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
         << " because we couldn't scan on Bluetooth, BLE, or WifiLan for "
            "service_id="
         << service_id;
+    // TODO(edwinwu): Modify the status instead of kBluetoothError
     return {
         .status = {Status::kBluetoothError},
+        .operation_result_with_mediums =
+            std::move(operation_result_with_mediums),
     };
   }
 
   return {
       .status = {Status::kSuccess},
       .mediums = std::move(mediums_started_successfully),
+      .operation_result_with_mediums = std::move(operation_result_with_mediums),
   };
 }
 

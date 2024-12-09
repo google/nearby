@@ -89,7 +89,8 @@ class ServiceControllerRouterTest : public testing::Test {
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->StartedAdvertising(kServiceId, advertising_options.strategy,
-                               info.listener, absl::MakeSpan(mediums_));
+                               info.listener, absl::MakeSpan(mediums_),
+                               /*operation_result_with_medium=*/{});
     EXPECT_TRUE(client->IsAdvertising());
   }
 
@@ -119,7 +120,8 @@ class ServiceControllerRouterTest : public testing::Test {
       EXPECT_EQ(result_, Status{Status::kSuccess});
     }
     client->StartedDiscovery(service_id, discovery_options.strategy,
-                             std::move(listener), absl::MakeSpan(mediums_));
+                             std::move(listener), absl::MakeSpan(mediums_),
+                             /*operation_result_with_medium=*/{});
     EXPECT_TRUE(client->IsDiscovering());
   }
 

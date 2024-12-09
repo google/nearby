@@ -214,6 +214,10 @@ class AnalyticsRecorder {
 
   bool IsSessionLogged();
 
+  location::nearby::proto::connections::OperationResultCategory
+  GetOperationResultCateory(
+      location::nearby::proto::connections::OperationResultCode result_code);
+
   // Waits until all logs are sent to the backend.
   // For testing only.
   void Sync();

@@ -70,6 +70,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::OsInfo;
 
 constexpr char kEndpointIdChars[] = {
@@ -214,6 +215,8 @@ void ClientProxy::StartedAdvertising(
     const std::string& service_id, Strategy strategy,
     const ConnectionListener& listener,
     absl::Span<location::nearby::proto::connections::Medium> mediums,
+    const std::vector<ConnectionsLog::OperationResultWithMedium>&
+        operation_result_with_mediums,
     const AdvertisingOptions& advertising_options) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "ClientProxy [StartedAdvertising]: client="
@@ -245,7 +248,8 @@ void ClientProxy::StartedAdvertising(
   std::unique_ptr<AdvertisingMetadataParams> advertising_metadata_params;
   advertising_metadata_params =
       GetAnalyticsRecorder().BuildAdvertisingMetadataParams();
-  // TODO(edwinwu): Implement to pass real values for OperatoinResultWithMedium.
+  advertising_metadata_params->operation_result_with_mediums =
+      std::move(operation_result_with_mediums);
   analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
                                           advertising_metadata_params.get());
 }
@@ -366,6 +370,8 @@ void ClientProxy::StartedDiscovery(
     const std::string& service_id, Strategy strategy,
     DiscoveryListener listener,
     absl::Span<location::nearby::proto::connections::Medium> mediums,
+    const std::vector<ConnectionsLog::OperationResultWithMedium>&
+        operation_result_with_mediums,
     const DiscoveryOptions& discovery_options) {
   MutexLock lock(&mutex_);
   discovery_info_ = DiscoveryInfo{service_id, std::move(listener)};
@@ -376,10 +382,10 @@ void ClientProxy::StartedDiscovery(
   std::unique_ptr<DiscoveryMetadataParams> discovery_metadata_params;
   discovery_metadata_params =
       GetAnalyticsRecorder().BuildDiscoveryMetadataParams();
-  // TODO(edwinwu): Implement to pass real values for OperatoinResultWithMedium.
-  analytics_recorder_->OnStartDiscovery(
-      strategy, medium_vector,
-      discovery_metadata_params.get());
+  discovery_metadata_params->operation_result_with_mediums =
+      std::move(operation_result_with_mediums);
+  analytics_recorder_->OnStartDiscovery(strategy, medium_vector,
+                                        discovery_metadata_params.get());
 }
 
 void ClientProxy::StoppedDiscovery() {

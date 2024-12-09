@@ -99,6 +99,7 @@ std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
 }
 }  // namespace
 
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
 using ::location::nearby::connections::ConnectionsDevice;
@@ -267,9 +268,11 @@ Status BasePcpHandler::StartAdvertising(
         // Save the advertising options for local reference in later process
         // like upgrading bandwidth.
         advertising_listener_ = info.listener;
-        client->StartedAdvertising(service_id, GetStrategy(), info.listener,
-                                   absl::MakeSpan(result.mediums),
-                                   compatible_advertising_options);
+        client->StartedAdvertising(
+            service_id, GetStrategy(), info.listener,
+            absl::MakeSpan(result.mediums),
+            std::move(result.operation_result_with_mediums),
+            compatible_advertising_options);
         client->UpdateLocalEndpointInfo(info.endpoint_info.string_data());
         response.Set({Status::kSuccess});
       });
@@ -451,7 +454,9 @@ Status BasePcpHandler::StartDiscovery(ClientProxy* client,
             }
             client->StartedDiscovery(
                 service_id, GetStrategy(), std::move(listener),
-                absl::MakeSpan(result.mediums), stripped_discovery_options);
+                absl::MakeSpan(result.mediums),
+                std::move(result.operation_result_with_mediums),
+                stripped_discovery_options);
             response.Set({Status::kSuccess});
           });
   return WaitForResult(absl::StrCat("StartDiscovery(", service_id, ")"),
@@ -1140,6 +1145,25 @@ void BasePcpHandler::StripOutUnavailableMediums(
   if (allowed.wifi_direct) {
     allowed.wifi_direct = mediums_->GetWifiDirect().IsGOAvailable();
   }
+}
+
+ConnectionsLog::OperationResultWithMedium
+BasePcpHandler::GetOperationResultWithMediumByResultCode(
+    ClientProxy* client, location::nearby::proto::connections::Medium medium,
+    int update_index,
+    location::nearby::proto::connections::OperationResultCode
+        operation_result_code,
+    location::nearby::proto::connections::ConnectionMode connection_mode) {
+  ConnectionsLog::OperationResultWithMedium operation_result_with_medium;
+  operation_result_with_medium.set_medium(medium);
+  operation_result_with_medium.set_result_code(operation_result_code);
+  operation_result_with_medium.set_result_category(
+      client->GetAnalyticsRecorder().GetOperationResultCateory(
+          operation_result_code));
+  operation_result_with_medium.set_connection_mode(connection_mode);
+  operation_result_with_medium.set_update_index(update_index);
+
+  return operation_result_with_medium;
 }
 
 void BasePcpHandler::StripOutUnavailableMediums(

@@ -53,6 +53,7 @@
 #include "absl/types/span.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/scheduled_executor.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -101,6 +102,9 @@ class ClientProxy final {
       const std::string& service_id, Strategy strategy,
       const ConnectionListener& connection_lifecycle_listener,
       absl::Span<location::nearby::proto::connections::Medium> mediums,
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium>&
+          operation_result_with_medium,
       const AdvertisingOptions& advertising_options = AdvertisingOptions{});
   // Marks this client as not advertising.
   void StoppedAdvertising();
@@ -123,6 +127,9 @@ class ClientProxy final {
       const std::string& service_id, Strategy strategy,
       DiscoveryListener discovery_listener,
       absl::Span<location::nearby::proto::connections::Medium> mediums,
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium>&
+          operation_result_with_medium,
       const DiscoveryOptions& discovery_options = DiscoveryOptions{});
   // Marks this client as not discovering at all.
   void StoppedDiscovery();

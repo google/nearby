@@ -210,8 +210,9 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
         .info = ByteArray{"advertising endpoint name"},
         .id = client->GetLocalEndpointId(),
     };
-    client->StartedAdvertising(service_id_, strategy_, listener,
-                               absl::MakeSpan(mediums_), advertising_options);
+    client->StartedAdvertising(
+        service_id_, strategy_, listener, absl::MakeSpan(mediums_),
+        /*operation_result_with_medium=*/{}, advertising_options);
     return endpoint;
   }
 
@@ -256,7 +257,8 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
         .id = client->GetLocalEndpointId(),
     };
     client->StartedDiscovery(service_id_, strategy_, std::move(listener),
-                             absl::MakeSpan(mediums_));
+                             absl::MakeSpan(mediums_),
+                             /*operation_result_with_medium=*/{});
     return endpoint;
   }
 
@@ -607,7 +609,7 @@ TEST_F(ClientProxyTest, ResetClearsState) {
 }
 
 TEST_F(ClientProxyTest, StartedAdvertisingChangesStateFromIdle) {
-  client1()->StartedAdvertising(service_id_, strategy_, {}, {});
+  client1()->StartedAdvertising(service_id_, strategy_, {}, {}, {});
 
   EXPECT_TRUE(client1()->IsAdvertising());
   EXPECT_FALSE(client1()->IsDiscovering());
@@ -616,7 +618,7 @@ TEST_F(ClientProxyTest, StartedAdvertisingChangesStateFromIdle) {
 }
 
 TEST_F(ClientProxyTest, StartedDiscoveryChangesStateFromIdle) {
-  client1()->StartedDiscovery(service_id_, strategy_, {}, {});
+  client1()->StartedDiscovery(service_id_, strategy_, {}, {}, {});
 
   EXPECT_FALSE(client1()->IsAdvertising());
   EXPECT_TRUE(client1()->IsDiscovering());

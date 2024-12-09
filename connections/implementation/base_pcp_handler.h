@@ -195,6 +195,9 @@ class BasePcpHandler : public PcpHandler,
     // If success, the mediums on which we are now advertising/discovering, for
     // analytics.
     std::vector<location::nearby::proto::connections::Medium> mediums;
+    std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                    OperationResultWithMedium>
+        operation_result_with_mediums;
   };
 
   // Represents an endpoint that we've discovered. Typically, the implementation
@@ -414,6 +417,15 @@ class BasePcpHandler : public PcpHandler,
   }
 
   void StripOutWifiHotspotMedium(ConnectionInfo& connection_info);
+
+  location::nearby::analytics::proto::ConnectionsLog::OperationResultWithMedium
+  GetOperationResultWithMediumByResultCode(
+      ClientProxy* client, location::nearby::proto::connections::Medium medium,
+      int update_index,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code,
+      location::nearby::proto::connections::ConnectionMode connection_mode =
+          location::nearby::proto::connections::ConnectionMode::LEGACY);
 
   // Test only.
   int GetEndpointLostByMediumAlarmsCount() RUN_ON_PCP_HANDLER_THREAD() {

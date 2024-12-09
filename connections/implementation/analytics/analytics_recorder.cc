@@ -91,9 +91,9 @@ using ::location::nearby::proto::connections::START_CLIENT_SESSION;
 using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
-using ::location::nearby::proto::connections::STREAM;
 using ::location::nearby::proto::connections::StopAdvertisingReason;
 using ::location::nearby::proto::connections::StopDiscoveringReason;
+using ::location::nearby::proto::connections::STREAM;
 using ::location::nearby::proto::connections::UNFINISHED;
 using ::location::nearby::proto::connections::UNFINISHED_ERROR;
 using ::location::nearby::proto::connections::UNKNOWN_MEDIUM;
@@ -108,7 +108,7 @@ using SafeDisconnectionResult = ::location::nearby::analytics::proto::
     ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
 
 // TODO(edwinwu): Add ifttt in Android counterpart.
-OperationResultCategory GetOperationResultCateory(
+OperationResultCategory ConvertToOperationResultCateory(
     OperationResultCode result_code) {
   if (result_code == OperationResultCode::DETAIL_SUCCESS) {
     return OperationResultCategory::CATEGORY_SUCCESS;
@@ -301,7 +301,7 @@ void AnalyticsRecorder::OnStopDiscovery() {
   if (!CanRecordAnalyticsLocked("OnStopDiscovery")) {
     return;
   }
-  RecordDiscoveryPhaseDurationAndReasonLocked(/*on_stop=*/ true);
+  RecordDiscoveryPhaseDurationAndReasonLocked(/*on_stop=*/true);
 }
 
 void AnalyticsRecorder::OnStartedIncomingConnectionListening(
@@ -501,7 +501,7 @@ void AnalyticsRecorder::OnIncomingConnectionAttemptLocked(
       std::make_unique<ConnectionsLog::OperationResult>();
   operation_result_proto->set_result_code(
       connection_attempt_metadata_params->operation_result_code);
-  operation_result_proto->set_result_category(GetOperationResultCateory(
+  operation_result_proto->set_result_category(ConvertToOperationResultCateory(
       connection_attempt_metadata_params->operation_result_code));
   connection_attempt->set_allocated_operation_result(
       operation_result_proto.release());
@@ -589,7 +589,7 @@ void AnalyticsRecorder::OnOutgoingConnectionAttemptLocked(
       std::make_unique<ConnectionsLog::OperationResult>();
   operation_result_proto->set_result_code(
       connection_attempt_metadata_params->operation_result_code);
-  operation_result_proto->set_result_category(GetOperationResultCateory(
+  operation_result_proto->set_result_category(ConvertToOperationResultCateory(
       connection_attempt_metadata_params->operation_result_code));
   connection_attempt->set_allocated_operation_result(
       operation_result_proto.release());
@@ -1144,7 +1144,7 @@ void AnalyticsRecorder::FinishDiscoveryPhaseLocked() {
       MarkConnectionRequestIgnoredLocked(connection_request.get());
       UpdateDiscovererConnectionRequestLocked(connection_request.get());
     }
-    RecordDiscoveryPhaseDurationAndReasonLocked(/* on_stop=*/ false);
+    RecordDiscoveryPhaseDurationAndReasonLocked(/* on_stop=*/false);
     *current_strategy_session_->add_discovery_phase() =
         *std::move(current_discovery_phase_);
   }
@@ -1323,7 +1323,7 @@ void AnalyticsRecorder::FinishUpgradeAttemptLocked(
         std::make_unique<ConnectionsLog::OperationResult>();
     operation_result_proto->set_result_code(operation_result_code);
     operation_result_proto->set_result_category(
-        GetOperationResultCateory(operation_result_code));
+        ConvertToOperationResultCateory(operation_result_code));
     attempt->set_allocated_operation_result(operation_result_proto.release());
     *current_strategy_session_->add_upgrade_attempt() = *attempt;
     if (erase_item) {
@@ -1426,7 +1426,7 @@ ConnectionsLog::Payload AnalyticsRecorder::PendingPayload::GetProtoPayload(
       std::make_unique<ConnectionsLog::OperationResult>();
   operation_result_proto->set_result_code(operation_result_code_);
   operation_result_proto->set_result_category(
-      GetOperationResultCateory(operation_result_code_));
+      ConvertToOperationResultCateory(operation_result_code_));
   payload.set_allocated_operation_result(operation_result_proto.release());
 
   return payload;
@@ -1694,6 +1694,11 @@ AnalyticsRecorder::LogicalConnection::GetPendingPayloadResultCodeFromReason(
     default:
       return OperationResultCode::NEARBY_GENERIC_CONNECTION_CLOSED;
   }
+}
+
+OperationResultCategory AnalyticsRecorder::GetOperationResultCateory(
+    location::nearby::proto::connections::OperationResultCode result_code) {
+  return ConvertToOperationResultCateory(result_code);
 }
 
 void AnalyticsRecorder::Sync() {
