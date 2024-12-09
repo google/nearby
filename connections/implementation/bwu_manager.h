@@ -15,7 +15,6 @@
 #ifndef CORE_INTERNAL_BWU_MANAGER_H_
 #define CORE_INTERNAL_BWU_MANAGER_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
@@ -26,9 +25,17 @@
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/medium_selector.h"
+#include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/count_down_latch.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/scheduled_executor.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -167,7 +174,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void ProcessBwuPathAvailableEvent(ClientProxy* client,
                                     const std::string& endpoint_id,
                                     const UpgradePathInfo& upgrade_path_info);
-  std::unique_ptr<EndpointChannel> ProcessBwuPathAvailableEventInternal(
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  ProcessBwuPathAvailableEventInternal(
       ClientProxy* client, const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info);
   void ProcessLastWriteToPriorChannelEvent(ClientProxy* client,
@@ -181,9 +189,13 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void ProcessEndpointDisconnection(ClientProxy* client,
                                     const std::string& endpoint_id,
                                     CountDownLatch* barrier);
-  void ProcessUpgradeFailureEvent(ClientProxy* client,
-                                  const std::string& endpoint_id,
-                                  const UpgradePathInfo& upgrade_info);
+  void ProcessUpgradeFailureEvent(
+      ClientProxy* client, const std::string& endpoint_id,
+      const UpgradePathInfo& upgrade_info,
+      location::nearby::proto::connections::BandwidthUpgradeResult result,
+      bool record_analytic,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code);
   void CancelRetryUpgradeAlarm(const std::string& endpoint_id);
   void CancelAllRetryUpgradeAlarms();
   void TryNextBestUpgradeMediums(ClientProxy* client,
@@ -195,7 +207,9 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
       location::nearby::proto::connections::BandwidthUpgradeResult result,
       location::nearby::proto::connections::BandwidthUpgradeErrorStage
-          error_stage);
+          error_stage,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code);
 
   bool is_single_threaded_for_testing_ = false;
 
