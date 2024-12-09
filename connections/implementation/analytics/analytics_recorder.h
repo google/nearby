@@ -55,6 +55,9 @@ class AnalyticsRecorder {
   void OnStartAdvertising(
       connections::Strategy strategy,
       const std::vector<location::nearby::proto::connections::Medium> &mediums,
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium>
+          &operation_result_with_medium,
       bool is_extended_advertisement_supported = false,
       int connected_ap_frequency = 0, bool is_nfc_available = false)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -69,6 +72,9 @@ class AnalyticsRecorder {
   void OnStartDiscovery(
       connections::Strategy strategy,
       const std::vector<location::nearby::proto::connections::Medium> &mediums,
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium>
+          &operation_result_with_medium,
       bool is_extended_advertisement_supported = false,
       int connected_ap_frequency = 0, bool is_nfc_available = false)
       ABSL_LOCKS_EXCLUDED(mutex_);

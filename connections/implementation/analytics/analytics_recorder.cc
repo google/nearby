@@ -38,6 +38,7 @@
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
+#include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
 namespace analytics {
@@ -203,6 +204,8 @@ void AnalyticsRecorder::ResetClientSessionLoggingResoucesLocked() {
 
 void AnalyticsRecorder::OnStartAdvertising(
     connections::Strategy strategy, const std::vector<Medium> &mediums,
+    const std::vector<ConnectionsLog::OperationResultWithMedium>
+        &operation_result_with_mediums,
     bool is_extended_advertisement_supported, int connected_ap_frequency,
     bool is_nfc_available) {
   MutexLock lock(&mutex_);
@@ -223,6 +226,9 @@ void AnalyticsRecorder::OnStartAdvertising(
       std::make_unique<ConnectionsLog::AdvertisingPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_advertising_phase_->mutable_medium()));
+  absl::c_copy(operation_result_with_mediums,
+               RepeatedFieldBackInserter(
+                   current_advertising_phase_->mutable_adv_dis_result()));
   // Set a AdvertisingMetadata.
   auto *advertising_metadata =
       current_advertising_phase_->mutable_advertising_metadata();
@@ -242,6 +248,8 @@ void AnalyticsRecorder::OnStopAdvertising() {
 
 void AnalyticsRecorder::OnStartDiscovery(
     connections::Strategy strategy, const std::vector<Medium> &mediums,
+    const std::vector<ConnectionsLog::OperationResultWithMedium>
+        &operation_result_with_mediums,
     bool is_extended_advertisement_supported, int connected_ap_frequency,
     bool is_nfc_available) {
   MutexLock lock(&mutex_);
@@ -262,6 +270,9 @@ void AnalyticsRecorder::OnStartDiscovery(
   current_discovery_phase_ = std::make_unique<ConnectionsLog::DiscoveryPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_discovery_phase_->mutable_medium()));
+  absl::c_copy(operation_result_with_mediums,
+               RepeatedFieldBackInserter(
+                   current_discovery_phase_->mutable_adv_dis_result()));
   // Set a DiscoveryMetadata.
   auto *discovery_metadata =
       current_discovery_phase_->mutable_discovery_metadata();

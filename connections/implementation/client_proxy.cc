@@ -240,7 +240,9 @@ void ClientProxy::StartedAdvertising(
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
-  analytics_recorder_->OnStartAdvertising(strategy, medium_vector, false, 0);
+  // TODO(edwinwu): Implement to pass real values for OperatoinResultWithMedium.
+  analytics_recorder_->OnStartAdvertising(strategy, medium_vector, {}, false,
+                                          0);
 }
 
 void ClientProxy::StoppedAdvertising() {
@@ -366,7 +368,8 @@ void ClientProxy::StartedDiscovery(
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
-  analytics_recorder_->OnStartDiscovery(strategy, medium_vector, false, 0);
+  // TODO(edwinwu): Implement to pass real values for OperatoinResultWithMedium.
+  analytics_recorder_->OnStartDiscovery(strategy, medium_vector, {}, false, 0);
 }
 
 void ClientProxy::StoppedDiscovery() {
