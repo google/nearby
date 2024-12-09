@@ -41,8 +41,8 @@
 #include "absl/types/span.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/account_manager.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
+#include "proto/identity/resources.pb.h"
+#include "proto/identity/rpcs.pb.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -75,8 +75,8 @@ namespace nearby {
 namespace sharing {
 namespace {
 
-using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
-using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
+using ::google::nearby::identity::QuerySharedCredentialsRequest;
+using ::google::nearby::identity::QuerySharedCredentialsResponse;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::PublicCertificateDatabase;
 using ::nearby::sharing::api::SharingPlatform;
@@ -346,7 +346,7 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
         }
         for (const auto& credential : response->shared_credentials()) {
           if (credential.data_type() !=
-              google::nearby::identity::v1::SharedCredential::
+              google::nearby::identity::SharedCredential::
                   DATA_TYPE_PUBLIC_CERTIFICATE) {
             LOG(WARNING) << __func__
                          << ": [Call Identity API] skipping non "

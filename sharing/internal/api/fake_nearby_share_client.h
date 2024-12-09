@@ -110,54 +110,53 @@ class FakeNearbyIdentityClient
   FakeNearbyIdentityClient() = default;
   ~FakeNearbyIdentityClient() override = default;
 
-  std::vector<google::nearby::identity::v1::PublishDeviceRequest>&
+  std::vector<google::nearby::identity::PublishDeviceRequest>&
   publish_device_requests() {
     return publish_device_requests_;
   }
 
-  std::vector<google::nearby::identity::v1::QuerySharedCredentialsRequest>&
+  std::vector<google::nearby::identity::QuerySharedCredentialsRequest>&
   query_shared_credentials_requests() {
     return query_shared_credentials_requests_;
   }
 
   void PublishDevice(
-      const google::nearby::identity::v1::PublishDeviceRequest& request,
+      const google::nearby::identity::PublishDeviceRequest& request,
       absl::AnyInvocable<
-          void(const absl::StatusOr<google::nearby::identity::v1::
-                                        PublishDeviceResponse>& response) &&>
+          void(const absl::StatusOr<
+               google::nearby::identity::PublishDeviceResponse>& response) &&>
           callback) override;
 
   void SetPublishDeviceResponse(
-      absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>
+      absl::StatusOr<google::nearby::identity::PublishDeviceResponse>
           response) {
     publish_device_response_ = response;
   }
 
   void QuerySharedCredentials(
-      const google::nearby::identity::v1::QuerySharedCredentialsRequest&
-          request,
+      const google::nearby::identity::QuerySharedCredentialsRequest& request,
       absl::AnyInvocable<
           void(const absl::StatusOr<
-               google::nearby::identity::v1::QuerySharedCredentialsResponse>&
+               google::nearby::identity::QuerySharedCredentialsResponse>&
                    response) &&>
           callback) override;
 
   void SetQuerySharedCredentialsResponses(
       std::vector<absl::StatusOr<
-          google::nearby::identity::v1::QuerySharedCredentialsResponse>>
+          google::nearby::identity::QuerySharedCredentialsResponse>>
           responses) {
     query_shared_credentials_responses_ = responses;
   }
 
-  std::vector<google::nearby::identity::v1::PublishDeviceRequest>
+  std::vector<google::nearby::identity::PublishDeviceRequest>
       publish_device_requests_;
-  absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>
+  absl::StatusOr<google::nearby::identity::PublishDeviceResponse>
       publish_device_response_;
 
-  std::vector<google::nearby::identity::v1::QuerySharedCredentialsRequest>
+  std::vector<google::nearby::identity::QuerySharedCredentialsRequest>
       query_shared_credentials_requests_;
-  std::vector<absl::StatusOr<
-      google::nearby::identity::v1::QuerySharedCredentialsResponse>>
+  std::vector<
+      absl::StatusOr<google::nearby::identity::QuerySharedCredentialsResponse>>
       query_shared_credentials_responses_;
 };
 

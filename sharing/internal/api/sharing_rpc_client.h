@@ -19,7 +19,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
-#include "proto/identity/v1/rpcs.pb.h"
+#include "proto/identity/rpcs.pb.h"
 #include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/contact_rpc.pb.h"
@@ -34,19 +34,18 @@ class IdentityRpcClient {
   virtual ~IdentityRpcClient() = default;
 
   virtual void QuerySharedCredentials(
-      const google::nearby::identity::v1::QuerySharedCredentialsRequest&
-          request,
+      const google::nearby::identity::QuerySharedCredentialsRequest& request,
       absl::AnyInvocable<
           void(const absl::StatusOr<
-               google::nearby::identity::v1::QuerySharedCredentialsResponse>&
+               google::nearby::identity::QuerySharedCredentialsResponse>&
                    response) &&>
           callback) = 0;
 
   virtual void PublishDevice(
-      const google::nearby::identity::v1::PublishDeviceRequest& request,
+      const google::nearby::identity::PublishDeviceRequest& request,
       absl::AnyInvocable<
-          void(const absl::StatusOr<google::nearby::identity::v1::
-                                        PublishDeviceResponse>& response) &&>
+          void(const absl::StatusOr<
+               google::nearby::identity::PublishDeviceResponse>& response) &&>
           callback) = 0;
 };
 

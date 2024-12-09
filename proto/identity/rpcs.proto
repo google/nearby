@@ -1,0 +1,72 @@
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// DO NOT EDIT DIRECTLY.
+// This file is a third_party mirror of
+// google/nearby/identity/v1/rpcs.proto.
+
+syntax = "proto3";
+
+package google.nearby.identity;
+
+import "proto/identity/resources.proto";
+
+option java_package = "com.google.nearby.identity";
+option java_outer_classname = "RpcsProto";
+option java_multiple_files = true;
+option optimize_for = LITE_RUNTIME;
+
+// Publish the Device's SharedCredentials, its meta-info and contacts info
+// that the backend uses to distribute the SharedCredentials.
+message PublishDeviceRequest {
+  // The Device with both metadata and SharedCredentials.
+  Device device = 1;
+}
+// The response message for PublishDevic RPC.
+message PublishDeviceResponse {
+  // The enum used to indicate the contact update result.
+  enum ContactUpdate {
+    // The contact is not updated.
+    CONTACT_UPDATE_UNSPECIFIED = 0;
+    // The contact is updated.
+    CONTACT_UPDATE_ADDED = 1;
+    // The contact is removed.
+    CONTACT_UPDATE_REMOVED = 2;
+  }
+  // The contact update result.
+  repeated ContactUpdate contact_updates = 1;
+}
+
+// Query all the SharedCredentials.
+message QuerySharedCredentialsRequest {
+  // The Device to query with format: devices/{device}. The device is the
+  // requester's current device-id. The device-id is used to filter out the
+  // SharedCredentials from the current device as the device has all of them.
+  string name = 1;
+  // the page size for the streaming request.
+  int32 page_size = 2;
+  // the continue token.
+  string page_token = 3;
+}
+
+// The message containing all the SharedCredentials the requester can access,
+// i.e. those devices using the SharedCredentials in advertising are visible to
+// the requester.
+message QuerySharedCredentialsResponse {
+  // All the unexpired SharedCredentials that other devices has shared with the
+  // requester
+  repeated SharedCredential shared_credentials = 1;
+  // next page token.
+  string next_page_token = 2;
+}
