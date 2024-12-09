@@ -888,8 +888,9 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
   // Error to upgrade.
-  analytics_recorder.OnBandwidthUpgradeError(endpoint_id, WIFI_LAN_MEDIUM_ERROR,
-                                             WIFI_LAN_SOCKET_CREATION);
+  analytics_recorder.OnBandwidthUpgradeError(
+      endpoint_id, WIFI_LAN_MEDIUM_ERROR, WIFI_LAN_SOCKET_CREATION,
+      OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL);
   // Success to upgrade.
   analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
   // Upgrade is unfinished.
@@ -920,6 +921,10 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_CONNECTIVITY_ERROR
+              result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
+            >
           >
           upgrade_attempt <
             direction: INCOMING
@@ -928,6 +933,10 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
           upgrade_attempt {
             direction: INCOMING
@@ -936,6 +945,10 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             upgrade_result: UNFINISHED_ERROR
             error_stage: UPGRADE_UNFINISHED
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_DEVICE_STATE_ERROR
+              result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+            >
           }
         >)pb");
 
@@ -962,8 +975,9 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
   // Error to upgrade.
-  analytics_recorder.OnBandwidthUpgradeError(endpoint_id, WIFI_LAN_MEDIUM_ERROR,
-                                             WIFI_LAN_SOCKET_CREATION);
+  analytics_recorder.OnBandwidthUpgradeError(
+      endpoint_id, WIFI_LAN_MEDIUM_ERROR, WIFI_LAN_SOCKET_CREATION,
+      OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL);
   // Success to upgrade.
   analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
 
@@ -982,6 +996,10 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_CONNECTIVITY_ERROR
+              result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
+            >
           >
           upgrade_attempt <
             direction: INCOMING
@@ -990,6 +1008,10 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
         >)pb");
 
@@ -1498,8 +1520,9 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
   // - Error to upgrade.
-  analytics_recorder.OnBandwidthUpgradeError(endpoint_id, WIFI_LAN_MEDIUM_ERROR,
-                                             WIFI_LAN_SOCKET_CREATION);
+  analytics_recorder.OnBandwidthUpgradeError(
+      endpoint_id, WIFI_LAN_MEDIUM_ERROR, WIFI_LAN_SOCKET_CREATION,
+      OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL);
   // - Success to upgrade.
   analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
 
@@ -1535,6 +1558,10 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_CONNECTIVITY_ERROR
+              result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
+            >
           >
           upgrade_attempt <
             direction: INCOMING
@@ -1543,6 +1570,10 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
           upgrade_attempt {
             direction: INCOMING
@@ -1551,6 +1582,10 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: UNFINISHED_ERROR
             error_stage: UPGRADE_UNFINISHED
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_DEVICE_STATE_ERROR
+              result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+            >
           }
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
@@ -1600,6 +1635,10 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_CONNECTIVITY_ERROR
+              result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
+            >
           >
           upgrade_attempt <
             direction: INCOMING
@@ -1608,6 +1647,10 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
           upgrade_attempt {
             direction: INCOMING
@@ -1616,6 +1659,10 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: UNFINISHED_ERROR
             error_stage: UPGRADE_UNFINISHED
             connection_token: "connection_token"
+            operation_result <
+              result_category: CATEGORY_DEVICE_STATE_ERROR
+              result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+            >
           }
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),

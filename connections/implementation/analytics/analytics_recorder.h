@@ -182,7 +182,9 @@ class AnalyticsRecorder {
       const std::string &endpoint_id,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
       location::nearby::proto::connections::BandwidthUpgradeErrorStage
-          error_stage) ABSL_LOCKS_EXCLUDED(mutex_);
+          error_stage,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) ABSL_LOCKS_EXCLUDED(mutex_);
   void OnBandwidthUpgradeSuccess(const std::string &endpoint_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -371,11 +373,20 @@ class AnalyticsRecorder {
       location::nearby::proto::connections::ConnectionAttemptType type,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool EraseIfBandwidthUpgradeRecordExistedLocked(
+      const std::string &endpoint_id,
+      location::nearby::proto::connections::BandwidthUpgradeResult result,
+      location::nearby::proto::connections::BandwidthUpgradeErrorStage
+          error_stage,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishUpgradeAttemptLocked(
       const std::string &endpoint_id,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
       location::nearby::proto::connections::BandwidthUpgradeErrorStage
           error_stage,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code,
       bool erase_item = true) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishStrategySessionLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

@@ -738,12 +738,19 @@ void AnalyticsRecorder::OnBandwidthUpgradeStarted(
 
 void AnalyticsRecorder::OnBandwidthUpgradeError(
     const std::string &endpoint_id, BandwidthUpgradeResult result,
-    BandwidthUpgradeErrorStage error_stage) {
+    BandwidthUpgradeErrorStage error_stage,
+    OperationResultCode operation_result_code) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnBandwidthUpgradeError")) {
     return;
   }
-  FinishUpgradeAttemptLocked(endpoint_id, result, error_stage);
+  // If the same records existed, drop this one.
+  if (EraseIfBandwidthUpgradeRecordExistedLocked(
+          endpoint_id, result, error_stage, operation_result_code)) {
+    return;
+  }
+  FinishUpgradeAttemptLocked(endpoint_id, result, error_stage,
+                             operation_result_code);
 }
 
 void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
@@ -753,7 +760,8 @@ void AnalyticsRecorder::OnBandwidthUpgradeSuccess(
     return;
   }
   FinishUpgradeAttemptLocked(endpoint_id, UPGRADE_RESULT_SUCCESS,
-                             UPGRADE_SUCCESS);
+                             UPGRADE_SUCCESS,
+                             OperationResultCode::DETAIL_SUCCESS);
 }
 
 void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
@@ -1156,9 +1164,39 @@ bool AnalyticsRecorder::ConnectionAttemptResultCodeExistedLocked(
   return false;
 }
 
+// If bandwidth upgrade always failed on the same fromMedium, toMedium, result,
+// stage and result code, we'll drop the duplicate logs for preventing the waste
+// of log storage space
+bool AnalyticsRecorder::EraseIfBandwidthUpgradeRecordExistedLocked(
+    const std::string &endpoint_id, BandwidthUpgradeResult result,
+    BandwidthUpgradeErrorStage error_stage,
+    OperationResultCode operation_result_code) {
+  if (current_strategy_session_ == nullptr) {
+    return false;
+  }
+  auto it = bandwidth_upgrade_attempts_.find(endpoint_id);
+  if (it != bandwidth_upgrade_attempts_.end()) {
+    ConnectionsLog::BandwidthUpgradeAttempt *attempt = it->second.get();
+    for (auto &existing_attempt :
+         current_strategy_session_->upgrade_attempt()) {
+      if (attempt->from_medium() == existing_attempt.from_medium() &&
+          attempt->to_medium() == existing_attempt.to_medium() &&
+          result == existing_attempt.upgrade_result() &&
+          error_stage == existing_attempt.error_stage() &&
+          operation_result_code ==
+              existing_attempt.operation_result().result_code()) {
+        bandwidth_upgrade_attempts_.erase(it);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 void AnalyticsRecorder::FinishUpgradeAttemptLocked(
     const std::string &endpoint_id, BandwidthUpgradeResult result,
-    BandwidthUpgradeErrorStage error_stage, bool erase_item) {
+    BandwidthUpgradeErrorStage error_stage,
+    OperationResultCode operation_result_code, bool erase_item) {
   if (current_strategy_session_ == nullptr) {
     NEARBY_LOGS(INFO) << "Unable to record upgrade attempt due to null "
                          "current_strategy_session_";
@@ -1173,6 +1211,13 @@ void AnalyticsRecorder::FinishUpgradeAttemptLocked(
         attempt->duration_millis());
     attempt->set_error_stage(error_stage);
     attempt->set_upgrade_result(result);
+
+    auto operation_result_proto =
+        std::make_unique<ConnectionsLog::OperationResult>();
+    operation_result_proto->set_result_code(operation_result_code);
+    operation_result_proto->set_result_category(
+        GetOperationResultCateory(operation_result_code));
+    attempt->set_allocated_operation_result(operation_result_proto.release());
     *current_strategy_session_->add_upgrade_attempt() = *attempt;
     if (erase_item) {
       bandwidth_upgrade_attempts_.erase(it);
@@ -1199,8 +1244,10 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
 
     // Finish any pending upgrade attempts.
     for (const auto &item : bandwidth_upgrade_attempts_) {
-      FinishUpgradeAttemptLocked(item.first, UNFINISHED_ERROR,
-                                 UPGRADE_UNFINISHED, /*erase_item=*/false);
+      FinishUpgradeAttemptLocked(
+          item.first, UNFINISHED_ERROR, UPGRADE_UNFINISHED,
+          OperationResultCode::DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS,
+          /*erase_item=*/false);
     }
     bandwidth_upgrade_attempts_.clear();
 
