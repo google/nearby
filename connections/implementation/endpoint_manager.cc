@@ -30,7 +30,6 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/offline_frames.h"
-#include "connections/implementation/payload_manager.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/service_id_constants.h"
 #include "connections/listeners.h"
@@ -57,9 +56,8 @@ using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
+using ::location::nearby::proto::connections::DisconnectionReason;
 using ::nearby::analytics::PacketMetaData;
-using DisconnectionReason =
-    ::location::nearby::proto::connections::DisconnectionReason;
 
 // We set this to 11s to provide sufficient time for an in-progress WebRTC
 // bandwidth upgrade to resolve. This is chosen to be slightly longer than the

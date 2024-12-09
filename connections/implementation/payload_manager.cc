@@ -48,6 +48,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -631,8 +632,10 @@ void PayloadManager::OnEndpointDisconnect(ClientProxy* client,
             case DisconnectionReason::IO_ERROR:
             default:
               payload_status = PayloadStatus::ENDPOINT_IO_ERROR;
-              // TODO(edwinwu): Add for return result code
-              operation_result_code = OperationResultCode::DETAIL_UNKNOWN;
+              operation_result_code =
+                  client->GetAnalyticsRecorder()
+                      .GetChannelIoErrorResultCodeFromMedium(
+                          client->GetConnectedMedium(endpoint_id));
               break;
           }
 
@@ -783,14 +786,14 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
   return payload_chunk;
 }
 
-std::pair<PayloadManager::PendingPayloadHandle, OperationResultCode>
+ErrorOr<PayloadManager::PendingPayloadHandle>
 PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
                                       const std::string& endpoint_id) {
-  // TODO(edwinwu): Add for return result code
-  auto internal_payload =
+  // TODO(edwinwu): Add for return result code in CreateIncomingInternalPayload.
+  std::unique_ptr<InternalPayload> internal_payload =
       CreateIncomingInternalPayload(frame, custom_save_path_);
   if (!internal_payload) {
-    return {PendingPayloadHandle(), OperationResultCode::DETAIL_UNKNOWN};
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   Payload::Id payload_id = internal_payload->GetId();
@@ -800,8 +803,7 @@ PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
       std::make_unique<PendingPayload>(
           std::move(internal_payload), EndpointIds{endpoint_id}, true,
           absl::bind_front(&PayloadManager::OnPendingPayloadDestroy, this)));
-  return {pending_payloads_.GetPayload(payload_id),
-          OperationResultCode::DETAIL_UNKNOWN};
+  return {pending_payloads_.GetPayload(payload_id)};
 }
 
 void PayloadManager::OnPendingPayloadDestroy(const PendingPayload* payload) {
@@ -847,13 +849,14 @@ void PayloadManager::SendClientCallbacksForFinishedOutgoingPayload(
           // Notify the client.
           client->OnPayloadProgress(endpoint_id, update);
 
-          // TODO(edwinwu): Add for return result code
           // Mark this payload as done for analytics.
           client->GetAnalyticsRecorder().OnOutgoingPayloadDone(
               endpoint_id, payload_header.id(), status,
               (operation_result_code == OperationResultCode::DETAIL_UNKNOWN &&
                status == PayloadStatus::ENDPOINT_IO_ERROR)
-                  ? OperationResultCode::DETAIL_UNKNOWN
+                  ? client->GetAnalyticsRecorder()
+                        .GetChannelIoErrorResultCodeFromMedium(
+                            client->GetConnectedMedium(endpoint_id))
                   : operation_result_code);
         }
 
@@ -1334,17 +1337,17 @@ void PayloadManager::ProcessDataPacket(
               payload_header.total_size());
         });
 
-    std::pair<PendingPayloadHandle, OperationResultCode> result =
+    ErrorOr<PendingPayloadHandle> result =
         CreateIncomingPayload(payload_transfer_frame, from_endpoint_id);
-    pending_payload = std::move(result.first);
-    OperationResultCode operation_result_code = result.second;
-    if (!pending_payload) {
+    if (result.has_error()) {
       LOG(WARNING) << "PayloadManager failed to create InternalPayload from "
                       "PayloadTransferFrame with payload_id="
                    << payload_header.id() << " and type "
                    << payload_header.type() << ", aborting receipt.";
 
       // Analyticize.
+      OperationResultCode operation_result_code =
+          result.error().operation_result_code().value();
       RunOnStatusUpdateThread(
           "process-data-packet",
           [to_client, from_endpoint_id, payload_header, operation_result_code]()
@@ -1359,6 +1362,8 @@ void PayloadManager::ProcessDataPacket(
                          payload_chunk.offset(),
                          PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR);
       return;
+    } else {
+      pending_payload = std::move(result.value());
     }
     // Also, let the client know of this new incoming payload.
     RunOnStatusUpdateThread(

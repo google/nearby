@@ -39,6 +39,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/single_thread_executor.h"
 
@@ -324,9 +325,7 @@ class PayloadManager : public EndpointManager::FrameProcessor {
                  LAST_CHUNK) != 0);
   }
 
-  std::pair<PendingPayloadHandle,
-            location::nearby::proto::connections::OperationResultCode>
-  CreateIncomingPayload(
+  ErrorOr<PendingPayloadHandle> CreateIncomingPayload(
       const location::nearby::connections::PayloadTransferFrame& frame,
       const std::string& endpoint_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
