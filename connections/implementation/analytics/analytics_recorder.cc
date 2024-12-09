@@ -160,6 +160,15 @@ AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
   LogStartSession();
 }
 
+AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger,
+                                     bool no_record_time_millis)
+    : event_logger_(event_logger),
+      no_record_time_millis_(no_record_time_millis) {
+  NEARBY_LOGS(INFO) << "Start AnalyticsRecorder ctor event_logger_="
+                    << event_logger_;
+  LogStartSession();
+}
+
 AnalyticsRecorder::~AnalyticsRecorder() {
   serial_executor_.Shutdown();
   MutexLock lock(&mutex_);
@@ -303,8 +312,10 @@ void AnalyticsRecorder::OnEndpointFound(Medium medium) {
   ConnectionsLog::DiscoveredEndpoint *discovered_endpoint =
       current_discovery_phase_->add_discovered_endpoint();
   discovered_endpoint->set_medium(medium);
-  discovered_endpoint->set_latency_millis(absl::ToInt64Milliseconds(
-      SystemClock::ElapsedRealtime() - started_discovery_phase_time_));
+  if (!no_record_time_millis_) {
+    discovered_endpoint->set_latency_millis(absl::ToInt64Milliseconds(
+        SystemClock::ElapsedRealtime() - started_discovery_phase_time_));
+  }
 }
 
 void AnalyticsRecorder::OnRequestConnection(
@@ -329,9 +340,11 @@ void AnalyticsRecorder::OnConnectionRequestReceived(
   absl::Time current_time = SystemClock::ElapsedRealtime();
   auto connection_request =
       std::make_unique<ConnectionsLog::ConnectionRequest>();
-  connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
-  connection_request->set_request_delay_millis(absl::ToInt64Milliseconds(
-      current_time - started_advertising_phase_time_));
+  if (!no_record_time_millis_) {
+    connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
+    connection_request->set_request_delay_millis(absl::ToInt64Milliseconds(
+        current_time - started_advertising_phase_time_));
+  }
   incoming_connection_requests_.insert(
       {remote_endpoint_id, std::move(connection_request)});
 }
@@ -345,9 +358,11 @@ void AnalyticsRecorder::OnConnectionRequestSent(
   absl::Time current_time = SystemClock::ElapsedRealtime();
   auto connection_request =
       std::make_unique<ConnectionsLog::ConnectionRequest>();
-  connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
-  connection_request->set_request_delay_millis(
-      absl::ToInt64Milliseconds(current_time - started_discovery_phase_time_));
+  if (!no_record_time_millis_) {
+    connection_request->set_duration_millis(absl::ToUnixMillis(current_time));
+    connection_request->set_request_delay_millis(absl::ToInt64Milliseconds(
+        current_time - started_discovery_phase_time_));
+  }
   outgoing_connection_requests_.insert(
       {remote_endpoint_id, std::move(connection_request)});
 }
@@ -419,7 +434,10 @@ void AnalyticsRecorder::OnIncomingConnectionAttemptLocked(
     ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
   auto *connection_attempt =
       current_strategy_session_->add_connection_attempt();
-  connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
+  if (!no_record_time_millis_) {
+    connection_attempt->set_duration_millis(
+        absl::ToInt64Milliseconds(duration));
+  }
   connection_attempt->set_type(type);
   connection_attempt->set_direction(INCOMING);
   connection_attempt->set_medium(medium);
@@ -504,7 +522,10 @@ void AnalyticsRecorder::OnOutgoingConnectionAttemptLocked(
     ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
   auto *connection_attempt =
       current_strategy_session_->add_connection_attempt();
-  connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
+  if (!no_record_time_millis_) {
+    connection_attempt->set_duration_millis(
+        absl::ToInt64Milliseconds(duration));
+  }
   connection_attempt->set_type(type);
   connection_attempt->set_direction(OUTGOING);
   connection_attempt->set_medium(medium);
@@ -576,8 +597,8 @@ void AnalyticsRecorder::OnConnectionEstablished(
     logical_connection->PhysicalConnectionEstablished(medium, connection_token);
   } else {
     active_connections_.insert(
-        {endpoint_id,
-         std::make_unique<LogicalConnection>(medium, connection_token)});
+        {endpoint_id, std::make_unique<LogicalConnection>(
+                          medium, connection_token, no_record_time_millis_)});
   }
 }
 
@@ -729,8 +750,10 @@ void AnalyticsRecorder::OnBandwidthUpgradeStarted(
   }
   auto bandwidth_upgrade_attempt =
       std::make_unique<ConnectionsLog::BandwidthUpgradeAttempt>();
-  bandwidth_upgrade_attempt->set_duration_millis(
-      absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
+  if (!no_record_time_millis_) {
+    bandwidth_upgrade_attempt->set_duration_millis(
+        absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
+  }
   bandwidth_upgrade_attempt->set_from_medium(from_medium);
   bandwidth_upgrade_attempt->set_to_medium(to_medium);
   bandwidth_upgrade_attempt->set_direction(direction);
@@ -856,8 +879,10 @@ void AnalyticsRecorder::LogSession() {
     return;
   }
   FinishStrategySessionLocked();
-  client_session_->set_duration_millis(absl::ToInt64Milliseconds(
-      SystemClock::ElapsedRealtime() - started_client_session_time_));
+  if (!no_record_time_millis_) {
+    client_session_->set_duration_millis(absl::ToInt64Milliseconds(
+        SystemClock::ElapsedRealtime() - started_client_session_time_));
+  }
   LogClientSessionLocked();
   LogEvent(STOP_CLIENT_SESSION);
   session_was_logged_ = true;
@@ -1001,7 +1026,8 @@ void AnalyticsRecorder::RecordAdvertisingPhaseDurationLocked() const {
                          "null current_advertising_phase_";
     return;
   }
-  if (!current_advertising_phase_->has_duration_millis()) {
+  if (!current_advertising_phase_->has_duration_millis() &&
+      !no_record_time_millis_) {
     current_advertising_phase_->set_duration_millis(absl::ToInt64Milliseconds(
         SystemClock::ElapsedRealtime() - started_advertising_phase_time_));
   }
@@ -1030,7 +1056,8 @@ void AnalyticsRecorder::RecordDiscoveryPhaseDurationLocked() const {
                          "null current_discovery_phase_";
     return;
   }
-  if (!current_discovery_phase_->has_duration_millis()) {
+  if (!current_discovery_phase_->has_duration_millis() &&
+      !no_record_time_millis_) {
     current_discovery_phase_->set_duration_millis(absl::ToInt64Milliseconds(
         SystemClock::ElapsedRealtime() - started_discovery_phase_time_));
   }
@@ -1062,9 +1089,11 @@ bool AnalyticsRecorder::UpdateAdvertiserConnectionRequestLocked(
     return false;
   }
   if (BothEndpointsRespondedLocked(request)) {
-    request->set_duration_millis(
-        absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
-        request->duration_millis());
+    if (!no_record_time_millis_) {
+      request->set_duration_millis(
+          absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
+          request->duration_millis());
+    }
     *current_advertising_phase_->add_received_connection_request() = *request;
     return true;
   }
@@ -1080,9 +1109,11 @@ bool AnalyticsRecorder::UpdateDiscovererConnectionRequestLocked(
   }
   if (BothEndpointsRespondedLocked(request) ||
       request->local_response() == NOT_SENT) {
-    request->set_duration_millis(
-        absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
-        request->duration_millis());
+    if (!no_record_time_millis_) {
+      request->set_duration_millis(
+          absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
+          request->duration_millis());
+    }
     *current_discovery_phase_->add_sent_connection_request() = *request;
     return true;
   }
@@ -1209,9 +1240,11 @@ void AnalyticsRecorder::FinishUpgradeAttemptLocked(
   auto it = bandwidth_upgrade_attempts_.find(endpoint_id);
   if (it != bandwidth_upgrade_attempts_.end()) {
     ConnectionsLog::BandwidthUpgradeAttempt *attempt = it->second.get();
-    attempt->set_duration_millis(
-        absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
-        attempt->duration_millis());
+    if (!no_record_time_millis_) {
+      attempt->set_duration_millis(
+          absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
+          attempt->duration_millis());
+    }
     attempt->set_error_stage(error_stage);
     attempt->set_upgrade_result(result);
 
@@ -1256,8 +1289,11 @@ void AnalyticsRecorder::FinishStrategySessionLocked() {
 
     // Add the StrategySession in ClientSession
     if (current_strategy_session_ != nullptr) {
-      current_strategy_session_->set_duration_millis(absl::ToInt64Milliseconds(
-          SystemClock::ElapsedRealtime() - started_strategy_session_time_));
+      if (!no_record_time_millis_) {
+        current_strategy_session_->set_duration_millis(
+            absl::ToInt64Milliseconds(SystemClock::ElapsedRealtime() -
+                                      started_strategy_session_time_));
+      }
       *client_session_->add_strategy_session() =
           *std::move(current_strategy_session_);
     }
@@ -1305,8 +1341,10 @@ void AnalyticsRecorder::PendingPayload::AddChunk(
 ConnectionsLog::Payload AnalyticsRecorder::PendingPayload::GetProtoPayload(
     PayloadStatus status) {
   ConnectionsLog::Payload payload;
-  payload.set_duration_millis(
-      absl::ToInt64Milliseconds(SystemClock::ElapsedRealtime() - start_time_));
+  if (!no_record_time_millis_) {
+    payload.set_duration_millis(absl::ToInt64Milliseconds(
+        SystemClock::ElapsedRealtime() - start_time_));
+  }
   payload.set_type(type_);
   payload.set_total_size_bytes(total_size_bytes_);
   payload.set_num_bytes_transferred(num_bytes_transferred_);
@@ -1334,8 +1372,10 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionEstablished(
   auto established_connection =
       std::make_unique<ConnectionsLog::EstablishedConnection>();
   established_connection->set_medium(medium);
-  established_connection->set_duration_millis(
-      absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
+  if (!no_record_time_millis_) {
+    established_connection->set_duration_millis(
+        absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
+  }
   established_connection->set_connection_token(connection_token);
 
   auto operation_result_proto =
@@ -1432,7 +1472,8 @@ AnalyticsRecorder::LogicalConnection::GetEstablisedConnections() {
 void AnalyticsRecorder::LogicalConnection::IncomingPayloadStarted(
     std::int64_t payload_id, PayloadType type, std::int64_t total_size_bytes) {
   incoming_payloads_.insert(
-      {payload_id, std::make_unique<PendingPayload>(type, total_size_bytes)});
+      {payload_id, std::make_unique<PendingPayload>(type, total_size_bytes,
+                                                    no_record_time_millis_)});
 }
 
 void AnalyticsRecorder::LogicalConnection::ChunkReceived(
@@ -1470,7 +1511,8 @@ void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
 void AnalyticsRecorder::LogicalConnection::OutgoingPayloadStarted(
     std::int64_t payload_id, PayloadType type, std::int64_t total_size_bytes) {
   outgoing_payloads_.insert(
-      {payload_id, std::make_unique<PendingPayload>(type, total_size_bytes)});
+      {payload_id, std::make_unique<PendingPayload>(type, total_size_bytes,
+                                                    no_record_time_millis_)});
 }
 
 void AnalyticsRecorder::LogicalConnection::ChunkSent(std::int64_t payload_id,
@@ -1510,9 +1552,11 @@ void AnalyticsRecorder::LogicalConnection::FinishPhysicalConnection(
     DisconnectionReason reason, SafeDisconnectionResult result) {
   established_connection->set_disconnection_reason(reason);
   established_connection->set_safe_disconnection_result(result);
-  established_connection->set_duration_millis(
-      absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
-      established_connection->duration_millis());
+  if (!no_record_time_millis_) {
+    established_connection->set_duration_millis(
+        absl::ToUnixMillis(SystemClock::ElapsedRealtime()) -
+        established_connection->duration_millis());
+  }
 
   // Add any not-yet-finished payloads to this EstablishedConnection.
   std::vector<ConnectionsLog::Payload> in_payloads =
@@ -1549,9 +1593,9 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
     if (reason == UPGRADED) {
       upgraded_payloads.insert(
           {item.first,
-           std::make_unique<PendingPayload>(pending_payload->type(),
-                                            pending_payload->total_size_bytes(),
-                                            operation_result_code)});
+           std::make_unique<PendingPayload>(
+               pending_payload->type(), pending_payload->total_size_bytes(),
+               no_record_time_millis_, operation_result_code)});
     }
   }
   pending_payloads.clear();

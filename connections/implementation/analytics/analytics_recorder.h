@@ -42,6 +42,9 @@ namespace analytics {
 class AnalyticsRecorder {
  public:
   explicit AnalyticsRecorder(::nearby::analytics::EventLogger *event_logger);
+  // For testing only.
+  AnalyticsRecorder(::nearby::analytics::EventLogger *event_logger,
+                    bool no_record_time_millis);
   virtual ~AnalyticsRecorder();
 
   // TODO(edwinwu): Implement to pass real values for AdvertisingMetadata and
@@ -213,12 +216,12 @@ class AnalyticsRecorder {
   class PendingPayload {
    public:
     PendingPayload(location::nearby::proto::connections::PayloadType type,
-                   std::int64_t total_size_bytes)
-        : PendingPayload(type, total_size_bytes,
+                   std::int64_t total_size_bytes, bool no_record_time_millis)
+        : PendingPayload(type, total_size_bytes, no_record_time_millis,
                          location::nearby::proto::connections::
                              OperationResultCode::DETAIL_UNKNOWN) {}
     PendingPayload(location::nearby::proto::connections::PayloadType type,
-                   std::int64_t total_size_bytes,
+                   std::int64_t total_size_bytes, bool no_record_time_millis,
                    location::nearby::proto::connections::OperationResultCode
                        operation_result_code)
         : start_time_(SystemClock::ElapsedRealtime()),
@@ -226,7 +229,8 @@ class AnalyticsRecorder {
           total_size_bytes_(total_size_bytes),
           num_bytes_transferred_(0),
           num_chunks_(0),
-          operation_result_code_(operation_result_code) {}
+          operation_result_code_(operation_result_code),
+          no_record_time_millis_(no_record_time_millis) {}
     ~PendingPayload() = default;
 
     void AddChunk(std::int64_t chunk_size_bytes);
@@ -255,13 +259,16 @@ class AnalyticsRecorder {
     location::nearby::proto::connections::OperationResultCode
         operation_result_code_ = location::nearby::proto::connections::
             OperationResultCode::DETAIL_UNKNOWN;
+    // For testing only.
+    bool no_record_time_millis_ = false;
   };
 
   class LogicalConnection {
    public:
     LogicalConnection(
         location::nearby::proto::connections::Medium initial_medium,
-        const std::string &connection_token) {
+        const std::string &connection_token, bool no_record_time_millis)
+        : no_record_time_millis_(no_record_time_millis) {
       PhysicalConnectionEstablished(initial_medium, connection_token);
     }
     LogicalConnection(const LogicalConnection &) = delete;
@@ -335,6 +342,8 @@ class AnalyticsRecorder {
         incoming_payloads_;
     absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>
         outgoing_payloads_;
+    // For testing only.
+    bool no_record_time_millis_ = false;
   };
 
   bool CanRecordAnalyticsLocked(absl::string_view method_name)
@@ -433,6 +442,9 @@ class AnalyticsRecorder {
   SingleThreadExecutor serial_executor_;
   // Protects all sub-protos reading and writing in ConnectionLog.
   Mutex mutex_;
+
+  // For testing only.
+  bool no_record_time_millis_ = false;
 
   // ClientSession
   std::unique_ptr<

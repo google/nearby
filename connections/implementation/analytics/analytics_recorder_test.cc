@@ -77,7 +77,6 @@ using ::proto2::contrib::parse_proto::ParseTextProtoOrDie;
 using ::testing::Contains;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::Not;
-using ::testing::proto::Partially;
 
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
 
@@ -147,7 +146,8 @@ class FakeEventLogger : public MockEventLogger {
 TEST(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.LogSession();
   analytics_recorder.LogSession();
@@ -164,7 +164,8 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLE, BLUETOOTH});
   analytics_recorder.OnStopAdvertising();
@@ -198,7 +199,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              (EqualsProto(strategy_session_proto)));
 }
 
 TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
@@ -206,7 +207,8 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartDiscovery(
       strategy, /*mediums=*/{BLE, BLUETOOTH},
@@ -250,7 +252,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -260,7 +262,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(strategy, mediums);
   analytics_recorder.OnStartDiscovery(strategy, mediums);
@@ -345,7 +348,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
@@ -356,7 +359,8 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -412,7 +416,7 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
@@ -423,7 +427,8 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH});
@@ -480,7 +485,7 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -491,7 +496,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -538,7 +544,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -549,7 +555,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH});
@@ -597,13 +604,14 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -661,7 +669,7 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -670,7 +678,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   auto connections_attempt_metadata_params =
       analytics_recorder.BuildConnectionAttemptMetadataParams(
@@ -738,7 +747,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
@@ -747,7 +756,8 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -799,7 +809,7 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
@@ -809,7 +819,8 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -895,7 +906,7 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
@@ -906,7 +917,8 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -982,7 +994,7 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
@@ -993,7 +1005,8 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartedIncomingConnectionListening(
       connections::Strategy::kP2pStar);
@@ -1046,13 +1059,15 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 
   analytics_recorder.Sync();
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
+
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{WEB_RTC});
 
@@ -1072,14 +1087,15 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
     connection_token: "connection_token"
   )pb");
 
-  EXPECT_THAT(event_logger.GetErrorCode(),
-              Partially(EqualsProto(error_code_proto)));
+  EXPECT_THAT(event_logger.GetErrorCode(), EqualsProto(error_code_proto));
 }
 
 TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
+
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLUETOOTH});
 
@@ -1102,14 +1118,15 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
     connection_token: "connection_token"
   )pb");
 
-  EXPECT_THAT(event_logger.GetErrorCode(),
-              Partially(EqualsProto(error_code_proto)));
+  EXPECT_THAT(event_logger.GetErrorCode(), EqualsProto(error_code_proto));
 }
 
 TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
+
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLUETOOTH});
 
@@ -1129,14 +1146,14 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
     connection_token: "connection_token"
   )pb");
 
-  EXPECT_THAT(event_logger.GetErrorCode(),
-              Partially(EqualsProto(error_code_proto)));
+  EXPECT_THAT(event_logger.GetErrorCode(), EqualsProto(error_code_proto));
 }
 
 TEST(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   // LogSession to count down client_session_done_latch.
   analytics_recorder.LogSession();
@@ -1152,7 +1169,8 @@ TEST(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   std::vector<EventType> event_types = event_logger.GetLoggedEventTypes();
@@ -1168,7 +1186,8 @@ TEST(AnalyticsRecorderTest,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1197,7 +1216,8 @@ TEST(AnalyticsRecorderTest,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1234,7 +1254,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -1267,7 +1288,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto1)));
+              EqualsProto(strategy_session_proto1));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1328,7 +1349,7 @@ TEST(AnalyticsRecorderTest,
           >
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto2))));
+              Not(EqualsProto(strategy_session_proto2)));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -1337,7 +1358,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH});
@@ -1371,7 +1393,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto1)));
+              EqualsProto(strategy_session_proto1));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1432,7 +1454,7 @@ TEST(AnalyticsRecorderTest,
           >
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto2))));
+              Not(EqualsProto(strategy_session_proto2)));
 }
 
 TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
@@ -1443,7 +1465,8 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(strategy, mediums);
 
@@ -1471,11 +1494,16 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
             medium: BLUETOOTH
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
+            safe_disconnection_result: SAFE_DISCONNECTION
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto1)));
+              EqualsProto(strategy_session_proto1));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1522,11 +1550,16 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
             medium: BLUETOOTH
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
+            safe_disconnection_result: SAFE_DISCONNECTION
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto2))));
+              Not(EqualsProto(strategy_session_proto2)));
 }
 
 TEST(AnalyticsRecorderTest,
@@ -1538,7 +1571,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
@@ -1618,7 +1652,7 @@ TEST(AnalyticsRecorderTest,
           }
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto1)));
+              EqualsProto(strategy_session_proto1));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1695,7 +1729,7 @@ TEST(AnalyticsRecorderTest,
           }
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto2))));
+              Not(EqualsProto(strategy_session_proto2)));
 }
 
 // Test if current_strategy_ is reset by checking if the same strategy would
@@ -1707,7 +1741,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLUETOOTH});
@@ -1749,10 +1784,11 @@ TEST(AnalyticsRecorderTest,
      NotLogSameStrategySessionProtoAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
-  //// Via OnStartAdvertising, current_strategy_session_is set in
-  //// UpdateStrategySessionLocked.
+  // Via OnStartAdvertising, current_strategy_session_is set in
+  // UpdateStrategySessionLocked.
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH});
   analytics_recorder.OnStopAdvertising();
@@ -1778,7 +1814,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1797,7 +1833,7 @@ TEST(AnalyticsRecorderTest,
   ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto))));
+              Not(EqualsProto(strategy_session_proto)));
 }
 
 // Test if current_advertising_phase_ is reset.
@@ -1805,7 +1841,8 @@ TEST(AnalyticsRecorderTest,
      NotLogDuplicateAdvertisingPhaseAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartAdvertising(
       connections::Strategy::kP2pStar,
@@ -1832,7 +1869,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto1)));
+              EqualsProto(strategy_session_proto1));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1874,7 +1911,7 @@ TEST(AnalyticsRecorderTest,
           >
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto2))));
+              Not(EqualsProto(strategy_session_proto2)));
 }
 
 // Test if current_discovery_phase_ is reset.
@@ -1884,7 +1921,8 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   analytics_recorder.OnStartDiscovery(
       strategy, {BLUETOOTH}, /*is_extended_advertisement_supported=*/true,
@@ -1904,6 +1942,7 @@ TEST(AnalyticsRecorderTest,
           role: DISCOVERER
           discovery_phase <
             medium: BLUETOOTH
+            discovered_endpoint < medium: BLUETOOTH >
             discovery_metadata <
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
@@ -1913,7 +1952,7 @@ TEST(AnalyticsRecorderTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto1)));
+              EqualsProto(strategy_session_proto1));
 
   // LogStartSession
   CountDownLatch new_start_client_session_done_latch(1);
@@ -1939,6 +1978,7 @@ TEST(AnalyticsRecorderTest,
           role: DISCOVERER
           discovery_phase <
             medium: BLUETOOTH
+            discovered_endpoint < medium: BLUETOOTH >
             discovery_metadata <
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
@@ -1955,7 +1995,7 @@ TEST(AnalyticsRecorderTest,
           >
         >)pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Not(Partially(EqualsProto(strategy_session_proto2))));
+              Not(EqualsProto(strategy_session_proto2)));
 }
 
 TEST(AnalyticsRecorderOnConnectionClosedTest,
@@ -1964,7 +2004,8 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger);
+  AnalyticsRecorder analytics_recorder(&event_logger,
+                                       /*no_record_time_millis=*/true);
 
   // via OnStartAdvertising, current_strategy_session_ is set in
   // UpdateStrategySessionLocked.
@@ -1993,7 +2034,7 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
         >)pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 
   // Without calling OnStartAdvertising won't create new
   // current_strategy_session_.
@@ -2007,7 +2048,7 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   // The proto won't change.
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
-              Partially(EqualsProto(strategy_session_proto)));
+              EqualsProto(strategy_session_proto));
 }
 
 }  // namespace
