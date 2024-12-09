@@ -418,7 +418,8 @@ class BasePcpHandler : public PcpHandler,
 
   void StripOutWifiHotspotMedium(ConnectionInfo& connection_info);
 
-  location::nearby::analytics::proto::ConnectionsLog::OperationResultWithMedium
+  std::unique_ptr<location::nearby::analytics::proto::ConnectionsLog::
+                      OperationResultWithMedium>
   GetOperationResultWithMediumByResultCode(
       ClientProxy* client, location::nearby::proto::connections::Medium medium,
       int update_index,

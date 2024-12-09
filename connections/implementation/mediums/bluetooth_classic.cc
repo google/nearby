@@ -26,6 +26,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/socket.h"
@@ -36,6 +37,8 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using location::nearby::proto::connections::OperationResultCode;
+
 std::string ScanModeToString(BluetoothAdapter::ScanMode mode) {
   switch (mode) {
     case BluetoothAdapter::ScanMode::kUnknown:
@@ -103,36 +106,42 @@ bool BluetoothClassic::IsAvailableLocked() const {
   return medium_->IsValid() && adapter_.IsValid() && adapter_.IsEnabled();
 }
 
-bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
+ErrorOr<bool> BluetoothClassic::TurnOnDiscoverability(
+    const std::string& device_name) {
   LOG(INFO) << "Turning on BT discoverability with device_name=" << device_name;
   MutexLock lock(&mutex_);
 
   if (device_name.empty()) {
     LOG(INFO) << "Refusing to turn on BT discoverability. Empty device name.";
-    return false;
+    return {Error(
+        OperationResultCode::NEARBY_BLUETOOTH_ADVERTISE_TO_BYTES_FAILURE)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(INFO) << "Can't turn on BT discoverability. BT is off.";
-    return false;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't turn on BT discoverability. BT is not available.";
-    return false;
+    return {Error(
+        OperationResultCode::MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE)};
   }
 
   if (IsDiscoverable()) {
     LOG(INFO) << "Refusing to turn on BT discoverability; new name='"
               << device_name << "'; current name='" << adapter_.GetName()
               << "'";
-    return false;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLUETOOTH_CHANGE_SCAN_MODE_FAILURE)};
   }
 
   if (!ModifyDeviceName(device_name)) {
     LOG(INFO) << "Failed to turn on BT discoverability; failed to set name to "
               << device_name;
-    return false;
+    return {Error(OperationResultCode::
+                      MISCELLEANEOUS_BLUETOOTH_CHANGE_DEVICE_NAME_FAILURE)};
   }
 
   if (!ModifyScanMode(ScanMode::kConnectableDiscoverable)) {
@@ -143,11 +152,12 @@ bool BluetoothClassic::TurnOnDiscoverability(const std::string& device_name) {
     // Don't forget to perform this rollback of the partial state changes we've
     // made til now.
     RestoreDeviceName();
-    return false;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLUETOOTH_CHANGE_SCAN_MODE_FAILURE)};
   }
 
   LOG(INFO) << "Turned on BT discoverability with device_name=" << device_name;
-  return true;
+  return {true};
 }
 
 bool BluetoothClassic::TurnOffDiscoverability() {
@@ -324,33 +334,36 @@ void BluetoothClassic::StopAllDiscovery() {
   scan_info_.valid = false;
 }
 
-bool BluetoothClassic::StartAcceptingConnections(
+ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
     LOG(INFO)
         << "Refusing to start accepting BT connections; service ID is empty.";
-    return false;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(INFO) << "Can't create BT server socket [service=" << service_id
               << "]; BT is disabled.";
-    return false;
+    return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't start accepting BT connections [service=" << service_id
               << "]; BT not available.";
-    return false;
+    return {
+        Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE)};
   }
 
   if (IsAcceptingConnectionsLocked(service_id)) {
     LOG(INFO) << "Refusing to start accepting BT connections [service="
               << service_id
               << "]; BT server is already in-progress with the same name.";
-    return false;
+    return {Error(
+        OperationResultCode::CLIENT_DUPLICATE_ACCEPTING_BT_CONNECTION_REQUEST)};
   }
 
   BluetoothServerSocket socket =
@@ -358,7 +371,8 @@ bool BluetoothClassic::StartAcceptingConnections(
   if (!socket.IsValid()) {
     LOG(INFO) << "Failed to start accepting Bluetooth connections for "
               << service_id;
-    return false;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BT_SERVER_SOCKET_CREATION_FAILURE)};
   }
 
   // Mark the fact that there's an in-progress Bluetooth server accepting
@@ -428,7 +442,7 @@ bool BluetoothClassic::StartAcceptingConnections(
     }
   });
 
-  return true;
+  return {true};
 }
 
 bool BluetoothClassic::IsAcceptingConnections(const std::string& service_id) {

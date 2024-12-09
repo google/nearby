@@ -61,6 +61,7 @@
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/wifi_lan_service_info.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
@@ -196,7 +197,7 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                           NearbyDevice::Type device_type,
                                           const std::string& service_id,
                                           BluetoothSocket socket);
-  location::nearby::proto::connections::Medium StartBluetoothAdvertising(
+  ErrorOr<Medium> StartBluetoothAdvertising(
       ClientProxy* client, const std::string& service_id,
       const ByteArray& service_id_hash, const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);

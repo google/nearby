@@ -1147,21 +1147,22 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
 }
 
-ConnectionsLog::OperationResultWithMedium
+std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
 BasePcpHandler::GetOperationResultWithMediumByResultCode(
     ClientProxy* client, location::nearby::proto::connections::Medium medium,
     int update_index,
     location::nearby::proto::connections::OperationResultCode
         operation_result_code,
     location::nearby::proto::connections::ConnectionMode connection_mode) {
-  ConnectionsLog::OperationResultWithMedium operation_result_with_medium;
-  operation_result_with_medium.set_medium(medium);
-  operation_result_with_medium.set_result_code(operation_result_code);
-  operation_result_with_medium.set_result_category(
+  auto operation_result_with_medium =
+      std::make_unique<ConnectionsLog::OperationResultWithMedium>();
+  operation_result_with_medium->set_medium(medium);
+  operation_result_with_medium->set_result_code(operation_result_code);
+  operation_result_with_medium->set_result_category(
       client->GetAnalyticsRecorder().GetOperationResultCateory(
           operation_result_code));
-  operation_result_with_medium.set_connection_mode(connection_mode);
-  operation_result_with_medium.set_update_index(update_index);
+  operation_result_with_medium->set_connection_mode(connection_mode);
+  operation_result_with_medium->set_update_index(update_index);
 
   return operation_result_with_medium;
 }
