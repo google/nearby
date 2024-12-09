@@ -15,12 +15,19 @@
 #ifndef CORE_INTERNAL_WIFI_HOTSPOT_BWU_HANDLER_H_
 #define CORE_INTERNAL_WIFI_HOTSPOT_BWU_HANDLER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/wifi_hotspot.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
@@ -49,11 +56,14 @@ class WifiHotspotBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler implementation:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final;
-  Medium GetUpgradeMedium() const final { return Medium::WIFI_HOTSPOT; }
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) final;
+  location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
+    return location::nearby::proto::connections::Medium::WIFI_HOTSPOT;
+  }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}
 

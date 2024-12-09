@@ -25,9 +25,14 @@
 #include "connections/implementation/mediums/webrtc_peer_id_stub.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
+
+namespace {
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
 
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
     const std::string& name, mediums::WebRtcSocketWrapper socket)
@@ -44,11 +49,11 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WebRTC using this info.
-std::unique_ptr<EndpointChannel>
+ErrorOr<std::unique_ptr<EndpointChannel>>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
-  return nullptr;
+  return {Error(OperationResultCode::DETAIL_UNKNOWN)};
 }
 
 void WebrtcBwuHandler::HandleRevertInitiatorStateForService(

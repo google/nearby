@@ -28,6 +28,7 @@
 #else
 #include "connections/implementation/mediums/webrtc_socket.h"
 #endif
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
@@ -55,11 +56,14 @@ class WebrtcBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler implementation:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final;
-  Medium GetUpgradeMedium() const final { return Medium::WEB_RTC; }
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) final;
+  location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
+    return Medium::WEB_RTC;
+  }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}
 

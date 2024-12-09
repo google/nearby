@@ -15,7 +15,6 @@
 #include "connections/implementation/wifi_direct_bwu_handler.h"
 
 #include <cstdint>
-#include <locale>
 #include <memory>
 #include <string>
 #include <utility>
@@ -28,6 +27,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_endpoint_channel.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_direct.h"
@@ -35,6 +35,11 @@
 namespace nearby {
 namespace connections {
 
+namespace {
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+
+// TODO(edwinwu): Add exact OperationResultCode for WifiDirectBwuHandler.
 WifiDirectBwuHandler::WifiDirectBwuHandler(
     Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
@@ -101,13 +106,13 @@ void WifiDirectBwuHandler::HandleRevertInitiatorStateForService(
       << "upgrade service ID " << upgrade_service_id;
 }
 
-std::unique_ptr<EndpointChannel>
+ErrorOr<std::unique_ptr<EndpointChannel>>
 WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_direct_credentials()) {
     NEARBY_LOGS(INFO) << "No WifiDirect Credential";
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
   const UpgradePathInfo::WifiDirectCredentials& upgrade_path_info_credentials =
       upgrade_path_info.wifi_direct_credentials();
@@ -123,7 +128,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 
   if (!wifi_direct_medium_.ConnectWifiDirect(ssid, password)) {
     NEARBY_LOGS(ERROR) << "Connect to WifiDiret GO failed";
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   WifiDirectSocket socket = wifi_direct_medium_.Connect(
@@ -132,7 +137,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     NEARBY_LOGS(ERROR)
         << "WifiDirectBwuHandler failed to connect to the WifiDirect service("
         << port << ") for endpoint " << endpoint_id;
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   NEARBY_VLOG(1)
@@ -140,8 +145,8 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
       << port << ") while upgrading endpoint " << endpoint_id;
 
   // Create a new WifiDirectEndpointChannel.
-  return std::make_unique<WifiDirectEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket);
+  return {std::make_unique<WifiDirectEndpointChannel>(
+              service_id, /*channel_name=*/service_id, socket)};
 }
 
 void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(

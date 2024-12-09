@@ -14,18 +14,27 @@
 
 #include "connections/implementation/base_bwu_handler.h"
 
+#include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
 namespace {
 
-// Because BaseBwuHandler is still an abstract class, we need to implement the
-// pure virtual functions in order to test BaseBwuHandler's bookkeeping logic.
+using ::location::nearby::proto::connections::OperationResultCode;
+
+//  Because BaseBwuHandler is still an abstract class, we need to implement the
+//  pure virtual functions in order to test BaseBwuHandler's bookkeeping logic.
 class BwuHandlerImpl : public BaseBwuHandler {
  public:
   using Medium = ::location::nearby::proto::connections::Medium;
@@ -34,8 +43,8 @@ class BwuHandlerImpl : public BaseBwuHandler {
   // for every method.
   struct InputData {
     ClientProxy* client = nullptr;
-    absl::optional<std::string> service_id;
-    absl::optional<std::string> endpoint_id;
+    std::optional<std::string> service_id;
+    std::optional<std::string> endpoint_id;
   };
 
   BwuHandlerImpl() : BaseBwuHandler(nullptr) {}
@@ -52,11 +61,12 @@ class BwuHandlerImpl : public BaseBwuHandler {
 
  private:
   // BwuHandler implementation:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final {
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
   Medium GetUpgradeMedium() const final { return Medium::UNKNOWN_MEDIUM; }
   void OnEndpointDisconnect(ClientProxy* client,

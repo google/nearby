@@ -32,13 +32,19 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace connections {
+
+namespace {
 using ::location::nearby::connections::LocationHint;
 using ::location::nearby::connections::LocationStandard;
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
 
+// TODO(edwinwu): Add exact OperationResultCode for WebrtcBwuHandler.
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
     const std::string& name, mediums::WebRtcSocketWrapper socket)
     : name_(name), socket_(socket) {}
@@ -54,7 +60,7 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over WebRTC using this info.
-std::unique_ptr<EndpointChannel>
+ErrorOr<std::unique_ptr<EndpointChannel>>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
@@ -79,7 +85,7 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     NEARBY_LOGS(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
                        << peer_id.GetId() << ") on endpoint " << endpoint_id
                        << ", aborting upgrade.";
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   NEARBY_LOGS(INFO) << "WebRtcBwuHandler successfully connected to remote "
@@ -95,9 +101,10 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     NEARBY_LOGS(ERROR)
         << "WebRtcBwuHandler failed to create new EndpointChannel for "
            "outgoing socket, aborting upgrade.";
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
-  return channel;
+  return {std::move(channel)};
 }
 
 void WebrtcBwuHandler::HandleRevertInitiatorStateForService(

@@ -45,6 +45,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
@@ -882,10 +883,10 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
     service_id = old_channel->GetServiceId();
   }
 
-  std::unique_ptr<EndpointChannel> new_channel =
+  ErrorOr<std::unique_ptr<EndpointChannel>> result =
       handler->CreateUpgradedEndpointChannel(client, service_id, endpoint_id,
                                              upgrade_path_info);
-  if (!new_channel) {
+  if (result.has_error() || !result.has_value()) {
     NEARBY_LOGS(ERROR) << "BwuManager failed to create an endpoint "
                           "channel to endpoint"
                        << endpoint_id << ", aborting upgrade.";
@@ -894,6 +895,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
         location::nearby::proto::connections::SOCKET_CREATION);
     return nullptr;
   }
+  std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
 
   // Write the requisite BANDWIDTH_UPGRADE_NEGOTIATION.CLIENT_INTRODUCTION as
   // the first OfflineFrame on this new EndpointChannel.

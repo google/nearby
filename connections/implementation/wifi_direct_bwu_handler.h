@@ -19,8 +19,16 @@
 #include <string>
 
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/wifi.h"
+#include "connections/implementation/mediums/wifi_direct.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/wifi_direct.h"
+#include "utility"
 
 namespace nearby {
 namespace connections {
@@ -53,11 +61,14 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
   // WFD protocol to established connection while WINRT follow the standard WFD
   // spec to achieve the connection. So return fail to stop the upgrade request
   // from phone side.
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final;
-  Medium GetUpgradeMedium() const final { return Medium::WIFI_DIRECT; }
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) final;
+  location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
+    return location::nearby::proto::connections::Medium::WIFI_DIRECT;
+  }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}
 

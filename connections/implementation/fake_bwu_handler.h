@@ -15,6 +15,7 @@
 #ifndef NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_BWU_HANDLER_H_
 #define NEARBY_CONNECTIONS_IMPLEMENTATION_FAKE_BWU_HANDLER_H_
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
@@ -22,9 +23,15 @@
 #include <vector>
 
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/fake_endpoint_channel.h"
+#include "connections/implementation/offline_frames.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
@@ -104,14 +111,15 @@ class FakeBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final {
     create_calls_.push_back({.client = client,
                              .service_id = service_id,
                              .endpoint_id = endpoint_id});
-    return std::make_unique<FakeEndpointChannel>(medium_, service_id);
+    return {std::make_unique<FakeEndpointChannel>(medium_, service_id)};
   }
 
   Medium GetUpgradeMedium() const final { return medium_; }

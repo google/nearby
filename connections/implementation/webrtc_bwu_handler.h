@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
@@ -29,6 +30,7 @@
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
@@ -56,11 +58,14 @@ class WebrtcBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler implementation:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final;
-  Medium GetUpgradeMedium() const final { return Medium::WEB_RTC; }
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) final;
+  location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
+    return Medium::WEB_RTC;
+  }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}
 

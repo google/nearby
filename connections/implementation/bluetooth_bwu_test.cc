@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
@@ -25,6 +26,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -35,6 +37,7 @@ namespace connections {
 
 namespace {
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::proto::connections::OperationResultCode;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
 }  // namespace
 
@@ -101,17 +104,22 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 
-    std::unique_ptr<EndpointChannel> new_channel =
+    ErrorOr<std::unique_ptr<EndpointChannel>> result =
         handler_2->CreateUpgradedEndpointChannel(&client_2, /*service_id=*/"A",
                                                  /*endpoint_id=*/"1",
                                                  bwu_frame.upgrade_path_info());
     if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+      ASSERT_TRUE(result.has_value());
+      std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
       EXPECT_EQ(new_channel->GetMedium(),
                 location::nearby::proto::connections::Medium::BLUETOOTH);
     } else {
+      EXPECT_FALSE(result.has_value());
+      EXPECT_TRUE(result.has_error());
+      EXPECT_EQ(result.error().operation_result_code(),
+                OperationResultCode::DETAIL_UNKNOWN);
       accept_latch.CountDown();
-      EXPECT_EQ(new_channel, nullptr);
     }
     EXPECT_FALSE(mediums_2.GetBluetoothClassic().GetMacAddress().empty());
     handler_2->RevertResponderState(/*service_id=*/"A");

@@ -15,12 +15,19 @@
 #ifndef CORE_INTERNAL_WIFI_LAN_BWU_HANDLER_H_
 #define CORE_INTERNAL_WIFI_LAN_BWU_HANDLER_H_
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "connections/implementation/base_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
-#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/wifi_lan.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/wifi_lan.h"
 
 namespace nearby {
 namespace connections {
@@ -49,11 +56,14 @@ class WifiLanBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler implementation:
-  std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final;
-  Medium GetUpgradeMedium() const final { return Medium::WIFI_LAN; }
+  ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) final;
+  location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
+    return location::nearby::proto::connections::Medium::WIFI_LAN;
+  }
   void OnEndpointDisconnect(ClientProxy* client,
                             const std::string& endpoint_id) final {}
 

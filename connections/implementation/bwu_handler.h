@@ -15,14 +15,15 @@
 #ifndef CORE_INTERNAL_BWU_HANDLER_H_
 #define CORE_INTERNAL_BWU_HANDLER_H_
 
-#include <functional>
+#include <memory>
 #include <string>
 
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
-#include "internal/platform/count_down_latch.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
@@ -81,14 +82,16 @@ class BwuHandler {
   // that hasn't already been done) using the UpgradePathInfo sent by the
   // Initiator, and returns a new EndpointChannel for the upgraded medium.
   // @BwuHandlerThread
-  virtual std::unique_ptr<EndpointChannel> CreateUpgradedEndpointChannel(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) = 0;
+  virtual ErrorOr<std::unique_ptr<EndpointChannel>>
+  CreateUpgradedEndpointChannel(ClientProxy* client,
+                                const std::string& service_id,
+                                const std::string& endpoint_id,
+                                const UpgradePathInfo& upgrade_path_info) = 0;
 
   // Returns the upgrade medium of the BwuHandler.
   // @BwuHandlerThread
-  virtual Medium GetUpgradeMedium() const = 0;
+  virtual location::nearby::proto::connections::Medium GetUpgradeMedium()
+      const = 0;
 
   virtual void OnEndpointDisconnect(ClientProxy* client,
                                     const std::string& endpoint_id) = 0;

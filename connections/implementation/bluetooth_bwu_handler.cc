@@ -14,13 +14,21 @@
 
 #include "connections/implementation/bluetooth_bwu_handler.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/functional/bind_front.h"
+#include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 #include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 
 // Manages the Bluetooth-specific methods needed to upgrade an {@link
@@ -29,6 +37,11 @@
 namespace nearby {
 namespace connections {
 
+namespace {
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
+
+// TODO(edwinwu): Add exact OperationResultCode for BluetoothBwuHandler.
 BluetoothBwuHandler::BluetoothBwuHandler(
     Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
@@ -37,7 +50,7 @@ BluetoothBwuHandler::BluetoothBwuHandler(
 // Called by BWU target. Retrieves a new medium info from incoming message,
 // and establishes connection over BT using this info.
 // Returns a channel ready to exchange data or nullptr on error.
-std::unique_ptr<EndpointChannel>
+ErrorOr<std::unique_ptr<EndpointChannel>>
 BluetoothBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
@@ -47,7 +60,7 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
       !bluetooth_credentials.has_mac_address()) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to parse UpgradePathInfo.";
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   const std::string& service_name = bluetooth_credentials.service_name();
@@ -64,7 +77,7 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
         << "BluetoothBwuHandler failed to derive a valid Bluetooth device "
            "from the MAC address ("
         << mac_address << ") for endpoint " << endpoint_id;
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   BluetoothSocket socket = bluetooth_medium_.Connect(
@@ -74,7 +87,7 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
         << "BluetoothBwuHandler failed to connect to the Bluetooth device ("
         << service_name << ", " << mac_address << ") for endpoint "
         << endpoint_id << " and service ID " << service_id;
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   NEARBY_VLOG(1)
@@ -91,11 +104,11 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
         << service_name << ", " << mac_address << ") for endpoint "
         << endpoint_id << " and service ID " << service_id;
     socket.Close();
-    return nullptr;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   client->SetBluetoothMacAddress(endpoint_id, mac_address);
-  return channel;
+  return {std::move(channel)};
 }
 
 ByteArray BluetoothBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
@@ -146,7 +159,7 @@ void BluetoothBwuHandler::HandleRevertInitiatorStateForService(
 void BluetoothBwuHandler::OnIncomingBluetoothConnection(
     ClientProxy* client, const std::string& upgrade_service_id,
     BluetoothSocket socket) {
-  auto channel = absl::make_unique<BluetoothEndpointChannel>(
+  auto channel = std::make_unique<BluetoothEndpointChannel>(
       upgrade_service_id, /*channel_name=*/upgrade_service_id, socket);
   std::unique_ptr<IncomingSocketConnection> connection{
       new IncomingSocketConnection{
