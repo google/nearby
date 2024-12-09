@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
-#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,7 +38,6 @@
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
-#include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
 namespace analytics {
@@ -48,7 +46,6 @@ namespace {
 const char kVersion[] = "v1.0.0";
 constexpr absl::string_view kOnStartClientSession = "OnStartClientSession";
 const absl::Duration kConnectionTokenMaxLife = absl::Hours(24);
-}  // namespace
 
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::ACCEPTED;
@@ -76,6 +73,8 @@ using ::location::nearby::proto::connections::INITIAL;
 using ::location::nearby::proto::connections::Medium;
 using ::location::nearby::proto::connections::MOVED_TO_NEW_MEDIUM;
 using ::location::nearby::proto::connections::NOT_SENT;
+using ::location::nearby::proto::connections::OperationResultCategory;
+using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::OUTGOING;
 using ::location::nearby::proto::connections::P2P_CLUSTER;
 using ::location::nearby::proto::connections::P2P_POINT_TO_POINT;
@@ -102,6 +101,57 @@ using ::location::nearby::proto::connections::UPGRADED;
 using ::nearby::analytics::EventLogger;
 using SafeDisconnectionResult = ::location::nearby::analytics::proto::
     ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
+
+// TODO(edwinwu): Add ifttt in Android counterpart.
+OperationResultCategory GetOperationResultCateory(
+    OperationResultCode result_code) {
+  if (result_code == OperationResultCode::DETAIL_SUCCESS) {
+    return OperationResultCategory::CATEGORY_SUCCESS;
+  }
+  // Section of CATEGORY_NEARBY_ERROR, starting from 4500
+  if (result_code >=
+      OperationResultCode::NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR) {
+    return OperationResultCategory::CATEGORY_NEARBY_ERROR;
+  }
+  // Section of CATEGORY_CONNECTIVITY_ERROR, starting from 3500 to 4499
+  if (result_code >=
+      OperationResultCode::CONNECTIVITY_WIFI_AWARE_ATTACH_FAILURE) {
+    return OperationResultCategory::CATEGORY_CONNECTIVITY_ERROR;
+  }
+  // Section of CATEGORY_IO_ERROR, from 3000 to 3499
+  if (result_code >= OperationResultCode::IO_FILE_OPENING_ERROR) {
+    return OperationResultCategory::CATEGORY_IO_ERROR;
+  }
+  // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
+  if (result_code >=
+      OperationResultCode::MISCELLEANEOUS_BLUETOOTH_MAC_ADDRESS_NULL) {
+    return OperationResultCategory::CATEGORY_MISCELLANEOUS;
+  }
+  // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
+  if (result_code >=
+      OperationResultCode::
+          CLIENT_WIFI_DIRECT_ALREADY_HOSTING_DIRECT_GROUP_FOR_THIS_CLIENT) {
+    return OperationResultCategory::CATEGORY_CLIENT_ERROR;
+  }
+  // Section of CATEGORY_MEDIUM_UNAVAILABLE, from 1500 to 1999
+  if (result_code >= OperationResultCode::
+                         MEDIUM_UNAVAILABLE_WIFI_AWARE_RESOURCE_NOT_AVAILABLE) {
+    return OperationResultCategory::CATEGORY_MEDIUM_UNAVAILABLE;
+  }
+  // Section of CATEGORY_DEVICE_STATE_ERROR, from 1000 to 1499
+  if (result_code >=
+      OperationResultCode::DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS) {
+    return OperationResultCategory::CATEGORY_DEVICE_STATE_ERROR;
+  }
+  // Section of CATEGORY_CLIENT_CANCELLATION, from 500 to 999
+  if (result_code >=
+      OperationResultCode::CLIENT_CANCELLATION_REMOTE_IN_CANCELED_STATE) {
+    return OperationResultCategory::CATEGORY_CLIENT_CANCELLATION;
+  }
+  // Clarify other non success cases as unknown
+  return OperationResultCategory::CATEGORY_UNKNOWN;
+}
+}  // namespace
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
@@ -351,6 +401,22 @@ void AnalyticsRecorder::OnIncomingConnectionAttempt(
                          "null current_strategy_session_";
     return;
   }
+
+  ConnectionAttemptMetadataParams default_params = {};
+  if (connection_attempt_metadata_params == nullptr) {
+    connection_attempt_metadata_params = &default_params;
+  }
+  OnIncomingConnectionAttemptLocked(type, medium, result, duration,
+                                    connection_token,
+                                    connection_attempt_metadata_params);
+}
+
+void AnalyticsRecorder::OnIncomingConnectionAttemptLocked(
+    location::nearby::proto::connections::ConnectionAttemptType type,
+    location::nearby::proto::connections::Medium medium,
+    location::nearby::proto::connections::ConnectionAttemptResult result,
+    absl::Duration duration, const std::string &connection_token,
+    ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
   auto *connection_attempt =
       current_strategy_session_->add_connection_attempt();
   connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
@@ -360,10 +426,6 @@ void AnalyticsRecorder::OnIncomingConnectionAttempt(
   connection_attempt->set_attempt_result(result);
   connection_attempt->set_connection_token(connection_token);
 
-  ConnectionAttemptMetadataParams default_params = {};
-  if (connection_attempt_metadata_params == nullptr) {
-    connection_attempt_metadata_params = &default_params;
-  }
   auto *connection_attempt_metadata =
       connection_attempt->mutable_connection_attempt_metadata();
   connection_attempt_metadata->set_technology(
@@ -390,6 +452,15 @@ void AnalyticsRecorder::OnIncomingConnectionAttempt(
       connection_attempt_metadata_params->max_wifi_rx_speed);
   connection_attempt_metadata->set_wifi_channel_width(
       connection_attempt_metadata_params->channel_width);
+
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(
+      connection_attempt_metadata_params->operation_result_code);
+  operation_result_proto->set_result_category(GetOperationResultCateory(
+      connection_attempt_metadata_params->operation_result_code));
+  connection_attempt->set_allocated_operation_result(
+      operation_result_proto.release());
 }
 
 void AnalyticsRecorder::OnOutgoingConnectionAttempt(
@@ -406,6 +477,31 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
                          "null current_strategy_session_";
     return;
   }
+
+  ConnectionAttemptMetadataParams default_params = {};
+  if (connection_attempt_metadata_params == nullptr) {
+    connection_attempt_metadata_params = &default_params;
+  }
+
+  // For the case of transfer a big file and the upgrades always failure, then
+  // there will have repeating upgrade attempt and cause many same attempt value
+  // be log. So add a method to skip.
+  if (ConnectionAttemptResultCodeExistedLocked(
+          medium, OUTGOING, connection_token, type,
+          connection_attempt_metadata_params->operation_result_code)) {
+    return;
+  }
+
+  OnOutgoingConnectionAttemptLocked(remote_endpoint_id, type, medium, result,
+                                    duration, connection_token,
+                                    connection_attempt_metadata_params);
+}
+
+void AnalyticsRecorder::OnOutgoingConnectionAttemptLocked(
+    const std::string &remote_endpoint_id, ConnectionAttemptType type,
+    Medium medium, ConnectionAttemptResult result, absl::Duration duration,
+    const std::string &connection_token,
+    ConnectionAttemptMetadataParams *connection_attempt_metadata_params) {
   auto *connection_attempt =
       current_strategy_session_->add_connection_attempt();
   connection_attempt->set_duration_millis(absl::ToInt64Milliseconds(duration));
@@ -415,10 +511,6 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
   connection_attempt->set_attempt_result(result);
   connection_attempt->set_connection_token(connection_token);
 
-  ConnectionAttemptMetadataParams default_params = {};
-  if (connection_attempt_metadata_params == nullptr) {
-    connection_attempt_metadata_params = &default_params;
-  }
   auto *connection_attempt_metadata =
       connection_attempt->mutable_connection_attempt_metadata();
   connection_attempt_metadata->set_technology(
@@ -445,6 +537,15 @@ void AnalyticsRecorder::OnOutgoingConnectionAttempt(
       connection_attempt_metadata_params->max_wifi_rx_speed);
   connection_attempt_metadata->set_wifi_channel_width(
       connection_attempt_metadata_params->channel_width);
+
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(
+      connection_attempt_metadata_params->operation_result_code);
+  operation_result_proto->set_result_category(GetOperationResultCateory(
+      connection_attempt_metadata_params->operation_result_code));
+  connection_attempt->set_allocated_operation_result(
+      operation_result_proto.release());
 
   if (type == INITIAL && result != RESULT_SUCCESS) {
     auto it = outgoing_connection_requests_.find(remote_endpoint_id);
@@ -757,7 +858,7 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
     int try_count, const std::string &network_operator,
     const std::string &country_code, bool is_tdls_used,
     bool wifi_hotspot_enabled, int max_wifi_tx_speed, int max_wifi_rx_speed,
-    int channel_width) {
+    int channel_width, OperationResultCode operation_result_code) {
   auto params = std::make_unique<ConnectionAttemptMetadataParams>();
   params->technology = technology;
   params->band = band;
@@ -770,7 +871,35 @@ AnalyticsRecorder::BuildConnectionAttemptMetadataParams(
   params->max_wifi_tx_speed = max_wifi_tx_speed;
   params->max_wifi_rx_speed = max_wifi_rx_speed;
   params->channel_width = channel_width;
+  params->operation_result_code = operation_result_code;
   return params;
+}
+
+OperationResultCode AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
+    Medium medium) {
+  switch (medium) {
+    case Medium::BLUETOOTH:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_BT;
+    case Medium::WIFI_HOTSPOT:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_HOTSPOT;
+    case Medium::BLE:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE;
+    case Medium::BLE_L2CAP:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_BLE_L2CAP;
+    case Medium::WIFI_LAN:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_LAN;
+    case Medium::WIFI_AWARE:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_AWARE;
+    case Medium::NFC:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_NFC;
+    case Medium::WIFI_DIRECT:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_DIRECT;
+    case Medium::WEB_RTC:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WEB_RTC;
+    default:
+      return OperationResultCode::
+          CONNECTIVITY_CHANNEL_IO_ERROR_ON_UNKNOWN_MEDIUM;
+  }
 }
 
 bool AnalyticsRecorder::CanRecordAnalyticsLocked(
@@ -1002,6 +1131,29 @@ void AnalyticsRecorder::MarkConnectionRequestIgnoredLocked(
   if (!request->has_remote_response()) {
     request->set_remote_response(IGNORED);
   }
+}
+
+bool AnalyticsRecorder::ConnectionAttemptResultCodeExistedLocked(
+    Medium medium, ConnectionAttemptDirection direction,
+    const std::string &connection_token, ConnectionAttemptType type,
+    OperationResultCode operation_result_code) {
+  if (current_strategy_session_ == nullptr ||
+      current_strategy_session_->connection_attempt_size() == 0) {
+    return false;
+  }
+  for (auto &connection_attempt :
+       current_strategy_session_->connection_attempt()) {
+    if (connection_attempt.medium() == medium &&
+        connection_attempt.direction() == direction &&
+        connection_attempt.connection_token() == connection_token &&
+        connection_attempt.type() == type &&
+        connection_attempt.operation_result().result_code() ==
+            operation_result_code) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void AnalyticsRecorder::FinishUpgradeAttemptLocked(

@@ -92,6 +92,8 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Connection attempt
+  // Records an attempt with meta data at establishing an incoming physical
+  // connection.
   void OnIncomingConnectionAttempt(
       location::nearby::proto::connections::ConnectionAttemptType type,
       location::nearby::proto::connections::Medium medium,
@@ -99,6 +101,8 @@ class AnalyticsRecorder {
       absl::Duration duration, const std::string &connection_token,
       ConnectionAttemptMetadataParams *connection_attempt_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
+  // Records an attempt with meta data at establishing an outgoing physical
+  // connection.
   void OnOutgoingConnectionAttempt(
       const std::string &remote_endpoint_id,
       location::nearby::proto::connections::ConnectionAttemptType type,
@@ -117,7 +121,13 @@ class AnalyticsRecorder {
       int try_count, const std::string &network_operator = {},
       const std::string &country_code = {}, bool is_tdls_used = false,
       bool wifi_hotspot_enabled = false, int max_wifi_tx_speed = 0,
-      int max_wifi_rx_speed = 0, int channel_width = -1);
+      int max_wifi_rx_speed = 0, int channel_width = -1,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code = location::nearby::proto::connections::
+              OperationResultCode::DETAIL_UNKNOWN);
+  static location::nearby::proto::connections::OperationResultCode
+  GetChannelIoErrorResultCodeFromMedium(
+      location::nearby::proto::connections::Medium medium);
 
   // Connection establishedSafeDisconnectionResult
   void OnConnectionEstablished(
@@ -180,7 +190,7 @@ class AnalyticsRecorder {
   void OnErrorCode(const ErrorCodeParams &params);
 
   // Log the start client session event with start client session logging
-  // resouces setup (e.g. client_session_, started_client_session_time_)
+  // resources setup (e.g. client_session_, started_client_session_time_)
   void LogStartSession() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Invokes event_logger_.Log() at the end of life of client. Log action is
@@ -338,6 +348,29 @@ class AnalyticsRecorder {
   void MarkConnectionRequestIgnoredLocked(
       location::nearby::analytics::proto::ConnectionsLog::ConnectionRequest
           *request) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  void OnIncomingConnectionAttemptLocked(
+      location::nearby::proto::connections::ConnectionAttemptType type,
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections::ConnectionAttemptResult result,
+      absl::Duration duration, const std::string &connection_token,
+      ConnectionAttemptMetadataParams *connection_attempt_metadata_params)
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  void OnOutgoingConnectionAttemptLocked(
+      const std::string &remote_endpoint_id,
+      location::nearby::proto::connections::ConnectionAttemptType type,
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections::ConnectionAttemptResult result,
+      absl::Duration duration, const std::string &connection_token,
+      ConnectionAttemptMetadataParams *connection_attempt_metadata_params)
+      ABSL_SHARED_LOCKS_REQUIRED(mutex_);
+  bool ConnectionAttemptResultCodeExistedLocked(
+      location::nearby::proto::connections::Medium medium,
+      location::nearby::proto::connections::ConnectionAttemptDirection
+          direction,
+      const std::string &connection_token,
+      location::nearby::proto::connections::ConnectionAttemptType type,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishUpgradeAttemptLocked(
       const std::string &endpoint_id,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
