@@ -365,10 +365,10 @@ class AnalyticsRecorder {
       connections::Strategy strategy,
       location::nearby::proto::connections::SessionRole role)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  void RecordAdvertisingPhaseDurationLocked() const
+  void RecordAdvertisingPhaseDurationAndReasonLocked(bool on_stop) const
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishAdvertisingPhaseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  void RecordDiscoveryPhaseDurationLocked() const
+  void RecordDiscoveryPhaseDurationAndReasonLocked(bool on_stop) const
       ABSL_SHARED_LOCKS_REQUIRED(mutex_);
   void FinishDiscoveryPhaseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool UpdateAdvertiserConnectionRequestLocked(

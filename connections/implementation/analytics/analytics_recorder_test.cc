@@ -201,6 +201,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: CLIENT_STOP_ADVERTISING
           }
           advertising_phase {
             medium: BLUETOOTH
@@ -214,6 +215,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
           }
         })pb");
 
@@ -280,6 +282,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: CLIENT_STOP_DISCOVERING
           }
           discovery_phase {
             medium: BLUETOOTH
@@ -293,6 +296,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: FINISH_SESSION_STOP_DISCOVERING
           }
         })pb");
 
@@ -332,65 +336,71 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
           role: DISCOVERER
-          discovery_phase <
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          discovery_phase <
+            }
+            stop_reason: CLIENT_STOP_DISCOVERING
+          }
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          discovery_phase <
+            }
+            stop_reason: CLIENT_STOP_DISCOVERING
+          }
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          advertising_phase <
+            }
+            stop_reason: CLIENT_STOP_DISCOVERING
+          }
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          advertising_phase <
+            }
+            stop_reason: CLIENT_STOP_ADVERTISING
+          }
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          advertising_phase <
+            }
+            stop_reason: CLIENT_STOP_ADVERTISING
+          }
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+            stop_reason: CLIENT_STOP_ADVERTISING
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
@@ -452,6 +462,7 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
             received_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
@@ -532,6 +543,7 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: FINISH_SESSION_STOP_DISCOVERING
             sent_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
@@ -606,6 +618,7 @@ TEST(AnalyticsRecorderTest,
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
             received_connection_request {
               local_response: IGNORED
               remote_response: ACCEPTED
@@ -677,6 +690,7 @@ TEST(AnalyticsRecorderTest,
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
+            stop_reason: FINISH_SESSION_STOP_DISCOVERING
             sent_connection_request {
               local_response: IGNORED
               remote_response: ACCEPTED
@@ -736,6 +750,7 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
               connected_ap_frequency: 0
               supports_nfc_technology: false
             }
+            stop_reason: CLIENT_STOP_ADVERTISING
             adv_dis_result {
               medium: BLUETOOTH
               result_category: CATEGORY_SUCCESS
@@ -804,29 +819,30 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: DISCOVERER
-          discovery_phase <
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            sent_connection_request <
+            }
+            stop_reason: FINISH_SESSION_STOP_DISCOVERING
+            sent_connection_request {
               local_response: NOT_SENT
               remote_response: NOT_SENT
-            >
-          >
-          connection_attempt <
+            }
+          }
+          connection_attempt {
             type: INITIAL
             direction: OUTGOING
             medium: BLUETOOTH
             attempt_result: RESULT_ERROR
             connection_token: ""
-            connection_attempt_metadata <
+            connection_attempt_metadata {
               technology: CONNECTION_TECHNOLOGY_HOTSPOT_LOCALONLY
               band: CONNECTION_BAND_WIFI_BAND_6GHZ
               frequency: 2400
@@ -838,13 +854,13 @@ TEST(AnalyticsRecorderTest,
               max_tx_speed: 0
               max_rx_speed: 0
               wifi_channel_width: 0
-            >
-            operation_result <
+            }
+            operation_result {
               result_category: CATEGORY_CONNECTIVITY_ERROR
               result_code: CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
@@ -874,29 +890,30 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          established_connection <
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
+          }
+          established_connection {
             medium: BLUETOOTH
             disconnection_reason: UPGRADED
             connection_token: "connection_token"
             safe_disconnection_result: UNKNOWN_SAFE_DISCONNECTION_RESULT
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
-          established_connection <
+            }
+          }
+          established_connection {
             medium: WIFI_LAN
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
@@ -905,8 +922,8 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
             }
-          >
-        >)pb");
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
@@ -949,61 +966,62 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          established_connection <
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
+          }
+          established_connection {
             medium: BLUETOOTH
-            sent_payload <
+            sent_payload {
               type: FILE
               total_size_bytes: 50
               num_bytes_transferred: 20
               num_chunks: 2
               status: MOVED_TO_NEW_MEDIUM
-              operation_result <
+              operation_result {
                 result_category: CATEGORY_MISCELLANEOUS
                 result_code: MISCELLEANEOUS_MOVE_TO_NEW_MEDIUM
-              >
-            >
+              }
+            }
             disconnection_reason: UPGRADED
             connection_token: "connection_token"
             safe_disconnection_result: SAFE_DISCONNECTION
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
-          established_connection <
+            }
+          }
+          established_connection {
             medium: WIFI_LAN
-            sent_payload <
+            sent_payload {
               type: FILE
               total_size_bytes: 50
               num_bytes_transferred: 30
               num_chunks: 3
               status: SUCCESS
-              operation_result <
+              operation_result {
                 result_category: CATEGORY_SUCCESS
                 result_code: DETAIL_SUCCESS
-              >
-            >
+              }
+            }
             disconnection_reason: LOCAL_DISCONNECTION
             connection_token: "connection_token"
             safe_disconnection_result: SAFE_DISCONNECTION
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
@@ -1043,42 +1061,43 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          upgrade_attempt <
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLE
             to_medium: WIFI_LAN
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_CONNECTIVITY_ERROR
               result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
-            >
-          >
-          upgrade_attempt <
+            }
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
+            }
+          }
           upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
@@ -1086,12 +1105,12 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             upgrade_result: UNFINISHED_ERROR
             error_stage: UPGRADE_UNFINISHED
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_DEVICE_STATE_ERROR
               result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
-            >
+            }
           }
-        >)pb");
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
@@ -1128,34 +1147,34 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          upgrade_attempt <
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLE
             to_medium: WIFI_LAN
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_CONNECTIVITY_ERROR
               result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
-            >
-          >
-          upgrade_attempt <
+            }
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   analytics_recorder.Sync();
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
@@ -1369,23 +1388,24 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            received_connection_request <
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
+            received_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto1));
@@ -1414,40 +1434,40 @@ TEST(AnalyticsRecorderTest,
   // received_connection_request) will append to the strategy_session)
   ConnectionsLog::ClientSession strategy_session_proto2 = ParseTextProtoOrDie(
       R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            received_connection_request <
+            }
+            received_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-          >
-          advertising_phase <
+            }
+          }
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            received_connection_request <
+            }
+            received_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-            received_connection_request <
+            }
+            received_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               Not(EqualsProto(strategy_session_proto2)));
 }
@@ -1474,23 +1494,24 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: DISCOVERER
-          discovery_phase <
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            sent_connection_request <
+            }
+            stop_reason: FINISH_SESSION_STOP_DISCOVERING
+            sent_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto1));
@@ -1519,40 +1540,40 @@ TEST(AnalyticsRecorderTest,
   // sent_connection_request) will append to the strategy_session)
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: DISCOVERER
-          discovery_phase <
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            sent_connection_request <
+            }
+            sent_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-          >
-          discovery_phase <
+            }
+          }
+          discovery_phase {
             medium: BLE
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-            sent_connection_request <
+            }
+            sent_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-            sent_connection_request <
+            }
+            sent_connection_request {
               local_response: ACCEPTED
               remote_response: ACCEPTED
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               Not(EqualsProto(strategy_session_proto2)));
 }
@@ -1578,29 +1599,30 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          established_connection <
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
+          }
+          established_connection {
             medium: BLUETOOTH
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
             safe_disconnection_result: SAFE_DISCONNECTION
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto1));
@@ -1625,38 +1647,38 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   // established_connection) will stay there.
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          advertising_phase <
+            }
+          }
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          established_connection <
+            }
+          }
+          established_connection {
             medium: BLUETOOTH
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
             safe_disconnection_result: SAFE_DISCONNECTION
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               Not(EqualsProto(strategy_session_proto2)));
@@ -1702,42 +1724,43 @@ TEST(AnalyticsRecorderTest,
   // bandwidth_upgrade_attempts_) will stay there.
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          upgrade_attempt <
+            }
+            stop_reason: FINISH_SESSION_STOP_ADVERTISING
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLE
             to_medium: WIFI_LAN
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_CONNECTIVITY_ERROR
               result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
-            >
-          >
-          upgrade_attempt <
+            }
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
+            }
+          }
           upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
@@ -1745,12 +1768,12 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: UNFINISHED_ERROR
             error_stage: UPGRADE_UNFINISHED
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_DEVICE_STATE_ERROR
               result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
-            >
+            }
           }
-        >)pb");
+        })pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto1));
 
@@ -1770,51 +1793,51 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          advertising_phase <
+            }
+          }
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          upgrade_attempt <
+            }
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLE
             to_medium: WIFI_LAN
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
             error_stage: WIFI_LAN_SOCKET_CREATION
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_CONNECTIVITY_ERROR
               result_code: CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL
-            >
-          >
-          upgrade_attempt <
+            }
+          }
+          upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UPGRADE_RESULT_SUCCESS
             error_stage: UPGRADE_SUCCESS
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_SUCCESS
               result_code: DETAIL_SUCCESS
-            >
-          >
+            }
+          }
           upgrade_attempt {
             direction: INCOMING
             from_medium: BLUETOOTH
@@ -1822,12 +1845,12 @@ TEST(AnalyticsRecorderTest,
             upgrade_result: UNFINISHED_ERROR
             error_stage: UPGRADE_UNFINISHED
             connection_token: "connection_token"
-            operation_result <
+            operation_result {
               result_category: CATEGORY_DEVICE_STATE_ERROR
               result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
-            >
+            }
           }
-        >)pb");
+        })pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               Not(EqualsProto(strategy_session_proto2)));
 }
@@ -1899,19 +1922,20 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+            stop_reason: CLIENT_STOP_ADVERTISING
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
@@ -1955,18 +1979,19 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+            stop_reason: CLIENT_STOP_ADVERTISING
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto1));
@@ -1990,26 +2015,26 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-          advertising_phase <
+            }
+          }
+          advertising_phase {
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               Not(EqualsProto(strategy_session_proto2)));
 }
@@ -2037,19 +2062,20 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: DISCOVERER
-          discovery_phase <
+          discovery_phase {
             medium: BLUETOOTH
-            discovered_endpoint < medium: BLUETOOTH >
-            discovery_metadata <
+            discovered_endpoint { medium: BLUETOOTH }
+            discovery_metadata {
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+            stop_reason: CLIENT_STOP_DISCOVERING
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto1));
@@ -2073,27 +2099,28 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: DISCOVERER
-          discovery_phase <
+          discovery_phase {
             medium: BLUETOOTH
-            discovered_endpoint < medium: BLUETOOTH >
-            discovery_metadata <
+            discovered_endpoint { medium: BLUETOOTH }
+            discovery_metadata {
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
               supports_nfc_technology: false
-            >
-          >
-          discovery_phase <
+            }
+            stop_reason: CLIENT_STOP_DISCOVERING
+          }
+          discovery_phase {
             medium: BLUETOOTH
-            discovery_metadata <
+            discovery_metadata {
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+          }
+        })pb");
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               Not(EqualsProto(strategy_session_proto2)));
 }
@@ -2119,19 +2146,20 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
-        strategy_session <
+        strategy_session {
           strategy: P2P_STAR
           role: ADVERTISER
-          advertising_phase <
+          advertising_phase {
             medium: BLE
             medium: BLUETOOTH
-            advertising_metadata <
+            advertising_metadata {
               supports_extended_ble_advertisements: false
               connected_ap_frequency: 0
               supports_nfc_technology: false
-            >
-          >
-        >)pb");
+            }
+            stop_reason: CLIENT_STOP_ADVERTISING
+          }
+        })pb");
 
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));

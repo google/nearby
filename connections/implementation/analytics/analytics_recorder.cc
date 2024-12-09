@@ -90,6 +90,8 @@ using ::location::nearby::proto::connections::START_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STOP_CLIENT_SESSION;
 using ::location::nearby::proto::connections::STOP_STRATEGY_SESSION;
 using ::location::nearby::proto::connections::STREAM;
+using ::location::nearby::proto::connections::StopAdvertisingReason;
+using ::location::nearby::proto::connections::StopDiscoveringReason;
 using ::location::nearby::proto::connections::UNFINISHED;
 using ::location::nearby::proto::connections::UNFINISHED_ERROR;
 using ::location::nearby::proto::connections::UNKNOWN_MEDIUM;
@@ -243,7 +245,7 @@ void AnalyticsRecorder::OnStopAdvertising() {
   if (!CanRecordAnalyticsLocked("OnStopAdvertising")) {
     return;
   }
-  RecordAdvertisingPhaseDurationLocked();
+  RecordAdvertisingPhaseDurationAndReasonLocked(/* on_stop= */ true);
 }
 
 void AnalyticsRecorder::OnStartDiscovery(
@@ -287,7 +289,7 @@ void AnalyticsRecorder::OnStopDiscovery() {
   if (!CanRecordAnalyticsLocked("OnStopDiscovery")) {
     return;
   }
-  RecordDiscoveryPhaseDurationLocked();
+  RecordDiscoveryPhaseDurationAndReasonLocked(/*on_stop=*/ true);
 }
 
 void AnalyticsRecorder::OnStartedIncomingConnectionListening(
@@ -307,7 +309,8 @@ void AnalyticsRecorder::OnStoppedIncomingConnectionListening() {
   if (!CanRecordAnalyticsLocked("OnStoppedIncomingConnectionListening")) {
     return;
   }
-  RecordAdvertisingPhaseDurationLocked();
+  RecordAdvertisingPhaseDurationAndReasonLocked(/* on_stop= */ false);
+  // RecordAdvertisingPhaseDurationLocked();
 }
 
 void AnalyticsRecorder::OnEndpointFound(Medium medium) {
@@ -1031,7 +1034,8 @@ void AnalyticsRecorder::UpdateStrategySessionLocked(
   }
 }
 
-void AnalyticsRecorder::RecordAdvertisingPhaseDurationLocked() const {
+void AnalyticsRecorder::RecordAdvertisingPhaseDurationAndReasonLocked(
+    bool on_stop) const {
   if (current_advertising_phase_ == nullptr) {
     NEARBY_LOGS(INFO) << "Unable to record advertising phase duration due to "
                          "null current_advertising_phase_";
@@ -1041,6 +1045,11 @@ void AnalyticsRecorder::RecordAdvertisingPhaseDurationLocked() const {
       !no_record_time_millis_) {
     current_advertising_phase_->set_duration_millis(absl::ToInt64Milliseconds(
         SystemClock::ElapsedRealtime() - started_advertising_phase_time_));
+  }
+  if (!current_advertising_phase_->has_stop_reason()) {
+    current_advertising_phase_->set_stop_reason(
+        on_stop ? StopAdvertisingReason::CLIENT_STOP_ADVERTISING
+                : StopAdvertisingReason::FINISH_SESSION_STOP_ADVERTISING);
   }
 }
 
@@ -1054,14 +1063,15 @@ void AnalyticsRecorder::FinishAdvertisingPhaseLocked() {
       MarkConnectionRequestIgnoredLocked(connection_request.get());
       UpdateAdvertiserConnectionRequestLocked(connection_request.get());
     }
-    RecordAdvertisingPhaseDurationLocked();
+    RecordAdvertisingPhaseDurationAndReasonLocked(/* on_stop= */ false);
     *current_strategy_session_->add_advertising_phase() =
         *std::move(current_advertising_phase_);
   }
   incoming_connection_requests_.clear();
 }
 
-void AnalyticsRecorder::RecordDiscoveryPhaseDurationLocked() const {
+void AnalyticsRecorder::RecordDiscoveryPhaseDurationAndReasonLocked(
+    bool on_stop) const {
   if (current_discovery_phase_ == nullptr) {
     NEARBY_LOGS(INFO) << "Unable to record discovery phase duration due to "
                          "null current_discovery_phase_";
@@ -1071,6 +1081,12 @@ void AnalyticsRecorder::RecordDiscoveryPhaseDurationLocked() const {
       !no_record_time_millis_) {
     current_discovery_phase_->set_duration_millis(absl::ToInt64Milliseconds(
         SystemClock::ElapsedRealtime() - started_discovery_phase_time_));
+  }
+  // If the stop reason haven't been set yet, then set it.
+  if (!current_discovery_phase_->has_stop_reason()) {
+    current_discovery_phase_->set_stop_reason(
+        on_stop ? StopDiscoveringReason::CLIENT_STOP_DISCOVERING
+                : StopDiscoveringReason::FINISH_SESSION_STOP_DISCOVERING);
   }
 }
 
@@ -1084,7 +1100,7 @@ void AnalyticsRecorder::FinishDiscoveryPhaseLocked() {
       MarkConnectionRequestIgnoredLocked(connection_request.get());
       UpdateDiscovererConnectionRequestLocked(connection_request.get());
     }
-    RecordDiscoveryPhaseDurationLocked();
+    RecordDiscoveryPhaseDurationAndReasonLocked(/* on_stop=*/ false);
     *current_strategy_session_->add_discovery_phase() =
         *std::move(current_discovery_phase_);
   }
