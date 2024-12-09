@@ -55,6 +55,7 @@ namespace connections {
 namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 using ::nearby::analytics::PacketMetaData;
 using DisconnectionReason =
