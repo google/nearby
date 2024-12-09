@@ -780,11 +780,21 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
             medium: BLUETOOTH
             disconnection_reason: UPGRADED
             connection_token: "connection_token"
+            safe_disconnection_result: UNKNOWN_SAFE_DISCONNECTION_RESULT
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
           established_connection <
             medium: WIFI_LAN
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
+            safe_disconnection_result: SAFE_DISCONNECTION
+            operation_result {
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            }
           >
         >)pb");
 
@@ -817,7 +827,8 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
-  analytics_recorder.OnOutgoingPayloadDone(endpoint_id, payload_id, SUCCESS);
+  analytics_recorder.OnOutgoingPayloadDone(endpoint_id, payload_id, SUCCESS,
+                                           OperationResultCode::DETAIL_SUCCESS);
   analytics_recorder.OnConnectionClosed(
       endpoint_id, WIFI_LAN, LOCAL_DISCONNECTION,
       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
@@ -847,9 +858,18 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
               num_bytes_transferred: 20
               num_chunks: 2
               status: MOVED_TO_NEW_MEDIUM
+              operation_result <
+                result_category: CATEGORY_MISCELLANEOUS
+                result_code: MISCELLEANEOUS_MOVE_TO_NEW_MEDIUM
+              >
             >
             disconnection_reason: UPGRADED
             connection_token: "connection_token"
+            safe_disconnection_result: SAFE_DISCONNECTION
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
           established_connection <
             medium: WIFI_LAN
@@ -859,9 +879,18 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
               num_bytes_transferred: 30
               num_chunks: 3
               status: SUCCESS
+              operation_result <
+                result_category: CATEGORY_SUCCESS
+                result_code: DETAIL_SUCCESS
+              >
             >
             disconnection_reason: LOCAL_DISCONNECTION
             connection_token: "connection_token"
+            safe_disconnection_result: SAFE_DISCONNECTION
+            operation_result <
+              result_category: CATEGORY_SUCCESS
+              result_code: DETAIL_SUCCESS
+            >
           >
         >)pb");
 
@@ -1688,8 +1717,8 @@ TEST(AnalyticsRecorderTest,
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
-  //// The same strategy session shouldn't be logged again with the same client
-  //// session.
+  // The same strategy session shouldn't be logged again with the same client
+  // session.
   EXPECT_THAT(event_logger.GetLoggedEventTypes(),
               Contains(START_STRATEGY_SESSION).Times(1));
 

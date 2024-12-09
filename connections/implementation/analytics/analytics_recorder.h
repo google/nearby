@@ -154,8 +154,9 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnIncomingPayloadDone(
       const std::string &endpoint_id, std::int64_t payload_id,
-      location::nearby::proto::connections::PayloadStatus status)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      location::nearby::proto::connections::PayloadStatus status,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingPayloadStarted(const std::vector<std::string> &endpoint_ids,
                                 std::int64_t payload_id,
                                 connections::PayloadType type,
@@ -167,8 +168,9 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnOutgoingPayloadDone(
       const std::string &endpoint_id, std::int64_t payload_id,
-      location::nearby::proto::connections::PayloadStatus status)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+      location::nearby::proto::connections::PayloadStatus status,
+      location::nearby::proto::connections::OperationResultCode
+          operation_result_code) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // BandwidthUpgrade
   void OnBandwidthUpgradeStarted(
@@ -212,11 +214,19 @@ class AnalyticsRecorder {
    public:
     PendingPayload(location::nearby::proto::connections::PayloadType type,
                    std::int64_t total_size_bytes)
+        : PendingPayload(type, total_size_bytes,
+                         location::nearby::proto::connections::
+                             OperationResultCode::DETAIL_UNKNOWN) {}
+    PendingPayload(location::nearby::proto::connections::PayloadType type,
+                   std::int64_t total_size_bytes,
+                   location::nearby::proto::connections::OperationResultCode
+                       operation_result_code)
         : start_time_(SystemClock::ElapsedRealtime()),
           type_(type),
           total_size_bytes_(total_size_bytes),
           num_bytes_transferred_(0),
-          num_chunks_(0) {}
+          num_chunks_(0),
+          operation_result_code_(operation_result_code) {}
     ~PendingPayload() = default;
 
     void AddChunk(std::int64_t chunk_size_bytes);
@@ -230,12 +240,21 @@ class AnalyticsRecorder {
 
     std::int64_t total_size_bytes() const { return total_size_bytes_; }
 
+    void SetOperationResultCode(
+        location::nearby::proto::connections::OperationResultCode
+            operation_result_code) {
+      operation_result_code_ = operation_result_code;
+    }
+
    private:
     absl::Time start_time_;
     location::nearby::proto::connections::PayloadType type_;
     std::int64_t total_size_bytes_;
     std::int64_t num_bytes_transferred_;
     int num_chunks_;
+    location::nearby::proto::connections::OperationResultCode
+        operation_result_code_ = location::nearby::proto::connections::
+            OperationResultCode::DETAIL_UNKNOWN;
   };
 
   class LogicalConnection {
@@ -272,7 +291,9 @@ class AnalyticsRecorder {
     void ChunkReceived(std::int64_t payload_id, std::int64_t size_bytes);
     void IncomingPayloadDone(
         std::int64_t payload_id,
-        location::nearby::proto::connections::PayloadStatus status);
+        location::nearby::proto::connections::PayloadStatus status,
+        location::nearby::proto::connections::OperationResultCode
+            operation_result_code);
     void OutgoingPayloadStarted(
         std::int64_t payload_id,
         location::nearby::proto::connections::PayloadType type,
@@ -280,7 +301,9 @@ class AnalyticsRecorder {
     void ChunkSent(std::int64_t payload_id, std::int64_t size_bytes);
     void OutgoingPayloadDone(
         std::int64_t payload_id,
-        location::nearby::proto::connections::PayloadStatus status);
+        location::nearby::proto::connections::PayloadStatus status,
+        location::nearby::proto::connections::OperationResultCode
+            operation_result_code);
 
     std::vector<location::nearby::analytics::proto::ConnectionsLog::
                     EstablishedConnection>
@@ -297,6 +320,9 @@ class AnalyticsRecorder {
     ResolvePendingPayloads(
         absl::btree_map<std::int64_t, std::unique_ptr<PendingPayload>>
             &pending_payloads,
+        location::nearby::proto::connections::DisconnectionReason reason);
+    location::nearby::proto::connections::OperationResultCode
+    GetPendingPayloadResultCodeFromReason(
         location::nearby::proto::connections::DisconnectionReason reason);
 
     location::nearby::proto::connections::Medium current_medium_ =

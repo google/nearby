@@ -654,9 +654,9 @@ void AnalyticsRecorder::OnPayloadChunkReceived(const std::string &endpoint_id,
   logical_connection->ChunkReceived(payload_id, chunk_size_bytes);
 }
 
-void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
-                                              std::int64_t payload_id,
-                                              PayloadStatus status) {
+void AnalyticsRecorder::OnIncomingPayloadDone(
+    const std::string &endpoint_id, std::int64_t payload_id,
+    PayloadStatus status, OperationResultCode operation_result_code) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnIncomingPayloadDone")) {
     return;
@@ -666,7 +666,8 @@ void AnalyticsRecorder::OnIncomingPayloadDone(const std::string &endpoint_id,
     return;
   }
   const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
-  logical_connection->IncomingPayloadDone(payload_id, status);
+  logical_connection->IncomingPayloadDone(payload_id, status,
+                                          operation_result_code);
 }
 
 void AnalyticsRecorder::OnOutgoingPayloadStarted(
@@ -702,9 +703,9 @@ void AnalyticsRecorder::OnPayloadChunkSent(const std::string &endpoint_id,
   logical_connection->ChunkSent(payload_id, chunk_size_bytes);
 }
 
-void AnalyticsRecorder::OnOutgoingPayloadDone(const std::string &endpoint_id,
-                                              std::int64_t payload_id,
-                                              PayloadStatus status) {
+void AnalyticsRecorder::OnOutgoingPayloadDone(
+    const std::string &endpoint_id, std::int64_t payload_id,
+    PayloadStatus status, OperationResultCode operation_result_code) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnOutgoingPayloadDone")) {
     return;
@@ -713,8 +714,10 @@ void AnalyticsRecorder::OnOutgoingPayloadDone(const std::string &endpoint_id,
   if (it == active_connections_.end()) {
     return;
   }
+
   const std::unique_ptr<LogicalConnection> &logical_connection = it->second;
-  logical_connection->OutgoingPayloadDone(payload_id, status);
+  logical_connection->OutgoingPayloadDone(payload_id, status,
+                                          operation_result_code);
 }
 
 void AnalyticsRecorder::OnBandwidthUpgradeStarted(
@@ -1310,6 +1313,13 @@ ConnectionsLog::Payload AnalyticsRecorder::PendingPayload::GetProtoPayload(
   payload.set_num_chunks(num_chunks_);
   payload.set_status(status);
 
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(operation_result_code_);
+  operation_result_proto->set_result_category(
+      GetOperationResultCateory(operation_result_code_));
+  payload.set_allocated_operation_result(operation_result_proto.release());
+
   return payload;
 }
 
@@ -1327,6 +1337,14 @@ void AnalyticsRecorder::LogicalConnection::PhysicalConnectionEstablished(
   established_connection->set_duration_millis(
       absl::ToUnixMillis(SystemClock::ElapsedRealtime()));
   established_connection->set_connection_token(connection_token);
+
+  auto operation_result_proto =
+      std::make_unique<ConnectionsLog::OperationResult>();
+  operation_result_proto->set_result_code(OperationResultCode::DETAIL_SUCCESS);
+  operation_result_proto->set_result_category(
+      OperationResultCategory::CATEGORY_SUCCESS);
+  established_connection->set_allocated_operation_result(
+      operation_result_proto.release());
   physical_connections_.insert({medium, std::move(established_connection)});
   current_medium_ = medium;
 }
@@ -1428,7 +1446,8 @@ void AnalyticsRecorder::LogicalConnection::ChunkReceived(
 }
 
 void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
-    std::int64_t payload_id, PayloadStatus status) {
+    std::int64_t payload_id, PayloadStatus status,
+    OperationResultCode operation_result_code) {
   if (current_medium_ == UNKNOWN_MEDIUM) {
     NEARBY_LOGS(WARNING) << "Unexpected call to incomingPayloadDone() while "
                             "AnalyticsRecorder has no active current medium.";
@@ -1440,6 +1459,7 @@ void AnalyticsRecorder::LogicalConnection::IncomingPayloadDone(
         &established_connection = it->second;
     auto it = incoming_payloads_.find(payload_id);
     if (it != incoming_payloads_.end()) {
+      it->second->SetOperationResultCode(operation_result_code);
       *established_connection->add_received_payload() =
           it->second->GetProtoPayload(status);
       incoming_payloads_.erase(it);
@@ -1464,7 +1484,8 @@ void AnalyticsRecorder::LogicalConnection::ChunkSent(std::int64_t payload_id,
 }
 
 void AnalyticsRecorder::LogicalConnection::OutgoingPayloadDone(
-    std::int64_t payload_id, PayloadStatus status) {
+    std::int64_t payload_id, PayloadStatus status,
+    OperationResultCode operation_result_code) {
   if (current_medium_ == UNKNOWN_MEDIUM) {
     NEARBY_LOGS(WARNING) << "Unexpected call to outgoingPayloadDone() while "
                             "AnalyticsRecorder has no active current medium.";
@@ -1476,6 +1497,7 @@ void AnalyticsRecorder::LogicalConnection::OutgoingPayloadDone(
         &established_connection = it->second;
     auto it = outgoing_payloads_.find(payload_id);
     if (it != outgoing_payloads_.end()) {
+      it->second->SetOperationResultCode(operation_result_code);
       *established_connection->add_sent_payload() =
           it->second->GetProtoPayload(status);
       outgoing_payloads_.erase(it);
@@ -1515,16 +1537,21 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
       upgraded_payloads;
   PayloadStatus status =
       reason == UPGRADED ? MOVED_TO_NEW_MEDIUM : CONNECTION_CLOSED;
+
+  OperationResultCode operation_result_code =
+      GetPendingPayloadResultCodeFromReason(reason);
   for (const auto &item : pending_payloads) {
     const std::unique_ptr<PendingPayload> &pending_payload = item.second;
+    pending_payload->SetOperationResultCode(operation_result_code);
     ConnectionsLog::Payload proto_payload =
         pending_payload->GetProtoPayload(status);
     completed_payloads.push_back(proto_payload);
     if (reason == UPGRADED) {
       upgraded_payloads.insert(
           {item.first,
-           std::make_unique<PendingPayload>(
-               pending_payload->type(), pending_payload->total_size_bytes())});
+           std::make_unique<PendingPayload>(pending_payload->type(),
+                                            pending_payload->total_size_bytes(),
+                                            operation_result_code)});
     }
   }
   pending_payloads.clear();
@@ -1537,6 +1564,21 @@ AnalyticsRecorder::LogicalConnection::ResolvePendingPayloads(
   // Return the list of completed payloads to be added to the current
   // EstablishedConnection.
   return completed_payloads;
+}
+
+OperationResultCode
+AnalyticsRecorder::LogicalConnection::GetPendingPayloadResultCodeFromReason(
+    DisconnectionReason reason) {
+  switch (reason) {
+    case UPGRADED:
+      return OperationResultCode::MISCELLEANEOUS_MOVE_TO_NEW_MEDIUM;
+    case DisconnectionReason::LOCAL_DISCONNECTION:
+      return OperationResultCode::CLIENT_CANCELLATION_LOCAL_DISCONNECT;
+    case DisconnectionReason::REMOTE_DISCONNECTION:
+      return OperationResultCode::CLIENT_CANCELLATION_REMOTE_DISCONNECT;
+    default:
+      return OperationResultCode::NEARBY_GENERIC_CONNECTION_CLOSED;
+  }
 }
 
 void AnalyticsRecorder::Sync() {
