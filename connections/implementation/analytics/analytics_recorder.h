@@ -25,7 +25,9 @@
 #include "absl/container/btree_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/advertising_metadata_params.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
+#include "connections/implementation/analytics/discovery_metadata_params.h"
 #include "connections/payload_type.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
@@ -47,19 +49,11 @@ class AnalyticsRecorder {
                     bool no_record_time_millis);
   virtual ~AnalyticsRecorder();
 
-  // TODO(edwinwu): Implement to pass real values for AdvertisingMetadata and
-  // DiscoveryMetaData: is_extended_advertisement_supported,
-  // connected_ap_frequency, and is_nfc_available. Set as default values for
-  // analytics recorder.
   // Advertising phase
   void OnStartAdvertising(
       connections::Strategy strategy,
       const std::vector<location::nearby::proto::connections::Medium> &mediums,
-      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                            OperationResultWithMedium>
-          &operation_result_with_medium,
-      bool is_extended_advertisement_supported = false,
-      int connected_ap_frequency = 0, bool is_nfc_available = false)
+      AdvertisingMetadataParams *advertising_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -72,11 +66,7 @@ class AnalyticsRecorder {
   void OnStartDiscovery(
       connections::Strategy strategy,
       const std::vector<location::nearby::proto::connections::Medium> &mediums,
-      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
-                            OperationResultWithMedium>
-          &operation_result_with_medium,
-      bool is_extended_advertisement_supported = false,
-      int connected_ap_frequency = 0, bool is_nfc_available = false)
+      DiscoveryMetadataParams *discovery_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
   void OnEndpointFound(location::nearby::proto::connections::Medium medium)
@@ -120,9 +110,20 @@ class AnalyticsRecorder {
       absl::Duration duration, const std::string &connection_token,
       ConnectionAttemptMetadataParams *connection_attempt_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
-  // TODO(edwinwu): Implement network operator, country code, tdls, wifi hotspot
-  //, max wifi tx/rx speed and channel width. Set as default values for
-  // analytics recorder.
+  static std::unique_ptr<AdvertisingMetadataParams>
+  BuildAdvertisingMetadataParams(
+      bool is_extended_advertisement_supported = false,
+      int connected_ap_frequency = 0, bool is_nfc_available = false,
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium>
+          &operation_result_with_mediums = {});
+  static std::unique_ptr<DiscoveryMetadataParams> BuildDiscoveryMetadataParams(
+      bool is_extended_advertisement_supported = false,
+      int connected_ap_frequency = 0, bool is_nfc_available = false,
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium>
+          &operation_result_with_mediums = {});
+
   static std::unique_ptr<ConnectionAttemptMetadataParams>
   BuildConnectionAttemptMetadataParams(
       location::nearby::proto::connections::ConnectionTechnology technology,

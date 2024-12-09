@@ -20,8 +20,10 @@ cc_library(
         "throughput_recorder.cc",
     ],
     hdrs = [
+        "advertising_metadata_params.h",
         "analytics_recorder.h",
         "connection_attempt_metadata_params.h",
+        "discovery_metadata_params.h",
         "packet_meta_data.h",
         "throughput_recorder.h",
     ],

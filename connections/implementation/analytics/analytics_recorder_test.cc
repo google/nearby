@@ -173,12 +173,18 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  advertising_metadata_params->operation_result_with_mediums = {
+      operation_result};
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLE, BLUETOOTH},
-                                        {operation_result});
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
   operation_result.set_medium(BLE);
+  advertising_metadata_params->operation_result_with_mediums = {
+      operation_result};
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLUETOOTH},
-                                        {operation_result});
+                                        advertising_metadata_params.get());
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -241,18 +247,25 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
   operation_result2.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result2.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
-  analytics_recorder.OnStartDiscovery(
-      strategy, /*mediums=*/{BLE, BLUETOOTH},
-      {operation_result, operation_result2},
-      /*is_extended_advertisement_supported=*/true,
-      /*connected_ap_frequency=*/1, /*is_nfc_available=*/false);
+
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams(
+          /*is_extended_advertisement_supported*/ true,
+          /*connected_ap_frequency*/ 1, /*is_nfc_available=*/false,
+          {operation_result, operation_result2});
+  analytics_recorder.OnStartDiscovery(strategy, /*mediums=*/{BLE, BLUETOOTH},
+                                      discovery_metadata_params.get());
   analytics_recorder.OnStopDiscovery();
   analytics_recorder.OnEndpointFound(BLUETOOTH);
   analytics_recorder.OnEndpointFound(BLE);
-  analytics_recorder.OnStartDiscovery(
-      strategy, /*mediums=*/{BLUETOOTH}, {operation_result},
-      /*is_extended_advertisement_supported=*/true,
-      /*connected_ap_frequency=*/1, /*is_nfc_available=*/false);
+
+  auto discovery_metadata_params2 =
+      analytics_recorder.BuildDiscoveryMetadataParams(
+          /*is_extended_advertisement_supported*/ true,
+          /*connected_ap_frequency*/ 1, /*is_nfc_available=*/false,
+          {operation_result});
+  analytics_recorder.OnStartDiscovery(strategy, /*mediums=*/{BLUETOOTH},
+                                      discovery_metadata_params2.get());
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -314,16 +327,25 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
-  analytics_recorder.OnStartAdvertising(strategy, mediums, {});
-  analytics_recorder.OnStartDiscovery(strategy, mediums, {});
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  analytics_recorder.OnStartAdvertising(strategy, mediums,
+                                        advertising_metadata_params.get());
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
+  analytics_recorder.OnStartDiscovery(strategy, mediums,
+                                      discovery_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
   analytics_recorder.OnStopDiscovery();
-  analytics_recorder.OnStartAdvertising(strategy, mediums, {});
+  analytics_recorder.OnStartAdvertising(strategy, mediums,
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
-  analytics_recorder.OnStartDiscovery(strategy, mediums, {});
+  analytics_recorder.OnStartDiscovery(strategy, mediums,
+                                      discovery_metadata_params.get());
   analytics_recorder.OnStopDiscovery();
   analytics_recorder.OnStartDiscovery(strategy, mediums, {});
-  analytics_recorder.OnStartAdvertising(strategy, mediums, {});
+  analytics_recorder.OnStartAdvertising(strategy, mediums,
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopDiscovery();
   analytics_recorder.OnStopAdvertising();
 
@@ -422,9 +444,13 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  advertising_metadata_params->operation_result_with_mediums = {
+      operation_result};
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
-                                        {operation_result});
+                                        advertising_metadata_params.get());
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
@@ -502,9 +528,12 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
+  discovery_metadata_params->operation_result_with_mediums = {operation_result};
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH},
-                                      {operation_result});
+                                      discovery_metadata_params.get());
 
   analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
@@ -583,9 +612,13 @@ TEST(AnalyticsRecorderTest,
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  advertising_metadata_params->operation_result_with_mediums = {
+      operation_result};
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
-                                        {operation_result});
+                                        advertising_metadata_params.get());
   // Ignored by local.
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
@@ -654,9 +687,12 @@ TEST(AnalyticsRecorderTest,
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
+  discovery_metadata_params->operation_result_with_mediums = {operation_result};
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH},
-                                      {operation_result});
+                                      discovery_metadata_params.get());
 
   // Ignored by local.
   analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
@@ -721,9 +757,13 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
   operation_result.set_result_code(OperationResultCode::DETAIL_SUCCESS);
   operation_result.set_result_category(
       OperationResultCategory::CATEGORY_SUCCESS);
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  advertising_metadata_params->operation_result_with_mediums = {
+      operation_result};
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
-                                        {operation_result});
+                                        advertising_metadata_params.get());
 
   auto connections_attempt_metadata_params =
       std::make_unique<ConnectionAttemptMetadataParams>();
@@ -807,8 +847,11 @@ TEST(AnalyticsRecorderTest,
           /*wifi_hotspot_enabled*/ false, /*max_wifi_tx_speed*/ 0,
           /*max_wifi_rx_speed*/ 0, /*channel_width*/ 0,
           OperationResultCode::CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE);
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
-                                      /*mediums=*/{BLE, BLUETOOTH}, {});
+                                      /*mediums=*/{BLE, BLUETOOTH},
+                                      discovery_metadata_params.get());
   analytics_recorder.OnConnectionRequestSent(endpoint_id);
   analytics_recorder.OnOutgoingConnectionAttempt(
       endpoint_id, INITIAL, BLUETOOTH, RESULT_ERROR, absl::Duration{},
@@ -875,8 +918,11 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
   analytics_recorder.OnConnectionClosed(
@@ -939,8 +985,11 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
   analytics_recorder.OnOutgoingPayloadStarted(
@@ -1038,8 +1087,11 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
 
   analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
                                                INCOMING, connection_token);
@@ -1187,8 +1239,11 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
-                                      /*mediums=*/{WEB_RTC}, {});
+                                      /*mediums=*/{WEB_RTC},
+                                      discovery_metadata_params.get());
 
   ErrorCodeParams error_code_params = ErrorCodeRecorder::BuildErrorCodeParams(
       WEB_RTC, DISCONNECT, DISCONNECT_NETWORK_FAILED,
@@ -1215,8 +1270,11 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
-                                      /*mediums=*/{BLUETOOTH}, {});
+                                      /*mediums=*/{BLUETOOTH},
+                                      discovery_metadata_params.get());
 
   ErrorCodeParams error_code_params;
   // Skip setting error_code_params.description
@@ -1246,8 +1304,11 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
-                                      /*mediums=*/{BLUETOOTH}, {});
+                                      /*mediums=*/{BLUETOOTH},
+                                      discovery_metadata_params.get());
 
   ErrorCodeParams error_code_params = ErrorCodeRecorder::BuildErrorCodeParams(
       BLUETOOTH, START_DISCOVERING, INVALID_PARAMETER,
@@ -1376,8 +1437,11 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
@@ -1481,8 +1545,11 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams();
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
-                                      /*mediums=*/{BLE, BLUETOOTH}, {});
+                                      /*mediums=*/{BLE, BLUETOOTH},
+                                      discovery_metadata_params.get());
 
   analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
@@ -1589,7 +1656,10 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
-  analytics_recorder.OnStartAdvertising(strategy, mediums, {});
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  analytics_recorder.OnStartAdvertising(strategy, mediums,
+                                        advertising_metadata_params.get());
 
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
@@ -1696,8 +1766,11 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
 
   analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
                                                INCOMING, connection_token);
@@ -1867,8 +1940,11 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLUETOOTH}, {});
+                                        /*mediums=*/{BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
 
   // LogSession
@@ -1891,7 +1967,9 @@ TEST(AnalyticsRecorderTest,
   // LogSession again
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
-  analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLUETOOTH}, {});
+
+  analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
 
   analytics_recorder.LogSession();
@@ -1912,8 +1990,11 @@ TEST(AnalyticsRecorderTest,
 
   // Via OnStartAdvertising, current_strategy_session_is set in
   // UpdateStrategySessionLocked.
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
 
   // LogSession
@@ -1949,8 +2030,8 @@ TEST(AnalyticsRecorderTest,
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // LogSession again
-  // - if current_strategy_session_ is reset, the same strategy_session_proto
-  // will be logged.
+  // - if current_strategy_session_ is reset, the same
+  // strategy_session_proto will be logged.
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
   analytics_recorder.LogSession();
@@ -1968,9 +2049,12 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
-  analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLUETOOTH},
-                                        {});  // set current_advertising_phase_
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
+  analytics_recorder.OnStartAdvertising(
+      connections::Strategy::kP2pStar,
+      /*mediums=*/{BLUETOOTH},
+      advertising_metadata_params.get());  // set current_advertising_phase_
   analytics_recorder.OnStopAdvertising();
 
   // LogSession
@@ -2049,10 +2133,13 @@ TEST(AnalyticsRecorderTest,
   AnalyticsRecorder analytics_recorder(&event_logger,
                                        /*no_record_time_millis=*/true);
 
+  auto discovery_metadata_params =
+      analytics_recorder.BuildDiscoveryMetadataParams(
+          /*is_extended_advertisement_supported*/ true,
+          /*connected_ap_frequency*/ 1, /*is_nfc_available=*/false);
   analytics_recorder.OnStartDiscovery(
-      strategy, {BLUETOOTH}, {}, /*is_extended_advertisement_supported=*/true,
-      /*connected_ap_frequency=*/1,
-      /*is_nfc_available=*/false);  // set current_discovery_phase_
+      strategy, {BLUETOOTH},
+      discovery_metadata_params.get());  // set current_discovery_phase_
   analytics_recorder.OnStopDiscovery();
   analytics_recorder.OnEndpointFound(BLUETOOTH);
 
@@ -2136,8 +2223,11 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   // via OnStartAdvertising, current_strategy_session_ is set in
   // UpdateStrategySessionLocked.
+  auto advertising_metadata_params =
+      analytics_recorder.BuildAdvertisingMetadataParams();
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
-                                        /*mediums=*/{BLE, BLUETOOTH}, {});
+                                        /*mediums=*/{BLE, BLUETOOTH},
+                                        advertising_metadata_params.get());
   analytics_recorder.OnStopAdvertising();
 
   // LogSession

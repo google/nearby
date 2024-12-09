@@ -26,7 +26,9 @@
 #include "absl/container/btree_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "connections/implementation/analytics/advertising_metadata_params.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
+#include "connections/implementation/analytics/discovery_metadata_params.h"
 #include "connections/payload_type.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
@@ -206,10 +208,7 @@ void AnalyticsRecorder::ResetClientSessionLoggingResoucesLocked() {
 
 void AnalyticsRecorder::OnStartAdvertising(
     connections::Strategy strategy, const std::vector<Medium> &mediums,
-    const std::vector<ConnectionsLog::OperationResultWithMedium>
-        &operation_result_with_mediums,
-    bool is_extended_advertisement_supported, int connected_ap_frequency,
-    bool is_nfc_available) {
+    AdvertisingMetadataParams *advertising_metadata_params) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnStartAdvertising")) {
     return;
@@ -228,16 +227,24 @@ void AnalyticsRecorder::OnStartAdvertising(
       std::make_unique<ConnectionsLog::AdvertisingPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_advertising_phase_->mutable_medium()));
-  absl::c_copy(operation_result_with_mediums,
-               RepeatedFieldBackInserter(
-                   current_advertising_phase_->mutable_adv_dis_result()));
   // Set a AdvertisingMetadata.
+  AdvertisingMetadataParams default_params = {};
+  if (advertising_metadata_params == nullptr) {
+    advertising_metadata_params = &default_params;
+  }
+  if (!advertising_metadata_params->operation_result_with_mediums.empty()) {
+    absl::c_copy(advertising_metadata_params->operation_result_with_mediums,
+                 RepeatedFieldBackInserter(
+                     current_advertising_phase_->mutable_adv_dis_result()));
+  }
   auto *advertising_metadata =
       current_advertising_phase_->mutable_advertising_metadata();
   advertising_metadata->set_supports_extended_ble_advertisements(
-      is_extended_advertisement_supported);
-  advertising_metadata->set_connected_ap_frequency(connected_ap_frequency);
-  advertising_metadata->set_supports_nfc_technology(is_nfc_available);
+      advertising_metadata_params->is_extended_advertisement_supported);
+  advertising_metadata->set_connected_ap_frequency(
+      advertising_metadata_params->connected_ap_frequency);
+  advertising_metadata->set_supports_nfc_technology(
+      advertising_metadata_params->is_nfc_available);
 }
 
 void AnalyticsRecorder::OnStopAdvertising() {
@@ -250,10 +257,7 @@ void AnalyticsRecorder::OnStopAdvertising() {
 
 void AnalyticsRecorder::OnStartDiscovery(
     connections::Strategy strategy, const std::vector<Medium> &mediums,
-    const std::vector<ConnectionsLog::OperationResultWithMedium>
-        &operation_result_with_mediums,
-    bool is_extended_advertisement_supported, int connected_ap_frequency,
-    bool is_nfc_available) {
+    DiscoveryMetadataParams *discovery_metadata_params) {
   MutexLock lock(&mutex_);
   if (!CanRecordAnalyticsLocked("OnStartDiscovery")) {
     return;
@@ -272,16 +276,24 @@ void AnalyticsRecorder::OnStartDiscovery(
   current_discovery_phase_ = std::make_unique<ConnectionsLog::DiscoveryPhase>();
   absl::c_copy(mediums, RepeatedFieldBackInserter(
                             current_discovery_phase_->mutable_medium()));
-  absl::c_copy(operation_result_with_mediums,
-               RepeatedFieldBackInserter(
-                   current_discovery_phase_->mutable_adv_dis_result()));
   // Set a DiscoveryMetadata.
+  DiscoveryMetadataParams default_params = {};
+  if (discovery_metadata_params == nullptr) {
+    discovery_metadata_params = &default_params;
+  }
+  if (!discovery_metadata_params->operation_result_with_mediums.empty()) {
+    absl::c_copy(discovery_metadata_params->operation_result_with_mediums,
+                 RepeatedFieldBackInserter(
+                     current_discovery_phase_->mutable_adv_dis_result()));
+  }
   auto *discovery_metadata =
       current_discovery_phase_->mutable_discovery_metadata();
   discovery_metadata->set_supports_extended_ble_advertisements(
-      is_extended_advertisement_supported);
-  discovery_metadata->set_connected_ap_frequency(connected_ap_frequency);
-  discovery_metadata->set_supports_nfc_technology(is_nfc_available);
+      discovery_metadata_params->is_extended_advertisement_supported);
+  discovery_metadata->set_connected_ap_frequency(
+      discovery_metadata_params->connected_ap_frequency);
+  discovery_metadata->set_supports_nfc_technology(
+      discovery_metadata_params->is_nfc_available);
 }
 
 void AnalyticsRecorder::OnStopDiscovery() {
@@ -900,6 +912,38 @@ void AnalyticsRecorder::LogSession() {
   LogClientSessionLocked();
   LogEvent(STOP_CLIENT_SESSION);
   session_was_logged_ = true;
+}
+
+std::unique_ptr<AdvertisingMetadataParams>
+AnalyticsRecorder::BuildAdvertisingMetadataParams(
+    bool is_extended_advertisement_supported, int connected_ap_frequency,
+    bool is_nfc_available,
+    const std::vector<ConnectionsLog::OperationResultWithMedium>
+        &operation_result_with_mediums) {
+  auto params = std::make_unique<AdvertisingMetadataParams>();
+  params->is_extended_advertisement_supported =
+      is_extended_advertisement_supported;
+  params->connected_ap_frequency = connected_ap_frequency;
+  params->is_nfc_available = is_nfc_available;
+  params->operation_result_with_mediums =
+      std::move(operation_result_with_mediums);
+  return params;
+}
+
+std::unique_ptr<DiscoveryMetadataParams>
+AnalyticsRecorder::BuildDiscoveryMetadataParams(
+    bool is_extended_advertisement_supported, int connected_ap_frequency,
+    bool is_nfc_available,
+    const std::vector<ConnectionsLog::OperationResultWithMedium>
+        &operation_result_with_mediums) {
+  auto params = std::make_unique<DiscoveryMetadataParams>();
+  params->is_extended_advertisement_supported =
+      is_extended_advertisement_supported;
+  params->connected_ap_frequency = connected_ap_frequency;
+  params->is_nfc_available = is_nfc_available;
+  params->operation_result_with_mediums =
+      std::move(operation_result_with_mediums);
+  return params;
 }
 
 std::unique_ptr<ConnectionAttemptMetadataParams>

@@ -35,7 +35,9 @@
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/analytics/advertising_metadata_params.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
+#include "connections/implementation/analytics/discovery_metadata_params.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
@@ -240,9 +242,12 @@ void ClientProxy::StartedAdvertising(
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
+  std::unique_ptr<AdvertisingMetadataParams> advertising_metadata_params;
+  advertising_metadata_params =
+      GetAnalyticsRecorder().BuildAdvertisingMetadataParams();
   // TODO(edwinwu): Implement to pass real values for OperatoinResultWithMedium.
-  analytics_recorder_->OnStartAdvertising(strategy, medium_vector, {}, false,
-                                          0);
+  analytics_recorder_->OnStartAdvertising(strategy, medium_vector,
+                                          advertising_metadata_params.get());
 }
 
 void ClientProxy::StoppedAdvertising() {
@@ -368,8 +373,13 @@ void ClientProxy::StartedDiscovery(
 
   const std::vector<location::nearby::proto::connections::Medium> medium_vector(
       mediums.begin(), mediums.end());
+  std::unique_ptr<DiscoveryMetadataParams> discovery_metadata_params;
+  discovery_metadata_params =
+      GetAnalyticsRecorder().BuildDiscoveryMetadataParams();
   // TODO(edwinwu): Implement to pass real values for OperatoinResultWithMedium.
-  analytics_recorder_->OnStartDiscovery(strategy, medium_vector, {}, false, 0);
+  analytics_recorder_->OnStartDiscovery(
+      strategy, medium_vector,
+      discovery_metadata_params.get());
 }
 
 void ClientProxy::StoppedDiscovery() {
