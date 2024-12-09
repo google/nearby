@@ -85,7 +85,6 @@ namespace nearby {
 namespace connections {
 
 namespace {
-
 constexpr int kEndpointCancelAlarmTimeout = 10;
 
 std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
@@ -98,7 +97,6 @@ std::string AuthenticationStatusToString(nearby::AuthenticationStatus status) {
       return "failure";
   }
 }
-
 }  // namespace
 
 using ::location::nearby::connections::ConnectionRequestFrame;
@@ -108,10 +106,8 @@ using ::location::nearby::connections::MediumMetadata;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PresenceDevice;
 using ::location::nearby::connections::V1Frame;
+using ::location::nearby::proto::connections::OperationResultCode;
 using ::securegcm::UKey2Handshake;
-
-constexpr absl::Duration BasePcpHandler::kConnectionRequestReadTimeout;
-constexpr absl::Duration BasePcpHandler::kRejectedConnectionCloseDelay;
 
 BasePcpHandler::BasePcpHandler(Mediums* mediums,
                                EndpointManager* endpoint_manager,
@@ -623,7 +619,9 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
         connection_info.client, connection_info.medium,
         remote_device.GetEndpointId(), connection_info.channel.get(),
         connection_info.is_incoming, connection_info.start_time,
-        {Status::kEndpointIoError}, connection_info.result.lock().get());
+        {Status::kEndpointIoError},
+        OperationResultCode::NEARBY_AUTHENTICATION_FAILURE,
+        connection_info.result.lock().get());
     return;
   }
 
@@ -685,6 +683,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
         connection_info.client, connection_info.medium, endpoint_id,
         connection_info.channel.get(), connection_info.is_incoming,
         connection_info.start_time, {Status::kEndpointIoError},
+        OperationResultCode::NEARBY_AUTHENTICATION_FAILURE,
         connection_info.result.lock().get());
     return;
   }
@@ -763,7 +762,7 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   ProcessPreConnectionInitiationFailure(
       info.client, info.medium, endpoint_id, info.channel.get(),
       info.is_incoming, info.start_time, {Status::kEndpointIoError},
-      info.result.lock().get());
+      OperationResultCode::NEARBY_ENCRYPTION_FAILURE, info.result.lock().get());
 }
 
 ConnectionInfo BasePcpHandler::FillConnectionInfo(
@@ -862,7 +861,7 @@ Status BasePcpHandler::RequestConnection(
           ProcessPreConnectionInitiationFailure(
               client, channel_medium, endpoint_id, channel.get(),
               /* is_incoming = */ false, start_time, connect_impl_result.status,
-              result.get());
+              connect_impl_result.operation_result_code, result.get());
           return;
         }
 
@@ -878,13 +877,14 @@ Status BasePcpHandler::RequestConnection(
         Exception write_exception = WriteConnectionRequestFrame(
             local_device->GetType(), local_device->ToProtoBytes(),
             connection_info, channel.get());
-
         if (!write_exception.Ok()) {
           NEARBY_LOGS(INFO) << "Failed to send connection request: endpoint_id="
                             << endpoint_id;
           ProcessPreConnectionInitiationFailure(
               client, channel_medium, endpoint_id, channel.get(),
               /* is_incoming = */ false, start_time, {Status::kEndpointIoError},
+              client->GetAnalyticsRecorder()
+                  .GetChannelIoErrorResultCodeFromMedium(channel_medium),
               result.get());
           return;
         }
@@ -1005,7 +1005,7 @@ Status BasePcpHandler::RequestConnectionV3(
           ProcessPreConnectionInitiationFailure(
               client, channel_medium, endpoint_id, channel.get(),
               /* is_incoming = */ false, start_time, connect_impl_result.status,
-              result.get());
+              connect_impl_result.operation_result_code, result.get());
           return;
         }
 
@@ -1031,6 +1031,8 @@ Status BasePcpHandler::RequestConnectionV3(
           ProcessPreConnectionInitiationFailure(
               client, channel_medium, endpoint_id, channel.get(),
               /* is_incoming = */ false, start_time, {Status::kEndpointIoError},
+              client->GetAnalyticsRecorder()
+                  .GetChannelIoErrorResultCodeFromMedium(channel_medium),
               result.get());
           return;
         }
@@ -1338,7 +1340,8 @@ Exception BasePcpHandler::WriteConnectionRequestFrame(
 void BasePcpHandler::ProcessPreConnectionInitiationFailure(
     ClientProxy* client, Medium medium, const std::string& endpoint_id,
     EndpointChannel* channel, bool is_incoming, absl::Time start_time,
-    Status status, Future<Status>* result) {
+    Status status, OperationResultCode operation_result_code,
+    Future<Status>* result) {
   if (channel != nullptr) {
     channel->Close();
   }
@@ -1349,7 +1352,7 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
   }
 
   LogConnectionAttemptFailure(client, medium, endpoint_id, is_incoming,
-                              start_time, channel);
+                              start_time, channel, operation_result_code);
   // result is hold inside a swapper, and saved in PendingConnectionInfo.
   // PendingConnectionInfo destructor will clear the memory of SettableFuture
   // shared_ptr for result.
@@ -1850,7 +1853,10 @@ Exception BasePcpHandler::OnIncomingConnection(
           << "with error: " << wrapped_frame.exception();
       ProcessPreConnectionInitiationFailure(
           client, medium, /*endpoint_id=*/"", channel.get(),
-          /*is_incoming=*/true, start_time, {Status::kError}, nullptr);
+          /*is_incoming=*/true, start_time, {Status::kError},
+          client->GetAnalyticsRecorder().GetChannelIoErrorResultCodeFromMedium(
+              medium),
+          nullptr);
     }
     return wrapped_frame.GetException();
   }
@@ -2081,7 +2087,9 @@ void BasePcpHandler::ProcessTieBreakLoss(
     BasePcpHandler::PendingConnectionInfo* info) {
   ProcessPreConnectionInitiationFailure(
       client, info->medium, endpoint_id, info->channel.get(), info->is_incoming,
-      info->start_time, {Status::kEndpointIoError}, info->result.lock().get());
+      info->start_time, {Status::kEndpointIoError},
+      OperationResultCode::CLIENT_PROCESS_TIE_BREAK_LOSS,
+      info->result.lock().get());
   ProcessPreConnectionResultFailure(client, endpoint_id,
                                     /* should_call_disconnect_endpoint= */ true,
                                     DisconnectionReason::IO_ERROR);
@@ -2348,8 +2356,8 @@ std::string BasePcpHandler::GetHashedConnectionToken(
 
 void BasePcpHandler::LogConnectionAttemptFailure(
     ClientProxy* client, Medium medium, const std::string& endpoint_id,
-    bool is_incoming, absl::Time start_time,
-    EndpointChannel* endpoint_channel) {
+    bool is_incoming, absl::Time start_time, EndpointChannel* endpoint_channel,
+    OperationResultCode operation_result_code) {
   location::nearby::proto::connections::ConnectionAttemptResult result =
       Cancelled(client, endpoint_id)
           ? location::nearby::proto::connections::RESULT_CANCELLED
@@ -2361,6 +2369,8 @@ void BasePcpHandler::LogConnectionAttemptFailure(
         client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
             endpoint_channel->GetTechnology(), endpoint_channel->GetBand(),
             endpoint_channel->GetFrequency(), endpoint_channel->GetTryCount());
+    connections_attempt_metadata_params->operation_result_code =
+        operation_result_code;
   }
   if (is_incoming) {
     client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
@@ -2388,6 +2398,8 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
                 connection_info.channel->GetBand(),
                 connection_info.channel->GetFrequency(),
                 connection_info.channel->GetTryCount());
+    connections_attempt_metadata_params->operation_result_code =
+        OperationResultCode::DETAIL_SUCCESS;
   } else {
     NEARBY_LOGS(ERROR) << "PendingConnectionInfo channel is null for "
                           "LogConnectionAttemptSuccess. Bail out.";

@@ -54,10 +54,15 @@
 namespace nearby {
 namespace connections {
 
+namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::V1Frame;
+using ::location::nearby::proto::connections::ConnectionAttemptResult;
+using ::location::nearby::proto::connections::ConnectionAttemptType;
 using ::location::nearby::proto::connections::DisconnectionReason;
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
 
 // Required for C++ 14 support in Chrome
 constexpr absl::Duration BwuManager::kReadClientIntroductionFrameTimeout;
@@ -603,6 +608,8 @@ void BwuManager::OnIncomingConnection(
           client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
               channel->GetTechnology(), channel->GetBand(),
               channel->GetFrequency(), channel->GetTryCount());
+      connections_attempt_metadata_params->operation_result_code =
+          OperationResultCode::DETAIL_SUCCESS;
     }
     client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
         location::nearby::proto::connections::UPGRADE, channel->GetMedium(),
@@ -772,8 +779,7 @@ void BwuManager::ProcessBwuPathAvailableEvent(
   absl::Time connection_attempt_start_time = SystemClock::ElapsedRealtime();
   auto channel = ProcessBwuPathAvailableEventInternal(client, endpoint_id,
                                                       upgrade_path_info);
-  location::nearby::proto::connections::ConnectionAttemptResult
-      connection_attempt_result;
+  ConnectionAttemptResult connection_attempt_result;
   if (channel != nullptr) {
     connection_attempt_result =
         location::nearby::proto::connections::RESULT_SUCCESS;
@@ -788,20 +794,34 @@ void BwuManager::ProcessBwuPathAvailableEvent(
         location::nearby::proto::connections::RESULT_ERROR;
   }
 
-  std::unique_ptr<ConnectionAttemptMetadataParams>
-      connections_attempt_metadata_params;
   if (channel != nullptr) {
-    connections_attempt_metadata_params =
-        client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
-            channel->GetTechnology(), channel->GetBand(),
-            channel->GetFrequency(), channel->GetTryCount());
+    std::unique_ptr<ConnectionAttemptMetadataParams>
+        connections_attempt_metadata_params =
+            client->GetAnalyticsRecorder().BuildConnectionAttemptMetadataParams(
+                channel->GetTechnology(), channel->GetBand(),
+                channel->GetFrequency(), channel->GetTryCount());
+    connections_attempt_metadata_params->operation_result_code =
+        OperationResultCode::DETAIL_SUCCESS;
+    client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+        endpoint_id, ConnectionAttemptType::UPGRADE, upgrade_medium,
+        connection_attempt_result,
+        SystemClock::ElapsedRealtime() - connection_attempt_start_time,
+        client->GetConnectionToken(endpoint_id),
+        connections_attempt_metadata_params.get());
+  } else {
+    // TODO(edwinwu): Replace DETAIL_UNKNOWN with the one returned by
+    // ProcessBwuPathAvailableEventInternal.
+    auto connections_attempt_metadata_params =
+        std::make_unique<ConnectionAttemptMetadataParams>();
+    connections_attempt_metadata_params->operation_result_code =
+        OperationResultCode::DETAIL_UNKNOWN;
+    client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
+        endpoint_id, ConnectionAttemptType::UPGRADE, upgrade_medium,
+        connection_attempt_result,
+        SystemClock::ElapsedRealtime() - connection_attempt_start_time,
+        client->GetConnectionToken(endpoint_id),
+        connections_attempt_metadata_params.get());
   }
-  client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
-      endpoint_id, location::nearby::proto::connections::UPGRADE,
-      upgrade_medium, connection_attempt_result,
-      SystemClock::ElapsedRealtime() - connection_attempt_start_time,
-      client->GetConnectionToken(endpoint_id),
-      connections_attempt_metadata_params.get());
 
   if (channel == nullptr) {
     NEARBY_LOGS(INFO) << "Failed to get new channel.";
