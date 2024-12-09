@@ -15,22 +15,23 @@
 #ifndef CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
 #define CORE_INTERNAL_INTERNAL_PAYLOAD_FACTORY_H_
 
-#include <string>
-
 #include <memory>
+#include <string>
 
 #include "connections/implementation/internal_payload.h"
 #include "connections/payload.h"
+#include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
 
 // Creates an InternalPayload representing an outgoing Payload.
-std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(Payload payload);
+ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
+    Payload payload);
 
 // Creates an InternalPayload representing an incoming Payload from a remote
 // endpoint.
-std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
+ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
     const std::string& custom_save_path);
 

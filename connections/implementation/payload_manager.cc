@@ -305,7 +305,14 @@ std::string PayloadManager::ToString(EndpointInfo::Status status) {
 // Creates and starts tracking a PendingPayload for this Payload.
 Payload::Id PayloadManager::CreateOutgoingPayload(
     Payload payload, const EndpointIds& endpoint_ids) {
-  auto internal_payload{CreateOutgoingInternalPayload(std::move(payload))};
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateOutgoingInternalPayload(std::move(payload));
+  if (result.has_error()) {
+    LOG(ERROR) << "Failed to create outgoing internal payload: "
+               << result.error().operation_result_code().value();
+    return Payload::Id();
+  }
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
   Payload::Id payload_id = internal_payload->GetId();
   LOG(INFO) << "CreateOutgoingPayload: payload_id=" << payload_id;
   MutexLock lock(&mutex_);
@@ -789,13 +796,12 @@ PayloadTransferFrame::PayloadChunk PayloadManager::CreatePayloadChunk(
 ErrorOr<PayloadManager::PendingPayloadHandle>
 PayloadManager::CreateIncomingPayload(const PayloadTransferFrame& frame,
                                       const std::string& endpoint_id) {
-  // TODO(edwinwu): Add for return result code in CreateIncomingInternalPayload.
-  std::unique_ptr<InternalPayload> internal_payload =
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
       CreateIncomingInternalPayload(frame, custom_save_path_);
-  if (!internal_payload) {
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+  if (result.has_error()) {
+    return {result.error()};
   }
-
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
   Payload::Id payload_id = internal_payload->GetId();
   LOG(INFO) << "CreateIncomingPayload: payload_id=" << payload_id;
   pending_payloads_.StartTrackingPayload(

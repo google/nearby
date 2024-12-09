@@ -27,6 +27,7 @@
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/file.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
@@ -40,6 +41,7 @@ namespace connections {
 
 namespace {
 using ::location::nearby::connections::PayloadTransferFrame;
+using ::location::nearby::proto::connections::OperationResultCode;
 
 class BytesInternalPayload : public InternalPayload {
  public:
@@ -309,23 +311,24 @@ class IncomingFileInternalPayload : public InternalPayload {
 using ::nearby::api::ImplementationPlatform;
 using ::nearby::api::OSName;
 
-std::unique_ptr<InternalPayload> CreateOutgoingInternalPayload(
+ErrorOr<std::unique_ptr<InternalPayload>> CreateOutgoingInternalPayload(
     Payload payload) {
   switch (payload.GetType()) {
     case PayloadType::kBytes:
-      return std::make_unique<BytesInternalPayload>(std::move(payload));
+      return {std::make_unique<BytesInternalPayload>(std::move(payload))};
 
     case PayloadType::kFile: {
-      return std::make_unique<OutgoingFileInternalPayload>(std::move(payload));
+      return {
+          std::make_unique<OutgoingFileInternalPayload>(std::move(payload))};
     }
 
     case PayloadType::kStream:
-      return std::make_unique<OutgoingStreamInternalPayload>(
-          std::move(payload));
+      return {
+          std::make_unique<OutgoingStreamInternalPayload>(std::move(payload))};
 
     default:
       DCHECK(false);  // This should never happen.
-      return {};
+      return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 }
 
@@ -350,26 +353,27 @@ std::string make_path(const std::string& custom_save_path,
   return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
 
-std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
+ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
     const location::nearby::connections::PayloadTransferFrame& frame,
     const std::string& custom_save_path) {
   if (frame.packet_type() !=
       location::nearby::connections::PayloadTransferFrame::DATA) {
-    return {};
+    return {Error(
+        OperationResultCode::NEARBY_GENERIC_INCOMING_PAYLOAD_NOT_DATA_TYPE)};
   }
 
   const Payload::Id payload_id = frame.payload_header().id();
   switch (frame.payload_header().type()) {
     case PayloadTransferFrame::PayloadHeader::BYTES: {
-      return std::make_unique<BytesInternalPayload>(
-          Payload(payload_id, ByteArray(frame.payload_chunk().body())));
+      return {std::make_unique<BytesInternalPayload>(
+          Payload(payload_id, ByteArray(frame.payload_chunk().body())))};
     }
 
     case PayloadTransferFrame::PayloadHeader::STREAM: {
       auto [input, output] = CreatePipe();
 
-      return std::make_unique<IncomingStreamInternalPayload>(
-          Payload(payload_id, std::move(input)), std::move(output));
+      return {std::make_unique<IncomingStreamInternalPayload>(
+          Payload(payload_id, std::move(input)), std::move(output))};
     }
 
     case PayloadTransferFrame::PayloadHeader::FILE: {
@@ -397,7 +401,7 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
           // file name for the output file.
           NEARBY_LOGS(ERROR) << "File name not found in incoming file Payload, "
                                 "and the Id wasn't found.";
-          return {};
+          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
         }
       }
 
@@ -409,19 +413,19 @@ std::unique_ptr<InternalPayload> CreateIncomingInternalPayload(
       // there will be no input file to open.
       // On Chrome the file path should be empty, so use the payload id.
       if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
-        return std::make_unique<IncomingFileInternalPayload>(
+        return {std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, InputFile(payload_id, total_size)),
-            OutputFile(payload_id), total_size);
+            OutputFile(payload_id), total_size)};
       } else {
-        return std::make_unique<IncomingFileInternalPayload>(
+        return {std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, parent_folder, file_name,
                     InputFile(file_path, total_size)),
-            OutputFile(file_path), total_size);
+            OutputFile(file_path), total_size)};
       }
     }
     default:
       DCHECK(false);  // This should never happen.
-      return {};
+      return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 }
 
