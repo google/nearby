@@ -1,7 +1,7 @@
-bazel_dep(name = "platforms", version = "0.0.8")
-bazel_dep(name = "rules_cc", version = "0.0.9")
-bazel_dep(name = "rules_rust", version = "0.42.1")
-bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "rules_cc", version = "0.0.16")
+bazel_dep(name = "rules_rust", version = "0.54.1")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
 
 bazel_dep(name = "abseil-cpp", version = "20240116.1", repo_name = "com_google_absl")
 bazel_dep(name = "protobuf", version = "28.3", repo_name = "com_google_protobuf")
