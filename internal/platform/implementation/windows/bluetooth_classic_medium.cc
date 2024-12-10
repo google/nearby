@@ -490,9 +490,14 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
                  << " is not in list. create it";
     auto bluetooth_device = std::make_unique<BluetoothDevice>(mac_address);
 
-    mac_address_to_bluetooth_device_map_[mac_address] =
-        std::move(bluetooth_device);
-    return mac_address_to_bluetooth_device_map_[mac_address].get();
+    if (IsWatcherStarted()) {
+      mac_address_to_bluetooth_device_map_[mac_address] =
+          std::move(bluetooth_device);
+      return mac_address_to_bluetooth_device_map_[mac_address].get();
+    } else {
+      cached_bluetooth_devices_map_[mac_address] = std::move(bluetooth_device);
+      return cached_bluetooth_devices_map_[mac_address].get();
+    }
   }
 
   LOG(INFO) << __func__ << ": Bluetooth device " << mac_address
@@ -511,6 +516,15 @@ bool BluetoothClassicMedium::StartScanning() {
 
     mac_address_to_bluetooth_device_map_.clear();
     removed_bluetooth_devices_map_.clear();
+    if (!cached_bluetooth_devices_map_.empty()) {
+      for (auto& [mac_address, bluetooth_device] :
+           cached_bluetooth_devices_map_) {
+        mac_address_to_bluetooth_device_map_[mac_address] =
+            std::move(bluetooth_device);
+      }
+
+      cached_bluetooth_devices_map_.clear();
+    }
 
     // The Start method can only be called when the DeviceWatcher is in the
     // Created, Stopped or Aborted state.

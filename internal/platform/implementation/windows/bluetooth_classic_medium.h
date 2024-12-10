@@ -159,6 +159,10 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
       removed_bluetooth_devices_map_;
 
+  // The caller may call to create Bluetooth device when scanning is off.
+  absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
+      cached_bluetooth_devices_map_;
+
   BluetoothAdapter& bluetooth_adapter_;
 
   BluetoothAdapter::ScanMode scan_mode_ = BluetoothAdapter::ScanMode::kUnknown;

@@ -453,6 +453,15 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
                           << ", service_id=" << service_id
                           << "]: processing new name " << device_name_string;
 
+        // Make sure the Bluetooth device name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
+                                           device_name)) {
+          NEARBY_LOGS(INFO) << "Found unrecognized BluetoothDeviceName "
+                            << device_name_string;
+          return;
+        }
+
         // By this point, the BluetoothDevice passed to us has a different
         // name than what we may have discovered before. We need to iterate
         // over the found BluetoothEndpoints and compare their addresses to
@@ -480,15 +489,6 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
             OnEndpointLost(client, *endpoint);
             break;
           }
-        }
-
-        // Make sure the Bluetooth device name points to a valid
-        // endpoint we're discovering.
-        if (!IsRecognizedBluetoothEndpoint(device_name_string, service_id,
-                                           device_name)) {
-          NEARBY_LOGS(INFO) << "Found unrecognized BluetoothDeviceName "
-                            << device_name_string;
-          return;
         }
 
         // Report the discovered endpoint to the client.
