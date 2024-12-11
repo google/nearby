@@ -39,7 +39,6 @@ namespace {
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
-// TODO(edwinwu): Add exact OperationResultCode for WifiLanBwuHandler.
 WifiLanBwuHandler::WifiLanBwuHandler(
     Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
@@ -52,14 +51,15 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_lan_socket()) {
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {
+        Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
   }
   const UpgradePathInfo::WifiLanSocket& upgrade_path_info_socket =
       upgrade_path_info.wifi_lan_socket();
   if (!upgrade_path_info_socket.has_ip_address() ||
       !upgrade_path_info_socket.has_wifi_port()) {
     NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to parse UpgradePathInfo.";
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
   }
 
   const std::string& ip_address = upgrade_path_info_socket.ip_address();
@@ -69,14 +69,14 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
                  << "available WifiLan service (" << ip_address << ":" << port
                  << ") for endpoint " << endpoint_id;
 
-  WifiLanSocket socket = wifi_lan_medium_.Connect(
+  ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
       service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
-  if (!socket.IsValid()) {
+  if (socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "WifiLanBwuHandler failed to connect to the WifiLan service ("
         << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
         << ") for endpoint " << endpoint_id;
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(socket_result.error().operation_result_code().value())};
   }
 
   NEARBY_VLOG(1)
@@ -86,13 +86,14 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
 
   // Create a new WifiLanEndpointChannel.
   auto channel = std::make_unique<WifiLanEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket);
+      service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
     NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "
                        << "channel to the WifiLan service (" << ip_address
                        << ":" << port << ") for endpoint " << endpoint_id;
-    socket.Close();
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    socket_result.value().Close();
+    return {Error(
+        OperationResultCode::NEARBY_LAN_ENDPOINT_CHANNEL_CREATION_FAILURE)};
   }
 
   return {std::move(channel)};

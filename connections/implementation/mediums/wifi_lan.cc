@@ -428,9 +428,9 @@ bool WifiLan::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-WifiLanSocket WifiLan::Connect(const std::string& service_id,
-                               const NsdServiceInfo& service_info,
-                               CancellationFlag* cancellation_flag) {
+ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
+                                        const NsdServiceInfo& service_info,
+                                        CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
@@ -438,18 +438,20 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiLan socket because "
                          "service_id is empty.";
-    return socket;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!IsAvailableLocked()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiLan socket [service_id="
                       << service_id << "]; WifiLan isn't available.";
-    return socket;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_LAN_NOT_AVAILABLE)};
   }
 
   if (cancellation_flag->Cancelled()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
-    return socket;
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_LAN_OUTGOING_CONNECTION)};
   }
 
   ExceptionOr<WifiLanSocket> virtual_socket =
@@ -462,7 +464,8 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
   if (!socket.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to Connect via WifiLan [service_id="
                       << service_id << "]";
-    return socket;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE)};
   } else {
     ExceptionOr<WifiLanSocket> virtual_socket =
         CreateOutgoingMultiplexSocketLocked(socket, service_id,
@@ -480,9 +483,9 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
   return socket;
 }
 
-WifiLanSocket WifiLan::Connect(const std::string& service_id,
-                               const std::string& ip_address, int port,
-                               CancellationFlag* cancellation_flag) {
+ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
+                                        const std::string& ip_address, int port,
+                                        CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiLanSocket socket;
@@ -490,18 +493,20 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiLan socket because "
                          "service_id is empty.";
-    return socket;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!IsAvailableLocked()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiLan socket [service_id="
                       << service_id << "]; WifiLan isn't available.";
-    return socket;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_LAN_NOT_AVAILABLE)};
   }
 
   if (cancellation_flag->Cancelled()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiLan socket due to cancel.";
-    return socket;
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_LAN_OUTGOING_CONNECTION)};
   }
 
   ExceptionOr<WifiLanSocket> virtual_socket =
@@ -514,7 +519,8 @@ WifiLanSocket WifiLan::Connect(const std::string& service_id,
   if (!socket.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to Connect via WifiLan [service_id="
                       << service_id << "]";
-    return socket;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE)};
   } else {
     ExceptionOr<WifiLanSocket> virtual_socket =
         CreateOutgoingMultiplexSocketLocked(socket, service_id, ip_address);

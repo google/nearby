@@ -95,17 +95,17 @@ class WifiLan {
   // another service with StartAcceptingConnections() using the same service_id.
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
-  WifiLanSocket Connect(const std::string& service_id,
-                        const NsdServiceInfo& service_info,
-                        CancellationFlag* cancellation_flag)
+  ErrorOr<WifiLanSocket> Connect(const std::string& service_id,
+                                 const NsdServiceInfo& service_info,
+                                 CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to WifiLan service by ip address and port for
   // bandwidth upgradation.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
-  WifiLanSocket Connect(const std::string& service_id,
-                        const std::string& ip_address, int port,
-                        CancellationFlag* cancellation_flag)
+  ErrorOr<WifiLanSocket> Connect(const std::string& service_id,
+                                 const std::string& ip_address, int port,
+                                 CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets ip address + port for remote services on the network to identify and

@@ -2848,30 +2848,34 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " is attempting to connect to endpoint(id="
                     << endpoint->endpoint_id << ") over WifiLan.";
-  WifiLanSocket socket = wifi_lan_medium_.Connect(
+  ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
       endpoint->service_id, endpoint->service_info,
       client->GetCancellationFlag(endpoint->endpoint_id));
-  if (!socket.IsValid()) {
+  if (socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "In WifiLanConnectImpl(), failed to connect to service "
         << endpoint->service_info.GetServiceName()
         << " for endpoint(id=" << endpoint->endpoint_id << ").";
     return BasePcpHandler::ConnectImplResult{
                .status = {Status::kWifiLanError},
+               .operation_result_code =
+                   socket_result.error().operation_result_code().value(),
     };
   }
   NEARBY_LOGS(INFO) << "In WifiLanConnectImpl(), connect to service "
-                    << " socket=" << &socket.GetImpl()
+                    << " socket=" << &socket_result.value().GetImpl()
                     << " for endpoint(id=" << endpoint->endpoint_id << ").";
 
   auto channel = std::make_unique<WifiLanEndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id, socket);
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+      socket_result.value());
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
                     << " created WifiLan endpoint channel to endpoint(id="
                     << endpoint->endpoint_id << ").";
   return BasePcpHandler::ConnectImplResult{
       .medium = WIFI_LAN,
       .status = {Status::kSuccess},
+      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
       .endpoint_channel = std::move(channel),
   };
 }

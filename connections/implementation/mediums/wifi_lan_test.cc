@@ -17,20 +17,21 @@
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/base64_utils.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/expected.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_lan.h"
-#include "internal/platform/base64_utils.h"
 
 namespace nearby {
 namespace connections {
@@ -102,13 +103,14 @@ TEST_P(WifiLanTest, CanConnect) {
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag;
-  WifiLanSocket socket_for_client =
+  ErrorOr<WifiLanSocket> socket_for_client_result =
       wifi_lan_client.Connect(service_id, discovered_service_info, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));
   EXPECT_TRUE(socket_for_server.IsValid());
-  EXPECT_TRUE(socket_for_client.IsValid());
+  EXPECT_TRUE(socket_for_client_result.has_value());
+  EXPECT_TRUE(socket_for_client_result.value().IsValid());
   env_.Stop();
 }
 
@@ -145,26 +147,28 @@ TEST_P(WifiLanTest, CanConnectWithMultiplex) {
   WifiLanSocket socket_for_client;
   SingleThreadExecutor client_executor;
   client_executor.Execute([&]() {
-  NsdServiceInfo discovered_service_info;
-  wifi_lan_client.StartDiscovery(
-      service_id,
-      {
-          .service_discovered_cb =
-              [&discovered_latch, &discovered_service_info](
-                  NsdServiceInfo service_info, const std::string& service_id) {
-                NEARBY_LOGS(INFO)
-                    << "Discovered service_info=" << &service_info;
-                discovered_service_info = service_info;
-                discovered_latch.CountDown();
-              },
-      });
-  discovered_latch.Await(kWaitDuration).result();
-  ASSERT_TRUE(discovered_service_info.IsValid());
+    NsdServiceInfo discovered_service_info;
+    wifi_lan_client.StartDiscovery(
+        service_id, {
+                        .service_discovered_cb =
+                            [&discovered_latch, &discovered_service_info](
+                                NsdServiceInfo service_info,
+                                const std::string& service_id) {
+                              NEARBY_LOGS(INFO) << "Discovered service_info="
+                                                << &service_info;
+                              discovered_service_info = service_info;
+                              discovered_latch.CountDown();
+                            },
+                    });
+    discovered_latch.Await(kWaitDuration).result();
+    ASSERT_TRUE(discovered_service_info.IsValid());
 
-  CancellationFlag flag;
-  socket_for_client =
-      wifi_lan_client.Connect(service_id, discovered_service_info, &flag);
-    Base64Utils::WriteInt(&socket_for_client.GetOutputStream(), 4);
+    CancellationFlag flag;
+    ErrorOr<WifiLanSocket> socket_for_client_result =
+        wifi_lan_client.Connect(service_id, discovered_service_info, &flag);
+    socket_for_client = std::move(socket_for_client_result.value());
+    Base64Utils::WriteInt(&socket_for_client_result.value().GetOutputStream(),
+                          4);
   });
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
@@ -219,7 +223,7 @@ TEST_P(WifiLanTest, CanCancelConnect) {
   ASSERT_TRUE(discovered_service_info.IsValid());
 
   CancellationFlag flag(true);
-  WifiLanSocket socket_for_client =
+  ErrorOr<WifiLanSocket> socket_for_client_result =
       wifi_lan_client.Connect(service_id, discovered_service_info, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
@@ -227,13 +231,14 @@ TEST_P(WifiLanTest, CanCancelConnect) {
     EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));
     EXPECT_TRUE(socket_for_server.IsValid());
-    EXPECT_TRUE(socket_for_client.IsValid());
+    EXPECT_TRUE(socket_for_client_result.has_value());
+    EXPECT_TRUE(socket_for_client_result.value().IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));
     EXPECT_FALSE(socket_for_server.IsValid());
-    EXPECT_FALSE(socket_for_client.IsValid());
+    EXPECT_TRUE(socket_for_client_result.has_error());
   }
   env_.Stop();
 }
