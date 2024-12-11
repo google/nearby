@@ -115,9 +115,9 @@ class BluetoothClassic {
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
-  BluetoothSocket Connect(BluetoothDevice& bluetooth_device,
-                          const std::string& service_id,
-                          CancellationFlag* cancellation_flag)
+  ErrorOr<BluetoothSocket> Connect(BluetoothDevice& bluetooth_device,
+                                   const std::string& service_id,
+                                   CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   std::string GetMacAddress() const ABSL_LOCKS_EXCLUDED(mutex_);
@@ -186,9 +186,9 @@ class BluetoothClassic {
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, BluetoothSocket.IsValid() return true.
   // Called by client.
-  BluetoothSocket AttemptToConnect(BluetoothDevice& bluetooth_device,
-                                   const std::string& service_id,
-                                   CancellationFlag* cancellation_flag);
+  ErrorOr<BluetoothSocket> AttemptToConnect(
+      BluetoothDevice& bluetooth_device, const std::string& service_id,
+      CancellationFlag* cancellation_flag);
 
   // Accesses to discovery callbacks.
   bool HasDiscoveryCallbacks() const

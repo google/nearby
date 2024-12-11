@@ -41,6 +41,7 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
@@ -923,16 +924,17 @@ bool ReconnectManager::BluetoothImpl::ConnectOverMedium() {
     return false;
   }
 
-  bluetooth_socket_ =
+  ErrorOr<BluetoothSocket> bluetooth_socket_result =
       bluetooth_medium.Connect(remote_bluetooth_device, reconnect_service_id_,
                                client_->GetCancellationFlag(endpoint_id_));
 
-  if (!bluetooth_socket_.IsValid()) {
+  if (bluetooth_socket_result.has_error()) {
     LOG(ERROR) << "Failed to reconnect to Bluetooth device "
                        << remote_bluetooth_device.GetName()
                        << " for endpoint(id=" << endpoint_id_ << ").";
     return false;
   }
+  bluetooth_socket_ = std::move(bluetooth_socket_result.value());
 
   reconnect_channel_ = std::make_unique<BluetoothEndpointChannel>(
       UnWrapInitiatorReconnectServiceId(reconnect_service_id_),

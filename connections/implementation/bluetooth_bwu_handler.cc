@@ -41,7 +41,6 @@ namespace {
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
-// TODO(edwinwu): Add exact OperationResultCode for BluetoothBwuHandler.
 BluetoothBwuHandler::BluetoothBwuHandler(
     Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
@@ -60,7 +59,8 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
       !bluetooth_credentials.has_mac_address()) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to parse UpgradePathInfo.";
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {
+        Error(OperationResultCode::CONNECTIVITY_BLUETOOTH_INVALID_CREDENTIAL)};
   }
 
   const std::string& service_name = bluetooth_credentials.service_name();
@@ -77,17 +77,18 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
         << "BluetoothBwuHandler failed to derive a valid Bluetooth device "
            "from the MAC address ("
         << mac_address << ") for endpoint " << endpoint_id;
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE)};
   }
 
-  BluetoothSocket socket = bluetooth_medium_.Connect(
+  ErrorOr<BluetoothSocket> socket_result = bluetooth_medium_.Connect(
       device, service_id, client->GetCancellationFlag(endpoint_id));
-  if (!socket.IsValid()) {
+  if (socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to connect to the Bluetooth device ("
         << service_name << ", " << mac_address << ") for endpoint "
         << endpoint_id << " and service ID " << service_id;
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(socket_result.error().operation_result_code().value())};
   }
 
   NEARBY_VLOG(1)
@@ -96,15 +97,16 @@ BluetoothBwuHandler::CreateUpgradedEndpointChannel(
       << endpoint_id;
 
   auto channel = std::make_unique<BluetoothEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket);
+      service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
     NEARBY_LOGS(ERROR)
         << "BluetoothBwuHandler failed to create Bluetooth endpoint "
            "channel to the Bluetooth device ("
         << service_name << ", " << mac_address << ") for endpoint "
         << endpoint_id << " and service ID " << service_id;
-    socket.Close();
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    socket_result.value().Close();
+    return {Error(
+        OperationResultCode::NEARBY_BT_ENDPOINT_CHANNEL_CREATION_FAILURE)};
   }
 
   client->SetBluetoothMacAddress(endpoint_id, mac_address);

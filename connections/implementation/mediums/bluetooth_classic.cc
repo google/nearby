@@ -124,8 +124,8 @@ ErrorOr<bool> BluetoothClassic::TurnOnDiscoverability(
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't turn on BT discoverability. BT is not available.";
-    return {Error(
-        OperationResultCode::MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE)};
+    return {
+        Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE)};
   }
 
   if (IsDiscoverable()) {
@@ -252,8 +252,7 @@ ErrorOr<bool> BluetoothClassic::StartDiscovery(
     LOG(INFO) << "Refusing to start discovery of BT devices because another "
                  "discovery is already in-progress for service_id="
               << serviceId;
-    return {Error(
-        OperationResultCode::CLIENT_BLUETOOTH_DUPLICATE_DISCOVERING)};
+    return {Error(OperationResultCode::CLIENT_BLUETOOTH_DUPLICATE_DISCOVERING)};
   }
 
   if (!HasDiscoveryCallbacks()) {
@@ -292,8 +291,7 @@ ErrorOr<bool> BluetoothClassic::StartDiscovery(
     if (!medium_->StartDiscovery(std::move(medium_callback))) {
       LOG(INFO) << "Failed to start discovery of BT devices.";
       RemoveDiscoveryCallback(serviceId);
-      return {
-          Error(OperationResultCode::CONNECTIVITY_BLUETOOTH_SCAN_FAILURE)};
+      return {Error(OperationResultCode::CONNECTIVITY_BLUETOOTH_SCAN_FAILURE)};
     }
   }
 
@@ -505,9 +503,9 @@ bool BluetoothClassic::StopAcceptingConnections(const std::string& service_id) {
   return true;
 }
 
-BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
-                                          const std::string& service_id,
-                                          CancellationFlag* cancellation_flag) {
+ErrorOr<BluetoothSocket> BluetoothClassic::Connect(
+    BluetoothDevice& bluetooth_device, const std::string& service_id,
+    CancellationFlag* cancellation_flag) {
   {
     MutexLock lock(&mutex_);
     if (is_multiplex_enabled_) {
@@ -523,7 +521,8 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
           if (bluetooth_socket == nullptr) {
             LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
                       << " with " << bluetooth_device.GetName();
-            return BluetoothSocket{};
+            return {Error(OperationResultCode::
+                              NEARBY_BT_VIRTUAL_SOCKET_CREATION_FAILURE)};
           }
           return *bluetooth_socket;
         }
@@ -537,26 +536,30 @@ BluetoothSocket BluetoothClassic::Connect(BluetoothDevice& bluetooth_device,
       LOG(WARNING) << "Attempt #"
                    << service_id_to_connect_attempts_count_map_[service_id]
                    << ": Cannot start creating client BT socket due to cancel.";
-      return BluetoothSocket{};
+      return {Error(OperationResultCode::
+                        CLIENT_CANCELLATION_CANCEL_BT_OUTGOING_CONNECTION)};
     }
 
-    auto wrapper_result =
+    ErrorOr<BluetoothSocket> wrapper_result =
         AttemptToConnect(bluetooth_device, service_id, cancellation_flag);
     LOG(INFO) << "Attempt #"
               << service_id_to_connect_attempts_count_map_[service_id]
-              << " to connect: " << wrapper_result.IsValid();
-    if (wrapper_result.IsValid()) {
-      return wrapper_result;
+              << " to connect: "
+              << (wrapper_result.has_value() ? wrapper_result.value().IsValid()
+                                             : false);
+    if (wrapper_result.has_value() && wrapper_result.value().IsValid()) {
+      return std::move(wrapper_result.value());
     }
 
     service_id_to_connect_attempts_count_map_[service_id]++;
   }
 
   LOG(WARNING) << "Giving up after " << kConnectAttemptsLimit << " attempts";
-  return BluetoothSocket{};
+  return {Error(
+      OperationResultCode::DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS)};
 }
 
-BluetoothSocket BluetoothClassic::AttemptToConnect(
+ErrorOr<BluetoothSocket> BluetoothClassic::AttemptToConnect(
     BluetoothDevice& bluetooth_device, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
@@ -568,24 +571,27 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   if (service_id.empty()) {
     LOG(WARNING)
         << "Refusing to create client BT socket because service_id is empty.";
-    return socket;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(WARNING) << "Can't create client BT socket [service=" << service_id
                  << "]: BT isn't enabled.";
-    return socket;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(WARNING) << "Can't create client BT socket [service=" << service_id
                  << "]; BT isn't available.";
-    return socket;
+    return {
+        Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE)};
   }
 
   if (!bluetooth_device.IsValid()) {
     LOG(WARNING) << "Bluetooth device is not valid.";
-    return socket;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE)};
   }
 
   socket = medium_->ConnectToService(
@@ -596,7 +602,8 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
   // CancellationFlagListener because the attempt logic is not asynchronous.
   if (!socket.IsValid() || cancellation_flag->Cancelled()) {
     LOG(INFO) << "Failed to Connect via BT [service=" << service_id << "]";
-    return BluetoothSocket{};
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE)};
   }
 
   if (is_multiplex_enabled_) {
@@ -612,7 +619,8 @@ BluetoothSocket BluetoothClassic::AttemptToConnect(
     if (bluetooth_socket == nullptr) {
       LOG(INFO) << "Failed to cast to BluetoothSocket for " << service_id
                 << " with " << bluetooth_device.GetName();
-      return BluetoothSocket{};
+      return {Error(
+          OperationResultCode::NEARBY_BT_VIRTUAL_SOCKET_CREATION_FAILURE)};
     }
     LOG(INFO) << "Multiplex socket created for " << bluetooth_device.GetName();
     multiplex_sockets_.emplace(bluetooth_device.GetMacAddress(),

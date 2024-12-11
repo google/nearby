@@ -117,8 +117,9 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
     } else {
       EXPECT_FALSE(result.has_value());
       EXPECT_TRUE(result.has_error());
-      EXPECT_EQ(result.error().operation_result_code(),
-                OperationResultCode::DETAIL_UNKNOWN);
+      EXPECT_EQ(
+          result.error().operation_result_code(),
+          OperationResultCode::CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE);
       accept_latch.CountDown();
     }
     EXPECT_FALSE(mediums_2.GetBluetoothClassic().GetMacAddress().empty());

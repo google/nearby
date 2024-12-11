@@ -2163,22 +2163,23 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
                  << endpoint->endpoint_id << ") over Bluetooth Classic.";
   BluetoothDevice& device = endpoint->bluetooth_device;
 
-  BluetoothSocket bluetooth_socket = bluetooth_medium_.Connect(
+  ErrorOr<BluetoothSocket> bluetooth_socket_result = bluetooth_medium_.Connect(
       device, endpoint->service_id,
       client->GetCancellationFlag(endpoint->endpoint_id));
-  if (!bluetooth_socket.IsValid()) {
+  if (bluetooth_socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "In BluetoothConnectImpl(), failed to connect to Bluetooth device "
         << device.GetName() << " for endpoint(id=" << endpoint->endpoint_id
         << ").";
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kBluetoothError},
-    };
+        .operation_result_code =
+            bluetooth_socket_result.error().operation_result_code().value()};
   }
 
   auto channel = std::make_unique<BluetoothEndpointChannel>(
       endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-      bluetooth_socket);
+      bluetooth_socket_result.value());
   NEARBY_VLOG(1) << "Client" << client->GetClientId()
                  << " created Bluetooth endpoint channel to endpoint(id="
                  << endpoint->endpoint_id << ").";
@@ -2186,7 +2187,8 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
   return BasePcpHandler::ConnectImplResult{
       .medium = BLUETOOTH,
       .status = {Status::kSuccess},
-      .endpoint_channel = std::move(channel),
+      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
+      .endpoint_channel = std::move(channel)
   };
 }
 
@@ -2847,7 +2849,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
         << endpoint->service_info.GetServiceName()
         << " for endpoint(id=" << endpoint->endpoint_id << ").";
     return BasePcpHandler::ConnectImplResult{
-        .status = {Status::kWifiLanError},
+               .status = {Status::kWifiLanError},
     };
   }
   NEARBY_LOGS(INFO) << "In WifiLanConnectImpl(), connect to service "

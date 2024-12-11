@@ -889,8 +889,6 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   // pointer in scope longer than necessary.
   std::string service_id;
   {
-    // TBD(edwinwu): Change return type to ErrorOr<> for GetChannelForEndpoint
-    // if possible.
     std::shared_ptr<EndpointChannel> old_channel =
         channel_manager_->GetChannelForEndpoint(endpoint_id);
     if (!old_channel) {
@@ -899,8 +897,8 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
           << endpoint_id << " medium "
           << location::nearby::proto::connections::Medium_Name(medium)
           << ". Old endpoint channel is missing.";
-      // TBD(edwinwu): Add a new operation result code for this.
-      return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+      return {
+          Error(OperationResultCode::NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL)};
     }
     service_id = old_channel->GetServiceId();
   }
