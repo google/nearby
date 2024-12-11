@@ -15,12 +15,12 @@
 #ifndef PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 #define PLATFORM_IMPL_WINDOWS_BLUETOOTH_CLASSIC_MEDIUM_H_
 
-#include <list>
-#include <map>
 #include <memory>
 #include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -141,6 +141,17 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   // Check to see that the device actually handles the requested service
   bool CheckSdp(RfcommDeviceService requested_service);
 
+  // Methods to handle bluetooth devices
+  bool HasRemoteDevice(const std::string& mac_address)
+      ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
+  bool RemoveRemoteDevice(const std::string& mac_address)
+      ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
+  bool AssignRemoteDevice(const std::string& mac_address,
+                          std::unique_ptr<BluetoothDevice> device)
+      ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
+  BluetoothDevice* GetRemoteDeviceInternal(const std::string& mac_address)
+      ABSL_LOCKS_EXCLUDED(devices_map_mutex_);
+
   BluetoothClassicMedium::DiscoveryCallback discovery_callback_;
 
   ::winrt::Windows::Devices::Enumeration::DeviceWatcher device_watcher_ =
@@ -151,17 +162,21 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::string service_name_;
   std::string service_uuid_;
 
+  absl::Mutex devices_map_mutex_;
+
   // Map MAC address to bluetooth device.
   absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
-      mac_address_to_bluetooth_device_map_;
+      mac_address_to_bluetooth_device_map_ ABSL_GUARDED_BY(devices_map_mutex_);
 
   // Track removed devices.
   absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
-      removed_bluetooth_devices_map_;
+      removed_bluetooth_devices_map_ ABSL_GUARDED_BY(devices_map_mutex_);
+  ;
 
   // The caller may call to create Bluetooth device when scanning is off.
   absl::flat_hash_map<std::string, std::unique_ptr<BluetoothDevice>>
-      cached_bluetooth_devices_map_;
+      cached_bluetooth_devices_map_ ABSL_GUARDED_BY(devices_map_mutex_);
+  ;
 
   BluetoothAdapter& bluetooth_adapter_;
 
