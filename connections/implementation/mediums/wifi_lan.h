@@ -28,6 +28,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
@@ -53,8 +54,8 @@ class WifiLan {
   // Sets custom service info name, endpoint info name in NsdServiceInfo and
   // then enables WifiLan advertising.
   // Returns true, if NsdServiceInfo is successfully set, and false otherwise.
-  bool StartAdvertising(const std::string& service_id,
-                        NsdServiceInfo& nsd_service_info)
+  ErrorOr<bool> StartAdvertising(const std::string& service_id,
+                                 NsdServiceInfo& nsd_service_info)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan advertising.
@@ -68,8 +69,8 @@ class WifiLan {
   // Enables WifiLan discovery. Will report any discoverable services
   // through a callback.
   // Returns true, if discovery was enabled, false otherwise.
-  bool StartDiscovery(const std::string& service_id,
-                      DiscoveredServiceCallback callback)
+  ErrorOr<bool> StartDiscovery(const std::string& service_id,
+                               DiscoveredServiceCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan discovery.
@@ -79,8 +80,8 @@ class WifiLan {
 
   // Starts a worker thread, creates a WifiLan socket, associates it with a
   // service id.
-  bool StartAcceptingConnections(const std::string& service_id,
-                                 AcceptedConnectionCallback callback)
+  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
+                                          AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes socket corresponding to a service id.
@@ -207,12 +208,10 @@ class WifiLan {
 
   // Whether the multiplex feature is enabled.
   bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplex);
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
 
   // A map of IpAddress -> MultiplexSocket.
-  absl::flat_hash_map<std::string,
-                      mediums::multiplex::MultiplexSocket*>
+  absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
       multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
