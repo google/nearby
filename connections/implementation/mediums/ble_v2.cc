@@ -44,6 +44,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
@@ -56,7 +57,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
-
+using ::location::nearby::proto::connections::OperationResultCode;
 using ::nearby::api::ble_v2::BleAdvertisementData;
 using ::nearby::api::ble_v2::GattCharacteristic;
 using ::nearby::api::ble_v2::TxPowerLevel;
@@ -109,16 +110,16 @@ bool BleV2::IsAvailable() const {
   return IsAvailableLocked();
 }
 
-bool BleV2::StartAdvertising(const std::string& service_id,
-                             const ByteArray& advertisement_bytes,
-                             PowerLevel power_level,
-                             bool is_fast_advertisement) {
+ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
+                                      const ByteArray& advertisement_bytes,
+                                      PowerLevel power_level,
+                                      bool is_fast_advertisement) {
   MutexLock lock(&mutex_);
 
   if (advertisement_bytes.Empty()) {
     LOG(INFO)
         << "Refusing to turn on BLE advertising. Empty advertisement data.";
-    return false;
+    return {Error(OperationResultCode::NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE)};
   }
 
   if (advertisement_bytes.size() > kMaxAdvertisementLength) {
@@ -126,23 +127,23 @@ bool BleV2::StartAdvertising(const std::string& service_id,
                  "advertisement was too long. Expected at most "
               << kMaxAdvertisementLength << " bytes but received "
               << advertisement_bytes.size() << " bytes.";
-    return false;
+    return {Error(OperationResultCode::NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE)};
   }
 
   if (IsAdvertisingLocked(service_id)) {
     LOG(INFO) << "Failed to BLE advertise because we're already advertising.";
-    return false;
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(INFO)
         << "Can't start BLE advertising because Bluetooth was never turned on";
-    return false;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't turn on BLE advertising. BLE is not available.";
-    return false;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
   // Wrap the connections advertisement to the medium advertisement.
@@ -161,7 +162,7 @@ bool BleV2::StartAdvertising(const std::string& service_id,
   if (!medium_advertisement.IsValid()) {
     LOG(INFO) << "Failed to BLE advertise because we could not wrap a "
                  "connection advertisement to medium advertisement.";
-    return false;
+    return {Error(OperationResultCode::NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE)};
   }
 
   advertising_infos_.insert(
@@ -180,9 +181,10 @@ bool BleV2::StartAdvertising(const std::string& service_id,
 
   if (!StartAdvertisingLocked(service_id)) {
     advertising_infos_.erase(service_id);
-    return false;
+    return {
+        Error(OperationResultCode::CONNECTIVITY_BLE_START_ADVERTISING_FAILURE)};
   }
-  return true;
+  return {true};
 }
 
 bool BleV2::StopAdvertising(const std::string& service_id) {
@@ -257,7 +259,7 @@ bool BleV2::IsAdvertisingForLegacyDevice(const std::string& service_id) const {
   return IsAdvertisingForLegacyDeviceLocked(service_id);
 }
 
-bool BleV2::StartLegacyAdvertising(
+ErrorOr<bool> BleV2::StartLegacyAdvertising(
     const std::string& input_service_id, const std::string& local_endpoint_id,
     const std::string& fast_advertisement_service_uuid) {
   LOG(INFO) << "StartLegacyAdvertising: " << input_service_id
@@ -267,12 +269,12 @@ bool BleV2::StartLegacyAdvertising(
   if (!radio_.IsEnabled()) {
     LOG(INFO) << "Can't start BLE v2 legacy advertising because "
                  "Bluetooth was never turned on";
-    return false;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
   }
   if (!IsAvailableLocked()) {
     LOG(INFO)
         << "Can't turn on BLE v2 legacy advertising. BLE is not available.";
-    return false;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
   if (medium_.IsExtendedAdvertisementsAvailable()) {
     LOG(INFO) << "Skip dummy advertising for non legacy device";
@@ -282,7 +284,7 @@ bool BleV2::StartLegacyAdvertising(
   if (service_ids_to_advertising_sessions_.find(service_id) !=
       service_ids_to_advertising_sessions_.end()) {
     LOG(INFO) << "Already started legacy device advertising for " << service_id;
-    return false;
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_ADVERTISING)};
   }
 
   std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
@@ -310,12 +312,13 @@ bool BleV2::StartLegacyAdvertising(
     LOG(ERROR) << "Failed to turn on BLE v2 advertising for legacy "
                   "device for service ID "
                << service_id;
-    return false;
+    return {
+        Error(OperationResultCode::CONNECTIVITY_BLE_START_ADVERTISING_FAILURE)};
   }
 
   service_ids_to_advertising_sessions_.insert(
       {std::string(service_id), std::move(legacy_device_advertizing_session)});
-  return true;
+  return {true};
 }
 
 bool BleV2::StopLegacyAdvertising(const std::string& input_service_id) {
@@ -343,29 +346,30 @@ bool BleV2::StopLegacyAdvertising(const std::string& input_service_id) {
   return status.ok();
 }
 
-bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
-                          DiscoveredPeripheralCallback callback) {
+ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,
+                                   PowerLevel power_level,
+                                   DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
     LOG(INFO) << "Can not start BLE scanning with empty service id.";
-    return false;
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (IsScanningLocked(service_id)) {
     LOG(INFO) << "Cannot start scan of BLE peripherals because "
                  "scanning is already in-progress.";
-    return false;
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(INFO) << "Can't start BLE scanning because Bluetooth is disabled";
-    return false;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't scan BLE peripherals because BLE isn't available.";
-    return false;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
   // Start to track the advertisement found for specific `service_id`.
@@ -383,7 +387,7 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
     scanned_service_ids_.insert(service_id);
     LOG(INFO) << "Turned on BLE scanning with service id=" << service_id
               << " without start client scanning";
-    return true;
+    return {true};
   }
 
   scanned_service_ids_.insert(service_id);
@@ -426,7 +430,7 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
     discovered_peripheral_tracker_.StopTracking(service_id);
     // Erase the service id that is just added.
     scanned_service_ids_.erase(service_id);
-    return false;
+    return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
   }
 
   absl::Duration peripheral_lost_timeout =
@@ -443,7 +447,7 @@ bool BleV2::StartScanning(const std::string& service_id, PowerLevel power_level,
       peripheral_lost_timeout, &alarm_executor_, /*is_recurring=*/true);
 
   LOG(INFO) << "Turned on BLE scanning with service id=" << service_id;
-  return true;
+  return {true};
 }
 
 bool BleV2::StopScanning(const std::string& service_id) {
@@ -482,40 +486,42 @@ bool BleV2::IsScanning(const std::string& service_id) const {
   return IsScanningLocked(service_id);
 }
 
-bool BleV2::StartAcceptingConnections(const std::string& service_id,
-                                      AcceptedConnectionCallback callback) {
+ErrorOr<bool> BleV2::StartAcceptingConnections(
+    const std::string& service_id, AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
     LOG(INFO)
         << "Refusing to start accepting BLE connections with empty service id.";
-    return false;
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
   }
 
   if (IsAcceptingConnectionsLocked(service_id)) {
     LOG(INFO)
         << "Refusing to start accepting BLE connections for " << service_id
         << " because another BLE peripheral socket is already in-progress.";
-    return false;
+    return {Error(OperationResultCode::
+                      CLIENT_DUPLICATE_ACCEPTING_BLE_CONNECTION_REQUEST)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(INFO) << "Can't start accepting BLE connections for " << service_id
               << " because Bluetooth isn't enabled.";
-    return false;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't start accepting BLE connections for " << service_id
               << " because BLE isn't available.";
-    return false;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
   BleV2ServerSocket server_socket = medium_.OpenServerSocket(service_id);
   if (!server_socket.IsValid()) {
     LOG(INFO) << "Failed to start accepting Ble connections for service_id="
               << service_id;
-    return false;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLE_SERVER_SOCKET_CREATION_FAILURE)};
   }
 
   // Mark the fact that there's an in-progress Ble server accepting
@@ -552,7 +558,7 @@ bool BleV2::StartAcceptingConnections(const std::string& service_id,
         }
       });
 
-  return true;
+  return {true};
 }
 
 bool BleV2::StopAcceptingConnections(const std::string& service_id) {

@@ -230,12 +230,12 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                     NearbyDevice::Type device_type,
                                     BleSocket socket,
                                     const std::string& service_id);
-  location::nearby::proto::connections::Medium StartBleAdvertising(
+  ErrorOr<location::nearby::proto::connections::Medium> StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
-  location::nearby::proto::connections::Medium StartBleScanning(
+  ErrorOr<location::nearby::proto::connections::Medium> StartBleScanning(
       ClientProxy* client, const std::string& service_id,
       const std::string& fast_advertisement_service_uuid);
   BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
@@ -265,12 +265,12 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                       NearbyDevice::Type device_type,
                                       BleV2Socket socket,
                                       const std::string& service_id);
-  location::nearby::proto::connections::Medium StartBleV2Advertising(
+  ErrorOr<location::nearby::proto::connections::Medium> StartBleV2Advertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
       const ByteArray& local_endpoint_info,
       const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
-  location::nearby::proto::connections::Medium StartBleV2Scanning(
+  ErrorOr<location::nearby::proto::connections::Medium> StartBleV2Scanning(
       ClientProxy* client, const std::string& service_id,
       const DiscoveryOptions& discovery_options);
   BasePcpHandler::ConnectImplResult BleV2ConnectImpl(ClientProxy* client,
