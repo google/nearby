@@ -40,7 +40,6 @@ namespace {
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
-// TODO(edwinwu): Add exact OperationResultCode for WifiHotspotBwuHandler.
 WifiHotspotBwuHandler::WifiHotspotBwuHandler(
     Mediums& mediums, IncomingConnectionCallback incoming_connection_callback)
     : BaseBwuHandler(std::move(incoming_connection_callback)),
@@ -118,7 +117,8 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_hotspot_credentials()) {
     NEARBY_LOGS(INFO) << "No Hotspot Credential";
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
   }
   const UpgradePathInfo::WifiHotspotCredentials& upgrade_path_info_credentials =
       upgrade_path_info.wifi_hotspot_credentials();
@@ -135,16 +135,17 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
   if (!wifi_hotspot_medium_.ConnectWifiHotspot(ssid, password, frequency)) {
     NEARBY_LOGS(ERROR) << "Connect to Hotspot failed";
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
   }
 
-  WifiHotspotSocket socket = wifi_hotspot_medium_.Connect(
+  ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
       service_id, gateway, port, client->GetCancellationFlag(endpoint_id));
-  if (!socket.IsValid()) {
+  if (socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("
         << gateway << ":" << port << ") for endpoint " << endpoint_id;
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(socket_result.error().operation_result_code().value())};
   }
 
   NEARBY_VLOG(1)
@@ -153,7 +154,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
   // Create a new WifiHotspotEndpointChannel.
   auto channel = std::make_unique<WifiHotspotEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket);
+      service_id, /*channel_name=*/service_id, socket_result.value());
 
   return {std::move(channel)};
 }

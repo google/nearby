@@ -15,10 +15,15 @@
 
 #include "connections/implementation/mediums/wifi_direct.h"
 
+#include <cstddef>
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_direct.h"
 
 namespace nearby {
@@ -107,20 +112,22 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherConnect) {
 
   EXPECT_TRUE(
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
-                                       wifi_direct_credentials->GetPassword()));
+                                      wifi_direct_credentials->GetPassword()));
   EXPECT_TRUE(wifi_direct_b.IsConnectedToGO());
 
   WifiDirectSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
 
   CancellationFlag flag;
-  socket_client = wifi_direct_b.Connect(service_id, ip, kPort, &flag);
-  EXPECT_FALSE(socket_client.IsValid());
+  ErrorOr<WifiDirectSocket> socket_result =
+      wifi_direct_b.Connect(service_id, ip, kPort, &flag);
+  EXPECT_TRUE(socket_result.has_error());
 
-  socket_client =
+  socket_result =
       wifi_direct_b.Connect(service_id, wifi_direct_credentials->GetGateway(),
-                             wifi_direct_credentials->GetPort(), &flag);
-  EXPECT_TRUE(socket_client.IsValid());
+                            wifi_direct_credentials->GetPort(), &flag);
+  EXPECT_TRUE(socket_result.has_value());
+  EXPECT_TRUE(socket_result.value().IsValid());
 
   EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
   EXPECT_FALSE(wifi_direct_b.IsConnectedToGO());
@@ -145,23 +152,24 @@ TEST_P(WifiDirectTest, CanStartGOThatOtherCanCancelConnect) {
 
   EXPECT_TRUE(
       wifi_direct_b.ConnectWifiDirect(wifi_direct_credentials->GetSSID(),
-                                       wifi_direct_credentials->GetPassword()));
+                                      wifi_direct_credentials->GetPassword()));
 
   WifiDirectSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
 
   CancellationFlag flag(true);
-  socket_client =
+  ErrorOr<WifiDirectSocket> socket_result =
       wifi_direct_b.Connect(service_id, wifi_direct_credentials->GetGateway(),
-                             wifi_direct_credentials->GetPort(), &flag);
+                            wifi_direct_credentials->GetPort(), &flag);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(socket_client.IsValid());
+    EXPECT_TRUE(socket_result.has_value());
+    EXPECT_TRUE(socket_result.value().IsValid());
     EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
     EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
   } else {
-    EXPECT_FALSE(socket_client.IsValid());
+    EXPECT_TRUE(socket_result.has_error());
     EXPECT_TRUE(wifi_direct_b.DisconnectWifiDirect());
     EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
   }

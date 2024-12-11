@@ -123,7 +123,8 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
       EXPECT_FALSE(result.has_value());
       EXPECT_TRUE(result.has_error());
       EXPECT_EQ(result.error().operation_result_code(),
-                OperationResultCode::DETAIL_UNKNOWN);
+                OperationResultCode::
+                    CLIENT_CANCELLATION_CANCEL_WIFI_DIRECT_OUTGOING_CONNECTION);
       accept_latch.CountDown();
     }
     EXPECT_TRUE(mediums_2.GetWifiDirect().IsConnectedToGO());

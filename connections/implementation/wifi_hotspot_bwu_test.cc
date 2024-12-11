@@ -117,8 +117,10 @@ TEST_F(WifiHotspotTest, SoftAPBWUInit_STACreateEndpointChannel) {
     } else {
       EXPECT_FALSE(result.has_value());
       EXPECT_TRUE(result.has_error());
-      EXPECT_EQ(result.error().operation_result_code(),
-                OperationResultCode::DETAIL_UNKNOWN);
+      EXPECT_EQ(
+          result.error().operation_result_code(),
+          OperationResultCode::
+              CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION);
       accept_latch.CountDown();
     }
     EXPECT_TRUE(mediums_2.GetWifiHotspot().IsConnectedToHotspot());

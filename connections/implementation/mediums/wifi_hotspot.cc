@@ -17,13 +17,20 @@
 #include <string>
 #include <utility>
 
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "connections/implementation/mediums/utils.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex_lock.h"
+#include "internal/platform/wifi_credential.h"
+#include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
+
+namespace {
+using ::location::nearby::proto::connections::OperationResultCode;
+}  // namespace
 
 WifiHotspot::~WifiHotspot() {
   while (!server_sockets_.empty()) {
@@ -251,9 +258,9 @@ bool WifiHotspot::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.find(service_id) != server_sockets_.end();
 }
 
-WifiHotspotSocket WifiHotspot::Connect(const std::string& service_id,
-                                       const std::string& ip_address, int port,
-                                       CancellationFlag* cancellation_flag) {
+ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
+    const std::string& service_id, const std::string& ip_address, int port,
+    CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiHotspotSocket socket;
@@ -261,24 +268,31 @@ WifiHotspotSocket WifiHotspot::Connect(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiHotspot socket because "
                          "service_id is empty.";
-    return socket;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!IsClientAvailableLocked()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiHotspot socket [service_id="
                       << service_id << "]; WifiHotspot isn't available.";
-    return socket;
+    return {Error(
+        OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NOT_AVAILABLE)};
   }
 
   if (cancellation_flag->Cancelled()) {
     NEARBY_LOGS(INFO) << "Can't create client WifiHotspot socket due to cancel";
-    return socket;
+    return {
+        Error(OperationResultCode::
+                  CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
   }
 
   socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
   if (!socket.IsValid()) {
     NEARBY_LOGS(INFO) << "Failed to Connect via WifiHotspot [service_id="
                       << service_id << "]";
+    return {
+        Error(OperationResultCode::
+                  CONNECTIVITY_WIFI_HOTSPOT_CLIENT_SOCKET_CREATION_FAILURE)};
   }
 
   return socket;
