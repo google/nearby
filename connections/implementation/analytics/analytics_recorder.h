@@ -57,6 +57,12 @@ class AnalyticsRecorder {
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // In case the client calls the {@link BasePcp#updateAdvertisingOptions()}
+  // multiple times, adds one index value to group the mediums results within
+  // the same UpdateAdvertisingOptions call, this API is to return the largest
+  // index value in current_advertising_phase.
+  int GetNextAdvertisingUpdateIndex() ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Connection listening
   void OnStartedIncomingConnectionListening(connections::Strategy strategy)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -69,6 +75,12 @@ class AnalyticsRecorder {
       DiscoveryMetadataParams *discovery_metadata_params)
       ABSL_LOCKS_EXCLUDED(mutex_);
   void OnStopDiscovery() ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // In case the client calls the {@link BasePcp#updateDiscoveryOptions()}
+  // multiple times, adds one index value to group the medium results within the
+  // same UpdateDiscoveryOptions call, this
+  // API is to return the latest index value in current_discovery_phase.
+  int GetNextDiscoveryUpdateIndex() ABSL_LOCKS_EXCLUDED(mutex_);
   void OnEndpointFound(location::nearby::proto::connections::Medium medium)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -439,6 +451,11 @@ class AnalyticsRecorder {
   // Reset the client cession's logging resources (e.g. current_strategy_,
   // current_advertising_phase_, current_discovery_phase_, etc)
   void ResetClientSessionLoggingResoucesLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  int GetLatestUpdateIndexLocked(
+      const std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                            OperationResultWithMedium> &list)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   location::nearby::proto::connections::ConnectionsStrategy

@@ -206,6 +206,17 @@ void AnalyticsRecorder::ResetClientSessionLoggingResoucesLocked() {
   current_discovery_phase_ = nullptr;
 }
 
+int AnalyticsRecorder::GetLatestUpdateIndexLocked(
+    const std::vector<ConnectionsLog::OperationResultWithMedium> &list) {
+  int latest_update_index = 0;
+  for (const auto &operation_result_with_medium : list) {
+    if (operation_result_with_medium.update_index() > latest_update_index) {
+      latest_update_index = operation_result_with_medium.update_index();
+    }
+  }
+  return latest_update_index;
+}
+
 void AnalyticsRecorder::OnStartAdvertising(
     connections::Strategy strategy, const std::vector<Medium> &mediums,
     AdvertisingMetadataParams *advertising_metadata_params) {
@@ -255,6 +266,19 @@ void AnalyticsRecorder::OnStopAdvertising() {
   RecordAdvertisingPhaseDurationAndReasonLocked(/* on_stop= */ true);
 }
 
+int AnalyticsRecorder::GetNextAdvertisingUpdateIndex() {
+  MutexLock lock(&mutex_);
+
+  if (current_advertising_phase_ == nullptr) {
+    return 0;
+  }
+  return GetLatestUpdateIndexLocked(
+             std::vector<ConnectionsLog::OperationResultWithMedium>(
+                 current_advertising_phase_->adv_dis_result().begin(),
+                 current_advertising_phase_->adv_dis_result().end())) +
+         1;
+}
+
 void AnalyticsRecorder::OnStartDiscovery(
     connections::Strategy strategy, const std::vector<Medium> &mediums,
     DiscoveryMetadataParams *discovery_metadata_params) {
@@ -302,6 +326,18 @@ void AnalyticsRecorder::OnStopDiscovery() {
     return;
   }
   RecordDiscoveryPhaseDurationAndReasonLocked(/*on_stop=*/true);
+}
+
+int AnalyticsRecorder::GetNextDiscoveryUpdateIndex() {
+  MutexLock lock(&mutex_);
+  if (current_discovery_phase_ == nullptr) {
+    return 0;
+  }
+  return GetLatestUpdateIndexLocked(
+             std::vector<ConnectionsLog::OperationResultWithMedium>(
+                 current_discovery_phase_->adv_dis_result().begin(),
+                 current_discovery_phase_->adv_dis_result().end())) +
+         1;
 }
 
 void AnalyticsRecorder::OnStartedIncomingConnectionListening(

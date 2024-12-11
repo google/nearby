@@ -1364,8 +1364,8 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
   std::vector<Medium> started_mediums;
   std::vector<ConnectionsLog::OperationResultWithMedium>
       operation_result_with_mediums;
-  // TODO(edwinwu): Modify the update_index with a new function.
-  int update_index = 1;
+  int update_index =
+      client_proxy->GetAnalyticsRecorder().GetNextAdvertisingUpdateIndex();
   if (options.enable_bluetooth_listening &&
       !bluetooth_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> bluetooth_result =
@@ -1550,9 +1550,8 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
   std::vector<Medium> restarted_mediums;
   std::vector<ConnectionsLog::OperationResultWithMedium>
       operation_result_with_mediums;
-  // TODO(edwinwu): Modify the update_index with a new function :
-  // client->GetAnalyticsRecorder()->GetNextAdvertisingUpdateIndex();
-  int update_index = 1;
+  int update_index =
+      client->GetAnalyticsRecorder().GetNextAdvertisingUpdateIndex();
   Status status = {Status::kSuccess};
   WebRtcState web_rtc_state = webrtc_medium_.IsAvailable()
                                   ? WebRtcState::kConnectable
