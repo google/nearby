@@ -197,16 +197,21 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                           NearbyDevice::Type device_type,
                                           const std::string& service_id,
                                           BluetoothSocket socket);
-  ErrorOr<Medium> StartBluetoothAdvertising(
-      ClientProxy* client, const std::string& service_id,
-      const ByteArray& service_id_hash, const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
-  location::nearby::proto::connections::Medium StartBluetoothDiscovery(
+  ErrorOr<location::nearby::proto::connections::Medium>
+  StartBluetoothAdvertising(ClientProxy* client, const std::string& service_id,
+                            const ByteArray& service_id_hash,
+                            const std::string& local_endpoint_id,
+                            const ByteArray& local_endpoint_info,
+                            WebRtcState web_rtc_state);
+  ErrorOr<location::nearby::proto::connections::Medium> StartBluetoothDiscovery(
       ClientProxy* client, const std::string& service_id);
   void StartBluetoothDiscoveryWithPause(
       ClientProxy* client, const std::string& service_id,
       const DiscoveryOptions& discovery_options,
-      std::vector<Medium>& mediums_started_successfully);
+      std::vector<Medium>& mediums_started_successfully,
+      std::vector<location::nearby::analytics::proto::ConnectionsLog::
+                      OperationResultWithMedium>& operation_result_with_mediums,
+      int update_index);
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
       ClientProxy* client, BluetoothEndpoint* endpoint);
 

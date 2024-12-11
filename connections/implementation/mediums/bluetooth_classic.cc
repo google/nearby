@@ -227,30 +227,33 @@ bool BluetoothClassic::RestoreDeviceName() {
   return true;
 }
 
-bool BluetoothClassic::StartDiscovery(const std::string& serviceId,
-                                      DiscoveredDeviceCallback callback) {
+ErrorOr<bool> BluetoothClassic::StartDiscovery(
+    const std::string& serviceId, DiscoveredDeviceCallback callback) {
   MutexLock lock(&mutex_);
 
   if (serviceId.empty()) {
     LOG(INFO) << "Refusing to start discovery; service ID is empty.";
-    return false;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!radio_.IsEnabled()) {
     LOG(INFO) << "Can't discover BT devices because BT isn't enabled.";
-    return false;
+    return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't discover BT devices because BT isn't available.";
-    return false;
+    return {
+        Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLUETOOTH_NOT_AVAILABLE)};
   }
 
   if (IsDiscoveringLocked(serviceId)) {
     LOG(INFO) << "Refusing to start discovery of BT devices because another "
                  "discovery is already in-progress for service_id="
               << serviceId;
-    return false;
+    return {Error(
+        OperationResultCode::CLIENT_BLUETOOTH_DUPLICATE_DISCOVERING)};
   }
 
   if (!HasDiscoveryCallbacks()) {
@@ -285,17 +288,19 @@ bool BluetoothClassic::StartDiscovery(const std::string& serviceId,
 
     AddDiscoveryCallback(serviceId, std::move(callback));
 
+    // TODO(edwinwu): See if platform code needs to return ErrorOr<bool>
     if (!medium_->StartDiscovery(std::move(medium_callback))) {
       LOG(INFO) << "Failed to start discovery of BT devices.";
       RemoveDiscoveryCallback(serviceId);
-      return false;
+      return {
+          Error(OperationResultCode::CONNECTIVITY_BLUETOOTH_SCAN_FAILURE)};
     }
   }
 
   // Mark the fact that we're currently performing a Bluetooth scan.
   scan_info_.valid = true;
 
-  return true;
+  return {true};
 }
 
 bool BluetoothClassic::StopDiscovery(const std::string& serviceId) {

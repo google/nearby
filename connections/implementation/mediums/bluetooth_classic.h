@@ -68,8 +68,8 @@ class BluetoothClassic {
   // Enables BT discovery for serviceId. If it is the first call to start
   // discovery, will enable BT discovery mode.
   // Returns true, if discovery enabled for serviceId, false otherwise.
-  bool StartDiscovery(const std::string& serviceId,
-                      DiscoveredDeviceCallback callback)
+  ErrorOr<bool> StartDiscovery(const std::string& serviceId,
+                               DiscoveredDeviceCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BT discovery for serviceId.
