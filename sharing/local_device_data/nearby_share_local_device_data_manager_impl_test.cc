@@ -34,8 +34,8 @@
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
+#include "proto/identity/resources.pb.h"
+#include "proto/identity/rpcs.pb.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
@@ -54,7 +54,7 @@ namespace sharing {
 namespace {
 
 using UpdateDeviceResponse = nearby::sharing::proto::UpdateDeviceResponse;
-using google::nearby::identity::v1::PublishDeviceResponse;
+using google::nearby::identity::PublishDeviceResponse;
 using Contact = nearby::sharing::proto::Contact;
 
 const char kDefaultDeviceName[] = "$0\'s $1";
@@ -403,8 +403,8 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   bool returned_success;
   bool returned_make_another_call;
   PublishDeviceResponse response;
-  response.add_contact_updates(google::nearby::identity::v1::
-                                   PublishDeviceResponse::CONTACT_UPDATE_ADDED);
+  response.add_contact_updates(
+      google::nearby::identity::PublishDeviceResponse::CONTACT_UPDATE_ADDED);
 
   identity_client()->SetPublishDeviceResponse(
       absl::StatusOr<PublishDeviceResponse>(response));
@@ -420,14 +420,13 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   EXPECT_EQ(request.device().name(),
             absl::StrCat("devices/", manager()->GetId()));
   EXPECT_EQ(request.device().display_name(), "Barack奥巴马's PC");
-  EXPECT_EQ(
-      request.device().contact(),
-      google::nearby::identity::v1::Device::CONTACT_GOOGLE_CONTACT_LATEST);
+  EXPECT_EQ(request.device().contact(),
+            google::nearby::identity::Device::CONTACT_GOOGLE_CONTACT_LATEST);
   ASSERT_EQ(request.device().per_visibility_shared_credentials_size(), 2);
 
   auto self_credential = request.device().per_visibility_shared_credentials(0);
   EXPECT_EQ(self_credential.visibility(),
-            google::nearby::identity::v1::PerVisibilitySharedCredentials::
+            google::nearby::identity::PerVisibilitySharedCredentials::
                 VISIBILITY_SELF);
   EXPECT_EQ(self_credential.shared_credentials_size(), 2);
   EXPECT_EQ(self_credential.shared_credentials(0).id(), 4993322223562966528);
@@ -435,9 +434,9 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   ASSERT_EQ(GetTestCertificates().size(), 4);
   EXPECT_EQ(self_credential.shared_credentials(0).data(),
             GetTestCertificates().at(0).SerializeAsString());
-  EXPECT_EQ(self_credential.shared_credentials(0).data_type(),
-            google::nearby::identity::v1::SharedCredential::
-                DATA_TYPE_PUBLIC_CERTIFICATE);
+  EXPECT_EQ(
+      self_credential.shared_credentials(0).data_type(),
+      google::nearby::identity::SharedCredential::DATA_TYPE_PUBLIC_CERTIFICATE);
   EXPECT_EQ(self_credential.shared_credentials(0).expiration_time().seconds(),
             1000);
   EXPECT_EQ(self_credential.shared_credentials(0).expiration_time().nanos(),
@@ -446,9 +445,9 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   EXPECT_EQ(self_credential.shared_credentials(1).id(), 2903692628687846585);
   EXPECT_EQ(self_credential.shared_credentials(1).data(),
             GetTestCertificates().at(2).SerializeAsString());
-  EXPECT_EQ(self_credential.shared_credentials(1).data_type(),
-            google::nearby::identity::v1::SharedCredential::
-                DATA_TYPE_PUBLIC_CERTIFICATE);
+  EXPECT_EQ(
+      self_credential.shared_credentials(1).data_type(),
+      google::nearby::identity::SharedCredential::DATA_TYPE_PUBLIC_CERTIFICATE);
   EXPECT_EQ(self_credential.shared_credentials(1).expiration_time().seconds(),
             3000);
   EXPECT_EQ(self_credential.shared_credentials(1).expiration_time().nanos(),
@@ -457,16 +456,16 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   auto contact_credential =
       request.device().per_visibility_shared_credentials(1);
   EXPECT_EQ(contact_credential.visibility(),
-            google::nearby::identity::v1::PerVisibilitySharedCredentials::
+            google::nearby::identity::PerVisibilitySharedCredentials::
                 VISIBILITY_CONTACTS);
   ASSERT_EQ(contact_credential.shared_credentials_size(), 2);
   EXPECT_EQ(contact_credential.shared_credentials(0).id(),
             -5684021477085783942);
   EXPECT_EQ(contact_credential.shared_credentials(0).data(),
             GetTestCertificates().at(1).SerializeAsString());
-  EXPECT_EQ(contact_credential.shared_credentials(0).data_type(),
-            google::nearby::identity::v1::SharedCredential::
-                DATA_TYPE_PUBLIC_CERTIFICATE);
+  EXPECT_EQ(
+      contact_credential.shared_credentials(0).data_type(),
+      google::nearby::identity::SharedCredential::DATA_TYPE_PUBLIC_CERTIFICATE);
   EXPECT_EQ(
       contact_credential.shared_credentials(0).expiration_time().seconds(),
       2000);
@@ -484,8 +483,7 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   bool returned_make_another_call;
   PublishDeviceResponse response;
   response.add_contact_updates(
-      google::nearby::identity::v1::PublishDeviceResponse::
-          CONTACT_UPDATE_REMOVED);
+      google::nearby::identity::PublishDeviceResponse::CONTACT_UPDATE_REMOVED);
 
   identity_client()->SetPublishDeviceResponse(
       absl::StatusOr<PublishDeviceResponse>(response));
@@ -523,7 +521,7 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   auto request = identity_client()->publish_device_requests().back();
 
   EXPECT_EQ(request.device().contact(),
-            google::nearby::identity::v1::Device::CONTACT_GOOGLE_CONTACT);
+            google::nearby::identity::Device::CONTACT_GOOGLE_CONTACT);
 
   EXPECT_TRUE(returned_success);
   // Contacts are not changed, no need to make another call.

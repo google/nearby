@@ -35,8 +35,8 @@
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
+#include "proto/identity/resources.pb.h"
+#include "proto/identity/rpcs.pb.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -54,8 +54,8 @@
 namespace nearby {
 namespace sharing {
 namespace {
-using ::google::nearby::identity::v1::PublishDeviceRequest;
-using ::google::nearby::identity::v1::PublishDeviceResponse;
+using ::google::nearby::identity::PublishDeviceRequest;
+using ::google::nearby::identity::PublishDeviceResponse;
 using ::nearby::api::DeviceInfo;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::SharingRpcClientFactory;
@@ -259,23 +259,22 @@ void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
 
     request.mutable_device()->set_contact(
         force_update_contacts
-            ? google::nearby::identity::v1::Device::CONTACT_GOOGLE_CONTACT
-            : google::nearby::identity::v1::Device::
-                  CONTACT_GOOGLE_CONTACT_LATEST);
+            ? google::nearby::identity::Device::CONTACT_GOOGLE_CONTACT
+            : google::nearby::identity::Device::CONTACT_GOOGLE_CONTACT_LATEST);
 
     auto* new_self_credential =
         request.mutable_device()->add_per_visibility_shared_credentials();
     new_self_credential->set_visibility(
-        google::nearby::identity::v1::PerVisibilitySharedCredentials::
+        google::nearby::identity::PerVisibilitySharedCredentials::
             VISIBILITY_SELF);
     auto* new_contacts_credential =
         request.mutable_device()->add_per_visibility_shared_credentials();
     new_contacts_credential->set_visibility(
-        google::nearby::identity::v1::PerVisibilitySharedCredentials::
+        google::nearby::identity::PerVisibilitySharedCredentials::
             VISIBILITY_CONTACTS);
 
     for (const auto& certificate : certificates) {
-      google::nearby::identity::v1::SharedCredential* shared_credential;
+      google::nearby::identity::SharedCredential* shared_credential;
       if (certificate.for_self_share()) {
         shared_credential = new_self_credential->add_shared_credentials();
         LOG(INFO) << __func__ << ": [Call Identity API] self_share";
@@ -288,7 +287,7 @@ void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
           util_hash::HighwayFingerprint64(certificate.secret_id()));
       shared_credential->set_data(certificate.SerializeAsString());
       shared_credential->set_data_type(
-          ::google::nearby::identity::v1::SharedCredential::
+          ::google::nearby::identity::SharedCredential::
               DATA_TYPE_PUBLIC_CERTIFICATE);
       *shared_credential->mutable_expiration_time() = certificate.end_time();
       LOG(INFO) << __func__
@@ -323,7 +322,7 @@ void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
           if (absl::linear_search(
                   response.value().contact_updates().begin(),
                   response.value().contact_updates().end(),
-                  google::nearby::identity::v1::PublishDeviceResponse::
+                  google::nearby::identity::PublishDeviceResponse::
                       CONTACT_UPDATE_REMOVED)) {
             need_another_call = true;
             LOG(INFO)

@@ -38,8 +38,8 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
-#include "proto/identity/v1/resources.pb.h"
-#include "proto/identity/v1/rpcs.pb.h"
+#include "proto/identity/resources.pb.h"
+#include "proto/identity/rpcs.pb.h"
 #include "sharing/certificates/constants.h"
 #include "sharing/certificates/fake_nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -69,8 +69,8 @@
 namespace nearby {
 namespace sharing {
 namespace {
-using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
-using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
+using ::google::nearby::identity::QuerySharedCredentialsRequest;
+using ::google::nearby::identity::QuerySharedCredentialsResponse;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::PublicCertificate;
 using ::testing::ReturnRef;
@@ -476,11 +476,11 @@ class NearbyShareCertificateManagerImplTest
       shared_credential->set_id(page_number * 100 + i);
       if (i % 2 == 0) {
         shared_credential->set_data_type(
-            google::nearby::identity::v1::SharedCredential::
+            google::nearby::identity::SharedCredential::
                 DATA_TYPE_PUBLIC_CERTIFICATE);
       } else {
         shared_credential->set_data_type(
-            google::nearby::identity::v1::SharedCredential::
+            google::nearby::identity::SharedCredential::
                 DATA_TYPE_SHARED_CREDENTIAL);
       }
       *shared_credential->mutable_data() =

@@ -70,10 +70,10 @@ void FakeNearbyShareClient::ListPublicCertificates(
 }
 
 void FakeNearbyIdentityClient::QuerySharedCredentials(
-    const google::nearby::identity::v1::QuerySharedCredentialsRequest& request,
+    const google::nearby::identity::QuerySharedCredentialsRequest& request,
     absl::AnyInvocable<
         void(const absl::StatusOr<
-             google::nearby::identity::v1::QuerySharedCredentialsResponse>&
+             google::nearby::identity::QuerySharedCredentialsResponse>&
                  response) &&>
         callback) {
   query_shared_credentials_requests_.emplace_back(request);
@@ -88,10 +88,10 @@ void FakeNearbyIdentityClient::QuerySharedCredentials(
 }
 
 void FakeNearbyIdentityClient::PublishDevice(
-    const google::nearby::identity::v1::PublishDeviceRequest& request,
+    const google::nearby::identity::PublishDeviceRequest& request,
     absl::AnyInvocable<
         void(const absl::StatusOr<
-             google::nearby::identity::v1::PublishDeviceResponse>& response) &&>
+             google::nearby::identity::PublishDeviceResponse>& response) &&>
         callback) {
   publish_device_requests_.emplace_back(request);
   std::move(callback)(publish_device_response_);
