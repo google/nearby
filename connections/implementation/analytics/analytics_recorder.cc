@@ -46,7 +46,8 @@ namespace nearby {
 namespace analytics {
 
 namespace {
-const char kVersion[] = "v1.0.0";
+// const char kVersion_1_0_0[] = "v1.0.0";
+const char kVersion [] = "v1.5.0";
 constexpr absl::string_view kOnStartClientSession = "OnStartClientSession";
 const absl::Duration kConnectionTokenMaxLife = absl::Hours(24);
 
