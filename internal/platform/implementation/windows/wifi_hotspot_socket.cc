@@ -29,6 +29,8 @@ namespace {
 // Recorded the maximum bytes received in one read is 65586 in the test, but add
 // a little more for const kMaxByteRecieved for safty reason.
 constexpr int kMaxByteRecieved = 66000;
+// SO_SNDBUF is set to 4MB.
+constexpr int kSendBufSize = 4 * 1024 * 1024;
 }  // namespace
 
 WifiHotspotSocket::WifiHotspotSocket(StreamSocket socket) {
@@ -39,6 +41,21 @@ WifiHotspotSocket::WifiHotspotSocket(StreamSocket socket) {
 
 WifiHotspotSocket::WifiHotspotSocket(SOCKET socket) {
   stream_soket_winsock_ = socket;
+  int buffer_size = kSendBufSize;
+  int opt_len = sizeof(buffer_size);
+  if (getsockopt(socket, SOL_SOCKET, SO_SNDBUF,
+                 reinterpret_cast<char*>(&buffer_size), &opt_len) == 0) {
+    LOG(INFO) << "Socket send buffer size: " << buffer_size;
+  }
+  if (setsockopt(socket, SOL_SOCKET, SO_SNDBUF,
+                 reinterpret_cast<char*>(&buffer_size),
+                 sizeof(buffer_size)) != 0) {
+    LOG(WARNING) << "Failed to set SO_SNDBUF: " << WSAGetLastError();
+  }
+  if (getsockopt(socket, SOL_SOCKET, SO_SNDBUF,
+                 reinterpret_cast<char*>(&buffer_size), &opt_len) == 0) {
+    LOG(INFO) << "Updated send buffer size to: " << buffer_size;
+  }
   input_stream_ = SocketInputStream(socket);
   output_stream_ = SocketOutputStream(socket);
 }
