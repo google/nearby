@@ -20,14 +20,16 @@
 #include <memory>
 
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/cancelable_alarm.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/future.h"
+#include "internal/platform/listeners.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 using ::location::nearby::connections::LocationHint;
+using ::location::nearby::proto::connections::OperationResultCode;
 
 WebRtc::WebRtc() = default;
 
@@ -50,11 +52,10 @@ bool WebRtc::StartAcceptingConnections(const std::string& service_id,
 
 void WebRtc::StopAcceptingConnections(const std::string& service_id) {}
 
-WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
-                                    const WebrtcPeerId& remote_peer_id,
-                                    const LocationHint& location_hint,
-                                    CancellationFlag* cancellation_flag) {
-  return WebRtcSocketWrapper();
+ErrorOr<WebRtcSocketWrapper> WebRtc::Connect(
+    const std::string& service_id, const WebrtcPeerId& remote_peer_id,
+    const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
+  return {Error(OperationResultCode::DETAIL_UNKNOWN)};
 }
 
 bool WebRtc::IsUsingCellular() { return false; }

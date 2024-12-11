@@ -26,6 +26,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/medium_environment.h"
@@ -71,7 +72,7 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   WebRtcTestParams params = GetParam();
   env_.SetFeatureFlags(params.feature_flags);
   WebRtc receiver, sender;
-  WebRtcSocketWrapper receiver_socket, sender_socket;
+  WebRtcSocketWrapper receiver_socket;
   const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
@@ -88,9 +89,10 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
       params.non_cellular);
 
   CancellationFlag flag;
-  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag,
-                                 params.non_cellular);
-  EXPECT_TRUE(sender_socket.IsValid());
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender.Connect(
+      service_id, self_id, location_hint, &flag, params.non_cellular);
+  EXPECT_TRUE(sender_socket_result.has_value());
+  EXPECT_TRUE(sender_socket_result.value().IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
   ASSERT_TRUE(devices_connected.ok());
@@ -99,7 +101,7 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   // Only shuts down signaling channel.
   receiver.StopAcceptingConnections(service_id);
 
-  sender_socket.GetOutputStream().Write(message);
+  sender_socket_result.value().GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_msg =
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
@@ -112,7 +114,7 @@ TEST_P(WebRtcTest, CanCancelConnect) {
   WebRtcTestParams params = GetParam();
   env_.SetFeatureFlags(params.feature_flags);
   WebRtc receiver, sender;
-  WebRtcSocketWrapper receiver_socket, sender_socket;
+  WebRtcSocketWrapper receiver_socket;
   const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
@@ -129,17 +131,18 @@ TEST_P(WebRtcTest, CanCancelConnect) {
       params.non_cellular);
 
   CancellationFlag flag(true);
-  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag,
-                                 params.non_cellular);
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender.Connect(
+      service_id, self_id, location_hint, &flag, params.non_cellular);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!params.feature_flags.enable_cancellation_flag) {
-    EXPECT_TRUE(sender_socket.IsValid());
+    EXPECT_TRUE(sender_socket_result.has_value());
+    EXPECT_TRUE(sender_socket_result.value().IsValid());
 
     ExceptionOr<bool> devices_connected = connected.Get();
     ASSERT_TRUE(devices_connected.ok());
     EXPECT_TRUE(devices_connected.result());
 
-    sender_socket.GetOutputStream().Write(message);
+    sender_socket_result.value().GetOutputStream().Write(message);
     ExceptionOr<ByteArray> received_msg =
         receiver_socket.GetInputStream().Read(/*size=*/32);
     ASSERT_TRUE(received_msg.ok());
@@ -147,7 +150,7 @@ TEST_P(WebRtcTest, CanCancelConnect) {
 
     receiver_socket.Close();
   } else {
-    EXPECT_FALSE(sender_socket.IsValid());
+    EXPECT_TRUE(sender_socket_result.has_error());
   }
   env_.Stop();
 }
@@ -196,9 +199,9 @@ TEST_P(WebRtcTest, Connect_NoPeer) {
 
   ASSERT_TRUE(webrtc.IsAvailable());
   CancellationFlag flag;
-  WebRtcSocketWrapper wrapper_1 = webrtc.Connect(
+  ErrorOr<WebRtcSocketWrapper> wrapper_1_result = webrtc.Connect(
       service_id, peer_id, location_hint, &flag, params.non_cellular);
-  EXPECT_FALSE(wrapper_1.IsValid());
+  EXPECT_TRUE(wrapper_1_result.has_error());
 
   EXPECT_TRUE(webrtc.StartAcceptingConnections(
       service_id, peer_id, location_hint, nullptr, params.non_cellular));
@@ -221,11 +224,11 @@ TEST_P(WebRtcTest, StartAcceptingConnection_ThenConnect) {
       service_id, self_id, location_hint,
       mock_accepted_callback_.AsStdFunction(), params.non_cellular));
   CancellationFlag flag;
-  WebRtcSocketWrapper wrapper =
+  ErrorOr<WebRtcSocketWrapper> wrapper_result =
       webrtc.Connect(service_id, WebrtcPeerId("random_peer_id"), location_hint,
                      &flag, params.non_cellular);
   EXPECT_TRUE(webrtc.IsAcceptingConnections(service_id));
-  EXPECT_FALSE(wrapper.IsValid());
+  EXPECT_TRUE(wrapper_result.has_error());
   EXPECT_FALSE(webrtc.StartAcceptingConnections(
       service_id, self_id, location_hint,
       mock_accepted_callback_.AsStdFunction(), params.non_cellular));
@@ -258,7 +261,7 @@ TEST_P(WebRtcTest, StartAndStopAcceptingConnections) {
 TEST_P(WebRtcTest, ConnectTwice) {
   env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender, device_c;
-  WebRtcSocketWrapper receiver_socket, sender_socket;
+  WebRtcSocketWrapper receiver_socket;
   WebRtcTestParams params = GetParam();
   const WebrtcPeerId self_id("self_id"), other_id("other_id");
   const std::string service_id("NearbySharing");
@@ -281,23 +284,26 @@ TEST_P(WebRtcTest, ConnectTwice) {
       params.non_cellular);
 
   CancellationFlag flag;
-  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag,
-                                 params.non_cellular);
-  EXPECT_TRUE(sender_socket.IsValid());
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender.Connect(
+      service_id, self_id, location_hint, &flag, params.non_cellular);
+  EXPECT_TRUE(sender_socket_result.has_value());
+  EXPECT_TRUE(sender_socket_result.value().IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
   ASSERT_TRUE(devices_connected.ok());
   EXPECT_TRUE(devices_connected.result());
 
-  WebRtcSocketWrapper socket = sender.Connect(
+  ErrorOr<WebRtcSocketWrapper> socket_result = sender.Connect(
       service_id, other_id, location_hint, &flag, params.non_cellular);
-  EXPECT_TRUE(socket.IsValid());
-  socket.Close();
+  EXPECT_TRUE(socket_result.has_value());
+  EXPECT_TRUE(socket_result.value().IsValid());
+  socket_result.value().Close();
 
   EXPECT_TRUE(receiver_socket.IsValid());
-  EXPECT_TRUE(sender_socket.IsValid());
+  EXPECT_TRUE(sender_socket_result.has_value());
+  EXPECT_TRUE(sender_socket_result.value().IsValid());
 
-  sender_socket.GetOutputStream().Write(message);
+  sender_socket_result.value().GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_msg =
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
@@ -330,9 +336,10 @@ TEST_P(WebRtcTest, ConnectBothDevicesAndAbort) {
       params.non_cellular);
 
   CancellationFlag flag;
-  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag,
-                                 params.non_cellular);
-  EXPECT_TRUE(sender_socket.IsValid());
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender.Connect(
+      service_id, self_id, location_hint, &flag, params.non_cellular);
+  EXPECT_TRUE(sender_socket_result.has_value());
+  EXPECT_TRUE(sender_socket_result.value().IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
   ASSERT_TRUE(devices_connected.ok());
@@ -347,7 +354,7 @@ TEST_P(WebRtcTest, ConnectBothDevicesAndAbort) {
 TEST_P(WebRtcTest, ConnectBothDevicesAndSendData) {
   env_.Start({.webrtc_enabled = true});
   WebRtc receiver, sender;
-  WebRtcSocketWrapper receiver_socket, sender_socket;
+  WebRtcSocketWrapper receiver_socket;
   WebRtcTestParams params = GetParam();
   const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
@@ -365,15 +372,16 @@ TEST_P(WebRtcTest, ConnectBothDevicesAndSendData) {
       params.non_cellular);
 
   CancellationFlag flag;
-  sender_socket = sender.Connect(service_id, self_id, location_hint, &flag,
-                                 params.non_cellular);
-  EXPECT_TRUE(sender_socket.IsValid());
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender.Connect(
+      service_id, self_id, location_hint, &flag, params.non_cellular);
+  EXPECT_TRUE(sender_socket_result.has_value());
+  EXPECT_TRUE(sender_socket_result.value().IsValid());
 
   ExceptionOr<bool> devices_connected = connected.Get();
   ASSERT_TRUE(devices_connected.ok());
   EXPECT_TRUE(devices_connected.result());
 
-  sender_socket.GetOutputStream().Write(message);
+  sender_socket_result.value().GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_msg =
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
@@ -397,10 +405,10 @@ TEST_P(WebRtcTest, Connect_NullPeerConnection) {
 
   ASSERT_TRUE(webrtc.IsAvailable());
   CancellationFlag flag;
-  WebRtcSocketWrapper wrapper =
+  ErrorOr<WebRtcSocketWrapper> wrapper_result =
       webrtc.Connect(service_id, WebrtcPeerId("random_peer_id"), location_hint,
                      &flag, params.non_cellular);
-  EXPECT_FALSE(wrapper.IsValid());
+  EXPECT_TRUE(wrapper_result.has_error());
   env_.Stop();
 }
 
@@ -479,8 +487,8 @@ TEST_P(WebRtcTest, CancelDuringConnect) {
       },
       params.non_cellular);
 
-  sender_socket = sender->Connect(service_id, self_id, location_hint,
-                                  &sender_flag, params.non_cellular);
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender->Connect(
+      service_id, self_id, location_hint, &sender_flag, params.non_cellular);
 
   // Since the flag was cancelled during the initial `AttemptToConnect`, except
   // only one attempt instead of the usual three, because the cancellation flag
@@ -488,7 +496,7 @@ TEST_P(WebRtcTest, CancelDuringConnect) {
   // Because of the way the iteration happens, the check for is cancelled
   // happens after the counter has already been incremented, but before the
   // attempt actually occurs.
-  EXPECT_FALSE(sender_socket.IsValid());
+  EXPECT_TRUE(sender_socket_result.has_error());
   EXPECT_EQ(2, sender->connect_attempts_count(service_id));
 
   env_.Stop();
@@ -505,7 +513,7 @@ TEST_P(WebRtcTest, CancelBeforeConnect) {
       .enable_cancellation_flag = true,
   });
 
-  WebRtcSocketWrapper receiver_socket, sender_socket;
+  WebRtcSocketWrapper receiver_socket;
   const WebrtcPeerId self_id("self_id");
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
@@ -529,12 +537,12 @@ TEST_P(WebRtcTest, CancelBeforeConnect) {
       },
       params.non_cellular);
 
-  sender_socket = sender->Connect(service_id, self_id, location_hint,
-                                  &sender_flag, params.non_cellular);
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender->Connect(
+      service_id, self_id, location_hint, &sender_flag, params.non_cellular);
 
   // Expect an invalid socket from stopping during the first attempt to connect,
   // because `Connect` returned immediatley when it checked for cancellation.
-  EXPECT_FALSE(sender_socket.IsValid());
+  EXPECT_TRUE(sender_socket_result.has_error());
   EXPECT_EQ(1, sender->connect_attempts_count(service_id));
 
   env_.Stop();
@@ -552,7 +560,7 @@ TEST_P(WebRtcTest, CancelDuringConnect_MultipleConnect) {
       .enable_cancellation_flag = true,
   });
 
-  WebRtcSocketWrapper receiver_socket, sender_socket;
+  WebRtcSocketWrapper receiver_socket;
   const WebrtcPeerId self_id("self_id");
   const std::string ns_service_id("NearbySharing");
   const std::string ph_service_id("PhoneHub");
@@ -579,17 +587,18 @@ TEST_P(WebRtcTest, CancelDuringConnect_MultipleConnect) {
       params.non_cellular);
 
   // Simulate a successful connect for the endpoint of NearbySharing.
-  sender_socket = sender->Connect(ns_service_id, self_id, location_hint, &flag,
-                                  params.non_cellular);
-  EXPECT_TRUE(sender_socket.IsValid());
+  ErrorOr<WebRtcSocketWrapper> sender_socket_result = sender->Connect(
+      ns_service_id, self_id, location_hint, &flag, params.non_cellular);
+  EXPECT_TRUE(sender_socket_result.has_value());
+  EXPECT_TRUE(sender_socket_result.value().IsValid());
 
   // Calls `CancellationFlag::Cancel` during a call to `GetSignalingMessenger`
   // to simulate the cancellation occuring during an `AttemptToConnect` for the
   // endpoint of Phone Hub.
   fake_sender_medium->TriggerCancellationDuringGetSignalingMessenger();
-  sender_socket = sender->Connect(ph_service_id, self_id, location_hint, &flag,
-                                  params.non_cellular);
-  EXPECT_FALSE(sender_socket.IsValid());
+  sender_socket_result = sender->Connect(ph_service_id, self_id, location_hint,
+                                         &flag, params.non_cellular);
+  EXPECT_TRUE(sender_socket_result.has_error());
 
   // Since the flag was cancelled during the initial `AttemptToConnect`, except
   // only one attempt instead of the usual three, because the cancellation flag

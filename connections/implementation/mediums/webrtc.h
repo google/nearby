@@ -32,6 +32,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/future.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/runnable.h"
@@ -84,7 +85,7 @@ class WebRtc {
   // Initiates a WebRtc connection with peer device identified by |peer_id|
   // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
-  WebRtcSocketWrapper Connect(
+  ErrorOr<WebRtcSocketWrapper> Connect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag, bool non_cellular)
@@ -150,7 +151,7 @@ class WebRtc {
   // Attempt to initiates a WebRtc connection with peer device identified by
   // |peer_id|.
   // Runs on @MainThread.
-  WebRtcSocketWrapper AttemptToConnect(
+  ErrorOr<WebRtcSocketWrapper> AttemptToConnect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);

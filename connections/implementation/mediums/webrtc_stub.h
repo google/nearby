@@ -26,6 +26,7 @@
 #include "connections/implementation/mediums/webrtc_socket_stub.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/listeners.h"
 
 namespace nearby {
@@ -68,7 +69,7 @@ class WebRtc {
   // Initiates a WebRtc connection with peer device identified by |peer_id|
   // with internal retry for maximum attempts of kConnectAttemptsLimit.
   // Runs on @MainThread.
-  WebRtcSocketWrapper Connect(
+  ErrorOr<WebRtcSocketWrapper> Connect(
       const std::string& service_id, const WebrtcPeerId& peer_id,
       const location::nearby::connections::LocationHint& location_hint,
       CancellationFlag* cancellation_flag);

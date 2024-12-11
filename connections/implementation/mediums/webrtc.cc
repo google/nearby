@@ -35,10 +35,12 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/runnable.h"
 #include "internal/platform/webrtc.h"
 #include "webrtc/api/jsep.h"
 
@@ -48,6 +50,7 @@ namespace mediums {
 
 namespace {
 using ::location::nearby::connections::LocationHint;
+using ::location::nearby::proto::connections::OperationResultCode;
 
 // The maximum amount of time to wait to connect to a data channel via WebRTC.
 constexpr absl::Duration kDataChannelTimeout = absl::Seconds(10);
@@ -206,13 +209,14 @@ void WebRtc::StopAcceptingConnections(const std::string& service_id) {
                     << service_id;
 }
 
-WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
-                                    const WebrtcPeerId& remote_peer_id,
-                                    const LocationHint& location_hint,
-                                    CancellationFlag* cancellation_flag,
-                                    bool non_cellular) {
+ErrorOr<WebRtcSocketWrapper> WebRtc::Connect(
+    const std::string& service_id, const WebrtcPeerId& remote_peer_id,
+    const LocationHint& location_hint, CancellationFlag* cancellation_flag,
+    bool non_cellular) {
   service_id_to_connect_attempts_count_map_[service_id] = 1;
   medium_->SetNonCellular(non_cellular);
+  ErrorOr<WebRtcSocketWrapper> wrapper_result = {
+      Error(OperationResultCode::DETAIL_UNKNOWN)};
   while (service_id_to_connect_attempts_count_map_[service_id] <=
          kConnectAttemptsLimit) {
     if (cancellation_flag->Cancelled()) {
@@ -220,16 +224,18 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
           << "Attempt #"
           << service_id_to_connect_attempts_count_map_[service_id]
           << ": Cannot Connect with WebRtc due to cancel.";
-      return WebRtcSocketWrapper();
+      return {
+          Error(OperationResultCode::
+                    CLIENT_CANCELLATION_CANCEL_WEB_RTC_OUTGOING_CONNECTION)};
     }
 
     NEARBY_LOGS(INFO) << "Attempt #"
                       << service_id_to_connect_attempts_count_map_[service_id]
                       << ": Beginning connection.";
-    auto wrapper_result = AttemptToConnect(service_id, remote_peer_id,
-                                           location_hint, cancellation_flag);
-    if (wrapper_result.IsValid()) {
-      return wrapper_result;
+    wrapper_result = AttemptToConnect(service_id, remote_peer_id, location_hint,
+                                      cancellation_flag);
+    if (wrapper_result.has_value()) {
+      return std::move(wrapper_result.value());
     }
 
     service_id_to_connect_attempts_count_map_[service_id]++;
@@ -237,10 +243,10 @@ WebRtcSocketWrapper WebRtc::Connect(const std::string& service_id,
 
   NEARBY_LOGS(WARNING) << "Giving up after " << kConnectAttemptsLimit
                        << " attempts";
-  return WebRtcSocketWrapper();
+  return {Error(wrapper_result.error().operation_result_code().value())};
 }
 
-WebRtcSocketWrapper WebRtc::AttemptToConnect(
+ErrorOr<WebRtcSocketWrapper> WebRtc::AttemptToConnect(
     const std::string& service_id, const WebrtcPeerId& remote_peer_id,
     const LocationHint& location_hint, CancellationFlag* cancellation_flag) {
   ConnectionRequestInfo info = ConnectionRequestInfo();
@@ -266,7 +272,8 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
       NEARBY_LOGS(WARNING) << "Cannot connect to WebRTC peer "
                            << remote_peer_id.GetId()
                            << " because WebRTC is not available.";
-      return WebRtcSocketWrapper();
+      return {
+          Error(OperationResultCode::MEDIUM_UNAVAILABLE_WEB_RTC_NOT_AVAILABLE)};
     }
 
     // Create a new ConnectionFlow for this connection attempt.
@@ -276,7 +283,7 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
       NEARBY_LOGS(INFO) << "Cannot connect to WebRTC peer "
                         << remote_peer_id.GetId()
                         << " because we failed to create a ConnectionFlow.";
-      return WebRtcSocketWrapper();
+      return {Error(OperationResultCode::NEARBY_WEB_RTC_CONNECTION_FLOW_NULL)};
     }
 
     // Create a new SignalingMessenger so that we can communicate over Tachyon.
@@ -286,7 +293,9 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
       NEARBY_LOGS(INFO) << "Cannot connect to WebRTC peer "
                         << remote_peer_id.GetId()
                         << " because we failed to create a SignalingMessenger.";
-      return WebRtcSocketWrapper();
+      return {
+          Error(OperationResultCode::
+                    MISCELLEANEOUS_WEB_RTC_TACHYON_SIGNALING_MESSENGER_NULL)};
     }
 
     // This registers ourselves w/ Tachyon, creating a room from the PeerId.
@@ -303,7 +312,8 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
           << "Cannot connect to WebRTC peer " << remote_peer_id.GetId()
           << " because we failed to start receiving messages over Tachyon.";
       info.signaling_messenger.reset();
-      return WebRtcSocketWrapper();
+      return {Error(OperationResultCode::
+                        MISCELLEANEOUS_WEB_RTC_FAILED_TO_RECEIVE_MESSAGE)};
     }
 
     // Poke the remote device. This will cause them to send us an Offer.
@@ -314,7 +324,8 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
                         << remote_peer_id.GetId()
                         << " because we failed to poke the peer over Tachyon.";
       info.signaling_messenger.reset();
-      return WebRtcSocketWrapper();
+      return {Error(OperationResultCode::
+                        CONNECTIVITY_WEB_RTC_CONNECT_TO_TACHYON_FAILURE)};
     }
 
     // Create a new ConnectionRequest entry. This map will be used later to look
@@ -345,7 +356,8 @@ WebRtcSocketWrapper WebRtc::AttemptToConnect(
       RemoveConnectionFlow(remote_peer_id);
       info.signaling_messenger.reset();
       requesting_connections_info_.erase(remote_peer_id.GetId());
-      return WebRtcSocketWrapper();
+      return {Error(OperationResultCode::
+                        CONNECTIVITY_WEB_RTC_CLIENT_SOCKET_CREATION_FAILURE)};
     }
 
     // Clean up our ConnectionRequest.

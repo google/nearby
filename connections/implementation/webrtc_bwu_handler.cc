@@ -44,7 +44,6 @@ using ::location::nearby::connections::LocationStandard;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
-// TODO(edwinwu): Add exact OperationResultCode for WebrtcBwuHandler.
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
     const std::string& name, mediums::WebRtcSocketWrapper socket)
     : name_(name), socket_(socket) {}
@@ -78,14 +77,14 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
       << peer_id.GetId() << ", location hint "
       << absl::StrCat(location_hint.location());
 
-  mediums::WebRtcSocketWrapper socket = webrtc_.Connect(
+  ErrorOr<mediums::WebRtcSocketWrapper> socket_result = webrtc_.Connect(
       service_id, peer_id, location_hint,
       client->GetCancellationFlag(endpoint_id), client->GetWebRtcNonCellular());
-  if (!socket.IsValid()) {
+  if (socket_result.has_error()) {
     NEARBY_LOGS(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
                        << peer_id.GetId() << ") on endpoint " << endpoint_id
                        << ", aborting upgrade.";
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(socket_result.error().operation_result_code().value())};
   }
 
   NEARBY_LOGS(INFO) << "WebRtcBwuHandler successfully connected to remote "
@@ -95,13 +94,14 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
 
   // Create a new WebRtcEndpointChannel.
   auto channel = std::make_unique<WebRtcEndpointChannel>(
-      service_id, /*channel_name=*/service_id, socket);
+      service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
-    socket.Close();
+    socket_result.value().Close();
     NEARBY_LOGS(ERROR)
         << "WebRtcBwuHandler failed to create new EndpointChannel for "
            "outgoing socket, aborting upgrade.";
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(
+        OperationResultCode::NEARBY_WEB_RTC_ENDPOINT_CHANNEL_CREATION_FAILURE)};
   }
 
   return {std::move(channel)};
