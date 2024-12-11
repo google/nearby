@@ -214,11 +214,11 @@ TEST(InternalPayloadFactoryTest,
   Payload::Id payload_id = Payload::GenerateId();
   CreateFileWithContents(payload_id, contents);
   InputFile inputFile(payload_id, contents.size());
-  ErrorOr<std::unique_ptr<InternalPayload>> interal_payload_result =
+  ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
       CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
-  ASSERT_FALSE(interal_payload_result.has_error());
+  ASSERT_FALSE(internal_payload_result.has_error());
   std::unique_ptr<InternalPayload> internal_payload =
-      std::move(interal_payload_result.value());
+      std::move(internal_payload_result.value());
   EXPECT_NE(internal_payload, nullptr);
 
   ExceptionOr<size_t> result = internal_payload->SkipToOffset(kOffset);
@@ -236,11 +236,11 @@ TEST(InternalPayloadFactoryTest,
   ByteArray contents("0123456789");
   constexpr size_t kOffset = 6;
   auto [input, output] = CreatePipe();
-  ErrorOr<std::unique_ptr<InternalPayload>> interal_payload_result =
+  ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
       CreateOutgoingInternalPayload(Payload(std::move(input)));
-  ASSERT_FALSE(interal_payload_result.has_error());
+  ASSERT_FALSE(internal_payload_result.has_error());
   std::unique_ptr<InternalPayload> internal_payload =
-      std::move(interal_payload_result.value());
+      std::move(internal_payload_result.value());
   EXPECT_NE(internal_payload, nullptr);
   output->Write(contents);
 

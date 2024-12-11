@@ -1159,7 +1159,7 @@ BasePcpHandler::GetOperationResultWithMediumByResultCode(
   operation_result_with_medium->set_medium(medium);
   operation_result_with_medium->set_result_code(operation_result_code);
   operation_result_with_medium->set_result_category(
-      client->GetAnalyticsRecorder().GetOperationResultCateory(
+      client->GetAnalyticsRecorder().GetOperationResultCategory(
           operation_result_code));
   operation_result_with_medium->set_connection_mode(connection_mode);
   operation_result_with_medium->set_update_index(update_index);

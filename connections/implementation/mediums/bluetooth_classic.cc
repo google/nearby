@@ -132,9 +132,7 @@ ErrorOr<bool> BluetoothClassic::TurnOnDiscoverability(
     LOG(INFO) << "Refusing to turn on BT discoverability; new name='"
               << device_name << "'; current name='" << adapter_.GetName()
               << "'";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(
-        OperationResultCode::CONNECTIVITY_BLUETOOTH_CHANGE_SCAN_MODE_FAILURE)};
+    return {Error(OperationResultCode::CONNECTIVITY_BLUETOOTH_SCAN_FAILURE)};
   }
 
   if (!ModifyDeviceName(device_name)) {
@@ -233,8 +231,7 @@ ErrorOr<bool> BluetoothClassic::StartDiscovery(
 
   if (serviceId.empty()) {
     LOG(INFO) << "Refusing to start discovery; service ID is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!radio_.IsEnabled()) {
@@ -287,7 +284,6 @@ ErrorOr<bool> BluetoothClassic::StartDiscovery(
 
     AddDiscoveryCallback(serviceId, std::move(callback));
 
-    // TODO(edwinwu): See if platform code needs to return ErrorOr<bool>
     if (!medium_->StartDiscovery(std::move(medium_callback))) {
       LOG(INFO) << "Failed to start discovery of BT devices.";
       RemoveDiscoveryCallback(serviceId);
@@ -344,8 +340,7 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
   if (service_id.empty()) {
     LOG(INFO)
         << "Refusing to start accepting BT connections; service ID is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!radio_.IsEnabled()) {
@@ -571,8 +566,7 @@ ErrorOr<BluetoothSocket> BluetoothClassic::AttemptToConnect(
   if (service_id.empty()) {
     LOG(WARNING)
         << "Refusing to create client BT socket because service_id is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!radio_.IsEnabled()) {

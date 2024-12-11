@@ -91,7 +91,7 @@ BaseEndpointChannel::BaseEndpointChannel(const std::string& service_id,
           service_id, channel_name, reader, writer,
           // TODO(edwinwu): Below values should be retrieved from a base socket,
           // the #MediumSocket in Android counterpart, from which all the
-          // derived medium sockets should dervied, and implement the supported
+          // derived medium sockets should derived, and implement the supported
           // values and leave the default values in base #MediumSocket.
           /*ConnectionTechnology*/
           location::nearby::proto::connections::

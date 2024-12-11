@@ -268,8 +268,7 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiHotspot socket because "
                          "service_id is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsClientAvailableLocked()) {

@@ -353,8 +353,7 @@ ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,
 
   if (service_id.empty()) {
     LOG(INFO) << "Can not start BLE scanning with empty service id.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (IsScanningLocked(service_id)) {
@@ -612,8 +611,7 @@ ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client Ble socket because "
                  "service_id is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsAvailableLocked()) {

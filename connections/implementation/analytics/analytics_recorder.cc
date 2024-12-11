@@ -107,8 +107,7 @@ using ::nearby::analytics::EventLogger;
 using SafeDisconnectionResult = ::location::nearby::analytics::proto::
     ConnectionsLog::EstablishedConnection::SafeDisconnectionResult;
 
-// TODO(edwinwu): Add ifttt in Android counterpart.
-OperationResultCategory ConvertToOperationResultCateory(
+OperationResultCategory ConvertToOperationResultCategory(
     OperationResultCode result_code) {
   if (result_code == OperationResultCode::DETAIL_SUCCESS) {
     return OperationResultCategory::CATEGORY_SUCCESS;
@@ -537,7 +536,7 @@ void AnalyticsRecorder::OnIncomingConnectionAttemptLocked(
       std::make_unique<ConnectionsLog::OperationResult>();
   operation_result_proto->set_result_code(
       connection_attempt_metadata_params->operation_result_code);
-  operation_result_proto->set_result_category(ConvertToOperationResultCateory(
+  operation_result_proto->set_result_category(ConvertToOperationResultCategory(
       connection_attempt_metadata_params->operation_result_code));
   connection_attempt->set_allocated_operation_result(
       operation_result_proto.release());
@@ -625,7 +624,7 @@ void AnalyticsRecorder::OnOutgoingConnectionAttemptLocked(
       std::make_unique<ConnectionsLog::OperationResult>();
   operation_result_proto->set_result_code(
       connection_attempt_metadata_params->operation_result_code);
-  operation_result_proto->set_result_category(ConvertToOperationResultCateory(
+  operation_result_proto->set_result_category(ConvertToOperationResultCategory(
       connection_attempt_metadata_params->operation_result_code));
   connection_attempt->set_allocated_operation_result(
       operation_result_proto.release());
@@ -1359,7 +1358,7 @@ void AnalyticsRecorder::FinishUpgradeAttemptLocked(
         std::make_unique<ConnectionsLog::OperationResult>();
     operation_result_proto->set_result_code(operation_result_code);
     operation_result_proto->set_result_category(
-        ConvertToOperationResultCateory(operation_result_code));
+        ConvertToOperationResultCategory(operation_result_code));
     attempt->set_allocated_operation_result(operation_result_proto.release());
     *current_strategy_session_->add_upgrade_attempt() = *attempt;
     if (erase_item) {
@@ -1462,7 +1461,7 @@ ConnectionsLog::Payload AnalyticsRecorder::PendingPayload::GetProtoPayload(
       std::make_unique<ConnectionsLog::OperationResult>();
   operation_result_proto->set_result_code(operation_result_code_);
   operation_result_proto->set_result_category(
-      ConvertToOperationResultCateory(operation_result_code_));
+      ConvertToOperationResultCategory(operation_result_code_));
   payload.set_allocated_operation_result(operation_result_proto.release());
 
   return payload;
@@ -1732,9 +1731,9 @@ AnalyticsRecorder::LogicalConnection::GetPendingPayloadResultCodeFromReason(
   }
 }
 
-OperationResultCategory AnalyticsRecorder::GetOperationResultCateory(
+OperationResultCategory AnalyticsRecorder::GetOperationResultCategory(
     location::nearby::proto::connections::OperationResultCode result_code) {
-  return ConvertToOperationResultCateory(result_code);
+  return ConvertToOperationResultCategory(result_code);
 }
 
 void AnalyticsRecorder::Sync() {

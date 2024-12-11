@@ -176,8 +176,7 @@ ErrorOr<bool> WifiLan::StartDiscovery(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOGS(INFO)
         << "Refusing to start WifiLan discovering with empty service_id.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsAvailableLocked()) {
@@ -244,8 +243,7 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to start accepting WifiLan connections; "
                          "service_id is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsAvailableLocked()) {
@@ -438,8 +436,7 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiLan socket because "
                          "service_id is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsAvailableLocked()) {
@@ -493,8 +490,7 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create client WifiLan socket because "
                          "service_id is empty.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsAvailableLocked()) {

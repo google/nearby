@@ -227,7 +227,7 @@ class AnalyticsRecorder {
   bool IsSessionLogged();
 
   location::nearby::proto::connections::OperationResultCategory
-  GetOperationResultCateory(
+  GetOperationResultCategory(
       location::nearby::proto::connections::OperationResultCode result_code);
 
   // Waits until all logs are sent to the backend.

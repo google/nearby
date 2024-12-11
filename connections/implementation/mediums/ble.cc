@@ -403,8 +403,7 @@ ErrorOr<BleSocket> Ble::Connect(BlePeripheral& peripheral,
 
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create BLE socket with empty service_id.";
-    // TODO(edwinwu): Modify new OperationResultCode
-    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!radio_.IsEnabled()) {
