@@ -139,9 +139,9 @@ class BleV2 final {
 
   // Establishes connection to Ble peripheral.
   // Returns socket instance. On success, BleSocket.IsValid() return true.
-  BleV2Socket Connect(const std::string& service_id,
-                      const BleV2Peripheral& peripheral,
-                      CancellationFlag* cancellation_flag)
+  ErrorOr<BleV2Socket> Connect(const std::string& service_id,
+                               const BleV2Peripheral& peripheral,
+                               CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if this object owns a valid platform implementation.

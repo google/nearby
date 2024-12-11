@@ -2422,25 +2422,29 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 
   BlePeripheral& peripheral = endpoint->ble_peripheral;
 
-  BleSocket ble_socket =
+  ErrorOr<BleSocket> ble_socket_result =
       ble_medium_.Connect(peripheral, endpoint->service_id,
                           client->GetCancellationFlag(endpoint->endpoint_id));
-  if (!ble_socket.IsValid()) {
+  if (ble_socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "In BleConnectImpl(), failed to connect to BLE device "
         << peripheral.GetName() << " for endpoint(id=" << endpoint->endpoint_id
         << ").";
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kBleError},
+        .operation_result_code =
+            ble_socket_result.error().operation_result_code().value(),
     };
   }
 
   auto channel = std::make_unique<BleEndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id, ble_socket);
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+      ble_socket_result.value());
 
   return BasePcpHandler::ConnectImplResult{
       .medium = BLE,
       .status = {Status::kSuccess},
+      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
       .endpoint_channel = std::move(channel),
   };
 }
@@ -2674,25 +2678,29 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
 
   BleV2Peripheral& peripheral = endpoint->ble_peripheral;
 
-  BleV2Socket ble_socket = ble_v2_medium_.Connect(
+  ErrorOr<BleV2Socket> ble_socket_result = ble_v2_medium_.Connect(
       endpoint->service_id, peripheral,
       client->GetCancellationFlag(endpoint->endpoint_id));
-  if (!ble_socket.IsValid()) {
+  if (ble_socket_result.has_error()) {
     NEARBY_LOGS(ERROR)
         << "In BleV2ConnectImpl(), failed to connect to BLE device "
         << absl::BytesToHexString(peripheral.GetId().data())
         << " for endpoint(id=" << endpoint->endpoint_id << ").";
     return BasePcpHandler::ConnectImplResult{
         .status = {Status::kBleError},
+        .operation_result_code =
+            ble_socket_result.error().operation_result_code().value(),
     };
   }
 
   auto channel = std::make_unique<BleV2EndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id, ble_socket);
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+      ble_socket_result.value());
 
   return BasePcpHandler::ConnectImplResult{
       .medium = BLE,
       .status = {Status::kSuccess},
+      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
       .endpoint_channel = std::move(channel),
   };
 }

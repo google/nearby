@@ -30,6 +30,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -120,15 +121,16 @@ TEST_P(BleV2Test, CanConnect) {
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag;
-  BleV2Socket socket_for_client =
+  ErrorOr<BleV2Socket> socket_for_client_result =
       ble_client.Connect(service_id, discovered_peripheral, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(ble_server.StopAdvertising(service_id));
   EXPECT_TRUE(socket_for_server.IsValid());
-  EXPECT_TRUE(socket_for_client.IsValid());
+  EXPECT_TRUE(socket_for_client_result.has_value());
+  EXPECT_TRUE(socket_for_client_result.value().IsValid());
   EXPECT_TRUE(socket_for_server.GetRemotePeripheral().IsValid());
-  EXPECT_TRUE(socket_for_client.GetRemotePeripheral().IsValid());
+  EXPECT_TRUE(socket_for_client_result.value().GetRemotePeripheral().IsValid());
   env_.Stop();
 }
 
@@ -179,7 +181,7 @@ TEST_P(BleV2Test, CanCancelConnect) {
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag(true);
-  BleV2Socket socket_for_client =
+  ErrorOr<BleV2Socket> socket_for_client_result =
       ble_client.Connect(service_id, discovered_peripheral, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
@@ -187,15 +189,17 @@ TEST_P(BleV2Test, CanCancelConnect) {
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     EXPECT_TRUE(socket_for_server.IsValid());
-    EXPECT_TRUE(socket_for_client.IsValid());
+    EXPECT_TRUE(socket_for_client_result.has_value());
+    EXPECT_TRUE(socket_for_client_result.value().IsValid());
     EXPECT_TRUE(socket_for_server.GetRemotePeripheral().IsValid());
-    EXPECT_TRUE(socket_for_client.GetRemotePeripheral().IsValid());
+    EXPECT_TRUE(
+        socket_for_client_result.value().GetRemotePeripheral().IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     EXPECT_FALSE(socket_for_server.IsValid());
-    EXPECT_FALSE(socket_for_client.IsValid());
+    EXPECT_TRUE(socket_for_client_result.has_error());
   }
   env_.Stop();
 }

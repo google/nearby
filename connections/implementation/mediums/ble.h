@@ -15,16 +15,17 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_H_
 
-#include <cstdint>
 #include <string>
 
-#include "absl/container/flat_hash_map.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/listeners.h"
+#include "internal/platform/ble.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/ble.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 
@@ -111,8 +112,9 @@ class Ble {
   // service_id. Blocks until connection is established, or server-side is
   // terminated. Returns socket instance. On success, BleSocket.IsValid() return
   // true.
-  BleSocket Connect(BlePeripheral& peripheral, const std::string& service_id,
-                    CancellationFlag* cancellation_flag)
+  ErrorOr<BleSocket> Connect(BlePeripheral& peripheral,
+                             const std::string& service_id,
+                             CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

@@ -15,20 +15,29 @@
 #include "connections/implementation/mediums/ble.h"
 
 #include <array>
-#include <memory>
+#include <cstddef>
 #include <string>
 #include <utility>
 
 #include "absl/strings/escaping.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
+#include "internal/platform/ble.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
 
 namespace nearby {
 namespace connections {
+
+namespace {
+using location::nearby::proto::connections::OperationResultCode;
+}  // namespace
 
 ByteArray Ble::GenerateHash(const std::string& source, size_t size) {
   return Utils::Sha256Hash(source, size);
@@ -144,8 +153,8 @@ bool Ble::StopAdvertising(const std::string& service_id) {
 bool Ble::StartLegacyAdvertising(
     const std::string& input_service_id, const std::string& local_endpoint_id,
     const std::string& fast_advertisement_service_uuid) {
-  NEARBY_LOGS(INFO) << "StartLegacyAdvertising: " << input_service_id.c_str()
-                    << ", local_endpoint_id: " << local_endpoint_id.c_str();
+  NEARBY_LOGS(INFO) << "StartLegacyAdvertising: " << input_service_id
+                    << ", local_endpoint_id: " << local_endpoint_id;
   MutexLock lock(&mutex_);
   std::string service_id = input_service_id + "-Legacy";
 
@@ -195,7 +204,7 @@ bool Ble::StartLegacyAdvertising(
 }
 
 bool Ble::StopLegacyAdvertising(const std::string& input_service_id) {
-  NEARBY_LOGS(INFO) << "StopLegacyAdvertising:" << input_service_id.c_str();
+  NEARBY_LOGS(INFO) << "StopLegacyAdvertising:" << input_service_id;
   MutexLock lock(&mutex_);
 
   std::string service_id = input_service_id + "-Legacy";
@@ -384,8 +393,9 @@ bool Ble::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return accepting_connections_info_.Existed(service_id);
 }
 
-BleSocket Ble::Connect(BlePeripheral& peripheral, const std::string& service_id,
-                       CancellationFlag* cancellation_flag) {
+ErrorOr<BleSocket> Ble::Connect(BlePeripheral& peripheral,
+                                const std::string& service_id,
+                                CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   NEARBY_LOGS(INFO) << "BLE::Connect: service=" << &peripheral;
   // Socket to return. To allow for NRVO to work, it has to be a single object.
@@ -393,24 +403,26 @@ BleSocket Ble::Connect(BlePeripheral& peripheral, const std::string& service_id,
 
   if (service_id.empty()) {
     NEARBY_LOGS(INFO) << "Refusing to create BLE socket with empty service_id.";
-    return socket;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!radio_.IsEnabled()) {
     NEARBY_LOGS(INFO) << "Can't create client BLE socket to " << &peripheral
                       << " because Bluetooth isn't enabled.";
-    return socket;
+    return {Error(OperationResultCode::MISCELLEANEOUS_BLE_SYSTEM_SERVICE_NULL)};
   }
 
   if (!IsAvailableLocked()) {
     NEARBY_LOGS(INFO) << "Can't create client BLE socket [service_id="
                       << service_id << "]; BLE isn't available.";
-    return socket;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
   if (cancellation_flag->Cancelled()) {
     NEARBY_LOGS(INFO) << "Can't create client BLE socket due to cancel.";
-    return socket;
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_BLE_OUTGOING_CONNECTION)};
   }
 
   socket = medium_.Connect(peripheral, service_id, cancellation_flag);
@@ -428,7 +440,7 @@ ByteArray Ble::UnwrapAdvertisementBytes(
       mediums::BleAdvertisement::CreateBleAdvertisement(
           medium_advertisement_data);
   if (!medium_ble_advertisement_status_or.ok()) {
-    NEARBY_LOGS(INFO) << medium_ble_advertisement_status_or.status().ToString();
+    NEARBY_LOGS(INFO) << medium_ble_advertisement_status_or.status();
     return ByteArray();
   }
 

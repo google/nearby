@@ -353,6 +353,7 @@ ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,
 
   if (service_id.empty()) {
     LOG(INFO) << "Can not start BLE scanning with empty service id.";
+    // TODO(edwinwu): Modify new OperationResultCode
     return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
@@ -601,9 +602,9 @@ bool BleV2::IsAcceptingConnections(const std::string& service_id) {
   return IsAcceptingConnectionsLocked(service_id);
 }
 
-BleV2Socket BleV2::Connect(const std::string& service_id,
-                           const BleV2Peripheral& peripheral,
-                           CancellationFlag* cancellation_flag) {
+ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
+                                    const BleV2Peripheral& peripheral,
+                                    CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   BleV2Socket socket;
@@ -611,18 +612,20 @@ BleV2Socket BleV2::Connect(const std::string& service_id,
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client Ble socket because "
                  "service_id is empty.";
-    return socket;
+    // TODO(edwinwu): Modify new OperationResultCode
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
 
   if (!IsAvailableLocked()) {
     LOG(INFO) << "Can't create client Ble socket [service_id=" << service_id
               << "]; Ble isn't available.";
-    return socket;
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
   if (cancellation_flag->Cancelled()) {
     LOG(INFO) << "Can't create client Ble socket due to cancel.";
-    return socket;
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_BLE_OUTGOING_CONNECTION)};
   }
 
   socket = medium_.Connect(service_id,
@@ -630,6 +633,8 @@ BleV2Socket BleV2::Connect(const std::string& service_id,
                            peripheral, cancellation_flag);
   if (!socket.IsValid()) {
     LOG(INFO) << "Failed to Connect via Ble [service_id=" << service_id << "]";
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
   }
 
   return socket;

@@ -26,6 +26,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -100,9 +101,11 @@ TEST_P(BleTest, CanStartAcceptingConnectionsAndConnect) {
   BlePeripheral discovered_peripheral = atomic_discovered_peripheral.load();
   ASSERT_TRUE(discovered_peripheral.IsValid());
   CancellationFlag flag;
-  BleSocket socket = ble_b.Connect(discovered_peripheral, service_id, &flag);
+  ErrorOr<BleSocket> socket_result =
+      ble_b.Connect(discovered_peripheral, service_id, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-  EXPECT_TRUE(socket.IsValid());
+  EXPECT_TRUE(socket_result.has_value());
+  EXPECT_TRUE(socket_result.value().IsValid());
   ble_b.StopScanning(service_id);
   ble_a.StopAdvertising(service_id);
   env_.Stop();
@@ -151,14 +154,16 @@ TEST_P(BleTest, CanCancelConnect) {
   BlePeripheral discovered_peripheral = atomic_discovered_peripheral.load();
   ASSERT_TRUE(discovered_peripheral.IsValid());
   CancellationFlag flag(true);
-  BleSocket socket = ble_b.Connect(discovered_peripheral, service_id, &flag);
+  ErrorOr<BleSocket> socket_result =
+      ble_b.Connect(discovered_peripheral, service_id, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_TRUE(socket.IsValid());
+    EXPECT_TRUE(socket_result.has_value());
+    EXPECT_TRUE(socket_result.value().IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
-    EXPECT_FALSE(socket.IsValid());
+    EXPECT_TRUE(socket_result.has_error());
   }
   ble_b.StopScanning(service_id);
   ble_a.StopAdvertising(service_id);
