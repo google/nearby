@@ -3972,19 +3972,19 @@ TEST_F(NearbySharingServiceImplTest, OrderedEndpointDiscoveryEvents) {
   // Order of events:
   //   - Nearby Connections discovers endpoint 1
   //   - Nearby Connections loses endpoint 1
-  //   - Nearby Share processes these two events in order.
+  //   - Nearby Share processes discovered event.
+  //   - endpoint 1 moved to discovery cache.
   //   - Nearby Connections discovers endpoint 2
   //   - Nearby Connections discovers endpoint 3
   //   - Nearby Connections loses endpoint 3
   //   - Nearby Connections loses endpoint 2
-  //   - Nearby Share processes these four events in order.
+  //   - Nearby Share processes these 2 discovered events in order.
+  //   - endpoints 2 and 3 moved to discovery cache.
   {
     absl::Notification notification;
     FindEndpoint(/*endpoint_id=*/"1");
     LoseEndpoint(/*endpoint_id=*/"1");
-    InSequence s;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered);
-    EXPECT_CALL(discovery_callback, OnShareTargetLost)
+    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered)
         .WillOnce([&](ShareTarget share_target) { notification.Notify(); });
 
     // Needed for discovery processing.
@@ -4004,16 +4004,8 @@ TEST_F(NearbySharingServiceImplTest, OrderedEndpointDiscoveryEvents) {
           EXPECT_EQ(share_target.device_id, "2");
         });
     EXPECT_CALL(discovery_callback, OnShareTargetDiscovered)
-        .WillOnce([](ShareTarget share_target) {
-          EXPECT_EQ(share_target.device_id, "3");
-        });
-    EXPECT_CALL(discovery_callback, OnShareTargetLost)
-        .WillOnce([](ShareTarget share_target) {
-          EXPECT_EQ(share_target.device_id, "3");
-        });
-    EXPECT_CALL(discovery_callback, OnShareTargetLost)
         .WillOnce([&](ShareTarget share_target) {
-          EXPECT_EQ(share_target.device_id, "2");
+          EXPECT_EQ(share_target.device_id, "3");
           notification.Notify();
         });
 
@@ -4064,9 +4056,6 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
-      true);
   // Start discovery.
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
@@ -4113,9 +4102,6 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
 
 TEST_F(NearbySharingServiceImplTest,
        OnLostDedupSameEndpointIdBeforeExpiryNoOnShareTargetLost) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
-      true);
   // Start discovery.
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
@@ -4172,9 +4158,6 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
-      true);
   // Start discovery.
   SetConnectionType(ConnectionType::kWifi);
   MockTransferUpdateCallback transfer_callback;
@@ -4236,77 +4219,9 @@ TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
   service_.reset();
 }
 
-TEST_F(NearbySharingServiceImplTest,
-       RetryDiscoveredEndpointsDownloadCertsAndRetryDecryption) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
-      false);
-  // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
-  MockTransferUpdateCallback transfer_callback;
-  MockShareTargetDiscoveredCallback discovery_callback;
-  RegisterSendSurface(&transfer_callback, &discovery_callback,
-                      SendSurfaceState::kForeground);
-  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
-            1u);
-  EXPECT_TRUE(fake_nearby_connections_manager_->IsDiscovering());
-  // Order of events:
-  // - Discover endpoint 1 --> decrypts public certificate
-  // - Discover endpoint 2 --> cannot decrypt public certificate
-  // - Discover endpoint 3 --> decrypts public certificate
-  // - Discover endpoint 4 --> cannot decrypt public certificate
-  // - Lose endpoint 3
-  // - Fire certificate download timer --> certificates downloaded
-  // - (Re)discover endpoints 2 and 4
-  {
-    absl::Notification notification;
-    FindInvalidEndpoint(/*endpoint_id=*/"1");
-    FindInvalidEndpoint(/*endpoint_id=*/"2");
-    FindInvalidEndpoint(/*endpoint_id=*/"3");
-    FindInvalidEndpoint(/*endpoint_id=*/"4");
-    LoseEndpoint(/*endpoint_id=*/"3");
-    ::testing::InSequence s;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered).Times(2);
-    EXPECT_CALL(discovery_callback, OnShareTargetLost)
-        .WillOnce([&](ShareTarget share_target) { notification.Notify(); });
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
-                                             /*success=*/true);
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/2,
-                                             /*success=*/false);
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/3,
-                                             /*success=*/true);
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/4,
-                                             /*success=*/false);
-    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  }
-  FastForward(kCertificateDownloadDuringDiscoveryPeriod);
-  EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
-            2u);
-  certificate_manager()->NotifyPublicCertificatesDownloaded();
-  FlushTesting();
-  {
-    absl::Notification notification;
-    ::testing::InSequence s;
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered);
-    EXPECT_CALL(discovery_callback, OnShareTargetDiscovered)
-        .WillOnce([&](ShareTarget share_target) { notification.Notify(); });
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/5,
-                                             /*success=*/true);
-    ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/6,
-                                             /*success=*/true);
-    EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
-  }
-  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(3);
-  Shutdown();
-  service_.reset();
-}
-
 // This test verifies the de-dup logic. Since certificates are the same, all the
 // share targets are duplicates.
 TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup,
-      true);
   // Make kDiscoveryCacheLostExpiryMs larger than
   // kCertificateDownloadDuringDiscoveryPeriod (10s).
   NearbyFlags::GetInstance().OverrideInt64FlagValue(

@@ -1667,19 +1667,6 @@ void NearbySharingServiceImpl::HandleEndpointDiscovered(
   // Check outgoingShareSessionMap first and pass the same shareTarget if we
   // found one.
 
-  // Looking for the ShareTarget based on endpoint id.
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kApplyEndpointsDedup)) {
-    if (outgoing_share_target_map_.find(endpoint_id) !=
-        outgoing_share_target_map_.end()) {
-      LOG(INFO) << __func__ << ": Ignoring endpoint_id: " << endpoint_id
-                << " because it is already in the "
-                << "outgoingShareTargetMap.";
-      FinishEndpointDiscoveryEvent();
-      return;
-    }
-  }
   // Once we get the advertisement, the first thing to do is decrypt the
   // certificate.
   NearbyShareEncryptedMetadataKey encrypted_metadata_key(
@@ -1723,16 +1710,10 @@ void NearbySharingServiceImpl::HandleEndpointLost(
 
   discovered_advertisements_to_retry_map_.erase(endpoint_id);
   discovered_advertisements_retried_set_.erase(endpoint_id);
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kApplyEndpointsDedup)) {
-    MoveToDiscoveryCache(endpoint_id,
-                         NearbyFlags::GetInstance().GetInt64Flag(
-                             config_package_nearby::nearby_sharing_feature::
-                                 kDiscoveryCacheLostExpiryMs));
-  } else {
-    RemoveOutgoingShareTargetAndReportLost(endpoint_id);
-  }
+  MoveToDiscoveryCache(endpoint_id,
+                       NearbyFlags::GetInstance().GetInt64Flag(
+                           config_package_nearby::nearby_sharing_feature::
+                               kDiscoveryCacheLostExpiryMs));
   FinishEndpointDiscoveryEvent();
 }
 
@@ -1753,19 +1734,6 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
     const Advertisement& advertisement,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
-  bool apply_endpoints_dedup = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_sharing_feature::kApplyEndpointsDedup);
-  if (!apply_endpoints_dedup) {
-    // Check again for this endpoint id, to avoid race conditions.
-    if (outgoing_share_target_map_.find(endpoint_id) !=
-        outgoing_share_target_map_.end()) {
-      LOG(INFO) << __func__ << ": Ignoring endpoint_id: " << endpoint_id
-                << " because it is already in the "
-                << "outgoingShareTargetMap.";
-      FinishEndpointDiscoveryEvent();
-      return;
-    }
-  }
 
   // The certificate provides the device name, in order to create a ShareTarget
   // to represent this remote device.
@@ -1793,19 +1761,17 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     FinishEndpointDiscoveryEvent();
     return;
   }
-  if (apply_endpoints_dedup) {
-    if (FindDuplicateInOutgoingShareTargets(endpoint_id, *share_target)) {
-      DeduplicateInOutgoingShareTarget(*share_target, endpoint_id,
-                                       std::move(certificate));
-      FinishEndpointDiscoveryEvent();
-      return;
-    }
-    if (FindDuplicateInDiscoveryCache(endpoint_id, *share_target)) {
-      DeDuplicateInDiscoveryCache(*share_target, endpoint_id,
-                                  std::move(certificate));
-      FinishEndpointDiscoveryEvent();
-      return;
-    }
+  if (FindDuplicateInOutgoingShareTargets(endpoint_id, *share_target)) {
+    DeduplicateInOutgoingShareTarget(*share_target, endpoint_id,
+                                      std::move(certificate));
+    FinishEndpointDiscoveryEvent();
+    return;
+  }
+  if (FindDuplicateInDiscoveryCache(endpoint_id, *share_target)) {
+    DeDuplicateInDiscoveryCache(*share_target, endpoint_id,
+                                std::move(certificate));
+    FinishEndpointDiscoveryEvent();
+    return;
   }
 
   VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
@@ -3518,9 +3484,6 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
     auto it = outgoing_share_session_map_.find(share_target_id);
     if (it != outgoing_share_session_map_.end()) {
       if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_sharing_feature::
-                  kApplyEndpointsDedup) &&
-          NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_sharing_feature::
                   kDedupInUnregisterShareTarget)) {
         LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
