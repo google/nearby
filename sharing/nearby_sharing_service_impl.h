@@ -373,10 +373,7 @@ class NearbySharingServiceImpl
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Move the endpoint to the discovery cache with the given expiry time.
-  void MoveToDiscoveryCache(absl::string_view endpoint_id, uint64_t expiry_ms);
-  // Immediately expire all timers in the discovery cache. (i.e. report
-  // ShareTargetLost)
-  void TriggerDiscoveryCacheExpiryTimers();
+  void MoveToDiscoveryCache(std::string endpoint_id, uint64_t expiry_ms);
 
   // Update the entry in outgoing_share_session_map_ with the new share target
   // and OnShareTargetUpdated is called.
@@ -410,7 +407,9 @@ class NearbySharingServiceImpl
   std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
       OutgoingShareSession& session);
 
-  void ClearOutgoingShareSessionMap();
+  // Move all outgoing share targets to the discovery cache so that they will be
+  // reported as receive_disabled.
+  void DisableAllOutgoingShareTargets();
   void UnregisterShareTarget(int64_t share_target_id);
 
   void OnStartAdvertisingResult(bool used_device_name, Status status);

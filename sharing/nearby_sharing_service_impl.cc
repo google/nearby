@@ -324,7 +324,7 @@ void NearbySharingServiceImpl::Cleanup() {
 
   endpoint_discovery_events_ = {};
 
-  ClearOutgoingShareSessionMap();
+  DisableAllOutgoingShareTargets();
   discovery_cache_.clear();
   for (auto& it : incoming_share_session_map_) {
     it.second.OnDisconnect();
@@ -1710,7 +1710,7 @@ void NearbySharingServiceImpl::HandleEndpointLost(
 
   discovered_advertisements_to_retry_map_.erase(endpoint_id);
   discovered_advertisements_retried_set_.erase(endpoint_id);
-  MoveToDiscoveryCache(endpoint_id,
+  MoveToDiscoveryCache(std::string(endpoint_id),
                        NearbyFlags::GetInstance().GetInt64Flag(
                            config_package_nearby::nearby_sharing_feature::
                                kDiscoveryCacheLostExpiryMs));
@@ -2144,7 +2144,7 @@ void NearbySharingServiceImpl::StartScanning() {
   is_scanning_ = true;
   InvalidateReceiveSurfaceState();
 
-  ClearOutgoingShareSessionMap();
+  DisableAllOutgoingShareTargets();
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
@@ -3322,20 +3322,12 @@ NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
   return share_target;
 }
 
-void NearbySharingServiceImpl::TriggerDiscoveryCacheExpiryTimers() {
-  for (auto it = discovery_cache_.begin(); it != discovery_cache_.end(); ++it) {
-    for (auto& entry : foreground_send_surface_map_) {
-      entry.second.OnShareTargetLost(it->second.share_target);
-    }
-    for (auto& entry : background_send_surface_map_) {
-      entry.second.OnShareTargetLost(it->second.share_target);
-    }
-  }
-  discovery_cache_.clear();
-}
-
-void NearbySharingServiceImpl::MoveToDiscoveryCache(
-    absl::string_view endpoint_id, uint64_t expiry_ms) {
+// Pass endpoint_id by value here since we remove entries from the
+// outgoing_share_target_map_ in this function, and some callers like
+// DisableAllOutgoingShareTargets pass the map item key as the endpoint_id.
+// This prevents the endpoint_id from being invalidated in this function.
+void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
+                                                    uint64_t expiry_ms) {
   std::optional<ShareTarget> share_target_opt =
       RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
   if (!share_target_opt.has_value()) {
@@ -3346,7 +3338,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
   // Entries in Discovery Cache are all receive disabled.
   cache_entry.share_target.receive_disabled = true;
   cache_entry.expiry_timer = std::make_unique<ThreadTimer>(
-      *service_thread_, absl::StrCat("discovery_cache_timeout_", expiry_ms),
+      *service_thread_, absl::StrCat("discovery_cache_timeout_", endpoint_id),
       absl::Milliseconds(expiry_ms),
       [this, expiry_ms, endpoint_id = std::string(endpoint_id)]() {
         auto it = discovery_cache_.find(endpoint_id);
@@ -3381,7 +3373,10 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(
   for (auto& entry : background_send_surface_map_) {
     entry.second.OnShareTargetUpdated(cache_entry.share_target);
   }
-  discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
+  auto [it, inserted] =
+      discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
+  LOG(INFO) << "[Dedupped] added to discovery_cache: " << endpoint_id << " by "
+      << (inserted ? "insert" : "assign");
 }
 
 void NearbySharingServiceImpl::CreateOutgoingShareSession(
@@ -3448,11 +3443,13 @@ NearbySharingServiceImpl::GetBluetoothMacAddressForShareTarget(
   return GetBluetoothMacAddressFromCertificate(*certificate);
 }
 
-void NearbySharingServiceImpl::ClearOutgoingShareSessionMap() {
-  VLOG(1) << __func__ << ": Clearing outgoing share target map.";
+void NearbySharingServiceImpl::DisableAllOutgoingShareTargets() {
+  VLOG(1) << "Move all outgoing share targets to discovery cache.";
   while (!outgoing_share_target_map_.empty()) {
-    RemoveOutgoingShareTargetAndReportLost(
-        /*endpoint_id=*/outgoing_share_target_map_.begin()->first);
+    MoveToDiscoveryCache(outgoing_share_target_map_.begin()->first,
+                         NearbyFlags::GetInstance().GetInt64Flag(
+                             config_package_nearby::nearby_sharing_feature::
+                                 kUnregisterTargetDiscoveryCacheLostExpiryMs));
   }
   DCHECK(outgoing_share_target_map_.empty());
   DCHECK(outgoing_share_session_map_.empty());
@@ -3502,9 +3499,8 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
       if (!is_scanning_ && !is_transferring_) {
         LOG(INFO) << "Cannot find session for target " << share_target_id
                   << " clearing all outgoing sessions.";
-        ClearOutgoingShareSessionMap();
+        DisableAllOutgoingShareTargets();
       }
-      TriggerDiscoveryCacheExpiryTimers();
     }
 
     VLOG(1) << __func__
