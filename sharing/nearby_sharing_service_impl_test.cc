@@ -4050,7 +4050,6 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(certificate_manager()->num_download_public_certificates_calls(),
             1u);
 
-  EXPECT_CALL(discovery_callback, OnShareTargetLost);
   Shutdown();
   service_.reset();
 }
@@ -4096,6 +4095,9 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
+  // On shutdown update the share target to receive_disabled.
+  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_));
+
   Shutdown();
   service_.reset();
 }
@@ -4152,7 +4154,8 @@ TEST_F(NearbySharingServiceImplTest,
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
-  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
+  // On shutdown update the share target to receive_disabled.
+  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_));
   Shutdown();
   service_.reset();
 }
@@ -4214,7 +4217,6 @@ TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
-  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
   Shutdown();
   service_.reset();
 }
@@ -4334,7 +4336,6 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
                                              /*success=*/true);
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
-  EXPECT_CALL(discovery_callback, OnShareTargetLost).Times(1);
 
   FlushTesting();
 
@@ -4364,6 +4365,8 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
                   ->connection_endpoint_info(/*endpoint_id=*/"2")
                   .has_value());
 
+  // On shutdown update the share target to receive_disabled.
+  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_));
   Shutdown();
   service_.reset();
 }
