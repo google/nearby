@@ -425,13 +425,16 @@ message SharingLog {
     optional location.nearby.proto.sharing.SharingUseCase use_case = 1;
     // The opt-in status before the user enters the first opt-in screen in each
     // time file share or it is always “true” if the user has opted in before.
-    optional bool initial_opt_in = 2;
+    // Deprecated.
+    optional bool initial_opt_in = 2 [deprecated = true];
     // The opt-in status after the user leaves the first opt-in screen in each
     // time file share or it is always “true” if the user has opted in before.
-    optional bool opt_in = 3;
+    // Deprecated.
+    optional bool opt_in = 3 [deprecated = true];
     // The Nearby Share enable status before the user enters the first
     // opt-in screen in each time file share.
-    optional bool initial_enable_status = 4;
+    // Deprecated.
+    optional bool initial_enable_status = 4 [deprecated = true];
     // The same id means it is in the same sharing file flow of sender side.
     // Ex: when sender share file to 2 receivers, the flow_id in sender side is
     // the same for all the discovery/connection/transfer events.
