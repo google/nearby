@@ -377,24 +377,38 @@ std::vector<nearby::sharing::proto::PublicCertificate> GetTestCertificates() {
   cert1.mutable_end_time()->set_seconds(1000);
   cert1.mutable_end_time()->set_nanos(2000);
 
-  nearby::sharing::proto::PublicCertificate cert2;
-  cert2.set_secret_id("id2");
-  cert2.set_for_self_share(false);
-  cert2.mutable_end_time()->set_seconds(2000);
-  cert2.mutable_end_time()->set_nanos(200);
-
   nearby::sharing::proto::PublicCertificate cert3;
   cert3.set_secret_id("id3");
   cert3.set_for_self_share(true);
   cert3.mutable_end_time()->set_seconds(3000);
   cert3.mutable_end_time()->set_nanos(300);
 
+  nearby::sharing::proto::PublicCertificate cert2;
+  cert2.set_secret_id("id2");
+  cert2.set_for_self_share(false);
+  cert2.mutable_end_time()->set_seconds(2000);
+  cert2.mutable_end_time()->set_nanos(200);
+
   nearby::sharing::proto::PublicCertificate cert4;
   cert4.set_secret_id("id4");
   cert4.set_for_self_share(false);
   cert4.mutable_end_time()->set_seconds(4000);
   cert4.mutable_end_time()->set_nanos(400);
-  return {cert1, cert2, cert3, cert4};
+
+  nearby::sharing::proto::PublicCertificate cert5;
+  cert5.set_secret_id("id5");
+  cert5.set_for_self_share(false);
+  cert5.set_for_selected_contacts(true);
+  cert5.mutable_end_time()->set_seconds(2500);
+  cert5.mutable_end_time()->set_nanos(250);
+
+  nearby::sharing::proto::PublicCertificate cert6;
+  cert6.set_secret_id("id6");
+  cert6.set_for_self_share(false);
+  cert6.set_for_selected_contacts(true);
+  cert6.mutable_end_time()->set_seconds(4500);
+  cert6.mutable_end_time()->set_nanos(450);
+  return {cert1, cert2, cert3, cert4, cert5, cert6};
 }
 
 TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
@@ -432,7 +446,7 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
   EXPECT_EQ(self_credential.shared_credentials_size(), 2);
   EXPECT_EQ(self_credential.shared_credentials(0).id(), 4993322223562966528);
 
-  ASSERT_EQ(GetTestCertificates().size(), 4);
+  ASSERT_EQ(GetTestCertificates().size(), 6);
   EXPECT_EQ(self_credential.shared_credentials(0).data(),
             GetTestCertificates().at(0).SerializeAsString());
   EXPECT_EQ(self_credential.shared_credentials(0).data_type(),

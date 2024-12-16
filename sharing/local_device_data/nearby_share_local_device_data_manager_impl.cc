@@ -275,6 +275,10 @@ void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
             VISIBILITY_CONTACTS);
 
     for (const auto& certificate : certificates) {
+      // Skip the certificate for deprecated SELECTED_CONTACTS.
+      if (certificate.for_selected_contacts()) {
+        continue;
+      }
       google::nearby::identity::v1::SharedCredential* shared_credential;
       if (certificate.for_self_share()) {
         shared_credential = new_self_credential->add_shared_credentials();
