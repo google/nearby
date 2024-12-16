@@ -524,9 +524,6 @@ BluetoothDevice* BluetoothClassicMedium::GetRemoteDeviceInternal(
       LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
                    << " is not in list. create it";
       auto bluetooth_device = std::make_unique<BluetoothDevice>(mac_address);
-
-      mac_address_to_bluetooth_device_map_[mac_address] =
-          std::move(bluetooth_device);
       auto result = mac_address_to_bluetooth_device_map_.insert_or_assign(
           mac_address, std::move(bluetooth_device));
 
@@ -542,7 +539,6 @@ BluetoothDevice* BluetoothClassicMedium::GetRemoteDeviceInternal(
       LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
                    << " is not in cache list. create it";
       auto bluetooth_device = std::make_unique<BluetoothDevice>(mac_address);
-
       auto result = cached_bluetooth_devices_map_.insert_or_assign(
           mac_address, std::move(bluetooth_device));
 

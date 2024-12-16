@@ -834,7 +834,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
         BluetoothDevice remote_bluetooth_device =
             bluetooth_medium_.GetRemoteDevice(remote_bluetooth_mac_address);
         if (!remote_bluetooth_device.IsValid()) {
-          NEARBY_LOGS(INFO)
+          NEARBY_LOGS(ERROR)
               << "A valid Bluetooth device could not be derived from the MAC "
                  "address "
               << remote_bluetooth_mac_address;
