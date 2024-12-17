@@ -3296,28 +3296,27 @@ NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
   VLOG(1) << __func__ << ":Outgoing connection to " << endpoint_id
           << " disconnected, cancel disconnection timer";
   disconnection_timeout_alarms_.erase(endpoint_id);
-  auto it = outgoing_share_target_map_.find(endpoint_id);
-  if (it == outgoing_share_target_map_.end()) {
+  auto target_node = outgoing_share_target_map_.extract(endpoint_id);
+  if (target_node.empty()) {
     LOG(WARNING) << __func__ << ": endpoint_id=" << endpoint_id
                  << " not found in outgoing share target map.";
     return std::nullopt;
   }
-
-  VLOG(1) << __func__ << ": Removing (endpoint_id=" << it->first
-          << ", share_target.id=" << it->second.id
+  ShareTarget& share_target = target_node.mapped();
+  VLOG(1) << __func__ << ": Removing (endpoint_id=" << endpoint_id
+          << ", share_target.id=" << target_node.mapped().id
           << ") from outgoing share target map";
-  std::optional<ShareTarget> share_target =
-      std::move(outgoing_share_target_map_.extract(it).mapped());
 
   // Do not destroy the session until it has been removed from the map.
   // Session destruction can trigger callbacks that traverses the map and it
   // cannot access the map while it is being modified.
-  auto session_it = outgoing_share_session_map_.find(share_target->id);
-  if (session_it == outgoing_share_session_map_.end()) {
-    LOG(WARNING) << __func__ << ": share_target.id=" << share_target->id
-                 << " not found in outgoing share session map.";
+  auto session_node =
+      outgoing_share_session_map_.extract(target_node.mapped().id);
+  if (!session_node.empty()) {
+    session_node.mapped().OnDisconnect();
   } else {
-    outgoing_share_session_map_.extract(session_it).mapped().OnDisconnect();
+    LOG(WARNING) << __func__ << ": share_target.id=" << target_node.mapped().id
+                 << " not found in outgoing share session map.";
   }
   return share_target;
 }
@@ -3341,17 +3340,16 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
       *service_thread_, absl::StrCat("discovery_cache_timeout_", endpoint_id),
       absl::Milliseconds(expiry_ms),
       [this, expiry_ms, endpoint_id = std::string(endpoint_id)]() {
-        auto it = discovery_cache_.find(endpoint_id);
-        if (it == discovery_cache_.end()) {
+        auto cache_node = discovery_cache_.extract(endpoint_id);
+        if (cache_node.empty()) {
           LOG(WARNING) << "Trying to remove endpoint_id: " << endpoint_id
                        << " from discovery_cache, but cannot find it";
           return;
         }
+        ShareTarget& share_target = cache_node.mapped().share_target;
         LOG(INFO) << ": Removing (endpoint_id=" << endpoint_id
-                  << ", share_target.id=" << it->second.share_target.id
+                  << ", share_target.id=" << share_target.id
                   << ") from discovery_cache after " << expiry_ms << "ms";
-        ShareTarget share_target =
-            std::move(discovery_cache_.extract(it).mapped().share_target);
 
         for (auto& entry : foreground_send_surface_map_) {
           entry.second.OnShareTargetLost(share_target);
@@ -3463,8 +3461,11 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
 
   // If share target ID is found in incoming_share_session_map_, then it's an
   // incoming share target.
-  bool is_incoming = (incoming_share_session_map_.erase(share_target_id) > 0);
-  if (is_incoming) {
+  // Do not destroy the session until it has been removed from the map.
+  // Session destruction can trigger callbacks that traverses the map and it
+  // cannot access the map while it is being modified.
+  auto session_node = incoming_share_session_map_.extract(share_target_id);
+  if (!session_node.empty()) {
     if (last_incoming_metadata_ &&
         std::get<0>(*last_incoming_metadata_).id == share_target_id) {
       last_incoming_metadata_.reset();
