@@ -44,7 +44,8 @@ enum AuthStatus {
   // Currently used as a way to signal an ETag mismatch.
   PRECONDITION_FAILED = 8,
 
-  // The operation failed due to insufficient permissions.
+  // Exclusively used to report when user did not consent to required scopes.
+  // Do NOT use this for another other scenarios.
   PERMISSION_DENIED = 9,
 
   // The resource exists, but the requested attribute of it does not.
@@ -77,6 +78,9 @@ enum AuthStatus {
   // Receiving the authorization code failed because it took longer than the
   // timeout.
   AUTH_CODE_TIMEOUT_EXCEEDED = 18,
+
+  // Used to report when user presses the cancel button during login process.
+  USER_CANCELED = 19,
 };
 
 }  // namespace nearby
