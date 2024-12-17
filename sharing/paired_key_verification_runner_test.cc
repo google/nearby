@@ -20,6 +20,7 @@
 #include <list>
 #include <memory>
 #include <optional>
+#include <queue>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -30,15 +31,18 @@
 #include "absl/time/time.h"
 #include "internal/platform/task_runner.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/fake_nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
-#include "sharing/fake_nearby_connection.h"
+#include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
+#include "sharing/nearby_connection_impl.h"
+#include "sharing/nearby_connections_types.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -51,6 +55,7 @@ using V1Frame = ::nearby::sharing::service::proto::V1Frame;
 using PairedKeyResultFrame =
     ::nearby::sharing::service::proto::PairedKeyResultFrame;
 using ::nearby::sharing::proto::DeviceVisibility;
+using ::nearby::sharing::service::proto::Frame;
 using PairedKeyVerificationResult =
     PairedKeyVerificationRunner::PairedKeyVerificationResult;
 using ::location::nearby::proto::sharing::OSType;
@@ -183,7 +188,20 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
   };
 
   PairedKeyVerificationRunnerTest()
-      : frames_reader_(fake_task_runner_, &connection_) {}
+      : connection_(fake_device_info_, &fake_connections_manager_,
+                    "test_enpoint_id"),
+        frames_reader_(fake_task_runner_, &connection_) {
+    fake_connections_manager_.set_send_payload_callback(
+        [this](std::unique_ptr<Payload> payload,
+               std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+                   listener) {
+          auto frame = std::make_unique<Frame>();
+          std::vector<uint8_t> data =
+              std::move(payload->content.bytes_payload.bytes);
+          frame->ParseFromArray(data.data(), data.size());
+          frames_data_.push(std::move(frame));
+        });
+  }
 
   void SetUp() override {
     GetFakeClock()->FastForward(absl::Minutes(15));
@@ -296,25 +314,23 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
               std::move(callback)(std::move(frame));
             })));
   }
-
-  nearby::sharing::service::proto::Frame GetWrittenFrame() {
-    std::vector<uint8_t> data = connection_.GetWrittenData();
-    nearby::sharing::service::proto::Frame frame;
-    frame.ParseFromArray(data.data(), data.size());
+  std::unique_ptr<Frame> GetWrittenFrame() {
+    std::unique_ptr<Frame> frame = std::move(frames_data_.front());
+    frames_data_.pop();
     return frame;
   }
 
   void ExpectPairedKeyEncryptionFrameSent() {
-    nearby::sharing::service::proto::Frame frame = GetWrittenFrame();
-    ASSERT_TRUE(frame.has_v1());
-    ASSERT_TRUE(frame.v1().has_paired_key_encryption());
+    std::unique_ptr<Frame> frame = GetWrittenFrame();
+    ASSERT_TRUE(frame->has_v1());
+    ASSERT_TRUE(frame->v1().has_paired_key_encryption());
   }
 
   void ExpectPairedKeyResultFrameSent(PairedKeyResultFrame::Status status) {
-    nearby::sharing::service::proto::Frame frame = GetWrittenFrame();
-    ASSERT_TRUE(frame.has_v1());
-    ASSERT_TRUE(frame.v1().has_paired_key_result());
-    EXPECT_EQ(status, frame.v1().paired_key_result().status());
+    std::unique_ptr<Frame> frame = GetWrittenFrame();
+    ASSERT_TRUE(frame->has_v1());
+    ASSERT_TRUE(frame->v1().has_paired_key_result());
+    EXPECT_EQ(status, frame->v1().paired_key_result().status());
   }
 
   FakeClock* GetFakeClock() { return &fake_clock_; }
@@ -322,9 +338,12 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
  private:
   FakeClock fake_clock_;
   FakeTaskRunner fake_task_runner_ {&fake_clock_, 1};
-  FakeNearbyConnection connection_;
+  FakeDeviceInfo fake_device_info_;
+  FakeNearbyConnectionsManager fake_connections_manager_;
+  NearbyConnectionImpl connection_;
   testing::NiceMock<MockIncomingFramesReader> frames_reader_;
   FakeNearbyShareCertificateManager certificate_manager_;
+  std::queue<std::unique_ptr<Frame>> frames_data_;
 };
 
 TEST_F(PairedKeyVerificationRunnerTest,

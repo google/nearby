@@ -19,6 +19,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <queue>
 #include <string>
 #include <utility>
 #include <vector>
@@ -31,14 +32,15 @@
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
-#include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
@@ -114,7 +116,8 @@ std::unique_ptr<Payload> CreateWifiCredentialsPayload(
 class IncomingShareSessionTest : public ::testing::Test {
  protected:
   IncomingShareSessionTest()
-      : session_(&clock_, task_runner_, &connections_manager_,
+      : connection_(device_info_, &connections_manager_, kEndpointId),
+        session_(&clock_, task_runner_, &connections_manager_,
                  analytics_recorder_, std::string(kEndpointId), share_target_,
                  transfer_metadata_callback_.AsStdFunction()) {
     CHECK(
@@ -189,8 +192,9 @@ class IncomingShareSessionTest : public ::testing::Test {
   ShareTarget share_target_;
   MockFunction<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
+  FakeDeviceInfo device_info_;
   FakeNearbyConnectionsManager connections_manager_;
-  FakeNearbyConnection connection_;
+  NearbyConnectionImpl connection_;
   IncomingShareSession session_;
   IntroductionFrame introduction_frame_;
   int64_t payload_id1_;
@@ -295,6 +299,8 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithWrongPayloadType) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -389,11 +395,15 @@ TEST_F(IncomingShareSessionTest,
                   .GetWifiCredentialsAttachments()[1]
                   .is_hidden(),
               IsFalse());
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithMissingFilePayloads) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -487,11 +497,15 @@ TEST_F(IncomingShareSessionTest,
                   .GetWifiCredentialsAttachments()[1]
                   .is_hidden(),
               IsFalse());
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithMissingTextPayloads) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -583,11 +597,15 @@ TEST_F(IncomingShareSessionTest,
                   .GetWifiCredentialsAttachments()[1]
                   .is_hidden(),
               IsFalse());
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest,
        PayloadTransferUpdateCompleteWithMissingWifiPayloads) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -680,7 +698,9 @@ TEST_F(IncomingShareSessionTest,
                   .GetWifiCredentialsAttachments()[1]
                   .is_hidden(),
               IsFalse());
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
@@ -742,6 +762,8 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -832,10 +854,14 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
                   .GetWifiCredentialsAttachments()[1]
                   .is_hidden(),
               IsTrue());
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -888,7 +914,9 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
       Eq(file2_path));
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
@@ -927,6 +955,8 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
 }
 
 TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -973,7 +1003,9 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
 
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kInProgress));
-  EXPECT_THAT(connection_.IsClosed(), IsFalse());
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
 TEST_F(IncomingShareSessionTest, ReadyForTransferNotConnected) {
@@ -1085,6 +1117,8 @@ TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
@@ -1108,6 +1142,13 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
                          HasEventType(EventType::RECEIVE_ATTACHMENTS_START),
                          Property(&SharingLog::receive_attachments_start,
                                   HasSessionId(1234)))))));
+  std::queue<std::vector<uint8_t>> frames_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frames_data.push(std::move(payload->content.bytes_payload.bytes));
+      });
 
   EXPECT_THAT(session_.AcceptTransfer([]() {}),
               IsTrue());
@@ -1118,7 +1159,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
             .lock(),
         Eq(session_.payload_tracker().lock()));
   }
-  std::vector<uint8_t> frame_data = connection_.GetWrittenData();
+  std::vector<uint8_t> frame_data = frames_data.front();
   Frame frame;
   ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
   ASSERT_EQ(frame.version(), Frame::V1);
@@ -1156,7 +1197,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection_.AppendReadableData(std::move(data));
+  connection_.WriteMessage(std::move(data));
 
   EXPECT_THAT(introduction_received, IsTrue());
 }
@@ -1189,7 +1230,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultFail) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection_.AppendReadableData(std::move(data));
+  connection_.WriteMessage(std::move(data));
 
   EXPECT_THAT(introduction_received, IsFalse());
 }
@@ -1222,7 +1263,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnable) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection_.AppendReadableData(std::move(data));
+  connection_.WriteMessage(std::move(data));
 
   EXPECT_THAT(introduction_received, IsTrue());
 }
@@ -1255,7 +1296,7 @@ TEST_F(IncomingShareSessionTest, ProcessKeyVerificationResultUnknown) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection_.AppendReadableData(std::move(data));
+  connection_.WriteMessage(std::move(data));
 
   EXPECT_THAT(introduction_received, IsFalse());
 }
@@ -1307,13 +1348,22 @@ TEST_F(IncomingShareSessionTest, SendFailureResponseNotConnected) {
 }
 
 TEST_F(IncomingShareSessionTest, SendFailureResponseConnected) {
+  connections_manager_.AcceptConnection(
+      /*endpoint_info=*/{}, kEndpointId, &connection_);
   session_.OnConnected(&connection_);
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kNotEnoughSpace)));
+  std::queue<std::vector<uint8_t>> frames_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+          std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+              listener) {
+        frames_data.push(std::move(payload->content.bytes_payload.bytes));
+      });
 
   session_.SendFailureResponse(TransferMetadata::Status::kNotEnoughSpace);
 
-  std::vector<uint8_t> frame_data = connection_.GetWrittenData();
+  std::vector<uint8_t> frame_data = frames_data.front();
   Frame frame;
   ASSERT_TRUE(frame.ParseFromArray(frame_data.data(), frame_data.size()));
   ASSERT_EQ(frame.version(), Frame::V1);

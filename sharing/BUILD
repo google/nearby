@@ -361,12 +361,10 @@ cc_library(
     name = "test_support",
     testonly = True,
     srcs = [
-        "fake_nearby_connection.cc",
         "fake_nearby_connections_manager.cc",
         "fake_nearby_sharing_service.cc",
     ],
     hdrs = [
-        "fake_nearby_connection.h",
         "fake_nearby_connections_manager.h",
         "fake_nearby_sharing_service.h",
     ],
@@ -441,7 +439,9 @@ cc_test(
     size = "small",
     srcs = ["paired_key_verification_runner_test.cc"],
     deps = [
+        ":connection_types",
         ":incoming_frame_reader",
+        ":nearby_connection_impl",
         ":paired_key_verification_runner",
         ":test_support",
         ":types",
@@ -553,6 +553,7 @@ cc_test(
     deps = [
         ":attachments",
         ":connection_types",
+        ":nearby_connection_impl",
         ":nearby_sharing_service",
         ":share_session",
         ":test_support",
@@ -561,7 +562,6 @@ cc_test(
         ":types",
         "//base:casts",
         "//internal/analytics:mock_event_logger",
-        "//internal/auth:auth_status_util",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation:signin_attempt",
         "//internal/platform/implementation/g3",  # fixdeps: keep
@@ -588,6 +588,7 @@ cc_test(
         "//sharing/proto:share_cc_proto",
         "//sharing/proto:wire_format_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -752,6 +753,8 @@ cc_test(
     name = "share_session_test",
     srcs = ["share_session_test.cc"],
     deps = [
+        ":connection_types",
+        ":nearby_connection_impl",
         ":paired_key_verification_runner",
         ":share_session",
         ":test_support",
@@ -800,6 +803,7 @@ cc_test(
     deps = [
         ":attachments",
         ":connection_types",
+        ":nearby_connection_impl",
         ":paired_key_verification_runner",
         ":share_session",
         ":test_support",
@@ -828,6 +832,7 @@ cc_test(
         ":attachment_compare",
         ":attachments",
         ":connection_types",
+        ":nearby_connection_impl",
         ":paired_key_verification_runner",
         ":share_session",
         ":test_support",

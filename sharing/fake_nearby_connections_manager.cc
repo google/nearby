@@ -115,12 +115,23 @@ void FakeNearbyConnectionsManager::Connect(
   DCHECK(!is_shutdown());
   connected_data_usage_ = data_usage;
   transport_type_ = transport_type;
-  connection_endpoint_infos_.emplace(endpoint_id, std::move(endpoint_info));
+  {
+    absl::MutexLock lock(&endpoints_mutex_);
+    connection_endpoint_infos_.emplace(endpoint_id, std::move(endpoint_info));
+  }
   std::move(callback)(connection_, Status::kUnknown);
+}
+
+void FakeNearbyConnectionsManager::AcceptConnection(
+    std::vector<uint8_t> endpoint_info, absl::string_view endpoint_id,
+    NearbyConnection* connection) {
+  absl::MutexLock lock(&endpoints_mutex_);
+  connection_endpoint_infos_.emplace(endpoint_id, std::move(endpoint_info));
 }
 
 void FakeNearbyConnectionsManager::Disconnect(absl::string_view endpoint_id) {
   DCHECK(!is_shutdown());
+  absl::MutexLock lock(&endpoints_mutex_);
   connection_endpoint_infos_.erase(std::string(endpoint_id));
 }
 

@@ -30,14 +30,15 @@
 #include "internal/analytics/sharing_log_matchers.h"
 #include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/test_util.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/fake_nearby_connection.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
+#include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/nearby_file_handler.h"
@@ -117,7 +118,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
     session_.InitiateSendAttachments(std::move(attachment_container));
   }
 
-  void ConnectionSuccess(FakeNearbyConnection* connection) {
+  void ConnectionSuccess(NearbyConnection* connection) {
     EXPECT_CALL(mock_event_logger_,
                 Log(Matcher<const SharingLog&>(
                     AllOf((HasCategory(EventCategory::SENDING_EVENT),
@@ -137,6 +138,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
       transfer_metadata_callback_;
   OutgoingShareSession session_;
   FakeNearbyConnectionsManager connections_manager_;
+  FakeDeviceInfo device_info_;
   TextAttachment text1_;
   TextAttachment text2_;
   FileAttachment file1_;
@@ -284,11 +286,17 @@ TEST_F(OutgoingShareSessionTest, ConnectNoDisableWifiHotspot) {
   std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
   file1_.set_size(1000000);  // 1MB
   InitSendAttachments(CreateDefaultAttachmentContainer());
+  NearbyConnectionImpl nearby_connection(device_info_, &connections_manager_,
+                                         kEndpointId);
+  connections_manager_.set_nearby_connection(&nearby_connection);
 
-  session_.Connect(endpoint_info, bluetooth_mac_address,
-                   nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
-                   /*disable_wifi_hotspot=*/false,
-                   [](NearbyConnection* connection, Status status) {});
+  session_.Connect(
+      endpoint_info, bluetooth_mac_address,
+      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      /*disable_wifi_hotspot=*/false,
+      [&nearby_connection](NearbyConnection* connection, Status status) {
+        EXPECT_THAT(connection, Eq(&nearby_connection));
+      });
 
   EXPECT_THAT(connections_manager_.connected_data_usage(),
               Eq(nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE));
@@ -305,11 +313,17 @@ TEST_F(OutgoingShareSessionTest, ConnectDisableWifiHotspot) {
   std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
   file1_.set_size(1000000);  // 1MB
   InitSendAttachments(CreateDefaultAttachmentContainer());
+  NearbyConnectionImpl nearby_connection(device_info_, &connections_manager_,
+                                         kEndpointId);
+  connections_manager_.set_nearby_connection(&nearby_connection);
 
-  session_.Connect(endpoint_info, bluetooth_mac_address,
-                   nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
-                   /*disable_wifi_hotspot=*/true,
-                   [](NearbyConnection* connection, Status status) {});
+  session_.Connect(
+      endpoint_info, bluetooth_mac_address,
+      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      /*disable_wifi_hotspot=*/true,
+      [&nearby_connection](NearbyConnection* connection, Status status) {
+        EXPECT_THAT(connection, Eq(&nearby_connection));
+      });
 
   EXPECT_THAT(connections_manager_.connected_data_usage(),
               Eq(nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE));
@@ -326,11 +340,16 @@ TEST_F(OutgoingShareSessionTest, OnConnectResultSuccessLogsSessionDuration) {
   session_.set_session_id(1234);
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
   std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
-
-  session_.Connect(endpoint_info, bluetooth_mac_address,
-                   nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
-                   /*disable_wifi_hotspot=*/false,
-                   [](NearbyConnection* connection, Status status) {});
+  NearbyConnectionImpl nearby_connection(device_info_, &connections_manager_,
+                                         kEndpointId);
+  connections_manager_.set_nearby_connection(&nearby_connection);
+  session_.Connect(
+      endpoint_info, bluetooth_mac_address,
+      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      /*disable_wifi_hotspot=*/false,
+      [&nearby_connection](NearbyConnection* connection, Status status) {
+        EXPECT_THAT(connection, Eq(&nearby_connection));
+      });
   fake_clock_.FastForward(absl::Seconds(10));
   EXPECT_CALL(
       mock_event_logger_,
@@ -344,8 +363,7 @@ TEST_F(OutgoingShareSessionTest, OnConnectResultSuccessLogsSessionDuration) {
               SharingLogHasStatus(
                   EstablishConnectionStatus::CONNECTION_STATUS_SUCCESS)))))));
 
-  FakeNearbyConnection connection;
-  EXPECT_THAT(session_.OnConnectResult(&connection, Status::kSuccess),
+  EXPECT_THAT(session_.OnConnectResult(&nearby_connection, Status::kSuccess),
               IsTrue());
 }
 
@@ -354,7 +372,6 @@ TEST_F(OutgoingShareSessionTest, OnConnectResultFailureLogsSessionDuration) {
   session_.set_session_id(1234);
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
   std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
-
   session_.Connect(endpoint_info, bluetooth_mac_address,
                    nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
                    /*disable_wifi_hotspot=*/false,
@@ -388,7 +405,8 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionWithoutPayloads) {
 TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
   session_.set_session_id(1234);
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
   std::vector<NearbyFileHandler::FileInfo> file_infos;
   file_infos.push_back({
@@ -404,10 +422,16 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
           (HasCategory(EventCategory::SENDING_EVENT),
            HasEventType(EventType::SEND_INTRODUCTION),
            Property(&SharingLog::send_introduction, HasSessionId(1234)))))));
+  std::vector<uint8_t> frame_data;
+  connections_manager_.set_send_payload_callback(
+      [&](std::unique_ptr<Payload> payload,
+         std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
+             listener) {
+              frame_data = std::move(payload->content.bytes_payload.bytes);
+              });
 
   EXPECT_THAT(session_.SendIntroduction([]() {}), IsTrue());
 
-  std::vector<uint8_t> frame_data = connection.GetWrittenData();
   Frame frame;
   ASSERT_THAT(frame.ParseFromArray(frame_data.data(), frame_data.size()),
               IsTrue());
@@ -462,7 +486,8 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeout) {
       std::vector<WifiCredentialsAttachment>{});
   InitSendAttachments(std::move(container));
   session_.set_session_id(1234);
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
   session_.CreateTextPayloads();
   EXPECT_CALL(
@@ -489,7 +514,8 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
       std::vector<WifiCredentialsAttachment>{});
   InitSendAttachments(std::move(container));
   session_.set_session_id(1234);
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
   session_.CreateTextPayloads();
   EXPECT_CALL(
@@ -525,7 +551,8 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferNotConnected) {
 }
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
 
@@ -540,7 +567,8 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
       std::vector<WifiCredentialsAttachment>{});
   InitSendAttachments(std::move(container));
   session_.set_session_id(1234);
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
   session_.CreateTextPayloads();
   EXPECT_CALL(
@@ -572,7 +600,7 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   std::vector<uint8_t> data;
   data.resize(frame.ByteSizeLong());
   EXPECT_THAT(frame.SerializeToArray(data.data(), data.size()), IsTrue());
-  connection.AppendReadableData(std::move(data));
+  connection.WriteMessage(std::move(data));
 
   EXPECT_THAT(connection_response_received, IsTrue());
 }
@@ -631,7 +659,8 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseTimeoutResponse) {
 TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
   ConnectionResponseFrame response;
   response.set_status(ConnectionResponseFrame::ACCEPT);
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   EXPECT_CALL(transfer_metadata_callback_,
@@ -692,7 +721,8 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
                          HasEventType(EventType::SEND_ATTACHMENTS_START),
                          Property(&SharingLog::send_attachments_start,
                                   HasSessionId(1234)))))));
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
 
   session_.SendPayloads(
@@ -735,7 +765,8 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
                          HasEventType(EventType::SEND_ATTACHMENTS_START),
                          Property(&SharingLog::send_attachments_start,
                                   HasSessionId(1234)))))));
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
 
   session_.SendPayloads(
@@ -779,7 +810,8 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
                          HasEventType(EventType::SEND_ATTACHMENTS_START),
                          Property(&SharingLog::send_attachments_start,
                                   HasSessionId(1234)))))));
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   ConnectionSuccess(&connection);
 
   session_.SendPayloads(
@@ -816,7 +848,8 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
 }
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   session_.SetTokenForTests("1234");
@@ -832,7 +865,8 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultFail) {
 }
 
 TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   session_.SetTokenForTests("1234");
@@ -848,7 +882,8 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
 }
 
 TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   TransferMetadata complete_metadata =
@@ -866,9 +901,20 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
 }
 
 TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
+  std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
+  std::vector<uint8_t> bluetooth_mac_address = {5, 6, 7, 8};
+  session_.Connect(
+      endpoint_info, bluetooth_mac_address,
+      nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
+      /*disable_wifi_hotspot=*/false,
+      [&](NearbyConnection* connection, Status status) {});
   ConnectionSuccess(&connection);
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
   TransferMetadata complete_metadata =
       TransferMetadataBuilder()
           .set_status(TransferMetadata::Status::kComplete)
@@ -879,7 +925,10 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
   session_.DelayCompleteMetadata(complete_metadata);
 
   session_.DisconnectionTimeout();
-  EXPECT_THAT(connection.IsClosed(), IsTrue());
+  // Verify that connection is closed.
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsFalse());
 }
 
 TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithCertificate) {
@@ -912,7 +961,8 @@ TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithoutCertificate) {
 
 TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupConnectedIsNoOp) {
   auto share_target_org = session_.share_target();
-  FakeNearbyConnection connection;
+  NearbyConnectionImpl connection(device_info_, &connections_manager_,
+                                  kEndpointId);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
   ShareTarget share_target2{

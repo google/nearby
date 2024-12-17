@@ -121,6 +121,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
 
   std::optional<std::vector<uint8_t>> connection_endpoint_info(
       absl::string_view endpoint_id) {
+    absl::MutexLock lock(&endpoints_mutex_);
     auto it = connection_endpoint_infos_.find(std::string(endpoint_id));
     if (it == connection_endpoint_infos_.end()) return std::nullopt;
 
@@ -135,6 +136,11 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   absl::flat_hash_set<std::filesystem::path>
   GetUnknownFilePathsToDeleteForTesting();
   void AddUnknownFilePathsToDeleteForTesting(std::filesystem::path file_path);
+
+  // Add `connection` to list of connections as if it was accepted.
+  void AcceptConnection(std::vector<uint8_t> endpoint_info,
+                        absl::string_view endpoint_id,
+                        NearbyConnection* connection);
 
  private:
   void HandleStartAdvertisingCallback(ConnectionsStatus status);
@@ -166,8 +172,10 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   ConnectionsCallback pending_start_advertising_callback_;
   std::string custom_save_path_;
 
+  absl::Mutex endpoints_mutex_;
   // Maps endpoint_id to endpoint_info.
-  std::map<std::string, std::vector<uint8_t>> connection_endpoint_infos_;
+  std::map<std::string, std::vector<uint8_t>> connection_endpoint_infos_
+      ABSL_GUARDED_BY(endpoints_mutex_);
 
   std::map<int64_t, std::weak_ptr<PayloadStatusListener>>
       payload_status_listeners_;
