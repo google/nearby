@@ -34,6 +34,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
@@ -150,6 +151,7 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
     IInputStream input_stream_{nullptr};
     SOCKET socket_ = INVALID_SOCKET;
     SocketType socket_type_ = SocketType::kWinRTSocket;
+    ByteArray read_buffer_;
   };
 
   // A simple wrapper to handle output stream of socket

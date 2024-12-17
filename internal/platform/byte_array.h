@@ -83,6 +83,7 @@ class ByteArray {
   const char* data() const { return data_.data(); }
   size_t size() const { return data_.size(); }
   bool Empty() const { return data_.empty(); }
+  void resize(size_t new_size) { data_.resize(new_size); }
 
   // Iterators. These allow `ByteArray` to meet the requirements of
   // `std::ranges::contiguous_range`, which in turn make it implicitly

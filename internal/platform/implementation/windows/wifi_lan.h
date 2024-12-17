@@ -135,6 +135,7 @@ class WifiLanSocket : public api::WifiLanSocket {
 
    private:
     IInputStream input_stream_{nullptr};
+    Buffer read_buffer_{nullptr};
   };
 
   // A simple wrapper to handle output stream of socket

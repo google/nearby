@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <utility>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -83,10 +84,16 @@ WifiLanSocket::SocketInputStream::SocketInputStream(IInputStream input_stream) {
 ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
     std::int64_t size) {
   try {
-    Buffer buffer = Buffer(size);
+    if (read_buffer_ == nullptr || read_buffer_.Capacity() < size) {
+      read_buffer_ = Buffer(size);
+    }
+
+    // Reset the buffer length to 0.
+    read_buffer_.Length(0);
 
     auto ibuffer =
-        input_stream_.ReadAsync(buffer, size, InputStreamOptions::None).get();
+        input_stream_.ReadAsync(read_buffer_, size, InputStreamOptions::None)
+            .get();
 
     if (ibuffer.Length() != size) {
       LOG(WARNING) << "Only read partial of data: [" << ibuffer.Length() << "/"
@@ -94,8 +101,7 @@ ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
     }
 
     ByteArray data((char*)ibuffer.data(), ibuffer.Length());
-
-    return ExceptionOr(data);
+    return ExceptionOr(std::move(data));
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
