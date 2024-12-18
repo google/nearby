@@ -346,8 +346,6 @@ void NearbySharingServiceImpl::Cleanup() {
   last_outgoing_metadata_.reset();
   locally_cancelled_share_target_ids_.clear();
 
-  disconnection_timeout_alarms_.clear();
-
   is_scanning_ = false;
   is_transferring_ = false;
   is_receiving_files_ = false;
@@ -510,14 +508,11 @@ void NearbySharingServiceImpl::RegisterSendSurface(
 
         // Let newly registered send surface catch up with discovered share
         // targets from current scanning session.
-        // if (is_scanning_) {
-          for (const auto& item : outgoing_share_target_map_) {
-            LOG(INFO) << "Reporting discovered target "
-                      << item.second.ToString()
-                      << " when registering send surface";
-            wrapped_callback.OnShareTargetDiscovered(item.second);
-          }
-        // }
+        for (const auto& item : outgoing_share_target_map_) {
+          LOG(INFO) << "Reporting discovered target " << item.second.ToString()
+                    << " when registering send surface";
+          wrapped_callback.OnShareTargetDiscovered(item.second);
+        }
 
         // Set Share Start time for Foreground Send Surfaces
         if (state == SendSurfaceState::kForeground) {
@@ -818,8 +813,8 @@ void NearbySharingServiceImpl::Accept(
             GetIncomingShareSession(share_target_id);
         if (incoming_session != nullptr) {
           // Incoming session.
-          bool accept_success = incoming_session->AcceptTransfer(
-              absl::bind_front(
+          bool accept_success =
+              incoming_session->AcceptTransfer(absl::bind_front(
                   &NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates,
                   this, share_target_id));
           std::move(status_codes_callback)(
@@ -1747,7 +1742,6 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
     const Advertisement& advertisement,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
-
   // The certificate provides the device name, in order to create a ShareTarget
   // to represent this remote device.
   std::optional<ShareTarget> share_target =
@@ -1776,7 +1770,7 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
   }
   if (FindDuplicateInOutgoingShareTargets(endpoint_id, *share_target)) {
     DeduplicateInOutgoingShareTarget(*share_target, endpoint_id,
-                                      std::move(certificate));
+                                     std::move(certificate));
     FinishEndpointDiscoveryEvent();
     return;
   }
@@ -2871,10 +2865,9 @@ void NearbySharingServiceImpl::OnStorageCheckCompleted(
   }
   // Don't need to wait for user to accept for Self share.
   LOG(INFO) << __func__ << ": Auto-accepting self share.";
-  session.AcceptTransfer(
-      absl::bind_front(
-          &NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates, this,
-          session.share_target().id));
+  session.AcceptTransfer(absl::bind_front(
+      &NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates, this,
+      session.share_target().id));
   OnTransferStarted(/*is_incoming=*/true);
 }
 
@@ -3003,9 +2996,8 @@ void NearbySharingServiceImpl::OnIncomingPayloadTransferUpdates(
   }
 
   if (metadata->status() == TransferMetadata::Status::kIncompletePayloads) {
-    OnIncomingFilesMetadataUpdated(share_target_id,
-                                    std::move(*metadata),
-                                    /*success=*/false);
+    OnIncomingFilesMetadataUpdated(share_target_id, std::move(*metadata),
+                                   /*success=*/false);
     return;
   }
   if (metadata->status() == TransferMetadata::Status::kComplete) {
@@ -3090,24 +3082,8 @@ void NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates(
             << TransferMetadata::StatusToString(metadata->status());
   }
 
-  // When kComplete is received from PayloadTracker, we need to wait for
-  // receiver to close connection before we know that the transfer has
-  // succeeded.  Here we delay the kComplete update until receiver disconnects.
-  // A 1 min timer is setup so that if we do not receive disconnect from
-  // receiver, we assume the transfer has failed.
   if (metadata->status() == TransferMetadata::Status::kComplete) {
-    session->DelayCompleteMetadata(*metadata);
-    auto timer = std::make_unique<ThreadTimer>(
-        *service_thread_, "disconnection_timeout_alarm",
-        kOutgoingDisconnectionDelay,
-        [this, share_target_id = session->share_target().id]() {
-          OutgoingShareSession* session =
-              GetOutgoingShareSession(share_target_id);
-          if (session != nullptr) {
-            session->DisconnectionTimeout();
-          }
-        });
-    disconnection_timeout_alarms_[session->endpoint_id()] = std::move(timer);
+    session->DelayComplete(*metadata);
     return;
   }
   // Make sure to call this before calling Disconnect, or we risk losing some
@@ -3290,8 +3266,7 @@ std::optional<ShareTarget>
 NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
     absl::string_view endpoint_id) {
   VLOG(1) << __func__ << ":Outgoing connection to " << endpoint_id
-          << " disconnected, cancel disconnection timer";
-  disconnection_timeout_alarms_.erase(endpoint_id);
+          << " disconnected";
   auto target_node = outgoing_share_target_map_.extract(endpoint_id);
   if (target_node.empty()) {
     LOG(WARNING) << __func__ << ": endpoint_id=" << endpoint_id
@@ -3370,7 +3345,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
   auto [it, inserted] =
       discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
   LOG(INFO) << "[Dedupped] added to discovery_cache: " << endpoint_id << " by "
-      << (inserted ? "insert" : "assign");
+            << (inserted ? "insert" : "assign");
 }
 
 void NearbySharingServiceImpl::CreateOutgoingShareSession(

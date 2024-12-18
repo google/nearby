@@ -815,7 +815,7 @@ TEST_F(OutgoingShareSessionTest, ProcessKeyVerificationResultSuccess) {
   EXPECT_THAT(session_.os_type(), Eq(OSType::WINDOWS));
 }
 
-TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
+TEST_F(OutgoingShareSessionTest, DelayCompleteReceiverDisconnect) {
   NearbyConnectionImpl connection(device_info_);
   session_.set_session_id(1234);
   ConnectionSuccess(&connection);
@@ -826,14 +826,23 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataReceiverDisconnect) {
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
-  session_.DelayCompleteMetadata(complete_metadata);
+  session_.DelayComplete(complete_metadata);
 
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kComplete)));
   session_.OnDisconnect();
+  // Fast forward to the disconnection timeout.
+  fake_clock_.FastForward(absl::Seconds(60));
+  fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
+
+  // Verify that connection is not closed since disconnect timeout has been
+  // cancelled.
+  EXPECT_THAT(
+      connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
+      IsTrue());
 }
 
-TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
+TEST_F(OutgoingShareSessionTest, DelayCompleteDisconnectTimeout) {
   NearbyConnectionImpl connection(device_info_);
   session_.set_session_id(1234);
   std::vector<uint8_t> endpoint_info = {1, 2, 3, 4};
@@ -854,9 +863,11 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteMetadataDisconnectTimeout) {
   EXPECT_CALL(transfer_metadata_callback_,
               Call(_, HasStatus(TransferMetadata::Status::kInProgress)));
 
-  session_.DelayCompleteMetadata(complete_metadata);
+  session_.DelayComplete(complete_metadata);
+  // Fast forward to the disconnection timeout.
+  fake_clock_.FastForward(absl::Seconds(60));
+  fake_task_runner_.SyncWithTimeout(absl::Milliseconds(100));
 
-  session_.DisconnectionTimeout();
   // Verify that connection is closed.
   EXPECT_THAT(
       connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
