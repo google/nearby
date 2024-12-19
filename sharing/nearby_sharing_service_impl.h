@@ -327,7 +327,7 @@ class NearbySharingServiceImpl
                                 const TransferMetadata& metadata);
   void OnOutgoingTransferUpdate(OutgoingShareSession& session,
                                 const TransferMetadata& metadata);
-  void CloseConnection(int64_t share_target_id);
+  void CloseConnection(absl::string_view endpoint_id);
   void OnIncomingDecryptedCertificate(
       absl::string_view endpoint_id, const Advertisement& advertisement,
       int64_t placeholder_share_target_id,

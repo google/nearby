@@ -510,14 +510,14 @@ void NearbySharingServiceImpl::RegisterSendSurface(
 
         // Let newly registered send surface catch up with discovered share
         // targets from current scanning session.
-        if (is_scanning_) {
+        // if (is_scanning_) {
           for (const auto& item : outgoing_share_target_map_) {
             LOG(INFO) << "Reporting discovered target "
                       << item.second.ToString()
                       << " when registering send surface";
             wrapped_callback.OnShareTargetDiscovered(item.second);
           }
-        }
+        // }
 
         // Set Share Start time for Foreground Send Surfaces
         if (state == SendSurfaceState::kForeground) {
@@ -868,7 +868,9 @@ void NearbySharingServiceImpl::Reject(
 
         RunOnNearbySharingServiceThreadDelayed(
             "incoming_rejection_delay", kIncomingRejectionDelay,
-            [this, share_target_id]() { CloseConnection(share_target_id); });
+            [this, endpoint_id = session->endpoint_id()]() {
+              CloseConnection(endpoint_id);
+            });
         // kRejected status already sent below, no need to send on disconnect.
         session->set_disconnect_status(TransferMetadata::Status::kUnknown);
 
@@ -957,9 +959,9 @@ void NearbySharingServiceImpl::DoCancel(
 
       RunOnNearbySharingServiceThreadDelayed(
           "initiator_cancel_delay", kInitiatorCancelDelay,
-          [this, share_target_id]() {
+          [this, endpoint_id = session->endpoint_id()]() {
             LOG(INFO) << "Close connection after cancellation delay.";
-            CloseConnection(share_target_id);
+            CloseConnection(endpoint_id);
           });
 
       session->WriteCancelFrame();
@@ -1108,6 +1110,17 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
       background_transfer_callback.first->OnTransferUpdate(
           share_target, attachment_container, transfer_metadata);
     }
+  }
+  if (foreground_send_surface_map_.empty() &&
+      background_send_surface_map_.empty()) {
+    LOG(INFO) << __func__ << ": Last send surface has been unregistered";
+    // Clear outgoing_share_targets, outgoing_share_sessions and
+    // discovery_cache.
+    while (!outgoing_share_target_map_.empty()) {
+      RemoveOutgoingShareTargetWithEndpointId(
+          outgoing_share_target_map_.begin()->first);
+    }
+    discovery_cache_.clear();
   }
 
   VLOG(1) << __func__ << ": A SendSurface has been unregistered: "
@@ -2489,7 +2502,7 @@ void NearbySharingServiceImpl::Fail(IncomingShareSession& session,
   RunOnNearbySharingServiceThreadDelayed(
       "incoming_rejection_delay", kIncomingRejectionDelay,
       absl::bind_front(&NearbySharingServiceImpl::CloseConnection, this,
-                       session.share_target().id));
+                       session.endpoint_id()));
 
   session.SendFailureResponse(status);
 }
@@ -2648,14 +2661,8 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
   }
 }
 
-void NearbySharingServiceImpl::CloseConnection(int64_t share_target_id) {
-  ShareSession* session = GetShareSession(share_target_id);
-  if (session != nullptr && session->IsConnected()) {
-    session->Disconnect();
-    return;
-  }
-  LOG(WARNING) << __func__ << ": Invalid connection for target - "
-               << share_target_id;
+void NearbySharingServiceImpl::CloseConnection(absl::string_view endpoint_id) {
+  nearby_connections_manager_->Disconnect(endpoint_id);
 }
 
 void NearbySharingServiceImpl::OnIncomingDecryptedCertificate(
