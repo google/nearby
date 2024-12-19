@@ -53,8 +53,7 @@
 #include "sharing/proto/enums.pb.h"
 #include "sharing/transfer_manager.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using ::nearby::sharing::proto::DataUsage;
@@ -279,7 +278,8 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         local_endpoint_info, kRemoteEndpointId,
         /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
         TransportType::kHighQuality,
-        [&](NearbyConnection* connection, Status status) {
+        [&](absl::string_view endpoint_id, NearbyConnection* connection,
+            Status status) {
           nearby_connection = connection;
           notification.Notify();
         });
@@ -927,7 +927,10 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectWrite) {
         notification.Notify();
       });
 
-  nearby_connection->Write(byte_payload);
+  nearby_connections_manager_->Send(
+      kRemoteEndpointId, std::make_unique<Payload>(byte_payload),
+      /*listener=*/
+      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
   Sync();
   EXPECT_TRUE(
       notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
@@ -969,7 +972,7 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectClosed) {
         disconnect_notification.Notify();
       });
 
-  nearby_connection->Close();
+  nearby_connections_manager_->Disconnect(kRemoteEndpointId);
   Sync();
 
   EXPECT_TRUE(close_notification.WaitForNotificationWithTimeout(
@@ -1252,7 +1255,8 @@ TEST_F(NearbyConnectionsManagerImplTest, ConnectTimeout) {
       local_endpoint_info, kRemoteEndpointId,
       /*bluetooth_mac_address=*/std::nullopt, DataUsage::OFFLINE_DATA_USAGE,
       TransportType::kHighQuality,
-      [&](NearbyConnection* connection, Status status) {
+      [&](absl::string_view endpoint_id, NearbyConnection* connection,
+          Status status) {
         nearby_connection = connection;
         run_notification.Notify();
       });
@@ -2009,5 +2013,4 @@ TEST_F(NearbyConnectionsManagerImplTest, ProcessUnknownFilePathsToDelete) {
 }
 
 }  // namespace NearbyConnectionsManagerUnitTests
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

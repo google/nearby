@@ -167,7 +167,6 @@ cc_library(
     hdrs = ["paired_key_verification_runner.h"],
     deps = [
         ":incoming_frame_reader",
-        ":types",
         "//internal/platform:types",
         "//proto:sharing_enums_cc_proto",
         "//sharing/certificates",
@@ -175,6 +174,7 @@ cc_library(
         "//sharing/proto:enums_cc_proto",
         "//sharing/proto:share_cc_proto",
         "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/time",
     ],
 )
@@ -229,6 +229,7 @@ cc_library(
         "//sharing/proto:wire_format_cc_proto",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",

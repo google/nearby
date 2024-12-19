@@ -50,8 +50,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/transfer_manager.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 using ::nearby::sharing::proto::DataUsage;
 
@@ -334,7 +333,7 @@ void NearbyConnectionsManagerImpl::Connect(
     NearbyConnectionCallback callback) {
   MutexLock lock(&mutex_);
   if (!nearby_connections_service_) {
-    callback(nullptr, Status::kError);
+    callback(endpoint_id, nullptr, Status::kError);
     return;
   }
 
@@ -690,9 +689,9 @@ void NearbyConnectionsManagerImpl::OnConnectionAccepted(
       return;
     }
 
-    auto result = connections_.emplace(std::string(endpoint_id),
-                                       std::make_unique<NearbyConnectionImpl>(
-                                           device_info_, this, endpoint_id));
+    auto result = connections_.emplace(
+        std::string(endpoint_id),
+        std::make_unique<NearbyConnectionImpl>(device_info_, endpoint_id));
     DCHECK(result.second);
     incoming_connection_listener_->OnIncomingConnection(
         endpoint_id, it->second.endpoint_info, result.first->second.get());
@@ -704,10 +703,11 @@ void NearbyConnectionsManagerImpl::OnConnectionAccepted(
     }
 
     auto result = connections_.emplace(
-        endpoint_id, std::make_unique<NearbyConnectionImpl>(device_info_, this,
-                                                            endpoint_id));
+        endpoint_id,
+        std::make_unique<NearbyConnectionImpl>(device_info_, endpoint_id));
     DCHECK(result.second);
-    std::move(it->second)(result.first->second.get(), Status::kSuccess);
+    std::move(it->second)(endpoint_id, result.first->second.get(),
+                          Status::kSuccess);
     pending_outgoing_connections_.erase(it);
     connect_timeout_timers_.erase(endpoint_id);
   }
@@ -720,7 +720,7 @@ void NearbyConnectionsManagerImpl::OnConnectionRejected(
 
   auto it = pending_outgoing_connections_.find(endpoint_id);
   if (it != pending_outgoing_connections_.end()) {
-    std::move(it->second)(nullptr, status);
+    std::move(it->second)(endpoint_id, nullptr, status);
     pending_outgoing_connections_.erase(it);
     connect_timeout_timers_.erase(endpoint_id);
   }
@@ -744,7 +744,7 @@ void NearbyConnectionsManagerImpl::OnDisconnected(
 
   auto it = pending_outgoing_connections_.find(endpoint_id);
   if (it != pending_outgoing_connections_.end()) {
-    std::move(it->second)(nullptr, connection_layer_status);
+    std::move(it->second)(endpoint_id, nullptr, connection_layer_status);
     pending_outgoing_connections_.erase(it);
     connect_timeout_timers_.erase(endpoint_id);
   }
@@ -932,7 +932,8 @@ void NearbyConnectionsManagerImpl::Reset() {
   transfer_managers_.clear();
 
   for (auto& entry : pending_outgoing_connections_)
-    std::move(entry.second)(/*connection=*/nullptr, Status::kReset);
+    std::move(entry.second)(entry.first, /*connection=*/nullptr,
+                            Status::kReset);
 
   pending_outgoing_connections_.clear();
 }
@@ -1003,5 +1004,4 @@ std::string NearbyConnectionsManagerImpl::Dump() const {
   return nearby_connections_service_->Dump();
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

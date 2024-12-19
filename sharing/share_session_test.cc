@@ -89,7 +89,8 @@ class TestShareSession : public ShareSession {
         endpoint_info, kEndpointId, bluetooth_mac_address,
         nearby::sharing::proto::DataUsage::ONLINE_DATA_USAGE,
         TransportType::kHighQuality,
-        [&](NearbyConnection* connection, Status status) {});
+        [&](absl::string_view endpoint_id, NearbyConnection* connection,
+            Status status) {});
     SetConnection(connection);
   }
 
@@ -152,8 +153,7 @@ TEST(ShareSessionTest, SetDisconnectStatus) {
 TEST(ShareSessionTest, OnConnectedSucceeds) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
 
   session.SetNearbyConnection(&connection);
   EXPECT_EQ(session.connection(), &connection);
@@ -166,8 +166,7 @@ TEST(ShareSessionTest, IncomingRunPairedKeyVerificationSuccess) {
   share_target.is_incoming = true;
   TestShareSession session(std::string(kEndpointId), share_target);
   session.connections_manager().SetRawAuthenticationToken(kEndpointId, token);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   std::queue<std::vector<uint8_t>> frames_data;
   session.connections_manager().set_send_payload_callback(
@@ -260,8 +259,7 @@ TEST(ShareSessionTest, OnDisconnect) {
 TEST(ShareSessionTest, CancelPayloads) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetAttachmentPayloadId(1, 2);
   session.SetAttachmentPayloadId(3, 4);
@@ -275,8 +273,7 @@ TEST(ShareSessionTest, CancelPayloads) {
 TEST(ShareSessionTest, WriteResponseFrame) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   std::queue<std::vector<uint8_t>> frames_data;
   session.connections_manager().set_send_payload_callback(
@@ -300,8 +297,7 @@ TEST(ShareSessionTest, WriteResponseFrame) {
 TEST(ShareSessionTest, WriteCancelFrame) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   std::queue<std::vector<uint8_t>> frames_data;
   session.connections_manager().set_send_payload_callback(
@@ -323,8 +319,7 @@ TEST(ShareSessionTest, WriteCancelFrame) {
 TEST(ShareSessionTest, HandleKeyVerificationResultFail) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
@@ -339,8 +334,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareSuccess) {
   ShareTarget share_target;
   share_target.for_self_share = true;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
@@ -355,8 +349,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareSuccess) {
 TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareSuccess) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
@@ -373,8 +366,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareUnable) {
   ShareTarget share_target;
   share_target.for_self_share = true;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
@@ -389,8 +381,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultSelfShareUnable) {
 TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareUnable) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
@@ -405,8 +396,7 @@ TEST(ShareSessionTest, HandleKeyVerificationResultNotSelfShareUnable) {
 TEST(ShareSessionTest, HandleKeyVerificationResultUnknown) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   session.SetTokenForTests("9876");
 
@@ -430,8 +420,7 @@ TEST(ShareSessionTest, AbortNotConnected) {
 TEST(ShareSessionTest, AbortConnected) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   EXPECT_TRUE(session.connections_manager()
                   .connection_endpoint_info(kEndpointId)
@@ -451,8 +440,7 @@ TEST(ShareSessionTest, AbortConnected) {
 TEST(ShareSessionTest, Disconnect) {
   ShareTarget share_target;
   TestShareSession session(std::string(kEndpointId), share_target);
-  NearbyConnectionImpl connection(session.device_info(),
-                                  &session.connections_manager(), kEndpointId);
+  NearbyConnectionImpl connection(session.device_info(), kEndpointId);
   session.SetNearbyConnection(&connection);
   EXPECT_TRUE(session.connections_manager()
                   .connection_endpoint_info(kEndpointId)

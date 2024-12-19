@@ -310,6 +310,7 @@ class NearbySharingServiceImpl
   void OnTransferStarted(bool is_incoming);
 
   void OnOutgoingConnection(int64_t share_target_id,
+                            absl::string_view endpoint_id,
                             NearbyConnection* connection, Status status);
 
   void CreatePayloads(

@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <memory>
 #include <optional>
 #include <queue>
 #include <string>
@@ -27,21 +26,15 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/device_info.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/nearby_connections_manager.h"
-#include "sharing/nearby_connections_types.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
-NearbyConnectionImpl::NearbyConnectionImpl(
-    nearby::DeviceInfo& device_info,
-    NearbyConnectionsManager* nearby_connections_manager,
-    absl::string_view endpoint_id)
+NearbyConnectionImpl::NearbyConnectionImpl(nearby::DeviceInfo& device_info,
+                                           absl::string_view endpoint_id)
     : device_info_(device_info),
-      nearby_connections_manager_(nearby_connections_manager),
       endpoint_id_(endpoint_id) {
   if (!device_info_.PreventSleep()) {
-    NL_LOG(WARNING) << __func__ << ":Failed to prevent device sleep.";
+    LOG(WARNING) << __func__ << ":Failed to prevent device sleep.";
   }
 }
 
@@ -51,7 +44,7 @@ NearbyConnectionImpl::~NearbyConnectionImpl() {
   {
     absl::MutexLock lock(&mutex_);
     if (!device_info_.AllowSleep()) {
-      NL_LOG(ERROR) << __func__ << ":Failed to allow device sleep.";
+      LOG(ERROR) << __func__ << ":Failed to allow device sleep.";
     }
     disconnect_listener = std::move(disconnect_listener_);
     read_callback = std::move(read_callback_);
@@ -81,19 +74,6 @@ void NearbyConnectionImpl::Read(
   std::move(callback)(std::move(bytes));
 }
 
-void NearbyConnectionImpl::Write(std::vector<uint8_t> bytes) {
-  nearby_connections_manager_->Send(
-      endpoint_id_, std::make_unique<Payload>(bytes),
-      /*listener=*/
-      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
-}
-
-void NearbyConnectionImpl::Close() {
-  // As [this] therefore endpoint_id_ will be destroyed in Disconnect, make a
-  // copy of [endpoint_id] as the parameter is a const ref.
-  nearby_connections_manager_->Disconnect(endpoint_id_);
-}
-
 void NearbyConnectionImpl::SetDisconnectionListener(
     std::function<void()> listener) {
   absl::MutexLock lock(&mutex_);
@@ -116,5 +96,4 @@ void NearbyConnectionImpl::WriteMessage(std::vector<uint8_t> bytes) {
   }
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

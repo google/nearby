@@ -23,23 +23,19 @@
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
-#include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
-  FakeNearbyConnectionsManager connection_manager;
   FakeClock fake_clock;
   FakeTaskRunner fake_task_runner(&fake_clock, 1);
   FakeDeviceInfo device_info;
   bool called = false;
 
-  auto connection = std::make_unique<NearbyConnectionImpl>(
-      device_info, &connection_manager, "test");
+  auto connection = std::make_unique<NearbyConnectionImpl>(device_info, "test");
   auto frames_reader = std::make_shared<IncomingFramesReader>(fake_task_runner,
                                                               connection.get());
 
@@ -56,14 +52,12 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
 }
 
 TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
-  FakeNearbyConnectionsManager connection_manager;
   FakeClock fake_clock;
   FakeTaskRunner fake_task_runner(&fake_clock, 1);
   FakeDeviceInfo device_info;
   std::optional<nearby::sharing::service::proto::V1Frame> frame_result;
 
-  auto connection = std::make_unique<NearbyConnectionImpl>(
-      device_info, &connection_manager, "test");
+  auto connection = std::make_unique<NearbyConnectionImpl>(device_info, "test");
   auto frames_reader = std::make_shared<IncomingFramesReader>(fake_task_runner,
                                                               connection.get());
 
@@ -82,5 +76,4 @@ TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
 }
 
 }  // namespace
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

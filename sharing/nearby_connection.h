@@ -20,8 +20,7 @@
 #include <optional>
 #include <vector>
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 // A socket-like wrapper around Nearby Connections that allows for asynchronous
 // reads and writes.
@@ -38,21 +37,12 @@ class NearbyConnection {
       std::function<void(std::optional<std::vector<uint8_t>> bytes)>
           callback) = 0;
 
-  // Writes an outgoing stream of bytes to the remote device asynchronously.
-  // Must not be used on an already closed connection.
-  virtual void Write(std::vector<uint8_t> bytes) = 0;
-
-  // Closes the socket and disconnects from the remote device. This object will
-  // be invalidated after `listener` in SetDisconnectionListener is invoked.
-  virtual void Close() = 0;
-
   // Listens to the socket being closed. Invoke `listener` when the socket is
   // closed. This object will be invalidated after `listener` is invoked.
   // Previously set listener will be replaced by `listener`.
   virtual void SetDisconnectionListener(std::function<void()> listener) = 0;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_CONNECTION_H_

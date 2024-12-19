@@ -28,22 +28,19 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "sharing/common/nearby_share_enums.h"
+#include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/enums.pb.h"
 
-namespace nearby {
-namespace sharing {
-
-class NearbyConnection;
-class PayloadTransferUpdatePtr;
+namespace nearby::sharing {
 
 using ConnectionsStatus = nearby::sharing::Status;
 
 class NearbyConnectionsManager {
  public:
   using ConnectionsCallback = std::function<void(ConnectionsStatus status)>;
-  using NearbyConnectionCallback =
-      std::function<void(NearbyConnection*, Status status)>;
+  using NearbyConnectionCallback = std::function<void(
+      absl::string_view endpoint_id, NearbyConnection*, Status status)>;
 
   // A callback for handling incoming connections while advertising.
   class IncomingConnectionListener {
@@ -166,7 +163,6 @@ class NearbyConnectionsManager {
   virtual std::string Dump() const = 0;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_CONNECTIONS_MANAGER_H_

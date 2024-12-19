@@ -148,7 +148,8 @@ class OutgoingShareSession : public ShareSession {
                std::optional<std::vector<uint8_t>> bluetooth_mac_address,
                nearby::sharing::proto::DataUsage data_usage,
                bool disable_wifi_hotspot,
-               std::function<void(NearbyConnection* connection, Status status)>
+               std::function<void(absl::string_view endpoint_id,
+                                  NearbyConnection* connection, Status status)>
                    callback);
 
   // Called to process the result of a connection attempt.

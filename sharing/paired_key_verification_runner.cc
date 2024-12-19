@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "proto/sharing_enums.pb.h"
@@ -35,14 +36,12 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/nearby_connection.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 using ::location::nearby::proto::sharing::OSType;
 using ::nearby::sharing::proto::DeviceVisibility;
@@ -94,22 +93,22 @@ std::ostream& operator<<(
 PairedKeyVerificationRunner::PairedKeyVerificationRunner(
     Clock* clock, OSType os_type, bool share_target_is_incoming,
     const VisibilityHistory& visibility_history,
-    const std::vector<uint8_t>& token, NearbyConnection* connection,
+    const std::vector<uint8_t>& token,
+    absl::AnyInvocable<void(const Frame& frame)> frame_writer,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
     NearbyShareCertificateManager* certificate_manager,
     IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout)
     : clock_(clock),
       os_type_(os_type),
       raw_token_(token),
-      connection_(connection),
+      frame_writer_(std::move(frame_writer)),
       certificate_(certificate),
       certificate_manager_(certificate_manager),
       frames_reader_(frames_reader),
       read_frame_timeout_(read_frame_timeout) {
-  NL_DCHECK(clock_);
-  NL_DCHECK(connection);
-  NL_DCHECK(certificate_manager);
-  NL_DCHECK(frames_reader);
+  DCHECK(clock_);
+  DCHECK(certificate_manager);
+  DCHECK(frames_reader);
 
   if (share_target_is_incoming) {
     local_prefix_ = kNearbyShareReceiverVerificationPrefix;
@@ -131,7 +130,7 @@ PairedKeyVerificationRunner::~PairedKeyVerificationRunner() = default;
 
 void PairedKeyVerificationRunner::Run(
     std::function<void(PairedKeyVerificationResult, OSType)> callback) {
-  NL_DCHECK(!callback_);
+  DCHECK(!callback_);
   callback_ = std::move(callback);
   verification_result_ = PairedKeyVerificationResult::kSuccess;
 
@@ -141,7 +140,7 @@ void PairedKeyVerificationRunner::Run(
       [&, runner = GetWeakPtr()](std::optional<V1Frame> frame) {
         auto verification_runner = runner.lock();
         if (verification_runner == nullptr) {
-          NL_LOG(WARNING) << "PairedKeyVerificationRunner is released before.";
+          LOG(WARNING) << "PairedKeyVerificationRunner is released before.";
           return;
         }
         OnReadPairedKeyEncryptionFrame(std::move(frame));
@@ -152,8 +151,7 @@ void PairedKeyVerificationRunner::Run(
 void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
     std::optional<V1Frame> frame) {
   if (!frame.has_value()) {
-    NL_LOG(WARNING) << __func__
-                    << ": Failed to read remote paired key encryption";
+    LOG(WARNING) << __func__ << ": Failed to read remote paired key encryption";
     std::move(callback_)(PairedKeyVerificationResult::kFail,
                          OSType::UNKNOWN_OS_TYPE);
     return;
@@ -171,14 +169,14 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
   }
 
   ApplyResult(auth_token_hash_result);
-  NL_VLOG(1) << __func__ << ": Remote public certificate verification result "
-             << auth_token_hash_result;
+  VLOG(1) << __func__ << ": Remote public certificate verification result "
+          << auth_token_hash_result;
 
   PairedKeyVerificationResult local_result =
       VerifyPairedKeyEncryptionFrame(*frame);
   ApplyResult(local_result);
-  NL_VLOG(1) << __func__ << ": Paired key encryption verification result "
-             << local_result;
+  VLOG(1) << __func__ << ": Paired key encryption verification result "
+          << local_result;
 
   SendPairedKeyResultFrame(local_result);
 
@@ -187,7 +185,7 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
       [this, runner = GetWeakPtr()](std::optional<V1Frame> frame) {
         auto verification_runner = runner.lock();
         if (verification_runner == nullptr) {
-          NL_LOG(WARNING) << "PairedKeyVerificationRunner is released before.";
+          LOG(WARNING) << "PairedKeyVerificationRunner is released before.";
           return;
         }
         OnReadPairedKeyResultFrame(std::move(frame));
@@ -198,7 +196,7 @@ void PairedKeyVerificationRunner::OnReadPairedKeyEncryptionFrame(
 void PairedKeyVerificationRunner::OnReadPairedKeyResultFrame(
     std::optional<V1Frame> frame) {
   if (!frame.has_value()) {
-    NL_LOG(WARNING) << __func__ << ": Failed to read remote paired key result";
+    LOG(WARNING) << __func__ << ": Failed to read remote paired key result";
     std::move(callback_)(PairedKeyVerificationResult::kFail,
                          OSType::UNKNOWN_OS_TYPE);
     return;
@@ -207,11 +205,10 @@ void PairedKeyVerificationRunner::OnReadPairedKeyResultFrame(
   PairedKeyVerificationResult remote_result =
       Convert(frame->paired_key_result().status());
   ApplyResult(remote_result);
-  NL_VLOG(1) << __func__ << ": Paired key result frame result "
-             << remote_result;
+  VLOG(1) << __func__ << ": Paired key result frame result " << remote_result;
 
-  NL_VLOG(1) << __func__ << ": Combined verification result "
-             << verification_result_;
+  VLOG(1) << __func__ << ": Combined verification result "
+          << verification_result_;
 
   OSType os_type = OSType::UNKNOWN_OS_TYPE;
   if (frame->paired_key_result().has_os_type()) {
@@ -250,10 +247,7 @@ void PairedKeyVerificationRunner::SendPairedKeyResultFrame(
   // Set OS type to allow remote device knowns the paring device OS type.
   result_frame->set_os_type(os_type_);
 
-  std::vector<uint8_t> data(frame.ByteSizeLong());
-  frame.SerializeToArray(data.data(), frame.ByteSizeLong());
-
-  connection_->Write(std::move(data));
+  frame_writer_(frame);
 }
 
 void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
@@ -281,7 +275,7 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
       v1_frame->mutable_paired_key_encryption();
   encryption_frame->set_signed_data(signature->data(), signature->size());
   if (IsVisibilityRecentlyUpdated()) {
-    NL_LOG(INFO)
+    LOG(INFO)
         << "Attempts to sign authentication token with a previous private key.";
     std::optional<std::vector<uint8_t>> optional_signature =
         certificate_manager_->SignWithPrivateCertificate(
@@ -295,10 +289,8 @@ void PairedKeyVerificationRunner::SendPairedKeyEncryptionFrame() {
   }
   encryption_frame->set_secret_id_hash(certificate_id_hash.data(),
                                        certificate_id_hash.size());
-  std::vector<uint8_t> data(frame.ByteSizeLong());
-  frame.SerializeToArray(data.data(), frame.ByteSizeLong());
 
-  connection_->Write(std::move(data));
+  frame_writer_(frame);
 }
 
 PairedKeyVerificationRunner::PairedKeyVerificationResult
@@ -314,12 +306,11 @@ PairedKeyVerificationRunner::VerifyAuthTokenHashWithPrivateCertificate(
   std::vector<uint8_t> frame_hash_data{frame_hash.begin(), frame_hash.end()};
 
   if (hash.has_value() && *hash == frame_hash_data) {
-    NL_VLOG(1) << __func__
-               << ": Successfully verified remote public certificate.";
+    VLOG(1) << __func__ << ": Successfully verified remote public certificate.";
     return PairedKeyVerificationResult::kSuccess;
   }
 
-  NL_VLOG(1) << __func__ << ": Unable to verify remote public certificate.";
+  VLOG(1) << __func__ << ": Unable to verify remote public certificate.";
   return PairedKeyVerificationResult::kUnable;
 }
 
@@ -327,9 +318,9 @@ PairedKeyVerificationRunner::PairedKeyVerificationResult
 PairedKeyVerificationRunner::VerifyPairedKeyEncryptionFrame(
     const V1Frame& frame) {
   if (!certificate_) {
-    NL_VLOG(1) << __func__
-               << ": Unable to verify remote paired key encryption frame. "
-                  "Remote side is not a known share target.";
+    VLOG(1) << __func__
+            << ": Unable to verify remote paired key encryption frame. "
+               "Remote side is not a known share target.";
     return PairedKeyVerificationResult::kUnable;
   }
 
@@ -338,10 +329,9 @@ PairedKeyVerificationRunner::VerifyPairedKeyEncryptionFrame(
   if (!certificate_->VerifySignature(PadPrefix(remote_prefix_, raw_token_),
                                      data)) {
     if (!frame.paired_key_encryption().has_optional_signed_data()) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Unable to verify remote paired key encryption frame. "
-             "no optional signed data.";
+      LOG(WARNING) << __func__
+                   << ": Unable to verify remote paired key encryption frame. "
+                      "no optional signed data.";
       return PairedKeyVerificationResult::kFail;
     }
     // Verify optional signed data.
@@ -351,18 +341,17 @@ PairedKeyVerificationRunner::VerifyPairedKeyEncryptionFrame(
                                        optional_signed_data.end());
     if (certificate_->VerifySignature(PadPrefix(remote_prefix_, raw_token_),
                                       optional_data)) {
-      NL_LOG(INFO) << "Successfully verified remote paired key encryption "
-                      "frame with the optional signed data.";
+      LOG(INFO) << "Successfully verified remote paired key encryption "
+                   "frame with the optional signed data.";
     } else {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Unable to verify remote paired key encryption frame.";
+      LOG(WARNING) << __func__
+                   << ": Unable to verify remote paired key encryption frame.";
       return PairedKeyVerificationResult::kFail;
     }
   }
 
-  NL_VLOG(1) << __func__
-             << ": Successfully verified remote paired key encryption frame.";
+  VLOG(1) << __func__
+          << ": Successfully verified remote paired key encryption frame.";
   return PairedKeyVerificationResult::kSuccess;
 }
 
@@ -397,5 +386,4 @@ bool PairedKeyVerificationRunner::IsVisibilityRecentlyUpdated() const {
           kRelaxAfterSetVisibilityTimeout);
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

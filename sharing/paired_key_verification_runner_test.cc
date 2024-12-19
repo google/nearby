@@ -47,8 +47,7 @@
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using V1Frame = ::nearby::sharing::service::proto::V1Frame;
@@ -188,8 +187,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
   };
 
   PairedKeyVerificationRunnerTest()
-      : connection_(fake_device_info_, &fake_connections_manager_,
-                    "test_enpoint_id"),
+      : connection_(fake_device_info_, "test_enpoint_id"),
         frames_reader_(fake_task_runner_, &connection_) {
     fake_connections_manager_.set_send_payload_callback(
         [this](std::unique_ptr<Payload> payload,
@@ -220,8 +218,11 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
 
     auto runner = std::make_shared<PairedKeyVerificationRunner>(
         &fake_clock_, OSType::WINDOWS, is_incoming, visibility_history,
-        GetAuthToken(), &connection_, std::move(public_certificate),
-        &certificate_manager_, &frames_reader_, kTimeout);
+        GetAuthToken(), [this](const Frame& frame) {
+          frames_data_.push(std::make_unique<Frame>(frame));
+        },
+        std::move(public_certificate), &certificate_manager_, &frames_reader_,
+        kTimeout);
 
     runner->Run(
         [&, expected_result, expected_os_type](
@@ -432,17 +433,15 @@ TEST_P(ParameterisedPairedKeyVerificationRunnerTest,
   PairedKeyVerificationRunner::PairedKeyVerificationResult expected_result =
       Merge(params.result, result_frame.status());
 
-  NL_LOG(ERROR) << "ValidEncryptionFrame_ValidResultFrame: " << "is_incoming="
-                << params.is_incoming
-                << ", has_valid_cert=" << params.has_valid_certificate
-                << ", encryption_frame_type="
-                << (int)params.encryption_frame_type
-                << ", result=" << (int)params.result
-                << ", expected_result=" << (int)expected_result
-                << ", result_frame=" << (int)result_frame.status()
-                << ", visibility=" << (int)visibility_history.visibility
-                << ", last_visibility="
-                << (int)visibility_history.last_visibility;
+  LOG(ERROR) << "ValidEncryptionFrame_ValidResultFrame: " << "is_incoming="
+             << params.is_incoming
+             << ", has_valid_cert=" << params.has_valid_certificate
+             << ", encryption_frame_type=" << (int)params.encryption_frame_type
+             << ", result=" << (int)params.result
+             << ", expected_result=" << (int)expected_result
+             << ", result_frame=" << (int)result_frame.status()
+             << ", visibility=" << (int)visibility_history.visibility
+             << ", last_visibility=" << (int)visibility_history.last_visibility;
 
   SetUpPairedKeyEncryptionFrame(params.encryption_frame_type);
   bool encryption_frame_timeout =
@@ -518,5 +517,4 @@ INSTANTIATE_TEST_SUITE_P(
                      testing::ValuesIn(GenerateVisibilityHistory())));
 
 }  // namespace
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

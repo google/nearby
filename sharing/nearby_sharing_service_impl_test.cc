@@ -97,8 +97,7 @@
 #include "sharing/wifi_credentials_attachment.h"
 #include "google/protobuf/repeated_ptr_field.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using ConnectionType = ::nearby::ConnectivityManager::ConnectionType;
@@ -428,8 +427,8 @@ class NearbySharingServiceImplTest : public testing::Test {
         std::make_unique<FakeTaskRunner>(fake_context_.fake_clock(), 1);
     sharing_service_task_runner_ = fake_task_runner.get();
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
-    connection_ = std::make_unique<NearbyConnectionImpl>(
-        fake_device_info_, fake_nearby_connections_manager_, kEndpointId);
+    connection_ =
+        std::make_unique<NearbyConnectionImpl>(fake_device_info_, kEndpointId);
     fake_nearby_connections_manager_->set_send_payload_callback(
         [this](std::unique_ptr<Payload> payload,
                std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>
@@ -2498,8 +2497,9 @@ TEST_F(NearbySharingServiceImplTest,
   ScopedReceiveSurface r(service_.get(), &callback);
   EXPECT_CALL(*mock_app_info_, SetActiveFlag());
   StartIncomingConnection();
-  sharing_service_task_runner_->PostTask([this]() {
-    connection_->Close();
+  sharing_service_task_runner_->PostTask(
+      [this]() {
+    fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
@@ -2531,7 +2531,7 @@ TEST_F(NearbySharingServiceImplTest,
   ProcessLatestPublicCertificateDecryption(/*expected_num_calls=*/1,
                                            /*success=*/true);
   sharing_service_task_runner_->PostTask([this]() {
-    connection_->Close();
+    fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
@@ -2657,8 +2657,9 @@ TEST_F(NearbySharingServiceImplTest,
         EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
       }));
 
-  sharing_service_task_runner_->PostTask([this]() {
-    connection_->Close();
+  sharing_service_task_runner_->PostTask(
+      [this]() {
+    fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not delete the connection on close.
     connection_.reset();
   });
@@ -3600,8 +3601,9 @@ TEST_F(NearbySharingServiceImplTest, SendTextSuccessClosedConnection) {
           .has_value());
 
   // Call disconnect on the connection early before the timeout has passed.
-  sharing_service_task_runner_->PostTask([this]() {
-    connection_->Close();
+  sharing_service_task_runner_->PostTask(
+      [this]() {
+    fake_nearby_connections_manager_->Disconnect(kEndpointId);
     // FakeNearbyConnectionsManager does not destroy the connection.
     connection_.reset();
   });
@@ -5067,5 +5069,4 @@ TEST_F(NearbySharingServiceImplTest, NotifyLogoutSucceededWithCredentialError) {
 }
 
 }  // namespace NearbySharingServiceUnitTests
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

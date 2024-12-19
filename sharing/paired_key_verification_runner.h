@@ -22,18 +22,17 @@
 #include <optional>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/incoming_frames_reader.h"
-#include "sharing/nearby_connection.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class PairedKeyVerificationRunner
     : public std::enable_shared_from_this<PairedKeyVerificationRunner> {
@@ -59,7 +58,10 @@ class PairedKeyVerificationRunner
       Clock* clock, location::nearby::proto::sharing::OSType os_type,
       bool share_target_is_incoming,
       const VisibilityHistory& visibility_history,
-      const std::vector<uint8_t>& token, NearbyConnection* connection,
+      const std::vector<uint8_t>& token,
+      absl::AnyInvocable<
+          void(const nearby::sharing::service::proto::Frame& frame)>
+          frame_writer,
       const std::optional<NearbyShareDecryptedPublicCertificate>& certificate,
       NearbyShareCertificateManager* certificate_manager,
       IncomingFramesReader* frames_reader, absl::Duration read_frame_timeout);
@@ -97,7 +99,8 @@ class PairedKeyVerificationRunner
   const location::nearby::proto::sharing::OSType os_type_;
   VisibilityHistory visibility_history_;
   std::vector<uint8_t> raw_token_;
-  NearbyConnection* connection_;
+  absl::AnyInvocable<void(const nearby::sharing::service::proto::Frame& frame)>
+      frame_writer_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyShareCertificateManager* certificate_manager_;
   IncomingFramesReader* frames_reader_;
@@ -110,7 +113,6 @@ class PairedKeyVerificationRunner
   char remote_prefix_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_PAIRED_KEY_VERIFICATION_RUNNER_H_

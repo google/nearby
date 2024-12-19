@@ -543,7 +543,9 @@ void OutgoingShareSession::Connect(
     std::vector<uint8_t> endpoint_info,
     std::optional<std::vector<uint8_t>> bluetooth_mac_address,
     DataUsage data_usage, bool disable_wifi_hotspot,
-    std::function<void(NearbyConnection* connection, Status status)> callback) {
+    std::function<void(absl::string_view endpoint_id,
+                       NearbyConnection* connection, Status status)>
+        callback) {
   connection_start_time_ = clock().Now();
   connections_manager().Connect(
       std::move(endpoint_info), endpoint_id(), std::move(bluetooth_mac_address),

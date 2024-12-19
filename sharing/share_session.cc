@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/functional/bind_front.h"
 #include "absl/strings/str_format.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -34,6 +35,7 @@
 #include "sharing/internal/public/logging.h"
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
+#include "sharing/nearby_connections_types.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -158,11 +160,8 @@ void ShareSession::SetConnection(NearbyConnection* connection) {
 }
 
 void ShareSession::Disconnect() {
-  if (connection_ == nullptr) {
-    return;
-  }
   // Do not clear connection_ here.  It will be cleared in OnDisconnect().
-  connection_->Close();
+  connections_manager_.Disconnect(endpoint_id_);
 }
 
 void ShareSession::Abort(TransferMetadata::Status status) {
@@ -172,14 +171,7 @@ void ShareSession::Abort(TransferMetadata::Status status) {
   // First invoke the appropriate transfer callback with the final
   // |status|.
   UpdateTransferMetadata(TransferMetadataBuilder().set_status(status).build());
-
-  // Close connection if necessary.
-  if (connection_ == nullptr) {
-    return;
-  }
-  // Final status already sent above.  No need to send it again.
-  set_disconnect_status(TransferMetadata::Status::kUnknown);
-  connection_->Close();
+  Disconnect();
 }
 
 void ShareSession::RunPairedKeyVerification(
@@ -198,7 +190,8 @@ void ShareSession::RunPairedKeyVerification(
   token_ = TokenToFourDigitString(*token);
 
   key_verification_runner_ = std::make_shared<PairedKeyVerificationRunner>(
-      &clock_, os_type, IsIncoming(), visibility_history, *token, connection_,
+      &clock_, os_type, IsIncoming(), visibility_history, *token,
+      absl::bind_front(&ShareSession::WriteFrame, this),
       certificate_, certificate_manager, frames_reader_.get(),
       kReadFramesTimeout);
   key_verification_runner_->Run(std::move(callback));
@@ -234,7 +227,10 @@ void ShareSession::WriteFrame(const Frame& frame) {
   std::vector<uint8_t> data(frame.ByteSizeLong());
   frame.SerializeToArray(data.data(), frame.ByteSizeLong());
 
-  connection_->Write(std::move(data));
+  connections_manager_.Send(
+      endpoint_id_, std::make_unique<Payload>(std::move(data)),
+      /*listener=*/
+      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>());
 }
 
 void ShareSession::WriteResponseFrame(

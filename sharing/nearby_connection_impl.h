@@ -28,15 +28,13 @@
 #include "internal/platform/device_info.h"
 #include "sharing/nearby_connection.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 class NearbyConnectionsManager;
 
 class NearbyConnectionImpl : public NearbyConnection {
  public:
   NearbyConnectionImpl(nearby::DeviceInfo& device_info,
-                       NearbyConnectionsManager* nearby_connections_manager,
                        absl::string_view endpoint_id);
   ~NearbyConnectionImpl() override;
 
@@ -44,8 +42,6 @@ class NearbyConnectionImpl : public NearbyConnection {
   void Read(
       std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback)
       ABSL_LOCKS_EXCLUDED(mutex_) override;
-  void Write(std::vector<uint8_t> bytes) override;
-  void Close() override;
   void SetDisconnectionListener(std::function<void()> listener)
       ABSL_LOCKS_EXCLUDED(mutex_) override;
 
@@ -54,7 +50,6 @@ class NearbyConnectionImpl : public NearbyConnection {
 
  private:
   nearby::DeviceInfo& device_info_;
-  NearbyConnectionsManager* const nearby_connections_manager_;
   const std::string endpoint_id_;
 
   absl::Mutex mutex_;
@@ -67,7 +62,6 @@ class NearbyConnectionImpl : public NearbyConnection {
   std::queue<std::vector<uint8_t>> reads_ ABSL_GUARDED_BY(mutex_);
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_NEARBY_CONNECTION_IMPL_H_

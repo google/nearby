@@ -36,8 +36,7 @@
 #include "sharing/nearby_connections_types.h"
 #include "sharing/proto/enums.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 
 using DataUsage = ::nearby::sharing::proto::DataUsage;
 
@@ -119,7 +118,7 @@ void FakeNearbyConnectionsManager::Connect(
     absl::MutexLock lock(&endpoints_mutex_);
     connection_endpoint_infos_.emplace(endpoint_id, std::move(endpoint_info));
   }
-  std::move(callback)(connection_, Status::kUnknown);
+  std::move(callback)(endpoint_id, connection_, Status::kUnknown);
 }
 
 void FakeNearbyConnectionsManager::AcceptConnection(
@@ -335,5 +334,4 @@ void FakeNearbyConnectionsManager::AddUnknownFilePathsToDeleteForTesting(
 
 std::string FakeNearbyConnectionsManager::Dump() const { return ""; }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
