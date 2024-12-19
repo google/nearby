@@ -46,11 +46,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build Connections
-      run: CC=clang-15 CXX=clang-15++ bazel build --copt='-DGITHUB_BUILD' //connections:core
+      run: CC=clang-16 CXX=clang-16++ bazel build --copt='-DGITHUB_BUILD' //connections:core
     - name: Build Presence
-      run: CC=clang-15 CXX=clang-15++ bazel build --copt='-DGITHUB_BUILD' //presence
+      run: CC=clang-16 CXX=clang-16++ bazel build --copt='-DGITHUB_BUILD' //presence
     - name: Build Sharing
-      run: CC=clang-15 CXX=clang-15++ bazel build --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/analytics
+      run: CC=clang-16 CXX=clang-16++ bazel build --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/analytics
 
   build-rust-linux:
     name: Build Rust on Linux
