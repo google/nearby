@@ -100,8 +100,8 @@ std::optional<std::vector<uint8_t>> GetInvalidFrame() {
 class IncomingFramesReaderTest : public testing::Test {
  public:
   IncomingFramesReaderTest() {
-    nearby_connection_ = std::make_unique<NearbyConnectionImpl>(
-        fake_device_info_, "endpoint_id");
+    nearby_connection_ =
+        std::make_unique<NearbyConnectionImpl>(fake_device_info_);
   }
   ~IncomingFramesReaderTest() override = default;
 

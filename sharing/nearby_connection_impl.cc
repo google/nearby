@@ -18,21 +18,17 @@
 #include <functional>
 #include <optional>
 #include <queue>
-#include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/device_info.h"
 #include "sharing/internal/public/logging.h"
 
 namespace nearby::sharing {
 
-NearbyConnectionImpl::NearbyConnectionImpl(nearby::DeviceInfo& device_info,
-                                           absl::string_view endpoint_id)
-    : device_info_(device_info),
-      endpoint_id_(endpoint_id) {
+NearbyConnectionImpl::NearbyConnectionImpl(nearby::DeviceInfo& device_info)
+    : device_info_(device_info) {
   if (!device_info_.PreventSleep()) {
     LOG(WARNING) << __func__ << ":Failed to prevent device sleep.";
   }

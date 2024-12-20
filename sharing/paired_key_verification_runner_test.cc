@@ -187,7 +187,7 @@ class PairedKeyVerificationRunnerTest : public testing::Test {
   };
 
   PairedKeyVerificationRunnerTest()
-      : connection_(fake_device_info_, "test_enpoint_id"),
+      : connection_(fake_device_info_),
         frames_reader_(fake_task_runner_, &connection_) {
     fake_connections_manager_.set_send_payload_callback(
         [this](std::unique_ptr<Payload> payload,

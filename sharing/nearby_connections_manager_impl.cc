@@ -691,7 +691,7 @@ void NearbyConnectionsManagerImpl::OnConnectionAccepted(
 
     auto result = connections_.emplace(
         std::string(endpoint_id),
-        std::make_unique<NearbyConnectionImpl>(device_info_, endpoint_id));
+        std::make_unique<NearbyConnectionImpl>(device_info_));
     DCHECK(result.second);
     incoming_connection_listener_->OnIncomingConnection(
         endpoint_id, it->second.endpoint_info, result.first->second.get());
@@ -703,8 +703,7 @@ void NearbyConnectionsManagerImpl::OnConnectionAccepted(
     }
 
     auto result = connections_.emplace(
-        endpoint_id,
-        std::make_unique<NearbyConnectionImpl>(device_info_, endpoint_id));
+        endpoint_id, std::make_unique<NearbyConnectionImpl>(device_info_));
     DCHECK(result.second);
     std::move(it->second)(endpoint_id, result.first->second.get(),
                           Status::kSuccess);

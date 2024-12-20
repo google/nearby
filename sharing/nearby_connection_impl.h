@@ -19,11 +19,9 @@
 #include <functional>
 #include <optional>
 #include <queue>
-#include <string>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/device_info.h"
 #include "sharing/nearby_connection.h"
@@ -34,8 +32,7 @@ class NearbyConnectionsManager;
 
 class NearbyConnectionImpl : public NearbyConnection {
  public:
-  NearbyConnectionImpl(nearby::DeviceInfo& device_info,
-                       absl::string_view endpoint_id);
+  explicit NearbyConnectionImpl(nearby::DeviceInfo& device_info);
   ~NearbyConnectionImpl() override;
 
   // NearbyConnection:
@@ -50,7 +47,6 @@ class NearbyConnectionImpl : public NearbyConnection {
 
  private:
   nearby::DeviceInfo& device_info_;
-  const std::string endpoint_id_;
 
   absl::Mutex mutex_;
   std::function<void(std::optional<std::vector<uint8_t>> bytes)> read_callback_

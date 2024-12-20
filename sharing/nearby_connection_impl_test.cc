@@ -35,7 +35,7 @@ TEST(NearbyConnectionImpl, DestructorBeforeReaderDestructor) {
   FakeDeviceInfo device_info;
   bool called = false;
 
-  auto connection = std::make_unique<NearbyConnectionImpl>(device_info, "test");
+  auto connection = std::make_unique<NearbyConnectionImpl>(device_info);
   auto frames_reader = std::make_shared<IncomingFramesReader>(fake_task_runner,
                                                               connection.get());
 
@@ -57,7 +57,7 @@ TEST(NearbyConnectionImpl, DestructorAfterReaderDestructor) {
   FakeDeviceInfo device_info;
   std::optional<nearby::sharing::service::proto::V1Frame> frame_result;
 
-  auto connection = std::make_unique<NearbyConnectionImpl>(device_info, "test");
+  auto connection = std::make_unique<NearbyConnectionImpl>(device_info);
   auto frames_reader = std::make_shared<IncomingFramesReader>(fake_task_runner,
                                                               connection.get());
 

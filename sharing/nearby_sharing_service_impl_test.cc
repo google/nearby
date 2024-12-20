@@ -427,8 +427,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         std::make_unique<FakeTaskRunner>(fake_context_.fake_clock(), 1);
     sharing_service_task_runner_ = fake_task_runner.get();
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
-    connection_ =
-        std::make_unique<NearbyConnectionImpl>(fake_device_info_, kEndpointId);
+    connection_ = std::make_unique<NearbyConnectionImpl>(fake_device_info_);
     fake_nearby_connections_manager_->set_send_payload_callback(
         [this](std::unique_ptr<Payload> payload,
                std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>

@@ -116,7 +116,7 @@ std::unique_ptr<Payload> CreateWifiCredentialsPayload(
 class IncomingShareSessionTest : public ::testing::Test {
  protected:
   IncomingShareSessionTest()
-      : connection_(device_info_, kEndpointId),
+      : connection_(device_info_),
         session_(&clock_, task_runner_, &connections_manager_,
                  analytics_recorder_, std::string(kEndpointId), share_target_,
                  transfer_metadata_callback_.AsStdFunction()) {
