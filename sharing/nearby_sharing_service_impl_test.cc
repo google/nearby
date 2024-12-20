@@ -3672,10 +3672,6 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
 }
 
 TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_sharing_feature::
-          kEnableTransferCancellationOptimization,
-      true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   int64_t target_id =

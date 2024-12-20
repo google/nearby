@@ -53,9 +53,6 @@ constexpr auto kEnableSelfShareUi =
 // Enable/disable sending desktop events
 constexpr auto kEnableSendingDesktopEvents =
     flags::Flag<bool>(kConfigPackage, "45459748", false);
-// Enable/disable optimization for transfer cancellation.
-constexpr auto kEnableTransferCancellationOptimization =
-    flags::Flag<bool>(kConfigPackage, "45429881", false);
 // Disable/enable the WebRTC medium in Nearby Sharing SDK.
 constexpr auto kEnableWebrtcMedium =
     flags::Flag<bool>(kConfigPackage, "45411620", false);
@@ -88,8 +85,8 @@ constexpr auto kDiscoveryCacheLostExpiryMs =
 // When true, honor 3P client_id & client_secret in the gRPC request
 constexpr auto kHonor3PClientIdAndSecret =
     flags::Flag<bool>(kConfigPackage, "45665616", false);
-// When UnregisterShareTarget, the time in milliseconds a cached entry can be in
-// LOST state.
+// The amount of time in milliseconds a share target stays in discovery cache in
+// receive disabled state after a transfer.
 constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
     flags::Flag<int64_t>(kConfigPackage, "45663103", 10000);
 // Enable/disable QR Code UI
@@ -120,7 +117,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45411589, kEnableRetryResumeTransfer},
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
-      {45429881, kEnableTransferCancellationOptimization},
       {45411620, kEnableWebrtcMedium},
       {45411353, kSenderSkipsConfirmation},
       {45409033, kShowAutoUpdateSetting},

@@ -324,7 +324,6 @@ bool OutgoingShareSession::AcceptTransfer(
 }
 
 void OutgoingShareSession::SendPayloads(
-    bool enable_transfer_cancellation_optimization,
     std::function<
         void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
         frame_read_callback,
@@ -341,34 +340,8 @@ void OutgoingShareSession::SendPayloads(
                                                /*transfer_position=*/1,
                                                /*concurrent_connections=*/1);
   VLOG(1) << "The connection was accepted. Payloads are now being sent.";
-  if (enable_transfer_cancellation_optimization) {
-    InitSendPayload(std::move(payload_transder_update_callback));
-    SendNextPayload();
-  } else {
-    SendAllPayloads(std::move(payload_transder_update_callback));
-  }
-}
-
-void OutgoingShareSession::SendAllPayloads(
-    std::function<void()> payload_transder_update_callback) {
   InitializePayloadTracker(std::move(payload_transder_update_callback));
-  for (auto& payload : ExtractTextPayloads()) {
-    connections_manager().Send(
-        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
-  }
-  for (auto& payload : ExtractFilePayloads()) {
-    connections_manager().Send(
-        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
-  }
-  for (auto& payload : ExtractWifiCredentialsPayloads()) {
-    connections_manager().Send(
-        endpoint_id(), std::make_unique<Payload>(payload), payload_tracker());
-  }
-}
-
-void OutgoingShareSession::InitSendPayload(
-    std::function<void()> payload_transder_update_callback) {
-  InitializePayloadTracker(std::move(payload_transder_update_callback));
+  SendNextPayload();
 }
 
 void OutgoingShareSession::SendNextPayload() {
@@ -470,18 +443,6 @@ OutgoingShareSession::HandleConnectionResponse(
       break;
   }
   return TransferMetadata::Status::kFailed;
-}
-
-std::vector<Payload> OutgoingShareSession::ExtractTextPayloads() {
-  return std::move(text_payloads_);
-}
-
-std::vector<Payload> OutgoingShareSession::ExtractFilePayloads() {
-  return std::move(file_payloads_);
-}
-
-std::vector<Payload> OutgoingShareSession::ExtractWifiCredentialsPayloads() {
-  return std::move(wifi_credentials_payloads_);
 }
 
 std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {

@@ -676,68 +676,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
   ASSERT_THAT(status.has_value(), IsFalse());
 }
 
-TEST_F(OutgoingShareSessionTest, SendPayloadsDisableCancellationOptimization) {
-  InitSendAttachments(CreateDefaultAttachmentContainer());
-  session_.set_session_id(1234);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
-  session_.CreateTextPayloads();
-  session_.CreateWifiCredentialsPayloads();
-  MockFunction<void()> payload_transder_update_callback;
-  StrictMock<MockFunction<void(
-      std::unique_ptr<Payload>,
-      std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>)>>
-      send_payload_callback;
-  connections_manager_.set_send_payload_callback(
-      send_payload_callback.AsStdFunction());
-  EXPECT_CALL(send_payload_callback, Call(_, _))
-      .WillOnce(Invoke(
-          [this](
-              std::unique_ptr<Payload> payload,
-              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
-            payload->id = session_.attachment_payload_map().at(file1_.id());
-          }))
-      .WillOnce(Invoke(
-          [this](
-              std::unique_ptr<Payload> payload,
-              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
-            payload->id = session_.attachment_payload_map().at(text1_.id());
-          }))
-      .WillOnce(Invoke(
-          [this](
-              std::unique_ptr<Payload> payload,
-              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
-            payload->id = session_.attachment_payload_map().at(text2_.id());
-          }))
-      .WillOnce(Invoke(
-          [this](
-              std::unique_ptr<Payload> payload,
-              std::weak_ptr<NearbyConnectionsManager::PayloadStatusListener>) {
-            payload->id = session_.attachment_payload_map().at(wifi1_.id());
-          }));
-  EXPECT_CALL(mock_event_logger_,
-              Log(Matcher<const SharingLog&>(
-                  AllOf((HasCategory(EventCategory::SENDING_EVENT),
-                         HasEventType(EventType::SEND_ATTACHMENTS_START),
-                         Property(&SharingLog::send_attachments_start,
-                                  HasSessionId(1234)))))));
-  NearbyConnectionImpl connection(device_info_);
-  ConnectionSuccess(&connection);
-
-  session_.SendPayloads(
-      /*enable_transfer_cancellation_optimization=*/
-      false, [](std::optional<V1Frame> frame) {},
-      payload_transder_update_callback.AsStdFunction());
-
-  auto payload_listener = session_.payload_tracker().lock();
-  EXPECT_THAT(payload_listener, IsTrue());
-}
-
-TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
+TEST_F(OutgoingShareSessionTest, SendPayloads) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
   session_.set_session_id(1234);
   std::vector<NearbyFileHandler::FileInfo> file_infos;
@@ -771,9 +710,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsEnableCancellationOptimization) {
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SendPayloads(
-      /*enable_transfer_cancellation_optimization=*/
-      true, [](std::optional<V1Frame> frame) {},
+  session_.SendPayloads([](std::optional<V1Frame> frame) {},
       payload_transder_update_callback.AsStdFunction());
 
   auto payload_listener = session_.payload_tracker().lock();
@@ -815,9 +752,7 @@ TEST_F(OutgoingShareSessionTest, SendNextPayload) {
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
 
-  session_.SendPayloads(
-      /*enable_transfer_cancellation_optimization=*/
-      true, [](std::optional<V1Frame> frame) {},
+  session_.SendPayloads([](std::optional<V1Frame> frame) {},
       payload_transder_update_callback.AsStdFunction());
 
   EXPECT_CALL(send_payload_callback, Call(_, _))

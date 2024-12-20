@@ -119,7 +119,6 @@ class OutgoingShareSession : public ShareSession {
   // `payload_transder_update_callback`.
   // Any other frames received will be passed to `frame_read_callback`.
   void SendPayloads(
-      bool enable_transfer_cancellation_optimization,
       std::function<
           void(std::optional<nearby::sharing::service::proto::V1Frame> frame)>
           frame_read_callback,
@@ -166,18 +165,6 @@ class OutgoingShareSession : public ShareSession {
   // Calculates transport type based on attachment size.
   TransportType GetTransportType(bool disable_wifi_hotspot) const;
 
-  // Create a payload status listener to send status change to
-  // `payload_transder_update_callback`.
-  // Send all payloads to NearbyConnectionManager.
-  void SendAllPayloads(std::function<void()> payload_transder_update_callback);
-
-  // Create a payload status listener to send status change to
-  // `payload_transder_update_callback`.
-  void InitSendPayload(std::function<void()> payload_transder_update_callback);
-
-  std::vector<Payload> ExtractTextPayloads();
-  std::vector<Payload> ExtractFilePayloads();
-  std::vector<Payload> ExtractWifiCredentialsPayloads();
   std::optional<Payload> ExtractNextPayload();
   bool FillIntroductionFrame(
       nearby::sharing::service::proto::IntroductionFrame* introduction) const;

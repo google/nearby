@@ -2639,15 +2639,11 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
   }
 
   // check whether need to send next payload.
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kEnableTransferCancellationOptimization)) {
-    if (metadata.in_progress_attachment_transferred_bytes().has_value() &&
-        metadata.in_progress_attachment_total_bytes().has_value() &&
-        *metadata.in_progress_attachment_transferred_bytes() ==
-            *metadata.in_progress_attachment_total_bytes()) {
-      session.SendNextPayload();
-    }
+  if (metadata.in_progress_attachment_transferred_bytes().has_value() &&
+      metadata.in_progress_attachment_total_bytes().has_value() &&
+      *metadata.in_progress_attachment_transferred_bytes() ==
+          *metadata.in_progress_attachment_total_bytes()) {
+    session.SendNextPayload();
   }
 
   if (has_foreground_send_surface && metadata.is_final_status()) {
@@ -2848,9 +2844,6 @@ void NearbySharingServiceImpl::OnReceiveConnectionResponse(
     return;
   }
   session->SendPayloads(
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kEnableTransferCancellationOptimization),
       [this, share_target_id](
           std::optional<nearby::sharing::service::proto::V1Frame> frame) {
         OnFrameRead(share_target_id, std::move(frame));
