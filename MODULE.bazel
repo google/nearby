@@ -2,17 +2,19 @@ bazel_dep(name = "platforms", version = "0.0.10")
 bazel_dep(name = "rules_cc", version = "0.0.16")
 bazel_dep(name = "rules_rust", version = "0.54.1")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
-
 bazel_dep(name = "abseil-cpp", version = "20240116.1", repo_name = "com_google_absl")
-bazel_dep(name = "protobuf", version = "28.3", repo_name = "com_google_protobuf")
+
+# version of prebuilt protoc in com_github_protobuf_prebuilt must match this.
+bazel_dep(name = "protobuf", version = "29.0", repo_name = "com_google_protobuf")
 bazel_dep(name = "googletest", version = "1.14.0", repo_name = "com_google_googletest")
 bazel_dep(name = "boringssl", version = "0.0.0-20240126-22d349c")
 
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
 git_repository(
     name = "beto-core",
-    remote = "https://beto-core.googlesource.com/beto-core",
     commit = "415bd032561d078720642d52e28fd3bc9d5155d4",
+    remote = "https://beto-core.googlesource.com/beto-core",
 )
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
@@ -21,6 +23,7 @@ rust.toolchain(
     versions = ["1.77.1"],
 )
 use_repo(rust, "rust_toolchains")
+
 register_toolchains("@rust_toolchains//:all")
 
 crate = use_extension(
@@ -46,7 +49,6 @@ http_archive(
 
 http_archive(
     name = "aappleby_smhasher",
-    strip_prefix = "smhasher-master",
     build_file_content = """
 package(default_visibility = ["//visibility:public"])
 cc_library(
@@ -56,12 +58,12 @@ cc_library(
     copts = ["-Wno-implicit-fallthrough"],
     licenses = ["unencumbered"],  # MurmurHash is explicity public-domain
 )""",
+    strip_prefix = "smhasher-master",
     urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
 )
 
 http_archive(
     name = "nlohmann_json",
-    strip_prefix = "json-3.10.5",
     build_file_content = """
 cc_library(
   name = "json",
@@ -72,6 +74,7 @@ cc_library(
   visibility = ["//visibility:public"],
   alwayslink = True,
 )""",
+    strip_prefix = "json-3.10.5",
     urls = [
         "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
     ],
@@ -85,8 +88,8 @@ cc_library(
 #   https://github.com/google-research/nisaba
 http_archive(
     name = "com_google_nisaba",
-    url = "https://github.com/google-research/nisaba/archive/refs/heads/main.zip",
     strip_prefix = "nisaba-main",
+    url = "https://github.com/google-research/nisaba/archive/refs/heads/main.zip",
 )
 
 # -------------------------------------------------------------------------
@@ -94,6 +97,19 @@ http_archive(
 #   https://github.com/inazarenko/protobuf-matchers
 http_archive(
     name = "com_github_protobuf_matchers",
-    urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
     strip_prefix = "protobuf-matchers-master",
+    urls = ["https://github.com/inazarenko/protobuf-matchers/archive/refs/heads/master.zip"],
+)
+
+http_archive(
+    name = "com_github_protobuf_prebuilt",
+    build_file_content = """
+filegroup(
+    name = "protoc",
+    srcs = ["bin/protoc"],
+    visibility = ["//visibility:public"],
+)""",
+    urls = [
+        "https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protoc-29.0-linux-x86_64.zip",
+    ],
 )
