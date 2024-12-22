@@ -467,7 +467,7 @@ std::optional<Payload> OutgoingShareSession::ExtractNextPayload() {
   return std::nullopt;
 }
 
-void OutgoingShareSession::DelayCompleteMetadata(
+void OutgoingShareSession::DelayComplete(
     const TransferMetadata& complete_metadata) {
   LOG(INFO)
       << "Delay complete notification until receiver disconnects for target "
@@ -478,12 +478,14 @@ void OutgoingShareSession::DelayCompleteMetadata(
       TransferMetadataBuilder::Clone(complete_metadata);
   builder.set_status(TransferMetadata::Status::kInProgress);
   UpdateTransferMetadata(builder.build());
-}
-
-void OutgoingShareSession::DisconnectionTimeout() {
-  VLOG(1) << "Disconnection delay timeed out for target " << share_target().id;
-  pending_complete_metadata_.reset();
-  Disconnect();
+  disconnection_timeout_ = std::make_unique<ThreadTimer>(
+      service_thread(), "disconnection_timeout_alarm",
+      kOutgoingDisconnectionDelay, [this]() {
+        VLOG(1) << "Disconnection delay timed out for target "
+                << share_target().id;
+        pending_complete_metadata_.reset();
+        Disconnect();
+      });
 }
 
 void OutgoingShareSession::UpdateSessionForDedup(

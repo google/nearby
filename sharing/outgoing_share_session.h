@@ -130,11 +130,13 @@ class OutgoingShareSession : public ShareSession {
   // Called when all payloads have been sent.
   void SendAttachmentsCompleted(const TransferMetadata& metadata);
 
-  // Cache the kComplete metadata in pending_complete_metadata_ and forward a
-  // modified copy that changes kComplete into kInProgress.
-  void DelayCompleteMetadata(const TransferMetadata& complete_metadata);
-  // Disconnect timeout expired without receiving client disconnect.
-  void DisconnectionTimeout();
+  // Wait for receiver to close connection before we notify that the transfer
+  // has succeeded.  Here we delay the `complete_metadata` update until receiver
+  // disconnects and forward a modified copy that changes kComplete into
+  // kInProgress.
+  // A 1 min timer is setup so that if we do not receive disconnect from
+  // receiver, we assume the transfer has failed.
+  void DelayComplete(const TransferMetadata& complete_metadata);
   // Used only for OutgoingShareSession De-duplication.
   void UpdateSessionForDedup(
       const ShareTarget& share_target,
@@ -183,6 +185,8 @@ class OutgoingShareSession : public ShareSession {
   std::unique_ptr<ThreadTimer> mutual_acceptance_timeout_;
   std::optional<TransferMetadata> pending_complete_metadata_;
   absl::Time connection_start_time_;
+  // Timeout waiting for remote disconnect in order to complete transfer.
+  std::unique_ptr<ThreadTimer> disconnection_timeout_;
 };
 
 }  // namespace nearby::sharing
