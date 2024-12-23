@@ -43,6 +43,8 @@ class AccountManager {
     // |credential_error| is true if the logout is due to critical auth error.
     virtual void OnLogoutSucceeded(absl::string_view account_id,
                                    bool credential_error) = 0;
+    // Only needed by certificate manager.
+    virtual void OnIconChanged() {};
   };
 
   virtual ~AccountManager() = default;
@@ -83,7 +85,8 @@ class AccountManager {
 
   virtual void SaveAccountPrefs(absl::string_view user_id,
                                 absl::string_view client_id,
-                                absl::string_view client_secret) = 0;
+                                absl::string_view client_secret,
+                                absl::string_view picture_url) = 0;
 };
 
 }  // namespace nearby

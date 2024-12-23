@@ -919,6 +919,16 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,
+       RefreshPrivateCertificates_OnIconChanged) {
+  cert_manager_->Start();
+  fake_account_manager_.NotifyIconChanged();
+  Sync();
+  EXPECT_TRUE(cert_store_->GetPrivateCertificates()->empty());
+  EXPECT_EQ(1,
+            private_cert_exp_scheduler_->num_immediate_requests());
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_OnVendorIdChanged) {
   cert_store_->ReplacePrivateCertificates({});
   cert_manager_->Start();

@@ -31,6 +31,7 @@ class MockAccountObserver : public AccountManager::Observer {
   MOCK_METHOD(void, OnLogoutSucceeded,
               (absl::string_view account_id, bool credential_error),
               (override));
+  MOCK_METHOD(void, OnIconChanged, (), (override));
 };
 
 }  // namespace nearby

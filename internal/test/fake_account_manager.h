@@ -52,7 +52,8 @@ class FakeAccountManager : public AccountManager {
   void RemoveObserver(Observer* observer) override;
 
   void SaveAccountPrefs(absl::string_view user_id, absl::string_view client_id,
-                        absl::string_view client_secret) override {}
+                        absl::string_view client_secret,
+                        absl::string_view picture_url) override {}
 
   // Methods to set API response.
   void SetAccount(std::optional<Account> account);
@@ -67,6 +68,7 @@ class FakeAccountManager : public AccountManager {
 
   void NotifyLogin(absl::string_view account_id);
   void NotifyLogout(absl::string_view account_id, bool credential_error);
+  void NotifyIconChanged();
 
  private:
   // Login will fail when account_ is empty.
