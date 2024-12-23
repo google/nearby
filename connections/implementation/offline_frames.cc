@@ -15,7 +15,6 @@
 #include "connections/implementation/offline_frames.h"
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -36,7 +35,6 @@ namespace {
 
 using ExceptionOrOfflineFrame =
     ExceptionOr<::location::nearby::connections::OfflineFrame>;
-using MessageLite = ::google::protobuf::MessageLite;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;

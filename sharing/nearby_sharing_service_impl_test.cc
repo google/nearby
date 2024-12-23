@@ -95,7 +95,6 @@
 #include "sharing/transfer_metadata_matchers.h"
 #include "sharing/transfer_update_callback.h"
 #include "sharing/wifi_credentials_attachment.h"
-#include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby::sharing {
 namespace {

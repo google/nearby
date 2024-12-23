@@ -158,19 +158,6 @@ cc_library(
 )
 
 cc_library(
-    name = "message_lite",
-    hdrs = [
-        "message_lite.h",
-    ],
-    visibility = [
-        "//connections:__subpackages__",
-    ],
-    deps = [
-        "@com_google_protobuf//:protobuf_lite",
-    ],
-)
-
-cc_library(
     name = "internal_test",
     testonly = True,
     srcs = [

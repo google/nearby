@@ -34,7 +34,6 @@
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_target.h"
 #include "sharing/wifi_credentials_attachment.h"
-#include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
 namespace sharing {

@@ -69,7 +69,6 @@
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/scheduling/nearby_share_scheduler.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
-#include "google/protobuf/repeated_ptr_field.h"
 
 namespace nearby {
 namespace sharing {
