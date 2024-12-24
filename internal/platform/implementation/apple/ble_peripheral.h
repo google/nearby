@@ -75,8 +75,9 @@ class BlePeripheral : public api::ble_v2::BlePeripheral {
   // Returns the CoreBluetooth peripheral object.
   id<GNCPeripheral> GetPeripheral() const;
 
- private:
   id<GNCPeripheral> peripheral_;
+
+ private:
   api::ble_v2::BlePeripheral::UniqueId unique_id_;
 };
 
