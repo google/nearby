@@ -17,6 +17,8 @@
 
 #include <cstdint>
 
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/array_blocking_queue.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -39,10 +41,15 @@ class BlockingQueueStream : public InputStream {
 
  private:
   mutable Mutex mutex_;
-  ArrayBlockingQueue<ByteArray> blocking_queue_{FeatureFlags::GetInstance()
-                 .GetFlags()
-                 .blocking_queue_stream_queue_capacity};
-  ByteArray queue_end_{0};
+  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
+      connections::config_package_nearby::nearby_connections_feature::
+          kEnableMultiplex);
+  ArrayBlockingQueue<ByteArray> blocking_queue_{
+      FeatureFlags::GetInstance()
+          .GetFlags()
+          .blocking_queue_stream_queue_capacity};
+  ByteArray queue_head_;
+  ByteArray queue_end_ = ByteArray();
   bool is_writing_ = false;
   bool is_closed_ = false;
 };

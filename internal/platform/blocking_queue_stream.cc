@@ -14,7 +14,9 @@
 
 #include "internal/platform/blocking_queue_stream.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -24,26 +26,48 @@
 namespace nearby {
 
 BlockingQueueStream::BlockingQueueStream() {
-  NEARBY_LOGS(INFO) << "Create a BlockingQueueStream with size "
+  LOG(INFO) << "Create a BlockingQueueStream with size "
                     << FeatureFlags::GetInstance()
                            .GetFlags()
                            .blocking_queue_stream_queue_capacity;
 }
 
 ExceptionOr<ByteArray> BlockingQueueStream::Read(std::int64_t size) {
+  if (!is_multiplex_enabled_) {
+    LOG(INFO) << "Multiplex is not enabled, drop the read.";
+    return ExceptionOr<ByteArray>(Exception::kExecution);
+  }
+
   if (is_closed_) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Failed to read BlockingQueueStream because it was closed.";
     return ExceptionOr<ByteArray>(Exception::kInterrupted);
   }
-  NEARBY_LOGS(INFO) << "BlockingQueueStream expect to read " << size
-                    << " bytes";
-  return ExceptionOr<ByteArray>(blocking_queue_.Take());
+
+  ByteArray bytes = queue_head_.Empty() ? blocking_queue_.Take() : queue_head_;
+  if (bytes == queue_end_) {
+    LOG(INFO) << "BlockingQueueStream is Interrupted.";
+    return ExceptionOr<ByteArray>(Exception::kInterrupted);
+  }
+
+  int copy_len = std::min<int>(size, bytes.size());
+  ByteArray buffer;
+  buffer.SetData(bytes.data(), copy_len);
+  if (copy_len < bytes.size()) {
+    queue_head_ = ByteArray(bytes.data() + copy_len, bytes.size() - copy_len);
+  } else {
+    queue_head_ = ByteArray();
+  }
+  return ExceptionOr<ByteArray>(std::move(buffer));
 }
 
 void BlockingQueueStream::Write(const ByteArray& bytes) {
+  if (!is_multiplex_enabled_) {
+    LOG(INFO) << "Multiplex is not enabled, drop the write.";
+    return;
+  }
   if (is_closed_) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Failed to write BlockingQueueStream because it was closed.";
     return;
   }
@@ -54,18 +78,22 @@ void BlockingQueueStream::Write(const ByteArray& bytes) {
 }
 
 Exception BlockingQueueStream::Close() {
+  if (!is_multiplex_enabled_) {
+    LOG(INFO) << "Multiplex is not enabled, drop the write.";
+    return {Exception::kExecution};
+  }
   if (is_closed_) {
-    NEARBY_LOGS(INFO) << "InputBlockingQueueStream has already been closed.";
+    LOG(INFO) << "InputBlockingQueueStream has already been closed.";
     return {Exception::kSuccess};
   }
   if (is_writing_) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "BlockingQueueStream is waiting for writing, read first to unblock";
     blocking_queue_.TryTake();
   }
   blocking_queue_.TryPut(queue_end_);
   is_closed_ = true;
-  NEARBY_LOGS(INFO) << "InputBlockingQueueStream is closed.";
+  LOG(INFO) << "InputBlockingQueueStream is closed.";
   return {Exception::kSuccess};
 }
 

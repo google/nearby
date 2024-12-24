@@ -271,6 +271,7 @@ cc_library(
     deps = [
         ":base",
         ":util",
+        "//connections/implementation/flags:connections_flags",
         "//internal/base:files",
         "//internal/crypto_cros",
         "//internal/flags:nearby_flags",
@@ -459,6 +460,7 @@ cc_test(
         "ble_connection_info_test.cc",
         "ble_test.cc",
         "ble_v2_test.cc",
+        "blocking_queue_stream_test.cc",
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_connection_info_test.cc",
@@ -476,6 +478,8 @@ cc_test(
         ":connection_info",
         ":test_util",
         ":types",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
