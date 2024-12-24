@@ -281,11 +281,13 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
       executor_(context->CreateSequencedTaskRunner()) {
   local_device_data_manager_->AddObserver(this);
   contact_manager_->AddObserver(this);
+  account_manager_.AddObserver(this);
 }
 
 NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
   local_device_data_manager_->RemoveObserver(this);
   contact_manager_->RemoveObserver(this);
+  account_manager_.RemoveObserver(this);
 }
 
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
@@ -631,6 +633,15 @@ void NearbyShareCertificateManagerImpl::OnLocalDeviceDataChanged(
     if (!did_device_name_change && !did_full_name_change && !did_icon_change)
       return;
 
+    // Recreate all private certificates to ensure up-to-date metadata.
+    certificate_storage_->ClearPrivateCertificates();
+    private_certificate_expiration_scheduler_->MakeImmediateRequest();
+  });
+}
+
+void NearbyShareCertificateManagerImpl::OnIconChanged() {
+  executor_->PostTask([this]() {
+    LOG(INFO) << __func__ << ": handle icon changed.";
     // Recreate all private certificates to ensure up-to-date metadata.
     certificate_storage_->ClearPrivateCertificates();
     private_certificate_expiration_scheduler_->MakeImmediateRequest();

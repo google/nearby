@@ -61,6 +61,7 @@ class NearbyShareScheduler;
 class NearbyShareCertificateManagerImpl
     : public NearbyShareCertificateManager,
       public NearbyShareContactManager::Observer,
+      public ::nearby::AccountManager::Observer,
       public NearbyShareLocalDeviceDataManager::Observer {
  public:
   class Factory {
@@ -173,6 +174,12 @@ class NearbyShareCertificateManagerImpl
   void OnLocalDeviceDataChanged(bool did_device_name_change,
                                 bool did_full_name_change,
                                 bool did_icon_change) override;
+
+  //   // AccountManager::Observer:
+  void OnLoginSucceeded(absl::string_view account_id) override {};
+  void OnLogoutSucceeded(absl::string_view account_id,
+                         bool credential_error) override {};
+  void OnIconChanged() override;
 
   // Dump certs information.
   std::string Dump() const override;

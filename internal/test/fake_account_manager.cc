@@ -96,4 +96,10 @@ void FakeAccountManager::NotifyLogout(absl::string_view account_id,
   }
 }
 
+void FakeAccountManager::NotifyIconChanged() {
+  for (const auto& observer : observers_.GetObservers()) {
+    observer->OnIconChanged();
+  }
+}
+
 }  // namespace nearby

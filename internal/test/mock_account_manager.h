@@ -49,7 +49,7 @@ class MockAccountManager : public AccountManager {
   MOCK_METHOD(void, RemoveObserver, (Observer * observer), (override));
   MOCK_METHOD(void, SaveAccountPrefs,
               (absl::string_view user_id, absl::string_view client_id,
-               absl::string_view client_secret),
+               absl::string_view client_secret, absl::string_view picture_url),
               (override));
 };
 
