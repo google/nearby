@@ -110,7 +110,7 @@ swift build
 | BLE (GATT)        | <ul><li>[ ] </li></ul> | <ul><li>[ ] </li></ul> | <ul><li>[ ] </li></ul> |
 | BLE (Extended)    | <ul><li>[ ] </li></ul> | <ul><li>[ ] </li></ul> |                        |
 | BLE (L2CAP)       |                        |                        |                        |
-| Wi-Fi LAN         | <ul><li>[ ] </li></ul> | <ul><li>[ ] </li></ul> | <ul><li>[x] </li></ul> |
+| Wi-Fi LAN         | <ul><li>[ ] </li></ul> | <ul><li>[x] </li></ul> | <ul><li>[x] </li></ul> |
 | Wi-Fi Hotspot     |                        |                        | <ul><li>[ ] </li></ul> |
 | Wi-Fi Direct      |                        |                        | <ul><li>[ ] </li></ul> |
 | Wi-Fi Aware       |                        |                        |                        |
