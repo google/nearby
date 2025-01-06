@@ -150,7 +150,6 @@ cc_library(
         "//location/nearby/sharing/sdk:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":comm",

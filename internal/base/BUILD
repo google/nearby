@@ -26,7 +26,6 @@ cc_library(
         "//internal/platform:__pkg__",
         "//internal/test:__pkg__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "//internal/platform:types",
@@ -46,7 +45,6 @@ cc_library(
     visibility = [
         "//internal:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/strings",

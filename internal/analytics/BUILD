@@ -23,7 +23,6 @@ cc_library(
         "//location/nearby/analytics/cpp:__subpackages__",
         "//location/nearby/cpp/experiments:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "//internal/proto/analytics:connections_log_cc_proto",

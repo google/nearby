@@ -29,7 +29,6 @@ cc_library(
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/status",
@@ -58,7 +57,6 @@ cc_library(
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":url",
@@ -87,7 +85,6 @@ cc_library(
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":types",

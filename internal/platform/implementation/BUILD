@@ -48,7 +48,6 @@ cc_library(
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
         "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":account_info",
@@ -116,7 +115,6 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
-        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "//internal/crypto_cros",
@@ -174,7 +172,6 @@ cc_library(
         "//internal/platform/implementation:__subpackages__",
         "//presence:__subpackages__",
         "//presence/implementation:__subpackages__",
-        "//third_party/nearby/fastpair/internal/mediums:__pkg__",
     ],
     deps = [
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
