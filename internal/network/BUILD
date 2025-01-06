@@ -25,11 +25,11 @@ cc_library(
         "utils.h",
     ],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/status",
@@ -54,11 +54,11 @@ cc_library(
         "http_status_code.h",
     ],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":url",
@@ -84,10 +84,10 @@ cc_library(
     ],
     defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":types",

@@ -42,13 +42,13 @@ cc_library(
     name = "account_manager",
     hdrs = ["account_manager.h"],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal/account:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
         "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":account_info",
@@ -107,7 +107,6 @@ cc_library(
     visibility = [
         "//connections/implementation:__subpackages__",
         "//connections/implementation/analytics:__subpackages__",
-        "//fastpair:__subpackages__",
         "//internal/crypto_cros:__pkg__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
@@ -117,6 +116,7 @@ cc_library(
         "//location/nearby/cpp/sharing:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "//internal/crypto_cros",
@@ -169,12 +169,12 @@ cc_library(
     copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__subpackages__",
-        "//fastpair/internal/mediums:__pkg__",
         "//internal/network:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//presence:__subpackages__",
         "//presence/implementation:__subpackages__",
+        "//third_party/nearby/fastpair/internal/mediums:__pkg__",
     ],
     deps = [
         "//connections/implementation/proto:offline_wire_formats_cc_proto",

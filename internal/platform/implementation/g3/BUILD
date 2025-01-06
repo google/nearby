@@ -136,7 +136,6 @@ cc_library(
     visibility = [
         "//connections:__subpackages__",
         "//connections:partners",
-        "//fastpair:__subpackages__",
         "//internal/account:__subpackages__",
         "//internal/auth:__subpackages__",
         "//internal/crypto:__subpackages__",
@@ -151,6 +150,7 @@ cc_library(
         "//location/nearby/sharing/sdk:__subpackages__",
         "//presence:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         ":comm",

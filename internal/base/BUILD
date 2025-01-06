@@ -22,11 +22,11 @@ cc_library(
         "observer_list.h",
     ],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal/account:__subpackages__",
         "//internal/platform:__pkg__",
         "//internal/test:__pkg__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "//internal/platform:types",
@@ -44,9 +44,9 @@ cc_library(
         "bluetooth_address.h",
     ],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
     deps = [
         "@com_google_absl//absl/strings",

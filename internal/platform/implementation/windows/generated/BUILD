@@ -42,10 +42,10 @@ cc_library(
         "shlwapi.lib",
     ],
     visibility = [
-        "//fastpair:__subpackages__",
         "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/apps/better_together/plugins:__subpackages__",
         "//sharing:__subpackages__",
+        "//third_party/nearby/fastpair:__subpackages__",
     ],
 )
