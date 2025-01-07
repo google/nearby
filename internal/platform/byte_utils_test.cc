@@ -14,7 +14,10 @@
 
 #include "internal/platform/byte_utils.h"
 
+#include <string>
+
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -22,6 +25,8 @@ namespace nearby {
 constexpr absl::string_view kFooBytes{"rawABCDE"};
 constexpr absl::string_view kFooFourDigitsToken{"0392"};
 constexpr absl::string_view kEmptyFourDigitsToken{"0000"};
+constexpr absl::string_view kNegativeBytes{"raw\xd5\x01\xe4\x03\x81"};
+constexpr absl::string_view kNegativeFourDigitsToken{"9084"};
 
 TEST(ByteUtilsTest, ToFourDigitStringCorrect) {
   ByteArray bytes{std::string(kFooBytes)};
@@ -29,6 +34,14 @@ TEST(ByteUtilsTest, ToFourDigitStringCorrect) {
   auto four_digit_string = ByteUtils::ToFourDigitString(bytes);
 
   EXPECT_EQ(std::string(kFooFourDigitsToken), four_digit_string);
+}
+
+TEST(ByteUtilsTest, ToFourDigitStringNegativeCorrect) {
+  ByteArray bytes{std::string(kNegativeBytes)};
+
+  auto four_digit_string = ByteUtils::ToFourDigitString(bytes);
+
+  EXPECT_EQ(std::string(kNegativeFourDigitsToken), kNegativeFourDigitsToken);
 }
 
 TEST(ByteUtilsTest, TestEmptyByteArrayCorrect) {

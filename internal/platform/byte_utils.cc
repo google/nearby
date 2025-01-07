@@ -14,6 +14,7 @@
 
 #include "internal/platform/byte_utils.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 
@@ -29,7 +30,7 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
 
   BaseInputStream base_input_stream{bytes};
   while (base_input_stream.IsAvailable(1)) {
-    auto byte = static_cast<int>(base_input_stream.ReadUint8());
+    auto byte = static_cast<int8_t>(base_input_stream.ReadUint8());
     hashCode = (hashCode + byte * multiplier) % kHashBasePrime;
     multiplier = multiplier * kHashBaseMultiplier % kHashBasePrime;
   }
