@@ -77,6 +77,8 @@ class OutputFile final {
   OutputFile(OutputFile&&) noexcept;
   OutputFile& operator=(OutputFile&&);
 
+  bool IsValid() const;
+
   // Writes all data from ByteArray object to the underlying stream.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Write(const ByteArray& data);

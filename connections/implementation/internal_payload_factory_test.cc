@@ -132,7 +132,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamMessage) {
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
   PayloadTransferFrame frame;
-  std::string path = "C:\\Downloads";
+  std::string path = "/tmp/Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
@@ -153,7 +153,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
 TEST(InternalPayloadFactoryTest,
      InternalPayloadFromFileMessageWithoutIdReturnsNullptr) {
   PayloadTransferFrame frame;
-  std::string path = "C:\\Downloads";
+  std::string path = "/tmp/Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
@@ -166,7 +166,7 @@ TEST(InternalPayloadFactoryTest,
 TEST(InternalPayloadFactoryTest,
      CanCreateInternalPayloadFromFileMessageWithFileNameNotSet) {
   PayloadTransferFrame frame;
-  std::string path = "C:\\Downloads";
+  std::string path = "/tmp/Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
@@ -180,10 +180,11 @@ TEST(InternalPayloadFactoryTest,
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "12345");
 }
+
 TEST(InternalPayloadFactoryTest,
      CanCreateInternalPayloadFromFileMessageWithFileNameSet) {
   PayloadTransferFrame frame;
-  std::string path = "C:\\Downloads";
+  std::string path = "/tmp/Downloads";
   frame.set_packet_type(PayloadTransferFrame::DATA);
   auto& header = *frame.mutable_payload_header();
   header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
@@ -198,6 +199,23 @@ TEST(InternalPayloadFactoryTest,
   auto test = internal_payload->GetFileName();
   Payload payload = internal_payload->ReleasePayload();
   EXPECT_EQ(payload.GetFileName(), "test.file.name");
+}
+
+TEST(InternalPayloadFactoryTest,
+     CreateInternalPayloadFailsIfFileCannotBeCreated) {
+  PayloadTransferFrame frame;
+  // /dev/null is a special file, no sub directories can be created
+  std::string path = "/dev/null";
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(512);
+  header.set_file_name("test.file.name");
+  header.set_parent_folder("Downloads2");
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_TRUE(result.has_error());
 }
 
 void CreateFileWithContents(Payload::Id payload_id, const ByteArray& contents) {

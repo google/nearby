@@ -61,6 +61,7 @@ OutputFile::~OutputFile() = default;
 OutputFile::OutputFile(OutputFile&&) noexcept = default;
 OutputFile& OutputFile::operator=(OutputFile&&) = default;
 
+bool OutputFile::IsValid() const { return impl_ != nullptr; }
 // Writes all data from ByteArray object to the underlying stream.
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception OutputFile::Write(const ByteArray& data) {

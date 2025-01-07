@@ -76,7 +76,7 @@ class BytesInternalPayload : public InternalPayload {
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    NEARBY_LOGS(WARNING) << "Bytes payload does not support offsets";
+    LOG(WARNING) << "Bytes payload does not support offsets";
     return {Exception::kIo};
   }
 
@@ -115,8 +115,8 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     ByteArray scoped_bytes_read = std::move(bytes_read.result());
 
     if (scoped_bytes_read.Empty()) {
-      NEARBY_LOGS(INFO) << "No more data for outgoing payload " << this
-                        << ", closing InputStream.";
+      LOG(INFO) << "No more data for outgoing payload " << this
+                << ", closing InputStream.";
 
       input_stream->Close();
       return {};
@@ -142,9 +142,8 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     if (!real_offset.ok()) {
       return real_offset;
     }
-    NEARBY_LOGS(WARNING) << "Skip offset: " << real_offset.GetResult()
-                         << ", expected offset: " << offset << " for payload "
-                         << this;
+    LOG(WARNING) << "Skip offset: " << real_offset.GetResult()
+                 << ", expected offset: " << offset << " for payload " << this;
     return {Exception::kIo};
   }
 
@@ -172,8 +171,8 @@ class IncomingStreamInternalPayload : public InternalPayload {
 
   Exception AttachNextChunk(const ByteArray& chunk) override {
     if (chunk.Empty()) {
-      NEARBY_LOGS(INFO) << "Received null last chunk for incoming payload "
-                        << this << ", closing OutputStream.";
+      LOG(INFO) << "Received null last chunk for incoming payload " << this
+                << ", closing OutputStream.";
       Close();
       return {Exception::kSuccess};
     }
@@ -182,8 +181,7 @@ class IncomingStreamInternalPayload : public InternalPayload {
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    NEARBY_LOGS(WARNING) << "Cannot skip offset for an incoming Payload "
-                         << this;
+    LOG(WARNING) << "Cannot skip offset for an incoming Payload " << this;
     return {Exception::kIo};
   }
 
@@ -234,7 +232,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    NEARBY_LOGS(INFO) << "SkipToOffset " << offset;
+    LOG(INFO) << "SkipToOffset " << offset;
     InputFile* file = payload_.AsFile();
     if (!file) {
       return {Exception::kIo};
@@ -249,9 +247,9 @@ class OutgoingFileInternalPayload : public InternalPayload {
     if (!real_offset.ok()) {
       return real_offset;
     }
-    NEARBY_LOGS(WARNING) << "Skip offset: " << real_offset.GetResult()
-                         << ", expected offset: " << offset
-                         << " for file payload " << this;
+    LOG(WARNING) << "Skip offset: " << real_offset.GetResult()
+                 << ", expected offset: " << offset << " for file payload "
+                 << this;
     return {Exception::kIo};
   }
 
@@ -294,8 +292,7 @@ class IncomingFileInternalPayload : public InternalPayload {
   }
 
   ExceptionOr<size_t> SkipToOffset(size_t offset) override {
-    NEARBY_LOGS(WARNING) << "Cannot skip offset for an incoming file Payload "
-                         << this;
+    LOG(WARNING) << "Cannot skip offset for an incoming file Payload " << this;
     return {Exception::kIo};
   }
 
@@ -399,8 +396,8 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
         } else {
           // This is an error condition, we don't have any way to generate a
           // file name for the output file.
-          NEARBY_LOGS(ERROR) << "File name not found in incoming file Payload, "
-                                "and the Id wasn't found.";
+          LOG(ERROR) << "File name not found in incoming file Payload, "
+                        "and the Id wasn't found.";
           return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
         }
       }
@@ -413,14 +410,24 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
       // there will be no input file to open.
       // On Chrome the file path should be empty, so use the payload id.
       if (ImplementationPlatform::GetCurrentOS() == OSName::kChromeOS) {
+        OutputFile output_file(payload_id);
+        if (!output_file.IsValid()) {
+          LOG(ERROR) << "Output file payload ID is not valid: " << payload_id;
+          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
+        }
         return {std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, InputFile(payload_id, total_size)),
-            OutputFile(payload_id), total_size)};
+            std::move(output_file), total_size)};
       } else {
+        OutputFile output_file(file_path);
+        if (!output_file.IsValid()) {
+          LOG(ERROR) << "Output file payload path is not valid: " << file_path;
+          return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
+        }
         return {std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, parent_folder, file_name,
                     InputFile(file_path, total_size)),
-            OutputFile(file_path), total_size)};
+            std::move(output_file), total_size)};
       }
     }
     default:
