@@ -19,6 +19,8 @@
 #include <optional>
 #include <system_error>  // NOLINT(build/c++11)
 
+#include "internal/platform/logging.h"
+
 namespace nearby::sharing {
 
 bool FileExists(const std::filesystem::path& path) {
@@ -81,6 +83,7 @@ bool Rename(const std::filesystem::path& old_path,
   std::error_code error_code;
   std::filesystem::rename(old_path, new_path, error_code);
   if (error_code) {
+    VLOG(1) << "Failed to rename file: " << error_code.message();
     return false;
   }
   return true;
@@ -90,6 +93,7 @@ bool CreateDirectories(const std::filesystem::path& path) {
   std::error_code error_code;
   std::filesystem::create_directories(path, error_code);
   if (error_code) {
+    VLOG(1) << "Failed to create directories: " << error_code.message();
     return false;
   }
   return true;
@@ -100,6 +104,7 @@ bool CreateHardLink(const std::filesystem::path& target,
   std::error_code error_code;
   std::filesystem::create_hard_link(target, link_path, error_code);
   if (error_code) {
+    VLOG(1) << "Failed to create hard link: " << error_code.message();
     return false;
   }
   return true;
@@ -110,6 +115,7 @@ bool CopyFileSafely(const std::filesystem::path& old_path,
   std::error_code error_code;
   std::filesystem::copy(old_path, new_path, error_code);
   if (error_code) {
+    VLOG(1) << "Failed to copy file: " << error_code.message();
     return false;
   }
   return true;

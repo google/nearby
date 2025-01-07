@@ -59,6 +59,7 @@ cc_library(
     srcs = ["files.cc"],
     hdrs = ["files.h"],
     visibility = ["//visibility:public"],
+    deps = ["//internal/platform:logging"],
 )
 
 cc_test(
