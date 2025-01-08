@@ -280,7 +280,11 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               })),
       executor_(context->CreateSequencedTaskRunner()) {
   local_device_data_manager_->AddObserver(this);
-  contact_manager_->AddObserver(this);
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          sharing::config_package_nearby::nearby_sharing_feature::
+              kCallNearbyIdentityApi)) {
+    contact_manager_->AddObserver(this);
+  }
 }
 
 NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
