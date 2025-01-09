@@ -175,7 +175,6 @@ class NearbyShareLocalDeviceDataManagerImplTest
         [&returned_success](bool success) { returned_success = success; });
     Sync();
     EXPECT_TRUE(client()->list_public_certificates_requests().empty());
-    auto device = client()->update_device_requests().back().device().contacts();
     std::vector<Contact> expected_fake_contacts = GetFakeContacts();
     for (size_t i = 0; i < expected_fake_contacts.size(); ++i) {
       EXPECT_EQ(expected_fake_contacts[i].SerializeAsString(),
