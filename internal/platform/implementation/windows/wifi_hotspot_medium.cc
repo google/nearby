@@ -322,7 +322,7 @@ bool WifiHotspotMedium::StopWifiHotspot() {
       publisher_.Stop();
       listener_.ConnectionRequested(connection_requested_token_);
       publisher_.StatusChanged(publisher_status_changed_token_);
-      wifi_direct_device_ = nullptr;
+      wifi_direct_devices_.clear();
       listener_ = nullptr;
       publisher_ = nullptr;
       LOG(INFO) << "succeeded to stop WiFi Hotspot";
@@ -377,7 +377,7 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
       LOG(ERROR) << "Windows WiFi Hotspot cleanup.";
       listener_.ConnectionRequested(connection_requested_token_);
       publisher_.StatusChanged(publisher_status_changed_token_);
-      wifi_direct_device_ = nullptr;
+      wifi_direct_devices_.clear();
       listener_ = nullptr;
       publisher_ = nullptr;
     }
@@ -402,13 +402,19 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
     // solve the problem. Guess when this object is created,
     // [Microsoft-Windows-WLAN-AutoConfig] will recognise it as a valid device
     // and won't kick it away.
-    wifi_direct_device_ = WiFiDirectDevice::FromIdAsync(
-                              connection_request.DeviceInformation().Id())
-                              .get();
-    LOG(INFO) << "Registered the device in WLAN-AutoConfig";
+    // We found new connection request comes in during horspot transfer. In this
+    // case, we should create a new WiFiDirectDevice for it. It will cause
+    // transfer failure if replace the old WiFiDirectDevice with it.
+    auto wifi_direct_device =
+        WiFiDirectDevice::FromIdAsync(
+            connection_request.DeviceInformation().Id())
+            .get();
+    wifi_direct_devices_.push_back(wifi_direct_device);
+    LOG(INFO) << "Registered the device " << winrt::to_string(device_name)
+              << " in WLAN-AutoConfig";
   } catch (...) {
-    LOG(ERROR) << "Failed to registered the device in WLAN-AutoConfig";
-    wifi_direct_device_ = nullptr;
+    LOG(ERROR) << "Failed to registered the device "
+               << winrt::to_string(device_name) << " in WLAN-AutoConfig";
     connection_request.Close();
   }
   return winrt::fire_and_forget();
