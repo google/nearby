@@ -536,7 +536,7 @@ class BasePcpHandler : public PcpHandler,
       std::string_view endpoint_id,
       std::unique_ptr<::securegcm::UKey2Handshake> ukey2,
       std::string_view auth_token, const ByteArray& raw_auth_token,
-      BasePcpHandler::PendingConnectionInfo& connection_info);
+      BasePcpHandler::PendingConnectionInfo& pending_connection_info);
 
   static Exception WriteConnectionRequestFrame(
       NearbyDevice::Type device_type, absl::string_view device_proto_bytes,
@@ -560,7 +560,7 @@ class BasePcpHandler : public PcpHandler,
   // not) have called ClientProxy::OnConnectionInitiated. Therefore, we'll
   // call both preInit and preResult failures.
   void ProcessTieBreakLoss(ClientProxy* client, const std::string& endpoint_id,
-                           PendingConnectionInfo* info);
+                           PendingConnectionInfo* pending_connection_info);
 
   // Returns true if the bluetooth endpoint based on remote bluetooth mac
   // address is created and appended into discovered_endpoints_ with key
@@ -621,7 +621,7 @@ class BasePcpHandler : public PcpHandler,
 
   static void LogConnectionAttemptSuccess(
       const std::string& endpoint_id,
-      const PendingConnectionInfo& connection_info);
+      const PendingConnectionInfo& pending_connection_info);
 
   // Returns true if the client cancels the operation in progress through the
   // endpoint id. This is done by CancellationFlag.
@@ -662,7 +662,7 @@ class BasePcpHandler : public PcpHandler,
   // Returns the intersection of supported mediums based on the mediums reported
   // by the remote client and the local client's advertising options.
   BooleanMediumSelector ComputeIntersectionOfSupportedMediums(
-      const PendingConnectionInfo& connection_info);
+      const PendingConnectionInfo& pending_connection_info);
 
   void OptionsAllowed(const BooleanMediumSelector& allowed,
                       std::ostringstream& result) const;

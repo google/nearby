@@ -366,16 +366,15 @@ bool BasePcpHandler::ShouldEnterStableEndpointIdMode(
 }
 
 BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
-    const PendingConnectionInfo& connection_info) {
+    const PendingConnectionInfo& pending_connection_info) {
   absl::flat_hash_set<Medium> intersection;
-  auto their_mediums = connection_info.supported_mediums;
-
+  auto their_mediums = pending_connection_info.supported_mediums;
   // If no supported mediums were set, use the default upgrade medium.
   if (their_mediums.empty()) {
     their_mediums.push_back(GetDefaultUpgradeMedium());
   }
   // TODO(b/268243340): Add Supported Medium field to ConnectionResponseFrame
-  if (connection_info.is_incoming) {
+  if (pending_connection_info.is_incoming) {
     for (auto medium : their_mediums) {
       NEARBY_LOGS(INFO) << "Their supported medium name: "
                         << location::nearby::proto::connections::Medium_Name(
@@ -397,7 +396,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
       // client does want to enable a WebRTC upgrade.
       if (my_medium == location::nearby::proto::connections::Medium::WEB_RTC) {
         AdvertisingOptions advertising_options =
-            connection_info.client->GetAdvertisingOptions();
+            pending_connection_info.client->GetAdvertisingOptions();
 
         if (!advertising_options.enable_webrtc_listening &&
             !advertising_options.allowed.web_rtc) {
@@ -615,18 +614,18 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
     return;
   }
 
-  BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
+  BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
 
   // TODO(b/300149127): Add test coverage.
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, connection_info.medium,
-        remote_device.GetEndpointId(), connection_info.channel.get(),
-        connection_info.is_incoming, connection_info.start_time,
+        pending_connection_info.client, pending_connection_info.medium,
+        remote_device.GetEndpointId(), pending_connection_info.channel.get(),
+        pending_connection_info.is_incoming, pending_connection_info.start_time,
         {Status::kEndpointIoError},
         OperationResultCode::NEARBY_AUTHENTICATION_FAILURE,
-        connection_info.result.lock().get());
+        pending_connection_info.result.lock().get());
     return;
   }
 
@@ -639,7 +638,7 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
   //
   // TODO(b/305004353): Authenticate the connection in the responder role for
   // outgoing connections.
-  if (!connection_info.is_incoming) {
+  if (!pending_connection_info.is_incoming) {
     NEARBY_LOGS(ERROR) << __func__
                        << ": only outgoing connections are supported";
     return;
@@ -650,20 +649,20 @@ void BasePcpHandler::OnEncryptionSuccessRunnableV3(
       << ": beginning authentication to the remote device as an initiator";
   ConnectionsAuthenticationTransport connections_authentication_transport =
       ConnectionsAuthenticationTransport(endpoint_channel);
-  connection_info.authentication_status =
+  pending_connection_info.authentication_status =
       device_provider.AuthenticateAsInitiator(
           /*remote_device=*/remote_device,
           /*shared_secret=*/auth_token,
           /*authentication_transport=*/connections_authentication_transport);
   NEARBY_LOGS(INFO) << __func__ << ": authentication result = "
                     << AuthenticationStatusToString(
-                           connection_info.authentication_status);
+                           pending_connection_info.authentication_status);
 
   RegisterDeviceAfterEncryptionSuccess(
       /*endpoint_id=*/remote_device.GetEndpointId(),
       /*ukey2=*/std::move(ukey2), /*auth_token=*/auth_token,
       /*raw_auth_token=*/raw_auth_token,
-      /*connection_info=*/connection_info);
+      /*pending_connection_info=*/pending_connection_info);
 }
 
 void BasePcpHandler::OnEncryptionSuccessRunnable(
@@ -680,16 +679,17 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
     return;
   }
 
-  BasePcpHandler::PendingConnectionInfo& connection_info = it->second;
+  BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
 
   if (!ukey2) {
     // Fail early, if there is no crypto context.
     ProcessPreConnectionInitiationFailure(
-        connection_info.client, connection_info.medium, endpoint_id,
-        connection_info.channel.get(), connection_info.is_incoming,
-        connection_info.start_time, {Status::kEndpointIoError},
+        pending_connection_info.client, pending_connection_info.medium,
+        endpoint_id, pending_connection_info.channel.get(),
+        pending_connection_info.is_incoming, pending_connection_info.start_time,
+        {Status::kEndpointIoError},
         OperationResultCode::NEARBY_AUTHENTICATION_FAILURE,
-        connection_info.result.lock().get());
+        pending_connection_info.result.lock().get());
     return;
   }
 
@@ -697,15 +697,16 @@ void BasePcpHandler::OnEncryptionSuccessRunnable(
       /*endpoint_id=*/endpoint_id,
       /*ukey2=*/std::move(ukey2), /*auth_token=*/auth_token,
       /*raw_auth_token=*/raw_auth_token,
-      /*connection_info=*/connection_info);
+      /*pending_connection_info=*/pending_connection_info);
 }
 
 void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
     std::string_view endpoint_id, std::unique_ptr<UKey2Handshake> ukey2,
     std::string_view auth_token, const ByteArray& raw_auth_token,
-    BasePcpHandler::PendingConnectionInfo& connection_info) {
-  connection_info.SetCryptoContext(std::move(ukey2));
-  connection_info.connection_token = GetHashedConnectionToken(raw_auth_token);
+    BasePcpHandler::PendingConnectionInfo& pending_connection_info) {
+  pending_connection_info.SetCryptoContext(std::move(ukey2));
+  pending_connection_info.connection_token =
+      GetHashedConnectionToken(raw_auth_token);
   NEARBY_LOGS(INFO)
       << "Register encrypted connection; wait for response; endpoint_id="
       << endpoint_id;
@@ -713,29 +714,33 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
   // Set ourselves up so that we receive all acceptance/rejection messages
   endpoint_manager_->RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
 
-  ConnectionOptions connection_options = connection_info.connection_options;
+  ConnectionOptions connection_options =
+      pending_connection_info.connection_options;
   connection_options.allowed =
-      ComputeIntersectionOfSupportedMediums(connection_info);
+      ComputeIntersectionOfSupportedMediums(pending_connection_info);
 
   // Now we register our endpoint so that we can listen for both sides to
   // accept.
-  LogConnectionAttemptSuccess(std::string(endpoint_id), connection_info);
+  LogConnectionAttemptSuccess(std::string(endpoint_id),
+                              pending_connection_info);
   endpoint_manager_->RegisterEndpoint(
-      connection_info.client, std::string(endpoint_id),
+      pending_connection_info.client, std::string(endpoint_id),
       {
-          .remote_endpoint_info = connection_info.remote_endpoint_info,
+          .remote_endpoint_info = pending_connection_info.remote_endpoint_info,
           .authentication_token = std::string(auth_token),
           .raw_authentication_token = raw_auth_token,
-          .is_incoming_connection = connection_info.is_incoming,
-          .authentication_status = connection_info.authentication_status,
+          .is_incoming_connection = pending_connection_info.is_incoming,
+          .authentication_status =
+              pending_connection_info.authentication_status,
       },
-      connection_options, std::move(connection_info.channel),
-      connection_info.listener, connection_info.connection_token);
+      connection_options, std::move(pending_connection_info.channel),
+      pending_connection_info.listener,
+      pending_connection_info.connection_token);
 
-  if (auto future_status = connection_info.result.lock()) {
+  if (auto future_status = pending_connection_info.result.lock()) {
     NEARBY_LOGS(INFO) << "Connection established; Finalising future OK.";
     future_status->Set({Status::kSuccess});
-    connection_info.result.reset();
+    pending_connection_info.result.reset();
   }
 }
 
@@ -749,7 +754,7 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
     return;
   }
 
-  BasePcpHandler::PendingConnectionInfo& info = it->second;
+  BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
   // We had a bug here, caused by a race with EncryptionRunner. We now verify
   // the EndpointChannel to avoid it. In a simultaneous connection, we clean
   // up one of the two EndpointChannels and then update our pendingConnections
@@ -757,17 +762,20 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   // middle of EncryptionRunner would trigger onEncryptionFailed, and, since
   // the map had already updated with the winning EndpointChannel, we closed
   // it too by accident.
-  if (*endpoint_channel != *info.channel) {
+  if (*endpoint_channel != *pending_connection_info.channel) {
     NEARBY_LOGS(INFO) << "Not destroying channel [mismatch]: passed="
-                      << endpoint_channel->GetName()
-                      << "; expected=" << info.channel->GetName();
+                      << endpoint_channel->GetName() << "; expected="
+                      << pending_connection_info.channel->GetName();
     return;
   }
 
   ProcessPreConnectionInitiationFailure(
-      info.client, info.medium, endpoint_id, info.channel.get(),
-      info.is_incoming, info.start_time, {Status::kEndpointIoError},
-      OperationResultCode::NEARBY_ENCRYPTION_FAILURE, info.result.lock().get());
+      pending_connection_info.client, pending_connection_info.medium,
+      endpoint_id, pending_connection_info.channel.get(),
+      pending_connection_info.is_incoming, pending_connection_info.start_time,
+      {Status::kEndpointIoError},
+      OperationResultCode::NEARBY_ENCRYPTION_FAILURE,
+      pending_connection_info.result.lock().get());
 }
 
 ConnectionInfo BasePcpHandler::FillConnectionInfo(
@@ -906,21 +914,21 @@ Status BasePcpHandler::RequestConnection(
         // errors out indicating that MediumSelector<bool> is not an aggregate
         // TODO(b/300149127): Add test coverage to `PendingConnectionInfo`
         // fields.
-        PendingConnectionInfo pendingConnectionInfo{};
-        pendingConnectionInfo.client = client;
-        pendingConnectionInfo.remote_endpoint_info = endpoint->endpoint_info;
-        pendingConnectionInfo.nonce = connection_info.nonce;
-        pendingConnectionInfo.is_incoming = false;
-        pendingConnectionInfo.start_time = start_time;
-        pendingConnectionInfo.listener = info.listener;
-        pendingConnectionInfo.connection_options = connection_options;
-        pendingConnectionInfo.result = result;
-        pendingConnectionInfo.medium = channel->GetMedium();
-        pendingConnectionInfo.channel = std::move(channel);
+        PendingConnectionInfo pending_connection_info{};
+        pending_connection_info.client = client;
+        pending_connection_info.remote_endpoint_info = endpoint->endpoint_info;
+        pending_connection_info.nonce = connection_info.nonce;
+        pending_connection_info.is_incoming = false;
+        pending_connection_info.start_time = start_time;
+        pending_connection_info.listener = info.listener;
+        pending_connection_info.connection_options = connection_options;
+        pending_connection_info.result = result;
+        pending_connection_info.medium = channel->GetMedium();
+        pending_connection_info.channel = std::move(channel);
 
         EndpointChannel* endpoint_channel =
             pending_connections_
-                .emplace(endpoint_id, std::move(pendingConnectionInfo))
+                .emplace(endpoint_id, std::move(pending_connection_info))
                 .first->second.channel.get();
 
         NEARBY_LOGS(INFO) << "Initiating secure connection: endpoint_id="
@@ -1054,21 +1062,21 @@ Status BasePcpHandler::RequestConnectionV3(
         // errors out indicating that MediumSelector<bool> is not an aggregate
         // For the Nearby Presence MVP on ChromeOS, only outgoing connections
         // are supported in the RequestConnectionV3() API.
-        PendingConnectionInfo pendingConnectionInfo{};
-        pendingConnectionInfo.client = client;
-        pendingConnectionInfo.remote_endpoint_info = endpoint->endpoint_info;
-        pendingConnectionInfo.nonce = connection_info.nonce;
-        pendingConnectionInfo.is_incoming = true;
-        pendingConnectionInfo.start_time = start_time;
-        pendingConnectionInfo.listener = info.listener;
-        pendingConnectionInfo.connection_options = connection_options;
-        pendingConnectionInfo.result = result;
-        pendingConnectionInfo.medium = channel->GetMedium();
-        pendingConnectionInfo.channel = std::move(channel);
+        PendingConnectionInfo pending_connection_info{};
+        pending_connection_info.client = client;
+        pending_connection_info.remote_endpoint_info = endpoint->endpoint_info;
+        pending_connection_info.nonce = connection_info.nonce;
+        pending_connection_info.is_incoming = true;
+        pending_connection_info.start_time = start_time;
+        pending_connection_info.listener = info.listener;
+        pending_connection_info.connection_options = connection_options;
+        pending_connection_info.result = result;
+        pending_connection_info.medium = channel->GetMedium();
+        pending_connection_info.channel = std::move(channel);
 
         EndpointChannel* endpoint_channel =
             pending_connections_
-                .emplace(endpoint_id, std::move(pendingConnectionInfo))
+                .emplace(endpoint_id, std::move(pending_connection_info))
                 .first->second.channel.get();
 
         NEARBY_LOGS(INFO) << "Initiating secure connection: endpoint_id="
@@ -1992,23 +2000,23 @@ Exception BasePcpHandler::OnIncomingConnection(
   // or OnIncomingConnection, so that we can cancel the connection if needed.
   // Not using designated initializers here since the VS C++ compiler errors
   // out indicating that MediumSelector<bool> is not an aggregate
-  PendingConnectionInfo pendingConnectionInfo{};
-  pendingConnectionInfo.client = client;
-  pendingConnectionInfo.remote_endpoint_info = endpoint_info;
-  pendingConnectionInfo.nonce = connection_request.nonce();
-  pendingConnectionInfo.is_incoming = true;
-  pendingConnectionInfo.start_time = start_time;
-  pendingConnectionInfo.listener =
+  PendingConnectionInfo pending_connection_info{};
+  pending_connection_info.client = client;
+  pending_connection_info.remote_endpoint_info = endpoint_info;
+  pending_connection_info.nonce = connection_request.nonce();
+  pending_connection_info.is_incoming = true;
+  pending_connection_info.start_time = start_time;
+  pending_connection_info.listener =
       client->GetAdvertisingOrIncomingConnectionListener();
-  pendingConnectionInfo.connection_options = connection_options;
-  pendingConnectionInfo.supported_mediums =
+  pending_connection_info.connection_options = connection_options;
+  pending_connection_info.supported_mediums =
       parser::ConnectionRequestMediumsToMediums(connection_request);
-  pendingConnectionInfo.medium = channel->GetMedium();
-  pendingConnectionInfo.channel = std::move(channel);
+  pending_connection_info.medium = channel->GetMedium();
+  pending_connection_info.channel = std::move(channel);
 
   auto* owned_channel = pending_connections_
                             .emplace(connection_request.endpoint_id(),
-                                     std::move(pendingConnectionInfo))
+                                     std::move(pending_connection_info))
                             .first->second.channel.get();
 
   // Next, we'll set up encryption.
@@ -2023,7 +2031,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
                               EndpointChannel* endpoint_channel) {
   auto it = pending_connections_.find(endpoint_id);
   if (it != pending_connections_.end()) {
-    BasePcpHandler::PendingConnectionInfo& info = it->second;
+    BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
 
     NEARBY_LOGS(INFO)
         << "In onIncomingConnection("
@@ -2032,12 +2040,12 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
         << ") for client=" << client->GetClientId()
         << ", found a collision with endpoint " << endpoint_id
         << ". We've already sent a connection request to them with nonce "
-        << info.nonce
+        << pending_connection_info.nonce
         << ", but they're also trying to connect to us with nonce "
         << incoming_nonce;
     // Break the lowest connection. In the (extremely) rare case of a tie, break
     // both.
-    if (info.nonce > incoming_nonce) {
+    if (pending_connection_info.nonce > incoming_nonce) {
       // Our connection won! Clean up their connection.
       endpoint_channel->Close();
 
@@ -2048,10 +2056,10 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
                         << ", cleaned up the collision with endpoint "
                         << endpoint_id << " by closing their channel.";
       return true;
-    } else if (info.nonce < incoming_nonce) {
+    } else if (pending_connection_info.nonce < incoming_nonce) {
       // Aw, we lost. Clean up our connection, and then we'll let their
       // connection continue on.
-      ProcessTieBreakLoss(client, endpoint_id, &info);
+      ProcessTieBreakLoss(client, endpoint_id, &pending_connection_info);
       NEARBY_LOGS(INFO)
           << "In onIncomingConnection("
           << location::nearby::proto::connections::Medium_Name(
@@ -2063,7 +2071,7 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
       // Oh. Huh. We both lost. Well, that's awkward. We'll clean up both and
       // just force the devices to retry.
       endpoint_channel->Close();
-      ProcessTieBreakLoss(client, endpoint_id, &info);
+      ProcessTieBreakLoss(client, endpoint_id, &pending_connection_info);
 
       NEARBY_LOGS(INFO)
           << "In onIncomingConnection("
@@ -2109,12 +2117,14 @@ Status BasePcpHandler::VerifyConnectionRequest(const std::string& endpoint_id,
 
 void BasePcpHandler::ProcessTieBreakLoss(
     ClientProxy* client, const std::string& endpoint_id,
-    BasePcpHandler::PendingConnectionInfo* info) {
+    BasePcpHandler::PendingConnectionInfo* pending_connection_info) {
   ProcessPreConnectionInitiationFailure(
-      client, info->medium, endpoint_id, info->channel.get(), info->is_incoming,
-      info->start_time, {Status::kEndpointIoError},
+      client, pending_connection_info->medium, endpoint_id,
+      pending_connection_info->channel.get(),
+      pending_connection_info->is_incoming, pending_connection_info->start_time,
+      {Status::kEndpointIoError},
       OperationResultCode::CLIENT_PROCESS_TIE_BREAK_LOSS,
-      info->result.lock().get());
+      pending_connection_info->result.lock().get());
   ProcessPreConnectionResultFailure(client, endpoint_id,
                                     /* should_call_disconnect_endpoint= */ true,
                                     DisconnectionReason::IO_ERROR);
@@ -2228,7 +2238,8 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
   }
 
   auto pair = pending_connections_.extract(it);
-  BasePcpHandler::PendingConnectionInfo& connection_info = pair.mapped();
+  BasePcpHandler::PendingConnectionInfo& pending_connection_info =
+      pair.mapped();
   std::shared_ptr<EndpointChannel> endpint_channel =
       channel_manager_->GetChannelForEndpoint(endpoint_id);
   if (endpint_channel == nullptr) {
@@ -2249,7 +2260,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
     // channels
     // Now, after both parties accepted connection (presumably after verifying &
     // matching security tokens), we are allowed to extract the shared key.
-    auto ukey2 = std::move(connection_info.ukey2);
+    auto ukey2 = std::move(pending_connection_info.ukey2);
     bool succeeded = ukey2->VerifyHandshake();
     CHECK(succeeded);  // If this fails, it's a UKEY2 protocol bug.
     auto context = ukey2->ToConnectionContext();
@@ -2312,7 +2323,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
   }
 
   client->GetAnalyticsRecorder().OnConnectionEstablished(
-      endpoint_id, medium, connection_info.connection_token);
+      endpoint_id, medium, pending_connection_info.connection_token);
 
   // Invoke the client callback to let it know of the connection result.
   client->OnConnectionAccepted(endpoint_id);
@@ -2332,7 +2343,7 @@ void BasePcpHandler::EvaluateConnectionResult(ClientProxy* client,
                            medium);
 
   // Kick off the bandwidth upgrade for incoming connections.
-  if (connection_info.is_incoming && client->AutoUpgradeBandwidth()) {
+  if (pending_connection_info.is_incoming && client->AutoUpgradeBandwidth()) {
     bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id);
   }
 }
@@ -2412,17 +2423,17 @@ void BasePcpHandler::LogConnectionAttemptFailure(
 
 void BasePcpHandler::LogConnectionAttemptSuccess(
     const std::string& endpoint_id,
-    const PendingConnectionInfo& connection_info) {
+    const PendingConnectionInfo& pending_connection_info) {
   std::unique_ptr<ConnectionAttemptMetadataParams>
       connections_attempt_metadata_params;
-  if (connection_info.channel != nullptr) {
+  if (pending_connection_info.channel != nullptr) {
     connections_attempt_metadata_params =
-        connection_info.client->GetAnalyticsRecorder()
+        pending_connection_info.client->GetAnalyticsRecorder()
             .BuildConnectionAttemptMetadataParams(
-                connection_info.channel->GetTechnology(),
-                connection_info.channel->GetBand(),
-                connection_info.channel->GetFrequency(),
-                connection_info.channel->GetTryCount());
+                pending_connection_info.channel->GetTechnology(),
+                pending_connection_info.channel->GetBand(),
+                pending_connection_info.channel->GetFrequency(),
+                pending_connection_info.channel->GetTryCount());
     connections_attempt_metadata_params->operation_result_code =
         OperationResultCode::DETAIL_SUCCESS;
   } else {
@@ -2431,21 +2442,24 @@ void BasePcpHandler::LogConnectionAttemptSuccess(
     return;
   }
 
-  if (connection_info.is_incoming) {
-    connection_info.client->GetAnalyticsRecorder().OnIncomingConnectionAttempt(
-        location::nearby::proto::connections::INITIAL, connection_info.medium,
-        location::nearby::proto::connections::RESULT_SUCCESS,
-        SystemClock::ElapsedRealtime() - connection_info.start_time,
-        connection_info.connection_token,
-        connections_attempt_metadata_params.get());
+  if (pending_connection_info.is_incoming) {
+    pending_connection_info.client->GetAnalyticsRecorder()
+        .OnIncomingConnectionAttempt(
+            location::nearby::proto::connections::INITIAL,
+            pending_connection_info.medium,
+            location::nearby::proto::connections::RESULT_SUCCESS,
+            SystemClock::ElapsedRealtime() - pending_connection_info.start_time,
+            pending_connection_info.connection_token,
+            connections_attempt_metadata_params.get());
   } else {
-    connection_info.client->GetAnalyticsRecorder().OnOutgoingConnectionAttempt(
-        endpoint_id, location::nearby::proto::connections::INITIAL,
-        connection_info.medium,
-        location::nearby::proto::connections::RESULT_SUCCESS,
-        SystemClock::ElapsedRealtime() - connection_info.start_time,
-        connection_info.connection_token,
-        connections_attempt_metadata_params.get());
+    pending_connection_info.client->GetAnalyticsRecorder()
+        .OnOutgoingConnectionAttempt(
+            endpoint_id, location::nearby::proto::connections::INITIAL,
+            pending_connection_info.medium,
+            location::nearby::proto::connections::RESULT_SUCCESS,
+            SystemClock::ElapsedRealtime() - pending_connection_info.start_time,
+            pending_connection_info.connection_token,
+            connections_attempt_metadata_params.get());
   }
 }
 
