@@ -60,7 +60,7 @@ TEST(CredentialsTest, CopyLocalCredential) {
   LocalCredential pc1 = {};
   pc1.set_identity_type(IDENTITY_TYPE_PRIVATE_GROUP);
   auto salts = pc1.mutable_consumed_salts();
-  salts->insert(std::pair<int32, bool>(15, true));
+  salts->insert(std::pair<int32_t, bool>(15, true));
   LocalCredential pc1_copy = {pc1};
   EXPECT_THAT(pc1, EqualsProto(pc1_copy));
 }
