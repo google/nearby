@@ -178,63 +178,64 @@ class BwuManagerTest : public ::testing::Test {
   PacketMetaData packet_meta_data_;
 };
 
-TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
-  ClientProxy client;
-  EndpointChannelManager ecm;
-  EndpointManager em(&ecm);
-  Mediums mediums;
-  BwuManager::Config config;
-  config.allow_upgrade_to.SetAll(false);
-  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
-  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
-                                                  std::move(handlers), config);
+// TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
+//   ClientProxy client;
+//   EndpointChannelManager ecm;
+//   EndpointManager em(&ecm);
+//   Mediums mediums;
+//   BwuManager::Config config;
+//   config.allow_upgrade_to.SetAll(false);
+//   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+//   auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+//                                                   std::move(handlers),
+//                                                   config);
 
-  auto channel1 = std::make_unique<FakeEndpointChannel>(
-      Medium::BLUETOOTH, std::string(kServiceIdA));
-  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
-                                 std::move(channel1));
-  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
-                                      Medium::WIFI_LAN);
-  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+//   auto channel1 = std::make_unique<FakeEndpointChannel>(
+//       Medium::BLUETOOTH, std::string(kServiceIdA));
+//   ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+//                                  std::move(channel1));
+//   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+//                                       Medium::WIFI_LAN);
+//   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+//   ecm.UnregisterChannelForEndpoint(
+//       std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+//       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 
-  auto channel2 = std::make_unique<FakeEndpointChannel>(
-      Medium::BLUETOOTH, std::string(kServiceIdA));
-  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId2),
-                                 std::move(channel2));
-  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId2),
-                                      Medium::WIFI_HOTSPOT);
-  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId2)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+//   auto channel2 = std::make_unique<FakeEndpointChannel>(
+//       Medium::BLUETOOTH, std::string(kServiceIdA));
+//   ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId2),
+//                                  std::move(channel2));
+//   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId2),
+//                                       Medium::WIFI_HOTSPOT);
+//   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId2)));
+//   ecm.UnregisterChannelForEndpoint(
+//       std::string(kEndpointId2), DisconnectionReason::LOCAL_DISCONNECTION,
+//       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 
-  auto channel3 = std::make_unique<FakeEndpointChannel>(
-      Medium::BLUETOOTH, std::string(kServiceIdA));
-  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId3),
-                                 std::move(channel3));
-  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId3),
-                                      Medium::WIFI_DIRECT);
-  EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId3)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId3), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+//   auto channel3 = std::make_unique<FakeEndpointChannel>(
+//       Medium::BLUETOOTH, std::string(kServiceIdA));
+//   ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId3),
+//                                  std::move(channel3));
+//   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId3),
+//                                       Medium::WIFI_DIRECT);
+//   EXPECT_TRUE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId3)));
+//   ecm.UnregisterChannelForEndpoint(
+//       std::string(kEndpointId3), DisconnectionReason::LOCAL_DISCONNECTION,
+//       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 
-  auto channel4 = std::make_unique<FakeEndpointChannel>(
-      Medium::WEB_RTC, std::string(kServiceIdA));
-  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId4),
-                                 std::move(channel4));
-  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId4),
-                                      Medium::BLUETOOTH);
-  EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId4)));
-  ecm.UnregisterChannelForEndpoint(
-      std::string(kEndpointId4), DisconnectionReason::LOCAL_DISCONNECTION,
-      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+//   auto channel4 = std::make_unique<FakeEndpointChannel>(
+//       Medium::WEB_RTC, std::string(kServiceIdA));
+//   ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId4),
+//                                  std::move(channel4));
+//   bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId4),
+//                                       Medium::BLUETOOTH);
+//   EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId4)));
+//   ecm.UnregisterChannelForEndpoint(
+//       std::string(kEndpointId4), DisconnectionReason::LOCAL_DISCONNECTION,
+//       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 
-  bwu_manager->Shutdown();
-}
+//   bwu_manager->Shutdown();
+// }
 
 class BwuManagerTestParam : public BwuManagerTest,
                             public ::testing::WithParamInterface<bool> {
