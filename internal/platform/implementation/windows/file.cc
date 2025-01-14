@@ -113,7 +113,6 @@ Exception IOFile::Write(const ByteArray& data) {
     }
 
     file_.write(data.data(), data.size());
-    file_.flush();
     return {file_.good() ? Exception::kSuccess : Exception::kIo};
   } catch (...) {
     LOG(ERROR) << "Fail to write";
