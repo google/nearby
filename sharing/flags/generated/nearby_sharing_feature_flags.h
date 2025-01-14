@@ -84,7 +84,7 @@ constexpr auto kDiscoveryCacheLostExpiryMs =
     flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
 // When true, honor 3P client_id & client_secret in the gRPC request
 constexpr auto kHonor3PClientIdAndSecret =
-    flags::Flag<bool>(kConfigPackage, "45665616", false);
+    flags::Flag<bool>(kConfigPackage, "45665616", true);
 // The amount of time in milliseconds a share target stays in discovery cache in
 // receive disabled state after a transfer.
 constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
