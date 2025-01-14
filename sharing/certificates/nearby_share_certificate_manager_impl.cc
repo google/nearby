@@ -723,6 +723,15 @@ void NearbyShareCertificateManagerImpl::PrivateCertificateRefresh(
     absl::Time now = context_->GetClock()->Now();
     certificate_storage_->RemoveExpiredPrivateCertificates(now);
 
+    std::optional<AccountManager::Account> account =
+        account_manager_.GetCurrentAccount();
+    if (!account.has_value()) {
+      LOG(INFO) << "Not logged in on refreshing private certificates, ignoring";
+      private_certificate_expiration_scheduler_->HandleResult(
+          /*success=*/true);
+      return;
+    }
+
     std::vector<NearbySharePrivateCertificate> certs =
         *certificate_storage_->GetPrivateCertificates();
     if (certs.size() == NumExpectedPrivateCertificates()) {
@@ -753,8 +762,6 @@ void NearbyShareCertificateManagerImpl::PrivateCertificateRefresh(
           std::max(latest_not_after[cert.visibility()], cert.not_after());
     }
 
-    std::optional<AccountManager::Account> account =
-        account_manager_.GetCurrentAccount();
     std::optional<std::string> email =
         account.has_value()
             ? account->email
