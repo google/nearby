@@ -426,6 +426,7 @@ message AutoReconnectFrame {
   }
   optional string endpoint_id = 1;
   optional EventType event_type = 2;
+  optional string last_endpoint_id = 3;
 }
 
 message MediumMetadata {
