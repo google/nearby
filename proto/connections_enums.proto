@@ -706,6 +706,8 @@ enum OperationResultCode {
   CLIENT_ALREADY_CONNECTED_TO_ENDPOINT = 2034;
   // Client request connecting to unknown endpoint
   CLIENT_CONNECT_TO_UNKNOWN_ENDPOINT = 2035;
+  // Duplicated requesting to start connection
+  CLIENT_BLE_DUPLICATE_CONNECTION = 2036;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -742,6 +744,8 @@ enum OperationResultCode {
   MISCELLEANEOUS_WEB_RTC_ICE_SERVER_NULL = 2515;
   // Failed to get the work source
   MISCELLEANEOUS_WORK_SOURCE_NULL = 2516;
+  // Failed to call AOSP API, due to API not available, etc.
+  MISCELLEANEOUS_AOSP_API_CALL_FAILURE = 2517;
 
   // Section of CATEGORY_IO_ERROR, from 3000 to 3499
   // Incoming payloads failure due to file opening error
