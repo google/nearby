@@ -857,6 +857,24 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,
+       RefreshPrivateCertificates_NotLoggedIn_DoesNotCallPublishDevice) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kCallNearbyIdentityApi,
+      true);
+  fake_account_manager_.SetAccount(std::nullopt);
+  // All private certificates are valid.
+  cert_store_->ReplacePrivateCertificates({});
+  cert_manager_->PrivateCertificateRefresh(/*force_upload=*/true);
+  Sync();
+
+  upload_scheduler_->InvokeRequestCallback();
+  Sync();
+
+  EXPECT_EQ(cert_store_->GetPrivateCertificates()->size(), 0);
+  EXPECT_EQ(local_device_data_manager_->publish_device_calls().size(), 0);
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_NoCertificates_UploadFailure) {
   cert_store_->ReplacePrivateCertificates({});
 
