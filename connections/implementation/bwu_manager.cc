@@ -121,13 +121,13 @@ BwuManager::~BwuManager() {
 
 void BwuManager::InitBwuHandlers() {
   // Register the supported concrete BwuMedium implementations.
-  if (config_.allow_upgrade_to.wifi_hotspot) {
-    handlers_.emplace(
-        Medium::WIFI_HOTSPOT,
-        std::make_unique<WifiHotspotBwuHandler>(
-            *mediums_,
-            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
-  }
+  // if (config_.allow_upgrade_to.wifi_hotspot) {
+  //   handlers_.emplace(
+  //       Medium::WIFI_HOTSPOT,
+  //       std::make_unique<WifiHotspotBwuHandler>(
+  //           *mediums_,
+  //           absl::bind_front(&BwuManager::OnIncomingConnection, this)));
+  // }
   if (config_.allow_upgrade_to.wifi_direct) {
     handlers_.emplace(
         Medium::WIFI_DIRECT,
