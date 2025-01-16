@@ -244,11 +244,7 @@ bool WifiHotspotMedium::StartWifiHotspot(
     connection_requested_token_ = listener_.ConnectionRequested(
         {this, &WifiHotspotMedium::OnConnectionRequested});
 
-    // Normal mode: The device is highly discoverable so long as the app is in
-    // the foreground.
-    publisher_.Advertisement().ListenStateDiscoverability(
-        WiFiDirectAdvertisementListenStateDiscoverability::Normal);
-    // Enbale Autonomous GO mode
+    // Enable Autonomous GO mode
     publisher_.Advertisement().IsAutonomousGroupOwnerEnabled(true);
 
     // Using WIFIDirect legacy mode to create a softAP. AP means "access point".
@@ -402,7 +398,7 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
     // solve the problem. Guess when this object is created,
     // [Microsoft-Windows-WLAN-AutoConfig] will recognise it as a valid device
     // and won't kick it away.
-    // We found new connection request comes in during horspot transfer. In this
+    // We found new connection request comes in during hotspot transfer. In this
     // case, we should create a new WiFiDirectDevice for it. It will cause
     // transfer failure if replace the old WiFiDirectDevice with it.
     auto wifi_direct_device =
