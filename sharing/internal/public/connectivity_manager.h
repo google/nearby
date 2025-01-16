@@ -48,6 +48,8 @@ class ConnectivityManager {
       std::function<void(ConnectionType, bool)>) = 0;
   virtual void UnregisterConnectionListener(
       absl::string_view listener_name) = 0;
+  // Is the device a HP device with Realtek wireless module.
+  virtual bool IsHPRealtekDevice() = 0;
 };
 
 }  // namespace nearby

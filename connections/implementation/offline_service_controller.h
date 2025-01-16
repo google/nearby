@@ -15,7 +15,6 @@
 #ifndef CORE_INTERNAL_OFFLINE_SERVICE_CONTROLLER_H_
 #define CORE_INTERNAL_OFFLINE_SERVICE_CONTROLLER_H_
 
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -38,7 +37,10 @@ namespace connections {
 
 class OfflineServiceController : public ServiceController {
  public:
-  OfflineServiceController() = default;
+  explicit OfflineServiceController(const BwuManager::Config& bwu_config)
+      : bwu_manager_(BwuManager(mediums_, endpoint_manager_, channel_manager_,
+                                {}, bwu_config)) {}
+
   ~OfflineServiceController() override;
 
   Status StartAdvertising(ClientProxy* client, const std::string& service_id,
@@ -102,6 +104,8 @@ class OfflineServiceController : public ServiceController {
 
   void ShutdownBwuManagerExecutors() override;
 
+  BwuManager::Config GetBwuConfig() const { return bwu_manager_.GetConfig(); }
+
  private:
   // Note that the order of declaration of these is crucial, because we depend
   // on the destructors running (strictly) in the reverse order; a deviation
@@ -111,8 +115,7 @@ class OfflineServiceController : public ServiceController {
   EndpointChannelManager channel_manager_;
   EndpointManager endpoint_manager_{&channel_manager_};
   PayloadManager payload_manager_{endpoint_manager_};
-  BwuManager bwu_manager_{
-      mediums_, endpoint_manager_, channel_manager_, {}, {}};
+  BwuManager bwu_manager_;
   InjectedBluetoothDeviceStore injected_bluetooth_device_store_;
   PcpManager pcp_manager_{mediums_, channel_manager_, endpoint_manager_,
                           bwu_manager_, injected_bluetooth_device_store_};

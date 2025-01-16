@@ -35,6 +35,7 @@
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/logging.h"
+#include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connections_service.h"
 #include "sharing/nearby_connections_types.h"
 
@@ -49,8 +50,16 @@ Core* GetService(NearbyConnectionsService::HANDLE handle) {
 }  // namespace
 
 NearbyConnectionsServiceImpl::NearbyConnectionsServiceImpl(
-    nearby::analytics::EventLogger* event_logger) {
-  static ServiceControllerRouter* router = new ServiceControllerRouter();
+    nearby::ConnectivityManager* connectivity_manager,
+    nearby::analytics::EventLogger* event_logger)
+    : connectivity_manager_(*connectivity_manager) {
+  static ServiceControllerRouter* router =
+      new ServiceControllerRouter([this]() {
+        // WARNING: there can be only 1 instance of
+        // NearbyConnectionsServiceImpl, otherwise the router could be pointing
+        // at an invalid instance.
+        return connectivity_manager_.IsHPRealtekDevice();
+      });
   static Core* core = new Core(event_logger, router);
   service_handle_ = core;
 }

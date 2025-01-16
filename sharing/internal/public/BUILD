@@ -22,10 +22,8 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//internal/network:url",
         "//internal/platform:types",
         "//sharing/internal/api:platform",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -44,12 +42,16 @@ cc_library(
     deps = [
         ":logging",
         ":types",
+        "//internal/flags:nearby_flags",
         "//internal/network:url",
         "//internal/platform:types",
+        "//sharing/flags/generated:generated_flags",
         "//sharing/internal/api:platform",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -66,6 +68,7 @@ cc_test(
         ":types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//sharing/internal/api:mock_sharing_platform",
+        "//sharing/internal/api:platform",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

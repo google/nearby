@@ -14,6 +14,7 @@
 
 #include "connections/implementation/service_controller_router.h"
 
+
 #include <array>
 #include <cinttypes>
 #include <memory>
@@ -24,11 +25,14 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/types/span.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mock_service_controller.h"
+#include "connections/implementation/offline_service_controller.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "connections/params.h"
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
@@ -36,8 +40,8 @@
 #include "connections/v3/connections_device.h"
 #include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
-#include "internal/interop/authentication_status.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/interop/authentication_status.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
@@ -1329,6 +1333,37 @@ TEST_F(ServiceControllerRouterTest,
         cond_.Notify();
       },
       /*expecting_call=*/false);
+}
+
+TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
+     disableWifiHotspotForHpRealtekDevices_isHPRealtekDevice_checkBwuConfig) {
+  ServiceControllerRouter router(
+      absl::AnyInvocable<bool()>{[]() { return true; }});
+  auto service_controller = router.GetServiceController();
+  EXPECT_NE(service_controller, nullptr);
+  auto bwu_config = static_cast<OfflineServiceController*>(service_controller)
+                        ->GetBwuConfig();
+  EXPECT_THAT(bwu_config.allow_upgrade_to,
+              testing::FieldsAre(/*bluetooth=*/false, /*ble=*/false,
+                                 /*web_rtc_no_cellular=*/false,
+                                 /*web_rtc=*/true, /*wifi_lan=*/true,
+                                 /*wifi_hotspot=*/false, /*wifi_direct=*/true));
+}
+
+TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
+     notHPRealtekDevice_defaultBwuConfig) {
+  ServiceControllerRouter router(
+      absl::AnyInvocable<bool()>{[]() { return false; }});
+  auto service_controller = router.GetServiceController();
+  EXPECT_NE(service_controller, nullptr);
+  auto bwu_config = static_cast<OfflineServiceController*>(service_controller)
+                        ->GetBwuConfig();
+  // Default BooleanMediumSelector is modified in BwuManager Constructor.
+  EXPECT_THAT(bwu_config.allow_upgrade_to,
+              testing::FieldsAre(/*bluetooth=*/false, /*ble=*/false,
+                                 /*web_rtc_no_cellular=*/false,
+                                 /*web_rtc=*/true, /*wifi_lan=*/true,
+                                 /*wifi_hotspot=*/true, /*wifi_direct=*/true));
 }
 
 }  // namespace

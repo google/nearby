@@ -115,6 +115,17 @@ bool ShouldEnableWifiLan(ConnectivityManager& connectivity_manager) {
   return is_connection_wifi_or_ethernet;
 }
 
+// Temporarily fix to get around wifi hotspot issues for HP Aero with Realtek.
+// See b/380191431 for more details.
+
+bool ShouldEnableWifiHotspot(ConnectivityManager& connectivity_manager) {
+  if (connectivity_manager.IsHPRealtekDevice()) {
+    LOG(WARNING) << __func__ << ": Disable wifi hotspot for HP with Realtek";
+    return false;
+  }
+  return true;
+}
+
 bool ShouldEnableBleForTransfers() {
   return NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_sharing_feature::kEnableBleForTransfer);
@@ -145,7 +156,6 @@ std::string PayloadStatusToString(PayloadStatus status) {
       return "Canceled";
   }
 }
-
 }  // namespace
 
 NearbyConnectionsManagerImpl::NearbyConnectionsManagerImpl(
@@ -186,9 +196,8 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
       // upgrades from this advertisement.
       ShouldEnableWebRtc(connectivity_manager_, data_usage,
                          PowerLevel::kHighPower),
-      /*wifi_lan=*/
       ShouldEnableWifiLan(connectivity_manager_),
-      /*wifi_hotspot=*/true);
+      ShouldEnableWifiHotspot(connectivity_manager_));
   VLOG(1) << __func__ << ": "
           << "is_high_power=" << (is_high_power ? "yes" : "no")
           << ", data_usage=" << static_cast<int>(data_usage)
@@ -276,7 +285,6 @@ void NearbyConnectionsManagerImpl::StartDiscovery(
     std::move(callback)(ConnectionsStatus::kError);
     return;
   }
-
   MediumSelection allowed_mediums = MediumSelection(
       /*bluetooth=*/true,
       /*ble=*/true,
@@ -285,7 +293,7 @@ void NearbyConnectionsManagerImpl::StartDiscovery(
                          PowerLevel::kHighPower),
       /*wifi_lan=*/
       ShouldEnableWifiLan(connectivity_manager_),
-      /*wifi_hotspot=*/true);
+      ShouldEnableWifiHotspot(connectivity_manager_));
   VLOG(1) << __func__ << ": "
           << "data_usage=" << static_cast<int>(data_usage)
           << ", allowed_mediums=" << MediumSelectionToString(allowed_mediums);
@@ -348,8 +356,11 @@ void NearbyConnectionsManagerImpl::Connect(
                          PowerLevel::kHighPower),
       /*wifi_lan=*/
       ShouldEnableWifiLan(connectivity_manager_),
+      // Note: this only affects sending since this function is only for
+      // outgoing connections.
       /*wifi_hotspot=*/
-      IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality));
+      IsTransportTypeFlagsSet(transport_type, TransportType::kHighQuality) &&
+          ShouldEnableWifiHotspot(connectivity_manager_));
   VLOG(1) << __func__ << ": "
           << "data_usage=" << static_cast<int>(data_usage)
           << ", allowed_mediums=" << MediumSelectionToString(allowed_mediums);

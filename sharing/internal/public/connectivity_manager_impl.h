@@ -17,12 +17,16 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "sharing/internal/api/network_monitor.h"
 #include "sharing/internal/api/sharing_platform.h"
+#include "sharing/internal/api/system_info.h"
 #include "sharing/internal/public/connectivity_manager.h"
 
 namespace nearby {
@@ -34,7 +38,7 @@ class ConnectivityManagerImpl : public ConnectivityManager {
       nearby::sharing::api::SharingPlatform& platform);
 
   bool IsLanConnected() override;
-
+  bool IsHPRealtekDevice() override;
   ConnectionType GetConnectionType() override;
 
   void RegisterConnectionListener(
@@ -48,6 +52,10 @@ class ConnectivityManagerImpl : public ConnectivityManager {
   absl::flat_hash_map<std::string, std::function<void(ConnectionType, bool)>>
       listeners_;
   std::unique_ptr<api::NetworkMonitor> network_monitor_;
+  nearby::sharing::api::SharingPlatform& platform_;
+  mutable absl::Mutex mutex_;
+
+  std::optional<bool> is_hp_realtek_device_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby

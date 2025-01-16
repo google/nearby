@@ -82,6 +82,9 @@ constexpr auto kDeleteUnexpectedReceivedFileFix =
 // The default time in milliseconds a cached entry can be in LOST state.
 constexpr auto kDiscoveryCacheLostExpiryMs =
     flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
+// When true, enable wifi hotspot medium for selected devices.
+constexpr auto kEnableWifiHotspotForHpRealtekDevices =
+    flags::Flag<bool>(kConfigPackage, "45673628", false);
 // When true, honor 3P client_id & client_secret in the gRPC request
 constexpr auto kHonor3PClientIdAndSecret =
     flags::Flag<bool>(kConfigPackage, "45665616", true);
@@ -124,6 +127,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45667328, kCallNearbyIdentityApi},
       {45664277, kDedupInUnregisterShareTarget},
       {45657036, kDeleteUnexpectedReceivedFileFix},
+      {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45665616, kHonor3PClientIdAndSecret},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},

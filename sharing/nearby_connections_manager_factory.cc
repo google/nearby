@@ -34,7 +34,8 @@ NearbyConnectionsManagerFactory::CreateConnectionsManager(
   return std::make_unique<NearbyConnectionsManagerImpl>(
       connections_callback_task_runner, context,
       *context->GetConnectivityManager(), device_info,
-      std::make_unique<NearbyConnectionsServiceImpl>(event_logger));
+      std::make_unique<NearbyConnectionsServiceImpl>(
+          context->GetConnectivityManager(), event_logger));
 }
 
 }  // namespace nearby::sharing

@@ -15,15 +15,21 @@
 #include "connections/implementation/service_controller_router.h"
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
+#include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "connections/params.h"
 #include "connections/payload.h"
 #include "connections/v3/bandwidth_info.h"
@@ -34,7 +40,6 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 
-// TODO(b/285657711): Add tests for uncovered logic, even if trivial.
 namespace nearby {
 namespace connections {
 namespace {
@@ -87,6 +92,13 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
 
 ServiceControllerRouter::ServiceControllerRouter() {
   NEARBY_LOGS(INFO) << "ServiceControllerRouter going up.";
+}
+
+ServiceControllerRouter::ServiceControllerRouter(
+    absl::AnyInvocable<bool()> if_hp_realtek_device)
+    : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {
+  LOG(INFO)
+      << "ServiceControllerRouter going up checking if_hp_realtek_device.";
 }
 
 // Constructor called by the CrOS platform implementation to override the
@@ -713,7 +725,29 @@ void ServiceControllerRouter::SetServiceControllerForTesting(
 
 ServiceController* ServiceControllerRouter::GetServiceController() {
   if (!service_controller_) {
-    service_controller_ = std::make_unique<OfflineServiceController>();
+    bool is_hp_realtek_device = if_hp_realtek_device_();
+    LOG(INFO) << __func__
+              << " if_hp_realtek_device_ =  " << is_hp_realtek_device;
+    // Temporarily fix to get around wifi hotspot issues for HP Aero with
+    // Realtek.
+    // See b/380191431 for more details.
+    if (is_hp_realtek_device) {
+      LOG(INFO) << __func__
+                << ": it is HP Realtek device, set BwuManager::Config.";
+      BwuManager::Config bwu_config;
+      bwu_config.allow_upgrade_to = {/*bluetooth=*/false,
+                                     /*ble=*/false,
+                                     /*web_rtc_no_cellular=*/false,
+                                     /*web_rtc=*/true,
+                                     /*wifi_lan=*/true,
+                                     /*wifi_hotspot=*/false,
+                                     /*wifi_direct=*/true};
+      service_controller_ =
+          std::make_unique<OfflineServiceController>(bwu_config);
+    } else {
+      service_controller_ =
+          std::make_unique<OfflineServiceController>(BwuManager::Config());
+    }
   }
   return service_controller_.get();
 }

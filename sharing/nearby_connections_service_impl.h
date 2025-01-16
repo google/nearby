@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "internal/analytics/event_logger.h"
+#include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connections_service.h"
 #include "sharing/nearby_connections_types.h"
 
@@ -35,6 +36,7 @@ namespace sharing {
 class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
  public:
   explicit NearbyConnectionsServiceImpl(
+      nearby::ConnectivityManager* connectivity_manager,
       nearby::analytics::EventLogger* event_logger = nullptr);
   NearbyConnectionsServiceImpl() = delete;
   ~NearbyConnectionsServiceImpl() override;
@@ -90,7 +92,7 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
 
  private:
   HANDLE service_handle_ = nullptr;
-
+  nearby::ConnectivityManager& connectivity_manager_;
   ConnectionListener advertising_listener_;
   DiscoveryListener discovery_listener_;
   ConnectionListener connection_listener_;

@@ -20,6 +20,7 @@
 #include "gtest/gtest.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/bwu_manager.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "internal/interop/device.h"
@@ -69,7 +70,8 @@ class OfflineSimulationUser {
         discovery_options_{{
             Strategy::kP2pCluster,
             allowed,
-        }} {}
+        }},
+        ctrl_(BwuManager::Config()) {}
   virtual ~OfflineSimulationUser() = default;
 
   // Calls PcpManager::StartAdvertising().

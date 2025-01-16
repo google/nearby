@@ -124,6 +124,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   // Check if BWU is on going for a specific Endpoint
   bool IsUpgradeOngoing(const std::string& endpoint_id);
+  Config GetConfig() const { return config_; }
 
  private:
   static constexpr absl::Duration kReadClientIntroductionFrameTimeout =

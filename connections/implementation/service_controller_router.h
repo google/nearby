@@ -17,9 +17,8 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
-#include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "connections/implementation/client_proxy.h"
@@ -59,6 +58,8 @@ class ServiceControllerRouter {
  public:
   ServiceControllerRouter();
   explicit ServiceControllerRouter(bool enable_ble_v2);
+  explicit ServiceControllerRouter(
+      absl::AnyInvocable<bool()> if_hp_realtek_device);
   virtual ~ServiceControllerRouter();
   // Not copyable or movable
   ServiceControllerRouter(const ServiceControllerRouter&) = delete;
@@ -173,11 +174,11 @@ class ServiceControllerRouter {
 
   void SetServiceControllerForTesting(
       std::unique_ptr<ServiceController> service_controller);
-
- private:
   // Lazily create ServiceController.
   ServiceController* GetServiceController();
 
+ private:
+  absl::AnyInvocable<bool()> if_hp_realtek_device_;
   void RouteToServiceController(const std::string& name, Runnable runnable);
   void FinishClientSession(ClientProxy* client);
 

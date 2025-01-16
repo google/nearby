@@ -28,7 +28,10 @@ namespace nearby {
 class FakeConnectivityManager : public ConnectivityManager {
  public:
   bool IsLanConnected() override { return is_lan_connected_; }
-
+  bool IsHPRealtekDevice() override { return is_hp_realtek_device_; }
+  void SetIsHPRealtekDevice(bool is_hp_realtek_device) {
+    is_hp_realtek_device_ = is_hp_realtek_device;
+  }
   ConnectionType GetConnectionType() override { return connection_type_; }
 
   void RegisterConnectionListener(
@@ -59,6 +62,7 @@ class FakeConnectivityManager : public ConnectivityManager {
 
  private:
   bool is_lan_connected_ = true;
+  bool is_hp_realtek_device_ = false;
   ConnectionType connection_type_ = ConnectionType::kWifi;
   absl::flat_hash_map<std::string, std::function<void(ConnectionType, bool)>>
       listeners_;

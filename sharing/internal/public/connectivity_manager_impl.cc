@@ -14,13 +14,19 @@
 
 #include "sharing/internal/public/connectivity_manager_impl.h"
 
+#include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "internal/flags/nearby_flags.h"
+#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/network_monitor.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -55,7 +61,8 @@ std::string GetConnectionTypeString(ConnectionType connection_type) {
 
 }  // namespace
 
-ConnectivityManagerImpl::ConnectivityManagerImpl(SharingPlatform& platform) {
+ConnectivityManagerImpl::ConnectivityManagerImpl(SharingPlatform& platform)
+    : platform_(platform) {
   network_monitor_ = platform.CreateNetworkMonitor(
       [this](api::NetworkMonitor::ConnectionType connection_type,
              bool is_lan_connected) {
@@ -71,6 +78,34 @@ ConnectivityManagerImpl::ConnectivityManagerImpl(SharingPlatform& platform) {
 
 bool ConnectivityManagerImpl::IsLanConnected() {
   return network_monitor_->IsLanConnected();
+}
+
+bool ConnectivityManagerImpl::IsHPRealtekDevice() {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          sharing::config_package_nearby::nearby_sharing_feature::
+              kEnableWifiHotspotForHpRealtekDevices)) {
+    return false;
+  }
+
+  absl::MutexLock lock(&mutex_);
+
+  // Lazy initialization since CreateSystemInfo can take a long time.
+  if (!is_hp_realtek_device_.has_value()) {
+    auto system_info = platform_.CreateSystemInfo();
+    const auto& driver_infos = system_info->GetNetworkDriverInfos();
+    auto it = std::find_if(driver_infos.begin(), driver_infos.end(),
+                           [](auto drive_info) {
+                             return absl::StrContainsIgnoreCase(
+                                 drive_info.manufacturer, "Realtek");
+                           });
+    if (it != driver_infos.end() &&
+        absl::EqualsIgnoreCase(system_info->GetComputerManufacturer(), "HP")) {
+      is_hp_realtek_device_ = std::make_optional(true);
+    } else {
+      is_hp_realtek_device_ = std::make_optional(false);
+    }
+  }
+  return is_hp_realtek_device_.value();
 }
 
 ConnectionType ConnectivityManagerImpl::GetConnectionType() {
