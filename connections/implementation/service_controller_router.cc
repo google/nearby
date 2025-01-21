@@ -725,7 +725,8 @@ void ServiceControllerRouter::SetServiceControllerForTesting(
 
 ServiceController* ServiceControllerRouter::GetServiceController() {
   if (!service_controller_) {
-    bool is_hp_realtek_device = if_hp_realtek_device_();
+    bool is_hp_realtek_device =
+        if_hp_realtek_device_ == nullptr ? false : if_hp_realtek_device_();
     LOG(INFO) << __func__
               << " if_hp_realtek_device_ =  " << is_hp_realtek_device;
     // Temporarily fix to get around wifi hotspot issues for HP Aero with
