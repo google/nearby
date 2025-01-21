@@ -178,7 +178,7 @@ class ServiceControllerRouter {
   ServiceController* GetServiceController();
 
  private:
-  absl::AnyInvocable<bool()> if_hp_realtek_device_;
+  absl::AnyInvocable<bool()> if_hp_realtek_device_ = []() { return false; };
   void RouteToServiceController(const std::string& name, Runnable runnable);
   void FinishClientSession(ClientProxy* client);
 
