@@ -41,13 +41,13 @@ ExceptionOr<ByteArray> BlockingQueueStream::Read(std::int64_t size) {
   if (is_closed_) {
     LOG(INFO)
         << "Failed to read BlockingQueueStream because it was closed.";
-    return ExceptionOr<ByteArray>(Exception::kInterrupted);
+    return ExceptionOr<ByteArray>(Exception::kIo);
   }
 
   ByteArray bytes = queue_head_.Empty() ? blocking_queue_.Take() : queue_head_;
   if (bytes == queue_end_) {
     LOG(INFO) << "BlockingQueueStream is Interrupted.";
-    return ExceptionOr<ByteArray>(Exception::kInterrupted);
+    return ExceptionOr<ByteArray>(Exception::kIo);
   }
 
   int copy_len = std::min<int>(size, bytes.size());
