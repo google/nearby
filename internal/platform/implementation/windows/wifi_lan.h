@@ -44,7 +44,10 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/implementation/windows/nearby_client_socket.h"
+#include "internal/platform/implementation/windows/nearby_server_socket.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
+#include "internal/platform/implementation/windows/wifi_lan_mdns.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
@@ -98,7 +101,9 @@ using winrt::Windows::Storage::Streams::IOutputStream;
 // remote WiFi LAN service, also will return a WifiLanSocket to caller.
 class WifiLanSocket : public api::WifiLanSocket {
  public:
+  WifiLanSocket();
   explicit WifiLanSocket(StreamSocket socket);
+  explicit WifiLanSocket(std::unique_ptr<NearbyClientSocket> socket);
   WifiLanSocket(WifiLanSocket&) = default;
   WifiLanSocket(WifiLanSocket&&) = default;
   ~WifiLanSocket() override;
@@ -122,11 +127,14 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
 
+  bool Connect(const std::string& ip_address, int port);
+
  private:
   // A simple wrapper to handle input stream of socket
   class SocketInputStream : public InputStream {
    public:
-    SocketInputStream(IInputStream input_stream);
+    explicit SocketInputStream(IInputStream input_stream);
+    explicit SocketInputStream(NearbyClientSocket* client_socket);
     ~SocketInputStream() = default;
 
     ExceptionOr<ByteArray> Read(std::int64_t size) override;
@@ -134,14 +142,17 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
+    bool enable_blocking_socket_ = false;
     IInputStream input_stream_{nullptr};
     Buffer read_buffer_{nullptr};
+    NearbyClientSocket* client_socket_{nullptr};
   };
 
   // A simple wrapper to handle output stream of socket
   class SocketOutputStream : public OutputStream {
    public:
-    SocketOutputStream(IOutputStream output_stream);
+    explicit SocketOutputStream(IOutputStream output_stream);
+    explicit SocketOutputStream(NearbyClientSocket* client_socket);
     ~SocketOutputStream() = default;
 
     Exception Write(const ByteArray& data) override;
@@ -149,13 +160,18 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
+    bool enable_blocking_socket_ = false;
     IOutputStream output_stream_{nullptr};
+    NearbyClientSocket* client_socket_{nullptr};
   };
 
   // Internal properties
   StreamSocket stream_soket_{nullptr};
   SocketInputStream input_stream_{nullptr};
   SocketOutputStream output_stream_{nullptr};
+
+  bool enable_blocking_socket_ = false;
+  std::unique_ptr<NearbyClientSocket> client_socket_;
 };
 
 // WifiLanServerSocket provides the support to server socket, this server socket
@@ -222,6 +238,10 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   // Cache socket not be picked by upper layer
   int port_ = 0;
   bool closed_ = false;
+
+  // Flag to enable blocking socket.
+  bool enable_blocking_socket_ = false;
+  NearbyServerSocket server_socket_;
 };
 
 // Container of operations that can be performed over the WifiLan medium.
@@ -343,6 +363,9 @@ class WifiLanMedium : public api::WifiLanMedium {
 
   // Used to keep the service name is advertising.
   std::string service_name_;
+
+  // mDNS service
+  WifiLanMdns wifi_lan_mdns_;
 
   // Keep the server sockets listener pointer
   absl::flat_hash_map<int /* port number of the WifiLanServerSocket*/,

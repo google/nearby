@@ -15,10 +15,15 @@
 #include <cstdint>
 #include <cstring>
 #include <exception>
+#include <memory>
+#include <string>
 #include <utility>
 
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -27,7 +32,19 @@
 namespace nearby {
 namespace windows {
 
+WifiLanSocket::WifiLanSocket() {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
+  client_socket_ = std::make_unique<NearbyClientSocket>();
+  input_stream_ = SocketInputStream(client_socket_.get());
+  output_stream_ = SocketOutputStream(client_socket_.get());
+}
+
 WifiLanSocket::WifiLanSocket(StreamSocket socket) {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
   stream_soket_ = socket;
   LOG(INFO) << "Socket send buffer size: "
             << socket.Control().OutboundBufferSizeInBytes();
@@ -38,182 +55,261 @@ WifiLanSocket::WifiLanSocket(StreamSocket socket) {
   output_stream_ = SocketOutputStream(socket.OutputStream());
 }
 
-WifiLanSocket::~WifiLanSocket() {
-  try {
-    if (stream_soket_ != nullptr) {
-      Close();
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
+WifiLanSocket::WifiLanSocket(std::unique_ptr<NearbyClientSocket> socket) {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
+  client_socket_ = std::move(socket);
+  input_stream_ = SocketInputStream(client_socket_.get());
+  output_stream_ = SocketOutputStream(client_socket_.get());
 }
+
+WifiLanSocket::~WifiLanSocket() { Close(); }
 
 InputStream& WifiLanSocket::GetInputStream() { return input_stream_; }
 
 OutputStream& WifiLanSocket::GetOutputStream() { return output_stream_; }
 
 Exception WifiLanSocket::Close() {
-  try {
-    if (stream_soket_ != nullptr) {
-      stream_soket_.Close();
+  if (enable_blocking_socket_) {
+    if (client_socket_ != nullptr) {
+      return client_socket_->Close();
     }
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+  } else {
+    try {
+      if (stream_soket_ != nullptr) {
+        stream_soket_.Close();
+      }
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
+    }
   }
+
+  return {Exception::kSuccess};
+}
+
+bool WifiLanSocket::Connect(const std::string& ip_address, int port) {
+  return client_socket_->Connect(ip_address, port);
 }
 
 // SocketInputStream
 WifiLanSocket::SocketInputStream::SocketInputStream(IInputStream input_stream) {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
   input_stream_ = input_stream;
+}
+
+WifiLanSocket::SocketInputStream::SocketInputStream(
+    NearbyClientSocket* client_socket) {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
+  client_socket_ = client_socket;
 }
 
 ExceptionOr<ByteArray> WifiLanSocket::SocketInputStream::Read(
     std::int64_t size) {
-  try {
-    if (read_buffer_ == nullptr || read_buffer_.Capacity() < size) {
-      read_buffer_ = Buffer(size);
+  if (enable_blocking_socket_) {
+    if (client_socket_ == nullptr) {
+      LOG(ERROR) << "Failed to read data due to no client socket.";
+      return {Exception::kIo};
     }
 
-    // Reset the buffer length to 0.
-    read_buffer_.Length(0);
+    return client_socket_->Read(size);
+  } else {
+    try {
+      if (read_buffer_ == nullptr || read_buffer_.Capacity() < size) {
+        read_buffer_ = Buffer(size);
+      }
 
-    auto ibuffer =
-        input_stream_.ReadAsync(read_buffer_, size, InputStreamOptions::None)
-            .get();
+      // Reset the buffer length to 0.
+      read_buffer_.Length(0);
 
-    if (ibuffer.Length() != size) {
-      LOG(WARNING) << "Only read partial of data: [" << ibuffer.Length() << "/"
-                   << size << "].";
+      auto ibuffer =
+          input_stream_.ReadAsync(read_buffer_, size, InputStreamOptions::None)
+              .get();
+
+      if (ibuffer.Length() != size) {
+        LOG(WARNING) << "Only read partial of data: [" << ibuffer.Length()
+                     << "/" << size << "].";
+      }
+
+      ByteArray data((char*)ibuffer.data(), ibuffer.Length());
+      return ExceptionOr(std::move(data));
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
     }
-
-    ByteArray data((char*)ibuffer.data(), ibuffer.Length());
-    return ExceptionOr(std::move(data));
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
   }
 }
 
 ExceptionOr<size_t> WifiLanSocket::SocketInputStream::Skip(size_t offset) {
-  try {
-    Buffer buffer = Buffer(offset);
+  if (enable_blocking_socket_) {
+    if (client_socket_ == nullptr) {
+      return {Exception::kIo};
+    }
 
-    auto ibuffer =
-        input_stream_.ReadAsync(buffer, offset, InputStreamOptions::None).get();
-    return ExceptionOr((size_t)ibuffer.Length());
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+    return client_socket_->Skip(offset);
+  } else {
+    try {
+      Buffer buffer = Buffer(offset);
+
+      auto ibuffer =
+          input_stream_.ReadAsync(buffer, offset, InputStreamOptions::None)
+              .get();
+      return ExceptionOr((size_t)ibuffer.Length());
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
+    }
   }
 }
 
 Exception WifiLanSocket::SocketInputStream::Close() {
-  try {
-    input_stream_.Close();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+  if (enable_blocking_socket_) {
+    if (client_socket_ == nullptr) {
+      return {Exception::kIo};
+    }
+
+    return client_socket_->Close();
+  } else {
+    try {
+      input_stream_.Close();
+      return {Exception::kSuccess};
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
+    }
   }
 }
 
 // SocketOutputStream
 WifiLanSocket::SocketOutputStream::SocketOutputStream(
     IOutputStream output_stream) {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
   output_stream_ = output_stream;
 }
 
+WifiLanSocket::SocketOutputStream::SocketOutputStream(
+    NearbyClientSocket* client_socket) {
+  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::platform::config_package_nearby::nearby_platform_feature::
+          kEnableBlockingSocket);
+  client_socket_ = client_socket;
+}
+
 Exception WifiLanSocket::SocketOutputStream::Write(const ByteArray& data) {
-  try {
-    Buffer buffer = Buffer(data.size());
-    std::memcpy(buffer.data(), data.data(), data.size());
-    buffer.Length(data.size());
-    uint32_t wrote_bytes = output_stream_.WriteAsync(buffer).get();
-    if (wrote_bytes != data.size()) {
-      LOG(WARNING) << "Only wrote partial of data:[" << wrote_bytes << "/"
-                   << data.size() << "].";
+  if (enable_blocking_socket_) {
+    if (client_socket_ == nullptr) {
+      return {Exception::kIo};
     }
 
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+    return client_socket_->Write(data);
+  } else {
+    try {
+      Buffer buffer = Buffer(data.size());
+      std::memcpy(buffer.data(), data.data(), data.size());
+      buffer.Length(data.size());
+      uint32_t wrote_bytes = output_stream_.WriteAsync(buffer).get();
+      if (wrote_bytes != data.size()) {
+        LOG(WARNING) << "Only wrote partial of data:[" << wrote_bytes << "/"
+                     << data.size() << "].";
+      }
+
+      return {Exception::kSuccess};
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
+    }
   }
 }
 
 Exception WifiLanSocket::SocketOutputStream::Flush() {
-  try {
-    output_stream_.FlushAsync().get();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+  if (enable_blocking_socket_) {
+    if (client_socket_ == nullptr) {
+      return {Exception::kIo};
+    }
+
+    return client_socket_->Flush();
+  } else {
+    try {
+      output_stream_.FlushAsync().get();
+      return {Exception::kSuccess};
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
+    }
   }
 }
 
 Exception WifiLanSocket::SocketOutputStream::Close() {
-  try {
-    output_stream_.Close();
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+  if (enable_blocking_socket_) {
+    if (client_socket_ == nullptr) {
+      return {Exception::kIo};
+    }
+
+    return client_socket_->Close();
+  } else {
+    try {
+      output_stream_.Close();
+      return {Exception::kSuccess};
+    } catch (std::exception exception) {
+      LOG(ERROR) << __func__ << ": Exception: " << exception.what();
+      return {Exception::kIo};
+    } catch (const winrt::hresult_error& error) {
+      LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
+                 << winrt::to_string(error.message());
+      return {Exception::kIo};
+    } catch (...) {
+      LOG(ERROR) << __func__ << ": Unknown exception.";
+      return {Exception::kIo};
+    }
   }
 }
 
