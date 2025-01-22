@@ -39,7 +39,7 @@ constexpr auto kEnableAutoReconnect =
     flags::Flag<bool>(kConfigPackage, "45427690", false);
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
-    flags::Flag<bool>(kConfigPackage, "45401515", false);
+    flags::Flag<bool>(kConfigPackage, "45401515", true);
 // Disable/Enable GATT query in thread in BLE V2.
 // Manual edit: setting this to false for ChromeOS rollout as well.
 constexpr auto kEnableGattQueryInThread =
@@ -68,10 +68,9 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
-// Enable/Disable payload-received-ack feature.
-// Set the safe-to-disconnect version.
-// Enable 1. safe-to-disconnect check 2. reserved 3. auto-reconnect 4.
-// auto-resume 5. non-distance-constraint-recovery 6. payload_ack
+// Indicates protocol version for safe-to-disconnect.0. Disabled all. 1.
+// safe-to-disconnect 2. reserved 3. auto-reconnect4. auto-resume for dev
+// device 5. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 // When true, use stable endpoint ID.
