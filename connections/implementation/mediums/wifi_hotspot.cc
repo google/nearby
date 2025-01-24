@@ -100,17 +100,15 @@ bool WifiHotspot::IsConnectedToHotspot() {
   return is_connected_to_hotspot_;
 }
 
-bool WifiHotspot::ConnectWifiHotspot(const std::string& ssid,
-                                     const std::string& password,
-                                     int frequency) {
+bool WifiHotspot::ConnectWifiHotspot(
+    const HotspotCredentials& hotspot_credentials) {
   MutexLock lock(&mutex_);
   if (is_connected_to_hotspot_) {
     NEARBY_LOGS(INFO)
         << "No need to connect to Hotspot because it is already connected.";
     return true;
   }
-  is_connected_to_hotspot_ =
-      medium_.ConnectWifiHotspot(ssid, password, frequency);
+  is_connected_to_hotspot_ = medium_.ConnectWifiHotspot(hotspot_credentials);
   return is_connected_to_hotspot_;
 }
 

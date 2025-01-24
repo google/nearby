@@ -56,9 +56,7 @@ class WifiHotspotTest : public testing::TestWithParam<FeatureFlags> {
     env_.Stop();
     env_.Start();
   }
-  ~WifiHotspotTest() override{
-    env_.Stop();
-  }
+  ~WifiHotspotTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
@@ -89,10 +87,11 @@ TEST_F(WifiHotspotTest, CanStartStopHotspot) {
 
 TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
-  std::string ssid(kSsid);
-  std::string password(kPassword);
+  HotspotCredentials hotspot_credentials;
+  hotspot_credentials.SetSSID(std::string(kSsid));
+  hotspot_credentials.SetPassword(std::string(kPassword));
 
-  EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(ssid, password, kFrequency));
+  EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(hotspot_credentials));
   EXPECT_TRUE(wifi_hotspot_a->DisconnectWifiHotspot());
 }
 
@@ -113,9 +112,7 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
   HotspotCredentials* hotspot_credentials =
       wifi_hotspot_a->GetCredentials(service_id);
 
-  EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
-      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword(),
-      hotspot_credentials->GetFrequency()));
+  EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(*hotspot_credentials));
 
   WifiHotspotSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
@@ -152,9 +149,7 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
   HotspotCredentials* hotspot_credentials =
       wifi_hotspot_a->GetCredentials(service_id);
 
-  EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(
-      hotspot_credentials->GetSSID(), hotspot_credentials->GetPassword(),
-      hotspot_credentials->GetFrequency()));
+  EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(*hotspot_credentials));
 
   WifiHotspotSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
@@ -183,10 +178,10 @@ TEST_F(WifiHotspotTest, CanStartHotspotTheOtherFailConnect) {
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
 
-  std::string ssid(kSsid);
-  std::string password(kPassword);
-
-  EXPECT_FALSE(wifi_hotspot_b->ConnectWifiHotspot(ssid, password, kFrequency));
+  HotspotCredentials hotspot_credentials;
+  hotspot_credentials.SetSSID(std::string(kSsid));
+  hotspot_credentials.SetPassword(std::string(kPassword));
+  EXPECT_FALSE(wifi_hotspot_b->ConnectWifiHotspot(hotspot_credentials));
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
 
   EXPECT_TRUE(wifi_hotspot_a->StopWifiHotspot());

@@ -718,18 +718,32 @@ bool WifiHotspotMedium::ConnectWifiHotspotWithNative(
 
     // Make sure IP address is ready.
     std::string ip_address;
-    int64_t ip_address_max_retries = 20;
-    int64_t ip_address_retry_interval_millis = 500;
+    int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kWifiHotspotCheckIpMaxRetries);
+    int64_t ip_address_retry_interval_millis =
+        NearbyFlags::GetInstance().GetInt64Flag(
+            platform::config_package_nearby::nearby_platform_feature::
+                kWifiHotspotCheckIpIntervalMillis);
     LOG(INFO) << "maximum IP check retries=" << ip_address_max_retries
               << ", IP check interval=" << ip_address_retry_interval_millis
               << "ms";
     for (int i = 0; i < ip_address_max_retries; i++) {
       LOG(INFO) << "Check IP address at attempt " << i;
-      std::vector<std::string> ip_addresses = GetIpv4Addresses();
+      std::vector<std::string> ip_addresses = GetWifiIpv4Addresses();
+
       if (ip_addresses.empty()) {
         Sleep(ip_address_retry_interval_millis);
         continue;
       }
+
+      // Need to filter out the APIPA address("169.254.x.x").
+      if (ip_addresses[0].starts_with("169.254.")) {
+        LOG(WARNING) << "Got APIPA address " << ip_addresses[0];
+        Sleep(ip_address_retry_interval_millis);
+        continue;
+      }
+
       ip_address = ip_addresses[0];
       break;
     }
