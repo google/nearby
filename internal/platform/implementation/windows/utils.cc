@@ -172,6 +172,39 @@ std::vector<std::string> Get4BytesIpv4Addresses() {
   return result;
 }
 
+std::vector<std::string> GetWifiIpv4Addresses() {
+  std::vector<std::string> result;
+
+  try {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (const auto& host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
+        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
+          // If we're not connected to a network, we don't want to add this
+          // address.
+          continue;
+        }
+        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
+          result.push_back(winrt::to_string(host_name.ToString()));
+        }
+      }
+    }
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
+               << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
+  }
+
+  return result;
+}
+
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {
   int64_t data1 = guid.Data1;
   int64_t data2 = guid.Data2;

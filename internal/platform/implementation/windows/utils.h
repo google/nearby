@@ -17,6 +17,7 @@
 
 #include <windows.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -44,6 +45,7 @@ ByteArray Sha256(absl::string_view input, size_t size);
 // Reads the IPv4 addresses
 std::vector<std::string> GetIpv4Addresses();
 std::vector<std::string> Get4BytesIpv4Addresses();
+std::vector<std::string> GetWifiIpv4Addresses();
 
 // Help methods to convert between Uuid and winrt::guid
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid);
@@ -51,7 +53,7 @@ winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid);
 
 // Check whether Uuid and guid is the same value.
 bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
-                                     const ::winrt::guid& guid);
+                                        const ::winrt::guid& guid);
 
 namespace Constants {
 // The Id of the Service Name SDP attribute

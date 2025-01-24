@@ -53,8 +53,8 @@ class WifiHotspot {
   bool StopWifiHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsConnectedToHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool ConnectWifiHotspot(const std::string& ssid, const std::string& password,
-                          int frequency) ABSL_LOCKS_EXCLUDED(mutex_);
+  bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   bool DisconnectWifiHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Starts a worker thread, creates a WifiHotspot socket, associates it with a
