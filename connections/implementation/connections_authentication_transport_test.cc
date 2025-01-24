@@ -14,6 +14,7 @@
 
 #include "connections/implementation/connections_authentication_transport.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -75,6 +76,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(void, Resume, (), (override));
   MOCK_METHOD(absl::Time, GetLastReadTimestamp, (), (const, override));
   MOCK_METHOD(absl::Time, GetLastWriteTimestamp, (), (const, override));
+  MOCK_METHOD(uint32_t, GetNextKeepAliveSeqNo, (), (const, override));
   MOCK_METHOD(void, SetAnalyticsRecorder,
               (analytics::AnalyticsRecorder*, const std::string&), (override));
 

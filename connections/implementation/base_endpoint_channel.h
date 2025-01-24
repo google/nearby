@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_BASE_ENDPOINT_CHANNEL_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -84,6 +85,7 @@ class BaseEndpointChannel : public EndpointChannel {
       ABSL_LOCKS_EXCLUDED(last_read_mutex_) override;
   absl::Time GetLastWriteTimestamp() const
       ABSL_LOCKS_EXCLUDED(last_write_mutex_) override;
+  uint32_t GetNextKeepAliveSeqNo() const override;
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override;
 
@@ -116,6 +118,10 @@ class BaseEndpointChannel : public EndpointChannel {
   mutable Mutex last_write_mutex_;
   absl::Time last_write_timestamp_ ABSL_GUARDED_BY(last_write_mutex_) =
       absl::InfinitePast();
+
+  mutable Mutex keep_alive_mutex_;
+  mutable uint32_t next_keep_alive_seq_no_ ABSL_GUARDED_BY(keep_alive_mutex_) =
+      0;
 
   const std::string service_id_;
   const std::string channel_name_;

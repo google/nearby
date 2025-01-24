@@ -179,6 +179,7 @@ cc_library(
     deps = [
         ":internal",
         "//connections:core_types",
+        "//connections/implementation/analytics",
         "//connections/implementation/flags:connections_flags",
         "//connections/v3:v3_types",
         "//internal/flags:nearby_flags",
@@ -188,6 +189,7 @@ cc_library(
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_for_library_testonly",
     ],
 )

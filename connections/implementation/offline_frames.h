@@ -21,6 +21,7 @@
 
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/connection_options.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
@@ -101,6 +102,7 @@ ByteArray ForBwuLastWrite();
 ByteArray ForBwuSafeToClose();
 
 ByteArray ForKeepAlive();
+ByteArray ForKeepAlive(bool ack, uint32_t seq_num);
 ByteArray ForDisconnection(bool request_safe_to_disconnect,
                            bool ack_safe_to_disconnect);
 ByteArray ForAutoReconnectIntroduction(const std::string& endpoint_id);

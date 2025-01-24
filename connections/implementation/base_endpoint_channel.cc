@@ -319,6 +319,11 @@ void BaseEndpointChannel::CloseIo() {
   }
 }
 
+uint32_t BaseEndpointChannel::GetNextKeepAliveSeqNo() const {
+  MutexLock lock(&keep_alive_mutex_);
+  return next_keep_alive_seq_no_++;
+}
+
 void BaseEndpointChannel::SetAnalyticsRecorder(
     analytics::AnalyticsRecorder* analytics_recorder,
     const std::string& endpoint_id) {

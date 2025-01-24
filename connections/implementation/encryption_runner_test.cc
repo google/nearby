@@ -15,6 +15,7 @@
 #include "connections/implementation/encryption_runner.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 #include "gtest/gtest.h"
@@ -103,6 +104,9 @@ class FakeEndpointChannel : public EndpointChannel {
   void Resume() override {}
   absl::Time GetLastReadTimestamp() const override { return read_timestamp_; }
   absl::Time GetLastWriteTimestamp() const override { return write_timestamp_; }
+  uint32_t GetNextKeepAliveSeqNo() const override {
+    return next_keep_alive_seq_no_++;
+  }
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override {}
 
@@ -111,6 +115,7 @@ class FakeEndpointChannel : public EndpointChannel {
   OutputStream* out_ = nullptr;
   absl::Time read_timestamp_ = absl::InfinitePast();
   absl::Time write_timestamp_ = absl::InfinitePast();
+  mutable uint32_t next_keep_alive_seq_no_ = 0;
 };
 
 struct User {

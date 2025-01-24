@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "connections/connection_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames_validator.h"
@@ -27,6 +28,7 @@
 #include "connections/status.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -35,15 +37,16 @@ namespace {
 
 using ExceptionOrOfflineFrame =
     ExceptionOr<::location::nearby::connections::OfflineFrame>;
+using ::location::nearby::connections::AutoReconnectFrame;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::ConnectionRequestFrame;
 using ::location::nearby::connections::ConnectionResponseFrame;
+using ::location::nearby::connections::KeepAliveFrame;
 using ::location::nearby::connections::LocationHint;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
-using ::location::nearby::connections::AutoReconnectFrame;
 
 ByteArray ToBytes(OfflineFrame&& frame) {
   ByteArray bytes(frame.ByteSizeLong());
@@ -178,7 +181,7 @@ ByteArray ForConnectionResponse(std::int32_t status, const OsInfo& os_info,
   v1_frame->set_type(V1Frame::CONNECTION_RESPONSE);
   auto* sub_frame = v1_frame->mutable_connection_response();
 
-  // For backward compatiblility, here still sets both status and response
+  // For backward compatibility, here still sets both status and response
   // parameters until the response feature is roll out in all supported
   // devices.
   sub_frame->set_status(status);
@@ -471,6 +474,18 @@ ByteArray ForKeepAlive() {
   v1_frame->set_type(V1Frame::KEEP_ALIVE);
   v1_frame->mutable_keep_alive();
 
+  return ToBytes(std::move(frame));
+}
+
+ByteArray ForKeepAlive(bool ack, uint32_t seq_num) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::KEEP_ALIVE);
+  KeepAliveFrame* keep_alive = v1_frame->mutable_keep_alive();
+  keep_alive->set_ack(ack);
+  keep_alive->set_seq_num(seq_num);
   return ToBytes(std::move(frame));
 }
 

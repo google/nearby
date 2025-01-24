@@ -15,9 +15,12 @@
 #ifndef CORE_INTERNAL_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_ENDPOINT_CHANNEL_H_
 
+#include <cstdint>
+#include <memory>
 #include <string>
 
 #include "securegcm/d2d_connection_context_v1.h"
+#include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "internal/platform/byte_array.h"
@@ -125,13 +128,16 @@ class EndpointChannel {
   // writes have occurred.
   virtual absl::Time GetLastWriteTimestamp() const = 0;
 
+  // Returns the next sequence number to be used for a KeepAlive frame.
+  virtual uint32_t GetNextKeepAliveSeqNo() const = 0;
+
   // Sets the AnalyticsRecorder instance for analytics.
   virtual void SetAnalyticsRecorder(
       analytics::AnalyticsRecorder* analytics_recorder,
       const std::string& endpoint_id) = 0;
 
   // Enables the multiplex socket on the EndpointChannel.
-  virtual bool EnableMultiplexSocket() {return false;}
+  virtual bool EnableMultiplexSocket() { return false; }
 };
 
 inline bool operator==(const EndpointChannel& lhs, const EndpointChannel& rhs) {
