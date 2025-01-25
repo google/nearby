@@ -136,6 +136,18 @@ enum ConnectionMode {
 //     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto
 // )
 
+// LINT.IfChange
+// Result of a instant connection.
+enum InstantConnectionResult {
+  UNKNOWN_INSTANT_CONNECTION_RESULT = 0;
+  INSTANT_CONNECTION_SUCCESS = 1;
+  INSTANT_CONNECTION_FAILURE = 2;
+  INSTANT_CONNECTION_TIMEOUT = 3;
+}
+// LINT.ThenChange(
+//     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/InstantConnectionResult.java
+// )
+
 // The result of a ConnectionRequest.
 enum ConnectionRequestResponse {
   UNKNOWN_CONNECTION_REQUEST_RESPONSE = 0;
