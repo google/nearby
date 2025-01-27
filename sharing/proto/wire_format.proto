@@ -211,7 +211,7 @@ message V1Frame {
 
 // An introduction packet sent by the sending side. Contains a list of files
 // they'd like to share.
-// NEXT_ID=9
+// NEXT_ID=10
 message IntroductionFrame {
   enum SharingUseCase {
     UNKNOWN = 0;
@@ -228,6 +228,7 @@ message IntroductionFrame {
   optional bool start_transfer = 6;
   repeated StreamMetadata stream_metadata = 7;
   optional SharingUseCase use_case = 8;
+  repeated int64 preview_payload_ids = 9;
 }
 
 // A progress update packet sent by the sending side. Contains transfer progress
