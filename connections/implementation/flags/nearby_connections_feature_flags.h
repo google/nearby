@@ -50,6 +50,12 @@ constexpr auto kEnableInstantOnLost =
 // When true, enable multiplexing in NC.
 constexpr auto kEnableMultiplex =
     flags::Flag<bool>(kConfigPackage, "45647946", false);
+// When true, enable multiplexing in NC for Bluetooth.
+constexpr auto kEnableMultiplexBluetooth =
+    flags::Flag<bool>(kConfigPackage, "45676646", false);
+// When true, enable multiplexing in NC for WifiLan.
+constexpr auto kEnableMultiplexWifiLan =
+    flags::Flag<bool>(kConfigPackage, "45676647", false);
 // Enable/Disable payload manager to skip chunk update.
 constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
     flags::Flag<bool>(kConfigPackage, "45415729", true);

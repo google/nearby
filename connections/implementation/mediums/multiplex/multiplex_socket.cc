@@ -148,7 +148,8 @@ MultiplexSocket* MultiplexSocket::CreateIncomingSocket(
       return multiplex_incoming_socket;
   }
   NEARBY_LOGS(INFO) << "CreateIncomingSocket with serviceId=" << service_id
-                    << ", serviceIdHashSalt=" << kFakeSalt;
+                    << ", serviceIdHashSalt=" << kFakeSalt << " for medium="
+                    << Medium_Name(physical_socket->GetMedium());
 
   multiplex_incoming_socket->CreateFirstVirtualSocket(service_id,
                                                       (std::string)kFakeSalt);
@@ -194,7 +195,9 @@ MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
       return multiplex_outgoing_socket;
   }
   NEARBY_LOGS(INFO) << "CreateOutgoingSocket with serviceId=" << service_id
-                    << ", serviceIdHashSalt=" << service_id_hash_salt;
+                    << ", serviceIdHashSalt=" << service_id_hash_salt
+                    << " for medium="
+                    << Medium_Name(physical_socket->GetMedium());
 
   multiplex_outgoing_socket->CreateFirstVirtualSocket(service_id,
                                                       service_id_hash_salt);

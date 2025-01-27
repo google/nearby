@@ -208,7 +208,10 @@ class WifiLan {
 
   // Whether the multiplex feature is enabled.
   bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
+      config_package_nearby::nearby_connections_feature::kEnableMultiplex) &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplexWifiLan);
 
   // A map of IpAddress -> MultiplexSocket.
   absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>

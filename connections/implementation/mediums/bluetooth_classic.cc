@@ -64,8 +64,13 @@ BluetoothClassic::BluetoothClassic(
     : radio_(radio),
       adapter_(radio_.GetBluetoothAdapter()),
       medium_(std::move(medium)) {
-  is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex);
+  is_multiplex_enabled_ =
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplex) &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableMultiplexBluetooth);
 }
 
 BluetoothClassic::~BluetoothClassic() {
