@@ -41,7 +41,7 @@ Attachment::Attachment(Attachment::Family family, int64_t size,
 
 Attachment::Attachment(int64_t id, Attachment::Family family, int64_t size,
                        int32_t batch_id, SourceType source_type)
-    : id_(id),
+    : id_(id == 0 ? CreateRandomId() : id),
       family_(family),
       size_(size),
       batch_id_(batch_id),

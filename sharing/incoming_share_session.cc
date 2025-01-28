@@ -54,6 +54,7 @@ namespace {
 
 using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
+using ::nearby::sharing::service::proto::AppMetadata;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
 using ::nearby::sharing::service::proto::IntroductionFrame;
 using ::nearby::sharing::service::proto::V1Frame;
@@ -109,6 +110,43 @@ IncomingShareSession::ProcessIntroduction(
       return TransferMetadata::Status::kNotEnoughSpace;
     }
     file_size_sum += file.size();
+  }
+
+  for (const AppMetadata& apk : introduction_frame.app_metadata()) {
+    if (apk.size() <= 0) {
+      NL_LOG(WARNING)
+          << __func__
+          << ": Ignore introduction, due to invalid attachment size";
+      return TransferMetadata::Status::kUnsupportedAttachmentType;
+    }
+
+    VLOG(1) << __func__ << ": Found app attachment: id=" << apk.id()
+            << ", app_name=" << apk.app_name()
+            << ", package_name=" << apk.package_name()
+            << ", size=" << apk.size();
+    if (std::numeric_limits<int64_t>::max() - apk.size() < file_size_sum) {
+      NL_LOG(WARNING) << __func__
+                      << ": Ignoring introduction, total file size overflowed "
+                         "64 bit integer.";
+      container.Clear();
+      return TransferMetadata::Status::kNotEnoughSpace;
+    }
+    // Map each apk file to a file attachment.
+    for (int index = 0; index < apk.file_name_size(); ++index) {
+      // Locally generate an attachment id for each apk file, and map it to the
+      // payload id.
+      FileAttachment apk_file(
+          /*id=*/0, apk.file_size(index), apk.file_name(index),
+          /*mime_type=*/"", service::proto::FileMetadata::ANDROID_APP);
+      int64_t apk_file_id = apk_file.id();
+      VLOG(1) << __func__ << ": Found app file name: " << apk.file_name(index)
+              << ", attachment id=" << apk_file_id
+              << ", file size=" << apk.file_size(index)
+              << ", payload_id=" << apk.payload_id(index);
+      container.AddFileAttachment(std::move(apk_file));
+      SetAttachmentPayloadId(apk_file_id, apk.payload_id(index));
+    }
+    file_size_sum += apk.size();
   }
 
   for (const auto& text : introduction_frame.text_metadata()) {

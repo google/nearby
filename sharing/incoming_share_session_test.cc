@@ -14,6 +14,7 @@
 
 #include "sharing/incoming_share_session.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>  // NOLINT
 #include <limits>
@@ -295,6 +296,65 @@ TEST_F(IncomingShareSessionTest, ProcessIntroductionSuccess) {
               Eq(wifimeta1.payload_id()));
   EXPECT_THAT(session_.attachment_payload_map().at(wifimeta2.id()),
               Eq(wifimeta2.payload_id()));
+}
+
+TEST_F(IncomingShareSessionTest, ProcessIntroductionWithApkSuccess) {
+  IntroductionFrame introduction_frame;
+  CHECK(proto2::TextFormat::ParseFromString(R"pb(
+                                              app_metadata {
+                                                app_name: "MyApp"
+                                                size: 300
+                                                payload_id: 9876
+                                                payload_id: 9877
+                                                payload_id: 9878
+                                                id: 1234
+                                                file_name: "MyApp.apk"
+                                                file_name: "MyApp1.apk"
+                                                file_name: "MyApp2.apk"
+                                                file_size: 100
+                                                file_size: 100
+                                                file_size: 100
+                                                package_name: "com.example.myapp"
+                                              }
+                                            )pb",
+                                            &introduction_frame));
+  service::proto::AppMetadata app_metadata = introduction_frame.app_metadata(0);
+  int64_t payload_id1 = app_metadata.payload_id(0);
+  int64_t payload_id2 = app_metadata.payload_id(1);
+  int64_t payload_id3 = app_metadata.payload_id(2);
+  session_.OnConnected(&connection_);
+
+  EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
+              Eq(std::nullopt));
+  EXPECT_THAT(session_.attachment_container().HasAttachments(), IsTrue());
+  // Find generated file attachments ids.
+  auto it = std::find_if(std::begin(session_.attachment_payload_map()),
+                         std::end(session_.attachment_payload_map()),
+                         [&](auto&& p) { return p.second == payload_id1; });
+  ASSERT_NE(it, std::end(session_.attachment_payload_map()));
+  int64_t file_id1 = it->first;
+  it = std::find_if(std::begin(session_.attachment_payload_map()),
+                    std::end(session_.attachment_payload_map()),
+                    [&](auto&& p) { return p.second == payload_id2; });
+  ASSERT_NE(it, std::end(session_.attachment_payload_map()));
+  int64_t file_id2 = it->first;
+  it = std::find_if(std::begin(session_.attachment_payload_map()),
+                    std::end(session_.attachment_payload_map()),
+                    [&](auto&& p) { return p.second == payload_id3; });
+  ASSERT_NE(it, std::end(session_.attachment_payload_map()));
+  int64_t file_id3 = it->first;
+  FileAttachment file1(
+      file_id1, app_metadata.file_size(0), app_metadata.file_name(0),
+      /*mime_type=*/"", service::proto::FileMetadata::ANDROID_APP);
+  FileAttachment file2(
+      file_id2, app_metadata.file_size(1), app_metadata.file_name(1),
+      /*mime_type=*/"", service::proto::FileMetadata::ANDROID_APP);
+  FileAttachment file3(
+      file_id3, app_metadata.file_size(2), app_metadata.file_name(2),
+      /*mime_type=*/"", service::proto::FileMetadata::ANDROID_APP);
+
+  EXPECT_THAT(session_.attachment_container().GetFileAttachments(),
+              UnorderedElementsAre(file1, file2, file3));
 }
 
 TEST_F(IncomingShareSessionTest,
@@ -1103,8 +1163,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotConnected) {
-  EXPECT_THAT(session_.AcceptTransfer([]() {}),
-              IsFalse());
+  EXPECT_THAT(session_.AcceptTransfer([]() {}), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
@@ -1112,8 +1171,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferNotReady) {
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
 
-  EXPECT_THAT(session_.AcceptTransfer([]() {}),
-              IsFalse());
+  EXPECT_THAT(session_.AcceptTransfer([]() {}), IsFalse());
 }
 
 TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
@@ -1150,8 +1208,7 @@ TEST_F(IncomingShareSessionTest, AcceptTransferSuccess) {
         frames_data.push(std::move(payload->content.bytes_payload.bytes));
       });
 
-  EXPECT_THAT(session_.AcceptTransfer([]() {}),
-              IsTrue());
+  EXPECT_THAT(session_.AcceptTransfer([]() {}), IsTrue());
 
   for (auto it : session_.attachment_payload_map()) {
     EXPECT_THAT(
@@ -1310,28 +1367,27 @@ TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNotNeeded) {
 
 TEST_F(IncomingShareSessionTest, TryUpgradeBandwidthNeeded) {
   IntroductionFrame introduction_frame;
-  CHECK(
-      proto2::TextFormat::ParseFromString(R"pb(
-                                            file_metadata {
-                                              id: 1234
-                                              size: 1000000
-                                              name: "file_name1"
-                                              mime_type: "application/pdf"
-                                              type: DOCUMENT
-                                              parent_folder: "parent_folder1"
-                                              payload_id: 9876
-                                            }
-                                            file_metadata {
-                                              id: 1235
-                                              size: 200
-                                              name: "file_name2"
-                                              mime_type: "image/jpeg"
-                                              type: IMAGE
-                                              parent_folder: "parent_folder2"
-                                              payload_id: 9875
-                                            }
-                                          )pb",
-                                          &introduction_frame));
+  CHECK(proto2::TextFormat::ParseFromString(R"pb(
+                                              file_metadata {
+                                                id: 1234
+                                                size: 1000000
+                                                name: "file_name1"
+                                                mime_type: "application/pdf"
+                                                type: DOCUMENT
+                                                parent_folder: "parent_folder1"
+                                                payload_id: 9876
+                                              }
+                                              file_metadata {
+                                                id: 1235
+                                                size: 200
+                                                name: "file_name2"
+                                                mime_type: "image/jpeg"
+                                                type: IMAGE
+                                                parent_folder: "parent_folder2"
+                                                payload_id: 9875
+                                              }
+                                            )pb",
+                                            &introduction_frame));
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
               Eq(std::nullopt));
