@@ -93,8 +93,6 @@ TEST_F(CountDownLatchTests, CountDownLatchAwaitSucceeds) {
 
 TEST_F(CountDownLatchTests, CountDownLatchAwaitTimeoutTimesOut) {
   // Arrange
-  LONG volatile count = 0;
-
   std::unique_ptr<nearby::api::CountDownLatch> countDownLatch =
       nearby::api::ImplementationPlatform::CreateCountDownLatch(3);
 

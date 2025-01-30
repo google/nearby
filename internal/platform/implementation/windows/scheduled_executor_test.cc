@@ -92,8 +92,6 @@ TEST_P(ScheduledExecutorTest, ScheduleSucceeds) {
 
   threadIds->push_back(GetCurrentThreadId());
 
-  std::chrono::system_clock::time_point timeNow =
-      std::chrono::system_clock::now();
   std::chrono::system_clock::time_point timeExecuted;
 
   // Act

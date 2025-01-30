@@ -44,14 +44,6 @@ const wchar_t* kOneIterationNoDotsFileName(L"/incrementfiletesttxt (1)");
 const wchar_t* kMultipleDotsFileName(L"increment.file.test.txt");
 const wchar_t* kOneIterationMultipleDotsFileName(
     L"/increment.file.test (1).txt");
-const wchar_t* kImmediateEscape(L"../");
-const wchar_t* kLongEscapeBackSlash(L"..\\test\\..\\..\\test");
-const wchar_t* kTwoLevelFolder(L"/test/test");
-const wchar_t* kLongEscapeSlash(L"../test/../../test");
-const wchar_t* kLongEscapeMixedSlash(L"../test\\..\\../test");
-const wchar_t* kLongEscapeEndingEscape(L"../test/../../test/..");
-const wchar_t* kLongEscapeEndingEscapeWithSlash(
-    L"../test/../../test/../../../");
 const wchar_t* kFileNameWithThreeDots(L"...");
 const wchar_t* kFileNameWithFrontTwoDots(L"..file.name.txt");
 }  // namespace
@@ -142,9 +134,6 @@ NameArgumentsShouldReturnBaseDownloadPath) {
   std::wstring file_name(L"\\");
 
   auto actual(FilePath::GetDownloadPath(parent_folder, file_name));
-
-  auto result_size = actual.size();
-  auto default_size = default_download_path_.size();
 
   EXPECT_EQ(actual, default_download_path_);
 }
