@@ -13,7 +13,10 @@
 # limitations under the License.
 licenses(["notice"])
 
-package(default_visibility = ["//internal/platform/implementation/apple:__subpackages__"])
+package(default_visibility = [
+    "//connections:__subpackages__",
+    "//internal/platform/implementation/apple:__subpackages__",
+])
 
 objc_library(
     name = "Mediums",

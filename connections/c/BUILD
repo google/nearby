@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
+load("//tools/build_defs/apple:apple.bzl", "apple_static_xcframework")
 
 package(default_visibility = [
     "//connections:__subpackages__",
@@ -50,6 +51,29 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+apple_static_xcframework(
+    name = "NearbyConnections",
+    avoid_deps = [],
+    bundle_name = "NearbyConnections",
+    ios = {
+        "simulator": [
+            "arm64",
+            "x86_64",
+        ],
+        "device": [
+            "arm64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "15.0",
+    },
+    deps = [
+        ":nc",
+        "//internal/platform/implementation/apple",
+        "//internal/platform/implementation/apple/Mediums",
     ],
 )
 
