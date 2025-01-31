@@ -14,15 +14,17 @@
 
 #include "internal/platform/wifi_hotspot.h"
 
-#include "internal/platform/mutex_lock.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 
 WifiHotspotSocket WifiHotspotMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(INFO) << "WifiHotspotMedium::ConnectToService: ip address="
-                    << ip_address << ", port=" << port;
+  LOG(INFO) << "WifiHotspotMedium::ConnectToService: ip address=" << ip_address
+            << ", port=" << port;
   return WifiHotspotSocket(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
 }

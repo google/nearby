@@ -21,6 +21,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
@@ -183,19 +184,14 @@ class WifiHotspotMedium {
   }
   bool StopWifiHotspot() { return impl_->StopWifiHotspot(); }
 
-  bool ConnectWifiHotspot(const std::string& ssid,
-                          const std::string& password, int frequency) {
+  bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials) {
     MutexLock lock(&mutex_);
-    hotspot_credentials_.SetSSID(ssid);
-    hotspot_credentials_.SetPassword(password);
-    hotspot_credentials_.SetFrequency(frequency);
+    hotspot_credentials_ = hotspot_credentials;
     return impl_->ConnectWifiHotspot(&hotspot_credentials_);
   }
   bool DisconnectWifiHotspot() { return impl_->DisconnectWifiHotspot(); }
 
-  HotspotCredentials* GetCredential() {
-    return &hotspot_credentials_;
-  }
+  HotspotCredentials* GetCredential() { return &hotspot_credentials_; }
 
   bool IsInterfaceValid() const {
     CHECK(impl_);
