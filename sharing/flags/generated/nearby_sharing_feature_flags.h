@@ -110,6 +110,9 @@ constexpr auto kEnableConflictBanner =
 // Enable a persistent BETA label.
 constexpr auto kEnableMacosBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
+// When true, the send surface will use a grid layout.
+constexpr auto kEnableGridUi =
+    flags::Flag<bool>(kConfigPackage, "45677777", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -133,6 +136,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45410558, kShowAdminModeWarning},
       {45661130, kEnableConflictBanner},
       {45662570, kEnableMacosBetaLabel},
+      {45677777, kEnableGridUi},
   };
 }
 
