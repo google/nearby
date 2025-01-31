@@ -1790,7 +1790,6 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
   VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
           << ", share_target_id=" << share_target->id
           << ") to outgoing share target map";
-  outgoing_share_target_map_.insert_or_assign(endpoint_id, *share_target);
   CreateOutgoingShareSession(*share_target, endpoint_id,
                              std::move(certificate));
 
@@ -3229,7 +3228,6 @@ bool NearbySharingServiceImpl::FindDuplicateInDiscoveryCache(
               << it->second.share_target.id;
     share_target.id = it->second.share_target.id;
     discovery_cache_.erase(it);
-    outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
     return true;
   }
 
@@ -3244,7 +3242,6 @@ bool NearbySharingServiceImpl::FindDuplicateInDiscoveryCache(
       // Copy only the id field from cache entry,
       share_target.id = it->second.share_target.id;
       discovery_cache_.erase(it);
-      outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
       return true;
     }
   }
@@ -3379,6 +3376,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
 void NearbySharingServiceImpl::CreateOutgoingShareSession(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
+  outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
   auto [it_out, inserted] = outgoing_share_session_map_.try_emplace(
       share_target.id, context_->GetClock(), *service_thread_,
       nearby_connections_manager_.get(), analytics_recorder_,

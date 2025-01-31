@@ -382,8 +382,8 @@ class NearbySharingServiceImpl
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
-  // Add an entry to the outgoing_share_session_map_
-  // and OnShareTargetUpdated is called.
+  // Add an entry to the outgoing_share_session_map_ and
+  // outgoing_share_target_map_ and OnShareTargetUpdated is called.
   void DeDuplicateInDiscoveryCache(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
@@ -395,8 +395,8 @@ class NearbySharingServiceImpl
                                            ShareTarget& share_target);
 
   // Looks for a duplicate of the share target in the discovery cache.
-  // If found, move the share target to the outgoing share target map.
-  // The share target's id is updated to match the cached entry.
+  // If found, the share target is removed from the discovery cache and its
+  // id is copied into `share_target`.
   // Returns true if the duplicate is found.
   bool FindDuplicateInDiscoveryCache(absl::string_view endpoint_id,
                                      ShareTarget& share_target);
