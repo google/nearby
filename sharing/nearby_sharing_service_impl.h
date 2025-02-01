@@ -543,11 +543,6 @@ class NearbySharingServiceImpl
   // unnecessary backend API call.
   absl::flat_hash_set<std::string> discovered_advertisements_retried_set_;
 
-  // A map of ShareTarget id to disconnection timeout callback. Used to only
-  // disconnect after a timeout to keep sending any pending payloads.
-  absl::flat_hash_map<std::string, std::unique_ptr<ThreadTimer>>
-      disconnection_timeout_alarms_;
-
   // The current advertising power level. PowerLevel::kUnknown while not
   // advertising.
   PowerLevel advertising_power_level_ = PowerLevel::kUnknown;
