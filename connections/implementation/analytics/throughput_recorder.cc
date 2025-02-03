@@ -43,9 +43,8 @@ ThroughputRecorder::ThroughputRecorder(int64_t payload_id)
     : payload_id_(payload_id) {}
 
 ThroughputRecorderContainer& ThroughputRecorderContainer::GetInstance() {
-  static std::aligned_storage_t<sizeof(ThroughputRecorderContainer),
-                                alignof(ThroughputRecorderContainer)>
-      storage;
+  alignas(ThroughputRecorderContainer) static char
+      storage[sizeof(ThroughputRecorderContainer)];
   static ThroughputRecorderContainer* env =
       new (&storage) ThroughputRecorderContainer();
   return *env;

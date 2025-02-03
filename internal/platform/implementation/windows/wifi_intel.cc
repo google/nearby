@@ -137,7 +137,7 @@ MurocDefs::INTEL_CALLBACK g_intel_event_cb_handle = {IntelEventHandler,
 #endif
 
 WifiIntel& WifiIntel::GetInstance() {
-  static std::aligned_storage_t<sizeof(WifiIntel), alignof(WifiIntel)> storage;
+  alignas(WifiIntel) static char storage[sizeof(WifiIntel)];
   static WifiIntel* instance = new (&storage) WifiIntel();
   return *instance;
 }

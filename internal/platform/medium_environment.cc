@@ -52,9 +52,7 @@
 namespace nearby {
 
 MediumEnvironment& MediumEnvironment::Instance() {
-  static std::aligned_storage_t<sizeof(MediumEnvironment),
-                                alignof(MediumEnvironment)>
-      storage;
+  alignas(MediumEnvironment) static char storage[sizeof(MediumEnvironment)];
   static MediumEnvironment* env = new (&storage) MediumEnvironment();
   return *env;
 }
