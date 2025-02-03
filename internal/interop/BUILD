@@ -33,7 +33,6 @@ cc_library(
     ],
     visibility = [
         "//connections:__subpackages__",
-        "//connections:partners",
         "//presence:__subpackages__",
     ],
     deps = [
