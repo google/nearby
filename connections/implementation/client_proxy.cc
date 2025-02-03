@@ -1083,7 +1083,9 @@ void ClientProxy::RemoveAllEndpoints() {
 
 void ClientProxy::OnSessionComplete() {
   MutexLock lock(&mutex_);
-  if (connections_.empty() && !IsAdvertising()) {
+  // TODO(b/391339677): Revert back to the original logic first. Need to further
+  // check how to log session when discovery is on.
+  if (connections_.empty() && !IsAdvertising() && !IsDiscovering()) {
     local_endpoint_id_.clear();
 
     analytics_recorder_->LogSession();
