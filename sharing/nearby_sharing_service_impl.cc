@@ -915,9 +915,6 @@ void NearbySharingServiceImpl::DoCancel(
     return;
   }
 
-  // For metrics.
-  all_cancelled_share_target_ids_.insert(share_target_id);
-
   // Cancel all ongoing payload transfers before invoking the transfer update
   // callback. Invoking the transfer update callback first could result in
   // payload cleanup before we have a chance to cancel the payload via Nearby
@@ -1738,6 +1735,36 @@ void NearbySharingServiceImpl::FinishEndpointDiscoveryEvent() {
   }
 }
 
+void NearbySharingServiceImpl::OnShareTargetDiscovered(
+    const ShareTarget& share_target) {
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetDiscovered(share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetDiscovered(share_target);
+  }
+}
+
+void NearbySharingServiceImpl::OnShareTargetUpdated(
+    const ShareTarget& share_target) {
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetUpdated(share_target);
+  }
+}
+
+void NearbySharingServiceImpl::OnShareTargetLost(
+    const ShareTarget& share_target) {
+  for (auto& entry : foreground_send_surface_map_) {
+    entry.second.OnShareTargetLost(share_target);
+  }
+  for (auto& entry : background_send_surface_map_) {
+    entry.second.OnShareTargetLost(share_target);
+  }
+}
+
 void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     absl::string_view endpoint_id, absl::Span<const uint8_t> endpoint_info,
     const Advertisement& advertisement,
@@ -1811,12 +1838,7 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
               background_send_surface_map_.size())
           << " discovery callbacks be called.";
 
-  for (auto& entry : foreground_send_surface_map_) {
-    entry.second.OnShareTargetDiscovered(*share_target);
-  }
-  for (auto& entry : background_send_surface_map_) {
-    entry.second.OnShareTargetDiscovered(*share_target);
-  }
+  OnShareTargetDiscovered(*share_target);
 
   VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered: share_target: "
           << share_target->ToString() << " endpoint_id=" << endpoint_id
@@ -2355,12 +2377,7 @@ void NearbySharingServiceImpl::RemoveOutgoingShareTargetAndReportLost(
   if (!share_target_opt.has_value()) {
     return;
   }
-  for (auto& entry : foreground_send_surface_map_) {
-    entry.second.OnShareTargetLost(share_target_opt.value());
-  }
-  for (auto& entry : background_send_surface_map_) {
-    entry.second.OnShareTargetLost(share_target_opt.value());
-  }
+  OnShareTargetLost(*share_target_opt);
 
   VLOG(1) << __func__
           << ": Reported OnShareTargetLost for EndpointId: " << endpoint_id
@@ -2477,9 +2494,6 @@ void NearbySharingServiceImpl::OnCreatePayloads(
 
   std::optional<std::vector<uint8_t>> bluetooth_mac_address =
       GetBluetoothMacAddressForShareTarget(session);
-
-  // For metrics.
-  all_cancelled_share_target_ids_.clear();
 
   int64_t share_target_id = session.share_target().id;
 
@@ -3162,12 +3176,7 @@ void NearbySharingServiceImpl::DeduplicateInOutgoingShareTarget(
   session_it->second.UpdateSessionForDedup(share_target, std::move(certificate),
                                            endpoint_id);
 
-  for (auto& entry : foreground_send_surface_map_) {
-    entry.second.OnShareTargetUpdated(share_target);
-  }
-  for (auto& entry : background_send_surface_map_) {
-    entry.second.OnShareTargetUpdated(share_target);
-  }
+  OnShareTargetUpdated(share_target);
 
   LOG(INFO) << __func__
             << ": [Dedupped] Reported OnShareTargetUpdated to all surfaces "
@@ -3179,12 +3188,7 @@ void NearbySharingServiceImpl::DeDuplicateInDiscoveryCache(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   CreateOutgoingShareSession(share_target, endpoint_id, std::move(certificate));
-  for (auto& entry : foreground_send_surface_map_) {
-    entry.second.OnShareTargetUpdated(share_target);
-  }
-  for (auto& entry : background_send_surface_map_) {
-    entry.second.OnShareTargetUpdated(share_target);
-  }
+  OnShareTargetUpdated(share_target);
 
   LOG(INFO) << __func__
             << ": [Dedupped] Reported OnShareTargetUpdated to all surfaces "
@@ -3322,12 +3326,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
                   << ", share_target.id=" << share_target.id
                   << ") from discovery_cache after " << expiry_ms << "ms";
 
-        for (auto& entry : foreground_send_surface_map_) {
-          entry.second.OnShareTargetLost(share_target);
-        }
-        for (auto& entry : background_send_surface_map_) {
-          entry.second.OnShareTargetLost(share_target);
-        }
+        OnShareTargetLost(share_target);
 
         VLOG(1) << "discovery_cache entry: " << endpoint_id << " timeout after "
                 << expiry_ms << "ms"
@@ -3336,12 +3335,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
                 << share_target.ToString();
       });
   // Send ShareTarget update to set receive disabled to true.
-  for (auto& entry : foreground_send_surface_map_) {
-    entry.second.OnShareTargetUpdated(cache_entry.share_target);
-  }
-  for (auto& entry : background_send_surface_map_) {
-    entry.second.OnShareTargetUpdated(cache_entry.share_target);
-  }
+  OnShareTargetUpdated(cache_entry.share_target);
   auto [it, inserted] =
       discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
   LOG(INFO) << "[Dedupped] added to discovery_cache: " << endpoint_id << " by "
@@ -3427,9 +3421,6 @@ void NearbySharingServiceImpl::DisableAllOutgoingShareTargets() {
 
 void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
   LOG(INFO) << __func__ << ": Unregister share target " << share_target_id;
-
-  // For metrics.
-  all_cancelled_share_target_ids_.erase(share_target_id);
 
   // If share target ID is found in incoming_share_session_map_, then it's an
   // incoming share target.
