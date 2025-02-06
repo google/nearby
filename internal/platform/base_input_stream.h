@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -46,18 +47,23 @@ class BaseInputStream : public InputStream {
     return {Exception::kSuccess};
   }
 
-  std::uint8_t ReadUint8();
-  std::uint16_t ReadUint16();
-  std::uint32_t ReadUint32();
-  std::uint64_t ReadUint64();
-  ByteArray ReadBytes(int size);
+  std::optional<std::uint8_t> ReadUint8();
+  std::optional<std::int8_t> ReadInt8();
+  std::optional<std::uint16_t> ReadUint16();
+  std::optional<std::int16_t> ReadInt16();
+  std::optional<std::uint32_t> ReadUint32();
+  std::optional<std::int32_t> ReadInt32();
+  std::optional<std::uint64_t> ReadUint64();
+  std::optional<std::int64_t> ReadInt64();
+  std::optional<ByteArray> ReadBytes(int size);
+
   bool IsAvailable(int size) const {
     return buffer_.size() - position_ >= size;
   }
 
  private:
   ByteArray &buffer_;
-  int position_{0};
+  size_t position_{0};
 };
 
 }  // namespace nearby

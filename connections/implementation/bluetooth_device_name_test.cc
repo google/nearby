@@ -16,9 +16,11 @@
 
 #include <cstring>
 #include <memory>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "internal/platform/base64_utils.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {

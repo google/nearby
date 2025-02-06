@@ -23,6 +23,7 @@
 #include "absl/hash/hash_testing.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
@@ -482,7 +483,7 @@ TEST(BleAdvertisementTest, ConstructionWorksWithPsmValue) {
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
-  int psm = 127;
+  int psm = 128;
 
   BleAdvertisement ble_advertisement(kVersion, kSocketVersion, service_id_hash,
                                      data, device_token, psm);
@@ -503,7 +504,7 @@ TEST(BleAdvertisementTest,
   ByteArray service_id_hash{std::string(kServiceIDHashBytes)};
   ByteArray data{std::string(kData)};
   ByteArray device_token{std::string(kDeviceToken)};
-  int psm = 127;
+  int psm = 1127;
 
   BleAdvertisement original_ble_advertisement(
       kVersion, kSocketVersion, service_id_hash, data, device_token, psm);

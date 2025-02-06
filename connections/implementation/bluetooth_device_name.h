@@ -15,7 +15,7 @@
 #ifndef CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
 #define CORE_INTERNAL_BLUETOOTH_DEVICE_NAME_H_
 
-#include <cstdint>
+#include <string>
 
 #include "absl/strings/string_view.h"
 #include "connections/implementation/base_pcp_handler.h"

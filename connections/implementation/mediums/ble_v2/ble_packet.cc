@@ -14,12 +14,15 @@
 
 #include "connections/implementation/mediums/ble_v2/ble_packet.h"
 
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "internal/platform/base_input_stream.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "proto/mediums/ble_frames.pb.h"
 
@@ -122,21 +125,28 @@ absl::StatusOr<BlePacket> BlePacket::CreateDataPacket(
 
 BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
   if (ble_packet_bytes.Empty()) {
-    NEARBY_LOGS(ERROR) << "Cannot deserialize BlePacket: null bytes passed in";
+    LOG(INFO) << "Cannot deserialize BlePacket: null bytes passed in";
     return;
   }
 
   if (ble_packet_bytes.size() < kServiceIdHashLength) {
-    NEARBY_LOGS(INFO) << "Cannot deserialize BlePacket: expecting min "
-                      << kServiceIdHashLength << " raw bytes, got "
-                      << ble_packet_bytes.size();
+    LOG(INFO) << "Cannot deserialize BlePacket: expecting min "
+              << kServiceIdHashLength << " raw bytes, got "
+              << ble_packet_bytes.size();
     return;
   }
 
   ByteArray packet_bytes(ble_packet_bytes);
   BaseInputStream base_input_stream{packet_bytes};
   // The first 3 bytes are supposed to be the service_id_hash.
-  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+  auto service_id_hash_bytes =
+      base_input_stream.ReadBytes(kServiceIdHashLength);
+  if (!service_id_hash_bytes.has_value()) {
+    LOG(INFO) << "Cannot deserialize BlePacket: service_id_hash.";
+    return;
+  }
+
+  service_id_hash_ = *service_id_hash_bytes;
   if (service_id_hash_ ==
       ByteArray(kControlPacketServiceIdHash, kServiceIdHashLength)) {
     packet_type_ = BlePacketType::kControl;
@@ -145,8 +155,14 @@ BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
   }
 
   // The rest bytes are supposed to be the data.
-  data_ = base_input_stream.ReadBytes(ble_packet_bytes.size() -
-                                      kServiceIdHashLength);
+  auto data_bytes = base_input_stream.ReadBytes(ble_packet_bytes.size() -
+                                                kServiceIdHashLength);
+  if (!data_bytes.has_value()) {
+    LOG(INFO) << "Cannot deserialize BlePacket: data.";
+    return;
+  }
+
+  data_ = *data_bytes;
 }
 
 BlePacket::operator ByteArray() const {

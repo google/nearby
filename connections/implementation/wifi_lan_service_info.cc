@@ -14,15 +14,19 @@
 
 #include "connections/implementation/wifi_lan_service_info.h"
 
-#include <inttypes.h>
-
-#include <cstring>
+#include <cstdint>
+#include <string>
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "connections/implementation/base_pcp_handler.h"
+#include "connections/implementation/pcp.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/base_input_stream.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/nsd_service_info.h"
 
 namespace nearby {
 namespace connections {
@@ -68,7 +72,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   if (!txt_endpoint_info_name.empty()) {
     endpoint_info_ = Base64Utils::Decode(txt_endpoint_info_name);
     if (endpoint_info_.size() > kMaxEndpointInfoLength) {
-      NEARBY_LOGS(INFO)
+      LOG(INFO)
           << "Cannot deserialize EndpointInfo: expecting endpoint info max "
           << kMaxEndpointInfoLength << " raw bytes, got "
           << endpoint_info_.size();
@@ -79,75 +83,86 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   std::string service_info_name = nsd_service_info.GetServiceName();
   ByteArray service_info_bytes = Base64Utils::Decode(service_info_name);
   if (service_info_bytes.Empty()) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Cannot deserialize WifiLanServiceInfo: failed Base64 decoding of "
         << service_info_name;
     return;
   }
 
   if (service_info_bytes.size() < kMinLanServiceNameLength) {
-    NEARBY_LOGS(INFO) << "Cannot deserialize WifiLanServiceInfo: expecting min "
-                      << kMinLanServiceNameLength
-                      << " raw bytes, got "
-                      << service_info_bytes.size();
+    LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: expecting min "
+              << kMinLanServiceNameLength << " raw bytes, got "
+              << service_info_bytes.size();
     return;
   }
 
   BaseInputStream base_input_stream{service_info_bytes};
   // The first 1 byte is supposed to be the version and pcp.
-  auto version_and_pcp_byte = static_cast<char>(base_input_stream.ReadUint8());
+  auto version_and_pcp_byte = base_input_stream.ReadUint8();
+  if (!version_and_pcp_byte.has_value()) {
+    LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: version_and_pcp.";
+    return;
+  }
   // The upper 3 bits are supposed to be the version.
   version_ =
-      static_cast<Version>((version_and_pcp_byte & kVersionBitmask) >> 5);
+      static_cast<Version>((*version_and_pcp_byte & kVersionBitmask) >> 5);
   if (version_ != Version::kV1) {
-    NEARBY_LOGS(INFO)
-        << "Cannot deserialize WifiLanServiceInfo: unsupported Version "
-        << static_cast<int>(version_);
+    LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: unsupported Version "
+              << static_cast<int>(version_);
     return;
   }
   // The lower 5 bits are supposed to be the Pcp.
-  pcp_ = static_cast<Pcp>(version_and_pcp_byte & kPcpBitmask);
+  pcp_ = static_cast<Pcp>(*version_and_pcp_byte & kPcpBitmask);
   switch (pcp_) {
     case Pcp::kP2pCluster:  // Fall through
     case Pcp::kP2pStar:     // Fall through
     case Pcp::kP2pPointToPoint:
       break;
     default:
-      NEARBY_LOGS(INFO)
-          << "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP "
-          << static_cast<int>(pcp_);
+      LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: unsupported V1 PCP "
+                << static_cast<int>(pcp_);
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  endpoint_id_ = std::string{base_input_stream.ReadBytes(kEndpointIdLength)};
+  auto endpoint_id_bytes = base_input_stream.ReadBytes(kEndpointIdLength);
+  if (!endpoint_id_bytes.has_value()) {
+    LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: endpoint_id.";
+    return;
+  }
+  endpoint_id_ = std::string{*endpoint_id_bytes};
 
   // The next 3 bytes are supposed to be the service_id_hash.
-  service_id_hash_ = base_input_stream.ReadBytes(kServiceIdHashLength);
+  auto service_id_hash_bytes =
+      base_input_stream.ReadBytes(kServiceIdHashLength);
+  if (!service_id_hash_bytes.has_value()) {
+    LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: service_id_hash.";
+    endpoint_id_.clear();
+    return;
+  }
+  service_id_hash_ = *service_id_hash_bytes;
 
   // The next 1 byte is supposed to be the length of the uwb_address. If
   // available, continues to deserialize UWB address and extra field of WebRtc
   // state.
   if (base_input_stream.IsAvailable(1)) {
-    std::uint32_t expected_uwb_address_length = base_input_stream.ReadUint8();
+    auto expected_uwb_address_length =
+        base_input_stream.ReadUint8().value_or(0);
     // If the length of uwb_address is not zero, then retrieve it.
     if (expected_uwb_address_length != 0) {
-      uwb_address_ = base_input_stream.ReadBytes(expected_uwb_address_length);
-      if (uwb_address_.Empty() ||
-          uwb_address_.size() != expected_uwb_address_length) {
-        NEARBY_LOGS(INFO) << "Cannot deserialize WifiLanServiceInfo: expected "
-                             "uwbAddress size to be "
-                          << expected_uwb_address_length << " bytes, got "
-                          << uwb_address_.size();
-        // Clear enpoint_id for validity.
+      auto uwb_address_bytes =
+          base_input_stream.ReadBytes(expected_uwb_address_length);
+      if (!uwb_address_bytes.has_value()) {
+        LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: uwb_address.";
         endpoint_id_.clear();
         return;
       }
+      uwb_address_ = *uwb_address_bytes;
     }
 
     // The next 1 byte is extra field.
     web_rtc_state_ = WebRtcState::kUndefined;
     if (base_input_stream.IsAvailable(kExtraFieldLength)) {
-      auto extra_field = static_cast<char>(base_input_stream.ReadUint8());
+      auto extra_field = base_input_stream.ReadUint8().value_or(0);
       web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
                            ? WebRtcState::kConnectable
                            : WebRtcState::kUnconnectable;

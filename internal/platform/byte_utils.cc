@@ -30,7 +30,7 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
 
   BaseInputStream base_input_stream{bytes};
   while (base_input_stream.IsAvailable(1)) {
-    auto byte = static_cast<int8_t>(base_input_stream.ReadUint8());
+    auto byte = base_input_stream.ReadInt8().value_or(0);
     hashCode = (hashCode + byte * multiplier) % kHashBasePrime;
     multiplier = multiplier * kHashBaseMultiplier % kHashBasePrime;
   }

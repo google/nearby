@@ -14,11 +14,16 @@
 
 #include "connections/implementation/ble_advertisement.h"
 
+#include <cstring>
+#include <string>
+
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/base_pcp_handler.h"
+#include "connections/implementation/pcp.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
