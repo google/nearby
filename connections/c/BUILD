@@ -54,6 +54,7 @@ cc_library(
     ],
 )
 
+# iOS only.
 apple_static_xcframework(
     name = "NearbyConnections",
     avoid_deps = [],
@@ -77,6 +78,7 @@ apple_static_xcframework(
     ],
 )
 
+# Windows.
 windows.cc_windows_dll(
     name = "nc_windows",
     srcs = [],
@@ -86,5 +88,18 @@ windows.cc_windows_dll(
         ":nc",
         "//internal/platform/implementation/windows",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+# macOS.
+cc_binary(
+    name = "libnc.so",
+    linkshared = 1,
+    linkstatic = 1,
+    tags = ["notap"],
+    deps = [
+        ":nc",
+        "//internal/platform/implementation/apple",
+        "//internal/platform/implementation/apple/Mediums",
     ],
 )
