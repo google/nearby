@@ -1360,9 +1360,7 @@ TEST_F(ClientProxyTest,
   // After
   OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
   client2()->GetAnalyticsRecorder().Sync();
-  // Since we are no longer checking IsDiscovering(), we complete sessions now
-  // solely based on advertising.
-  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 1);
+  EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
 TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
