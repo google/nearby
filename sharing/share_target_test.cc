@@ -64,8 +64,19 @@ using ShareTargetToStringTest =
     testing::TestWithParam<ShareTargetToStringTestData>;
 
 TEST_P(ShareTargetToStringTest, ToStringResultMatches) {
-  ShareTarget test_share_target = GetParam().share_target;
+  const ShareTarget& test_share_target = GetParam().share_target;
   EXPECT_EQ(GetParam().expected_string_result, test_share_target.ToString());
+}
+
+TEST_P(ShareTargetToStringTest, EqualsResultMatches) {
+  const ShareTarget& test_share_target = GetParam().share_target;
+  EXPECT_EQ(test_share_target, test_share_target);
+}
+
+TEST_P(ShareTargetToStringTest, EqualsCopyConstructionResultMatches) {
+  const ShareTarget& test_share_target = GetParam().share_target;
+  ShareTarget copy_share_target = test_share_target;
+  EXPECT_EQ(test_share_target, copy_share_target);
 }
 
 INSTANTIATE_TEST_SUITE_P(ShareTargetToStringTest, ShareTargetToStringTest,

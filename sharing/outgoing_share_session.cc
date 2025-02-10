@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
@@ -116,7 +117,7 @@ OutgoingShareSession::OutgoingShareSession(
     NearbyConnectionsManager* connections_manager,
     analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
     const ShareTarget& share_target,
-    std::function<void(OutgoingShareSession&, const TransferMetadata&)>
+    absl::AnyInvocable<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
     : ShareSession(clock, service_thread, connections_manager,
                    analytics_recorder, std::move(endpoint_id), share_target),
@@ -489,18 +490,23 @@ void OutgoingShareSession::DelayComplete(
       });
 }
 
-void OutgoingShareSession::UpdateSessionForDedup(
+bool OutgoingShareSession::UpdateSessionForDedup(
     const ShareTarget& share_target,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate,
     absl::string_view endpoint_id) {
-  if (IsConnected()) return;
+  LOG_IF(DFATAL, share_target.id != this->share_target().id)
+      << "Share target id cannot be changed during deduplication.";
   set_share_target(share_target);
+  if (IsConnected()) {
+    return false;
+  }
   set_endpoint_id(endpoint_id);
   if (certificate.has_value()) {
     set_certificate(std::move(certificate.value()));
   } else {
     clear_certificate();
   }
+  return true;
 }
 
 void OutgoingShareSession::Connect(

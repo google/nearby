@@ -42,6 +42,8 @@ struct ShareTarget {
 
   std::string ToString() const;
 
+  bool operator==(const ShareTarget& other) const;
+
   int64_t id;
   std::string device_name;
   // Uri that points to an image of the ShareTarget, if one exists.
