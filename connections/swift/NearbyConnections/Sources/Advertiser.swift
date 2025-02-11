@@ -58,6 +58,22 @@ public class Advertiser {
       options: options, delegate: connection, withCompletionHandler: completionHandler)
   }
 
+  public func startAdvertising(
+    using context: Data, mediums: [Bool], completionHandler: ((Error?) -> Void)? = nil
+  ) {
+    let options = GNCAdvertisingOptions(strategy: connectionManager.strategy.objc)
+
+    // Update the advertising mediums based on the user selection
+    options.mediums = GNCSupportedMediums(
+      bluetooth: mediums[0], ble: mediums[1], webRTC: mediums[2], wifiLAN: mediums[3],
+      wifiHotspot: mediums[4], wifiDirect: mediums[5])
+
+    // Start advertising with the options
+    GNCCoreAdapter.shared.startAdvertising(
+      asService: connectionManager.serviceID, endpointInfo: context,
+      options: options, delegate: connection, withCompletionHandler: completionHandler)
+  }
+
   /// Stops advertising the local endpoint.
   ///
   /// - Parameter completionHandler: Called with `nil` if advertising stopped, or an error if
