@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
@@ -22,20 +22,20 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket+Internal.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkError.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket+Internal.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
-@interface GNCWiFiLANServerSocket ()
+@interface GNCNWFrameworkServerSocket ()
 
 @property(nonatomic, readonly) NSMutableArray<nw_connection_t> *pendingConnections;
 @property(nonatomic, readonly) NSMutableArray<nw_connection_t> *readyConnections;
 
 @end
 
-@implementation GNCWiFiLANServerSocket {
+@implementation GNCNWFrameworkServerSocket {
   NSCondition *_condition;
   nw_listener_t _listener;
   nw_listener_state_t _listenerState;
@@ -74,12 +74,12 @@
 
 - (GNCIPv4Address *)ipAddress {
   if (!_ipAddress) {
-    _ipAddress = [GNCWiFiLANServerSocket lookupIpAddress];
+    _ipAddress = [GNCNWFrameworkServerSocket lookupIpAddress];
   }
   return _ipAddress;
 }
 
-- (GNCWiFiLANSocket *)acceptWithError:(NSError **)error {
+- (GNCNWFrameworkSocket *)acceptWithError:(NSError **)error {
   // Wait until we have a ready connection and listener is in a ready/invalid state.
   [_condition lock];
   nw_connection_t connection = [self.readyConnections lastObject];
@@ -99,7 +99,7 @@
   if (connection == nil) {
     return nil;
   }
-  return [[GNCWiFiLANSocket alloc] initWithConnection:connection];
+  return [[GNCNWFrameworkSocket alloc] initWithConnection:connection];
 }
 
 - (void)close {
@@ -110,13 +110,13 @@
   _listener = nil;
 }
 
-- (BOOL)startListeningWithError:(NSError **)error {
+- (BOOL)startListeningWithError:(NSError **)error includePeerToPeer:(BOOL)includePeerToPeer {
   // Create a parameters object configured to support TCP. TLS MUST be disabled for Nearby to
-  // function properly. This also is set to include peer-to-peer, but unsure if it's required.
+  // function properly.
   nw_parameters_t parameters =
       nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
                                       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
-  nw_parameters_set_include_peer_to_peer(parameters, true);
+  nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
 
   // If the server socket port is zero, a random port will be selected. The server socket port will
   // be updated to reflect the port it's listening on, once the listener transitions to the ready
@@ -192,8 +192,8 @@
   // We timed out waiting for the listener to transition into a state.
   if (!didSignal) {
     [self close];
-    _listenerError = [NSError errorWithDomain:GNCWiFiLANErrorDomain
-                                         code:GNCWiFiLANErrorTimedOut
+    _listenerError = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                         code:GNCNWFrameworkErrorTimedOut
                                      userInfo:nil];
     return NO;
   }

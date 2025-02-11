@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,18 +15,18 @@
 #import <Foundation/Foundation.h>
 
 @class GNCIPv4Address;
-@class GNCWiFiLANServerSocket;
-@class GNCWiFiLANSocket;
+@class GNCNWFrameworkServerSocket;
+@class GNCNWFrameworkSocket;
 
 /** A handler that delivers updates about discovered services. */
 typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
                                      NSDictionary<NSString *, NSString *> *_Nonnull txtRecords);
 
 /**
- * The @c GNCWiFiLANMedium object is used as a delegate by the platform abstraction layer for
- * Wi-Fi LAN related functionality on Apple platforms.
+ * The @c GNCNWFramework object is used as a delegate by the platform abstraction layer for
+ * Network.Framework medium related functionality on Apple platforms.
  */
-@interface GNCWiFiLANMedium : NSObject
+@interface GNCNWFramework : NSObject
 
 /**
  * Listens for incoming connections on a given port.
@@ -41,11 +41,13 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param port The port on which the listener can accept connections. Should be a number between 1
  *             and 65536 to open a server socket on that exact port. Zero can be used to listen on
  *             a random port.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a server socket or nil if an error has occured.
  */
-- (nullable GNCWiFiLANServerSocket *)listenForServiceOnPort:(NSInteger)port
-                                                      error:(NSError **_Nullable)error;
+- (nullable GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
+                                              includePeerToPeer:(BOOL)includePeerToPeer
+                                                          error:(NSError **_Nullable)error;
 
 /**
  * Creates a Bonjour service that advertises the listener on the local network.
@@ -71,12 +73,14 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * Starts browsing for a Bonjour service.
  *
  * @param serviceType The Bonjour type of the service.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param serviceFoundHandler A handler called when a new service is found.
  * @param serviceLostHandler A handler called when a previously discovered service is lost.
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when discovery has successfully started.
  */
 - (BOOL)startDiscoveryForServiceType:(nonnull NSString *)serviceType
+                   includePeerToPeer:(BOOL)includePeerToPeer
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
                                error:(NSError **_Nullable)error;
@@ -93,12 +97,14 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  *
  * @param serviceName The Bonjour name of the service.
  * @param serviceType The Bonjour type of the service.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
-- (nullable GNCWiFiLANSocket *)connectToServiceName:(nonnull NSString *)serviceName
-                                        serviceType:(nonnull NSString *)serviceType
-                                              error:(NSError **_Nullable)error;
+- (nullable GNCNWFrameworkSocket *)connectToServiceName:(nonnull NSString *)serviceName
+                                            serviceType:(nonnull NSString *)serviceType
+                                             includePeerToPeer:(BOOL)includePeerToPeer
+                                                  error:(NSError **_Nullable)error;
 
 /**
  * Connects to an IP address and port.
@@ -108,8 +114,8 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
-- (nullable GNCWiFiLANSocket *)connectToHost:(nonnull GNCIPv4Address *)host
-                                        port:(NSInteger)port
-                                       error:(NSError **_Nullable)error;
+- (nullable GNCNWFrameworkSocket *)connectToHost:(nonnull GNCIPv4Address *)host
+                                            port:(NSInteger)port
+                                           error:(NSError **_Nullable)error;
 
 @end

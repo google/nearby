@@ -26,9 +26,9 @@
 
 @class GNCMBonjourBrowser;
 @class GNCMBonjourService;
-@class GNCWiFiLANMedium;
-@class GNCWiFiLANServerSocket;
-@class GNCWiFiLANSocket;
+@class GNCNWFramework;
+@class GNCNWFrameworkServerSocket;
+@class GNCNWFrameworkSocket;
 
 namespace nearby {
 namespace apple {
@@ -38,14 +38,14 @@ namespace apple {
  */
 class WifiLanInputStream : public InputStream {
  public:
-  explicit WifiLanInputStream(GNCWiFiLANSocket* socket);
+  explicit WifiLanInputStream(GNCNWFrameworkSocket* socket);
   ~WifiLanInputStream() override = default;
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
   Exception Close() override;
 
  private:
-  GNCWiFiLANSocket* socket_;
+  GNCNWFrameworkSocket* socket_;
 };
 
 /**
@@ -53,7 +53,7 @@ class WifiLanInputStream : public InputStream {
  */
 class WifiLanOutputStream : public OutputStream {
  public:
-  explicit WifiLanOutputStream(GNCWiFiLANSocket* socket);
+  explicit WifiLanOutputStream(GNCNWFrameworkSocket* socket);
   ~WifiLanOutputStream() override = default;
 
   Exception Write(const ByteArray& data) override;
@@ -61,7 +61,7 @@ class WifiLanOutputStream : public OutputStream {
   Exception Close() override;
 
  private:
-  GNCWiFiLANSocket* socket_;
+  GNCNWFrameworkSocket* socket_;
 };
 
 /**
@@ -69,7 +69,7 @@ class WifiLanOutputStream : public OutputStream {
  */
 class WifiLanSocket : public api::WifiLanSocket {
  public:
-  explicit WifiLanSocket(GNCWiFiLANSocket* socket);
+  explicit WifiLanSocket(GNCNWFrameworkSocket* socket);
   ~WifiLanSocket() override = default;
 
   InputStream& GetInputStream() override;
@@ -77,7 +77,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   Exception Close() override;
 
  private:
-  GNCWiFiLANSocket* socket_;
+  GNCNWFrameworkSocket* socket_;
   std::unique_ptr<WifiLanInputStream> input_stream_;
   std::unique_ptr<WifiLanOutputStream> output_stream_;
 };
@@ -87,7 +87,7 @@ class WifiLanSocket : public api::WifiLanSocket {
  */
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  explicit WifiLanServerSocket(GNCWiFiLANServerSocket*  server_socket);
+  explicit WifiLanServerSocket(GNCNWFrameworkServerSocket*  server_socket);
   ~WifiLanServerSocket() override = default;
 
   std::string GetIPAddress() const override;
@@ -96,7 +96,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   Exception Close() override;
 
  private:
-   GNCWiFiLANServerSocket* server_socket_;
+   GNCNWFrameworkServerSocket* server_socket_;
 };
 
 /**
@@ -126,7 +126,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override;
 
  private:
-  GNCWiFiLANMedium* medium_;
+  GNCNWFramework* medium_;
   absl::AnyInvocable<void(NsdServiceInfo)> service_discovered_cb_;
   absl::AnyInvocable<void(NsdServiceInfo)> service_lost_cb_;
 };

@@ -19,10 +19,10 @@
 #include <string>
 #include <utility>
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANMedium.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFramework.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
@@ -30,7 +30,7 @@ namespace apple {
 
 #pragma mark - WifiLanInputStream
 
-WifiLanInputStream::WifiLanInputStream(GNCWiFiLANSocket* socket) : socket_(socket) {}
+WifiLanInputStream::WifiLanInputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
 ExceptionOr<ByteArray> WifiLanInputStream::Read(std::int64_t size) {
   NSError* error = nil;
@@ -50,7 +50,7 @@ Exception WifiLanInputStream::Close() {
 
 #pragma mark - WifiLanOutputStream
 
-WifiLanOutputStream::WifiLanOutputStream(GNCWiFiLANSocket* socket) : socket_(socket) {}
+WifiLanOutputStream::WifiLanOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
 Exception WifiLanOutputStream::Write(const ByteArray& data) {
   NSError* error = nil;
@@ -76,7 +76,7 @@ Exception WifiLanOutputStream::Close() {
 
 #pragma mark - WifiLanSocket
 
-WifiLanSocket::WifiLanSocket(GNCWiFiLANSocket* socket)
+WifiLanSocket::WifiLanSocket(GNCNWFrameworkSocket* socket)
     : socket_(socket),
       input_stream_(std::make_unique<WifiLanInputStream>(socket)),
       output_stream_(std::make_unique<WifiLanOutputStream>(socket)) {}
@@ -92,7 +92,7 @@ Exception WifiLanSocket::Close() {
 
 #pragma mark - WifiLanServerSocket
 
-WifiLanServerSocket::WifiLanServerSocket(GNCWiFiLANServerSocket* server_socket)
+WifiLanServerSocket::WifiLanServerSocket(GNCNWFrameworkServerSocket* server_socket)
     : server_socket_(server_socket) {}
 
 std::string WifiLanServerSocket::GetIPAddress() const {
@@ -104,7 +104,7 @@ int WifiLanServerSocket::GetPort() const { return server_socket_.port; }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
   NSError* error = nil;
-  GNCWiFiLANSocket* socket = [server_socket_ acceptWithError:&error];
+  GNCNWFrameworkSocket* socket = [server_socket_ acceptWithError:&error];
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
   }
@@ -121,7 +121,7 @@ Exception WifiLanServerSocket::Close() {
 
 #pragma mark - WifiLanMedium
 
-WifiLanMedium::WifiLanMedium() : medium_([[GNCWiFiLANMedium alloc] init]) {}
+WifiLanMedium::WifiLanMedium() : medium_([[GNCNWFramework alloc] init]) {}
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   NSInteger port = nsd_service_info.GetPort();
@@ -149,8 +149,10 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
   __block NSString* serviceType = @(service_type.c_str());
   __block DiscoveredServiceCallback client_callback = std::move(callback);
 
+  // Set `includePeerToPeer` to YES to support peer-to-peer connections for Apple devices.
   NSError* error = nil;
   BOOL result = [medium_ startDiscoveryForServiceType:serviceType
+      includePeerToPeer:YES
       serviceFoundHandler:^(NSString* name, NSDictionary<NSString*, NSString*>* txtRecords) {
         NsdServiceInfo nsd_service_info;
         nsd_service_info.SetServiceType([serviceType UTF8String]);
@@ -188,12 +190,14 @@ bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) {
+  // Set `includePeerToPeer` to YES to support peer-to-peer connections for Apple devices.
   NSError* error = nil;
   NSString* serviceName = @(remote_service_info.GetServiceName().c_str());
   NSString* serviceType = @(remote_service_info.GetServiceType().c_str());
-  GNCWiFiLANSocket* socket = [medium_ connectToServiceName:serviceName
-                                               serviceType:serviceType
-                                                     error:&error];
+  GNCNWFrameworkSocket* socket = [medium_ connectToServiceName:serviceName
+                                                   serviceType:serviceType
+                                             includePeerToPeer:YES
+                                                         error:&error];
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
   }
@@ -213,7 +217,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   }
   NSData* hostData = [NSData dataWithBytes:ip_address.data() length:ip_address.size()];
   GNCIPv4Address* host = [GNCIPv4Address addressFromData:hostData];
-  GNCWiFiLANSocket* socket = [medium_ connectToHost:host port:port error:&error];
+  GNCNWFrameworkSocket* socket = [medium_ connectToHost:host port:port error:&error];
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
   }
@@ -225,7 +229,10 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
   NSError* error = nil;
-  GNCWiFiLANServerSocket* serverSocket = [medium_ listenForServiceOnPort:port error:&error];
+  // Set `includePeerToPeer` to YES to support peer-to-peer connections for Apple devices.
+  GNCNWFrameworkServerSocket* serverSocket = [medium_ listenForServiceOnPort:port
+                                                           includePeerToPeer:YES
+                                                                       error:&error];
   if (serverSocket != nil) {
     return std::make_unique<WifiLanServerSocket>(serverSocket);
   }

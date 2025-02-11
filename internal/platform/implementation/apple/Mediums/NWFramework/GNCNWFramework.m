@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANMedium.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFramework.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket+Internal.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkError.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket+Internal.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 // An arbitrary timeout that should be pretty lenient.
@@ -60,14 +60,14 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return txtRecords;
 }
 
-@implementation GNCWiFiLANMedium {
+@implementation GNCNWFramework {
   // Holds a weak reference to a server socket that is retrievable by port. This allows us to stop
   // advertisements for a given port without taking a strong reference. This keeps the ownership
   // of the server socket's lifetime with the caller of listenForServiceOnPort:error:.
   //
   // Usage of .count should be avoided. Zombie keys won't show up in -keyEnumerator, but WILL be
   // included in .count until the next time that the internal hashtable is resized.
-  NSMapTable<NSNumber *, GNCWiFiLANServerSocket *> *_serverSockets;
+  NSMapTable<NSNumber *, GNCNWFrameworkServerSocket *> *_serverSockets;
 
   // Maps a Bonjour service type to its browser. This allows us to stop the discovery given the
   // service type. We maintain ownership of the browser's lifetime, so we can maintain a strong
@@ -83,9 +83,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return self;
 }
 
-- (GNCWiFiLANServerSocket *)listenForServiceOnPort:(NSInteger)port error:(NSError **)error {
-  GNCWiFiLANServerSocket *serverSocket = [[GNCWiFiLANServerSocket alloc] initWithPort:port];
-  BOOL success = [serverSocket startListeningWithError:error];
+- (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
+                                     includePeerToPeer:(BOOL)includePeerToPeer
+                                                 error:(NSError **)error {
+  GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
+  BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:includePeerToPeer];
   if (success) {
     [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
     return serverSocket;
@@ -97,36 +99,37 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                  serviceName:(NSString *)serviceName
                  serviceType:(NSString *)serviceType
                   txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
-  GNCWiFiLANServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
+  GNCNWFrameworkServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
   [serverSocket startAdvertisingServiceName:serviceName
                                 serviceType:serviceType
                                  txtRecords:txtRecords];
 }
 
 - (void)stopAdvertisingPort:(NSInteger)port {
-  GNCWiFiLANServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
+  GNCNWFrameworkServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
   [serverSocket stopAdvertising];
 }
 
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
+                   includePeerToPeer:(BOOL)includePeerToPeer
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
                                error:(NSError **)error {
   if ([_serviceBrowsers objectForKey:serviceType] != nil) {
     if (error != nil) {
-      *error = [NSError errorWithDomain:GNCWiFiLANErrorDomain
-                                   code:GNCWiFiLANErrorDuplicateDiscovererForServiceType
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorDuplicateDiscovererForServiceType
                                userInfo:nil];
     }
     return NO;
   }
 
   // Create a parameters object configured to support TCP. TLS MUST be disabled for Nearby to
-  // function properly. This also is set to include peer-to-peer, but unsure if it's required.
+  // function properly.
   nw_parameters_t parameters =
       nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
                                       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
-  nw_parameters_set_include_peer_to_peer(parameters, true);
+  nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
   nw_browse_descriptor_t descriptor =
       nw_browse_descriptor_create_bonjour_service([serviceType UTF8String], /*domain=*/nil);
   nw_browse_descriptor_set_include_txt_record(descriptor, YES);
@@ -223,8 +226,8 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   if (!didSignal) {
     [self stopDiscoveryForServiceType:serviceType];
     if (error != nil) {
-      *error = [NSError errorWithDomain:GNCWiFiLANErrorDomain
-                                   code:GNCWiFiLANErrorTimedOut
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorTimedOut
                                userInfo:nil];
     }
     return NO;
@@ -251,23 +254,26 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   nw_browser_cancel(browser);
 }
 
-- (GNCWiFiLANSocket *)connectToServiceName:(NSString *)serviceName
-                               serviceType:(NSString *)serviceType
-                                     error:(NSError **)error {
+- (GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
+                                   serviceType:(NSString *)serviceType
+                             includePeerToPeer:(BOOL)includePeerToPeer
+                                         error:(NSError **)error {
   nw_endpoint_t endpoint = nw_endpoint_create_bonjour_service([serviceName UTF8String],
                                                               [serviceType UTF8String], "local");
-  return [self connectToEndpoint:endpoint error:error];
+  return [self connectToEndpoint:endpoint includePeerToPeer:includePeerToPeer error:error];
 }
 
-- (GNCWiFiLANSocket *)connectToHost:(GNCIPv4Address *)host
+- (GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                port:(NSInteger)port
                               error:(NSError **)error {
   nw_endpoint_t endpoint =
       nw_endpoint_create_host(host.dottedRepresentation.UTF8String, @(port).stringValue.UTF8String);
-  return [self connectToEndpoint:endpoint error:error];
+  return [self connectToEndpoint:endpoint includePeerToPeer:(BOOL)NO error:error];
 }
 
-- (GNCWiFiLANSocket *)connectToEndpoint:(nw_endpoint_t)endpoint error:(NSError **)error {
+- (GNCNWFrameworkSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
+                          includePeerToPeer:(BOOL)includePeerToPeer
+                                      error:(NSError **)error {
   NSCondition *condition = [[NSCondition alloc] init];
   [condition lock];
 
@@ -277,7 +283,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   nw_parameters_t parameters =
       nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
                                       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
-  nw_parameters_set_include_peer_to_peer(parameters, true);
+  nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
   nw_connection_t connection = nw_connection_create(endpoint, parameters);
   nw_connection_set_queue(connection, dispatch_get_main_queue());
   nw_connection_set_state_changed_handler(
@@ -303,8 +309,8 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   if (!didSignal) {
     nw_connection_cancel(connection);
     if (error != nil) {
-      *error = [NSError errorWithDomain:GNCWiFiLANErrorDomain
-                                   code:GNCWiFiLANErrorTimedOut
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorTimedOut
                                userInfo:nil];
     }
     return nil;
@@ -322,7 +328,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     case nw_connection_state_cancelled:
       return nil;
     case nw_connection_state_ready:
-      return [[GNCWiFiLANSocket alloc] initWithConnection:connection];
+      return [[GNCNWFrameworkSocket alloc] initWithConnection:connection];
   }
 }
 

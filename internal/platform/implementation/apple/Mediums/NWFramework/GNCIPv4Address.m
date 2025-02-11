@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
 
 @implementation GNCIPv4Address
 

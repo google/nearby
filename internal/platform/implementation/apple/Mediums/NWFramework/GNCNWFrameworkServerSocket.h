@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 #import <Foundation/Foundation.h>
 
 @class GNCIPv4Address;
-@class GNCWiFiLANSocket;
+@class GNCNWFrameworkSocket;
 
-@interface GNCWiFiLANServerSocket : NSObject
+@interface GNCNWFrameworkServerSocket : NSObject
 
 /**
  * @remark init is not an available initializer.
@@ -52,7 +52,7 @@
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
-- (nullable GNCWiFiLANSocket *)acceptWithError:(NSError **_Nullable)error;
+- (nullable GNCNWFrameworkSocket *)acceptWithError:(NSError **_Nullable)error;
 
 /**
  * Stops listening for inbound connections.

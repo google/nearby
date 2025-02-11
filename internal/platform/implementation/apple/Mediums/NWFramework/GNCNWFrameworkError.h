@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,6 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANError.h"
+#import <Foundation/Foundation.h>
 
-NSErrorDomain const GNCWiFiLANErrorDomain = @"com.google.nearby.wifilan.error";
+/**
+ * The domain for @c NSErrors raised by the Apple Network.Framework medium.
+ */
+extern NSErrorDomain const GNCNWFrameworkErrorDomain;
+
+/**
+ * Apple Network.Framework medium error codes.
+ */
+typedef NS_ERROR_ENUM(GNCNWFrameworkErrorDomain, GNCNWFrameworkError){
+    GNCNWFrameworkErrorUnknown,
+    GNCNWFrameworkErrorTimedOut,
+    GNCNWFrameworkErrorDuplicateDiscovererForServiceType,
+};

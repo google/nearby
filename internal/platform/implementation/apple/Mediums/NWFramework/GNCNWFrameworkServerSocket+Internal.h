@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,19 +14,21 @@
 
 #import <Foundation/Foundation.h>
 
-#import "internal/platform/implementation/apple/Mediums/WiFiLAN/GNCWiFiLANServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
 
-@interface GNCWiFiLANServerSocket (Internal)
+@interface GNCNWFrameworkServerSocket (Internal)
 
 /**
  * Starts listening for inbound connections.
  *
  * Blocks execution until listening has started or failed.
  *
+ * @param includePeerToPeer Indicates if the server should be configured for peer-to-peer
+ * connections.
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when listening has successfully started.
  */
-- (BOOL)startListeningWithError:(NSError **_Nullable)error;
+- (BOOL)startListeningWithError:(NSError **_Nullable)error includePeerToPeer:(BOOL)peerToPeer;
 
 /**
  * Creates a Bonjour service that advertises the listener on the local network.
