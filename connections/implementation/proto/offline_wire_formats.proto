@@ -179,6 +179,8 @@ message PayloadTransferFrame {
     optional bool is_sensitive = 4;
     optional string file_name = 5;
     optional string parent_folder = 6;
+    // Time since the epoch in milliseconds.
+    optional int64 last_modified_timestamp_millis = 7;
   }
 
   // Accompanies DATA packets.
