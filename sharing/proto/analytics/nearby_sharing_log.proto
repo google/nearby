@@ -921,6 +921,7 @@ message SharingLog {
     optional int32 original_quality = 5;
     optional int32 connection_medium = 6;
     optional int32 connection_mode = 7;
+    optional int32 instant_connection_result = 8;
   }
 
   message RpcCallStatus {
