@@ -921,11 +921,14 @@ bool BleV2::StartFastAdvertisingLocked(
   advertising_data.service_data.insert(
       {mediums::bleutils::kCopresenceServiceUuid, medium_advertisement_bytes});
 
-  // Finally, start the fast advertising operation.
+  // Finally, start the fast advertising operation. The Fast advertisement
+  // is not connectable (this is a privacy risk on ChromeOS as it exposes the
+  // device name and causes the address to not rotate. See
+  // go/bug-ble-address-not-rotating).
   if (!medium_.StartAdvertising(
           advertising_data,
           {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
-           .is_connectable = true})) {
+           .is_connectable = false})) {
     LOG(ERROR) << "Failed to turn on BLE fast advertising with "
                   "advertisement bytes="
                << absl::BytesToHexString(medium_advertisement_bytes.data());
