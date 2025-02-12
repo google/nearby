@@ -691,12 +691,19 @@ std::string NearbyShareCertificateManagerImpl::Dump() const {
 
 std::optional<absl::Time>
 NearbyShareCertificateManagerImpl::NextPrivateCertificateExpirationTime() {
+  std::optional<AccountManager::Account> account =
+      account_manager_.GetCurrentAccount();
+  // If the user is not logged in, there are no certs and we don't need to check
+  // for expiration.
+  if (!account.has_value()) {
+    return std::nullopt;
+  }
   // We enforce that a fixed number--kNearbyShareNumPrivateCertificates for each
-  // visibility--of private certificates be present at all times. This might not
-  // be true the first time the user enables Nearby Share or after certificates
-  // are revoked. For simplicity, consider the case of missing certificates an
-  // "expired" state. Return the minimum time to immediately trigger the private
-  // certificate creation flow.
+  // visibility--of private certificates be present when user is logged in.
+  // This might not be true the first time the user enables Nearby Share or
+  // after certificates are revoked. For simplicity, consider the case of
+  // missing certificates an "expired" state. Return the minimum time to
+  // immediately trigger the private certificate creation flow.
   if (certificate_storage_->GetPrivateCertificates()->size() <
       NumExpectedPrivateCertificates()) {
     return absl::InfinitePast();

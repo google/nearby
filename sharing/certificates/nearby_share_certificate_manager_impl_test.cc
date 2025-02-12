@@ -1049,5 +1049,26 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   EXPECT_FALSE(public_cert_exp_scheduler_->handled_results().back());
 }
 
+TEST_F(
+    NearbyShareCertificateManagerImplTest,
+    RefreshPrivateCertificates_NotLoggedIn_DisablesPrivateCertExpirationTimer) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_sharing_feature::kCallNearbyIdentityApi,
+      true);
+  fake_account_manager_.SetAccount(std::nullopt);
+  // All private certificates are valid.
+  cert_store_->ReplacePrivateCertificates({});
+  cert_manager_->PrivateCertificateRefresh(/*force_upload=*/true);
+  Sync();
+
+  std::optional<absl::Time> next_schedule_time =
+      scheduler_factory_.pref_name_to_expiration_instance()
+          .find(prefs::kNearbySharingSchedulerPrivateCertificateExpirationName)
+          ->second.expiration_time_functor();
+
+  // Next expiration time is set to nullopt to disable the timer.
+  EXPECT_FALSE(next_schedule_time.has_value());
+}
+
 }  // namespace sharing
 }  // namespace nearby
