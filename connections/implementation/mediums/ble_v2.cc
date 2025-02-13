@@ -659,7 +659,8 @@ bool BleV2::IsScanningLocked(const std::string& service_id) const {
 }
 
 bool BleV2::IsAcceptingConnectionsLocked(const std::string& service_id) {
-  return server_sockets_.contains(service_id);
+  return server_sockets_.contains(service_id) ||
+         l2cap_server_sockets_.contains(service_id);
 }
 
 bool BleV2::IsAdvertisementGattServerRunningLocked() {

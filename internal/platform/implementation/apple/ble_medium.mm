@@ -116,6 +116,10 @@ bool BleMedium::StopAdvertising() {
   return blockError == nil;
 }
 
+// bool BleMedium::StartAcceptingL2CapConnections() {
+//   return false;
+// }
+
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                          NSDictionary<CBUUID *, NSData *> *serviceData) {
   absl::MutexLock lock(&peripherals_mutex_);
@@ -317,6 +321,11 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
     return nullptr;
   }
   return std::move(server_socket);
+}
+
+std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2CapServerSocket(
+    const std::string &service_id) {
+  return nullptr;
 }
 
 // TODO(b/290385712): Add support for @c cancellation_flag.

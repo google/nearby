@@ -150,6 +150,78 @@ class BleV2Socket final {
   BleV2Peripheral peripheral_;
 };
 
+// Container of operations that can be performed over the BLE L2CAP client
+// socket.
+// This class is copyable but not moveable.
+class BleV2L2capSocket final {
+ public:
+  BleV2L2capSocket() = default;
+  BleV2L2capSocket(BleV2Peripheral peripheral,
+                   std::unique_ptr<api::ble_v2::BleL2capSocket> socket)
+      : peripheral_(peripheral) {
+    state_->socket = std::move(socket);
+  }
+  BleV2L2capSocket(const BleV2L2capSocket&) = default;
+  BleV2L2capSocket& operator=(const BleV2L2capSocket&) = default;
+
+  // Returns the InputStream of the BleL2capSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleL2capSocket object is destroyed.
+  InputStream& GetInputStream() { return state_->socket->GetInputStream(); }
+
+  // Returns the OutputStream of the BleL2capSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleL2capSocket object is destroyed.
+  OutputStream& GetOutputStream() { return state_->socket->GetOutputStream(); }
+
+  // Sets the close notifier by client side.
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    state_->close_notifier = std::move(notifier);
+  }
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() {
+    if (state_->close_notifier) {
+      auto notifier = std::move(state_->close_notifier);
+      notifier();
+    }
+    return state_->socket->Close();
+  }
+
+  // Returns BlePeripheral object which wraps a valid BlePeripheral pointer.
+  BleV2Peripheral& GetRemotePeripheral() { return peripheral_; }
+
+  // Returns true if a socket is usable. If this method returns false,
+  // it is not safe to call any other method.
+  // NOTE(socket validity):
+  // Socket created by a default public constructor is not valid, because
+  // it is missing platform implementation.
+  // The only way to obtain a valid socket is through connection, such as
+  // an object returned by BleMedium::Connect
+  // These methods may also return an invalid socket if connection failed for
+  // any reason.
+  bool IsValid() const { return state_->socket != nullptr; }
+
+  // Returns reference to platform implementation.
+  // This is used to communicate with platform code, and for debugging purposes.
+  // Returned reference will remain valid for while BleSocket object is
+  // itself valid. Typically BleSocket lifetime matches duration of the
+  // connection, and is controlled by end user, since they hold the instance.
+  api::ble_v2::BleL2capSocket& GetImpl() { return *state_->socket; }
+
+ private:
+  struct SharedState {
+    std::unique_ptr<api::ble_v2::BleL2capSocket> socket;
+    absl::AnyInvocable<void()> close_notifier;
+  };
+  std::shared_ptr<SharedState> state_ = std::make_shared<SharedState>();
+  BleV2Peripheral peripheral_;
+};
+
 // Container of operations that can be performed over the BLE GATT server
 // socket.
 // This class is copyable but not moveable.
@@ -196,6 +268,55 @@ class BleV2ServerSocket final {
  private:
   BleV2Medium* medium_;
   std::shared_ptr<api::ble_v2::BleServerSocket> impl_;
+};
+
+// Container of operations that can be performed over the BLE L2CAP server
+// socket.
+// This class is copyable but not moveable.
+class BleV2L2capServerSocket final {
+ public:
+  BleV2L2capServerSocket(
+      BleV2Medium& medium,
+      std::unique_ptr<api::ble_v2::BleL2capServerSocket> socket)
+      : medium_(&medium), impl_(std::move(socket)) {}
+  BleV2L2capServerSocket(const BleV2L2capServerSocket&) = default;
+  BleV2L2capServerSocket& operator=(const BleV2L2capServerSocket&) = default;
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // On error, "impl_" will be nullptr and the caller will check it by calling
+  // member function "IsValid()"
+  // Once error is reported, it is permanent, and
+  // ServerSocket has to be closed by caller.
+  BleV2L2capSocket Accept() {
+    std::unique_ptr<api::ble_v2::BleL2capSocket> socket = impl_->Accept();
+    BleV2Peripheral peripheral;
+    if (!socket) {
+      NEARBY_LOGS(INFO) << "BleServerSocket Accept() failed on server socket: "
+                        << this;
+    } else {
+      auto* platform_peripheral = socket->GetRemotePeripheral();
+      if (platform_peripheral != nullptr) {
+        peripheral = BleV2Peripheral(*medium_, *platform_peripheral);
+      }
+    }
+    return BleV2L2capSocket(peripheral, std::move(socket));
+  }
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() {
+    NEARBY_LOGS(INFO) << "BleServerSocket Closing:: " << this;
+    return impl_->Close();
+  }
+
+  bool IsValid() const { return impl_ != nullptr; }
+  api::ble_v2::BleL2capServerSocket& GetImpl() { return *impl_; }
+
+ private:
+  BleV2Medium* medium_;
+  std::shared_ptr<api::ble_v2::BleL2capServerSocket> impl_;
 };
 
 // Opaque wrapper over a GattServer.

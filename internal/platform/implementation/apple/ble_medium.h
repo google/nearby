@@ -112,6 +112,12 @@ class BleMedium : public api::ble_v2::BleMedium {
   std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
       const std::string &service_id) override;
 
+  // Opens a BLE L2CAP server socket based on service ID.
+  //
+  // On success, returns a new BleServerSocket. On error, returns nullptr.
+  std::unique_ptr<api::ble_v2::BleL2capServerSocket> OpenL2CapServerSocket(
+      const std::string &service_id) override;
+
   // TODO(b/290385712): cancellation_flag support is not yet implemented.
   //
   // Connects to a BLE peripheral.

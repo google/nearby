@@ -275,6 +275,11 @@ class BleV2 final {
   absl::flat_hash_map<std::string, BleV2ServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
 
+  // A map of service_id -> ServerSocket. If map is non-empty, we
+  // are currently listening for incoming connections.
+  absl::flat_hash_map<std::string, BleV2ServerSocket> l2cap_server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+
   // Tracks currently connected incoming sockets. This lets the device know when
   // it's okay to restart GATT server related operations.
   absl::flat_hash_map<std::string, BleV2Socket> incoming_sockets_
