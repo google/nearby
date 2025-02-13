@@ -333,9 +333,9 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
                                    const nearby::ByteArray& endpoint_info,
                                    const std::string& service_id) {
     NC_DATA endpoint_info_data = {
-        .size = static_cast<int64_t>(endpoint_info.size()),
+        .size = static_cast<uint64_t>(endpoint_info.size()),
         .data = (char*)endpoint_info.data()};
-    NC_DATA service_id_data = {.size = static_cast<int64_t>(service_id.size()),
+    NC_DATA service_id_data = {.size = static_cast<uint64_t>(service_id.size()),
                                .data = (char*)service_id.data()};
     discovery_listener_copy.endpoint_found_callback(
         instance, convertStringToInt(endpoint_id), &endpoint_info_data,

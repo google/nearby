@@ -502,8 +502,8 @@ void StartAdvertisingDart(NC_INSTANCE instance, DataDart service_id,
   request_info.disconnected_callback = ListenerDisconnectedCB;
   request_info.bandwidth_changed_callback = ListenerBandwidthChangedCB;
 
-  NC_DATA service_id_data =
-      NC_DATA{.size = service_id.size, .data = service_id.data};
+  NC_DATA service_id_data = NC_DATA{
+      .size = static_cast<uint64_t>(service_id.size), .data = service_id.data};
   NcStartAdvertising(
       instance, &service_id_data, &advertising_options, &request_info,
       [](NC_STATUS status, void *context) {
@@ -579,8 +579,8 @@ void StartDiscoveryDart(NC_INSTANCE instance, DataDart service_id,
   listener.endpoint_found_callback = &ListenerEndpointFoundCB;
   listener.endpoint_lost_callback = &ListenerEndpointLostCB;
 
-  NC_DATA service_id_data =
-      NC_DATA{.size = service_id.size, .data = service_id.data};
+  NC_DATA service_id_data = NC_DATA{
+      .size = static_cast<uint64_t>(service_id.size), .data = service_id.data};
   NcStartDiscovery(
       instance, &service_id_data, &discovery_options, &listener,
       [](NC_STATUS status, void *context) {
