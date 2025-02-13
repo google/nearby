@@ -19,9 +19,7 @@ cc_library(
     visibility = [
         "//internal/auth:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//internal/test:__subpackages__",
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
-        "//sharing:__subpackages__",
     ],
 )
 
@@ -29,12 +27,9 @@ cc_library(
     name = "account_info",
     hdrs = ["account_info.h"],
     visibility = [
-        "//internal/account:__pkg__",
         "//internal/auth:__pkg__",
         "//internal/platform/implementation:__subpackages__",
-        "//internal/test:__subpackages__",
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",
-        "//sharing:__subpackages__",
     ],
 )
 
