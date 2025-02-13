@@ -47,6 +47,9 @@ class BaseInputStream : public InputStream {
     return {Exception::kSuccess};
   }
 
+  // Reads less than 8 bits from the stream, returning the value if available.
+  // The read bits cannot across a byte boundary.
+  std::optional<std::uint8_t> ReadBits(int bits);
   std::optional<std::uint8_t> ReadUint8();
   std::optional<std::int8_t> ReadInt8();
   std::optional<std::uint16_t> ReadUint16();
@@ -62,6 +65,8 @@ class BaseInputStream : public InputStream {
   }
 
  private:
+  uint8_t bits_unused_{0};
+  uint8_t bits_buffer_{0};
   ByteArray &buffer_;
   size_t position_{0};
 };

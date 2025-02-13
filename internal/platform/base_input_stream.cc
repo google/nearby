@@ -38,6 +38,27 @@ ExceptionOr<ByteArray> BaseInputStream::Read(std::int64_t size) {
   }
 }
 
+std::optional<std::uint8_t> BaseInputStream::ReadBits(int bits) {
+  if (bits > 8) {
+    return std::nullopt;
+  }
+  if (bits_unused_ == 0) {
+    if (!IsAvailable(1)) {
+      return std::nullopt;
+    }
+    bits_buffer_ = (uint8_t)buffer_.data()[position_++];
+    bits_unused_ = 8;
+  }
+  if (bits_unused_ < bits) {
+    return std::nullopt;
+  }
+
+  uint8_t mask = (1 << bits) - 1;
+  uint8_t value = (bits_buffer_ >> (bits_unused_ - bits)) & mask;
+  bits_unused_ -= bits;
+  return value;
+}
+
 std::optional<std::uint8_t> BaseInputStream::ReadUint8() {
   constexpr int byte_size = sizeof(std::uint8_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
@@ -153,6 +174,10 @@ std::optional<std::int64_t> BaseInputStream::ReadInt64() {
 }
 
 std::optional<ByteArray> BaseInputStream::ReadBytes(int size) {
+  if (bits_unused_ != 0) {
+    return std::nullopt;
+  }
+
   ExceptionOr<ByteArray> read_bytes_result = Read(size);
   if (!read_bytes_result.ok()) {
     return std::nullopt;

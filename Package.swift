@@ -514,6 +514,7 @@ let package = Package(
         "internal/platform/feature_flags_test.cc",
         "internal/platform/cancelable_alarm_test.cc",
         "internal/platform/crypto_test.cc",
+        "internal/platform/base_input_stream_test.cc",
         "internal/platform/byte_array_test.cc",
         "internal/platform/bluetooth_utils_test.cc",
         "internal/platform/credential_storage_impl_test.cc",

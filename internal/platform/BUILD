@@ -397,6 +397,7 @@ cc_test(
 cc_test(
     name = "platform_util_test",
     srcs = [
+        "base_input_stream_test.cc",
         "byte_utils_test.cc",
     ],
     deps = [
