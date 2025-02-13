@@ -119,7 +119,8 @@ class ShareSession {
     return attachment_container_;
   }
 
-  void CancelPayloads();
+  // Returns false if session is already cancelled, otherwise returns true.
+  bool CancelPayloads();
 
   const absl::flat_hash_map<int64_t, int64_t>& attachment_payload_map() const {
     return attachment_payload_map_;
@@ -215,6 +216,7 @@ class ShareSession {
   AttachmentContainer attachment_container_;
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
   PayloadTracker::PayloadUpdateQueue* payload_updates_queue_ = nullptr;
+  bool is_cancelled_ = false;
 };
 
 }  // namespace nearby::sharing

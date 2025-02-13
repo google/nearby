@@ -211,10 +211,16 @@ void ShareSession::SetAttachmentPayloadId(int64_t attachment_id,
   attachment_payload_map_[attachment_id] = payload_id;
 }
 
-void ShareSession::CancelPayloads() {
+bool ShareSession::CancelPayloads() {
+  if (is_cancelled_) {
+    LOG(INFO) << __func__ << ": Share session is already cancelled.";
+    return false;
+  }
   for (const auto& [attachment_id, payload_id] : attachment_payload_map_) {
     connections_manager_.Cancel(payload_id);
   }
+  is_cancelled_ = true;
+  return true;
 }
 
 void ShareSession::WriteFrame(const Frame& frame) {

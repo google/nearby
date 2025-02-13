@@ -157,7 +157,6 @@ class NearbySharingServiceImpl
   void Cancel(int64_t share_target_id,
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
-  bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
   void SetVisibility(
       proto::DeviceVisibility visibility, absl::Duration expiration,
       absl::AnyInvocable<void(StatusCodes status_code) &&> callback) override;
@@ -531,8 +530,6 @@ class NearbySharingServiceImpl
   // A map of Endpoint id to DiscoveryCacheEntry.
   // All ShareTargets in discovery cache have received_disabled set to true.
   absl::flat_hash_map<std::string, DiscoveryCacheEntry> discovery_cache_;
-  // The IDs of ShareTargets that we cancelled the transfer to.
-  absl::flat_hash_set<int64_t> locally_cancelled_share_target_ids_;
   // A map from endpoint ID to endpoint info from discovered, contact-based
   // advertisements that could not decrypt any available public certificates.
   // During discovery, if certificates are downloaded, we revisit this map and

@@ -344,7 +344,6 @@ void NearbySharingServiceImpl::Cleanup() {
 
   last_incoming_metadata_.reset();
   last_outgoing_metadata_.reset();
-  locally_cancelled_share_target_ids_.clear();
 
   is_scanning_ = false;
   is_transferring_ = false;
@@ -890,12 +889,6 @@ void NearbySharingServiceImpl::Cancel(
       [this, share_target_id,
        status_codes_callback = std::move(status_codes_callback)]() {
         LOG(INFO) << __func__ << ": User canceled transfer";
-        if (locally_cancelled_share_target_ids_.contains(share_target_id)) {
-          LOG(WARNING) << __func__ << ": Cancel is called again.";
-          status_codes_callback(StatusCodes::kOutOfOrderApiCall);
-          return;
-        }
-        locally_cancelled_share_target_ids_.insert(share_target_id);
         DoCancel(share_target_id, std::move(status_codes_callback),
                  /*is_initiator_of_cancellation=*/true);
       });
@@ -922,7 +915,11 @@ void NearbySharingServiceImpl::DoCancel(
   // cancellation signals. Also, note that there might not be any ongoing
   // payload transfer, for example, if a connection has not been established
   // yet.
-  session->CancelPayloads();
+  if (!session->CancelPayloads()) {
+    // If session has already been cancelled, report success.
+    status_codes_callback(StatusCodes::kOk);
+    return;
+  }
 
   // Inform the user that the transfer has been cancelled before disconnecting
   // because subsequent disconnections might be interpreted as failure.
@@ -967,12 +964,6 @@ void NearbySharingServiceImpl::DoCancel(
   }
 
   std::move(status_codes_callback)(StatusCodes::kOk);
-}
-
-bool NearbySharingServiceImpl::DidLocalUserCancelTransfer(
-    int64_t share_target_id) {
-  return absl::c_linear_search(locally_cancelled_share_target_ids_,
-                               share_target_id);
 }
 
 void NearbySharingServiceImpl::SetVisibility(

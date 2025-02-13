@@ -264,10 +264,13 @@ TEST(ShareSessionTest, CancelPayloads) {
   session.SetAttachmentPayloadId(1, 2);
   session.SetAttachmentPayloadId(3, 4);
 
-  session.CancelPayloads();
+  EXPECT_TRUE(session.CancelPayloads());
 
   EXPECT_TRUE(session.connections_manager().WasPayloadCanceled(2));
   EXPECT_TRUE(session.connections_manager().WasPayloadCanceled(4));
+
+  // Repeated calls to CancelPayloads returns false.
+  EXPECT_FALSE(session.CancelPayloads());
 }
 
 TEST(ShareSessionTest, WriteResponseFrame) {

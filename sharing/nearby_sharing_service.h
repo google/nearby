@@ -227,10 +227,6 @@ class NearbySharingService {
       int64_t share_target_id,
       std::function<void(StatusCodes status_codes)> status_codes_callback) = 0;
 
-  // Returns true if the local user cancelled the transfer to remote
-  // |share_target|.
-  virtual bool DidLocalUserCancelTransfer(int64_t share_target_id) = 0;
-
   // Checks to make sure visibility setting is valid and updates the service's
   // visibility if so.
   virtual void SetVisibility(

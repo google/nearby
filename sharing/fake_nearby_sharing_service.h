@@ -105,10 +105,6 @@ class FakeNearbySharingService : public NearbySharingService {
               std::function<void(StatusCodes status_codes)>
                   status_codes_callback) override;
 
-  // Returns true if the local user cancelled the transfer to remote
-  // |share_target|.
-  bool DidLocalUserCancelTransfer(int64_t share_target_id) override;
-
   std::string Dump() const override;
 
   NearbyShareSettings* GetSettings() override;

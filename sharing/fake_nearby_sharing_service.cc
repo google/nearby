@@ -150,13 +150,6 @@ void FakeNearbySharingService::Cancel(
   status_codes_callback(StatusCodes::kOk);
 }
 
-// Returns true if the local user cancelled the transfer to remote
-// |share_target|.
-bool FakeNearbySharingService::DidLocalUserCancelTransfer(
-    int64_t share_target_id) {
-  return false;
-}
-
 std::string FakeNearbySharingService::Dump() const { return ""; }
 
 NearbyShareSettings* FakeNearbySharingService::GetSettings() { return nullptr; }
