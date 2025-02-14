@@ -21,6 +21,7 @@ cc_library(
         "bluetooth_adapter.h",
         "fast_init_ble_beacon.h",
         "fast_initiation_manager.h",
+        "identity_rpc_client.h",
         "network_monitor.h",
         "preference_manager.h",
         "private_certificate_data.h",
