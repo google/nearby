@@ -359,6 +359,33 @@ class BleSocket {
   virtual BlePeripheral* GetRemotePeripheral() = 0;
 };
 
+// A BLE L2CAP client socket for requesting L2CAP socket.
+class BleL2capSocket {
+ public:
+  virtual ~BleL2capSocket() = default;
+
+  // Returns the InputStream of the BleL2capSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleL2capSocket object is destroyed.
+  virtual InputStream& GetInputStream() = 0;
+
+  // Returns the OutputStream of the BleL2capSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleL2capSocket object is destroyed.
+  virtual OutputStream& GetOutputStream() = 0;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
+
+  // Returns valid BlePeripheral pointer if there is a connection, and
+  // nullptr otherwise.
+  virtual BlePeripheral* GetRemotePeripheral() = 0;
+};
+
 // A BLE GATT server socket for listening incoming GATT socket.
 class BleServerSocket {
  public:
@@ -371,6 +398,23 @@ class BleServerSocket {
   // Returns nullptr on error.
   // Once error is reported, it is permanent, and ServerSocket has to be closed.
   virtual std::unique_ptr<BleSocket> Accept() = 0;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
+};
+
+// A BLE L2CAP server socket for listening incoming L2CAP socket.
+class BleL2capServerSocket {
+ public:
+  virtual ~BleL2capServerSocket() = default;
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and ServerSocket has to be closed.
+  virtual std::unique_ptr<BleL2capSocket> Accept() = 0;
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
@@ -398,7 +442,7 @@ class BleMedium {
     absl::AnyInvocable<absl::Status()> stop_advertising;
   };
 
-  // Async interface for StartAdertising.
+  // Async interface for StartAdvertising.
   // Result status will be passed to start_advertising_result callback.
   // To stop advertising, invoke the stop_advertising callback in
   // AdvertisingSession.
@@ -499,6 +543,13 @@ class BleMedium {
   // On success, returns a new BleServerSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<BleServerSocket> OpenServerSocket(
+      const std::string& service_id) = 0;
+
+  // Opens a BLE L2CAP server socket based on service ID.
+  //
+  // On success, returns a new BleL2capServerSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleL2capServerSocket> OpenL2CapServerSocket(
       const std::string& service_id) = 0;
 
   // Connects to a BLE peripheral.
