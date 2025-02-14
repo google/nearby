@@ -65,12 +65,12 @@ using ::nearby::sharing::service::proto::WifiCredentials;
 IncomingShareSession::IncomingShareSession(
     Clock* clock, TaskRunner& service_thread,
     NearbyConnectionsManager* connections_manager,
-    analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
+    analytics::AnalyticsRecorder& analytics_recorder,
     const ShareTarget& share_target,
     std::function<void(const IncomingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
     : ShareSession(clock, service_thread, connections_manager,
-                   analytics_recorder, std::move(endpoint_id), share_target),
+                   analytics_recorder, share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 IncomingShareSession::IncomingShareSession(IncomingShareSession&&) = default;

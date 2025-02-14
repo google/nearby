@@ -115,12 +115,12 @@ ConnectionLayerStatus ConvertToConnectionLayerStatus(Status status) {
 OutgoingShareSession::OutgoingShareSession(
     Clock* clock, TaskRunner& service_thread,
     NearbyConnectionsManager* connections_manager,
-    analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
+    analytics::AnalyticsRecorder& analytics_recorder,
     const ShareTarget& share_target,
     absl::AnyInvocable<void(OutgoingShareSession&, const TransferMetadata&)>
         transfer_update_callback)
     : ShareSession(clock, service_thread, connections_manager,
-                   analytics_recorder, std::move(endpoint_id), share_target),
+                   analytics_recorder, share_target),
       transfer_update_callback_(std::move(transfer_update_callback)) {}
 
 OutgoingShareSession::OutgoingShareSession(OutgoingShareSession&&) = default;
@@ -492,21 +492,10 @@ void OutgoingShareSession::DelayComplete(
 
 bool OutgoingShareSession::UpdateSessionForDedup(
     const ShareTarget& share_target,
-    std::optional<NearbyShareDecryptedPublicCertificate> certificate,
-    absl::string_view endpoint_id) {
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   LOG_IF(DFATAL, share_target.id != this->share_target().id)
       << "Share target id cannot be changed during deduplication.";
-  set_share_target(share_target);
-  if (IsConnected()) {
-    return false;
-  }
-  set_endpoint_id(endpoint_id);
-  if (certificate.has_value()) {
-    set_certificate(std::move(certificate.value()));
-  } else {
-    clear_certificate();
-  }
-  return true;
+  return update_share_target(share_target, std::move(certificate));
 }
 
 void OutgoingShareSession::Connect(

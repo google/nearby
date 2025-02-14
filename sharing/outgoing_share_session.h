@@ -52,7 +52,7 @@ class OutgoingShareSession : public ShareSession {
   OutgoingShareSession(
       Clock* clock, TaskRunner& service_thread,
       NearbyConnectionsManager* connections_manager,
-      analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
+      analytics::AnalyticsRecorder& analytics_recorder,
       const ShareTarget& share_target,
       absl::AnyInvocable<void(OutgoingShareSession&, const TransferMetadata&)>
           transfer_update_callback);
@@ -144,8 +144,7 @@ class OutgoingShareSession : public ShareSession {
   // Returns true if the session is not connected and updated successfully.
   bool UpdateSessionForDedup(
       const ShareTarget& share_target,
-      std::optional<NearbyShareDecryptedPublicCertificate> certificate,
-      absl::string_view endpoint_id);
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Establish a connection to the remote device identified by `endpoint_info`.
   // `callback` is called when with the connection establishment status..

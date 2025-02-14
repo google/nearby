@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
@@ -52,7 +53,7 @@ class ShareSession {
   ShareSession(Clock* clock, TaskRunner& service_thread,
                NearbyConnectionsManager* connections_manager,
                analytics::AnalyticsRecorder& analytics_recorder,
-               std::string endpoint_id, const ShareTarget& share_target);
+               const ShareTarget& share_target);
   ShareSession(ShareSession&&);
   ShareSession& operator=(ShareSession&&) = delete;
   ShareSession& operator=(const ShareSession&) = delete;
@@ -68,7 +69,6 @@ class ShareSession {
   void set_certificate(NearbyShareDecryptedPublicCertificate certificate) {
     certificate_ = std::move(certificate);
   }
-  void clear_certificate() { certificate_ = std::nullopt; }
 
   NearbyConnection* connection() const { return connection_; }
   bool IsConnected() const { return connection_ != nullptr; }
@@ -174,12 +174,26 @@ class ShareSession {
   NearbyConnectionsManager& connections_manager() {
     return connections_manager_;
   }
-  void set_endpoint_id(absl::string_view endpoint_id) {
-    endpoint_id_ = std::string(endpoint_id);
-  }
-  void set_share_target(const ShareTarget& share_target) {
+
+  // Updates the share target and endpoint id.
+  // If the connection is already established, we should not update the
+  // session information.
+  // Returns true if the connection is not established.
+  bool update_share_target(
+      const ShareTarget& share_target,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
     share_target_ = share_target;
+    if (IsConnected()) {
+      return false;
+    }
     self_share_ = share_target.for_self_share;
+    endpoint_id_ = share_target.endpoint_id;
+    if (certificate.has_value()) {
+      set_certificate(std::move(certificate.value()));
+    } else {
+      certificate_ = std::nullopt;
+    }
+    return true;
   }
 
   PayloadTracker::PayloadUpdateQueue* payload_updates_queue() {
@@ -194,6 +208,8 @@ class ShareSession {
   TaskRunner& service_thread_;
   NearbyConnectionsManager& connections_manager_;
   analytics::AnalyticsRecorder& analytics_recorder_;
+  // The endpoint ID used to connect to the remote share target.
+  // Once the connection is established, the endpoint ID will not change.
   std::string endpoint_id_;
   std::optional<NearbyShareDecryptedPublicCertificate> certificate_;
   NearbyConnection* connection_ = nullptr;

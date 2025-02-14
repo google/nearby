@@ -32,12 +32,14 @@
 #include "absl/time/time.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
+#include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
+#include "sharing/common/nearby_share_enums.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
@@ -119,7 +121,7 @@ class IncomingShareSessionTest : public ::testing::Test {
   IncomingShareSessionTest()
       : connection_(device_info_),
         session_(&clock_, task_runner_, &connections_manager_,
-                 analytics_recorder_, std::string(kEndpointId), share_target_,
+                 analytics_recorder_, share_target_,
                  transfer_metadata_callback_.AsStdFunction()) {
     CHECK(
         proto2::TextFormat::ParseFromString(R"pb(
@@ -190,7 +192,10 @@ class IncomingShareSessionTest : public ::testing::Test {
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
                                                    &mock_event_logger_};
-  ShareTarget share_target_;
+  ShareTarget share_target_ = ShareTarget::CreateShareTargetForTest(
+      "deviceName", ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, kEndpointId, "test_full_name",
+      /* is_known */ false, "test_device_id", /*for_self_share=*/false);
   MockFunction<void(const IncomingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
   FakeDeviceInfo device_info_;
@@ -1088,9 +1093,9 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferNotSelfShare) {
 TEST_F(IncomingShareSessionTest, ReadyForTransferSelfShare) {
   ShareTarget share_target;
   share_target.for_self_share = true;
+  share_target.endpoint_id = "XYCA";
   IncomingShareSession session(&clock_, task_runner_, &connections_manager_,
-                               analytics_recorder_, std::string("XYCA"),
-                               share_target,
+                               analytics_recorder_, share_target,
                                transfer_metadata_callback_.AsStdFunction());
   session.set_session_id(1234);
   session.OnConnected(&connection_);

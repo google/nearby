@@ -89,7 +89,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
  public:
   OutgoingShareSessionTest()
       : session_(&fake_clock_, fake_task_runner_, &connections_manager_,
-                 analytics_recorder_, std::string(kEndpointId), share_target_,
+                 analytics_recorder_, share_target_,
                  transfer_metadata_callback_.AsStdFunction()),
         text1_(nearby::sharing::service::proto::TextMetadata::URL,
                "A bit of text body", "Some text title", "text/html"),
@@ -100,8 +100,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
         wifi1_(
             "GoogleGuest",
             nearby::sharing::service::proto::WifiCredentialsMetadata::WPA_PSK,
-            "somepassword", /*is_hidden=*/true) {
-  }
+            "somepassword", /*is_hidden=*/true) {}
 
   std::unique_ptr<AttachmentContainer> CreateDefaultAttachmentContainer() {
     return std::make_unique<AttachmentContainer>(
@@ -140,7 +139,10 @@ class OutgoingShareSessionTest : public ::testing::Test {
   nearby::analytics::MockEventLogger mock_event_logger_;
   analytics::AnalyticsRecorder analytics_recorder_{/*vendor_id=*/0,
                                                    &mock_event_logger_};
-  ShareTarget share_target_;
+  ShareTarget share_target_ = ShareTarget::CreateShareTargetForTest(
+      "deviceName", ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ false, kEndpointId, "test_full_name",
+      /* is_known */ false, "test_device_id", true);
   MockFunction<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_metadata_callback_;
   OutgoingShareSession session_;
@@ -156,7 +158,7 @@ class OutgoingShareSessionTest : public ::testing::Test {
 TEST_F(OutgoingShareSessionTest, GetFilePaths) {
   OutgoingShareSession session(
       &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
+      analytics_recorder_, share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   auto container = std::make_unique<AttachmentContainer>(
       std::vector<TextAttachment>{},
@@ -174,7 +176,7 @@ TEST_F(OutgoingShareSessionTest, GetFilePaths) {
 TEST_F(OutgoingShareSessionTest, CreateTextPayloadsWithNoTextAttachments) {
   OutgoingShareSession session(
       &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
+      analytics_recorder_, share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   session.CreateTextPayloads();
   const std::vector<Payload>& payloads = session.text_payloads();
@@ -208,7 +210,7 @@ TEST_F(OutgoingShareSessionTest, CreateTextPayloads) {
 TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithNoFileAttachments) {
   OutgoingShareSession session(
       &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
+      analytics_recorder_, share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
 
   EXPECT_THAT(
@@ -259,7 +261,7 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
 TEST_F(OutgoingShareSessionTest, CreateWifiPayloadsWithNoWifiAttachments) {
   OutgoingShareSession session(
       &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
+      analytics_recorder_, share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   session.CreateWifiCredentialsPayloads();
   const std::vector<Payload>& payloads = session.file_payloads();
@@ -877,17 +879,17 @@ TEST_F(OutgoingShareSessionTest, DelayCompleteDisconnectTimeout) {
 
 TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithCertificate) {
   EXPECT_FALSE(session_.certificate().has_value());
-  ShareTarget share_target2{"test_update_name",      ::nearby::network::Url(),
-                            ShareTargetType::kPhone,
-                            /* is_incoming */ true,  "test_update_full_name",
-                            /* is_known */ true,     "test_update_device_id",
-                            /*for_self_share=*/true};
+  ShareTarget share_target2 = ShareTarget::CreateShareTargetForTest(
+      "test_update_name", ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, "test_update_endpoint_id",
+      "test_update_full_name",
+      /* is_known */ true, "test_update_device_id",
+      /*for_self_share=*/true);
   share_target2.id = session_.share_target().id;
   EXPECT_THAT(session_.share_target(), Not(Eq(share_target2)));
 
-  session_.UpdateSessionForDedup(share_target2,
-                                 GetNearbyShareTestDecryptedPublicCertificate(),
-                                 "test_update_endpoint_id");
+  session_.UpdateSessionForDedup(
+      share_target2, GetNearbyShareTestDecryptedPublicCertificate());
 
   EXPECT_THAT(session_.share_target(), Eq(share_target2));
   EXPECT_TRUE(session_.certificate().has_value());
@@ -898,16 +900,16 @@ TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithCertificate) {
 TEST_F(OutgoingShareSessionTest, UpdateSessionForDedupWithoutCertificate) {
   session_.set_certificate(GetNearbyShareTestDecryptedPublicCertificate());
   EXPECT_TRUE(session_.certificate().has_value());
-  ShareTarget share_target2{"test_update_name",      ::nearby::network::Url(),
-                            ShareTargetType::kPhone,
-                            /* is_incoming */ true,  "test_update_full_name",
-                            /* is_known */ true,     "test_update_device_id",
-                            /*for_self_share=*/true};
+  ShareTarget share_target2 = ShareTarget::CreateShareTargetForTest(
+      "test_update_name", ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, "test_update_endpoint_id",
+      "test_update_full_name",
+      /* is_known */ true, "test_update_device_id",
+      /*for_self_share=*/true);
   share_target2.id = session_.share_target().id;
   EXPECT_THAT(session_.share_target(), Not(Eq(share_target2)));
 
-  session_.UpdateSessionForDedup(share_target2, std::nullopt,
-                                 "test_update_endpoint_id");
+  session_.UpdateSessionForDedup(share_target2, std::nullopt);
 
   EXPECT_THAT(session_.share_target(), Eq(share_target2));
   // Certificate is cleared.
@@ -924,16 +926,16 @@ TEST_F(OutgoingShareSessionTest,
   ConnectionSuccess(&connection);
   session_.set_certificate(GetNearbyShareTestDecryptedPublicCertificate());
   EXPECT_TRUE(session_.certificate().has_value());
-  ShareTarget share_target2{"test_update_name",      ::nearby::network::Url(),
-                            ShareTargetType::kPhone,
-                            /* is_incoming */ true,  "test_update_full_name",
-                            /* is_known */ true,     "test_update_device_id",
-                            /*for_self_share=*/true};
+  ShareTarget share_target2 = ShareTarget::CreateShareTargetForTest(
+      "test_update_name", ::nearby::network::Url(), ShareTargetType::kPhone,
+      /* is_incoming */ true, "test_update_endpoint_id",
+      "test_update_full_name",
+      /* is_known */ true, "test_update_device_id",
+      /*for_self_share=*/true);
   share_target2.id = session_.share_target().id;
   EXPECT_THAT(session_.share_target(), Not(Eq(share_target2)));
 
-  session_.UpdateSessionForDedup(share_target2, std::nullopt,
-                                 "test_update_endpoint_id");
+  session_.UpdateSessionForDedup(share_target2, std::nullopt);
 
   EXPECT_THAT(session_.share_target(), Eq(share_target2));
   EXPECT_TRUE(session_.certificate().has_value());

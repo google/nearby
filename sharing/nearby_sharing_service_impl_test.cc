@@ -5021,10 +5021,10 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
                                                   &mock_event_logger};
   ShareTarget share_target;
   share_target.is_incoming = true;
+  share_target.endpoint_id = "endpoint_id";
   IncomingShareSession session(
       fake_context_.fake_clock(), *sharing_service_task_runner_,
-      fake_nearby_connections_manager_, analytics_recorder, "endpoint_id",
-      share_target,
+      fake_nearby_connections_manager_, analytics_recorder, share_target,
       [](const IncomingShareSession&, const TransferMetadata&) {});
   service_->RemoveIncomingPayloads(session);
   EXPECT_EQ(

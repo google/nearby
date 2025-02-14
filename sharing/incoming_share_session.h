@@ -19,7 +19,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <string>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
@@ -45,7 +44,7 @@ class IncomingShareSession : public ShareSession {
   IncomingShareSession(
       Clock* clock, TaskRunner& service_thread,
       NearbyConnectionsManager* connections_manager,
-      analytics::AnalyticsRecorder& analytics_recorder, std::string endpoint_id,
+      analytics::AnalyticsRecorder& analytics_recorder,
       const ShareTarget& share_target,
       std::function<void(const IncomingShareSession&, const TransferMetadata&)>
           transfer_update_callback);

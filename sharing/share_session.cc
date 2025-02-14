@@ -106,13 +106,12 @@ AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
 ShareSession::ShareSession(Clock* clock, TaskRunner& service_thread,
                            NearbyConnectionsManager* connections_manager,
                            analytics::AnalyticsRecorder& analytics_recorder,
-                           std::string endpoint_id,
                            const ShareTarget& share_target)
     : clock_(*clock),
       service_thread_(service_thread),
       connections_manager_(*connections_manager),
       analytics_recorder_(analytics_recorder),
-      endpoint_id_(std::move(endpoint_id)),
+      endpoint_id_(share_target.endpoint_id),
       self_share_(share_target.for_self_share),
       share_target_(share_target) {}
 
