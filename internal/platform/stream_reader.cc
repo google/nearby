@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/base_input_stream.h"
+#include "internal/platform/stream_reader.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -23,22 +23,7 @@
 
 namespace nearby {
 
-ExceptionOr<ByteArray> BaseInputStream::Read(std::int64_t size) {
-  if (!IsAvailable(size)) {
-    return ExceptionOr<ByteArray>{Exception::kIo};
-  }
-
-  ByteArray read_bytes{static_cast<size_t>(size)};
-  if (read_bytes.CopyAt(/*offset=*/0, buffer_,
-                        /*source_offset=*/position_)) {
-    position_ += size;
-    return ExceptionOr<ByteArray>{read_bytes};
-  } else {
-    return ExceptionOr<ByteArray>{Exception::kIo};
-  }
-}
-
-std::optional<std::uint8_t> BaseInputStream::ReadBits(int bits) {
+std::optional<std::uint8_t> StreamReader::ReadBits(int bits) {
   if (bits > 8 || bits <= 0) {
     return std::nullopt;
   }
@@ -59,7 +44,7 @@ std::optional<std::uint8_t> BaseInputStream::ReadBits(int bits) {
   return value;
 }
 
-std::optional<std::uint8_t> BaseInputStream::ReadUint8() {
+std::optional<std::uint8_t> StreamReader::ReadUint8() {
   constexpr int byte_size = sizeof(std::uint8_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -70,7 +55,7 @@ std::optional<std::uint8_t> BaseInputStream::ReadUint8() {
   return static_cast<std::uint8_t>(data[0]);
 }
 
-std::optional<std::int8_t> BaseInputStream::ReadInt8() {
+std::optional<std::int8_t> StreamReader::ReadInt8() {
   constexpr int byte_size = sizeof(std::int8_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -81,7 +66,7 @@ std::optional<std::int8_t> BaseInputStream::ReadInt8() {
   return static_cast<std::int8_t>(data[0]);
 }
 
-std::optional<std::uint16_t> BaseInputStream::ReadUint16() {
+std::optional<std::uint16_t> StreamReader::ReadUint16() {
   constexpr int byte_size = sizeof(std::uint16_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -94,7 +79,7 @@ std::optional<std::uint16_t> BaseInputStream::ReadUint16() {
   return static_cast<uint16_t>(data[0] << 8 | data[1]);
 }
 
-std::optional<std::int16_t> BaseInputStream::ReadInt16() {
+std::optional<std::int16_t> StreamReader::ReadInt16() {
   constexpr int byte_size = sizeof(std::int16_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -107,7 +92,7 @@ std::optional<std::int16_t> BaseInputStream::ReadInt16() {
   return static_cast<int16_t>(data[0] << 8 | data[1]);
 }
 
-std::optional<std::uint32_t> BaseInputStream::ReadUint32() {
+std::optional<std::uint32_t> StreamReader::ReadUint32() {
   constexpr int byte_size = sizeof(std::uint32_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -121,7 +106,7 @@ std::optional<std::uint32_t> BaseInputStream::ReadUint32() {
                                data[3]);
 }
 
-std::optional<std::int32_t> BaseInputStream::ReadInt32() {
+std::optional<std::int32_t> StreamReader::ReadInt32() {
   constexpr int byte_size = sizeof(std::uint32_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -135,7 +120,7 @@ std::optional<std::int32_t> BaseInputStream::ReadInt32() {
                               data[3]);
 }
 
-std::optional<std::uint64_t> BaseInputStream::ReadUint64() {
+std::optional<std::uint64_t> StreamReader::ReadUint64() {
   constexpr int byte_size = sizeof(std::uint64_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -154,7 +139,7 @@ std::optional<std::uint64_t> BaseInputStream::ReadUint64() {
          static_cast<uint64_t>(data[6]) << 8 | static_cast<uint64_t>(data[7]);
 }
 
-std::optional<std::int64_t> BaseInputStream::ReadInt64() {
+std::optional<std::int64_t> StreamReader::ReadInt64() {
   constexpr int byte_size = sizeof(std::int64_t);
   std::optional<ByteArray> read_bytes = ReadBytes(byte_size);
   if (!read_bytes.has_value()) {
@@ -173,7 +158,7 @@ std::optional<std::int64_t> BaseInputStream::ReadInt64() {
          static_cast<int64_t>(data[6]) << 8 | static_cast<int64_t>(data[7]);
 }
 
-std::optional<ByteArray> BaseInputStream::ReadBytes(int size) {
+std::optional<ByteArray> StreamReader::ReadBytes(int size) {
   if (bits_unused_ != 0) {
     return std::nullopt;
   }
@@ -184,6 +169,21 @@ std::optional<ByteArray> BaseInputStream::ReadBytes(int size) {
   }
 
   return read_bytes_result.result();
+}
+
+ExceptionOr<ByteArray> StreamReader::Read(std::int64_t size) {
+  if (!IsAvailable(size)) {
+    return ExceptionOr<ByteArray>{Exception::kIo};
+  }
+
+  ByteArray read_bytes{static_cast<size_t>(size)};
+  if (read_bytes.CopyAt(/*offset=*/0, buffer_,
+                        /*source_offset=*/position_)) {
+    position_ += size;
+    return ExceptionOr<ByteArray>{read_bytes};
+  } else {
+    return ExceptionOr<ByteArray>{Exception::kIo};
+  }
 }
 
 }  // namespace nearby

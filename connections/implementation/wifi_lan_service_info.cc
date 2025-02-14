@@ -23,10 +23,10 @@
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
 #include "internal/platform/base64_utils.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/stream_reader.h"
 
 namespace nearby {
 namespace connections {
@@ -96,9 +96,9 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
     return;
   }
 
-  BaseInputStream base_input_stream{service_info_bytes};
+  StreamReader stream_reader{service_info_bytes};
   // The first 1 byte is supposed to be the version and pcp.
-  auto version_and_pcp_byte = base_input_stream.ReadUint8();
+  auto version_and_pcp_byte = stream_reader.ReadUint8();
   if (!version_and_pcp_byte.has_value()) {
     LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: version_and_pcp.";
     return;
@@ -124,7 +124,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  auto endpoint_id_bytes = base_input_stream.ReadBytes(kEndpointIdLength);
+  auto endpoint_id_bytes = stream_reader.ReadBytes(kEndpointIdLength);
   if (!endpoint_id_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: endpoint_id.";
     return;
@@ -132,8 +132,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   endpoint_id_ = std::string{*endpoint_id_bytes};
 
   // The next 3 bytes are supposed to be the service_id_hash.
-  auto service_id_hash_bytes =
-      base_input_stream.ReadBytes(kServiceIdHashLength);
+  auto service_id_hash_bytes = stream_reader.ReadBytes(kServiceIdHashLength);
   if (!service_id_hash_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: service_id_hash.";
     endpoint_id_.clear();
@@ -144,13 +143,12 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
   // The next 1 byte is supposed to be the length of the uwb_address. If
   // available, continues to deserialize UWB address and extra field of WebRtc
   // state.
-  if (base_input_stream.IsAvailable(1)) {
-    auto expected_uwb_address_length =
-        base_input_stream.ReadUint8().value_or(0);
+  if (stream_reader.IsAvailable(1)) {
+    auto expected_uwb_address_length = stream_reader.ReadUint8().value_or(0);
     // If the length of uwb_address is not zero, then retrieve it.
     if (expected_uwb_address_length != 0) {
       auto uwb_address_bytes =
-          base_input_stream.ReadBytes(expected_uwb_address_length);
+          stream_reader.ReadBytes(expected_uwb_address_length);
       if (!uwb_address_bytes.has_value()) {
         LOG(INFO) << "Cannot deserialize WifiLanServiceInfo: uwb_address.";
         endpoint_id_.clear();
@@ -161,8 +159,8 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
 
     // The next 1 byte is extra field.
     web_rtc_state_ = WebRtcState::kUndefined;
-    if (base_input_stream.IsAvailable(kExtraFieldLength)) {
-      auto extra_field = base_input_stream.ReadUint8().value_or(0);
+    if (stream_reader.IsAvailable(kExtraFieldLength)) {
+      auto extra_field = stream_reader.ReadUint8().value_or(0);
       web_rtc_state_ = (extra_field & kWebRtcConnectableFlagBitmask) == 1
                            ? WebRtcState::kConnectable
                            : WebRtcState::kUnconnectable;

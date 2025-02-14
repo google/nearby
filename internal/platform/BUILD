@@ -82,13 +82,13 @@ cc_library(
 cc_library(
     name = "util",
     srcs = [
-        "base_input_stream.cc",
         "byte_utils.cc",
+        "stream_reader.cc",
         "stream_writer.cc",
     ],
     hdrs = [
-        "base_input_stream.h",
         "byte_utils.h",
+        "stream_reader.h",
         "stream_writer.h",
     ],
     visibility = [
@@ -399,8 +399,8 @@ cc_test(
 cc_test(
     name = "platform_util_test",
     srcs = [
-        "base_input_stream_test.cc",
         "byte_utils_test.cc",
+        "stream_reader_test.cc",
         "stream_writer_test.cc",
     ],
     deps = [

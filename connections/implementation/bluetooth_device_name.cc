@@ -24,9 +24,9 @@
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
 #include "internal/platform/base64_utils.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/stream_reader.h"
 
 namespace nearby {
 namespace connections {
@@ -75,9 +75,9 @@ BluetoothDeviceName::BluetoothDeviceName(
     return;
   }
 
-  BaseInputStream base_input_stream{bluetooth_device_name_bytes};
+  StreamReader stream_reader{bluetooth_device_name_bytes};
   // The first 1 byte is supposed to be the version and pcp.
-  auto version_and_pcp_byte = base_input_stream.ReadUint8();
+  auto version_and_pcp_byte = stream_reader.ReadUint8();
   if (!version_and_pcp_byte.has_value()) {
     LOG(INFO) << "Cannot deserialize BluetoothDeviceName: version_and_pcp.";
     return;
@@ -104,7 +104,7 @@ BluetoothDeviceName::BluetoothDeviceName(
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  auto endpoint_id_bytes = base_input_stream.ReadBytes(kEndpointIdLength);
+  auto endpoint_id_bytes = stream_reader.ReadBytes(kEndpointIdLength);
   if (!endpoint_id_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize BluetoothDeviceName: endpoint_id.";
     return;
@@ -112,8 +112,7 @@ BluetoothDeviceName::BluetoothDeviceName(
   endpoint_id_ = std::string{*endpoint_id_bytes};
 
   // The next 3 bytes are supposed to be the service_id_hash.
-  auto service_id_hash_bytes =
-      base_input_stream.ReadBytes(kServiceIdHashLength);
+  auto service_id_hash_bytes = stream_reader.ReadBytes(kServiceIdHashLength);
   if (!service_id_hash_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize BluetoothDeviceName: service_id_hash.";
     endpoint_id_.clear();
@@ -123,7 +122,7 @@ BluetoothDeviceName::BluetoothDeviceName(
   service_id_hash_ = *service_id_hash_bytes;
 
   // The next 1 byte is field containing WebRtc state.
-  auto field_byte = base_input_stream.ReadUint8();
+  auto field_byte = stream_reader.ReadUint8();
   if (!field_byte.has_value()) {
     LOG(INFO) << "Cannot deserialize BluetoothDeviceName: extra_field.";
     endpoint_id_.clear();
@@ -135,10 +134,10 @@ BluetoothDeviceName::BluetoothDeviceName(
 
   // The next 6 bytes are supposed to be reserved, and can be left
   // untouched.
-  base_input_stream.ReadBytes(kReservedLength);
+  stream_reader.ReadBytes(kReservedLength);
 
   // The next 1 byte is supposed to be the length of the endpoint_info.
-  auto expected_endpoint_info_length = base_input_stream.ReadUint8();
+  auto expected_endpoint_info_length = stream_reader.ReadUint8();
   if (!expected_endpoint_info_length.has_value()) {
     LOG(INFO)
         << "Cannot deserialize BluetoothDeviceName: endpoint_info_length.";
@@ -148,7 +147,7 @@ BluetoothDeviceName::BluetoothDeviceName(
 
   // The rest bytes are supposed to be the endpoint_info
   auto endpoint_info_bytes =
-      base_input_stream.ReadBytes(*expected_endpoint_info_length);
+      stream_reader.ReadBytes(*expected_endpoint_info_length);
   if (!endpoint_info_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize BluetoothDeviceName: endpoint_info.";
     endpoint_id_.clear();
@@ -159,9 +158,9 @@ BluetoothDeviceName::BluetoothDeviceName(
   // If the input stream has extra bytes, it's for UWB address. The first byte
   // is the address length. It can be 2-byte short address or 8-byte extended
   // address.
-  if (base_input_stream.IsAvailable(1)) {
+  if (stream_reader.IsAvailable(1)) {
     // The next 1 byte is supposed to be the length of the uwb_address.
-    auto expected_uwb_address_length = base_input_stream.ReadUint8();
+    auto expected_uwb_address_length = stream_reader.ReadUint8();
     if (!expected_uwb_address_length.has_value()) {
       LOG(INFO)
           << "Cannot deserialize BluetoothDeviceName: uwb_address_length.";
@@ -172,7 +171,7 @@ BluetoothDeviceName::BluetoothDeviceName(
     // If the length of usb_address is not zero, then retrieve it.
     if (expected_uwb_address_length != 0) {
       auto uwb_address_bytes =
-          base_input_stream.ReadBytes(*expected_uwb_address_length);
+          stream_reader.ReadBytes(*expected_uwb_address_length);
       if (!uwb_address_bytes.has_value()) {
         LOG(INFO) << "Cannot deserialize BluetoothDeviceName: uwb_address.";
         endpoint_id_.clear();

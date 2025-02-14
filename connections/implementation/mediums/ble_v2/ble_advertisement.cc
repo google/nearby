@@ -24,9 +24,9 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/stream_reader.h"
 
 namespace nearby {
 namespace connections {
@@ -98,10 +98,10 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   }
 
   ByteArray advertisement_bytes(ble_advertisement_bytes);
-  BaseInputStream base_input_stream(advertisement_bytes);
+  StreamReader stream_reader(advertisement_bytes);
   // The first 1 byte is supposed to be the version, socket version and the fast
   // advertisement flag.
-  auto version_byte = base_input_stream.ReadUint8();
+  auto version_byte = stream_reader.ReadUint8();
   if (!version_byte.has_value()) {
     return absl::InvalidArgumentError(
         "Cannot deserialize BleAdvertisement: version.");
@@ -129,8 +129,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // advertisement.
   ByteArray service_id_hash;
   if (!fast_advertisement) {
-    auto service_id_hash_bytes =
-        base_input_stream.ReadBytes(kServiceIdHashLength);
+    auto service_id_hash_bytes = stream_reader.ReadBytes(kServiceIdHashLength);
     if (!service_id_hash_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: service_id_hash.");
@@ -141,15 +140,14 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // Data length.
   uint32_t expected_data_size;
   if (fast_advertisement) {
-    auto fast_data_size_bytes =
-        base_input_stream.ReadBytes(kFastDataSizeLength);
+    auto fast_data_size_bytes = stream_reader.ReadBytes(kFastDataSizeLength);
     if (!fast_data_size_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: fast_data_size.");
     }
     expected_data_size = static_cast<uint32_t>(fast_data_size_bytes->data()[0]);
   } else {
-    auto data_size_bytes = base_input_stream.ReadUint32();
+    auto data_size_bytes = stream_reader.ReadUint32();
     if (!data_size_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: data_size.");
@@ -161,7 +159,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // Check that the stated data size is the same as what we received.
   ByteArray data;
   if (expected_data_size > 0) {
-    auto data_bytes = base_input_stream.ReadBytes(expected_data_size);
+    auto data_bytes = stream_reader.ReadBytes(expected_data_size);
     if (!data_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: data.");
@@ -178,8 +176,8 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
 
   // Device token. If the number of remaining bytes are valid for device token,
   // then read it.
-  if (base_input_stream.IsAvailable(kDeviceTokenLength)) {
-    auto device_token_bytes = base_input_stream.ReadBytes(kDeviceTokenLength);
+  if (stream_reader.IsAvailable(kDeviceTokenLength)) {
+    auto device_token_bytes = stream_reader.ReadBytes(kDeviceTokenLength);
     if (!device_token_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: device_token.");
@@ -196,9 +194,8 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // to put a random or empty device token in the advertisement.
   int extra_fields_byte_number =
       kExtraFieldsMaskLength + BleAdvertisementHeader::kPsmValueByteLength;
-  if (base_input_stream.IsAvailable(extra_fields_byte_number)) {
-    auto extra_fields_bytes =
-        base_input_stream.ReadBytes(extra_fields_byte_number);
+  if (stream_reader.IsAvailable(extra_fields_byte_number)) {
+    auto extra_fields_bytes = stream_reader.ReadBytes(extra_fields_byte_number);
     if (!extra_fields_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: extra_field.");
@@ -304,18 +301,17 @@ BleAdvertisement::BleExtraFields::BleExtraFields(
   }
 
   ByteArray mutated_extra_fields_bytes = {ble_extra_fields_bytes};
-  BaseInputStream base_input_stream{mutated_extra_fields_bytes};
+  StreamReader stream_reader{mutated_extra_fields_bytes};
   // The first 1 byte is field mask.
-  auto mask_byte = base_input_stream.ReadUint8().value_or(0);
+  auto mask_byte = stream_reader.ReadUint8().value_or(0);
   if (!mask_byte) {
     return;
   }
 
   // The next 2 bytes are supposed to be the psm value.
   if (HasField(mask_byte, kPsmBitmask) &&
-      base_input_stream.IsAvailable(
-          BleAdvertisementHeader::kPsmValueByteLength)) {
-    psm_ = base_input_stream.ReadUint16().value_or(0);
+      stream_reader.IsAvailable(BleAdvertisementHeader::kPsmValueByteLength)) {
+    psm_ = stream_reader.ReadUint16().value_or(0);
   }
 }
 

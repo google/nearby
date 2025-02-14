@@ -23,10 +23,10 @@
 #include "absl/strings/str_cat.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/stream_reader.h"
 
 namespace nearby {
 namespace connections {
@@ -113,9 +113,9 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   }
 
   ByteArray advertisement_bytes{ble_advertisement_bytes};
-  BaseInputStream base_input_stream{advertisement_bytes};
+  StreamReader stream_reader{advertisement_bytes};
   // The first 1 byte is supposed to be the version and pcp.
-  auto version_and_pcp_byte = base_input_stream.ReadUint8();
+  auto version_and_pcp_byte = stream_reader.ReadUint8();
   if (!version_and_pcp_byte.has_value()) {
     return absl::InvalidArgumentError(
         "Cannot deserialize BleAdvertisement: version_and_pcp.");
@@ -145,8 +145,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // advertisement.
   ByteArray service_id_hash;
   if (!fast_advertisement) {
-    auto service_id_hash_bytes =
-        base_input_stream.ReadBytes(kServiceIdHashLength);
+    auto service_id_hash_bytes = stream_reader.ReadBytes(kServiceIdHashLength);
     if (!service_id_hash_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: service_id_hash.");
@@ -156,7 +155,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   }
 
   // The next 4 bytes are supposed to be the endpoint_id.
-  auto endpoint_id_bytes = base_input_stream.ReadBytes(kEndpointIdLength);
+  auto endpoint_id_bytes = stream_reader.ReadBytes(kEndpointIdLength);
   if (!endpoint_id_bytes.has_value()) {
     return absl::InvalidArgumentError(
         "Cannot deserialize BleAdvertisement: endpoint_id.");
@@ -165,7 +164,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   std::string endpoint_id = std::string{*endpoint_id_bytes};
 
   // The next 1 byte is supposed to be the length of the endpoint_info.
-  auto expected_endpoint_info_length = base_input_stream.ReadUint8();
+  auto expected_endpoint_info_length = stream_reader.ReadUint8();
   if (!expected_endpoint_info_length.has_value()) {
     return absl::InvalidArgumentError(
         "Cannot deserialize BleAdvertisement: endpoint_info_length.");
@@ -174,7 +173,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // The next x bytes are the endpoint info. (Max length is 131 bytes or 17
   // bytes as fast_advertisement being true).
   auto endpoint_info_bytes =
-      base_input_stream.ReadBytes(*expected_endpoint_info_length);
+      stream_reader.ReadBytes(*expected_endpoint_info_length);
   if (!endpoint_info_bytes.has_value()) {
     return absl::InvalidArgumentError(
         "Cannot deserialize BleAdvertisement: endpoint_info.");
@@ -197,7 +196,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   std::string bluetooth_mac_address;
   if (!fast_advertisement) {
     auto bluetooth_mac_address_bytes =
-        base_input_stream.ReadBytes(BluetoothUtils::kBluetoothMacAddressLength);
+        stream_reader.ReadBytes(BluetoothUtils::kBluetoothMacAddressLength);
     if (!bluetooth_mac_address_bytes.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: bluetooth_mac_address.");
@@ -211,8 +210,8 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   // it for remaining bytes.
   ByteArray uwb_address;
   BleAdvertisement ble_advertisement;
-  if (base_input_stream.IsAvailable(1)) {
-    auto expected_uwb_address_length = base_input_stream.ReadUint8();
+  if (stream_reader.IsAvailable(1)) {
+    auto expected_uwb_address_length = stream_reader.ReadUint8();
     if (!expected_uwb_address_length.has_value()) {
       return absl::InvalidArgumentError(
           "Cannot deserialize BleAdvertisement: uwb_address_length.");
@@ -220,7 +219,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
     // If the length of uwb_address is not zero, then retrieve it.
     if (expected_uwb_address_length != 0) {
       auto uwb_address_bytes =
-          base_input_stream.ReadBytes(*expected_uwb_address_length);
+          stream_reader.ReadBytes(*expected_uwb_address_length);
 
       if (!uwb_address_bytes.has_value()) {
         return absl::InvalidArgumentError(
@@ -231,8 +230,8 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
 
     // The next 1 byte is extra field.
     if (!fast_advertisement) {
-      if (base_input_stream.IsAvailable(kExtraFieldLength)) {
-        auto extra_field = base_input_stream.ReadUint8();
+      if (stream_reader.IsAvailable(kExtraFieldLength)) {
+        auto extra_field = stream_reader.ReadUint8();
         if (!extra_field.has_value()) {
           return absl::InvalidArgumentError(
               "Cannot deserialize BleAdvertisement: extra_field.");
@@ -244,8 +243,6 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
       }
     }
   }
-
-  base_input_stream.Close();
 
   ble_advertisement.fast_advertisement_ = fast_advertisement;
   ble_advertisement.version_ = version;

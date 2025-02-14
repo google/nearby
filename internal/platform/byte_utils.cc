@@ -14,13 +14,12 @@
 
 #include "internal/platform/byte_utils.h"
 
-#include <cstdint>
 #include <cstdlib>
 #include <string>
 
 #include "absl/strings/str_format.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/stream_reader.h"
 
 namespace nearby {
 
@@ -28,9 +27,9 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
   int multiplier = 1;
   int hashCode = 0;
 
-  BaseInputStream base_input_stream{bytes};
-  while (base_input_stream.IsAvailable(1)) {
-    auto byte = base_input_stream.ReadInt8().value_or(0);
+  StreamReader stream_reader{bytes};
+  while (stream_reader.IsAvailable(1)) {
+    auto byte = stream_reader.ReadInt8().value_or(0);
     hashCode = (hashCode + byte * multiplier) % kHashBasePrime;
     multiplier = multiplier * kHashBaseMultiplier % kHashBasePrime;
   }

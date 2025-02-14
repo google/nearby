@@ -12,40 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_BASE_BASE_INPUT_STREAM_H_
-#define PLATFORM_BASE_BASE_INPUT_STREAM_H_
+#ifndef PLATFORM_BASE_STREAM_READERH_
+#define PLATFORM_BASE_STREAM_READERH_
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/input_stream.h"
 
 namespace nearby {
 
 // A base {@link InputStream } for reading the contents of a byte array.
-class BaseInputStream : public InputStream {
+class StreamReader {
  public:
-  explicit BaseInputStream(ByteArray &buffer) : buffer_{buffer} {}
-  BaseInputStream(const BaseInputStream &) = delete;
-  BaseInputStream &operator=(const BaseInputStream &) = delete;
-  ~BaseInputStream() override { Close(); }
-
-  ExceptionOr<ByteArray> Read(std::int64_t size) override;
-
-  ExceptionOr<size_t> Skip(size_t offset) override {
-    size_t real_offset = std::min(offset, buffer_.size() - position_);
-    position_ += real_offset;
-    return ExceptionOr<size_t>(real_offset);
-  }
-
-  Exception Close() override {
-    // Do nothing.
-    return {Exception::kSuccess};
-  }
+  explicit StreamReader(ByteArray &buffer) : buffer_{buffer} {}
+  StreamReader(const StreamReader &) = delete;
+  StreamReader &operator=(const StreamReader &) = delete;
+  ~StreamReader() = default;
 
   // Reads less than 8 bits from the stream, returning the value if available.
   // The read bits cannot across a byte boundary.
@@ -65,6 +50,8 @@ class BaseInputStream : public InputStream {
   }
 
  private:
+  ExceptionOr<ByteArray> Read(std::int64_t size);
+
   uint8_t bits_unused_{0};
   uint8_t bits_buffer_{0};
   ByteArray &buffer_;
@@ -73,4 +60,4 @@ class BaseInputStream : public InputStream {
 
 }  // namespace nearby
 
-#endif  // PLATFORM_BASE_BASE_INPUT_STREAM_H_
+#endif  // PLATFORM_BASE_STREAM_READERH_

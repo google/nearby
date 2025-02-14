@@ -21,9 +21,9 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/stream_reader.h"
 
 namespace nearby {
 namespace connections {
@@ -86,9 +86,9 @@ BleAdvertisementHeader::BleAdvertisementHeader(
     return;
   }
 
-  BaseInputStream base_input_stream(advertisement_header_bytes);
+  StreamReader stream_reader(advertisement_header_bytes);
   // The first 1 byte is supposed to be the version and number of slots.
-  auto version_and_num_slots_byte = base_input_stream.ReadUint8();
+  auto version_and_num_slots_byte = stream_reader.ReadUint8();
   if (!version_and_num_slots_byte.has_value()) {
     LOG(INFO) << "Cannot deserialize BleAdvertisementHeader: version_and_num.";
     return;
@@ -114,17 +114,16 @@ BleAdvertisementHeader::BleAdvertisementHeader(
 
   // The next 10 bytes are supposed to be the service_id_bloom_filter.
   service_id_bloom_filter_ =
-      base_input_stream.ReadBytes(kServiceIdBloomFilterByteLength)
+      stream_reader.ReadBytes(kServiceIdBloomFilterByteLength)
           .value_or(ByteArray());
 
   // The next 4 bytes are supposed to be the advertisement_hash.
-  advertisement_hash_ =
-      base_input_stream.ReadBytes(kAdvertisementHashByteLength)
-          .value_or(ByteArray());
+  advertisement_hash_ = stream_reader.ReadBytes(kAdvertisementHashByteLength)
+                            .value_or(ByteArray());
 
   // The next 2 bytes are PSM value.
-  if (base_input_stream.IsAvailable(kPsmValueByteLength)) {
-    psm_ = base_input_stream.ReadInt16().value_or(0);
+  if (stream_reader.IsAvailable(kPsmValueByteLength)) {
+    psm_ = stream_reader.ReadInt16().value_or(0);
   }
 }
 

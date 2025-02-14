@@ -21,9 +21,9 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
-#include "internal/platform/base_input_stream.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/stream_reader.h"
 #include "proto/mediums/ble_frames.pb.h"
 
 namespace nearby {
@@ -137,10 +137,9 @@ BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
   }
 
   ByteArray packet_bytes(ble_packet_bytes);
-  BaseInputStream base_input_stream{packet_bytes};
+  StreamReader stream_reader{packet_bytes};
   // The first 3 bytes are supposed to be the service_id_hash.
-  auto service_id_hash_bytes =
-      base_input_stream.ReadBytes(kServiceIdHashLength);
+  auto service_id_hash_bytes = stream_reader.ReadBytes(kServiceIdHashLength);
   if (!service_id_hash_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize BlePacket: service_id_hash.";
     return;
@@ -155,8 +154,8 @@ BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
   }
 
   // The rest bytes are supposed to be the data.
-  auto data_bytes = base_input_stream.ReadBytes(ble_packet_bytes.size() -
-                                                kServiceIdHashLength);
+  auto data_bytes =
+      stream_reader.ReadBytes(ble_packet_bytes.size() - kServiceIdHashLength);
   if (!data_bytes.has_value()) {
     LOG(INFO) << "Cannot deserialize BlePacket: data.";
     return;
