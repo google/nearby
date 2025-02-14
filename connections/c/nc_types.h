@@ -30,7 +30,7 @@ typedef void* CALLER_CONTEXT;
 
 // NC_DATA is used to define a byte array. Its last byte is not zero.
 typedef struct NC_DATA {
-  int64_t size;
+  uint64_t size;
   char* data;
 } NC_DATA, *PNC_DATA;
 
