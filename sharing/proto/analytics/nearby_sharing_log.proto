@@ -31,7 +31,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 82
+// Next Tag: 83
 // LINT.IfChange
 message SharingLog {
   /* collection_basis = {
@@ -219,6 +219,8 @@ message SharingLog {
   optional QrCodeOpenedInWebClient qr_code_opened_in_web_client = 80;
 
   optional HatsJointEvent hats_joint_event = 81;
+
+  optional ReceivePreviews receive_previews = 82;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -961,6 +963,11 @@ message SharingLog {
     optional int64 flow_id = 1 /* type = ST_SESSION_ID */;
     optional string hats_session_id = 2
         /* type = ST_SESSION_ID */;
+  }
+
+  // EventType: RECEIVE_PREVIEWS
+  message ReceivePreviews {
+    optional int32 num_previews = 1;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
