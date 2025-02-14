@@ -521,6 +521,7 @@ let package = Package(
         "internal/platform/input_stream_test.cc",
         "internal/platform/single_thread_executor_test.cc",
         "internal/platform/scheduled_executor_test.cc",
+        "internal/platform/stream_writer_test.cc",
         "internal/platform/count_down_latch_test.cc",
         "internal/platform/pipe_test.cc",
         "internal/platform/timer_impl_test.cc",

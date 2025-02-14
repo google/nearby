@@ -39,7 +39,7 @@ ExceptionOr<ByteArray> BaseInputStream::Read(std::int64_t size) {
 }
 
 std::optional<std::uint8_t> BaseInputStream::ReadBits(int bits) {
-  if (bits > 8) {
+  if (bits > 8 || bits <= 0) {
     return std::nullopt;
   }
   if (bits_unused_ == 0) {

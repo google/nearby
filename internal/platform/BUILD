@@ -84,10 +84,12 @@ cc_library(
     srcs = [
         "base_input_stream.cc",
         "byte_utils.cc",
+        "stream_writer.cc",
     ],
     hdrs = [
         "base_input_stream.h",
         "byte_utils.h",
+        "stream_writer.h",
     ],
     visibility = [
         "//connections:__subpackages__",
@@ -399,6 +401,7 @@ cc_test(
     srcs = [
         "base_input_stream_test.cc",
         "byte_utils_test.cc",
+        "stream_writer_test.cc",
     ],
     deps = [
         ":base",
