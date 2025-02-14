@@ -59,6 +59,20 @@ public class Discoverer {
     )
   }
 
+  public func startDiscovery(mediums: [Bool], completionHandler: ((Error?) -> Void)? = nil) {
+    let options = GNCDiscoveryOptions(strategy: connectionManager.strategy.objc)
+
+    // Update the discovery mediums based on the user selection
+    options.mediums = GNCSupportedMediums.init(
+      bluetooth: mediums[0], ble: mediums[1], webRTC: mediums[2], wifiLAN: mediums[3],
+      wifiHotspot: mediums[4], wifiDirect: mediums[5])
+
+    GNCCoreAdapter.shared.startDiscovery(
+      asService: connectionManager.serviceID, options: options, delegate: discovery,
+      withCompletionHandler: completionHandler
+    )
+  }
+
   /// Stops searching for nearby remote endpoints.
   ///
   /// - Parameter completionHandler: Called with `nil` if discovery stopped, or an error if
