@@ -17,7 +17,7 @@
 
 #include <string>
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 
 @interface GNCIPv4AddressTest : XCTestCase
 @end
