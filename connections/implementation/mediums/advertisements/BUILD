@@ -26,11 +26,38 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "dct_advertisement",
+    srcs = ["dct_advertisement.cc"],
+    hdrs = ["dct_advertisement.h"],
+    deps = [
+        ":common",
+        "//internal/crypto_cros",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform:util",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_test(
     name = "data_element_test",
     srcs = ["data_element_test.cc"],
     deps = [
         ":common",
+        "//internal/platform:base",
+        "//internal/platform:util",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dct_advertisement_test",
+    srcs = ["dct_advertisement_test.cc"],
+    deps = [
+        ":dct_advertisement",
         "//internal/platform:base",
         "//internal/platform:util",
         "@com_github_protobuf_matchers//protobuf-matchers",
