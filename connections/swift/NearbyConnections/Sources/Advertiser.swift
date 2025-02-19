@@ -58,6 +58,55 @@ public class Advertiser {
       options: options, delegate: connection, withCompletionHandler: completionHandler)
   }
 
+  /// Starts advertising the local endpoint.
+  ///
+  /// After this method is called (until you call `stopAdvertising()`), the framework calls your
+  /// delegate’s `advertiser(_:didReceiveConnectionRequestFrom:with:connectionRequestHandler:)`
+  /// method when remote endpoints request a connection.
+  ///
+  /// - Parameters:
+  ///   - context: An arbitrary piece of data that is advertised to the nearby endpoint.
+  ///   This can be used to provide further information to the user about the nature of the
+  ///   advertisement.
+  ///   - mediums: The mediums to be used for advertising.
+  ///   - completionHandler: Called with `nil` if advertising started, or an error if advertising
+  ///   failed to start.
+  public func startAdvertising(
+    using context: Data, mediums: [Medium],
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
+    let options = GNCAdvertisingOptions(strategy: connectionManager.strategy.objc)
+
+    // Update the advertising mediums based on the user selection and set the default values for
+    // the mediums that could not be selected by the user
+    let array: [Bool] = getMediumStatus(mediums: mediums)
+    options.mediums = GNCSupportedMediums(
+      bluetooth: array[0],
+      ble: array[1],
+      webRTC: array[2],
+      wifiLAN: array[3],
+      wifiHotspot: array[4],
+      wifiDirect: array[5]
+    )
+
+    // Start advertising with the options
+    GNCCoreAdapter.shared.startAdvertising(
+      asService: connectionManager.serviceID, endpointInfo: context,
+      options: options, delegate: connection, withCompletionHandler: completionHandler)
+  }
+
+  /// Returns the status of the mediums based on the user selection
+  func getMediumStatus(mediums: [Medium]) -> [Bool] {
+    var array: [Bool] = [false, false, false, false, false, false]
+
+    // Update the array based on the user selection
+    for medium in mediums {
+      array[medium.getIndex()] = medium.getValue()
+    }
+
+    return array
+  }
+
   /// Stops advertising the local endpoint.
   ///
   /// - Parameter completionHandler: Called with `nil` if advertising stopped, or an error if
