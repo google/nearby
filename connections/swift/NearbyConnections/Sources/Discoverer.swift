@@ -59,6 +59,37 @@ public class Discoverer {
     )
   }
 
+  /// Starts searching for nearby remote endpoints.
+  ///
+  /// After this method is called (until you call `stopDiscovery()`), the framework calls your
+  /// delegate’s `discoverer(_:didFind:with:)` and `discoverer(_:didLose:)` methods as new endpoints
+  /// are found and lost.
+  ///
+  /// - Parameters:
+  ///   - mediums: The mediums to be used for discovery.
+  ///   - completionHandler: Called with `nil` if discovery starts, or an error if
+  ///   discovery failed to start.
+  public func startDiscovery(mediums: [Medium], completionHandler: ((Error?) -> Void)? = nil) {
+    let options = GNCDiscoveryOptions(strategy: connectionManager.strategy.objc)
+
+    // Update the discovery mediums based on the user selection and set the default values for
+    // the mediums that could not be selected by the user
+    let array: [Bool] = getMediumStatus(mediums: mediums)
+    options.mediums = GNCSupportedMediums(
+      bluetooth: array[0],
+      ble: array[1],
+      webRTC: array[2],
+      wifiLAN: array[3],
+      wifiHotspot: array[4],
+      wifiDirect: array[5]
+    )
+
+    GNCCoreAdapter.shared.startDiscovery(
+      asService: connectionManager.serviceID, options: options, delegate: discovery,
+      withCompletionHandler: completionHandler
+    )
+  }
+
   /// Stops searching for nearby remote endpoints.
   ///
   /// - Parameter completionHandler: Called with `nil` if discovery stopped, or an error if
@@ -84,9 +115,49 @@ public class Discoverer {
       options: options, delegate: connection, withCompletionHandler: completionHandler)
   }
 
+  /// Requests a connection to a discovered remote endpoint.
+  ///
+  /// - Parameters:
+  ///   - endpointID: The ID of the endpoint to request a connection to.
+  ///   - context: An arbitrary piece of data that is passed to the nearby endpoint. This can be
+  ///     used to provide further information to the user about the nature of the invitation.
+  ///   - mediums: The mediums to be used for connection.
+  ///   - completionHandler: Called with `nil`  when the endpoint has been disconnected,
+  ///     or an error if disconnecting failed
+  public func requestConnection(
+    to endpointID: EndpointID, using context: Data, mediums: [Medium],
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
+    let options = GNCConnectionOptions()
+    let array: [Bool] = getMediumStatus(mediums: mediums)
+    options.mediums = GNCSupportedMediums(
+      bluetooth: array[0],
+      ble: array[1],
+      webRTC: array[2],
+      wifiLAN: array[3],
+      wifiHotspot: array[4],
+      wifiDirect: array[5]
+    )
+
+    GNCCoreAdapter.shared.requestConnection(
+      toEndpoint: endpointID, endpointInfo: context,
+      options: options, delegate: connection, withCompletionHandler: completionHandler)
+  }
+
   deinit {
     stopDiscovery()
   }
+}
+
+func getMediumStatus(mediums: [Medium]) -> [Bool] {
+  var array: [Bool] = [false, false, false, false, false, false]
+
+  // Update the array based on the user selection
+  for medium in mediums {
+    array[medium.getIndex()] = medium.getValue()
+  }
+
+  return array
 }
 
 extension Discoverer: InternalConnectionDelegate {
