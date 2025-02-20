@@ -14,7 +14,7 @@
 
 #import <Foundation/Foundation.h>
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 
 @interface GNCNWFrameworkServerSocket (Internal)
 

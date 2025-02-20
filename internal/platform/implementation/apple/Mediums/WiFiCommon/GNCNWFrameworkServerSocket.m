@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
@@ -22,10 +22,10 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkError.h"
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket+Internal.h"
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 @interface GNCNWFrameworkServerSocket ()

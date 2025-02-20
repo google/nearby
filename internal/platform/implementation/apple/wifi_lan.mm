@@ -19,10 +19,10 @@
 #include <string>
 #include <utility>
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFramework.h"
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkServerSocket.h"
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {

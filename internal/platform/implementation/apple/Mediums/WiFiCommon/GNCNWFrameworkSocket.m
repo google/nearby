@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>

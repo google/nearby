@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 
 @implementation GNCIPv4Address
 

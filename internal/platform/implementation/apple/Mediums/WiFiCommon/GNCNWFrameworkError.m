@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/NWFramework/GNCNWFrameworkError.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 
 NSErrorDomain const GNCNWFrameworkErrorDomain = @"com.google.nearby.network.error";
