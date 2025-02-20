@@ -176,34 +176,11 @@ AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger,
 
 AnalyticsRecorder::~AnalyticsRecorder() {
   serial_executor_.Shutdown();
-  MutexLock lock(&mutex_);
-  ResetClientSessionLoggingResoucesLocked();
 }
 
 bool AnalyticsRecorder::IsSessionLogged() {
   MutexLock lock(&mutex_);
   return session_was_logged_;
-}
-
-void AnalyticsRecorder::ResetClientSessionLoggingResoucesLocked() {
-  NEARBY_LOGS(INFO) << "Reset AnalyticsRecorder ctor event_logger_="
-                    << event_logger_;
-
-  incoming_connection_requests_.clear();
-  outgoing_connection_requests_.clear();
-  active_connections_.clear();
-  bandwidth_upgrade_attempts_.clear();
-
-  client_session_ = nullptr;
-  session_was_logged_ = true;
-  start_client_session_was_logged_ = false;
-  current_strategy_ =
-      connections::Strategy::kNone;  // Need to reset since the same strategy
-                                     // should be logged separately for
-                                     // different client sessions.
-  current_strategy_session_ = nullptr;
-  current_advertising_phase_ = nullptr;
-  current_discovery_phase_ = nullptr;
 }
 
 int AnalyticsRecorder::GetLatestUpdateIndexLocked(
@@ -358,7 +335,6 @@ void AnalyticsRecorder::OnStoppedIncomingConnectionListening() {
     return;
   }
   RecordAdvertisingPhaseDurationAndReasonLocked(/* on_stop= */ false);
-  // RecordAdvertisingPhaseDurationLocked();
 }
 
 void AnalyticsRecorder::OnEndpointFound(Medium medium) {
@@ -947,6 +923,7 @@ void AnalyticsRecorder::LogSession() {
   }
   LogClientSessionLocked();
   LogEvent(STOP_CLIENT_SESSION);
+  start_client_session_was_logged_ = false;
   session_was_logged_ = true;
 }
 
@@ -1049,21 +1026,24 @@ bool AnalyticsRecorder::CanRecordAnalyticsLocked(
   return true;
 }
 
+// TODO: b/391339677 - Investigate why we need to reset the resources. And
+// verify in b/238375695 to see if we still meet the issue after removing the
+// Reset function.
 void AnalyticsRecorder::LogClientSessionLocked() {
+  ConnectionsLog connections_log;
+  connections_log.set_event_type(CLIENT_SESSION);
+  connections_log.set_allocated_client_session(client_session_.release());
+  connections_log.set_version(kVersion);
+  client_session_ = nullptr;
+
   serial_executor_.Execute(
       "analytics-recorder",
-      [this, client_session = std::move(client_session_)]() mutable {
-        ConnectionsLog connections_log;
-        connections_log.set_event_type(CLIENT_SESSION);
-        connections_log.set_allocated_client_session(client_session.release());
-        connections_log.set_version(kVersion);
-
+      [this, connections_log = std::move(connections_log)]() mutable {
         NEARBY_VLOG(1) << "AnalyticsRecorder LogClientSession connections_log="
                        << connections_log.DebugString();  // NOLINT
 
         event_logger_->Log(connections_log);
       });
-  ResetClientSessionLoggingResoucesLocked();
 }
 
 void AnalyticsRecorder::LogEvent(EventType event_type) {
@@ -1144,8 +1124,13 @@ void AnalyticsRecorder::FinishAdvertisingPhaseLocked() {
       UpdateAdvertiserConnectionRequestLocked(connection_request.get());
     }
     RecordAdvertisingPhaseDurationAndReasonLocked(/* on_stop= */ false);
-    *current_strategy_session_->add_advertising_phase() =
-        *std::move(current_advertising_phase_);
+    if (current_strategy_session_ != nullptr) {
+      *current_strategy_session_->add_advertising_phase() =
+          *std::move(current_advertising_phase_);
+    } else {
+      NEARBY_LOGS(INFO) << "Unable to record advertising phase due to null "
+                           "current_strategy_session_";
+    }
   }
   incoming_connection_requests_.clear();
 }
@@ -1181,8 +1166,13 @@ void AnalyticsRecorder::FinishDiscoveryPhaseLocked() {
       UpdateDiscovererConnectionRequestLocked(connection_request.get());
     }
     RecordDiscoveryPhaseDurationAndReasonLocked(/* on_stop=*/false);
-    *current_strategy_session_->add_discovery_phase() =
-        *std::move(current_discovery_phase_);
+    if (current_strategy_session_ != nullptr) {
+      *current_strategy_session_->add_discovery_phase() =
+          *std::move(current_discovery_phase_);
+    } else {
+      NEARBY_LOGS(INFO) << "Unable to record discovery phase due to null "
+                           "current_strategy_session_";
+    }
   }
   outgoing_connection_requests_.clear();
 }
