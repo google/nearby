@@ -47,9 +47,11 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/uuid.h"
 
@@ -922,10 +924,17 @@ bool BleV2::StartFastAdvertisingLocked(
       {mediums::bleutils::kCopresenceServiceUuid, medium_advertisement_bytes});
 
   // Finally, start the fast advertising operation.
+  bool is_connectable = true;
+  if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS) {
+    // The ChromeOS platform cannot support connectable
+    // fast advertisements (b/395934066).
+    is_connectable = false;
+  }
+
   if (!medium_.StartAdvertising(
           advertising_data,
           {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
-           .is_connectable = true})) {
+           .is_connectable = is_connectable})) {
     LOG(ERROR) << "Failed to turn on BLE fast advertising with "
                   "advertisement bytes="
                << absl::BytesToHexString(medium_advertisement_bytes.data());
