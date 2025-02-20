@@ -184,6 +184,10 @@ NC_API void NcSetCustomSavePath(NC_INSTANCE instance, const NC_DATA* save_path,
                                 NcCallbackResult result_callback,
                                 CALLER_CONTEXT context);
 
+// Sets the global instance of the phenotype flag reader for Nearby Connections.
+NC_API void NcSetPhenotypeFlagReader(
+    READER_CONTEXT context, NC_PHENOTYPE_FLAG_READER phenotype_flag_reader);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus
