@@ -215,9 +215,14 @@ AdvertisementDecoderImpl::InitializeCredentialBook(
   nearby_protocol::CredentialSlab slab;
   for (const auto& credential : (*credentials_map)
            [internal::IdentityType::IDENTITY_TYPE_PRIVATE_GROUP]) {
-    std::vector<uint8_t> metadata_bytes(
-        credential.encrypted_metadata_bytes_v0().begin(),
-        credential.encrypted_metadata_bytes_v0().end());
+    // Make sure the vector is not empty, as this is a prerequisite of the Rust
+    // code we call into.
+    std::vector<uint8_t> metadata_bytes(1);
+    if (!credential.encrypted_metadata_bytes_v0().empty()) {
+      metadata_bytes =
+          std::vector<uint8_t>(credential.encrypted_metadata_bytes_v0().begin(),
+                               credential.encrypted_metadata_bytes_v0().end());
+    }
     nearby_protocol::MatchedCredentialData matched_cred(credential.id(),
                                                         metadata_bytes);
 
