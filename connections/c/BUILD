@@ -56,14 +56,48 @@ cc_library(
 
 # iOS only.
 apple_static_xcframework(
-    name = "NearbyConnections",
+    name = "NearbyConnections_x86sim",
+    avoid_deps = [],
+    bundle_name = "NearbyConnections",
+    ios = {
+        "simulator": [
+            "x86_64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "15.0",
+    },
+    deps = [
+        ":nc",
+        "//internal/platform/implementation/apple",
+        "//internal/platform/implementation/apple/Mediums",
+    ],
+)
+
+apple_static_xcframework(
+    name = "NearbyConnections_arm64sim",
     avoid_deps = [],
     bundle_name = "NearbyConnections",
     ios = {
         "simulator": [
             "arm64",
-            "x86_64",
         ],
+    },
+    minimum_os_versions = {
+        "ios": "15.0",
+    },
+    deps = [
+        ":nc",
+        "//internal/platform/implementation/apple",
+        "//internal/platform/implementation/apple/Mediums",
+    ],
+)
+
+apple_static_xcframework(
+    name = "NearbyConnections_arm64device",
+    avoid_deps = [],
+    bundle_name = "NearbyConnections",
+    ios = {
         "device": [
             "arm64",
         ],
