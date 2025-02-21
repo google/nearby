@@ -27,7 +27,7 @@ namespace nearby {
 // A base {@link InputStream } for reading the contents of a byte array.
 class StreamReader {
  public:
-  explicit StreamReader(ByteArray &buffer) : buffer_{buffer} {}
+  explicit StreamReader(const ByteArray &buffer) : buffer_{buffer} {}
   StreamReader(const StreamReader &) = delete;
   StreamReader &operator=(const StreamReader &) = delete;
   ~StreamReader() = default;
@@ -54,7 +54,7 @@ class StreamReader {
 
   uint8_t bits_unused_{0};
   uint8_t bits_buffer_{0};
-  ByteArray &buffer_;
+  const ByteArray &buffer_;
   size_t position_{0};
 };
 

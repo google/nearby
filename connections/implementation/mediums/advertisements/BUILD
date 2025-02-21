@@ -41,6 +41,18 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "util",
+    srcs = ["advertisement_util.cc"],
+    hdrs = ["advertisement_util.h"],
+    deps = [
+        ":dct_advertisement",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform:util",
+    ],
+)
+
 cc_test(
     name = "data_element_test",
     srcs = ["data_element_test.cc"],
@@ -58,6 +70,18 @@ cc_test(
     srcs = ["dct_advertisement_test.cc"],
     deps = [
         ":dct_advertisement",
+        "//internal/platform:base",
+        "//internal/platform:util",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "advertisement_util_test",
+    srcs = ["advertisement_util_test.cc"],
+    deps = [
+        ":util",
         "//internal/platform:base",
         "//internal/platform:util",
         "@com_github_protobuf_matchers//protobuf-matchers",
