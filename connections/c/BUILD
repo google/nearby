@@ -92,12 +92,35 @@ apple_static_xcframework(
     ],
 )
 
-# Do not rename this target, as it will break CI.
+apple_static_xcframework(
+    name = "NearbyConnections_arm64device",
+    avoid_deps = [],
+    bundle_name = "NearbyConnections",
+    ios = {
+        "device": [
+            "arm64",
+        ],
+    },
+    minimum_os_versions = {
+        "ios": "15.0",
+    },
+    deps = [
+        ":nc",
+        "//internal/platform/implementation/apple",
+        "//internal/platform/implementation/apple/Mediums",
+    ],
+)
+
+# Do not rename this target, as it will break Kokoro workflows.
 apple_static_xcframework(
     name = "NearbyConnections",
     avoid_deps = [],
     bundle_name = "NearbyConnections",
     ios = {
+        "simulator": [
+            "arm64",
+            "x86_64",
+        ],
         "device": [
             "arm64",
         ],
