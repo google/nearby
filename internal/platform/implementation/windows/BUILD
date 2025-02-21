@@ -325,6 +325,7 @@ cc_test(
         ":test_utils",
         ":types",
         ":windows",
+        "//connections/implementation/mediums/ble_v2",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform/implementation:comm",

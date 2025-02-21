@@ -14,17 +14,83 @@
 
 #include "internal/platform/implementation/windows/ble_v2.h"
 
+#include <cstddef>
 #include <string>
+#include <memory>
 #include <utility>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
+#include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace windows {
 namespace {
+using ::testing::Return;
+
+class MockBluetoothAdapter : public BluetoothAdapter {
+ public:
+  MOCK_METHOD(bool, SetStatus, (Status status), (override));
+  MOCK_METHOD(bool, IsEnabled, (), (const, override));
+  MOCK_METHOD(ScanMode, GetScanMode, (), (const, override));
+  MOCK_METHOD(bool, SetScanMode, (ScanMode scan_mode), (override));
+  MOCK_METHOD(std::string, GetName, (), (const, override));
+  MOCK_METHOD(bool, SetName, (absl::string_view name), (override));
+  MOCK_METHOD(bool, SetName, (absl::string_view name, bool persist),
+              (override));
+  MOCK_METHOD(std::string, GetMacAddress, (), (const, override));
+};
+
+}  // namespace
+
+class BleV2MediumTest : public ::testing::Test {
+ protected:
+  BleV2MediumTest() {
+    blev2_medium_ = std::make_unique<BleV2Medium>(bluetooth_adapter_);
+  }
+
+ protected:
+  size_t GetWatchersCount() {
+    absl::MutexLock lock(&blev2_medium_->mutex_);
+    return blev2_medium_->watchers_.size();
+  }
+
+  MockBluetoothAdapter bluetooth_adapter_;
+  std::unique_ptr<BleV2Medium> blev2_medium_;
+};
+
+namespace {
+
+TEST_F(BleV2MediumTest, StartScanningAdapterDisabled) {
+  EXPECT_CALL(bluetooth_adapter_, IsEnabled()).WillOnce(Return(false));
+  Uuid service_uuid =
+      nearby::connections::mediums::bleutils::kCopresenceServiceUuid;
+  api::ble_v2::BleMedium::ScanCallback callback;
+
+  EXPECT_EQ(false, blev2_medium_->StartScanning(
+      service_uuid, api::ble_v2::TxPowerLevel::kHigh, std::move(callback)));
+
+  EXPECT_EQ(GetWatchersCount(), 0);
+}
+
+TEST_F(BleV2MediumTest, StartScanningAdapterNoAdapterOnForge) {
+  EXPECT_CALL(bluetooth_adapter_, IsEnabled()).WillOnce(Return(true));
+  Uuid service_uuid =
+      nearby::connections::mediums::bleutils::kCopresenceServiceUuid;
+  api::ble_v2::BleMedium::ScanCallback callback;
+
+  EXPECT_EQ(false, blev2_medium_->StartScanning(
+      service_uuid, api::ble_v2::TxPowerLevel::kHigh, std::move(callback)));
+
+  EXPECT_EQ(GetWatchersCount(), 0);
+}
 
 TEST(BleV2Medium, DISABLED_StartAdvertising) {
   BluetoothAdapter bluetoothAdapter;
