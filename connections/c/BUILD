@@ -93,7 +93,7 @@ apple_static_xcframework(
 )
 
 apple_static_xcframework(
-    name = "NearbyConnections_arm64device",
+    name = "NearbyConnections",
     avoid_deps = [],
     bundle_name = "NearbyConnections",
     ios = {
