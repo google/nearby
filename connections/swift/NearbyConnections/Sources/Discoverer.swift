@@ -24,6 +24,11 @@ public class Discoverer {
   /// The connection manager for this instance.
   public let connectionManager: ConnectionManager
 
+  /// The set of all mediums that can be used for discovering and connecting.
+  let allMediums: Set<Medium> = [
+    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect,
+  ]
+
   lazy var connection: InternalConnection? = {
     let connection = InternalConnection()
     connection.delegate = self
@@ -52,7 +57,33 @@ public class Discoverer {
   /// - Parameter completionHandler: Called with `nil` if discovery starts, or an error if
   ///   discovery failed to start.
   public func startDiscovery(completionHandler: ((Error?) -> Void)? = nil) {
+    startDiscovery(mediums: allMediums, completionHandler: completionHandler)
+  }
+
+  /// Starts searching for nearby remote endpoints.
+  ///
+  /// After this method is called (until you call `stopDiscovery()`), the framework calls your
+  /// delegate’s `discoverer(_:didFind:with:)` and `discoverer(_:didLose:)` methods as new endpoints
+  /// are found and lost.
+  ///
+  /// - Parameters:
+  ///   - mediums: The mediums to be used for discovery.
+  ///   - completionHandler: Called with `nil` if discovery starts, or an error if
+  ///   discovery failed to start.
+  public func startDiscovery(mediums: Set<Medium>, completionHandler: ((Error?) -> Void)? = nil) {
     let options = GNCDiscoveryOptions(strategy: connectionManager.strategy.objc)
+
+    // Update the discovery mediums based on the user selection and set the default values for
+    // the mediums that could not be selected by the user
+    options.mediums = GNCSupportedMediums(
+      bluetooth: mediums.contains(.bluetooth),
+      ble: mediums.contains(.ble),
+      webRTC: mediums.contains(.webRTC),
+      wifiLAN: mediums.contains(.wifiLAN),
+      wifiHotspot: mediums.contains(.wifiHotspot),
+      wifiDirect: mediums.contains(.wifiDirect)
+    )
+
     GNCCoreAdapter.shared.startDiscovery(
       asService: connectionManager.serviceID, options: options, delegate: discovery,
       withCompletionHandler: completionHandler
@@ -78,7 +109,34 @@ public class Discoverer {
   public func requestConnection(
     to endpointID: EndpointID, using context: Data, completionHandler: ((Error?) -> Void)? = nil
   ) {
+    requestConnection(
+      to: endpointID, using: context, mediums: allMediums,
+      completionHandler: completionHandler)
+  }
+
+  /// Requests a connection to a discovered remote endpoint.
+  ///
+  /// - Parameters:
+  ///   - endpointID: The ID of the endpoint to request a connection to.
+  ///   - context: An arbitrary piece of data that is passed to the nearby endpoint. This can be
+  ///     used to provide further information to the user about the nature of the invitation.
+  ///   - mediums: The mediums to be used for connection.
+  ///   - completionHandler: Called with `nil`  when the endpoint has been disconnected,
+  ///     or an error if disconnecting failed
+  public func requestConnection(
+    to endpointID: EndpointID, using context: Data, mediums: Set<Medium>,
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
     let options = GNCConnectionOptions()
+    options.mediums = GNCSupportedMediums(
+      bluetooth: mediums.contains(.bluetooth),
+      ble: mediums.contains(.ble),
+      webRTC: mediums.contains(.webRTC),
+      wifiLAN: mediums.contains(.wifiLAN),
+      wifiHotspot: mediums.contains(.wifiHotspot),
+      wifiDirect: mediums.contains(.wifiDirect)
+    )
+
     GNCCoreAdapter.shared.requestConnection(
       toEndpoint: endpointID, endpointInfo: context,
       options: options, delegate: connection, withCompletionHandler: completionHandler)

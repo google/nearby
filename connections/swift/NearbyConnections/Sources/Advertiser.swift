@@ -25,6 +25,11 @@ public class Advertiser {
   /// The connection manager for this instance.
   public let connectionManager: ConnectionManager
 
+  /// The set of all mediums that can be used for advertising.
+  let allMediums: Set<Medium> = [
+    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect,
+  ]
+
   lazy var connection: InternalConnection? = {
     let connection = InternalConnection()
     connection.delegate = self
@@ -52,7 +57,39 @@ public class Advertiser {
   ///   failed to start.
   ///
   public func startAdvertising(using context: Data, completionHandler: ((Error?) -> Void)? = nil) {
+    startAdvertising(using: context, mediums: allMediums, completionHandler: completionHandler)
+  }
+
+  /// Starts advertising the local endpoint.
+  ///
+  /// After this method is called (until you call `stopAdvertising()`), the framework calls your
+  /// delegate’s `advertiser(_:didReceiveConnectionRequestFrom:with:connectionRequestHandler:)`
+  /// method when remote endpoints request a connection.
+  ///
+  /// - Parameters:
+  ///   - context: An arbitrary piece of data that is advertised to the nearby endpoint.
+  ///   This can be used to provide further information to the user about the nature of the
+  ///   advertisement.
+  ///   - mediums: The mediums to be used for advertising.
+  ///   - completionHandler: Called with `nil` if advertising started, or an error if advertising
+  ///   failed to start.
+  public func startAdvertising(
+    using context: Data, mediums: Set<Medium>,
+    completionHandler: ((Error?) -> Void)? = nil
+  ) {
     let options = GNCAdvertisingOptions(strategy: connectionManager.strategy.objc)
+
+    // Update the advertising mediums based on the user selection
+    options.mediums = GNCSupportedMediums(
+      bluetooth: mediums.contains(.bluetooth),
+      ble: mediums.contains(.ble),
+      webRTC: mediums.contains(.webRTC),
+      wifiLAN: mediums.contains(.wifiLAN),
+      wifiHotspot: mediums.contains(.wifiHotspot),
+      wifiDirect: mediums.contains(.wifiDirect)
+    )
+
+    // Start advertising with the options
     GNCCoreAdapter.shared.startAdvertising(
       asService: connectionManager.serviceID, endpointInfo: context,
       options: options, delegate: connection, withCompletionHandler: completionHandler)
