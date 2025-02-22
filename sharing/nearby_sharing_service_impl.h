@@ -366,10 +366,10 @@ class NearbySharingServiceImpl
   void RemoveIncomingPayloads(const IncomingShareSession& session);
 
   IncomingShareSession& CreateIncomingShareSession(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
+      const ShareTarget& share_target,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
   void CreateOutgoingShareSession(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
+      const ShareTarget& share_target,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Move the endpoint to the discovery cache with the given expiry time.
@@ -378,27 +378,25 @@ class NearbySharingServiceImpl
   // Update the entry in outgoing_share_session_map_ with the new share target
   // and OnShareTargetUpdated is called.
   void DeduplicateInOutgoingShareTarget(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
+      const ShareTarget& share_target,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Add an entry to the outgoing_share_session_map_ and
   // outgoing_share_target_map_ and OnShareTargetUpdated is called.
   void DeDuplicateInDiscoveryCache(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
+      const ShareTarget& share_target,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Looks for a duplicate of the share target in the outgoing share
   // target map. The share target's id is changed to match an existing target if
   // available. Returns true if the duplicate is found.
-  bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
-                                           ShareTarget& share_target);
+  bool FindDuplicateInOutgoingShareTargets(ShareTarget& share_target);
 
   // Looks for a duplicate of the share target in the discovery cache.
   // If found, the share target is removed from the discovery cache and its
   // id is copied into `share_target`.
   // Returns true if the duplicate is found.
-  bool FindDuplicateInDiscoveryCache(absl::string_view endpoint_id,
-                                     ShareTarget& share_target);
+  bool FindDuplicateInDiscoveryCache(ShareTarget& share_target);
 
   ShareSession* GetShareSession(int64_t share_target_id);
   IncomingShareSession* GetIncomingShareSession(int64_t share_target_id);
