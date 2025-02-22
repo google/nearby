@@ -194,6 +194,17 @@ NearbyShareCertificateManagerImpl::Factory::Create(
     nearby::sharing::api::SharingRpcClientFactory* client_factory) {
   DCHECK(context);
 
+
+  LOG(INFO) << "GGG Overriding flags from certificate manager create().";
+  // Force use of gRpc client when running SDK server.
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      sharing::config_package_nearby::nearby_sharing_feature::kUseGrpcClient,
+      true);
+  // Force use of call nearby identity API when running SDK server.
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      sharing::config_package_nearby::nearby_sharing_feature::
+          kCallNearbyIdentityApi,
+      true);
   if (test_factory_) {
     return test_factory_->CreateInstance(context, local_device_data_manager,
                                          contact_manager, profile_path,
@@ -452,6 +463,14 @@ void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
 void NearbyShareCertificateManagerImpl::UploadLocalDeviceCertificates() {
   executor_->PostTask([&]() {
     LOG(INFO) << "Start to upload local device certificates.";
+    LOG(INFO) << "Inside upload, GGG flags: kCallNearbyIdentityApi:"
+              << NearbyFlags::GetInstance().GetBoolFlag(
+                     config_package_nearby::nearby_sharing_feature::
+                         kCallNearbyIdentityApi);
+    LOG(INFO)
+        << "Inside upload, GGG flags: kUseGrpcClient:"
+        << NearbyFlags::GetInstance().GetBoolFlag(
+               config_package_nearby::nearby_sharing_feature::kUseGrpcClient);
 
     if (!is_running()) {
       LOG(WARNING)
