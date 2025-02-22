@@ -17,6 +17,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/random/random.h"
 
 namespace nearby {
 namespace encoding {
@@ -34,9 +35,7 @@ TEST(Base85Test, EncodeAndDecodeString) {
   EXPECT_EQ(Base85Encode("true"), "FE2M8");
   EXPECT_EQ(Base85Decode(Base85Encode("true")), "true");
   EXPECT_EQ(Base85Encode("ab", /*padding=*/true), "@:B3:");
-  std::string expected_decoded_string = "ab";
-  expected_decoded_string.push_back('\0');
-  expected_decoded_string.push_back('\0');
+  std::string expected_decoded_string("ab\x00\x00", 4);
   EXPECT_EQ(Base85Decode(Base85Encode("ab", /*padding=*/true)),
             expected_decoded_string);
   EXPECT_EQ(Base85Encode("hello,world"), "BOu!rD_-*NEbo7");
@@ -49,21 +48,33 @@ TEST(Base85Test, EncodeAndDecodeBytes) {
   std::string data;
   data.push_back(0x00);
   EXPECT_EQ(Base85Encode(data), "z");
-  std::string expected_data;
-  expected_data.push_back(0x00);
-  expected_data.push_back(0x00);
-  expected_data.push_back(0x00);
-  expected_data.push_back(0x00);
+  std::string expected_data("\x00\x00\x00\x00", 4);
   EXPECT_EQ(Base85Decode(Base85Encode(data)), expected_data);
-  data.clear();
-  data.push_back(0x00);
-  data.push_back(0x01);
+  data = std::string("\x00\x01", 2);
   EXPECT_EQ(Base85Encode(data), "!!*");
-  data.clear();
-  data.push_back(0x00);
-  data.push_back(0x01);
-  data.push_back(0xff);
+  data = std::string("\x00\x01\xff", 3);
   EXPECT_EQ(Base85Encode(data), "!!3*");
+  EXPECT_EQ(Base85Decode(Base85Encode(data)), data);
+}
+
+TEST(Base85Test, DecodeStringWithZero) {
+  std::string data("\x00\x00\x00\x00\xf8\xf9\xf1\x08\x00\x00\x00\x00\xf9", 13);
+  EXPECT_EQ(Base85Encode(data), "zq\"aFczq#");
+  EXPECT_EQ(Base85Decode(Base85Encode(data)), data);
+  data = std::string("\x00\x00\x00\x00\xf8\xf9\xf1\x08\x00", 9);
+  EXPECT_EQ(Base85Encode(data), "zq\"aFcz");
+  data = std::string("\x00\x00\x00\x00\xf8\xf9\xf1\x08\x00\x00", 10);
+  EXPECT_EQ(Base85Encode(data), "zq\"aFcz");
+  data = std::string("\x00\x00\x00\x00\xf8\xf9\xf1\x08\x00\x00\x00", 11);
+  EXPECT_EQ(Base85Encode(data), "zq\"aFcz");
+}
+
+TEST(Base85Test, EncodeAndDecodeRandomString) {
+  absl::BitGen bitgen;
+  std::string data;
+  for (int i = 0; i < 1000; ++i) {
+    data.push_back(absl::Uniform(bitgen, 0, 256));
+  }
   EXPECT_EQ(Base85Decode(Base85Encode(data)), data);
 }
 

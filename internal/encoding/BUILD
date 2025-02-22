@@ -33,6 +33,7 @@ cc_test(
     deps = [
         ":base85",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
