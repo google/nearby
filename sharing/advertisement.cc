@@ -195,6 +195,9 @@ std::vector<uint8_t> Advertisement::ToEndpointInfo() const {
 
 std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
     absl::Span<const uint8_t> endpoint_info) {
+  // Should always match the Nearby Connections implementation to read device
+  // name.
+  // LINT.IfChange
   if (endpoint_info.size() < kMinimumSize) {
     NL_LOG(ERROR) << "Failed to parse advertisement because it was too short.";
     return nullptr;
@@ -271,6 +274,7 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
   return Advertisement::NewInstance(
       std::move(salt), std::move(encrypted_metadata_key), device_type,
       std::move(optional_device_name), vendor_id);
+  // LINT.ThenChange(//depot/google3/third_party/nearby/connections/implementation/mediums/advertisements/advertisement_util.cc)
 }
 
 bool Advertisement::operator==(const Advertisement& other) const {

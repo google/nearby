@@ -24,6 +24,8 @@
 namespace nearby::connections::advertisements {
 
 std::optional<std::string> ReadDeviceName(const ByteArray& endpoint_info) {
+  // Should always match the protocol implementation to read device name.
+  // LINT.IfChange
   StreamReader reader(endpoint_info);
   std::optional<uint8_t> version = reader.ReadBits(3);
   if (!version.has_value() || *version != 1) {
@@ -55,6 +57,7 @@ std::optional<std::string> ReadDeviceName(const ByteArray& endpoint_info) {
   }
 
   return std::string(*device_name);
+  // LINT.ThenChange(//depot/google3/third_party/nearby/sharing/advertisement.cc)
 }
 
 }  // namespace nearby::connections::advertisements
