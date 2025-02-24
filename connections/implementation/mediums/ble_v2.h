@@ -60,6 +60,14 @@ class BleV2 final {
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
       BleV2Socket socket, const std::string& service_id)>;
 
+  // The type of the BLE advertising. In current implementation, we don't
+  // support multiple advertising types on a Medium instance.
+  enum class AdvertisingType : int {
+    kRegular = 0,
+    kFast = 1,
+    kDct = 2,
+  };
+
   explicit BleV2(BluetoothRadio& bluetooth_radio);
   ~BleV2();
 
@@ -70,15 +78,14 @@ class BleV2 final {
   // supports it.
   //
   // service_id            - The service ID to track.
+  // power_level           - The power level to use for the advertisement.
+  // advertising_type      - The type of the BLE advertisement.
   // advertisement_bytes   - The connections BLE Advertisement used in
   //                         advertising.
-  // power_level           - The power level to use for the advertisement.
-  // is_fast_advertisement - True to use fast advertisements, which are smaller
-  //                         but much more efficient to discover.
   ErrorOr<bool> StartAdvertising(const std::string& service_id,
-                                 const ByteArray& advertisement_bytes,
                                  PowerLevel power_level,
-                                 bool is_fast_advertisement)
+                                 AdvertisingType advertising_type,
+                                 const ByteArray& advertisement_bytes)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables BLE advertising.

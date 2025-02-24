@@ -113,9 +113,9 @@ bool BleV2::IsAvailable() const {
 }
 
 ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
-                                      const ByteArray& advertisement_bytes,
                                       PowerLevel power_level,
-                                      bool is_fast_advertisement) {
+                                      AdvertisingType advertising_type,
+                                      const ByteArray& advertisement_bytes) {
   MutexLock lock(&mutex_);
 
   if (advertisement_bytes.Empty()) {
@@ -157,7 +157,9 @@ ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
   mediums::BleAdvertisement medium_advertisement = {
       mediums::BleAdvertisement::Version::kV2,
       mediums::BleAdvertisement::SocketVersion::kV2,
-      /*service_id_hash=*/is_fast_advertisement ? ByteArray{} : service_id_hash,
+      /*service_id_hash=*/advertising_type == AdvertisingType::kFast
+          ? ByteArray{}
+          : service_id_hash,
       advertisement_bytes,
       mediums::bleutils::GenerateDeviceToken(),
       psm};
@@ -171,7 +173,8 @@ ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
       {service_id,
        AdvertisingInfo{.medium_advertisement = medium_advertisement,
                        .power_level = power_level,
-                       .is_fast_advertisement = is_fast_advertisement}});
+                       .is_fast_advertisement =
+                           advertising_type == AdvertisingType::kFast}});
 
   // TODO(hais): need to update here after cros support RAII StartAdvertising.
   // After all platforms support RAII StartAdvertising, then we can stop
