@@ -812,7 +812,11 @@ enum SharingUseCase {
   USE_CASE_APP_SHARE = 4;
   USE_CASE_QUICK_SETTING_FILE_SHARE = 5;
   USE_CASE_SETUP_WIZARD = 6;
-  USE_CASE_NEARBY_SHARE_WITH_QR_CODE = 7;
+  // Deprecated. QR code is an addition to existing use cases rather than being
+  // a separate use case.
+  USE_CASE_NEARBY_SHARE_WITH_QR_CODE = 7 [deprecated = true];
+  // The user was redirected from Bluetooth sharing UI to Nearby Share
+  USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE = 8;
 }
 
 // Used only for Windows App now.
