@@ -1218,7 +1218,6 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedAdvertisingWithConnection) {
 
   // After
   StopAdvertising(client1());  // No Advertising
-  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1232,12 +1231,10 @@ TEST_F(ClientProxyTest,
       advertising_endpoint.id));             // No Connections
   EXPECT_FALSE(client1()->IsDiscovering());  // No Discovery
   EXPECT_TRUE(client1()->IsAdvertising());   // Advertising
-  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
 
   // After
   StopAdvertising(client1());
-  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1256,7 +1253,6 @@ TEST_F(ClientProxyTest, NotLogSessionForStoppedDiscoveryWithConnection) {
 
   // After
   StopDiscovery(client2());
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1275,7 +1271,6 @@ TEST_F(ClientProxyTest,
 
   // After
   StopDiscovery(client2());
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1294,7 +1289,6 @@ TEST_F(ClientProxyTest, LogSessionOnDisconnectedWithOneConnection) {
 
   // After
   OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1311,7 +1305,6 @@ TEST_F(ClientProxyTest,
 
   // After
   client2()->OnDisconnected(advertising_endpoint.id, /*notify=*/false);
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1339,7 +1332,6 @@ TEST_F(ClientProxyTest, NotLogSessionOnDisconnectedWhenMoreThanOneConnection) {
 
   // After
   client2()->OnDisconnected(advertising_endpoint_1.id, /*notify=*/false);
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
@@ -1359,7 +1351,6 @@ TEST_F(ClientProxyTest,
 
   // After
   OnDiscoveryConnectionDisconnected(client2(), advertising_endpoint);
-  client2()->GetAnalyticsRecorder().Sync();
   // Since we are no longer checking IsDiscovering(), we complete sessions now
   // solely based on advertising.
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 1);
@@ -1372,17 +1363,13 @@ TEST_F(ClientProxyTest, LogSessionForResetClientProxy) {
   OnDiscoveryEndpointFound(client2(), advertising_endpoint);
   OnDiscoveryConnectionInitiated(client2(), advertising_endpoint);
 
-  client1()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger1_.GetCompleteClientSessionCount(), 0);
   client1()->Reset();
-  client1()->GetAnalyticsRecorder().Sync();
   // TODO(b/290936886): Why are there more than one complete sessions?
   EXPECT_GT(event_logger1_.GetCompleteClientSessionCount(), 0);
 
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_EQ(event_logger2_.GetCompleteClientSessionCount(), 0);
   client2()->Reset();
-  client2()->GetAnalyticsRecorder().Sync();
   EXPECT_GT(event_logger2_.GetCompleteClientSessionCount(), 0);
 }
 
