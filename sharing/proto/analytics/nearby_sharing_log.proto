@@ -31,7 +31,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 83
+// Next Tag: 84
 // LINT.IfChange
 message SharingLog {
   /* collection_basis = {
@@ -221,6 +221,9 @@ message SharingLog {
   optional HatsJointEvent hats_joint_event = 81;
 
   optional ReceivePreviews receive_previews = 82;
+
+  optional CancelDisallowedMediumConnection
+      cancel_disallowed_medium_connection = 83;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -968,6 +971,15 @@ message SharingLog {
   // EventType: RECEIVE_PREVIEWS
   message ReceivePreviews {
     optional int32 num_previews = 1;
+  }
+
+  // EventType: CANCEL_DISALLOWED_MEDIUM_CONNECTION
+  message CancelDisallowedMediumConnection {
+    // The medium that is disallowed.
+    optional int32 connection_medium = 1;
+
+    // The current data usage of the user settings.
+    optional location.nearby.proto.sharing.DataUsage data_usage = 2;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
