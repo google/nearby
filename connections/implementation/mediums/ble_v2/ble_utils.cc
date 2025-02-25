@@ -16,12 +16,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "absl/base/attributes.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "absl/types/optional.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/ble_packet.h"
@@ -52,6 +52,11 @@ constexpr std::int64_t kAdvertisementUuidLsb = 0x8000000000000000;
 const std::uint64_t kCopresenceServiceUuidMsb = 0x0000FEF300001000;
 const std::uint64_t kCopresenceServiceUuidLsb = 0x800000805F9B34FB;
 
+// The most significant bits and the least significant bits for the DCT
+// UUID.
+const std::uint64_t kDctServiceUuidMsb = 0x0000FC7300001000;
+const std::uint64_t kDctServiceUuidLsb = 0x800000805F9B34FB;
+
 // Creates a string as a space separated listing of hex bytes with [] at the
 // beginning and the end.
 //
@@ -69,7 +74,10 @@ std::string StringToPrintableHexString(const std::string& source) {
 }  // namespace
 
 ABSL_CONST_INIT const Uuid kCopresenceServiceUuid(kCopresenceServiceUuidMsb,
-                                  kCopresenceServiceUuidLsb);
+                                                  kCopresenceServiceUuidLsb);
+
+ABSL_CONST_INIT const Uuid kDctServiceUuid(kDctServiceUuidMsb,
+                                           kDctServiceUuidLsb);
 
 ByteArray GenerateHash(const std::string& source, size_t size) {
   return Utils::Sha256Hash(source, size);
@@ -104,9 +112,9 @@ ByteArray GenerateAdvertisementHash(const ByteArray& advertisement_bytes) {
 }
 
 // NOLINTNEXTLINE(google3-legacy-absl-backports)
-absl::optional<Uuid> GenerateAdvertisementUuid(int slot) {
+std::optional<Uuid> GenerateAdvertisementUuid(int slot) {
   if (slot < 0) {
-    return absl::nullopt;  // NOLINT
+    return std::nullopt;
   }
   return Uuid(kAdvertisementUuidMsb, kAdvertisementUuidLsb | slot);
 }

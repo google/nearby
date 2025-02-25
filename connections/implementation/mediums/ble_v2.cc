@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -707,7 +708,7 @@ bool BleV2::GenerateAdvertisementCharacteristic(
   GattCharacteristic::Property property = GattCharacteristic::Property::kRead;
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
-  absl::optional<Uuid> advertiement_uuid =
+  std::optional<Uuid> advertiement_uuid =
       mediums::bleutils::GenerateAdvertisementUuid(slot);
   if (!advertiement_uuid.has_value()) {
     LOG(INFO) << "Unable to generate advertisement uuid.";
@@ -779,7 +780,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     // failure because there's nothing we could've done about a
     // non-existed characteristic.
     // NOLINTNEXTLINE(google3-legacy-absl-backports)
-    absl::optional<Uuid> advertiement_uuid =
+    std::optional<Uuid> advertiement_uuid =
         mediums::bleutils::GenerateAdvertisementUuid(slot);
     if (!advertiement_uuid.has_value()) {
       continue;

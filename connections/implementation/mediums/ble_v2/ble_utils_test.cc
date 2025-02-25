@@ -14,11 +14,14 @@
 
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 
+#include <optional>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/uuid.h"
 
 namespace nearby {
 namespace connections {
@@ -75,7 +78,7 @@ TEST(BleUtilsTest, CanGenerateAdvertisementHash) {
 
 TEST(BleUtilsTest, CanGenerateAdvertisementUuid) {
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
-  absl::optional<Uuid> generated_uuid = GenerateAdvertisementUuid(0);
+  std::optional<Uuid> generated_uuid = GenerateAdvertisementUuid(0);
   ASSERT_TRUE(generated_uuid.has_value());
   EXPECT_THAT(std::string(*generated_uuid),
               StrCaseEq("00000000-0000-3000-8000-000000000000"));
