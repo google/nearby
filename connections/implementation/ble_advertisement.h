@@ -14,8 +14,11 @@
 
 #ifndef CORE_INTERNAL_BLE_ADVERTISEMENT_H_
 #define CORE_INTERNAL_BLE_ADVERTISEMENT_H_
+#include <string>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_format.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
 #include "internal/platform/bluetooth_utils.h"
@@ -98,6 +101,14 @@ class BleAdvertisement {
   std::string GetBluetoothMacAddress() const { return bluetooth_mac_address_; }
   ByteArray GetUwbAddress() const { return uwb_address_; }
   WebRtcState GetWebRtcState() const { return web_rtc_state_; }
+  std::string ToReadableString() const {
+    return absl::StrFormat(
+        "BleAdvertisement { version=%d, pcp=%d, fast_advertisement=%v, "
+        "service_id_hash=%s, endpoint_id=%s, endpoint_info_=%s}",
+        static_cast<int>(version_), static_cast<int>(pcp_), fast_advertisement_,
+        absl::BytesToHexString(service_id_hash_.AsStringView()), endpoint_id_,
+        absl::BytesToHexString(endpoint_info_.AsStringView()));
+  }
 
  private:
   void DoInitialize(bool fast_advertisement, Version version, Pcp pcp,

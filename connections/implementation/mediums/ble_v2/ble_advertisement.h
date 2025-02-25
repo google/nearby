@@ -15,9 +15,12 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_ADVERTISEMENT_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_ADVERTISEMENT_H_
 
+#include <string>
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_format.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/byte_array.h"
 
@@ -101,6 +104,17 @@ class BleAdvertisement {
   ByteArray GetDeviceToken() const { return device_token_; }
   int GetPsm() const { return psm_; }
   void SetPsm(int psm) { psm_ = psm; }
+  std::string ToReadableString() const {
+    return absl::StrFormat(
+        "BleAdvertisement { version=%d, socket_version=%d, "
+        "fast_advertisement=%v, service_id_hash=%s, data=%s, device_token=%s, "
+        "psm=%d }",
+        static_cast<int>(version_), static_cast<int>(socket_version_),
+        fast_advertisement_,
+        absl::BytesToHexString(service_id_hash_.AsStringView()),
+        absl::BytesToHexString(data_.AsStringView()),
+        absl::BytesToHexString(device_token_.AsStringView()), psm_);
+  }
 
  private:
   // Represents the extra fields of the `BleAdvertisement` used in Advertising +

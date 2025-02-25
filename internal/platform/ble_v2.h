@@ -22,6 +22,8 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -63,6 +65,14 @@ class BleV2Peripheral final {
   explicit operator bool() const { return IsValid(); }
 
   bool GetImpl(ImplCallback callback) const;
+  std::string ToReadableString() const {
+    if (!IsValid()) {
+      return "BleV2Peripheral { invalid }";
+    }
+    return absl::StrFormat("BleV2Peripheral { id=%s, psm=%d}",
+                           absl::BytesToHexString(GetId().AsStringView()),
+                           GetPsm());
+  }
 
  private:
   BleV2Medium* medium_ = nullptr;

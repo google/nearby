@@ -787,13 +787,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
 
         ble_endpoint_state.ble = true;
         found_endpoints_in_ble_discover_cb_[peripheral_id] = ble_endpoint_state;
-        LOG(INFO) << "Found BleAdvertisement "
-                  << absl::BytesToHexString(advertisement_bytes.data())
-                  << " (with endpoint_id=" << advertisement.GetEndpointId()
-                  << ", and endpoint_info="
-                  << absl::BytesToHexString(
-                         advertisement.GetEndpointInfo().data())
-                  << ").";
+        LOG(INFO) << "Found " << advertisement.ToReadableString();
         StopEndpointLostByMediumAlarm(advertisement.GetEndpointId(), BLE);
         OnEndpointFound(
             client,
@@ -2620,12 +2614,11 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Scanning(
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
     ClientProxy* client, BleV2Endpoint* endpoint) {
-  VLOG(1) << "Client " << client->GetClientId()
-          << " is attempting to connect to endpoint(id="
-          << endpoint->endpoint_id << ") over BLE.";
-
   BleV2Peripheral& peripheral = endpoint->ble_peripheral;
 
+  VLOG(1) << "Client " << client->GetClientId()
+          << " is attempting to connect to (" << peripheral.ToReadableString()
+          << ") over BLE.";
   ErrorOr<BleV2Socket> ble_socket_result = ble_v2_medium_.Connect(
       endpoint->service_id, peripheral,
       client->GetCancellationFlag(endpoint->endpoint_id));

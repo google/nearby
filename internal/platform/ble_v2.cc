@@ -75,9 +75,6 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                 }
 
                 BleV2Peripheral proxy(*this, peripheral);
-                NEARBY_LOGS(INFO)
-                    << "New peripheral imp=" << &peripheral
-                    << ", callback the proxy peripheral=" << &proxy;
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
                                                       advertisement_data);

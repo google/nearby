@@ -167,9 +167,6 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
     return false;
   }
 
-  LOG(INFO) << __func__ << ": Found OnLost advertisement for hash:"
-            << absl::BytesToHexString(on_lost_advertisement->ToBytes());
-
   for (const auto& hash : on_lost_advertisement->hashes()) {
     for (const auto& it : gatt_advertisement_infos_) {
       if (it.second.advertisement_header.GetAdvertisementHash().string_data() ==
@@ -449,13 +446,8 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
           continue;
         }
 
-        LOG(INFO)
-            << "Report new peripheral for the advertisement header with hash "
-            << absl::BytesToHexString(
-                   new_advertisement_header.GetAdvertisementHash()
-                       .AsStringView())
-            << ", IsFastAdvertisement "
-            << gatt_advertisement.IsFastAdvertisement();
+        LOG(INFO) << "Found new GATT advertisement : "
+                  << gatt_advertisement.ToReadableString();
         sii_it->second.discovered_peripheral_callback.peripheral_discovered_cb(
             std::move(discovered_peripheral), service_id,
             gatt_advertisement.GetData(),
