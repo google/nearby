@@ -44,6 +44,7 @@ objc_library(
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
         "GNCUtilsTest.mm",
+        "NSData+GNCBase85Test.m",
         "NSData+GNCWebSafeBase64Test.m",
     ],
     deps = [

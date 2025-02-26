@@ -29,6 +29,7 @@ objc_library(
         "BLEv2/GNCCentralManager.m",
         "BLEv2/GNCPeripheral.m",
         "BLEv2/GNCPeripheralManager.m",
+        "BLEv2/NSData+GNCBase85.mm",
         "BLEv2/NSData+GNCWebSafeBase64.m",
         "Ble/GNCMBleConnection.m",
         "Ble/GNCMBleUtils.mm",
@@ -51,6 +52,7 @@ objc_library(
         "BLEv2/GNCCentralManager.h",
         "BLEv2/GNCPeripheral.h",
         "BLEv2/GNCPeripheralManager.h",
+        "BLEv2/NSData+GNCBase85.h",
         "BLEv2/NSData+GNCWebSafeBase64.h",
         "Ble/GNCMBleConnection.h",
         "Ble/GNCMBleUtils.h",
@@ -62,6 +64,7 @@ objc_library(
         "WiFiCommon/GNCNWFrameworkSocket.h",
     ],
     deps = [
+        "//internal/encoding:base85",
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
         "//proto/mediums:ble_frames_cc_proto",
