@@ -24,7 +24,7 @@ namespace {
 
 TEST(DctAdvertisementTest, Create) {
   std::optional<DctAdvertisement> advertisement =
-      DctAdvertisement::Create("service_id", "device", 0x1234);
+      DctAdvertisement::Create("service_id", "device", 0x1234, 0x01);
   ASSERT_TRUE(advertisement.has_value());
   EXPECT_EQ(advertisement->GetVersion(), DctAdvertisement::kVersion);
   EXPECT_EQ(advertisement->GetPsm(), 0x1234);
@@ -33,9 +33,14 @@ TEST(DctAdvertisementTest, Create) {
 }
 
 TEST(DctAdvertisementTest, CreateWithInvalidParameters) {
-  EXPECT_FALSE(DctAdvertisement::Create("service_id", "", 0x1234).has_value());
-  EXPECT_FALSE(DctAdvertisement::Create("", "device", 0x1234).has_value());
-  EXPECT_FALSE(DctAdvertisement::Create("service_id", "device", 0).has_value());
+  EXPECT_FALSE(
+      DctAdvertisement::Create("service_id", "", 0x1234, 0x01).has_value());
+  EXPECT_FALSE(
+      DctAdvertisement::Create("", "device", 0x1234, 0x01).has_value());
+  EXPECT_FALSE(
+      DctAdvertisement::Create("service_id", "device", 0, 0x01).has_value());
+  EXPECT_FALSE(
+      DctAdvertisement::Create("service_id", "device", 0, 0x81).has_value());
 }
 
 TEST(DctAdvertisementTest, ParseWithInvalidParameters) {
@@ -45,24 +50,25 @@ TEST(DctAdvertisementTest, ParseWithInvalidParameters) {
 
 TEST(DctAdvertisementTest, CreateWithTruncatedDeviceName) {
   std::optional<DctAdvertisement> advertisement = DctAdvertisement::Create(
-      "service_id", "\xC3\xA9\xC3\xB1\xC3\xB6\xF0\x9F\x98\x80", 0x1234);
+      "service_id", "\xC3\xA9\xC3\xB1\xC3\xB6\xF0\x9F\x98\x80", 0x1234, 0x01);
   EXPECT_EQ(advertisement->GetDeviceName(), "\xC3\xA9\xC3\xB1\xC3\xB6");
   advertisement = DctAdvertisement::Create(
-      "service_id", "\xF0\x9F\x98\x80\xC3\xA9\xC3\xB1\xC3\xB6", 0x1234);
+      "service_id", "\xF0\x9F\x98\x80\xC3\xA9\xC3\xB1\xC3\xB6", 0x1234, 0x01);
   EXPECT_EQ(advertisement->GetDeviceName(), "\xF0\x9F\x98\x80\xC3\xA9");
-  advertisement = DctAdvertisement::Create("service_id", "abcdefghi", 0x1234);
+  advertisement =
+      DctAdvertisement::Create("service_id", "abcdefghi", 0x1234, 0x01);
   EXPECT_EQ(advertisement->GetDeviceName(), "abcdefg");
   advertisement = DctAdvertisement::Create(
-      "service_id", "\xF0\x9F\x98\x80\xF0\x9F\xAA\xB4", 0x1234);
+      "service_id", "\xF0\x9F\x98\x80\xF0\x9F\xAA\xB4", 0x1234, 0x01);
   EXPECT_EQ(advertisement->GetDeviceName(), "\xF0\x9F\x98\x80");
   advertisement = DctAdvertisement::Create(
-      "service_id", "\xC3\xA9\xC3\xB1\xC3\xB6\xF0\x9F\x98", 0x1234);
+      "service_id", "\xC3\xA9\xC3\xB1\xC3\xB6\xF0\x9F\x98", 0x1234, 0x01);
   EXPECT_FALSE(advertisement.has_value());
 }
 
 TEST(DctAdvertisementTest, CreateAndParse) {
   std::optional<DctAdvertisement> advertisement = DctAdvertisement::Create(
-      "service_id", "\xE4\xBD\xA0\xE5\xA5\xBD\xE7\x9A\x84", 0x1234);
+      "service_id", "\xE4\xBD\xA0\xE5\xA5\xBD\xE7\x9A\x84", 0x1234, 0x01);
   ASSERT_TRUE(advertisement.has_value());
   EXPECT_EQ(advertisement->GetVersion(), DctAdvertisement::kVersion);
   EXPECT_EQ(advertisement->GetPsm(), 0x1234);
@@ -76,6 +82,25 @@ TEST(DctAdvertisementTest, CreateAndParse) {
   EXPECT_EQ(parsed_advertisement->GetPsm(), 0x1234);
   EXPECT_EQ(parsed_advertisement->GetServiceIdHash(), "\x96\x77");
   EXPECT_EQ(parsed_advertisement->GetDeviceName(), "\xE4\xBD\xA0\xE5\xA5\xBD");
+}
+
+TEST(DctAdvertisementTest, GenerateEndpointId) {
+  std::optional<std::string> endpoint_id =
+      DctAdvertisement::GenerateEndpointId(0x01, "device");
+  ASSERT_TRUE(endpoint_id.has_value());
+  EXPECT_EQ(endpoint_id.value(), "IWRE");
+  std::optional<std::string> endpoint_id_b =
+      DctAdvertisement::GenerateEndpointId(0x02, "device");
+  ASSERT_TRUE(endpoint_id_b.has_value());
+  EXPECT_EQ(endpoint_id_b.value(), "HEL4");
+}
+
+TEST(DctAdvertisementTest, GenerateEndpointIdWithInvalidParameters) {
+  EXPECT_FALSE(DctAdvertisement::GenerateEndpointId(0x01, "").has_value());
+  EXPECT_FALSE(
+      DctAdvertisement::GenerateEndpointId(0xff, "device").has_value());
+  EXPECT_FALSE(
+      DctAdvertisement::GenerateEndpointId(0x10, "device\xff").has_value());
 }
 
 }  // namespace

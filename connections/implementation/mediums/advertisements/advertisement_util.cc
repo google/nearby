@@ -28,12 +28,12 @@ std::optional<std::string> ReadDeviceName(const ByteArray& endpoint_info) {
   // LINT.IfChange
   StreamReader reader(endpoint_info);
   std::optional<uint8_t> version = reader.ReadBits(3);
-  if (!version.has_value() || *version != 1) {
+  if (!version.has_value() || *version > 1) {
     return std::nullopt;
   }
 
   std::optional<uint8_t> has_device_name = reader.ReadBits(1);
-  if (!has_device_name.has_value() || *has_device_name == 0) {
+  if (!has_device_name.has_value() || *has_device_name == 1) {
     return std::nullopt;
   }
 

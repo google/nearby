@@ -19,10 +19,10 @@
 #include <optional>
 #include <string>
 
-#include "absl/random/random.h"
 #include "connections/implementation/mediums/advertisements/data_element.h"
 #include "internal/crypto_cros/hkdf.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/crypto.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/stream_reader.h"
 #include "internal/platform/stream_writer.h"
@@ -37,11 +37,15 @@ constexpr int kDataTypeDeviceInformation = 0x07;
 constexpr int kDataTypePsm = 0x04;
 constexpr char kServiceIdHashSalt[] = "DCT Protocol";
 constexpr char kServiceIdHashInfo[] = "Service ID Hash";
+constexpr char kEndpointIdChars[] = {
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 }  // namespace
 
 DctAdvertisement::DctAdvertisement(const std::string& service_id,
-                                   const std::string& device_name,
-                                   uint16_t psm) {
+                                   const std::string& device_name, uint16_t psm,
+                                   uint8_t dedup) {
   psm_ = psm;
   service_id_hash_ = nearby::crypto::HkdfSha256(
       /*secret=*/service_id, /*salt= */ kServiceIdHashSalt,
@@ -55,14 +59,13 @@ DctAdvertisement::DctAdvertisement(const std::string& service_id,
     device_name_ = device_name;
   }
 
-  absl::BitGen bitgen;
-  dedup_ = absl::Uniform(bitgen, 0, 1 << kDedupBitSize);
+  dedup_ = dedup;
 }
 
 std::optional<DctAdvertisement> DctAdvertisement::Create(
-    const std::string& service_id, const std::string& device_name,
-    uint16_t psm) {
-  if (service_id.empty() || device_name.empty() || psm == 0) {
+    const std::string& service_id, const std::string& device_name, uint16_t psm,
+    uint8_t dedup) {
+  if (service_id.empty() || device_name.empty() || psm == 0 || dedup > 0x7F) {
     LOG(WARNING) << "Invalid arguments for creating a DCT advertisement.";
     return std::nullopt;
   }
@@ -72,7 +75,7 @@ std::optional<DctAdvertisement> DctAdvertisement::Create(
     return std::nullopt;
   }
 
-  return DctAdvertisement(service_id, device_name, psm);
+  return DctAdvertisement(service_id, device_name, psm, dedup);
 }
 
 std::optional<DctAdvertisement> DctAdvertisement::Parse(
@@ -141,6 +144,26 @@ std::optional<DctAdvertisement> DctAdvertisement::Parse(
   return dct_advertisement;
 }
 
+std::optional<std::string> DctAdvertisement::GenerateEndpointId(
+    uint8_t dedup, const std::string& device_name) {
+  if (device_name.empty() || !IsValidUtf8String(device_name) || dedup > 0x7F) {
+    return std::nullopt;
+  }
+
+  std::string truncted_device_name =
+      TrunctateDeviceName(device_name, kMaxDeviceNameSize);
+
+  truncted_device_name.append(1, dedup);
+  ByteArray hash_result(4);
+  hash_result.CopyAt(0, Crypto::Sha256(truncted_device_name));
+  std::string endpoint_id;
+  for (const char c : hash_result) {
+    endpoint_id.append(1, kEndpointIdChars[c % sizeof(kEndpointIdChars)]);
+  }
+
+  return endpoint_id;
+}
+
 std::string DctAdvertisement::ToData() const {
   StreamWriter writer;
 
@@ -151,8 +174,10 @@ std::string DctAdvertisement::ToData() const {
   writer.WriteBits(2, 4);
   writer.WriteBits(kDataTypePsm, 4);
   writer.WriteUint16(psm_);
-  writer.WriteBits(device_name_.size() + 1, 4);
-  writer.WriteBits(kDataTypeDeviceInformation, 4);
+  // 2 bytes DE for device information.
+  writer.WriteBits(1, 1);
+  writer.WriteBits(device_name_.size() + 1, 7);
+  writer.WriteUint8(kDataTypeDeviceInformation);
   writer.WriteBits(is_device_name_truncated_ ? 1 : 0, 1);
   writer.WriteBits(dedup_, kDedupBitSize);
   writer.WriteBytes(device_name_);

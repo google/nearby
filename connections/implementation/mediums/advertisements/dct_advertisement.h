@@ -29,9 +29,12 @@ class DctAdvertisement {
 
   static std::optional<DctAdvertisement> Create(const std::string& service_id,
                                                 const std::string& device_name,
-                                                uint16_t psm);
+                                                uint16_t psm, uint8_t dedup);
   static std::optional<DctAdvertisement> Parse(
       const std::string& advertisement);
+
+  static std::optional<std::string> GenerateEndpointId(
+      uint8_t dedup, const std::string& device_name);
 
   std::string ToData() const;
 
@@ -44,7 +47,7 @@ class DctAdvertisement {
  private:
   DctAdvertisement() = default;
   DctAdvertisement(const std::string& service_id,
-                   const std::string& device_name, uint16_t psm);
+                   const std::string& device_name, uint16_t psm, uint8_t dedup);
   static bool IsValidUtf8String(const std::string& str);
   static std::string TrunctateDeviceName(const std::string& device_name,
                                          int max_length);

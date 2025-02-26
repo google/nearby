@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+package(default_visibility = [
+    "//:__subpackages__",
+])
+
 licenses(["notice"])
 
 cc_library(
     name = "common",
     srcs = ["data_element.cc"],
     hdrs = ["data_element.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//internal/platform:base",
         "//internal/platform:logging",
@@ -30,13 +35,14 @@ cc_library(
     name = "dct_advertisement",
     srcs = ["dct_advertisement.cc"],
     hdrs = ["dct_advertisement.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":common",
         "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform:logging",
+        "//internal/platform:types",
         "//internal/platform:util",
-        "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -45,6 +51,7 @@ cc_library(
     name = "util",
     srcs = ["advertisement_util.cc"],
     hdrs = ["advertisement_util.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":dct_advertisement",
         "//internal/platform:base",
@@ -72,6 +79,7 @@ cc_test(
         ":dct_advertisement",
         "//internal/platform:base",
         "//internal/platform:util",
+        "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -84,6 +92,7 @@ cc_test(
         ":util",
         "//internal/platform:base",
         "//internal/platform:util",
+        "//internal/platform/implementation/g3",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
