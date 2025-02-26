@@ -961,9 +961,7 @@ bool BleV2::StartRegularAdvertisingLocked(
   // Begin building the regular BLE advertisement.
   BleAdvertisementData advertising_data;
   ByteArray medium_advertisement_bytes =
-      medium_.IsExtendedAdvertisementsAvailable()
-          ? medium_advertisement.ByteArrayWithExtraField()
-          : ByteArray(medium_advertisement);
+      medium_advertisement.ByteArrayWithExtraField();
 
   // Start extended advertisement first if available.
   bool extended_regular_advertisement_success = false;

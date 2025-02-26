@@ -327,7 +327,8 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     [_peripheralManager respondToRequest:request withResult:CBATTErrorAttributeNotFound];
     return;
   }
-  request.value = value;
+  request.value =
+      [value subdataWithRange:NSMakeRange(request.offset, value.length - request.offset)];
   [_peripheralManager respondToRequest:request withResult:CBATTErrorSuccess];
 }
 
