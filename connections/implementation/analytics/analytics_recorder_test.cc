@@ -1228,7 +1228,6 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
           }
         })pb");
 
-  analytics_recorder.Sync();
   EXPECT_THAT(event_logger.GetLoggedClientSession(),
               EqualsProto(strategy_session_proto));
 }

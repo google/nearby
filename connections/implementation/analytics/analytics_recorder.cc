@@ -32,12 +32,10 @@
 #include "connections/payload_type.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/single_thread_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 #include "google/protobuf/repeated_ptr_field.h"
@@ -175,7 +173,6 @@ AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger,
 }
 
 AnalyticsRecorder::~AnalyticsRecorder() {
-  serial_executor_.Shutdown();
 }
 
 bool AnalyticsRecorder::IsSessionLogged() {
@@ -878,18 +875,15 @@ void AnalyticsRecorder::OnErrorCode(const ErrorCodeParams &params) {
     }
   }
 
-  serial_executor_.Execute(
-      "analytics-recorder", [this, error_code = error_code.release()]() {
-        ConnectionsLog connections_log;
-        connections_log.set_event_type(ERROR_CODE);
-        connections_log.set_version(kVersion);
-        connections_log.set_allocated_error_code(error_code);
+  ConnectionsLog connections_log;
+  connections_log.set_event_type(ERROR_CODE);
+  connections_log.set_version(kVersion);
+  connections_log.set_allocated_error_code(error_code.release());
 
-        NEARBY_VLOG(1) << "AnalyticsRecorder LogErrorCode connections_log="
-                       << connections_log.DebugString();  // NOLINT
+  NEARBY_VLOG(1) << "AnalyticsRecorder LogErrorCode connections_log="
+                 << connections_log.DebugString();  // NOLINT
 
-        event_logger_->Log(connections_log);
-      });
+  event_logger_->Log(connections_log);
 }
 
 void AnalyticsRecorder::LogStartSession() {
@@ -1034,29 +1028,23 @@ void AnalyticsRecorder::LogClientSessionLocked() {
   connections_log.set_event_type(CLIENT_SESSION);
   connections_log.set_allocated_client_session(client_session_.release());
   connections_log.set_version(kVersion);
+
+  NEARBY_VLOG(1) << "AnalyticsRecorder LogClientSession connections_log="
+                 << connections_log.DebugString();  // NOLINT
+
+  event_logger_->Log(connections_log);
   client_session_ = nullptr;
-
-  serial_executor_.Execute(
-      "analytics-recorder",
-      [this, connections_log = std::move(connections_log)]() mutable {
-        NEARBY_VLOG(1) << "AnalyticsRecorder LogClientSession connections_log="
-                       << connections_log.DebugString();  // NOLINT
-
-        event_logger_->Log(connections_log);
-      });
 }
 
 void AnalyticsRecorder::LogEvent(EventType event_type) {
-  serial_executor_.Execute("analytics-recorder", [this, event_type]() {
-    ConnectionsLog connections_log;
-    connections_log.set_event_type(event_type);
-    connections_log.set_version(kVersion);
+  ConnectionsLog connections_log;
+  connections_log.set_event_type(event_type);
+  connections_log.set_version(kVersion);
 
-    NEARBY_VLOG(1) << "AnalyticsRecorder LogEvent connections_log="
-                   << connections_log.DebugString();  // NOLINT
+  NEARBY_VLOG(1) << "AnalyticsRecorder LogEvent connections_log="
+                 << connections_log.DebugString();  // NOLINT
 
-    event_logger_->Log(connections_log);
-  });
+  event_logger_->Log(connections_log);
 }
 
 void AnalyticsRecorder::UpdateStrategySessionLocked(
@@ -1725,12 +1713,6 @@ AnalyticsRecorder::LogicalConnection::GetPendingPayloadResultCodeFromReason(
 OperationResultCategory AnalyticsRecorder::GetOperationResultCategory(
     location::nearby::proto::connections::OperationResultCode result_code) {
   return ConvertToOperationResultCategory(result_code);
-}
-
-void AnalyticsRecorder::Sync() {
-  CountDownLatch latch(1);
-  serial_executor_.Execute([&]() { latch.CountDown(); });
-  latch.Await();
 }
 
 }  // namespace analytics
