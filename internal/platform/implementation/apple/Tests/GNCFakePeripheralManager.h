@@ -35,6 +35,9 @@ NS_ASSUME_NONNULL_BEGIN
 /** The data being advertised. */
 @property(nonatomic, nullable, readonly) NSDictionary<NSString *, id> *advertisementData;
 
+/** The PSM of the L2CAP channel. */
+@property(nonatomic) CBL2CAPPSM PSM;
+
 /** Expectation fulfilled when peripheral responds to a request with success. */
 @property(nonatomic, readonly) XCTestExpectation *respondToRequestSuccessExpectation;
 

@@ -28,6 +28,8 @@ objc_library(
         "GNCBLEGATTClientTest.m",
         "GNCBLEGATTServer+Testing.h",
         "GNCBLEGATTServerTest.m",
+        "GNCBLEL2CAPServer+Testing.h",
+        "GNCBLEL2CAPServerTest.m",
         "GNCBLEMedium+Testing.h",
         "GNCBLEMediumTest.m",
         "GNCBLEUtilsTest.mm",

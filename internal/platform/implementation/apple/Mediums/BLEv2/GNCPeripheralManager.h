@@ -118,6 +118,13 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)stopAdvertising;
 
+/**
+ * Publishes an L2CAP channel with optional encryption.
+ *
+ * @param encryptionRequired A boolean value indicating whether encryption is required for the L2CAP channel.
+ */
+- (void)publishL2CAPChannelWithEncryption:(BOOL)encryptionRequired;
+
 @end
 
 /**
@@ -188,6 +195,29 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
         didReceiveReadRequest:(CBATTRequest *)request;
+
+/**
+ * Called when an L2CAP channel has been published by the peripheral.
+ *
+ * @param peripheral The peripheral that published the L2CAP channel.
+ * @param PSM The @c PSM (Protocol/Service Multiplexer) value assigned to the published channel.
+ * @param error An error object indicating why the channel failed to publish, or @c nil if
+ * successful.
+ */
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+       didPublishL2CAPChannel:(CBL2CAPPSM)PSM
+                        error:(nullable NSError *)error;
+
+/**
+ * Called when an L2CAP channel has been opened by the peripheral.
+ *
+ * @param peripheral The peripheral that opened the L2CAP channel.
+ * @param channel The opened L2CAP channel, or nil if an error occurred.
+ * @param error An error object indicating why the channel failed to open, or @c nil if successful.
+ */
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+          didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
+                        error:(nullable NSError *)error;
 
 @end
 
