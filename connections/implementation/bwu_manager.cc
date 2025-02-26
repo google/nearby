@@ -254,21 +254,6 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     auto channel = channel_manager_->GetChannelForEndpoint(endpoint_id);
     Medium channel_medium =
         channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
-    client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
-        endpoint_id, channel_medium, proposed_medium,
-        location::nearby::proto::connections::INCOMING,
-        client->GetConnectionToken(endpoint_id));
-    if (channel == nullptr) {
-      NEARBY_LOGS(INFO)
-          << "BwuManager couldn't complete the upgrade for endpoint "
-          << endpoint_id
-          << " because it couldn't find an existing EndpointChannel for it.";
-      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-          endpoint_id, BandwidthUpgradeResult::CHANNEL_ERROR,
-          BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
-          OperationResultCode::NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL);
-      return;
-    }
 
     // Ignore requests where the medium we're upgrading to is the medium we're
     // already connected over. This can happen now that Bluetooth is both an
@@ -278,16 +263,29 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
     // P2P_CLUSTER, connects over Bluetooth, and is not connected to LAN.
     // Bluetooth is the best medium, and we attempt to upgrade from Bluetooth
     // to Bluetooth.
-    if (proposed_medium == channel->GetMedium()) {
+    if (proposed_medium == channel_medium) {
       NEARBY_LOGS(INFO) << "BwuManager ignoring the upgrade for endpoint "
                         << endpoint_id
                         << " because it is already connected over medium "
                         << location::nearby::proto::connections::Medium_Name(
                                proposed_medium);
+      return;
+    }
+
+    client->GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+        endpoint_id, channel_medium, proposed_medium,
+        location::nearby::proto::connections::INCOMING,
+        client->GetConnectionToken(endpoint_id));
+
+    if (channel == nullptr) {
+      NEARBY_LOGS(INFO)
+          << "BwuManager couldn't complete the upgrade for endpoint "
+          << endpoint_id
+          << " because it couldn't find an existing EndpointChannel for it.";
       client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-          endpoint_id, BandwidthUpgradeResult::ALREADY_ON_MEDIUM_ERROR,
+          endpoint_id, BandwidthUpgradeResult::CHANNEL_ERROR,
           BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
-          OperationResultCode::MEDIUM_UNAVAILABLE_UPGRADE_ON_SAME_MEDIUM);
+          OperationResultCode::NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL);
       return;
     }
 
@@ -308,13 +306,12 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
       info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
 
       ProcessUpgradeFailureEvent(
-          client, endpoint_id, info,
-          BandwidthUpgradeResult::REMOTE_CONNECTION_ERROR,
+          client, endpoint_id, info, BandwidthUpgradeResult::MEDIUM_ERROR,
           /*record_analytic=*/false,
           OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
 
       client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
-          endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+          endpoint_id, BandwidthUpgradeResult::MEDIUM_ERROR,
           BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
           OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
       return;
@@ -326,6 +323,18 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
           << location::nearby::proto::connections::Medium_Name(proposed_medium)
           << " because it failed to write the "
              "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
+      UpgradePathInfo info;
+      info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
+
+      ProcessUpgradeFailureEvent(
+          client, endpoint_id, info, BandwidthUpgradeResult::RESULT_IO_ERROR,
+          /*record_analytic=*/false,
+          OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+
+      client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+          endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+          BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+          OperationResultCode::CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
       return;
     }
 
