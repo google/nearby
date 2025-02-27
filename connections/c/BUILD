@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
+load("@rules_apple//apple:macos.bzl", "macos_dylib")
 load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
 
 package(default_visibility = [
@@ -92,10 +93,11 @@ windows.cc_windows_dll(
 )
 
 # macOS.
-cc_binary(
-    name = "libnc.so",
-    linkshared = 1,
-    linkstatic = 1,
+macos_dylib(
+    name = "libnc",
+    exported_symbols_lists = ["macOS_exported_symbols.txt"],
+    linkopts = ["-install_name,@rpath/libnc.dylib"],
+    minimum_os_version = "10.15",
     tags = ["notap"],
     deps = [
         ":nc",
