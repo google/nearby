@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
 load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
-load("//tools/build_defs/apple:apple.bzl", "apple_static_xcframework")
 
 package(default_visibility = [
     "//connections:__subpackages__",

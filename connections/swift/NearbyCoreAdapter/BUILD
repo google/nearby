@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_apple//apple:ios.bzl", "ios_unit_test")
 load("//third_party/nearby:minimum_os.bzl", "IOS_LATEST_TEST_RUNNER", "IOS_MINIMUM_OS")
-load("//tools/build_defs/apple:ios.bzl", "ios_unit_test")
 load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
 licenses(["notice"])
