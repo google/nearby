@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -121,7 +121,8 @@ Exception WifiLanServerSocket::Close() {
 
 #pragma mark - WifiLanMedium
 
-WifiLanMedium::WifiLanMedium() : medium_([[GNCNWFramework alloc] init]) {}
+WifiLanMedium::WifiLanMedium(bool include_peer_to_peer)
+    : medium_([[GNCNWFramework alloc] initWithIncludePeerToPeer:include_peer_to_peer]) {}
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   NSInteger port = nsd_service_info.GetPort();
@@ -149,10 +150,8 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
   __block NSString* serviceType = @(service_type.c_str());
   __block DiscoveredServiceCallback client_callback = std::move(callback);
 
-  // Set `includePeerToPeer` to YES to support peer-to-peer connections for Apple devices.
   NSError* error = nil;
   BOOL result = [medium_ startDiscoveryForServiceType:serviceType
-      includePeerToPeer:YES
       serviceFoundHandler:^(NSString* name, NSDictionary<NSString*, NSString*>* txtRecords) {
         NsdServiceInfo nsd_service_info;
         nsd_service_info.SetServiceType([serviceType UTF8String]);
@@ -190,13 +189,11 @@ bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) {
-  // Set `includePeerToPeer` to YES to support peer-to-peer connections for Apple devices.
   NSError* error = nil;
   NSString* serviceName = @(remote_service_info.GetServiceName().c_str());
   NSString* serviceType = @(remote_service_info.GetServiceType().c_str());
   GNCNWFrameworkSocket* socket = [medium_ connectToServiceName:serviceName
                                                    serviceType:serviceType
-                                             includePeerToPeer:YES
                                                          error:&error];
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
@@ -229,10 +226,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
   NSError* error = nil;
-  // Set `includePeerToPeer` to YES to support peer-to-peer connections for Apple devices.
-  GNCNWFrameworkServerSocket* serverSocket = [medium_ listenForServiceOnPort:port
-                                                           includePeerToPeer:YES
-                                                                       error:&error];
+  GNCNWFrameworkServerSocket* serverSocket = [medium_ listenForServiceOnPort:port error:&error];
   if (serverSocket != nil) {
     return std::make_unique<WifiLanServerSocket>(serverSocket);
   }

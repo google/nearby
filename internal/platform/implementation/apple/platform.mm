@@ -174,7 +174,11 @@ std::unique_ptr<ServerSyncMedium> ImplementationPlatform::CreateServerSyncMedium
 std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() { return nullptr; }
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
-  return std::make_unique<apple::WifiLanMedium>();
+  // Set `include_peer_to_peer` to true to support peer-to-peer connections for Apple devices in the
+  // `WifiLan` medium.
+  // TODO: b/397530274 - This also retains the flexibility to add apple nw p2p medium to
+  // the NC layer but for now it is not needed.
+  return std::make_unique<apple::WifiLanMedium>(/*include_peer_to_peer=*/true);
 }
 
 std::unique_ptr<WifiHotspotMedium> ImplementationPlatform::CreateWifiHotspotMedium() {

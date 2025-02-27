@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
  */
 class WifiLanMedium : public api::WifiLanMedium {
  public:
-  WifiLanMedium();
+  explicit WifiLanMedium(bool include_peer_to_peer = false);
   ~WifiLanMedium() override = default;
 
   WifiLanMedium(const WifiLanMedium&) = delete;
