@@ -460,6 +460,7 @@ let package = Package(
         "connections/implementation/mediums/advertisements/advertisement_util_test.cc",
         "connections/implementation/mediums/ble_v2_test.cc",
         "connections/implementation/mediums/ble_v2/bloom_filter_test.cc",
+        "connections/implementation/mediums/ble_v2/ble_l2cap_packet_test.cc",
         "connections/implementation/mediums/ble_v2/ble_packet_test.cc",
         "connections/implementation/mediums/ble_v2/ble_advertisement_test.cc",
         "connections/implementation/mediums/ble_v2/advertisement_read_result_test.cc",
