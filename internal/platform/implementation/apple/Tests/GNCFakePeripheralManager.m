@@ -122,6 +122,12 @@
   _isAdvertising = false;
 }
 
+- (void)publishL2CAPChannelWithEncryption:(BOOL)encryptionRequired {
+  [peripheralDelegate gnc_peripheralManager:self
+                     didPublishL2CAPChannel:_PSM
+                                      error:_didAddServiceError];
+}
+
 #pragma mark - Testing Helpers
 
 - (NSArray<CBService *> *)services {

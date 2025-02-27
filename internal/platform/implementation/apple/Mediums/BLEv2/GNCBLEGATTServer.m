@@ -332,6 +332,18 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
   [_peripheralManager respondToRequest:request withResult:CBATTErrorSuccess];
 }
 
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+       didPublishL2CAPChannel:(CBL2CAPPSM)PSM
+                        error:(nullable NSError *)error {
+  // no op
+}
+
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+          didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
+                        error:(nullable NSError *)error {
+  // no op
+}
+
 #pragma mark - CBPeripheralManagerDelegate
 
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral {
