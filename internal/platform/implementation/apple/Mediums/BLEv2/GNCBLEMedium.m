@@ -22,6 +22,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -209,7 +210,11 @@ static NSError *AlreadyScanningError() {
   if (!localName) {
     return @{};
   }
+#if defined(NC_IOS_SDK)
+  NSData *data = [[NSData alloc] initWithBase85EncodedString:localName];
+#else
   NSData *data = [[NSData alloc] initWithWebSafeBase64EncodedString:localName];
+#endif // defined(NC_IOS_SDK)
 
   // A Nearby Apple advertisement should only have a single service, so simply grab the first one if
   // it exists.

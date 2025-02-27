@@ -20,6 +20,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
@@ -203,16 +204,27 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     // data is unavailable.
     CBUUID *serviceUUID = [serviceData.allKeys objectAtIndex:0];
     NSData *value = [serviceData objectForKey:serviceUUID];
+#if defined(NC_IOS_SDK)
+    NSString *encoded = [value base85EncodedString];
+#else
     NSString *encoded = [value webSafeBase64EncodedString];
+#endif  // defined(NC_IOS_SDK)
 
     // Apple only "guarantees" (best effort) 28 bytes of advertisement data. Base64 encoding
     // increases the size of the original data so we must truncate it to ensure it still meets the
     // 28 byte limit. Since we have a 2-byte service UUID and the header for local name and service
     // UUID is 2 bytes each, that leaves us with a maximum of 22 bytes for the local name. However,
     // it seems in practice we can only reliably advertise a 20-byte local name on iOS.
+#if defined(NC_IOS_SDK)
+    // DCT is using 22 bytes as length limit.
+    if (encoded.length > 22) {
+      encoded = [encoded substringToIndex:22];
+    }
+#else
     if (encoded.length > 20) {
       encoded = [encoded substringToIndex:20];
     }
+#endif  // defined(NC_IOS_SDK)
 
     _advertisementData = @{
       CBAdvertisementDataLocalNameKey : encoded,
