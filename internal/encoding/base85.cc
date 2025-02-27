@@ -67,7 +67,8 @@ std::string Base85Encode(const std::string& input, bool padding) {
   char* result_buffer_end = result.data() + result.size();
 
   size_t bytes = input.size();
-  const char* data = input.data();
+  const unsigned char* data =
+      reinterpret_cast<const unsigned char*>(input.data());
   while (bytes) {
     int count;
     uint32_t value = 0;

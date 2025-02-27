@@ -43,6 +43,18 @@
   XCTAssertEqualObjects(decodedData, data);
 }
 
+- (void)testEncodingAndDecoding {
+  unsigned char hexBytes[] = {0x20, 0x25, 0xdf, 0x06, 0x24, 0x00, 0x11, 0x88, 0x07,
+                              0xda, 0x54, 0x65, 0x73, 0x74, 0x20, 0x64, 0x65};
+
+  NSUInteger length = sizeof(hexBytes) / sizeof(hexBytes[0]);
+
+  NSData *data = [NSData dataWithBytes:hexBytes length:length];
+  NSString *actual = [data base85EncodedString];
+  XCTAssertEqualObjects(actual, @"+=5nL,QJF4#MN-gF*&O8AH");
+  XCTAssertEqualObjects([[NSData alloc] initWithBase85EncodedString:actual], data);
+}
+
 - (void)testEncodingEmptyData {
   XCTAssertEqualObjects([[@"" dataUsingEncoding:NSUTF8StringEncoding] base85EncodedString], @"");
 }
