@@ -103,7 +103,9 @@ class FlagReaderWrapper : public nearby::flags::FlagReader {
     };
     NC_DATA flag_value = phenotype_flag_reader_.get_string_flag_value(
         context_, &flag_name, &default_value);
-    return std::string(flag_value.data, flag_value.size);
+    std::string ret = std::string(flag_value.data, flag_value.size);
+    phenotype_flag_reader_.free_string_value(&flag_value);
+    return ret;
   }
 
  private:

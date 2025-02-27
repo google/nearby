@@ -337,6 +337,8 @@ typedef struct NC_PHENOTYPE_FLAG_READER {
   const NC_DATA (*get_string_flag_value)(READER_CONTEXT context,
                                          const NC_DATA* flag_name,
                                          const NC_DATA* default_value);
+  // Frees a string allocated when calling get_string_flag_value.
+  const void (*free_string_value)(const NC_DATA* value);
 } NC_PHENOTYPE_FLAG_READER;
 
 #ifdef __cplusplus
