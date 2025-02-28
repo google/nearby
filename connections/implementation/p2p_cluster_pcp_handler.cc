@@ -754,7 +754,8 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
         // Make sure we are still discovering before proceeding.
         if (!client->IsDiscovering() || stop_.Get()) {
           LOG(WARNING) << "Skipping discovery of BleAdvertisement header "
-                       << absl::BytesToHexString(advertisement_bytes.data())
+                       << absl::BytesToHexString(
+                              advertisement_bytes.AsStringView())
                        << " because we are no longer discovering.";
           return;
         }
@@ -777,7 +778,10 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.
-        if (!IsRecognizedBleV2Endpoint(service_id, advertisement)) return;
+        if (!IsRecognizedBleV2Endpoint(service_id, advertisement)) {
+          LOG(ERROR) << "IsRecognizedBleV2Endpoint failed";
+          return;
+        }
 
         // Report the discovered endpoint to the client.
         BleV2EndpointState ble_endpoint_state;
@@ -2586,6 +2590,10 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Scanning(
               << " couldn't start scanning on BLE for service_id="
               << service_id;
     return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
+  }
+  if (!discovery_options.ble_v2_options.alternate_uuids_for_service.empty()) {
+    ble_v2_medium_.AddAlternateUuidsForService(
+        discovery_options.ble_v2_options.alternate_uuids_for_service);
   }
   ErrorOr<bool> ble_v2_result = ble_v2_medium_.StartScanning(
       service_id, power_level,

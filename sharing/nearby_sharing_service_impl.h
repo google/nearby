@@ -167,6 +167,10 @@ class NearbySharingServiceImpl
   NearbyShareCertificateManager* GetCertificateManager() override;
   AccountManager* GetAccountManager() override;
   Clock& GetClock() override { return *context_->GetClock(); }
+  void SetAlternateServiceUuidForDiscovery(
+      uint16_t alternate_service_uuid) override {
+    alternate_service_uuid_ = alternate_service_uuid;
+  }
 
   // NearbyConnectionsManager::IncomingConnectionListener:
   void OnIncomingConnection(absl::string_view endpoint_id,
@@ -593,6 +597,7 @@ class NearbySharingServiceImpl
   // Used to track the time when share sheet activity starts
   absl::Time share_foreground_send_surface_start_timestamp_;
   std::unique_ptr<nearby::api::AppInfo> app_info_;
+  std::optional<uint16_t> alternate_service_uuid_;
 };
 
 }  // namespace nearby::sharing

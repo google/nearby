@@ -15,12 +15,14 @@
 #ifndef PLATFORM_PUBLIC_BLE_V2_H_
 #define PLATFORM_PUBLIC_BLE_V2_H_
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
@@ -442,6 +444,11 @@ class BleV2Medium final {
 
   api::ble_v2::BleMedium* GetImpl() const { return impl_.get(); }
   BluetoothAdapter& GetAdapter() { return adapter_; }
+  void AddAlternateUuidsForService(
+      const absl::flat_hash_map<uint16_t, std::string>&
+          alternate_uuids_for_service) {
+    impl_->AddAlternateUuidsForService(alternate_uuids_for_service);
+  }
 
  private:
   Mutex mutex_;

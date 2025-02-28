@@ -200,6 +200,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         };
 
     nearby_connections_manager_->StartDiscovery(&discovery_listener, data_usage,
+                                                std::nullopt,
                                                 std::move(callback));
 
     EXPECT_TRUE(

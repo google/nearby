@@ -252,15 +252,6 @@ struct AdvertisingOptions {
 
 // Options for a call to NearbyConnections::StartDiscovery().
 struct DiscoveryOptions {
-  DiscoveryOptions() = default;
-  DiscoveryOptions(Strategy strategy, MediumSelection allowed_mediums,
-                   std::optional<Uuid> fast_advertisement_service_uuid,
-                   bool is_out_of_band_connection) {
-    this->strategy = strategy;
-    this->allowed_mediums = allowed_mediums;
-    this->fast_advertisement_service_uuid = fast_advertisement_service_uuid,
-    this->is_out_of_band_connection = is_out_of_band_connection;
-  }
   // The strategy to use for discovering. Must match the strategy used in
   // AdvertisingOptions in order to see advertisements.
   Strategy strategy;
@@ -274,6 +265,9 @@ struct DiscoveryOptions {
   // inject discovery information synced outside the Nearby Connections library.
   // Intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
+  // An optional UUID16 to use for BLE discovery if the normal service data
+  // UUID causes the advertisement packet to exceed the maximum size.
+  std::optional<uint16_t> alternate_service_uuid;
 };
 
 // Options for a call to NearbyConnections::RequestConnection().

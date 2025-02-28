@@ -42,6 +42,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections/implementation:__subpackages__",
+        "//internal/platform/implementation/windows:__pkg__",
     ],
     deps = [
         "//connections/implementation/flags:connections_flags",
