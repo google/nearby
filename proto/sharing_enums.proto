@@ -435,6 +435,8 @@ enum AttachmentTransmissionStatus {
   // or user turn on airplane mode.
   LOST_CONNECTIVITY_TRANSMISSION_STATUS = 29
       /*[ status_bucket = STATUS_INTERRUPTION ]*/;
+  // Connection failed due to the medium is not allowed.
+  FAILED_DISALLOWED_MEDIUM = 30;
 }
 
 // Generic result status of NearbyConnections API calls.
