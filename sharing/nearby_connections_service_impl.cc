@@ -19,19 +19,16 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
-#include "connections/payload.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/logging.h"
@@ -138,7 +135,7 @@ void NearbyConnectionsServiceImpl::StopAdvertising(
 }
 
 void NearbyConnectionsServiceImpl::StartDiscovery(
-    absl::string_view service_id, DiscoveryOptions discovery_options,
+    absl::string_view service_id, const DiscoveryOptions& discovery_options,
     DiscoveryListener discovery_listener,
     std::function<void(Status status)> callback) {
   discovery_listener_ = std::move(discovery_listener);
@@ -156,6 +153,12 @@ void NearbyConnectionsServiceImpl::StartDiscovery(
 
   options.is_out_of_band_connection =
       discovery_options.is_out_of_band_connection;
+
+  if (discovery_options.alternate_service_uuid.has_value()) {
+    options.ble_v2_options.alternate_uuids_for_service.insert(
+        {*discovery_options.alternate_service_uuid, std::string(service_id)});
+  }
+
   NcDiscoveryListener listener;
   listener.endpoint_found_cb = [this](const std::string& endpoint_id,
                                       const NcByteArray& endpoint_info,

@@ -92,6 +92,7 @@ void FakeNearbyConnectionsManager::StopAdvertising(
 
 void FakeNearbyConnectionsManager::StartDiscovery(
     DiscoveryListener* listener, DataUsage data_usage,
+    std::optional<uint16_t> alternate_service_uuid,
     ConnectionsCallback callback) {
   is_shutdown_ = false;
   absl::MutexLock lock(&listener_mutex_);
