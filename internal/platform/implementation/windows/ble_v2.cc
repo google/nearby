@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>  // NOLINT
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -54,6 +55,7 @@
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
 #include "winrt/Windows.Foundation.Collections.h"
+#include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.Storage.Streams.h"  // NOLINT(misc-include-cleaner)
 
 namespace nearby {
@@ -95,7 +97,9 @@ using ::winrt::Windows::Devices::Bluetooth::Advertisement::
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
     BluetoothLEScanningMode;
 using ::winrt::Windows::Foundation::TimeSpan;
+using ::winrt::Windows::Foundation::TypedEventHandler;
 using ::winrt::Windows::Storage::Streams::Buffer;
+using ::winrt::Windows::Storage::Streams::ByteOrder;
 using ::winrt::Windows::Storage::Streams::DataReader;
 using ::winrt::Windows::Storage::Streams::DataWriter;
 
@@ -123,13 +127,159 @@ static constexpr uint64_t kGenerateSessionIdRetryLimit = 3;
 static constexpr uint64_t kFailedGenerateSessionId = 0;
 
 constexpr absl::Duration kMediumTimeout = absl::Milliseconds(500);
-constexpr int kMediumCheckIntervalInMills = 50;
+constexpr absl::Duration kMediumCheckInterval = absl::Milliseconds(50);
 
 // Remove lost/unused peripherals after a timeout.
 constexpr absl::Duration kPeripheralExpiryTime = absl::Minutes(15);
 // Prevent too frequent cleanup tasks.
 constexpr absl::Duration kMaxPeripheralCleanupFrequency = absl::Minutes(3);
+
+// The most significant bits and the least significant bits or Bluetooth Base
+// UUID.
+// See Bluetooth Core Specification 6.0 Vol.3, Part B, Section 2.5.1
+const std::uint64_t kBluetoothBaseUuidMsb = 0x0000000000001000;
+const std::uint64_t kBluetoothBaseUuidLsb = 0x800000805F9B34FB;
+// Mask for UUID16 bits.
+const std::uint64_t kBluetoothBaseUuid16MsbMask = 0x0000FFFF00000000;
+
+// Service Data - 16-bit UUID.  From Bluetooth Assigned Numbers Section 2.3.
+constexpr uint8_t kUuid16ServiceDataType = 0x16;
 }  // namespace
+
+BleV2Medium::AdvertisementWatcher::~AdvertisementWatcher() { Stop(); }
+
+void BleV2Medium::AdvertisementWatcher::Initialize(
+    const TypedEventHandler<BluetoothLEAdvertisementWatcher,
+                            BluetoothLEAdvertisementReceivedEventArgs>&
+        received_handler,
+    const TypedEventHandler<BluetoothLEAdvertisementWatcher,
+                            BluetoothLEAdvertisementWatcherStoppedEventArgs>&
+        stopped_handler) {
+  absl::MutexLock lock(&mutex_);
+  try {
+    watcher_token_ = watcher_.Stopped(stopped_handler);
+    advertisement_received_token_ = watcher_.Received(received_handler);
+    watcher_.AllowExtendedAdvertisements(true);
+
+    // Active mode indicates that scan request packets will be sent to query
+    // for Scan Response
+    watcher_.ScanningMode(BluetoothLEScanningMode::Active);
+    ::winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter filter;
+    filter.SamplingInterval(TimeSpan(std::chrono::seconds(2)));
+    watcher_.SignalStrengthFilter(filter);
+    initialized_ = true;
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan initialize: " << exception.what();
+  } catch (const winrt::hresult_error& ex) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan initialize: " << ex.code() << ": "
+               << winrt::to_string(ex.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exception on BLE scan initialize.";
+  }
+}
+
+void BleV2Medium::AdvertisementWatcher::InitializeWithServiceFilter(
+    uint16_t service_uuid,
+    const TypedEventHandler<BluetoothLEAdvertisementWatcher,
+                            BluetoothLEAdvertisementReceivedEventArgs>&
+        received_handler,
+    const TypedEventHandler<BluetoothLEAdvertisementWatcher,
+                            BluetoothLEAdvertisementWatcherStoppedEventArgs>&
+        stopped_handler) {
+  absl::MutexLock lock(&mutex_);
+  try {
+    watcher_token_ = watcher_.Stopped(stopped_handler);
+    advertisement_received_token_ = watcher_.Received(received_handler);
+    watcher_.AllowExtendedAdvertisements(true);
+
+    // Active mode indicates that scan request packets will be sent to query
+    // for Scan Response
+    watcher_.ScanningMode(BluetoothLEScanningMode::Active);
+    BluetoothLEAdvertisementDataSection data_section;
+    data_section.DataType(kUuid16ServiceDataType);
+    DataWriter data_writer;  // NOLINT(misc-include-cleaner)
+    data_writer.ByteOrder(ByteOrder::LittleEndian);
+    data_writer.WriteInt16(service_uuid);
+    data_section.Data(data_writer.DetachBuffer());
+    BluetoothLEAdvertisement advertisement;
+    advertisement.DataSections().Append(data_section);
+    BluetoothLEAdvertisementFilter advertisement_filter;
+    advertisement_filter.Advertisement(advertisement);
+    watcher_.AdvertisementFilter(advertisement_filter);
+    initialized_ = true;
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan initialize: " << exception.what();
+  } catch (const winrt::hresult_error& ex) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan initialize, hresult: " << ex.code()
+               << ": " << winrt::to_string(ex.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exception on BLE scan initialize.";
+  }
+}
+
+bool BleV2Medium::AdvertisementWatcher::Start() {
+  absl::MutexLock lock(&mutex_);
+  if (!initialized_) {
+    LOG(ERROR) << __func__ << ": Failed to start BLE watcher: not initialized.";
+    return false;
+  }
+  try {
+    watcher_.Start();
+    // Wait for watcher to transition to Started state.
+    // Any state other than Started or Created is considered a failure.
+    absl::Duration wait_duration;
+    while (wait_duration < kMediumTimeout &&
+           watcher_.Status() ==
+               BluetoothLEAdvertisementWatcherStatus::Created) {
+      absl::SleepFor(kMediumCheckInterval);
+      wait_duration += kMediumCheckInterval;
+    }
+    BluetoothLEAdvertisementWatcherStatus status = watcher_.Status();
+    if (status != BluetoothLEAdvertisementWatcherStatus::Started) {
+      LOG(ERROR) << __func__ << ": Failed to start BLE watcher: "
+                 << static_cast<int>(status);
+      return false;
+    }
+    LOG(INFO) << __func__ << ": BLE scanning started.";
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan start: " << exception.what();
+  } catch (const winrt::hresult_error& ex) {
+    LOG(ERROR) << __func__
+               << ": Exception on  BLE scan start, hresult: " << ex.code()
+               << ": " << winrt::to_string(ex.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exception on BLE scan start.";
+  }
+  return true;
+}
+
+void BleV2Medium::AdvertisementWatcher::Stop() {
+  absl::MutexLock lock(&mutex_);
+  try {
+    watcher_.Stop();
+    if (watcher_token_) {
+      watcher_.Stopped(watcher_token_);
+    }
+    if (advertisement_received_token_) {
+      watcher_.Received(advertisement_received_token_);
+    }
+    initialized_ = false;
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan stop: " << exception.what();
+  } catch (const winrt::hresult_error& ex) {
+    LOG(ERROR) << __func__
+               << ": Exception on BLE scan stop, hresult: " << ex.code() << ": "
+               << winrt::to_string(ex.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exception on BLE scan stop.";
+  }
+}
 
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
     : adapter_(dynamic_cast<BluetoothAdapter*>(&adapter)) {}
@@ -227,90 +377,61 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
       });
 }
 
+std::unique_ptr<BleV2Medium::AdvertisementWatcher>
+BleV2Medium::CreateBleWatcher(uint16_t service_uuid) {
+  auto watcher = std::make_unique<AdvertisementWatcher>();
+  watcher->InitializeWithServiceFilter(
+      service_uuid, {this, &BleV2Medium::AdvertisementReceivedHandler},
+      {this, &BleV2Medium::WatcherHandler});
+
+  if (!watcher->Start()) {
+    return nullptr;
+  }
+  LOG(INFO) << __func__ << ": BLE scanning started for service uuid "
+            << absl::StrCat(absl::Hex(service_uuid));
+  return watcher;
+}
+
 bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 TxPowerLevel tx_power_level,
                                 ScanCallback callback) {
   absl::MutexLock lock(&mutex_);
   LOG(INFO) << __func__ << ": service UUID: " << std::string(service_uuid)
             << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
-  try {
-    if (!adapter_->IsEnabled()) {
-      LOG(WARNING) << __func__
-                   << "BLE cannot start scanning because the "
-                      "Bluetooth adapter is not enabled.";
-      return false;
-    }
-
-    if (is_watcher_started_) {
-      LOG(WARNING) << __func__
-                   << ": BLE cannot start to scan again when it is running.";
-      return false;
-    }
-
-    service_uuid_ = service_uuid;
-    tx_power_level_ = tx_power_level;
-    scan_callback_ = std::move(callback);
-
-    watcher_ = BluetoothLEAdvertisementWatcher();
-    watcher_token_ = watcher_.Stopped({this, &BleV2Medium::WatcherHandler});
-    advertisement_received_token_ =
-        watcher_.Received({this, &BleV2Medium::AdvertisementReceivedHandler});
-
-    if (adapter_->IsExtendedAdvertisingSupported()) {
-      watcher_.AllowExtendedAdvertisements(true);
-    }
-
-    // Active mode indicates that scan request packets will be sent to query for
-    // Scan Response
-    watcher_.ScanningMode(BluetoothLEScanningMode::Active);
-
-    BluetoothLEAdvertisementDataSection data_section;
-    data_section.DataType(0x16);
-    DataWriter data_writer;  // NOLINT(misc-include-cleaner)
-    std::array<char, 16> service_id_data = service_uuid_.data();
-    data_writer.WriteByte(service_id_data[3] & 0xff);
-    data_writer.WriteByte(service_id_data[2] & 0xff);
-    data_section.Data(data_writer.DetachBuffer());
-    BluetoothLEAdvertisement advertisement;
-    advertisement.DataSections().Append(data_section);
-    BluetoothLEAdvertisementFilter advertisement_filter;
-    advertisement_filter.Advertisement(advertisement);
-    watcher_.AdvertisementFilter(advertisement_filter);
-    watcher_.Start();
-
-    // Wait for the watcher to start.
-    int wait_milliseconds = 0;
-    while (watcher_.Status() !=
-           BluetoothLEAdvertisementWatcherStatus::Started) {
-      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
-      wait_milliseconds += kMediumCheckIntervalInMills;
-      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
-        LOG(ERROR) << __func__ << ": Failed to start BLE scan due to timeout..";
-        watcher_.Stopped(watcher_token_);
-        watcher_.Received(advertisement_received_token_);
-        watcher_ = nullptr;
-        return false;
-      }
-    }
-
-    is_watcher_started_ = true;
-
-    LOG(INFO) << __func__ << ": BLE scanning started.";
-    return true;
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-               << ": Exception to start BLE scanning: " << exception.what();
-
-    return false;
-  } catch (const winrt::hresult_error& ex) {
-    LOG(ERROR) << __func__ << ": Exception to start BLE scanning: " << ex.code()
-               << ": " << winrt::to_string(ex.message());
-
-    return false;
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
+  if (!adapter_->IsEnabled()) {
+    LOG(WARNING) << __func__
+                 << "BLE cannot start scanning because the "
+                    "Bluetooth adapter is not enabled.";
     return false;
   }
+
+  if (!watchers_.empty()) {
+    LOG(WARNING) << __func__
+                 << ": BLE cannot start to scan again when it is running.";
+    return false;
+  }
+
+  service_uuid_ = service_uuid;
+  tx_power_level_ = tx_power_level;
+  scan_callback_ = std::move(callback);
+
+  // This assumes that service_uuid has a valid UUID16 alias.
+  // Verify that service_uuid in in valid range.
+  DCHECK_EQ(service_uuid_.GetMostSigBits() & ~kBluetoothBaseUuid16MsbMask,
+            kBluetoothBaseUuidMsb);
+  DCHECK_EQ(service_uuid_.GetLeastSigBits(), kBluetoothBaseUuidLsb);
+
+  service_uuid16_ =
+      (service_uuid_.GetMostSigBits() & kBluetoothBaseUuid16MsbMask) >> 32;
+  std::unique_ptr<AdvertisementWatcher> watcher =
+      CreateBleWatcher(service_uuid16_);
+  if (watcher == nullptr) {
+    return false;
+  }
+  watchers_.push_back(std::move(watcher));
+
+  LOG(INFO) << __func__ << ": BLE scanning started.";
+  return true;
 }
 
 std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
@@ -325,43 +446,16 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
                     "Bluetooth adapter is not enabled.";
     return nullptr;
   }
-  if (!is_watcher_started_) {
+  if (watchers_.empty()) {
     LOG(WARNING) << __func__ << ": Starting BLE Scanning.";
-    try {
-      watcher_ = BluetoothLEAdvertisementWatcher();
-      watcher_token_ = watcher_.Stopped({this, &BleV2Medium::WatcherHandler});
-      advertisement_received_token_ =
-          watcher_.Received({this, &BleV2Medium::AdvertisementFoundHandler});
-
-      if (adapter_->IsExtendedAdvertisingSupported()) {
-        watcher_.AllowExtendedAdvertisements(true);
-      } else {
-        watcher_.AllowExtendedAdvertisements(false);
-      }
-
-      // Active mode indicates that scan request packets will be sent to query
-      // for Scan Response
-      watcher_.ScanningMode(BluetoothLEScanningMode::Active);
-      ::winrt::Windows::Devices::Bluetooth::BluetoothSignalStrengthFilter
-          filter;
-      filter.SamplingInterval(TimeSpan(std::chrono::seconds(2)));
-      watcher_.SignalStrengthFilter(filter);
-      watcher_.Start();
-      is_watcher_started_ = true;
-      LOG(INFO) << __func__ << ": BLE scanning started.";
-    } catch (std::exception exception) {
-      LOG(ERROR) << __func__
-                 << ": Exception to start BLE scanning: " << exception.what();
-      return nullptr;
-    } catch (const winrt::hresult_error& ex) {
-      LOG(ERROR) << __func__
-                 << ": Exception to start BLE scanning: " << ex.code() << ": "
-                 << winrt::to_string(ex.message());
-      return nullptr;
-    } catch (...) {
-      LOG(ERROR) << __func__ << ": Unknown exception.";
+    auto watcher = std::make_unique<AdvertisementWatcher>();
+    watcher->Initialize({this, &BleV2Medium::AdvertisementFoundHandler},
+                        {this, &BleV2Medium::WatcherHandler});
+    if (!watcher->Start()) {
       return nullptr;
     }
+    watchers_.push_back(std::move(watcher));
+    LOG(INFO) << __func__ << ": BLE scanning started.";
   } else {
     LOG(WARNING) << __func__ << ": BLE Scanning already started.";
   }
@@ -401,8 +495,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
                     try {
                       LOG(INFO)
                           << "No more scan sessions, stopping Ble scanning.";
-                      watcher_.Stop();
-                      is_watcher_started_ = false;
+                      watchers_.clear();
 
                       LOG(INFO) << "Ble stoped scanning successfully.";
                     } catch (std::exception exception) {
@@ -513,59 +606,23 @@ bool BleV2Medium::StopScanning() {
   absl::MutexLock lock(&mutex_);
 
   LOG(INFO) << __func__ << ": BLE StopScanning: service_uuid: "
-            << std::string(service_uuid_);
-  try {
-    if (!adapter_->IsEnabled()) {
-      LOG(WARNING) << "BLE cannot stop scanning because the "
-                      "bluetooth adapter is not enabled.";
-      return false;
-    }
-
-    if (!is_watcher_started_) {
-      LOG(WARNING) << "BLE scanning is not running.";
-      return false;
-    }
-
-    watcher_.Stop();
-
-    // Wait for the watcher to stop.
-    int wait_milliseconds = 0;
-    while (watcher_.Status() !=
-           BluetoothLEAdvertisementWatcherStatus::Stopped) {
-      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
-      wait_milliseconds += kMediumCheckIntervalInMills;
-      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
-        LOG(ERROR) << __func__ << ": Failed to stop BLE scan due to timeout.";
-        watcher_.Stopped(watcher_token_);
-        watcher_.Received(advertisement_received_token_);
-        watcher_ = nullptr;
-        is_watcher_started_ = false;
-        return false;
-      }
-    }
-
-    watcher_.Stopped(watcher_token_);
-    watcher_.Received(advertisement_received_token_);
-    watcher_ = nullptr;
-    is_watcher_started_ = false;
-
-    LOG(ERROR) << "Windows Ble stoped scanning successfully for service UUID:"
-               << std::string(service_uuid_);
-    return true;
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-               << ": Exception to stop BLE scanning: " << exception.what();
-
-    return false;
-  } catch (const winrt::hresult_error& ex) {
-    LOG(ERROR) << __func__ << ": Exception to stop BLE scanning: " << ex.code()
-               << ": " << winrt::to_string(ex.message());
-
-    return false;
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
+            << absl::StrCat(absl::Hex(service_uuid16_));
+  if (!adapter_->IsEnabled()) {
+    LOG(WARNING) << "BLE cannot stop scanning because the "
+                    "bluetooth adapter is not enabled.";
     return false;
   }
+
+  if (watchers_.empty()) {
+    LOG(WARNING) << "BLE scanning is not running.";
+    return false;
+  }
+
+  watchers_.clear();
+
+  LOG(ERROR) << "Windows Ble stoped scanning successfully for service UUID: "
+             << absl::StrCat(absl::Hex(service_uuid16_));
+  return true;
 }
 
 std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
@@ -668,7 +725,8 @@ bool BleV2Medium::StartBleAdvertising(
       }
 
       BluetoothLEAdvertisementDataSection ble_service_data =
-          BluetoothLEAdvertisementDataSection(0x16, data_writer.DetachBuffer());
+          BluetoothLEAdvertisementDataSection(kUuid16ServiceDataType,
+                                              data_writer.DetachBuffer());
 
       data_sections.Append(ble_service_data);
     }
@@ -703,12 +761,12 @@ bool BleV2Medium::StartBleAdvertising(
     publisher_.Start();
 
     // Wait for the publisher to start.
-    int wait_milliseconds = 0;
+    absl::Duration wait_duration;
     while (publisher_.Status() !=
            BluetoothLEAdvertisementPublisherStatus::Started) {
-      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
-      wait_milliseconds += kMediumCheckIntervalInMills;
-      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
+      absl::SleepFor(kMediumCheckInterval);
+      wait_duration += kMediumCheckInterval;
+      if (wait_duration > kMediumTimeout) {
         LOG(ERROR) << __func__
                    << ": BLE advertising failed to start due to timeout.";
         publisher_.StatusChanged(publisher_token_);
@@ -763,12 +821,12 @@ bool BleV2Medium::StopBleAdvertising() {
     publisher_.Stop();
 
     // Wait for the publisher to stop.
-    int wait_milliseconds = 0;
+    absl::Duration wait_duration;
     while (publisher_.Status() !=
            BluetoothLEAdvertisementPublisherStatus::Stopped) {
-      absl::SleepFor(absl::Milliseconds(kMediumCheckIntervalInMills));
-      wait_milliseconds += kMediumCheckIntervalInMills;
-      if (absl::Milliseconds(wait_milliseconds) > kMediumTimeout) {
+      absl::SleepFor(kMediumCheckInterval);
+      wait_duration += kMediumCheckInterval;
+      if (wait_duration > kMediumTimeout) {
         LOG(ERROR) << __func__
                    << ": BLE advertising failed to stop due to timeout.";
         publisher_.StatusChanged(publisher_token_);
@@ -1042,18 +1100,16 @@ void BleV2Medium::AdvertisementReceivedHandler(
   // 0x16 Service Data) has been received in the handler
   BluetoothLEAdvertisement advertisement = args.Advertisement();
 
-  std::array<char, 16> service_id_data = service_uuid_.data();
   for (BluetoothLEAdvertisementDataSection service_data :
-       advertisement.GetSectionsByType(0x16)) {
-    // Parse Advertisement Data for Section 0x16 (Service Data)
+       advertisement.GetSectionsByType(kUuid16ServiceDataType)) {
+    // Parse Advertisement Data for Section 0x16 (16bit uuid Service Data)
     DataReader data_reader = DataReader::FromBuffer(service_data.Data());
+    data_reader.ByteOrder(ByteOrder::LittleEndian);
 
     // Discard the first 2 bytes of Service Uuid in Service Data
-    uint8_t first_byte = data_reader.ReadByte();
-    uint8_t second_byte = data_reader.ReadByte();
+    uint16_t service_uuid16 = data_reader.ReadUInt16();
 
-    if (first_byte == (service_id_data[3] & 0xff) &&
-        second_byte == (service_id_data[2] & 0xff)) {
+    if (service_uuid16 == service_uuid16_) {
       std::string data;
 
       uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
@@ -1063,7 +1119,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
 
       ByteArray advertisement_data(data);
 
-      VLOG(1) << "Nearby BLE Medium " << service_uuid_.Get16BitAsString()
+      VLOG(1) << "Nearby BLE Medium " << absl::StrCat(absl::Hex(service_uuid16))
               << " Advertisement discovered. "
                  "0x16 Service data: advertisement bytes= 0x"
               << absl::BytesToHexString(advertisement_data.AsStringView())
@@ -1126,18 +1182,18 @@ void BleV2Medium::AdvertisementFoundHandler(
   // Construct BleAdvertisementData from the windows Advertisement.
   api::ble_v2::BleAdvertisementData ble_advertisement_data;
   for (BluetoothLEAdvertisementDataSection service_data :
-       advertisement.GetSectionsByType(0x16)) {
+       advertisement.GetSectionsByType(kUuid16ServiceDataType)) {
     // Parse Advertisement Data for Section 0x16 (Service Data)
     DataReader data_reader = DataReader::FromBuffer(service_data.Data());
+    data_reader.ByteOrder(ByteOrder::LittleEndian);
 
     // Discard the first 2 bytes of Service Uuid in Service Data
-    uint8_t first_byte = data_reader.ReadByte();
-    uint8_t second_byte = data_reader.ReadByte();
+    uint16_t service_uuid16 = data_reader.ReadUInt16();
 
     for (auto service_uuid : service_uuid_list) {
-      std::array<char, 16> service_id_data = service_uuid.data();
-      if (first_byte == (service_id_data[3] & 0xff) &&
-          second_byte == (service_id_data[2] & 0xff)) {
+      uint16_t uuid16 =
+          (service_uuid.GetMostSigBits() & kBluetoothBaseUuid16MsbMask) >> 32;
+      if (uuid16 == service_uuid16) {
         std::string data;
 
         uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -90,6 +91,60 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  friend class BleV2MediumTest;
+
+  // A wrapper class for BluetoothLEAdvertisementWatcher.
+  class AdvertisementWatcher {
+   public:
+    AdvertisementWatcher() = default;
+    ~AdvertisementWatcher();
+
+    // Initializes an advertisement watcher with no service uuid filter.
+    void Initialize(
+        const winrt::Windows::Foundation::TypedEventHandler<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementWatcher,
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementReceivedEventArgs>& received_handler,
+        const winrt::Windows::Foundation::TypedEventHandler<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementWatcher,
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementWatcherStoppedEventArgs>&
+            stopped_handler) ABSL_LOCKS_EXCLUDED(mutex_);
+
+    // Initializes an advertisement watcher with a filter for UUID16 service
+    // data for `service_uuid`.
+    void InitializeWithServiceFilter(
+        uint16_t service_uuid,
+        const winrt::Windows::Foundation::TypedEventHandler<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementWatcher,
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementReceivedEventArgs>& received_handler,
+        const winrt::Windows::Foundation::TypedEventHandler<
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementWatcher,
+            winrt::Windows::Devices::Bluetooth::Advertisement::
+                BluetoothLEAdvertisementWatcherStoppedEventArgs>&
+            stopped_handler) ABSL_LOCKS_EXCLUDED(mutex_);
+
+    // Start scanning for advertisements.
+    // Returns true if the watcher is successfully started.
+    bool Start() ABSL_LOCKS_EXCLUDED(mutex_);
+
+    // Stop scanning for advertisements.
+    void Stop() ABSL_LOCKS_EXCLUDED(mutex_);
+
+   private:
+    absl::Mutex mutex_;
+    bool initialized_ ABSL_GUARDED_BY(mutex_)= false;
+    ::winrt::Windows::Devices::Bluetooth::Advertisement::
+        BluetoothLEAdvertisementWatcher watcher_ ABSL_GUARDED_BY(mutex_);
+    ::winrt::event_token watcher_token_ ABSL_GUARDED_BY(mutex_);
+    ::winrt::event_token advertisement_received_token_ ABSL_GUARDED_BY(mutex_);
+  };
+
   bool StartBleAdvertising(
       const api::ble_v2::BleAdvertisementData& advertising_data,
       api::ble_v2::AdvertiseParameters advertising_parameters)
@@ -134,13 +189,18 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void RemoveExpiredPeripherals() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  std::unique_ptr<BleV2Medium::AdvertisementWatcher> CreateBleWatcher(
+      uint16_t service_uuid);
 
   absl::Mutex mutex_;
 
   BluetoothAdapter* const adapter_;
   Uuid service_uuid_;
+  uint16_t service_uuid16_ = 0;
   api::ble_v2::TxPowerLevel tx_power_level_;
   ScanCallback scan_callback_;
+  std::vector<std::unique_ptr<AdvertisementWatcher>> watchers_
+      ABSL_GUARDED_BY(mutex_);
 
   // std::map<Uuid, std::map<uint64_t, ScanningCallback>>
   absl::flat_hash_map<Uuid, absl::flat_hash_map<uint64_t, ScanningCallback>>
@@ -150,17 +210,11 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   ::winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementPublisher publisher_ ABSL_GUARDED_BY(mutex_) =
           nullptr;
-  ::winrt::Windows::Devices::Bluetooth::Advertisement::
-      BluetoothLEAdvertisementWatcher watcher_ ABSL_GUARDED_BY(mutex_) =
-          nullptr;
 
   bool is_ble_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
   bool is_gatt_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
-  bool is_watcher_started_ ABSL_GUARDED_BY(mutex_) = false;
 
   ::winrt::event_token publisher_token_ ABSL_GUARDED_BY(mutex_);
-  ::winrt::event_token watcher_token_ ABSL_GUARDED_BY(mutex_);
-  ::winrt::event_token advertisement_received_token_ ABSL_GUARDED_BY(mutex_);
 
   BleGattServer* ble_gatt_server_ = nullptr;
   // Map to protect the pointer for BlePeripheral because
