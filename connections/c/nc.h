@@ -17,8 +17,8 @@
 
 #include <stddef.h>
 
-#include "connections/c/nc_def.h"
-#include "connections/c/nc_types.h"
+#include "nc_def.h"    // NOLINT(build/include)
+#include "nc_types.h"  // NOLINT(build/include)
 
 #ifdef __cplusplus
 extern "C" {

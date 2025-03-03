@@ -72,6 +72,11 @@ apple_static_xcframework(
     minimum_os_versions = {
         "ios": "15.0",
     },
+    public_hdrs = [
+        ":nc_types.h",
+        ":nc_def.h",
+        ":nc.h",
+    ],
     deps = [
         ":nc",
         "//internal/platform/implementation/apple",
