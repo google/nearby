@@ -278,6 +278,7 @@ void NearbyConnectionsManagerImpl::StopAdvertising(
 
 void NearbyConnectionsManagerImpl::StartDiscovery(
     DiscoveryListener* listener, DataUsage data_usage,
+    std::optional<uint16_t> alternate_service_uuid,
     ConnectionsCallback callback) {
   DCHECK(listener);
 
@@ -310,9 +311,14 @@ void NearbyConnectionsManagerImpl::StartDiscovery(
 
   nearby_connections_service_->StartDiscovery(
       kServiceId,
-      DiscoveryOptions(kStrategy, std::move(allowed_mediums),
-                       Uuid(kFastAdvertisementServiceUuid),
-                       /*is_out_of_band_connection=*/false),
+      {
+          .strategy = kStrategy,
+          .allowed_mediums = std::move(allowed_mediums),
+          .fast_advertisement_service_uuid =
+              Uuid(kFastAdvertisementServiceUuid),
+          .is_out_of_band_connection = false,
+          .alternate_service_uuid = std::move(alternate_service_uuid),
+      },
       std::move(service_discovery_listener), std::move(callback));
 }
 

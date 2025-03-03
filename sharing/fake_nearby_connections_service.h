@@ -55,7 +55,8 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
               (override));
 
   MOCK_METHOD(void, StartDiscovery,
-              (absl::string_view service_id, DiscoveryOptions discovery_options,
+              (absl::string_view service_id,
+               const DiscoveryOptions& discovery_options,
                DiscoveryListener discovery_listener,
                std::function<void(Status status)> callback),
               (override));

@@ -65,6 +65,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
                         ConnectionsCallback callback) override;
   void StopAdvertising(ConnectionsCallback callback) override;
   void StartDiscovery(DiscoveryListener* listener, proto::DataUsage data_usage,
+                      std::optional<uint16_t> alternate_service_uuid,
                       ConnectionsCallback callback) override;
   void StopDiscovery() override;
   void Connect(std::vector<uint8_t> endpoint_info,
