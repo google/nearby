@@ -957,6 +957,10 @@ message SharingLog {
       WINDOWS = 5;
     }
     optional ClientPlatform client_platform = 1;
+
+    // Whether the /qrcode page was opened in the browser again after the user
+    // clicked on the "Try again" button
+    optional bool is_retry = 2;
   }
   // EventType: HATS_JOINT_EVENT
   message HatsJointEvent {
