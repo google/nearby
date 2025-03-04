@@ -133,6 +133,9 @@ class NearbyShareCertificateManager {
   // Dump certificates ID information for troubleshooting.
   virtual std::string Dump() const = 0;
 
+  // Returns true if configured to use Identity RPC.
+  virtual bool UsingIdentityRpc() = 0;
+
  protected:
   virtual void OnStart() = 0;
   virtual void OnStop() = 0;

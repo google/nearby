@@ -177,6 +177,8 @@ class NearbyShareCertificateManagerImpl
   // Dump certs information.
   std::string Dump() const override;
 
+  bool UsingIdentityRpc() override;
+
   // Used by the private certificate expiration scheduler to determine the next
   // private certificate expiration time. Returns base::Time::Min() if
   // certificates are missing. This function never returns absl::nullopt.
