@@ -166,6 +166,7 @@ class NearbyShareContactManagerImplTest
   NearbyShareContactManagerImplTest()
       : local_device_data_manager_(kTestDefaultDeviceName) {
     local_device_data_manager_.set_is_sync_mode(true);
+    local_device_data_manager_.SetUsingIdentityRpc(false);
   }
 
   ~NearbyShareContactManagerImplTest() override = default;

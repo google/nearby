@@ -651,9 +651,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                 << background_receive_callbacks_map_.size();
 
         if (IsVisibleInBackground(settings_->GetVisibility())) {
-          if (NearbyFlags::GetInstance().GetBoolFlag(
-                  config_package_nearby::nearby_sharing_feature::
-                      kCallNearbyIdentityApi)) {
+          if (certificate_manager_->UsingIdentityRpc()) {
             // The Identity API does not support contact manager which triggers
             // Certificate refresh in DownloadContacts. Force upload explicitly.
             VLOG(1) << __func__

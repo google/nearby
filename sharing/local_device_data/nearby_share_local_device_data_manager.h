@@ -104,6 +104,9 @@ class NearbyShareLocalDeviceDataManager {
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,
       bool force_update_contacts, PublishDeviceCallback callback) = 0;
 
+  // Returns true if configured to use Identity RPC.
+  virtual bool UsingIdentityRpc() = 0;
+
  protected:
   void NotifyLocalDeviceDataChanged(bool did_device_name_change,
                                     bool did_full_name_change,

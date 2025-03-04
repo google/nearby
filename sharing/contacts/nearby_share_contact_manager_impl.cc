@@ -175,9 +175,7 @@ NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
               prefs::kNearbySharingSchedulerContactDownloadAndUploadName,
               [&] { DownloadContacts(); })),
       executor_(context->CreateSequencedTaskRunner()),
-      use_identity_api_(NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kCallNearbyIdentityApi)) {}
+      use_identity_api_(local_device_data_manager_->UsingIdentityRpc()) {}
 
 NearbyShareContactManagerImpl::~NearbyShareContactManagerImpl() = default;
 
