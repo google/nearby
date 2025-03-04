@@ -15,14 +15,49 @@
 licenses(["notice"])
 
 cc_library(
+    name = "ble_advertisement_header",
+    srcs = ["ble_advertisement_header.cc"],
+    hdrs = ["ble_advertisement_header.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+        "//internal/platform/implementation/windows:__pkg__",
+    ],
+    deps = [
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform:util",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "bloom_filter",
+    srcs = ["bloom_filter.cc"],
+    hdrs = ["bloom_filter.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+        "//internal/platform/implementation/windows:__pkg__",
+    ],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform:types",
+        "@aappleby_smhasher//:libmurmur3",
+        "@com_google_absl//absl/numeric:int128",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "ble_v2",
     srcs = [
         "advertisement_read_result.cc",
         "ble_advertisement.cc",
-        "ble_advertisement_header.cc",
         "ble_packet.cc",
         "ble_utils.cc",
-        "bloom_filter.cc",
         "discovered_peripheral_tracker.cc",
         "instant_on_lost_advertisement.cc",
         "instant_on_lost_manager.cc",
@@ -30,10 +65,8 @@ cc_library(
     hdrs = [
         "advertisement_read_result.h",
         "ble_advertisement.h",
-        "ble_advertisement_header.h",
         "ble_packet.h",
         "ble_utils.h",
-        "bloom_filter.h",
         "discovered_peripheral_callback.h",
         "discovered_peripheral_tracker.h",
         "instant_on_lost_advertisement.h",
@@ -44,6 +77,8 @@ cc_library(
         "//connections/implementation:__subpackages__",
     ],
     deps = [
+        ":ble_advertisement_header",
+        ":bloom_filter",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums:utils",
         "//internal/flags:nearby_flags",
@@ -55,18 +90,15 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//proto/mediums:ble_frames_cc_proto",
-        "@aappleby_smhasher//:libmurmur3",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -84,7 +116,9 @@ cc_test(
         "instant_on_lost_manager_test.cc",
     ],
     deps = [
+        ":ble_advertisement_header",
         ":ble_v2",
+        ":bloom_filter",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums:utils",
         "//internal/flags:nearby_flags",
@@ -103,7 +137,6 @@ cc_test(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )
