@@ -44,7 +44,7 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
   MOCK_METHOD(void, StartAdvertising,
               (absl::string_view service_id,
                const std::vector<uint8_t>& endpoint_info,
-               AdvertisingOptions advertising_options,
+               const AdvertisingOptions& advertising_options,
                ConnectionListener advertising_listener,
                std::function<void(Status status)> callback),
               (override));
@@ -55,7 +55,8 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
               (override));
 
   MOCK_METHOD(void, StartDiscovery,
-              (absl::string_view service_id, DiscoveryOptions discovery_options,
+              (absl::string_view service_id,
+               const DiscoveryOptions& discovery_options,
                DiscoveryListener discovery_listener,
                std::function<void(Status status)> callback),
               (override));
@@ -69,7 +70,7 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
               (absl::string_view service_id,
                const std::vector<uint8_t>& endpoint_info,
                absl::string_view endpoint_id,
-               ConnectionOptions connection_options,
+               const ConnectionOptions& connection_options,
                ConnectionListener connection_listener,
                std::function<void(Status status)> callback),
               (override));

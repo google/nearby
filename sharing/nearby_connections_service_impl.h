@@ -43,14 +43,14 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
 
   void StartAdvertising(absl::string_view service_id,
                         const std::vector<uint8_t>& endpoint_info,
-                        AdvertisingOptions advertising_options,
+                        const AdvertisingOptions& advertising_options,
                         ConnectionListener advertising_listener,
                         std::function<void(Status status)> callback) override;
   void StopAdvertising(absl::string_view service_id,
                        std::function<void(Status status)> callback) override;
 
   void StartDiscovery(absl::string_view service_id,
-                      DiscoveryOptions discovery_options,
+                      const DiscoveryOptions& discovery_options,
                       DiscoveryListener discovery_listener,
                       std::function<void(Status status)> callback) override;
   void StopDiscovery(absl::string_view service_id,
@@ -59,7 +59,7 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
   void RequestConnection(absl::string_view service_id,
                          const std::vector<uint8_t>& endpoint_info,
                          absl::string_view endpoint_id,
-                         ConnectionOptions connection_options,
+                         const ConnectionOptions& connection_options,
                          ConnectionListener connection_listener,
                          std::function<void(Status status)> callback) override;
 

@@ -122,14 +122,14 @@ class NearbyConnectionsService {
 
   virtual void StartAdvertising(
       absl::string_view service_id, const std::vector<uint8_t>& endpoint_info,
-      AdvertisingOptions advertising_options,
+      const AdvertisingOptions& advertising_options,
       ConnectionListener advertising_listener,
       std::function<void(Status status)> callback) = 0;
   virtual void StopAdvertising(absl::string_view service_id,
                                std::function<void(Status status)> callback) = 0;
 
   virtual void StartDiscovery(absl::string_view service_id,
-                              DiscoveryOptions discovery_options,
+                              const DiscoveryOptions& discovery_options,
                               DiscoveryListener discovery_listener,
                               std::function<void(Status status)> callback) = 0;
   virtual void StopDiscovery(absl::string_view service_id,
@@ -137,7 +137,8 @@ class NearbyConnectionsService {
 
   virtual void RequestConnection(
       absl::string_view service_id, const std::vector<uint8_t>& endpoint_info,
-      absl::string_view endpoint_id, ConnectionOptions connection_options,
+      absl::string_view endpoint_id,
+      const ConnectionOptions& connection_options,
       ConnectionListener connection_listener,
       std::function<void(Status status)> callback) = 0;
 

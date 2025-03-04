@@ -200,24 +200,6 @@ struct MediumSelection {
 
 // Options for a call to NearbyConnections::StartAdvertising().
 struct AdvertisingOptions {
-  AdvertisingOptions() = default;
-  AdvertisingOptions(Strategy strategy, MediumSelection allowed_mediums,
-                     bool auto_upgrade_bandwidth,
-                     bool enforce_topology_constraints,
-                     bool enable_bluetooth_listening,
-                     bool enable_webrtc_listening,
-                     bool use_stable_endpoint_id,
-                     Uuid fast_advertisement_service_uuid) {
-    this->strategy = strategy;
-    this->allowed_mediums = allowed_mediums;
-    this->auto_upgrade_bandwidth = auto_upgrade_bandwidth;
-    this->enforce_topology_constraints = enforce_topology_constraints;
-    this->enable_bluetooth_listening = enable_bluetooth_listening;
-    this->enable_webrtc_listening = enable_webrtc_listening;
-    this->use_stable_endpoint_id = use_stable_endpoint_id;
-    this->fast_advertisement_service_uuid = fast_advertisement_service_uuid;
-  }
-
   // The strategy to use for advertising. Must match the strategy used in
   // DiscoveryOptions for remote devices to see this advertisement.
   Strategy strategy;
@@ -252,15 +234,6 @@ struct AdvertisingOptions {
 
 // Options for a call to NearbyConnections::StartDiscovery().
 struct DiscoveryOptions {
-  DiscoveryOptions() = default;
-  DiscoveryOptions(Strategy strategy, MediumSelection allowed_mediums,
-                   std::optional<Uuid> fast_advertisement_service_uuid,
-                   bool is_out_of_band_connection) {
-    this->strategy = strategy;
-    this->allowed_mediums = allowed_mediums;
-    this->fast_advertisement_service_uuid = fast_advertisement_service_uuid,
-    this->is_out_of_band_connection = is_out_of_band_connection;
-  }
   // The strategy to use for discovering. Must match the strategy used in
   // AdvertisingOptions in order to see advertisements.
   Strategy strategy;
@@ -278,20 +251,6 @@ struct DiscoveryOptions {
 
 // Options for a call to NearbyConnections::RequestConnection().
 struct ConnectionOptions {
-  ConnectionOptions() = default;
-  ConnectionOptions(
-      MediumSelection allowed_mediums,
-      std::optional<std::vector<uint8_t>> remote_bluetooth_mac_address,
-      std::optional<absl::Duration> keep_alive_interval,
-      std::optional<absl::Duration> keep_alive_timeout,
-      bool non_disruptive_hotspot_mode) {
-    this->allowed_mediums = allowed_mediums;
-    this->remote_bluetooth_mac_address = remote_bluetooth_mac_address;
-    this->keep_alive_interval = keep_alive_interval;
-    this->keep_alive_timeout = keep_alive_timeout;
-    this->non_disruptive_hotspot_mode = non_disruptive_hotspot_mode;
-  }
-
   // Describes which mediums are allowed to be used for connection. Note that
   // allowing an otherwise unsupported medium is ok. Only the intersection of
   // allowed and supported mediums will be used to connect.

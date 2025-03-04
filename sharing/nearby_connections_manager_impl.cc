@@ -252,15 +252,17 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
 
   nearby_connections_service_->StartAdvertising(
       kServiceId, endpoint_info,
-      AdvertisingOptions(
-          kStrategy, std::move(allowed_mediums), auto_upgrade_bandwidth,
-          /*enforce_topology_constraints=*/true,
-          /*enable_bluetooth_listening=*/use_ble,
-          /*enable_webrtc_listening=*/
-          ShouldEnableWebRtc(connectivity_manager_, data_usage, power_level),
-          /*use_stable_endpoint_id=*/use_stable_endpoint_id,
-          /*fast_advertisement_service_uuid=*/
-          fast_advertisement_service_uuid),
+      {
+          .strategy = kStrategy,
+          .allowed_mediums = std::move(allowed_mediums),
+          .auto_upgrade_bandwidth = auto_upgrade_bandwidth,
+          .enforce_topology_constraints = true,
+          .enable_bluetooth_listening = use_ble,
+          .enable_webrtc_listening = ShouldEnableWebRtc(
+              connectivity_manager_, data_usage, power_level),
+          .use_stable_endpoint_id = use_stable_endpoint_id,
+          .fast_advertisement_service_uuid = fast_advertisement_service_uuid,
+      },
       std::move(connection_listener), std::move(callback));
 }
 
@@ -310,9 +312,13 @@ void NearbyConnectionsManagerImpl::StartDiscovery(
 
   nearby_connections_service_->StartDiscovery(
       kServiceId,
-      DiscoveryOptions(kStrategy, std::move(allowed_mediums),
-                       Uuid(kFastAdvertisementServiceUuid),
-                       /*is_out_of_band_connection=*/false),
+      {
+          .strategy = kStrategy,
+          .allowed_mediums = std::move(allowed_mediums),
+          .fast_advertisement_service_uuid =
+              Uuid(kFastAdvertisementServiceUuid),
+          .is_out_of_band_connection = false,
+      },
       std::move(service_discovery_listener), std::move(callback));
 }
 
@@ -406,12 +412,12 @@ void NearbyConnectionsManagerImpl::Connect(
 
   nearby_connections_service_->RequestConnection(
       kServiceId, endpoint_info, endpoint_id,
-      ConnectionOptions(
-          std::move(allowed_mediums), std::move(bluetooth_mac_address),
-          /*keep_alive_interval=*/std::nullopt,
-          /*keep_alive_timeout=*/std::nullopt,
-          IsTransportTypeFlagsSet(transport_type,
-                                  TransportType::kHighQualityNonDisruptive)),
+      {
+          .allowed_mediums = std::move(allowed_mediums),
+          .remote_bluetooth_mac_address = std::move(bluetooth_mac_address),
+          .non_disruptive_hotspot_mode = IsTransportTypeFlagsSet(
+              transport_type, TransportType::kHighQualityNonDisruptive),
+      },
       std::move(connection_listener),
       [this, endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
         MutexLock lock(&mutex_);

@@ -68,7 +68,7 @@ NearbyConnectionsServiceImpl::~NearbyConnectionsServiceImpl() = default;
 
 void NearbyConnectionsServiceImpl::StartAdvertising(
     absl::string_view service_id, const std::vector<uint8_t>& endpoint_info,
-    AdvertisingOptions advertising_options,
+    const AdvertisingOptions& advertising_options,
     ConnectionListener advertising_listener,
     std::function<void(Status status)> callback) {
   advertising_listener_ = std::move(advertising_listener);
@@ -138,7 +138,7 @@ void NearbyConnectionsServiceImpl::StopAdvertising(
 }
 
 void NearbyConnectionsServiceImpl::StartDiscovery(
-    absl::string_view service_id, DiscoveryOptions discovery_options,
+    absl::string_view service_id, const DiscoveryOptions& discovery_options,
     DiscoveryListener discovery_listener,
     std::function<void(Status status)> callback) {
   discovery_listener_ = std::move(discovery_listener);
@@ -188,7 +188,7 @@ void NearbyConnectionsServiceImpl::StopDiscovery(
 
 void NearbyConnectionsServiceImpl::RequestConnection(
     absl::string_view service_id, const std::vector<uint8_t>& endpoint_info,
-    absl::string_view endpoint_id, ConnectionOptions connection_options,
+    absl::string_view endpoint_id, const ConnectionOptions& connection_options,
     ConnectionListener connection_listener,
     std::function<void(Status status)> callback) {
   connection_listener_ = std::move(connection_listener);
