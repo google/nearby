@@ -22,7 +22,6 @@ cc_library(
     name = "common",
     srcs = ["data_element.cc"],
     hdrs = ["data_element.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "//internal/platform:base",
         "//internal/platform:logging",
@@ -35,7 +34,6 @@ cc_library(
     name = "dct_advertisement",
     srcs = ["dct_advertisement.cc"],
     hdrs = ["dct_advertisement.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":common",
         "//internal/crypto_cros",
@@ -51,7 +49,6 @@ cc_library(
     name = "util",
     srcs = ["advertisement_util.cc"],
     hdrs = ["advertisement_util.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":dct_advertisement",
         "//internal/platform:base",

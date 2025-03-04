@@ -339,6 +339,17 @@ class ClientProxy final {
   // Sets the WebRTC non cellular network status.
   void SetWebRtcNonCellular(bool webrtc_non_cellular);
 
+  // Returns true if DCT advertising/scanning is enabled.
+  bool IsDctEnabled() const;
+
+  // Gets the DCT dedup value. This is used to dedup the same device name when
+  // scanning for multiple devices.
+  // It is 7 bits derived from the local endpoint ID.
+  uint8_t GetDctDedup() const;
+
+  // Updates the DCT device name before advertising.
+  void UpdateDctDeviceName(absl::string_view device_name);
+
   /** Bitmask for bt multiplex connection support. */
   // Note. Deprecates the first and second bit of BT_MULTIPLEX_ENABLED and
   // WIFI_LAN_MULTIPLEX_ENABLED and shift them to the third and the forth bit.
@@ -435,6 +446,15 @@ class ClientProxy final {
       api::OSName osName);
 
   std::string ToString(PayloadProgressInfo::Status status) const;
+
+  std::optional<std::string> GetEndpointIdForDct() const;
+
+  // The device name used for DCT advertising.
+  std::string dct_device_name_;
+  // The dedup value used for DCT advertising.
+  uint8_t dct_dedup_ = 0;
+  // The endpoint ID used for DCT advertising.
+  std::string dct_endpoint_id_;
 
   mutable RecursiveMutex mutex_;
   std::int64_t client_id_;

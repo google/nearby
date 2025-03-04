@@ -149,6 +149,27 @@ ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
     return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
   }
 
+  if (advertising_type == AdvertisingType::kDct) {
+    advertising_infos_.insert(
+        {service_id, AdvertisingInfo{.dct_advertisement = advertisement_bytes,
+                                     .power_level = power_level,
+                                     .advertising_type = advertising_type}});
+
+    if (!StartDctAdvertisingLocked(service_id, power_level,
+                                   advertisement_bytes)) {
+      LOG(ERROR) << "Failed to start BLE DCT advertising for service_id="
+                 << service_id;
+      advertising_infos_.erase(service_id);
+      return {Error(
+          OperationResultCode::CONNECTIVITY_BLE_START_ADVERTISING_FAILURE)};
+    }
+
+    LOG(INFO) << "Successfully started BLE DCT advertising for service_id="
+              << service_id << " with advetsiement data "
+              << absl::BytesToHexString(advertisement_bytes.AsStringView());
+    return {true};
+  }
+
   // Wrap the connections advertisement to the medium advertisement.
   ByteArray service_id_hash = mediums::bleutils::GenerateHash(
       service_id, mediums::BleAdvertisement::kServiceIdHashLength);
@@ -171,11 +192,9 @@ ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
   }
 
   advertising_infos_.insert(
-      {service_id,
-       AdvertisingInfo{.medium_advertisement = medium_advertisement,
-                       .power_level = power_level,
-                       .is_fast_advertisement =
-                           advertising_type == AdvertisingType::kFast}});
+      {service_id, AdvertisingInfo{.medium_advertisement = medium_advertisement,
+                                   .power_level = power_level,
+                                   .advertising_type = advertising_type}});
 
   // TODO(hais): need to update here after cros support RAII StartAdvertising.
   // After all platforms support RAII StartAdvertising, then we can stop
@@ -908,7 +927,7 @@ bool BleV2::StartAdvertisingLocked(const std::string& service_id) {
   }
 
   const AdvertisingInfo& info = it->second;
-  if (info.is_fast_advertisement) {
+  if (info.advertising_type == AdvertisingType::kFast) {
     return StartFastAdvertisingLocked(service_id, info.power_level,
                                       info.medium_advertisement);
   } else {
@@ -1076,6 +1095,20 @@ bool BleV2::StartGattAdvertisingLocked(
   }
 
   return true;
+}
+
+bool BleV2::StartDctAdvertisingLocked(const std::string& service_id,
+                                      PowerLevel power_level,
+                                      const ByteArray& dct_advertisement) {
+  BleAdvertisementData advertising_data;
+  advertising_data.is_extended_advertisement = false;
+  advertising_data.service_data.insert(
+      {mediums::bleutils::kDctServiceUuid, dct_advertisement});
+
+  return medium_.StartAdvertising(
+      advertising_data,
+      {.tx_power_level = PowerLevelToTxPowerLevel(power_level),
+       .is_connectable = false});
 }
 
 bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,

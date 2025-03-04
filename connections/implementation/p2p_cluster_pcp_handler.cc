@@ -16,7 +16,9 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -39,6 +41,8 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/advertisements/advertisement_util.h"
+#include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/implementation/mediums/ble_v2.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
@@ -2538,7 +2542,24 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
         local_endpoint_info, bluetooth_mac_address,
         /*uwb_address=*/ByteArray{}, web_rtc_state));
   }
-  if (advertisement_bytes.Empty()) {
+
+  ByteArray dct_advertisement_bytes;
+  if (client->IsDctEnabled()) {
+    // Try to read device name from local_endpoint_info.
+    std::optional<std::string> device_name =
+        advertisements::ReadDeviceName(local_endpoint_info);
+    // TODO(b/399740422): Get the real PSM from the L2CAP medium.
+    uint16_t psm = 0x11;
+    if (device_name.has_value()) {
+      std::optional<advertisements::ble::DctAdvertisement> dct_advertisement =
+          advertisements::ble::DctAdvertisement::Create(
+              service_id, *device_name, psm, client->GetDctDedup());
+      if (dct_advertisement.has_value()) {
+        dct_advertisement_bytes = ByteArray(dct_advertisement->ToData());
+      }
+    }
+  }
+  if (advertisement_bytes.Empty() && dct_advertisement_bytes.Empty()) {
     LOG(WARNING) << "In StartBleV2Advertising("
                  << absl::BytesToHexString(local_endpoint_info.data())
                  << "), client=" << client->GetClientId()
@@ -2552,12 +2573,19 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
             << "), client=" << client->GetClientId()
             << " generated BleAdvertisement with service_id=" << service_id;
 
-  ErrorOr<bool> ble_v2_result = ble_v2_medium_.StartAdvertising(
-      service_id, power_level,
-      advertising_options.fast_advertisement_service_uuid.empty()
-          ? BleV2::AdvertisingType::kRegular
-          : BleV2::AdvertisingType::kFast,
-      advertisement_bytes);
+  ErrorOr<bool> ble_v2_result = false;
+  if (dct_advertisement_bytes.Empty()) {
+    ble_v2_result = ble_v2_medium_.StartAdvertising(
+        service_id, power_level,
+        advertising_options.fast_advertisement_service_uuid.empty()
+            ? BleV2::AdvertisingType::kRegular
+            : BleV2::AdvertisingType::kFast,
+        advertisement_bytes);
+  } else {
+    ble_v2_result = ble_v2_medium_.StartAdvertising(
+        service_id, power_level, BleV2::AdvertisingType::kDct,
+        dct_advertisement_bytes);
+  }
   if (ble_v2_result.has_error()) {
     LOG(WARNING) << "In StartBleV2Advertising("
                  << absl::BytesToHexString(local_endpoint_info.data())

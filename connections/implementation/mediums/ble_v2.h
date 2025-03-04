@@ -166,8 +166,9 @@ class BleV2 final {
  private:
   struct AdvertisingInfo {
     mediums::BleAdvertisement medium_advertisement;
+    ByteArray dct_advertisement;
     PowerLevel power_level;
-    bool is_fast_advertisement;
+    AdvertisingType advertising_type;
   };
 
   // Same as IsAvailable(), but must be called with `mutex_` held.
@@ -229,6 +230,10 @@ class BleV2 final {
                                   PowerLevel power_level, int psm,
                                   const ByteArray& medium_advertisement_bytes,
                                   bool extended_advertisement_advertised)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartDctAdvertisingLocked(const std::string& service_id,
+                                 PowerLevel power_level,
+                                 const ByteArray& dct_advertisement)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   // Called by StartScanning when using the async methods.
   bool StartAsyncScanningLocked(absl::string_view service_id,
