@@ -102,6 +102,7 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
   void ClearPublicCertificates(std::function<void(bool)> callback) override;
   void SetVendorId(int32_t vendor_id) override {}
   std::string Dump() const override { return ""; }
+  bool UsingIdentityRpc() override { return true; }
 
   // Make protected methods from base class public in this fake class.
   using NearbyShareCertificateManager::NotifyPrivateCertificatesChanged;
