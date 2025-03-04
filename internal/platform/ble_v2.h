@@ -21,6 +21,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
@@ -28,10 +30,15 @@
 #include "absl/types/optional.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex.h"
+#include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -346,6 +353,17 @@ class BleV2Medium final {
             nearby::DefaultCallback<BleV2Peripheral,
                                     const api::ble_v2::BleAdvertisementData&>();
   };
+
+  // A wrapper callback for BLE scan results targeting multiple services.
+  struct MultipleServicesScanCallback {
+    absl::AnyInvocable<void(
+        const Uuid& service_uuid, BleV2Peripheral peripheral,
+        const api::ble_v2::BleAdvertisementData& advertisement_data)>
+        advertisement_found_cb =
+            nearby::DefaultCallback<const Uuid&, BleV2Peripheral,
+                                    const api::ble_v2::BleAdvertisementData&>();
+  };
+
   struct ServerGattConnectionCallback {
     using BlePeripheral = api::ble_v2::BlePeripheral;
     using GattCharacteristic = api::ble_v2::GattCharacteristic;
@@ -403,6 +421,12 @@ class BleV2Medium final {
   bool StartScanning(const Uuid& service_uuid,
                      api::ble_v2::TxPowerLevel tx_power_level,
                      ScanCallback callback);
+
+  // Returns true once the BLE multiple services scan has been initiated.
+  bool StartMultipleServicesScanning(const std::vector<Uuid>& service_uuids,
+                                     api::ble_v2::TxPowerLevel tx_power_level,
+                                     MultipleServicesScanCallback callback);
+
   // This interface will be deprecated soon.
   // TODO(b/271305977) remove this function.
   bool StopScanning();
@@ -452,6 +476,8 @@ class BleV2Medium final {
   absl::flat_hash_set<api::ble_v2::BlePeripheral*> peripherals_
       ABSL_GUARDED_BY(mutex_);
   ScanCallback scan_callback_ ABSL_GUARDED_BY(mutex_);
+  MultipleServicesScanCallback multiple_services_scan_callback_
+      ABSL_GUARDED_BY(mutex_);
   bool scanning_enabled_ ABSL_GUARDED_BY(mutex_) = false;
 };
 

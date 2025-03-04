@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -87,6 +88,44 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     // existing `peripherals_` if the scanning is not started successfully. If
     // scanning is started successfully, we need to clear `peripherals_` to
     // prevent the stale data in cache.
+    peripherals_.clear();
+    scanning_enabled_ = true;
+    NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
+  }
+  return success;
+}
+
+bool BleV2Medium::StartMultipleServicesScanning(
+    const std::vector<Uuid>& service_uuids,
+    api::ble_v2::TxPowerLevel tx_power_level,
+    MultipleServicesScanCallback callback) {
+  MutexLock lock(&mutex_);
+  if (scanning_enabled_) {
+    NEARBY_LOGS(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
+    return false;
+  }
+  bool success = impl_->StartMultipleServicesScanning(
+      service_uuids, tx_power_level,
+      api::ble_v2::BleMedium::MultipleServicesScanCallback{
+          .advertisement_found_cb =
+              [this](const Uuid& service_uuid,
+                     api::ble_v2::BlePeripheral& peripheral,
+                     const BleAdvertisementData& advertisement_data) {
+                MutexLock lock(&mutex_);
+                if (!peripherals_.contains(&peripheral)) {
+                  NEARBY_LOGS(INFO) << "Peripheral impl=" << &peripheral
+                                    << " does not exist; add it to the map.";
+                  peripherals_.insert(&peripheral);
+                }
+
+                BleV2Peripheral proxy(*this, peripheral);
+                if (!scanning_enabled_) return;
+                multiple_services_scan_callback_.advertisement_found_cb(
+                    service_uuid, std::move(proxy), advertisement_data);
+              },
+      });
+  if (success) {
+    multiple_services_scan_callback_ = std::move(callback);
     peripherals_.clear();
     scanning_enabled_ = true;
     NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();

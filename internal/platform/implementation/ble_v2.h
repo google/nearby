@@ -445,6 +445,39 @@ class BleMedium {
                              TxPowerLevel tx_power_level,
                              ScanCallback callback) = 0;
 
+  // Callback for BLE scans targeting multiple services.
+  //
+  // service_uuid: The UUID of the service discovered in the scan result.
+  // peripheral:  A platform-owned object representing the discovered
+  // peripheral. This object's lifetime extends for the duration of any
+  // connection to the device.
+  // advertisement_data: A combination of advertisement and scan response data.
+  //
+  // This callback is invoked for every discovered advertisement , even if the
+  // same advertisement has been seen previously.
+  //
+
+  struct MultipleServicesScanCallback {
+    absl::AnyInvocable<void(const Uuid& service_uuid, BlePeripheral& peripheral,
+                            const BleAdvertisementData& advertisement_data)>
+        advertisement_found_cb =
+            [](const Uuid&, BlePeripheral&, const BleAdvertisementData&) {};
+  };
+
+  // Starts multiple services scanning and returns whether or not it was
+  // successful.
+  //
+  // service_uuids: The UUIDs of the services to scan for. They are logical OR'd
+  // together.
+  // tx_power_level: The power level to use for the scan.
+  // callback: The callback to invoke for every discovered advertisement.
+
+  virtual bool StartMultipleServicesScanning(
+      const std::vector<Uuid>& service_uuids, TxPowerLevel tx_power_level,
+      MultipleServicesScanCallback callback) {
+    return false;
+  }
+
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#stopScan(android.bluetooth.le.ScanCallback)
   //
   // Stops scanning.
@@ -460,8 +493,8 @@ class BleMedium {
     absl::AnyInvocable<void(BlePeripheral& peripheral,
                             BleAdvertisementData advertisement_data)>
         advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
-    absl::AnyInvocable<void(BlePeripheral& peripheral)>
-        advertisement_lost_cb = [](BlePeripheral&) {};
+    absl::AnyInvocable<void(BlePeripheral& peripheral)> advertisement_lost_cb =
+        [](BlePeripheral&) {};
   };
 
   // Async interface for StartScanning.
