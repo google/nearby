@@ -129,7 +129,7 @@ class NearbyConnectionsService {
                                std::function<void(Status status)> callback) = 0;
 
   virtual void StartDiscovery(absl::string_view service_id,
-                              DiscoveryOptions discovery_options,
+                              const DiscoveryOptions& discovery_options,
                               DiscoveryListener discovery_listener,
                               std::function<void(Status status)> callback) = 0;
   virtual void StopDiscovery(absl::string_view service_id,

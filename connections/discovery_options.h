@@ -13,19 +13,22 @@
 // limitations under the License.
 #ifndef CORE_DISCOVERY_OPTIONS_H_
 #define CORE_DISCOVERY_OPTIONS_H_
+
+#include <cstdint>
 #include <string>
 
-#include "connections/medium_selector.h"
+#include "absl/container/flat_hash_map.h"
 #include "connections/options_base.h"
-#include "connections/power_level.h"
-#include "connections/strategy.h"
-#include "internal/platform/byte_array.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
 
-// Connection Options: used for both Advertising and Discovery.
+struct BleV2Options {
+  // A list of alternative BLE service UUID16s for a given Nearby service.
+  absl::flat_hash_map<uint16_t, std::string> alternate_uuids_for_service;
+};
+
+// Discovery Options: used for service discovery.
 // All fields are mutable, to make the type copy-assignable.
 struct DiscoveryOptions : OptionsBase {
   // Returns a copy and normalizes allowed mediums:
@@ -33,18 +36,18 @@ struct DiscoveryOptions : OptionsBase {
   //     medium allowed, defaulting to only Bluetooth if unspecified.
   // (2) If no mediums are allowed, allow all mediums.
   DiscoveryOptions CompatibleOptions() const;
-
   bool auto_upgrade_bandwidth = true;
   bool enforce_topology_constraints;
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
-
   // TODO(b/229927044): Replaces it as bool once Ble v1 is deprecated.
   std::string fast_advertisement_service_uuid;
 
   // If true, only low power mediums (like BLE) will be used for discovery.
   bool low_power = false;
+
+  BleV2Options ble_v2_options;
 };
 
 }  // namespace connections

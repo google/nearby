@@ -243,6 +243,8 @@ class NearbySharingService {
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;
   virtual AccountManager* GetAccountManager() = 0;
   virtual Clock& GetClock() = 0;
+  virtual void SetAlternateServiceUuidForDiscovery(
+      uint16_t alternate_service_uuid) = 0;
 };
 
 }  // namespace sharing

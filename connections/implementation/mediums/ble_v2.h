@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -110,6 +111,9 @@ class BleV2 final {
   bool StopLegacyAdvertising(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void AddAlternateUuidsForService(
+      const absl::flat_hash_map<uint16_t, std::string>&
+          alternate_uuids_for_service);
   // Enables BLE scanning for a service ID. Will report any discoverable
   // advertisement data through a callback.
   // Returns true, if the scanning is successfully enabled, false otherwise.
