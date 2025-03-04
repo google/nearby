@@ -456,7 +456,6 @@ class BleMedium {
   // This callback is invoked for every discovered advertisement , even if the
   // same advertisement has been seen previously.
   //
-
   struct MultipleServicesScanCallback {
     absl::AnyInvocable<void(const Uuid& service_uuid, BlePeripheral& peripheral,
                             const BleAdvertisementData& advertisement_data)>

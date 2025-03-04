@@ -482,6 +482,7 @@ cc_test(
         ":types",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
+        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
