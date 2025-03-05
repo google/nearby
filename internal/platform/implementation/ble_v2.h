@@ -445,24 +445,6 @@ class BleMedium {
                              TxPowerLevel tx_power_level,
                              ScanCallback callback) = 0;
 
-  // Callback for BLE scans targeting multiple services.
-  //
-  // service_uuid: The UUID of the service discovered in the scan result.
-  // peripheral:  A platform-owned object representing the discovered
-  // peripheral. This object's lifetime extends for the duration of any
-  // connection to the device.
-  // advertisement_data: A combination of advertisement and scan response data.
-  //
-  // This callback is invoked for every discovered advertisement , even if the
-  // same advertisement has been seen previously.
-  //
-  struct MultipleServicesScanCallback {
-    absl::AnyInvocable<void(const Uuid& service_uuid, BlePeripheral& peripheral,
-                            const BleAdvertisementData& advertisement_data)>
-        advertisement_found_cb =
-            [](const Uuid&, BlePeripheral&, const BleAdvertisementData&) {};
-  };
-
   // Starts multiple services scanning and returns whether or not it was
   // successful.
   //
@@ -473,7 +455,7 @@ class BleMedium {
 
   virtual bool StartMultipleServicesScanning(
       const std::vector<Uuid>& service_uuids, TxPowerLevel tx_power_level,
-      MultipleServicesScanCallback callback) {
+      ScanCallback callback) {
     return false;
   }
 

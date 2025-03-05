@@ -97,8 +97,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 
 bool BleV2Medium::StartMultipleServicesScanning(
     const std::vector<Uuid>& service_uuids,
-    api::ble_v2::TxPowerLevel tx_power_level,
-    MultipleServicesScanCallback callback) {
+    api::ble_v2::TxPowerLevel tx_power_level, ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
     NEARBY_LOGS(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
@@ -106,11 +105,10 @@ bool BleV2Medium::StartMultipleServicesScanning(
   }
   bool success = impl_->StartMultipleServicesScanning(
       service_uuids, tx_power_level,
-      api::ble_v2::BleMedium::MultipleServicesScanCallback{
+      api::ble_v2::BleMedium::ScanCallback{
           .advertisement_found_cb =
-              [this](const Uuid& service_uuid,
-                     api::ble_v2::BlePeripheral& peripheral,
-                     const BleAdvertisementData& advertisement_data) {
+              [this](api::ble_v2::BlePeripheral& peripheral,
+                     BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
                 if (!peripherals_.contains(&peripheral)) {
                   NEARBY_LOGS(INFO) << "Peripheral impl=" << &peripheral
@@ -120,12 +118,12 @@ bool BleV2Medium::StartMultipleServicesScanning(
 
                 BleV2Peripheral proxy(*this, peripheral);
                 if (!scanning_enabled_) return;
-                multiple_services_scan_callback_.advertisement_found_cb(
-                    service_uuid, std::move(proxy), advertisement_data);
+                scan_callback_.advertisement_found_cb(std::move(proxy),
+                                                      advertisement_data);
               },
       });
   if (success) {
-    multiple_services_scan_callback_ = std::move(callback);
+    scan_callback_ = std::move(callback);
     peripherals_.clear();
     scanning_enabled_ = true;
     NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();

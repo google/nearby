@@ -253,26 +253,24 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 
 bool BleV2Medium::StartMultipleServicesScanning(
     const std::vector<Uuid>& service_uuids,
-    api::ble_v2::TxPowerLevel tx_power_level,
-    MultipleServicesScanCallback callback) {
+    api::ble_v2::TxPowerLevel tx_power_level, ScanCallback callback) {
   NEARBY_LOGS(INFO) << "G3 Ble StartMultipleServicesScanning";
 
   absl::MutexLock lock(&mutex_);
-  multiple_services_scan_callback_ = std::move(callback);
+  scan_callback_ = std::move(callback);
   for (const auto& service_uuid : service_uuids) {
     auto internal_session_id = Prng().NextUint32();
-    ScanCallback scan_callback = {
-        .advertisement_found_cb = [this, service_uuid](
+    ScanCallback multiple_scan_callback = {
+        .advertisement_found_cb = [this](
                                       api::ble_v2::BlePeripheral& peripheral,
                                       BleAdvertisementData advertisement_data) {
-          multiple_services_scan_callback_.advertisement_found_cb(
-              service_uuid, peripheral, advertisement_data);
+          scan_callback_.advertisement_found_cb(peripheral, advertisement_data);
         }};
 
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
         /*enabled=*/true, service_uuid, internal_session_id,
         {.advertisement_found_cb =
-             std::move(scan_callback.advertisement_found_cb)},
+             std::move(multiple_scan_callback.advertisement_found_cb)},
         *this);
     scanning_internal_session_ids_.insert({service_uuid, internal_session_id});
   }

@@ -167,9 +167,8 @@ TEST_P(BleV2MediumTest, CanConnectToServiceWithMultipleServices) {
       {
           .advertisement_found_cb =
               [&found_latch, &discovered_peripheral](
-                  const Uuid& service_uuid, BleV2Peripheral peripheral,
+                  BleV2Peripheral peripheral,
                   const BleAdvertisementData& advertisement_data) {
-                EXPECT_EQ(service_uuid, Uuid(1234, 5678));
                 discovered_peripheral = std::move(peripheral);
                 found_latch.CountDown();
               },
@@ -242,14 +241,13 @@ TEST_P(BleV2MediumTest, CanDiscoverMultipleServices) {
       std::vector<Uuid>{service_uuid_a, service_uuid_b}, kTxPowerLevel,
       {.advertisement_found_cb =
            [&found_latch, &found_service_a, &found_service_b, &service_uuid_a,
-            &service_uuid_b](const Uuid& service_uuid,
-                             BleV2Peripheral peripheral,
+            &service_uuid_b](BleV2Peripheral peripheral,
                              const BleAdvertisementData& advertisement_data) {
-             if (service_uuid == service_uuid_a) {
+             if (advertisement_data.service_data.contains(service_uuid_a)) {
                found_service_a = true;
              }
 
-             if (service_uuid == service_uuid_b) {
+             if (advertisement_data.service_data.contains(service_uuid_b)) {
                found_service_b = true;
              }
              if (found_service_a && found_service_b) {
