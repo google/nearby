@@ -15,12 +15,10 @@
 #include "internal/platform/implementation/windows/ble_v2.h"
 
 #include <algorithm>
-#include <array>
 #include <chrono>  // NOLINT
 #include <cstddef>
 #include <cstdint>
 #include <exception>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -31,10 +29,14 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "connections/implementation/mediums/ble_v2/bloom_filter.h"
+#include "connections/implementation/mediums/utils.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -63,6 +65,8 @@ namespace windows {
 
 namespace {
 
+using ::absl::Milliseconds;
+using ::absl::Minutes;
 using ::nearby::api::ble_v2::AdvertiseParameters;
 using ::nearby::api::ble_v2::BleAdvertisementData;
 using ::nearby::api::ble_v2::BleServerSocket;
@@ -70,6 +74,9 @@ using ::nearby::api::ble_v2::BleSocket;
 using ::nearby::api::ble_v2::GattClient;
 using ::nearby::api::ble_v2::ServerGattConnectionCallback;
 using ::nearby::api::ble_v2::TxPowerLevel;
+using ::nearby::connections::mediums::BitSetImpl;
+using ::nearby::connections::mediums::BleAdvertisementHeader;
+using ::nearby::connections::mediums::BloomFilter;
 using ::winrt::Windows::Devices::Bluetooth::BluetoothError;
 using ::winrt::Windows::Devices::Bluetooth::BluetoothLEDevice;
 using ::winrt::Windows::Devices::Bluetooth::Advertisement::
@@ -121,18 +128,41 @@ std::string TxPowerLevelToName(TxPowerLevel tx_power_level) {
   }
 }
 
+// Creates a fake AdvertisementHeader for when an alternate service UUID is
+// discovered, to trigger retrieval of GATT characteristics.
+// Use the device MAC address as the advertisement hash so that we have a unique
+// advertisement header for each device.
+BleAdvertisementHeader CreateAdvertisementHeader(
+    const std::string& mac_address,
+    const std::vector<std::string>& service_ids) {
+  BloomFilter bloom_filter(
+      std::make_unique<BitSetImpl<
+          BleAdvertisementHeader::kServiceIdBloomFilterByteLength>>());
+  for (const auto& service_id : service_ids) {
+    bloom_filter.Add(service_id);
+  }
+  return BleAdvertisementHeader(
+      BleAdvertisementHeader::Version::kV2,
+      /*support_extended_advertisement=*/false,
+      /*num_slots=*/1, ByteArray(bloom_filter),
+      /*advertisement_hash=*/
+      connections::Utils::Sha256Hash(
+          mac_address, BleAdvertisementHeader::kAdvertisementHashByteLength),
+      /*psm=*/BleAdvertisementHeader::kDefaultPsmValue);
+}
+
 // Max times trying to generate unused session id.
 static constexpr uint64_t kGenerateSessionIdRetryLimit = 3;
 // Indicating failed to generate unused session id.
 static constexpr uint64_t kFailedGenerateSessionId = 0;
 
-constexpr absl::Duration kMediumTimeout = absl::Milliseconds(500);
-constexpr absl::Duration kMediumCheckInterval = absl::Milliseconds(50);
+constexpr absl::Duration kMediumTimeout = Milliseconds(500);
+constexpr absl::Duration kMediumCheckInterval = Milliseconds(50);
 
 // Remove lost/unused peripherals after a timeout.
-constexpr absl::Duration kPeripheralExpiryTime = absl::Minutes(15);
+constexpr absl::Duration kPeripheralExpiryTime = Minutes(15);
 // Prevent too frequent cleanup tasks.
-constexpr absl::Duration kMaxPeripheralCleanupFrequency = absl::Minutes(3);
+constexpr absl::Duration kMaxPeripheralCleanupFrequency = Minutes(3);
 
 // The most significant bits and the least significant bits or Bluetooth Base
 // UUID.
@@ -428,8 +458,23 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
   if (watcher == nullptr) {
     return false;
   }
-  watchers_.push_back(std::move(watcher));
 
+  // Watch for alternate service UUIDs only if extended advertising is not
+  // supported.
+  if (!adapter_->IsExtendedAdvertisingSupported()) {
+    watchers_.reserve(alternate_uuids_for_service_.size() + 1);
+    for (const auto& [alternate_uuid16, service_id] :
+         alternate_uuids_for_service_) {
+      std::unique_ptr<AdvertisementWatcher> alternate_watcher =
+          CreateBleWatcher(alternate_uuid16);
+      if (alternate_watcher == nullptr) {
+        watchers_.clear();
+        return false;
+      }
+      watchers_.push_back(std::move(alternate_watcher));
+    }
+  }
+  watchers_.push_back(std::move(watcher));
   LOG(INFO) << __func__ << ": BLE scanning started.";
   return true;
 }
@@ -1099,6 +1144,10 @@ void BleV2Medium::AdvertisementReceivedHandler(
   // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
   // 0x16 Service Data) has been received in the handler
   BluetoothLEAdvertisement advertisement = args.Advertisement();
+  std::string bluetooth_address =
+      uint64_to_mac_address_string(args.BluetoothAddress());
+  bool has_primary_service_data = false;
+  std::vector<std::string> alt_service_ids;
 
   for (BluetoothLEAdvertisementDataSection service_data :
        advertisement.GetSectionsByType(kUuid16ServiceDataType)) {
@@ -1125,8 +1174,6 @@ void BleV2Medium::AdvertisementReceivedHandler(
               << absl::BytesToHexString(advertisement_data.AsStringView())
               << "(" << advertisement_data.size() << ")";
 
-      std::string bluetooth_address =
-          uint64_to_mac_address_string(args.BluetoothAddress());
       BleV2Peripheral* peripheral_ptr = nullptr;
       {
         absl::MutexLock lock(&mutex_);
@@ -1151,9 +1198,39 @@ void BleV2Medium::AdvertisementReceivedHandler(
 
       ble_advertisement_data.service_data[service_uuid_] = advertisement_data;
 
+      has_primary_service_data = true;
       scan_callback_.advertisement_found_cb(*peripheral_ptr,
                                             ble_advertisement_data);
+    } else {
+      absl::MutexLock lock(&mutex_);
+      const auto& alternate_it =
+          alternate_uuids_for_service_.find(service_uuid16);
+      if (alternate_it != alternate_uuids_for_service_.end()) {
+        alt_service_ids.push_back(alternate_it->second);
+      }
     }
+  }
+  // Only process alternate service data if there is no primary service data.
+  if (!has_primary_service_data && !alt_service_ids.empty()) {
+    BleV2Peripheral* peripheral_ptr = nullptr;
+    {
+      absl::MutexLock lock(&mutex_);
+      peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
+      if (peripheral_ptr == nullptr) {
+        LOG(ERROR) << "No BLE peripheral with address: " << bluetooth_address;
+        return;
+      }
+    }
+    LOG(INFO) << "Found BLE peripheral for with address: " << bluetooth_address
+              << " for services: " << absl::StrJoin(alt_service_ids, ",");
+    // Create fake advertisement data.
+    api::ble_v2::BleAdvertisementData ble_advertisement_data;
+    ble_advertisement_data.is_extended_advertisement = false;
+    BleAdvertisementHeader header =
+        CreateAdvertisementHeader(bluetooth_address, alt_service_ids);
+    ble_advertisement_data.service_data[service_uuid_] = ByteArray(header);
+    scan_callback_.advertisement_found_cb(*peripheral_ptr,
+                                          ble_advertisement_data);
   }
 }
 

@@ -50,6 +50,8 @@ cc_library(
         "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
+        "//connections/implementation/mediums/ble_v2:ble_advertisement_header",
+        "//connections/implementation/mediums/ble_v2:bloom_filter",
         "//connections/implementation/mediums/multiplex",
         "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",

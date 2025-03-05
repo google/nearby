@@ -758,7 +758,8 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
         // Make sure we are still discovering before proceeding.
         if (!client->IsDiscovering() || stop_.Get()) {
           LOG(WARNING) << "Skipping discovery of BleAdvertisement header "
-                       << absl::BytesToHexString(advertisement_bytes.data())
+                       << absl::BytesToHexString(
+                              advertisement_bytes.AsStringView())
                        << " because we are no longer discovering.";
           return;
         }
@@ -781,7 +782,10 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
 
         // Make sure the BLE advertisement points to a valid
         // endpoint we're discovering.
-        if (!IsRecognizedBleV2Endpoint(service_id, advertisement)) return;
+        if (!IsRecognizedBleV2Endpoint(service_id, advertisement)) {
+          LOG(ERROR) << "IsRecognizedBleV2Endpoint failed";
+          return;
+        }
 
         // Report the discovered endpoint to the client.
         BleV2EndpointState ble_endpoint_state;

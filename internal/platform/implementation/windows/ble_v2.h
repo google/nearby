@@ -226,6 +226,15 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   absl::flat_hash_map<BleV2Peripheral::UniqueId, PeripheralInfo> peripheral_map_
       ABSL_GUARDED_BY(mutex_);
   absl::Time cleanup_time_ ABSL_GUARDED_BY(mutex_) = absl::Now();
+  // Map of alternative BLE service UUID16s for a given Nearby service.
+  // If a device does not support BLE extended advertisements, an alternate
+  // service UUID16 may be used to trigger a GATT connection to retrieve GATT
+  // characteristics for the Nearby service.
+  // This is needed if the addition of the normal service data for the
+  // Copresence service uuid causes the advertisement packet to exceed the
+  // maximum size.
+  absl::flat_hash_map<uint16_t, std::string> alternate_uuids_for_service_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace windows
