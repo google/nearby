@@ -45,6 +45,7 @@ cc_library(
     ],
     deps = [
         "//connections/implementation/flags:connections_flags",
+        "//connections/implementation/mediums:lost_entity_tracker",
         "//connections/implementation/mediums:utils",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
@@ -66,7 +67,6 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:optional",
     ],
 )
 
@@ -103,7 +103,6 @@ cc_test(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )

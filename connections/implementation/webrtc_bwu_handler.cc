@@ -26,10 +26,10 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/webrtc_endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
@@ -42,6 +42,22 @@ namespace {
 using ::location::nearby::connections::LocationHint;
 using ::location::nearby::connections::LocationStandard;
 using ::location::nearby::proto::connections::OperationResultCode;
+
+LocationHint BuildLocationHint(const std::string& location) {
+  LocationHint location_hint;
+  location_hint.set_format(LocationStandard::UNKNOWN);
+
+  if (!location.empty()) {
+    location_hint.set_location(location);
+    if (location.at(0) == '+') {
+      location_hint.set_format(LocationStandard::E164_CALLING);
+    } else {
+      location_hint.set_format(LocationStandard::ISO_3166_1_ALPHA_2);
+    }
+  }
+  return location_hint;
+}
+
 }  // namespace
 
 WebrtcBwuHandler::WebrtcIncomingSocket::WebrtcIncomingSocket(
@@ -122,7 +138,7 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   LocationHint location_hint =
-      Utils::BuildLocationHint(webrtc_.GetDefaultCountryCode());
+      BuildLocationHint(webrtc_.GetDefaultCountryCode());
 
   mediums::WebrtcPeerId self_id{mediums::WebrtcPeerId::FromRandom()};
   if (!webrtc_.IsAcceptingConnections(upgrade_service_id)) {

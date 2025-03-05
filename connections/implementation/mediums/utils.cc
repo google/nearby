@@ -30,9 +30,6 @@ namespace {
 constexpr int kDefaultSaltLength = 16;
 }  // namespace
 
-using ::location::nearby::connections::LocationHint;
-using ::location::nearby::connections::LocationStandard;
-
 ByteArray Utils::GenerateRandomBytes(size_t length) {
   Prng prng;
   std::string data;
@@ -61,21 +58,6 @@ ByteArray Utils::Sha256Hash(const std::string& source, size_t length) {
   ByteArray full_hash(length);
   full_hash.CopyAt(0, Crypto::Sha256(source));
   return full_hash;
-}
-
-LocationHint Utils::BuildLocationHint(const std::string& location) {
-  LocationHint location_hint;
-  location_hint.set_format(LocationStandard::UNKNOWN);
-
-  if (!location.empty()) {
-    location_hint.set_location(location);
-    if (location.at(0) == '+') {
-      location_hint.set_format(LocationStandard::E164_CALLING);
-    } else {
-      location_hint.set_format(LocationStandard::ISO_3166_1_ALPHA_2);
-    }
-  }
-  return location_hint;
 }
 
 // Generates salts.

@@ -119,6 +119,7 @@ cc_library(
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums",
         "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums:webrtc_utils",
         "//connections/implementation/mediums/advertisements:dct_advertisement",
         "//connections/implementation/mediums/advertisements:util",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",

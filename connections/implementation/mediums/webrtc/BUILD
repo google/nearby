@@ -36,7 +36,7 @@ cc_library(
     deps = [
         ":data_types",
         "//connections:core_types",
-        "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums:webrtc_utils",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:types",
@@ -86,7 +86,7 @@ cc_test(
     deps = [
         ":data_types",
         ":webrtc",
-        "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums:webrtc_utils",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
