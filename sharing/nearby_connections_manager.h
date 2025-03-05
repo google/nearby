@@ -112,6 +112,7 @@ class NearbyConnectionsManager {
   // `listener` remains valid until StopDiscovery is called.
   virtual void StartDiscovery(DiscoveryListener* listener,
                               proto::DataUsage data_usage,
+                              std::optional<uint16_t> alternate_service_uuid,
                               ConnectionsCallback callback) = 0;
 
   // Stops discovery through Nearby Connections.

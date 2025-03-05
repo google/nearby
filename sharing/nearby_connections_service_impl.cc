@@ -19,19 +19,16 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
-#include "connections/payload.h"
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/logging.h"
@@ -156,6 +153,12 @@ void NearbyConnectionsServiceImpl::StartDiscovery(
 
   options.is_out_of_band_connection =
       discovery_options.is_out_of_band_connection;
+
+  if (discovery_options.alternate_service_uuid.has_value()) {
+    options.ble_options.alternate_uuid =
+        discovery_options.alternate_service_uuid;
+  }
+
   NcDiscoveryListener listener;
   listener.endpoint_found_cb = [this](const std::string& endpoint_id,
                                       const NcByteArray& endpoint_info,

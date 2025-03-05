@@ -247,6 +247,9 @@ struct DiscoveryOptions {
   // inject discovery information synced outside the Nearby Connections library.
   // Intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
+  // An optional UUID16 to use for BLE discovery if the normal service data
+  // UUID causes the advertisement packet to exceed the maximum size.
+  std::optional<uint16_t> alternate_service_uuid;
 };
 
 // Options for a call to NearbyConnections::RequestConnection().

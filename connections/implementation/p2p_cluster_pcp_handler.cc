@@ -2619,6 +2619,10 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Scanning(
               << service_id;
     return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
   }
+  if (discovery_options.ble_options.alternate_uuid.has_value()) {
+    ble_v2_medium_.AddAlternateUuidForService(
+        *discovery_options.ble_options.alternate_uuid, service_id);
+  }
   ErrorOr<bool> ble_v2_result = ble_v2_medium_.StartScanning(
       service_id, power_level,
       {

@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/ble_v2.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -369,6 +370,12 @@ bool BleV2::StopLegacyAdvertising(const std::string& input_service_id) {
   service_ids_to_advertising_sessions_.erase(legacy_device_advertising_session);
   LOG(INFO) << "Removed advertising-session for " << service_id;
   return status.ok();
+}
+
+void BleV2::AddAlternateUuidForService(
+    uint16_t uuid, const std::string& service_id) {
+  MutexLock lock(&mutex_);
+  medium_.AddAlternateUuidForService(uuid, service_id);
 }
 
 ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,

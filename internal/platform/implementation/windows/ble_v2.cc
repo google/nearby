@@ -24,6 +24,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/numbers.h"
@@ -649,6 +650,8 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 
 bool BleV2Medium::StopScanning() {
   absl::MutexLock lock(&mutex_);
+
+  alternate_uuids_for_service_.clear();
 
   LOG(INFO) << __func__ << ": BLE StopScanning: service_uuid: "
             << absl::StrCat(absl::Hex(service_uuid16_));
@@ -1412,6 +1415,12 @@ void BleV2Medium::RemoveExpiredPeripherals() {
       ++it;
     }
   }
+}
+
+void BleV2Medium::AddAlternateUuidForService(uint16_t uuid,
+                                             const std::string& service_id) {
+  absl::MutexLock lock(&mutex_);
+  alternate_uuids_for_service_[uuid] = service_id;
 }
 
 }  // namespace windows

@@ -90,6 +90,9 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                            GetRemotePeripheralCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void AddAlternateUuidForService(uint16_t uuid,
+                                  const std::string& service_id) override;
+
  private:
   friend class BleV2MediumTest;
 

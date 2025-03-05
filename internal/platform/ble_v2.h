@@ -15,6 +15,7 @@
 #ifndef PLATFORM_PUBLIC_BLE_V2_H_
 #define PLATFORM_PUBLIC_BLE_V2_H_
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -456,6 +457,10 @@ class BleV2Medium final {
 
   api::ble_v2::BleMedium* GetImpl() const { return impl_.get(); }
   BluetoothAdapter& GetAdapter() { return adapter_; }
+  void AddAlternateUuidForService(uint16_t uuid,
+                                  const std::string& service_id) {
+    impl_->AddAlternateUuidForService(uuid, service_id);
+  }
 
  private:
   Mutex mutex_;

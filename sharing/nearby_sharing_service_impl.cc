@@ -2168,7 +2168,8 @@ void NearbySharingServiceImpl::StartScanning() {
   scanning_session_id_ = analytics_recorder_.GenerateNextId();
 
   nearby_connections_manager_->StartDiscovery(
-      /*listener=*/this, settings_->GetDataUsage(), [this](Status status) {
+      /*listener=*/this, settings_->GetDataUsage(), alternate_service_uuid_,
+      [this](Status status) {
         // Log analytics event of starting discovery.
         analytics::AnalyticsInformation analytics_information;
         analytics_information.send_surface_state =

@@ -538,6 +538,9 @@ class BleMedium {
   // Otherwise, does not call the callback and returns false.
   virtual bool GetRemotePeripheral(BlePeripheral::UniqueId id,
                                    GetRemotePeripheralCallback callback) = 0;
+
+  virtual void AddAlternateUuidForService(uint16_t uuid,
+                                          const std::string& service_id) {};
 };
 
 }  // namespace ble_v2

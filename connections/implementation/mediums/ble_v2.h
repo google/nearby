@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -109,6 +110,14 @@ class BleV2 final {
   // Stop Ble advertising with dummy bytes for legagy device.
   bool StopLegacyAdvertising(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Adds an alternative BLE service UUID16s for a given Nearby service
+  // id. If a device does not support BLE extended advertisements, an alternate
+  // service UUID16 may be used to trigger a GATT connection to retrieve GATT
+  // characteristics for the Nearby service
+  // These alternate uuids are active until the next call to `StopScanning`.
+  void AddAlternateUuidForService(
+      uint16_t uuid, const std::string& service_id);
 
   // Enables BLE scanning for a service ID. Will report any discoverable
   // advertisement data through a callback.
