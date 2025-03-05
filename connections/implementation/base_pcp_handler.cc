@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -43,6 +44,7 @@
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
@@ -246,6 +248,18 @@ Status BasePcpHandler::StartAdvertising(
           // client#StartedAdvertising.
           if (ShouldEnterHighVisibilityMode(compatible_advertising_options)) {
             client->EnterHighVisibilityMode();
+          }
+        }
+
+        if (client->IsDctEnabled()) {
+          // Update the device name.
+          std::optional<std::string> device_name =
+              nearby::connections::advertisements::ReadDeviceName(
+                  info.endpoint_info);
+          if (device_name.has_value()) {
+            client->UpdateDctDeviceName(device_name.value());
+          } else {
+            LOG(ERROR) << "DCT only supports everyone mode for now.";
           }
         }
 
