@@ -122,6 +122,27 @@
   _isAdvertising = false;
 }
 
+- (void)publishL2CAPChannelWithEncryption:(BOOL)encryptionRequired {
+  CBL2CAPPSM localPSM = 0;
+  if (!_didPublishL2CAPChannelError) {
+    localPSM = _PSM;
+  }
+  [peripheralDelegate gnc_peripheralManager:self
+                     didPublishL2CAPChannel:localPSM
+                                      error:_didPublishL2CAPChannelError];
+  if (!_didPublishL2CAPChannelError) {
+    [peripheralDelegate gnc_peripheralManager:self
+                          didOpenL2CAPChannel:[[CBL2CAPChannel alloc] init]
+                                        error:nil];
+  }
+}
+
+- (void)unpublishL2CAPChannel:(CBL2CAPPSM)PSM {
+  [peripheralDelegate gnc_peripheralManager:self
+                   didUnpublishL2CAPChannel:_PSM
+                                      error:_didUnPublishL2CAPChannelError];
+}
+
 #pragma mark - Testing Helpers
 
 - (NSArray<CBService *> *)services {

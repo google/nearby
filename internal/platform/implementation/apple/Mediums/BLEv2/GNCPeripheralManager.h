@@ -118,6 +118,20 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)stopAdvertising;
 
+/**
+ * Publishes an L2CAP channel with optional encryption.
+ *
+ * @param encryptionRequired A boolean value indicating whether encryption is required for the L2CAP channel.
+ */
+- (void)publishL2CAPChannelWithEncryption:(BOOL)encryptionRequired;
+
+/**
+ * Unpublishes an L2CAP channel.
+ *
+ * @param PSM The @c PSM (Protocol/Service Multiplexer) value assigned to the published channel.
+ */
+- (void)unpublishL2CAPChannel:(CBL2CAPPSM)PSM;
+
 @end
 
 /**
@@ -156,6 +170,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param peripheral The peripheral manager that is starting advertising.
  * @param error The reason the call failed, or @c nil if no error occurred.
  */
+@optional
 - (void)gnc_peripheralManagerDidStartAdvertising:(id<GNCPeripheralManager>)peripheral
                                            error:(nullable NSError *)error;
 
@@ -171,6 +186,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param service The service added to the local GATT database.
  * @param error The reason the call failed, or @c nil if no error occurred.
  */
+@optional
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
                 didAddService:(CBService *)service
                         error:(nullable NSError *)error;
@@ -186,8 +202,48 @@ NS_ASSUME_NONNULL_BEGIN
  * @param request A @c CBATTRequest object that represents a request to read a characteristic’s
  *                value.
  */
+@optional
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
         didReceiveReadRequest:(CBATTRequest *)request;
+
+/**
+ * Called when an L2CAP channel has been published by the peripheral.
+ *
+ * @param peripheral The peripheral that published the L2CAP channel.
+ * @param PSM The @c PSM (Protocol/Service Multiplexer) value assigned to the published channel.
+ * @param error An error object indicating why the channel failed to publish, or @c nil if
+ * successful.
+ */
+@optional
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+       didPublishL2CAPChannel:(CBL2CAPPSM)PSM
+                        error:(nullable NSError *)error;
+
+/**
+ * Called when an L2CAP channel has been unpublished by the peripheral.
+ *
+ * @param peripheral The peripheral that unpublished the L2CAP channel.
+ * @param PSM The @c PSM (Protocol/Service Multiplexer) value assigned to the unpublished channel.
+ * @param error An error object indicating why the channel failed to unpublish, or @c nil if
+ * successful.
+ */
+@optional
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+     didUnpublishL2CAPChannel:(CBL2CAPPSM)PSM
+                        error:(NSError *)error;
+
+/**
+ * Called when an L2CAP channel has been opened by the peripheral.
+ *
+ * @param peripheral The peripheral that opened the L2CAP channel.
+ * @param channel The opened L2CAP channel, or nil if an error occurred.
+ * @param error An error object indicating why the channel failed to
+ * open, or @c nil if successful.
+ */
+@optional
+- (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
+          didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
+                        error:(nullable NSError *)error;
 
 @end
 

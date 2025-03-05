@@ -35,6 +35,9 @@ NS_ASSUME_NONNULL_BEGIN
 /** The data being advertised. */
 @property(nonatomic, nullable, readonly) NSDictionary<NSString *, id> *advertisementData;
 
+/** The PSM of the L2CAP channel. */
+@property(nonatomic) CBL2CAPPSM PSM;
+
 /** Expectation fulfilled when peripheral responds to a request with success. */
 @property(nonatomic, readonly) XCTestExpectation *respondToRequestSuccessExpectation;
 
@@ -58,6 +61,24 @@ NS_ASSUME_NONNULL_BEGIN
  * method with the provided error.
  */
 @property(nonatomic, nullable, readwrite) NSError *didStartAdvertisingError;
+
+/**
+ * Similates a @c publishL2CAPChannel: error.
+ *
+ * Setting this error to a value other than @c nil will simulate a failure when calling @c
+ * publishL2CAPChannel: and will call the @c gnc_peripheralManager:didPublishL2CAPChannel:error:
+ * delegate method with the provided error.
+ */
+@property(nonatomic, nullable, readwrite) NSError *didPublishL2CAPChannelError;
+
+/**
+ * Similates a @c unpublishL2CAPChannel: error.
+ *
+ * Setting this error to a value other than @c nil will simulate a failure when calling @c
+ * unpublishL2CAPChannel: and will call the @c gnc_peripheralManager:didUnpublishL2CAPChannel:error:
+ * delegate method with the provided error.
+ */
+@property(nonatomic, nullable, readwrite) NSError *didUnPublishL2CAPChannelError;
 
 /**
  * Simulates a state update event.
