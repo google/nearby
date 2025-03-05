@@ -92,6 +92,8 @@ class ServerRunnable final {
         listener_(std::move(listener)) {}
 
   void operator()() {
+    NEARBY_LOGS(INFO)
+        << "EncryptionRunner::ServerRunnable operator()() called.";
     CancelableAlarm timeout_alarm(
         "EncryptionRunner.StartServer() timeout",
         [this]() { CancelableAlarmRunnable(client_, endpoint_id_, channel_); },
@@ -106,7 +108,12 @@ class ServerRunnable final {
     }
 
     // Message 1 (Client Init)
+    NEARBY_LOGS(INFO) << "client_init = channel_->Read() called.";
+    if (channel_ == nullptr) {
+      NEARBY_LOGS(INFO) << "channel_ is null.";
+    }
     ExceptionOr<ByteArray> client_init = channel_->Read();
+    NEARBY_LOGS(INFO) << "client_init = channel_->Read() finished.";
     if (!client_init.ok()) {
       LogException();
       HandleHandshakeOrIoException(&timeout_alarm);
@@ -256,6 +263,10 @@ class ClientRunnable final {
       return;
     }
 
+    if (channel_ == nullptr) {
+      NEARBY_LOGS(INFO) << "channel_ is null.";
+    }
+
     Exception write_init_exception = channel_->Write(ByteArray(*client_init));
     if (!write_init_exception.Ok()) {
       LogException();
@@ -363,6 +374,11 @@ void EncryptionRunner::StartServer(ClientProxy* client,
                                    const std::string& endpoint_id,
                                    EndpointChannel* endpoint_channel,
                                    EncryptionRunner::ResultListener listener) {
+  NEARBY_LOGS(INFO) << "EncryptionRunner::StartServer() called.";
+  if (endpoint_channel == nullptr) {
+    NEARBY_LOGS(INFO) << "endpoint_channel is null.";
+    return;
+  }
   ServerRunnable runnable(client, &alarm_executor_, endpoint_id,
                           endpoint_channel, std::move(listener));
   server_executor_.Execute("encryption-server", std::move(runnable));
@@ -378,6 +394,7 @@ void EncryptionRunner::StartClient(ClientProxy* client,
 }
 
 void EncryptionRunner::Shutdown() {
+  NEARBY_LOGS(INFO) << "EncryptionRunner::Shutdown() called.";
   if (is_stopped_.Set(true)) {
     return;
   }
