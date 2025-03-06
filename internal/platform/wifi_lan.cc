@@ -56,6 +56,11 @@ MediumSocket* WifiLanSocket::CreateVirtualSocket(
   return virtual_socket.get();
 }
 
+void WifiLanMedium::SetIncludePeerToPeerForApplePlatform(
+    bool include_peer_to_peer) {
+  return impl_->SetIncludePeerToPeerForApplePlatform(include_peer_to_peer);
+}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return impl_->StartAdvertising(nsd_service_info);
 }

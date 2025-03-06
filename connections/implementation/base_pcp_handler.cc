@@ -110,6 +110,8 @@ using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PresenceDevice;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::location::nearby::proto::connections::Medium::NW_P2P_FOR_APPLE;
+using ::location::nearby::proto::connections::Medium::WIFI_LAN;
 using ::securegcm::UKey2Handshake;
 
 BasePcpHandler::BasePcpHandler(Mediums* mediums,
@@ -1826,6 +1828,33 @@ bool BasePcpHandler::NeedsToTurnOffAdvertisingMedium(
                     medium) != new_disabled_mediums.end());
 }
 
+bool BasePcpHandler::NeedsToTurnOffWifiLanAdvertising(
+    const AdvertisingOptions& old_options,
+    const AdvertisingOptions& new_options) {
+  auto old_enabled_mediums = old_options.allowed.GetMediums(/*value=*/true);
+  auto new_enabled_mediums = new_options.allowed.GetMediums(/*value=*/true);
+
+  // Get the old mediums enabled status for WIFI_LAN and NW_P2P_FOR_APPLE.
+  bool old_wifi_lan_enabled =
+      std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),
+                WIFI_LAN) != old_enabled_mediums.end();
+  bool old_awdl_enabled =
+      std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),
+                NW_P2P_FOR_APPLE) != old_enabled_mediums.end();
+
+  // Get the new mediums enabled status for WIFI_LAN and NW_P2P_FOR_APPLE.
+  bool new_wifi_lan_enabled =
+      std::find(new_enabled_mediums.begin(), new_enabled_mediums.end(),
+                WIFI_LAN) != new_enabled_mediums.end();
+  bool new_awdl_enabled =
+      std::find(new_enabled_mediums.begin(), new_enabled_mediums.end(),
+                NW_P2P_FOR_APPLE) != new_enabled_mediums.end();
+
+  // Return true if the old and new mediums enabled status are different.
+  return old_wifi_lan_enabled != new_wifi_lan_enabled ||
+         old_awdl_enabled != new_awdl_enabled;
+}
+
 bool BasePcpHandler::NeedsToTurnOffDiscoveryMedium(
     Medium medium, const DiscoveryOptions& old_options,
     const DiscoveryOptions& new_options) {
@@ -1868,6 +1897,32 @@ bool BasePcpHandler::IsPreferred(
                         "expecting to find both, when deciding which medium "
                      << medium_string << " is preferred.";
   return false;
+}
+
+bool BasePcpHandler::NeedsToTurnOffWifiLanDiscovery(
+    const DiscoveryOptions& old_options, const DiscoveryOptions& new_options) {
+  auto old_enabled_mediums = old_options.allowed.GetMediums(/*value=*/true);
+  auto new_enabled_mediums = new_options.allowed.GetMediums(/*value=*/true);
+
+  // Get the old mediums enabled status for WIFI_LAN and NW_P2P_FOR_APPLE.
+  bool old_wifi_lan_enabled =
+      std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),
+                WIFI_LAN) != old_enabled_mediums.end();
+  bool old_awdl_enabled =
+      std::find(old_enabled_mediums.begin(), old_enabled_mediums.end(),
+                NW_P2P_FOR_APPLE) != old_enabled_mediums.end();
+
+  // Get the new mediums enabled status for WIFI_LAN and NW_P2P_FOR_APPLE.
+  bool new_wifi_lan_enabled =
+      std::find(new_enabled_mediums.begin(), new_enabled_mediums.end(),
+                WIFI_LAN) != new_enabled_mediums.end();
+  bool new_awdl_enabled =
+      std::find(new_enabled_mediums.begin(), new_enabled_mediums.end(),
+                NW_P2P_FOR_APPLE) != new_enabled_mediums.end();
+
+  // Return true if the old and new mediums enabled status are different.
+  return old_wifi_lan_enabled != new_wifi_lan_enabled ||
+         old_awdl_enabled != new_awdl_enabled;
 }
 
 Exception BasePcpHandler::OnIncomingConnection(

@@ -51,6 +51,10 @@ class WifiLan {
   // Returns true, if WifiLan communications are supported by a platform.
   bool IsAvailable() const ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Sets whether the service is using NW_P2P_FOR_APPLE or not.
+  void SetNetworkP2pForApple(const std::string& service_id, bool awdl_enabled)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Sets custom service info name, endpoint info name in NsdServiceInfo and
   // then enables WifiLan advertising.
   // Returns true, if NsdServiceInfo is successfully set, and false otherwise.

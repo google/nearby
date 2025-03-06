@@ -124,7 +124,11 @@ Exception WifiLanServerSocket::Close() {
 WifiLanMedium::WifiLanMedium(bool include_peer_to_peer)
     : medium_([[GNCNWFramework alloc] initWithIncludePeerToPeer:include_peer_to_peer]) {}
 
-bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
+void WifiLanMedium::SetIncludePeerToPeerForApplePlatform(bool include_peer_to_peer) {
+  [medium_ setIncludePeerToPeer:include_peer_to_peer];
+}
+
+  bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   NSInteger port = nsd_service_info.GetPort();
   NSString* serviceName = @(nsd_service_info.GetServiceName().c_str());
   NSString* serviceType = @(nsd_service_info.GetServiceType().c_str());

@@ -166,6 +166,7 @@ class FakeBwuHandler : public BaseBwuHandler {
       case location::nearby::proto::connections::NFC:
       case location::nearby::proto::connections::BLE_L2CAP:
       case location::nearby::proto::connections::USB:
+      case location::nearby::proto::connections::NW_P2P_FOR_APPLE:
         return ByteArray{};
     }
   }

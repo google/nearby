@@ -80,6 +80,7 @@ using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::OperationResultCode;
 using ::location::nearby::proto::connections::Medium::BLE;
 using ::location::nearby::proto::connections::Medium::BLUETOOTH;
+using ::location::nearby::proto::connections::Medium::NW_P2P_FOR_APPLE;
 using ::location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM;
 using ::location::nearby::proto::connections::Medium::WEB_RTC;
 using ::location::nearby::proto::connections::Medium::WIFI_LAN;
@@ -162,10 +163,11 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
 
-  if (advertising_options.allowed.wifi_lan) {
-    ErrorOr<Medium> wifi_lan_result =
-        StartWifiLanAdvertising(client, service_id, local_endpoint_id,
-                                local_endpoint_info, web_rtc_state);
+  if (advertising_options.allowed.wifi_lan ||
+      advertising_options.allowed.nw_p2p_for_apple) {
+    ErrorOr<Medium> wifi_lan_result = StartWifiLanAdvertising(
+        client, service_id, local_endpoint_id, local_endpoint_info,
+        web_rtc_state, advertising_options.allowed.nw_p2p_for_apple);
     Medium wifi_lan_medium = UNKNOWN_MEDIUM;
     if (wifi_lan_result.has_value()) {
       wifi_lan_medium = wifi_lan_result.value();
@@ -1138,8 +1140,10 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   std::vector<ConnectionsLog::OperationResultWithMedium>
       operation_result_with_mediums;
 
-  if (discovery_options.allowed.wifi_lan) {
-    ErrorOr<Medium> wifi_lan_result = StartWifiLanDiscovery(client, service_id);
+  if (discovery_options.allowed.wifi_lan ||
+      discovery_options.allowed.nw_p2p_for_apple) {
+    ErrorOr<Medium> wifi_lan_result = StartWifiLanDiscovery(
+        client, service_id, discovery_options.allowed.nw_p2p_for_apple);
     Medium wifi_lan_medium = UNKNOWN_MEDIUM;
     if (wifi_lan_result.has_value()) {
       wifi_lan_medium = wifi_lan_result.value();
@@ -1359,6 +1363,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       operation_result_with_mediums;
   int update_index =
       client_proxy->GetAnalyticsRecorder().GetNextAdvertisingUpdateIndex();
+  // bluetooth
   if (options.enable_bluetooth_listening &&
       !bluetooth_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> bluetooth_result =
@@ -1417,6 +1422,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       }
     }
   }
+  // wifi lan
   if (options.enable_wlan_listening &&
       !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAcceptingConnections(
@@ -1433,7 +1439,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
     }
     std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
         operation_result_with_medium = GetOperationResultWithMediumByResultCode(
-            client_proxy, Medium::BLUETOOTH, update_index,
+            client_proxy, Medium::WIFI_LAN, update_index,
             wifi_lan_result.has_error()
                 ? wifi_lan_result.error().operation_result_code().value()
                 : OperationResultCode::DETAIL_SUCCESS);
@@ -1502,6 +1508,7 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
     const AdvertisingOptions& advertising_options) {
   AdvertisingOptions old_options = client->GetAdvertisingOptions();
   bool needs_restart = old_options.low_power != advertising_options.low_power;
+  bool wlan_offed = false;
   // ble
   if (NeedsToTurnOffAdvertisingMedium(BLE, old_options, advertising_options) ||
       needs_restart) {
@@ -1514,10 +1521,12 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       mediums_->GetBle().StopAcceptingConnections(std::string(service_id));
     }
   }
-  // wifi lan
-  if (NeedsToTurnOffAdvertisingMedium(WIFI_LAN, old_options,
-                                      advertising_options) ||
+  // wifi lan and awdl
+  // We need to turn off the advertising first if either the WIFI_LAN or
+  // NW_P2P_FOR_APPLE status changed.
+  if (NeedsToTurnOffWifiLanAdvertising(old_options, advertising_options) ||
       needs_restart) {
+    wlan_offed = true;
     mediums_->GetWifiLan().StopAdvertising(std::string(service_id));
     mediums_->GetWifiLan().StopAcceptingConnections(std::string(service_id));
   }
@@ -1601,9 +1610,40 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       operation_result_with_mediums.push_back(*operation_result_with_medium);
     }
   }
-  // wifi lan
-  if (new_mediums.wifi_lan && !advertising_options.low_power) {
-    if (old_mediums.wifi_lan && !needs_restart) {
+  // awdl
+  if (new_mediums.nw_p2p_for_apple && !advertising_options.low_power) {
+    if (old_mediums.nw_p2p_for_apple && !wlan_offed && !needs_restart) {
+      restarted_mediums.push_back(NW_P2P_FOR_APPLE);
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, NW_P2P_FOR_APPLE, update_index,
+                  OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    } else {
+      ErrorOr<Medium> awdl_result = StartWifiLanAdvertising(
+          client, std::string(service_id), std::string(local_endpoint_id),
+          ByteArray(std::string(local_endpoint_info)), web_rtc_state,
+          /*awdl_enabled=*/true);
+      if (awdl_result.has_value() && awdl_result.value() != UNKNOWN_MEDIUM) {
+        restarted_mediums.push_back(NW_P2P_FOR_APPLE);
+      } else {
+        status = {Status::kWifiLanError};
+      }
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, NW_P2P_FOR_APPLE, update_index,
+                  awdl_result.has_error()
+                      ? awdl_result.error().operation_result_code().value()
+                      : OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    }
+  }
+  // wifi lan (only need to enable wifi lan when awdl is not enabled)
+  if (new_mediums.wifi_lan && !new_mediums.nw_p2p_for_apple &&
+      !advertising_options.low_power) {
+    if (old_mediums.wifi_lan && !wlan_offed && !needs_restart) {
       restarted_mediums.push_back(WIFI_LAN);
       std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
           operation_result_with_medium =
@@ -1614,7 +1654,8 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
     } else {
       ErrorOr<Medium> wifi_lan_result = StartWifiLanAdvertising(
           client, std::string(service_id), std::string(local_endpoint_id),
-          ByteArray(std::string(local_endpoint_info)), web_rtc_state);
+          ByteArray(std::string(local_endpoint_info)), web_rtc_state,
+          /*awdl_enabled=*/false);
       if (wifi_lan_result.has_value() &&
           wifi_lan_result.value() != UNKNOWN_MEDIUM) {
         restarted_mediums.push_back(WIFI_LAN);
@@ -1739,6 +1780,7 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
     const DiscoveryOptions& discovery_options) {
   DiscoveryOptions old_options = client->GetDiscoveryOptions();
   bool needs_restart = old_options.low_power != discovery_options.low_power;
+  bool wlan_offed = false;
   // ble
   if (NeedsToTurnOffDiscoveryMedium(BLE, old_options, discovery_options)) {
     if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -1756,9 +1798,10 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
     bluetooth_medium_.StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, BLUETOOTH);
   }
-  // wifi lan
-  if (NeedsToTurnOffDiscoveryMedium(WIFI_LAN, old_options, discovery_options) ||
+  // wifi lan and awdl
+  if (NeedsToTurnOffWifiLanDiscovery(old_options, discovery_options) ||
       needs_restart) {
+    wlan_offed = true;
     mediums_->GetWifiLan().StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, WIFI_LAN);
   }
@@ -1856,10 +1899,41 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
       }
     }
   }
-  // wifi lan
-  if (new_mediums.wifi_lan && !discovery_options.low_power) {
+  // awdl (note: keep the awdl logic before the wifi lan logic)
+  if (new_mediums.nw_p2p_for_apple && !discovery_options.low_power) {
     should_start_discovery = true;
-    if (!needs_restart && old_mediums.wifi_lan) {
+    if (!needs_restart && !wlan_offed && old_mediums.nw_p2p_for_apple) {
+      restarted_mediums.push_back(NW_P2P_FOR_APPLE);
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, NW_P2P_FOR_APPLE, update_index,
+                  OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    } else {
+      ErrorOr<Medium> awdl_result = StartWifiLanDiscovery(
+          client, std::string(service_id), /*awdl_enabled=*/true);
+      if (awdl_result.has_value()) {
+        restarted_mediums.push_back(NW_P2P_FOR_APPLE);
+      } else {
+        LOG(WARNING) << "UpdateDiscoveryOptionsImpl: unable to restart "
+                        "wifi lan scanning";
+      }
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, NW_P2P_FOR_APPLE, update_index,
+                  awdl_result.has_error()
+                      ? awdl_result.error().operation_result_code().value()
+                      : OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    }
+  }
+  // wifi lan
+  if (new_mediums.wifi_lan && new_mediums.nw_p2p_for_apple &&
+      !discovery_options.low_power) {
+    should_start_discovery = true;
+    if (!needs_restart && !wlan_offed && old_mediums.wifi_lan) {
       restarted_mediums.push_back(WIFI_LAN);
       std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
           operation_result_with_medium =
@@ -1868,8 +1942,8 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
                   OperationResultCode::DETAIL_SUCCESS);
       operation_result_with_mediums.push_back(*operation_result_with_medium);
     } else {
-      ErrorOr<Medium> wifi_lan_result =
-          StartWifiLanDiscovery(client, std::string(service_id));
+      ErrorOr<Medium> wifi_lan_result = StartWifiLanDiscovery(
+          client, std::string(service_id), /*awdl_enabled=*/false);
       if (wifi_lan_result.has_value()) {
         restarted_mediums.push_back(WIFI_LAN);
       } else {
@@ -2708,7 +2782,9 @@ void P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler(
 ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    WebRtcState web_rtc_state) {
+    WebRtcState web_rtc_state, bool awdl_enabled) {
+  wifi_lan_medium_.SetNetworkP2pForApple(service_id, awdl_enabled);
+
   // Start listening for connections before advertising in case a connection
   // request comes in very quickly.
   LOG(INFO) << "P2pClusterPcpHandler::StartWifiLanAdvertising: service="
@@ -2727,7 +2803,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
           << "), client=" << client->GetClientId()
           << " failed to start listening for incoming WifiLan connections "
              "to service_id="
-          << service_id;
+          << service_id << " awdl=" << awdl_enabled;
       return {Error(wifi_lan_result.error().operation_result_code().value())};
     }
     LOG(INFO) << "In StartWifiLanAdvertising("
@@ -2735,7 +2811,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
               << "), client=" << client->GetClientId()
               << " started listening for incoming WifiLan connections "
                  "to service_id = "
-              << service_id;
+              << service_id << " awdl=" << awdl_enabled;
   }
 
   // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
@@ -2789,11 +2865,13 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
             << "), client=" << client->GetClientId()
             << " advertised with WifiLanServiceInfo "
             << nsd_service_info.GetServiceName();
-  return {WIFI_LAN};
+  return {awdl_enabled ? NW_P2P_FOR_APPLE : WIFI_LAN};
 }
 
 ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanDiscovery(
-    ClientProxy* client, const std::string& service_id) {
+    ClientProxy* client, const std::string& service_id, bool awdl_enabled) {
+  wifi_lan_medium_.SetNetworkP2pForApple(service_id, awdl_enabled);
+
   ErrorOr<bool> result = wifi_lan_medium_.StartDiscovery(
       service_id,
       {
@@ -2806,12 +2884,12 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanDiscovery(
   if (!result.has_error()) {
     LOG(INFO) << "In StartWifiLanDiscovery(), client=" << client->GetClientId()
               << " started scanning for Wifi devices for service_id="
-              << service_id;
-    return {WIFI_LAN};
+              << service_id << " awdl=" << awdl_enabled;
+    return {awdl_enabled ? NW_P2P_FOR_APPLE : WIFI_LAN};
   } else {
     LOG(INFO) << "In StartWifiLanDiscovery(), client=" << client->GetClientId()
               << " couldn't start scanning on Wifi for service_id="
-              << service_id;
+              << service_id << " awdl=" << awdl_enabled;
     return {Error(result.error().operation_result_code().value())};
   }
 }

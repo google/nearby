@@ -368,8 +368,15 @@ class BasePcpHandler : public PcpHandler,
       const AdvertisingOptions& old_options,
       const AdvertisingOptions& new_options);
 
+  bool NeedsToTurnOffWifiLanAdvertising(
+      const AdvertisingOptions& old_options,
+      const AdvertisingOptions& new_options);
+
   bool NeedsToTurnOffDiscoveryMedium(
       location::nearby::proto::connections::Medium medium,
+      const DiscoveryOptions& old_options, const DiscoveryOptions& new_options);
+
+  bool NeedsToTurnOffWifiLanDiscovery(
       const DiscoveryOptions& old_options, const DiscoveryOptions& new_options);
 
   virtual std::vector<location::nearby::proto::connections::Medium>

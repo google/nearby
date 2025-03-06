@@ -29,7 +29,7 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 @interface GNCNWFramework : NSObject
 
 /** Whether to include peer-to-peer services. */
-@property(atomic, readonly) BOOL includePeerToPeer;
+@property(atomic, readwrite) BOOL includePeerToPeer;
 
 /**
  * @remark init is not an available initializer.
