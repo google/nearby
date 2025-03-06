@@ -398,7 +398,7 @@ class BleMedium {
     absl::AnyInvocable<absl::Status()> stop_advertising;
   };
 
-  // Async interface for StartAdertising.
+  // Async interface for StartAdvertising.
   // Result status will be passed to start_advertising_result callback.
   // To stop advertising, invoke the stop_advertising callback in
   // AdvertisingSession.
@@ -540,7 +540,7 @@ class BleMedium {
                                    GetRemotePeripheralCallback callback) = 0;
 
   virtual void AddAlternateUuidForService(uint16_t uuid,
-                                          const std::string& service_id) {};
+                                          const std::string& service_id) {}
 };
 
 }  // namespace ble_v2
