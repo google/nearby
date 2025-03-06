@@ -42,6 +42,7 @@ cc_library(
     ],
     visibility = [
         "//:__subpackages__",
+        "//connections:partners",
         "//googlemac/iPhone/Shared/Identity/SmartSetup:__subpackages__",
         "//location/nearby/cpp:__subpackages__",
         "//location/nearby/sharing/sdk:__subpackages__",
