@@ -569,6 +569,10 @@ message SharingLog {
     // Exact transfer count stored on device, but when logging put the transfer
     // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
     optional int32 lifetime_transfer_count = 13;
+    // The medium used for the connection.
+    optional int32 connection_medium = 14;
+    // The data usage of the user settings.
+    optional location.nearby.proto.sharing.DataUsage data_usage = 15;
   }
 
   // EventType: RECEIVE_ATTACHMENTS_START
@@ -600,6 +604,10 @@ message SharingLog {
     // Exact transfer count stored on device, but when logging put the transfer
     // count in buckets, initially we use buckets: 1, 2, 3, …, 10, 11+
     optional int32 lifetime_transfer_count = 8;
+    // The medium used for the connection.
+    optional int32 connection_medium = 14;
+    // The data usage of the user settings.
+    optional location.nearby.proto.sharing.DataUsage data_usage = 15;
   }
 
   // EventType: CANCEL_CONNECTION
