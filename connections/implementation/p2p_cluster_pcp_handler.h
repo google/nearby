@@ -295,9 +295,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   ErrorOr<location::nearby::proto::connections::Medium> StartWifiLanAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state);
+      const ByteArray& local_endpoint_info, WebRtcState web_rtc_state,
+      bool awdl_enabled);
   ErrorOr<location::nearby::proto::connections::Medium> StartWifiLanDiscovery(
-      ClientProxy* client, const std::string& service_id);
+      ClientProxy* client, const std::string& service_id, bool awdl_enabled);
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
       ClientProxy* client, WifiLanEndpoint* endpoint);
 

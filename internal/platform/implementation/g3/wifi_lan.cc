@@ -127,6 +127,10 @@ WifiLanMedium::~WifiLanMedium() {
   env.UnregisterWifiLanMedium(*this);
 }
 
+void SetIncludePeerToPeerForApplePlatform(bool include_peer_to_peer){
+  // no-op for g3
+}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   std::string service_type = nsd_service_info.GetServiceType();
   NEARBY_LOGS(INFO) << "G3 WifiLan StartAdvertising: nsd_service_info="

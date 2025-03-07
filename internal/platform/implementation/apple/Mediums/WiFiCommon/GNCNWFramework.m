@@ -75,9 +75,9 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   NSMutableDictionary<NSString *, nw_browser_t> *_serviceBrowsers;
 }
 
-- (instancetype)initWithIncludePeerToPeer:(BOOL)includePeerToPeer {
+- (instancetype)initWithIncludePeerToPeer:(BOOL)include_peer_to_peer {
   if (self = [super init]) {
-    _includePeerToPeer = includePeerToPeer;
+    _includePeerToPeer = include_peer_to_peer;
     _serverSockets = [NSMapTable strongToWeakObjectsMapTable];
     _serviceBrowsers = [[NSMutableDictionary alloc] init];
   }

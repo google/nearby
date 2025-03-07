@@ -29,10 +29,12 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/os_name.h"
 #include "internal/platform/socket.h"
 #include "internal/platform/types.h"
 #include "internal/platform/wifi_lan.h"
@@ -138,6 +140,17 @@ ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
                     << ", service_id=" << service_id;
   advertising_info_.Add(service_id, std::move(nsd_service_info));
   return {true};
+}
+
+void WifiLan::SetNetworkP2pForApple(const std::string& service_id,
+                                    bool awdl_enabled) {
+  MutexLock lock(&mutex_);
+  if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kApple) {
+    medium_.SetIncludePeerToPeerForApplePlatform(awdl_enabled);
+
+    NEARBY_LOGS(INFO) << "Set IncludePeerToPeer enabled for service_id="
+                      << service_id;
+  }
 }
 
 bool WifiLan::StopAdvertising(const std::string& service_id) {

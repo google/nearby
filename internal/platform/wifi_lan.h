@@ -206,6 +206,9 @@ class WifiLanMedium {
   WifiLanMedium() : impl_(Platform::CreateWifiLanMedium()) {}
   ~WifiLanMedium() = default;
 
+  // Sets whether the service is using internal peer-to-peer services or not.
+  void SetIncludePeerToPeerForApplePlatform(bool include_peer_to_peer);
+
   // Starts WifiLan advertising.
   //
   // nsd_service_info - NsdServiceInfo data that's advertised through mDNS

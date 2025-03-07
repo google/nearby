@@ -115,6 +115,7 @@ class WifiLanMedium : public api::WifiLanMedium {
     return absl::nullopt;
   }
 
+  void SetIncludePeerToPeerForApplePlatform(bool include_peer_to_peer) override;
   bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
   bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override;
   bool StartDiscovery(const std::string& service_type, DiscoveredServiceCallback callback) override;
