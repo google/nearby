@@ -442,13 +442,15 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
     // Wait for the advertising to start.
     int wait_milliseconds = 0;
     while (gatt_service_provider_.AdvertisementStatus() !=
-           GattServiceProviderAdvertisementStatus::Started) {
+               GattServiceProviderAdvertisementStatus::Started &&
+           gatt_service_provider_.AdvertisementStatus() !=
+               GattServiceProviderAdvertisementStatus::
+                   StartedWithoutAllAdvertisementData) {
       absl::SleepFor(absl::Milliseconds(kGattServerCheckIntervalInMills));
       wait_milliseconds += kGattServerCheckIntervalInMills;
       if (absl::Milliseconds(wait_milliseconds) > kGattServerTimeout) {
         LOG(ERROR) << __func__
                    << ": Failed to start GATT advertising due to timeout.";
-        return false;
       }
     }
 
