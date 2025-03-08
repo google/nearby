@@ -357,9 +357,9 @@ bool BleV2Medium::StopAdvertising() {
     if (!stop_gatt_result) {
       LOG(WARNING) << "Failed to stop GATT advertising.";
     }
-    ble_gatt_server_ = nullptr;
     result = stop_gatt_result;
   }
+  ble_gatt_server_ = nullptr;
 
   if (is_ble_publisher_started_) {
     bool stop_ble_result = StopBleAdvertising();

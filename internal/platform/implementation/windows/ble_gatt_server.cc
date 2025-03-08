@@ -120,6 +120,10 @@ BleGattServer::BleGattServer(api::BluetoothAdapter* adapter,
   DCHECK(adapter_ != nullptr);
 }
 
+  BleGattServer::~BleGattServer()  {
+    LOG(ERROR) << "XXXXX removing GattServiceProvider";
+  }
+
 absl::optional<api::ble_v2::GattCharacteristic>
 BleGattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
@@ -278,6 +282,7 @@ bool BleGattServer::InitializeGattServer() {
     }
 
     gatt_service_provider_ = service_provider_result.ServiceProvider();
+    LOG(ERROR) << "XXXXX GattServciceProvider created";
 
     service_provider_advertisement_changed_token_ =
         gatt_service_provider_.AdvertisementStatusChanged(
@@ -342,6 +347,9 @@ bool BleGattServer::InitializeGattServer() {
         LOG(ERROR) << __func__
                    << ": Failed to create GATT characteristic. Error: "
                    << static_cast<int>(result.Error());
+        gatt_service_provider_ = nullptr;
+        LOG(ERROR) << "XXXXX GattServciceProvider removed due to "
+                      "characteristic creation failure";
         return false;
       }
 
