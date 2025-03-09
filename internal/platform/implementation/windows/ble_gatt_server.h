@@ -47,7 +47,7 @@ class BleGattServer : public api::ble_v2::GattServer {
   // Make sure the adapter parameter is not null.
   BleGattServer(api::BluetoothAdapter* adapter,
                 api::ble_v2::ServerGattConnectionCallback callback);
-  ~BleGattServer() override = default;
+  ~BleGattServer() override;
   absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
       api::ble_v2::GattCharacteristic::Permission permission,
