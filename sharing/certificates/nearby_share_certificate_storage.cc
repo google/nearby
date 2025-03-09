@@ -53,7 +53,7 @@ void NearbyShareCertificateStorage::UpdatePrivateCertificate(
   std::optional<std::vector<NearbySharePrivateCertificate>> certs =
       GetPrivateCertificates();
   if (!certs) {
-    NL_LOG(WARNING) << __func__ << ": No private certificates to update.";
+    LOG(WARNING) << __func__ << ": No private certificates to update.";
     return;
   }
 
@@ -63,12 +63,12 @@ void NearbyShareCertificateStorage::UpdatePrivateCertificate(
         return cert.id() == private_certificate.id();
       });
   if (it == certs->end()) {
-    NL_VLOG(1) << __func__ << ": No private certificate with id="
+    VLOG(1) << __func__ << ": No private certificate with id="
                << nearby::utils::HexEncode(private_certificate.id());
     return;
   }
 
-  NL_VLOG(1) << __func__ << ": Updating private certificate id="
+  VLOG(1) << __func__ << ": Updating private certificate id="
              << nearby::utils::HexEncode(private_certificate.id());
   *it = private_certificate;
   ReplacePrivateCertificates(*certs);
@@ -92,13 +92,13 @@ void NearbyShareCertificateStorage::RemoveExpiredPrivateCertificates(
   size_t num_removed = certs->size() - unexpired_certs.size();
   if (num_removed == 0) return;
 
-  NL_VLOG(1) << __func__ << ": Removing " << num_removed
-             << " expired private certificates.";
+  VLOG(1) << __func__ << ": Removing " << num_removed
+          << " expired private certificates.";
   ReplacePrivateCertificates(unexpired_certs);
 }
 
 void NearbyShareCertificateStorage::ClearPrivateCertificates() {
-  NL_VLOG(1) << __func__ << ": Removing all private certificates.";
+  VLOG(1) << __func__ << ": Removing all private certificates.";
   ReplacePrivateCertificates({});
 }
 
@@ -119,9 +119,8 @@ void NearbyShareCertificateStorage::ClearPrivateCertificatesOfVisibility(
   }
 
   if (were_certs_removed) {
-    NL_VLOG(1) << __func__
-               << ": Removing all private certificates of visibility "
-               << static_cast<int>(visibility);
+    VLOG(1) << __func__ << ": Removing all private certificates of visibility "
+            << static_cast<int>(visibility);
     ReplacePrivateCertificates(new_certs);
   }
 }

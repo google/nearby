@@ -32,8 +32,8 @@ bool WrappedShareTargetDiscoveredCallback::ShouldBlockShareTarget(
 void WrappedShareTargetDiscoveredCallback::OnShareTargetDiscovered(
     const ShareTarget& share_target) {
   if (ShouldBlockShareTarget(share_target)) {
-    NL_LOG(INFO) << "Skipping share target discovered for vendor id "
-                 << static_cast<uint32_t>(blocked_vendor_id_);
+    LOG(INFO) << "Skipping share target discovered for vendor id "
+              << static_cast<uint32_t>(blocked_vendor_id_);
     return;
   }
   if (callback_ != nullptr) {
@@ -44,8 +44,8 @@ void WrappedShareTargetDiscoveredCallback::OnShareTargetDiscovered(
 void WrappedShareTargetDiscoveredCallback::OnShareTargetUpdated(
     const ShareTarget& share_target) {
   if (ShouldBlockShareTarget(share_target)) {
-    NL_LOG(INFO) << "Skipping share target updated for vendor id "
-                 << static_cast<uint32_t>(blocked_vendor_id_);
+    LOG(INFO) << "Skipping share target updated for vendor id "
+              << static_cast<uint32_t>(blocked_vendor_id_);
     return;
   }
   if (callback_ != nullptr) {
@@ -56,8 +56,8 @@ void WrappedShareTargetDiscoveredCallback::OnShareTargetUpdated(
 void WrappedShareTargetDiscoveredCallback::OnShareTargetLost(
     const ShareTarget& share_target) {
   if (ShouldBlockShareTarget(share_target)) {
-    NL_LOG(INFO) << "Skipping share target lost for vendor id "
-                 << static_cast<uint32_t>(blocked_vendor_id_);
+    LOG(INFO) << "Skipping share target lost for vendor id "
+              << static_cast<uint32_t>(blocked_vendor_id_);
     return;
   }
   if (callback_ != nullptr) {

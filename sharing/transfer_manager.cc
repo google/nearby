@@ -57,7 +57,7 @@ void TransferManager::Send(std::function<void()> task) {
   absl::MutexLock lock(&mutex_);
 
   if (is_waiting_for_high_quality_medium_) {
-    NL_LOG(INFO)
+    LOG(INFO)
         << "Connection to endpoint " << endpoint_id_
         << " is waiting for a high quality medium, delaying payload transfer.";
     pending_tasks_.push_back(task);
@@ -71,19 +71,19 @@ void TransferManager::OnMediumQualityChanged(Medium current_medium) {
   absl::MutexLock lock(&mutex_);
 
   if (!is_waiting_for_high_quality_medium_) {
-    NL_LOG(WARNING) << "It is not waiting for high quality medium.";
+    LOG(WARNING) << "It is not waiting for high quality medium.";
     return;
   }
 
   if (!IsHighQualityMedium(current_medium)) {
-    NL_LOG(WARNING) << "medium switched to low quality Medium: "
-                    << static_cast<int>(current_medium);
+    LOG(WARNING) << "medium switched to low quality Medium: "
+                 << static_cast<int>(current_medium);
     return;
   }
 
-  NL_LOG(INFO) << "Connection to endpoint " << endpoint_id_
-               << " has changed to a high quality medium: "
-               << static_cast<int>(current_medium);
+  LOG(INFO) << "Connection to endpoint " << endpoint_id_
+            << " has changed to a high quality medium: "
+            << static_cast<int>(current_medium);
   StopWaitingForHighQualityMedium();
 }
 
@@ -91,12 +91,12 @@ bool TransferManager::StartTransfer() {
   absl::MutexLock lock(&mutex_);
 
   if (!is_waiting_for_high_quality_medium_) {
-    NL_LOG(WARNING) << "No need to wait for high quality medium.";
+    LOG(WARNING) << "No need to wait for high quality medium.";
     return false;
   }
 
   if (timeout_timer_ != nullptr) {
-    NL_LOG(WARNING) << "transfer already started.";
+    LOG(WARNING) << "transfer already started.";
     return false;
   }
 
@@ -105,16 +105,16 @@ bool TransferManager::StartTransfer() {
       kMediumUpgradeTimeout, [this]() {
         absl::MutexLock lock(&mutex_);
 
-        NL_LOG(INFO) << "Timed out for endpoint " << endpoint_id_ << " after "
-                     << kMediumUpgradeTimeout;
+        LOG(INFO) << "Timed out for endpoint " << endpoint_id_ << " after "
+                  << kMediumUpgradeTimeout;
         StopWaitingForHighQualityMedium();
       });
 
-  NL_LOG(INFO) << "Attempting to upgrade the bandwidth for endpoint " +
-                      endpoint_id_ + ". Large payloads will be delayed" +
-                      " until either bandwidth is upgraded or a timeout of "
-               << (kMediumUpgradeTimeout / absl::Milliseconds(1))
-               << " milliseconds is reached";
+  LOG(INFO) << "Attempting to upgrade the bandwidth for endpoint " +
+                   endpoint_id_ + ". Large payloads will be delayed" +
+                   " until either bandwidth is upgraded or a timeout of "
+            << (kMediumUpgradeTimeout / absl::Milliseconds(1))
+            << " milliseconds is reached";
   return true;
 }
 
@@ -122,12 +122,12 @@ bool TransferManager::CancelTransfer() {
   absl::MutexLock lock(&mutex_);
 
   if (timeout_timer_ == nullptr) {
-    NL_LOG(WARNING) << "No running transfer.";
+    LOG(WARNING) << "No running transfer.";
     return false;
   }
 
   timeout_timer_.reset();
-  NL_LOG(INFO) << __func__ << "Transfer is canceled";
+  LOG(INFO) << __func__ << "Transfer is canceled";
   return true;
 }
 
@@ -135,7 +135,7 @@ void TransferManager::StopWaitingForHighQualityMedium() {
   is_waiting_for_high_quality_medium_ = false;
 
   for (const auto& task : pending_tasks_) {
-    NL_LOG(INFO) << "Sending delayed payload to endpoint " << endpoint_id_;
+    LOG(INFO) << "Sending delayed payload to endpoint " << endpoint_id_;
     task();
   }
 

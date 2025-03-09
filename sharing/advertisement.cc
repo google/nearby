@@ -127,25 +127,25 @@ std::unique_ptr<Advertisement> Advertisement::NewInstance(
     ShareTargetType device_type, std::optional<std::string> device_name,
     uint8_t vendor_id) {
   if (salt.size() != Advertisement::kSaltSize) {
-    NL_LOG(ERROR) << "Failed to create advertisement because the salt did "
-                     "not match the expected length "
-                  << salt.size();
+    LOG(ERROR) << "Failed to create advertisement because the salt did "
+                  "not match the expected length "
+               << salt.size();
     return nullptr;
   }
 
   if (encrypted_metadata_key.size() !=
       Advertisement::kMetadataEncryptionKeyHashByteSize) {
-    NL_LOG(ERROR) << "Failed to create advertisement because the encrypted "
-                     "metadata key did "
-                     "not match the expected length "
-                  << encrypted_metadata_key.size();
+    LOG(ERROR) << "Failed to create advertisement because the encrypted "
+                  "metadata key did "
+                  "not match the expected length "
+               << encrypted_metadata_key.size();
     return nullptr;
   }
 
   if (device_name.has_value() && device_name->size() > UINT8_MAX) {
-    NL_LOG(ERROR) << "Failed to create advertisement because device name "
-                     "was over UINT8_MAX: "
-                  << device_name->size();
+    LOG(ERROR) << "Failed to create advertisement because device name "
+                  "was over UINT8_MAX: "
+               << device_name->size();
     return nullptr;
   }
 
@@ -199,7 +199,7 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
   // name.
   // LINT.IfChange
   if (endpoint_info.size() < kMinimumSize) {
-    NL_LOG(ERROR) << "Failed to parse advertisement because it was too short.";
+    LOG(ERROR) << "Failed to parse advertisement because it was too short.";
     return nullptr;
   }
 
@@ -208,9 +208,8 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
 
   int version = ParseVersion(first_byte);
   if (version < 0 || version > kMaxSupportedAdvertisementParsedVersionNumber) {
-    NL_LOG(ERROR)
-        << "Failed to parse advertisement; unsupported version number "
-        << version;
+    LOG(ERROR) << "Failed to parse advertisement; unsupported version number "
+               << version;
     return nullptr;
   }
 
@@ -231,10 +230,9 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
 
     if (device_name_length == 0 ||
         (endpoint_info.end() - iter < device_name_length)) {
-      NL_LOG(ERROR)
-          << "Failed to parse advertisement because the device name did "
-             "not match the expected length "
-          << device_name_length;
+      LOG(ERROR) << "Failed to parse advertisement because the device name did "
+                    "not match the expected length "
+                 << device_name_length;
       return nullptr;
     }
 
@@ -248,24 +246,24 @@ std::unique_ptr<Advertisement> Advertisement::FromEndpointInfo(
     TlvTypes type = static_cast<TlvTypes>(*iter++);
     uint8_t value_len = *iter++;
     if (endpoint_info.end() - iter < value_len) {
-      NL_LOG(ERROR) << "Invalid length when parsing TLV element: " << value_len;
+      LOG(ERROR) << "Invalid length when parsing TLV element: " << value_len;
       return nullptr;
     }
     switch (type) {
       case TlvTypes::kVendorId:
         if (value_len != kVendorIdLength) {
-          NL_LOG(ERROR) << "Invalid vendor_id_len: " << value_len;
+          LOG(ERROR) << "Invalid vendor_id_len: " << value_len;
           return nullptr;
         }
         vendor_id = ConvertVendorId(*iter++);
         break;
       case TlvTypes::kQrCode:
-        NL_LOG(INFO) << "Found QR code data, skipping.";
+        LOG(INFO) << "Found QR code data, skipping.";
         // TODO: b/341984671 - Implement handling for this TLV type.
         iter += value_len;
         break;
       default:
-        NL_LOG(ERROR) << "Unknown TLV type: " << static_cast<uint8_t>(type);
+        LOG(ERROR) << "Unknown TLV type: " << static_cast<uint8_t>(type);
         iter += value_len;
         break;
     }

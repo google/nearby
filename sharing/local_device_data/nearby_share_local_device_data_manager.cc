@@ -58,11 +58,11 @@ void NearbyShareLocalDeviceDataManager::Stop() {
 void NearbyShareLocalDeviceDataManager::NotifyLocalDeviceDataChanged(
     bool did_device_name_change, bool did_full_name_change,
     bool did_icon_change) {
-  NL_LOG(INFO) << __func__ << ": did_device_name_change="
-               << (did_device_name_change ? "true" : "false")
-               << ", did_full_name_change="
-               << (did_full_name_change ? "true" : "false")
-               << ", did_icon_change=" << (did_icon_change ? "true" : "false");
+  LOG(INFO) << __func__ << ": did_device_name_change="
+            << (did_device_name_change ? "true" : "false")
+            << ", did_full_name_change="
+            << (did_full_name_change ? "true" : "false")
+            << ", did_icon_change=" << (did_icon_change ? "true" : "false");
   for (auto& observer : observers_.GetObservers()) {
     observer->OnLocalDeviceDataChanged(did_device_name_change,
                                        did_full_name_change, did_icon_change);

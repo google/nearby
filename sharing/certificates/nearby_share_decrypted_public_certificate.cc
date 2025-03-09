@@ -62,7 +62,7 @@ std::optional<std::vector<uint8_t>> DecryptMetadataKey(
   std::unique_ptr<crypto::Encryptor> encryptor =
       CreateNearbyShareCtrEncryptor(secret_key, encrypted_metadata_key.salt());
   if (!encryptor) {
-    NL_LOG(ERROR)
+    LOG(ERROR)
         << "Cannot decrypt metadata key: Could not create CTR encryptor.";
     return std::nullopt;
   }
@@ -172,16 +172,16 @@ NearbyShareDecryptedPublicCertificate::DecryptPublicCertificate(
   auto decrypted_metadata_bytes = DecryptMetadataPayload(
       encrypted_metadata, *decrypted_metadata_key, secret_key.get());
   if (!decrypted_metadata_bytes) {
-    NL_LOG(ERROR) << "Metadata decryption failed: Failed to decrypt metadata"
-                  << "payload.";
+    LOG(ERROR) << "Metadata decryption failed: Failed to decrypt metadata"
+               << "payload.";
     return std::nullopt;
   }
 
   nearby::sharing::proto::EncryptedMetadata unencrypted_metadata;
   if (!unencrypted_metadata.ParseFromArray(decrypted_metadata_bytes->data(),
                                            decrypted_metadata_bytes->size())) {
-    NL_LOG(ERROR) << "Metadata decryption failed: Failed to parse decrypted "
-                  << "metadata payload.";
+    LOG(ERROR) << "Metadata decryption failed: Failed to parse decrypted "
+               << "metadata payload.";
     return std::nullopt;
   }
 
@@ -242,7 +242,7 @@ bool NearbyShareDecryptedPublicCertificate::VerifySignature(
   crypto::SignatureVerifier verifier;
   if (!verifier.VerifyInit(crypto::SignatureVerifier::ECDSA_SHA256, signature,
                            public_key_)) {
-    NL_LOG(ERROR) << "Verification failed: Initialization unsuccessful.";
+    LOG(ERROR) << "Verification failed: Initialization unsuccessful.";
     return false;
   }
 

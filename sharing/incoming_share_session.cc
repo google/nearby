@@ -114,9 +114,8 @@ IncomingShareSession::ProcessIntroduction(
 
   for (const AppMetadata& apk : introduction_frame.app_metadata()) {
     if (apk.size() <= 0) {
-      NL_LOG(WARNING)
-          << __func__
-          << ": Ignore introduction, due to invalid attachment size";
+      LOG(WARNING) << __func__
+                   << ": Ignore introduction, due to invalid attachment size";
       return TransferMetadata::Status::kUnsupportedAttachmentType;
     }
 
@@ -125,9 +124,9 @@ IncomingShareSession::ProcessIntroduction(
             << ", package_name=" << apk.package_name()
             << ", size=" << apk.size();
     if (std::numeric_limits<int64_t>::max() - apk.size() < file_size_sum) {
-      NL_LOG(WARNING) << __func__
-                      << ": Ignoring introduction, total file size overflowed "
-                         "64 bit integer.";
+      LOG(WARNING) << __func__
+                   << ": Ignoring introduction, total file size overflowed "
+                      "64 bit integer.";
       container.Clear();
       return TransferMetadata::Status::kNotEnoughSpace;
     }

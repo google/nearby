@@ -113,7 +113,7 @@ class NearbyShareSettings
             }
             break;
           default:
-            NL_LOG(FATAL) << "Invalid tag: " << this->tag;
+            LOG(FATAL) << "Invalid tag: " << this->tag;
             break;
         }
         return result;

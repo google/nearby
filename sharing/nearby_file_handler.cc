@@ -45,8 +45,8 @@ std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
   for (const auto& file_path : file_paths) {
     std::optional<uintmax_t> size = GetFileSize(file_path);
     if (!size.has_value()) {
-      NL_LOG(ERROR) << __func__ << ": Failed to open file. File="
-                    << GetCompatibleU8String(file_path.u8string());
+      LOG(ERROR) << __func__ << ": Failed to open file. File="
+                 << GetCompatibleU8String(file_path.u8string());
       return {};
     }
     files.push_back({*size, file_path});
@@ -84,18 +84,18 @@ void NearbyFileHandler::DeleteFilesFromDisk(
         continue;
       }
       if (RemoveFile(file_path)) {
-        NL_VLOG(1) << __func__ << ": Removed partial file. File="
-                   << GetCompatibleU8String(file_path.u8string());
+        VLOG(1) << __func__ << ": Removed partial file. File="
+                << GetCompatibleU8String(file_path.u8string());
       } else {
         // Try once more after 3 seconds.
         absl::SleepFor(absl::Seconds(3));
         if (RemoveFile(file_path)) {
-          NL_VLOG(1) << __func__
-                     << ": Removed partial file after additional delay. File="
-                     << GetCompatibleU8String(file_path.u8string());
+          VLOG(1) << __func__
+                  << ": Removed partial file after additional delay. File="
+                  << GetCompatibleU8String(file_path.u8string());
         } else {
-          NL_LOG(ERROR) << __func__ << "Can't remove file: "
-                        << GetCompatibleU8String(file_path.u8string());
+          LOG(ERROR) << __func__ << "Can't remove file: "
+                     << GetCompatibleU8String(file_path.u8string());
         }
       }
     }

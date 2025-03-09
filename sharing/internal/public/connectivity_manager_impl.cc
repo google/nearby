@@ -68,8 +68,8 @@ ConnectivityManagerImpl::ConnectivityManagerImpl(SharingPlatform& platform)
              bool is_lan_connected) {
         ConnectionType new_connection_type =
             static_cast<ConnectionType>(connection_type);
-        NL_VLOG(1) << ": New connection type:"
-                   << GetConnectionTypeString(new_connection_type);
+        VLOG(1) << ": New connection type:"
+                << GetConnectionTypeString(new_connection_type);
         for (auto& listener : listeners_) {
           listener.second(new_connection_type, is_lan_connected);
         }

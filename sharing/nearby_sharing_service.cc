@@ -48,8 +48,8 @@ std::string NearbySharingService::StatusCodeToString(StatusCodes status_code) {
     case StatusCodes::kInvalidArgument:
       return "kInvalidArgument";
   }
-  NL_LOG(ERROR) << "Unexpected value for StatusCodes: "
-                << static_cast<int>(status_code);
+  LOG(ERROR) << "Unexpected value for StatusCodes: "
+             << static_cast<int>(status_code);
   return kUnknownStatusCodesString;
 }
 

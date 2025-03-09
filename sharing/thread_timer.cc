@@ -39,11 +39,11 @@ ThreadTimer::ThreadTimer(TaskRunner& task_runner, std::string name,
                   name = name_]() mutable {
             if (run_cnt->fetch_add(1) == 0) {
               // Timer has not been cancelled, run the task.
-              NL_LOG(INFO) << "Timer " << name << " fired.";
+              LOG(INFO) << "Timer " << name << " fired.";
               std::move(task)();
             } else {
               // Timer has been cancelled, need to delete the run_cnt.
-              NL_VLOG(1) << "Timer " << name << " expired but was cancelled.";
+              VLOG(1) << "Timer " << name << " expired but was cancelled.";
               delete run_cnt;
             }
           })) {
@@ -57,7 +57,7 @@ ThreadTimer::~ThreadTimer() { Cancel(); }
 
 void ThreadTimer::Cancel() {
   if (run_cnt_ != nullptr) {
-    NL_LOG(INFO) << "Timer " << name_ << " cancelled.";
+    LOG(INFO) << "Timer " << name_ << " cancelled.";
     if (run_cnt_->fetch_add(1) > 0) {
       // Timer has already fired, delete the run_cnt.
       delete run_cnt_;

@@ -77,17 +77,17 @@ std::string PowerLevelToString(PowerLevel level) {
 std::optional<std::vector<uint8_t>> GetBluetoothMacAddressFromCertificate(
     const NearbyShareDecryptedPublicCertificate& certificate) {
   if (!certificate.unencrypted_metadata().has_bluetooth_mac_address()) {
-    NL_LOG(WARNING) << __func__ << ": Public certificate "
-                    << nearby::utils::HexEncode(certificate.id())
-                    << " did not contain a Bluetooth mac address.";
+    LOG(WARNING) << __func__ << ": Public certificate "
+                 << nearby::utils::HexEncode(certificate.id())
+                 << " did not contain a Bluetooth mac address.";
     return std::nullopt;
   }
 
   std::string mac_address =
       certificate.unencrypted_metadata().bluetooth_mac_address();
   if (mac_address.size() != 6) {
-    NL_LOG(ERROR) << __func__ << ": Invalid bluetooth mac address: '"
-                  << mac_address << "'";
+    LOG(ERROR) << __func__ << ": Invalid bluetooth mac address: '"
+               << mac_address << "'";
     return std::nullopt;
   }
 
