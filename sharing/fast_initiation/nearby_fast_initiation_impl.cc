@@ -35,7 +35,7 @@ NearbyFastInitiationImpl::Factory*
 
 std::unique_ptr<NearbyFastInitiation> NearbyFastInitiationImpl::Factory::Create(
     Context* context) {
-  NL_DCHECK(context);
+  DCHECK(context);
   if (test_factory_) {
     return test_factory_->CreateInstance(context);
   }
@@ -50,7 +50,7 @@ void NearbyFastInitiationImpl::Factory::SetFactoryForTesting(
 
 NearbyFastInitiationImpl::NearbyFastInitiationImpl(Context* context)
     : context_(context) {
-  NL_DCHECK(context);
+  DCHECK(context);
 }
 
 bool NearbyFastInitiationImpl::IsLowEnergySupported() {
@@ -78,8 +78,7 @@ void NearbyFastInitiationImpl::StartScanning(
     std::function<void()> devices_not_discovered_callback,
     std::function<void()> error_callback) {
   if (IsScanning()) {
-    NL_LOG(WARNING) << __func__
-                    << ": FastInit BLE scanning was started already.";
+    LOG(WARNING) << __func__ << ": FastInit BLE scanning was started already.";
     error_callback();
     return;
   }
@@ -96,7 +95,7 @@ void NearbyFastInitiationImpl::StartScanning(
 
 void NearbyFastInitiationImpl::StopScanning(std::function<void()> callback) {
   if (!IsScanning()) {
-    NL_LOG(WARNING) << __func__ << ": FastInit BLE scanning is not running.";
+    LOG(WARNING) << __func__ << ": FastInit BLE scanning is not running.";
     callback();
     return;
   }
@@ -108,8 +107,8 @@ void NearbyFastInitiationImpl::StartAdvertising(
     FastInitType type, std::function<void()> callback,
     std::function<void()> error_callback) {
   if (IsAdvertising()) {
-    NL_LOG(WARNING) << __func__
-                    << ": FastInit BLE advertising was started already.";
+    LOG(WARNING) << __func__
+                 << ": FastInit BLE advertising was started already.";
     error_callback();
     return;
   }
@@ -126,7 +125,7 @@ void NearbyFastInitiationImpl::StartAdvertising(
 
 void NearbyFastInitiationImpl::StopAdvertising(std::function<void()> callback) {
   if (!IsAdvertising()) {
-    NL_LOG(WARNING) << __func__ << ": FastInit BLE advertising is not running.";
+    LOG(WARNING) << __func__ << ": FastInit BLE advertising is not running.";
     callback();
     return;
   }
@@ -144,9 +143,9 @@ void NearbyFastInitiationImpl::ScanningErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR) << __func__
-                    << ": FastInit BLE scanning failed due to bluetooth radio "
-                       "unavailable.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE scanning failed due to bluetooth radio "
+                    "unavailable.";
       break;
     case FastInitiationManager::Error::kResourceInUse:
       for (Observer* observer : observer_list_.GetObservers()) {
@@ -154,18 +153,18 @@ void NearbyFastInitiationImpl::ScanningErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE scanning failed due to bluetooth resources are "
              "in use/at full capacity.";
       break;
     case FastInitiationManager::Error::kDisabledByPolicy:
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE scanning failed due to being disabled by policy.";
       break;
     case FastInitiationManager::Error::kDisabledByUser:
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE scanning failed due to being disabled by user.";
       break;
@@ -175,7 +174,7 @@ void NearbyFastInitiationImpl::ScanningErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE scanning failed due to hardware not supported.";
       break;
@@ -185,14 +184,13 @@ void NearbyFastInitiationImpl::ScanningErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE scanning failed due to transport not supported.";
       break;
     case FastInitiationManager::Error::kConsentRequired:
-      NL_LOG(ERROR)
-          << __func__
-          << ": FastInit BLE scanning failed due to consent required.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE scanning failed due to consent required.";
       break;
     case FastInitiationManager::Error::kUnknown:
       for (Observer* observer : observer_list_.GetObservers()) {
@@ -200,8 +198,8 @@ void NearbyFastInitiationImpl::ScanningErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR) << __func__
-                    << ": FastInit BLE scanning failed due to unknown reasons.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE scanning failed due to unknown reasons.";
       break;
     default:
       break;
@@ -217,10 +215,9 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
-          << __func__
-          << ": FastInit BLE advertising failed due to bluetooth radio "
-             "unavailable.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE advertising failed due to bluetooth radio "
+                    "unavailable.";
       break;
     case FastInitiationManager::Error::kResourceInUse:
       for (Observer* observer : observer_list_.GetObservers()) {
@@ -228,18 +225,18 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE advertising failed due to bluetooth resources are "
              "in use/at full capacity.";
       break;
     case FastInitiationManager::Error::kDisabledByPolicy:
-      NL_LOG(ERROR) << __func__
-                    << ": FastInit BLE advertising failed due to being "
-                       "disabled by policy.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE advertising failed due to being "
+                    "disabled by policy.";
       break;
     case FastInitiationManager::Error::kDisabledByUser:
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE advertising failed due to being disabled by user.";
       break;
@@ -249,7 +246,7 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE advertising failed due to hardware not supported.";
       break;
@@ -259,12 +256,12 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR) << __func__
-                    << ": FastInit BLE advertising failed due to transport not "
-                       "supported.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE advertising failed due to transport not "
+                    "supported.";
       break;
     case FastInitiationManager::Error::kConsentRequired:
-      NL_LOG(ERROR)
+      LOG(ERROR)
           << __func__
           << ": FastInit BLE advertising failed due to consent required.";
       break;
@@ -274,9 +271,8 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
           observer->HardwareErrorReported(this);
         }
       }
-      NL_LOG(ERROR)
-          << __func__
-          << ": FastInit BLE advertising failed due to unknown reasons.";
+      LOG(ERROR) << __func__
+                 << ": FastInit BLE advertising failed due to unknown reasons.";
       break;
     default:
       break;
@@ -285,11 +281,11 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
 
 void NearbyFastInitiationImpl::AddObserver(Observer* observer) {
   observer_list_.AddObserver(observer);
-  NL_LOG(INFO) << __func__ << ": Fast Initiation observer added.";
+  LOG(INFO) << __func__ << ": Fast Initiation observer added.";
 }
 void NearbyFastInitiationImpl::RemoveObserver(Observer* observer) {
   observer_list_.RemoveObserver(observer);
-  NL_LOG(INFO) << __func__ << ": Fast Initiation observer removed.";
+  LOG(INFO) << __func__ << ": Fast Initiation observer removed.";
 }
 bool NearbyFastInitiationImpl::HasObserver(Observer* observer) {
   return observer_list_.HasObserver(observer);

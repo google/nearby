@@ -41,7 +41,7 @@ NearbyConnectionsStreamBufferManager::~NearbyConnectionsStreamBufferManager() =
 void NearbyConnectionsStreamBufferManager::StartTrackingPayload(
     NcPayload payload) {
   int64_t payload_id = payload.GetId();
-  NL_LOG(INFO) << "Starting to track stream payload with ID " << payload_id;
+  LOG(INFO) << "Starting to track stream payload with ID " << payload_id;
 
   id_to_payload_with_buffer_map_[payload_id] =
       std::make_unique<PayloadWithBuffer>(std::move(payload));
@@ -55,7 +55,7 @@ bool NearbyConnectionsStreamBufferManager::IsTrackingPayload(
 void NearbyConnectionsStreamBufferManager::StopTrackingFailedPayload(
     int64_t payload_id) {
   id_to_payload_with_buffer_map_.erase(payload_id);
-  NL_LOG(INFO) << "Stopped tracking payload with ID " << payload_id << " "
+  LOG(INFO) << "Stopped tracking payload with ID " << payload_id << " "
                << "and cleared internal memory.";
 }
 
@@ -63,7 +63,7 @@ void NearbyConnectionsStreamBufferManager::HandleBytesTransferred(
     int64_t payload_id, int64_t cumulative_bytes_transferred_so_far) {
   auto it = id_to_payload_with_buffer_map_.find(payload_id);
   if (it == id_to_payload_with_buffer_map_.end()) {
-    NL_LOG(ERROR) << "Attempted to handle stream bytes for payload with ID "
+    LOG(ERROR) << "Attempted to handle stream bytes for payload with ID "
                   << payload_id << ", but this payload was not being tracked.";
     return;
   }
@@ -77,7 +77,7 @@ void NearbyConnectionsStreamBufferManager::HandleBytesTransferred(
 
   NcInputStream* stream = payload_with_buffer->buffer_payload.AsStream();
   if (!stream) {
-    NL_LOG(ERROR) << "Payload with ID " << payload_id << " is not a stream "
+    LOG(ERROR) << "Payload with ID " << payload_id << " is not a stream "
                   << "payload; transfer has failed.";
     StopTrackingFailedPayload(payload_id);
     return;
@@ -85,7 +85,7 @@ void NearbyConnectionsStreamBufferManager::HandleBytesTransferred(
 
   NcExceptionOr<NcByteArray> bytes = stream->Read(bytes_to_read);
   if (!bytes.ok()) {
-    NL_LOG(ERROR) << "Payload with ID " << payload_id << " encountered "
+    LOG(ERROR) << "Payload with ID " << payload_id << " encountered "
                   << "exception while reading; transfer has failed.";
     StopTrackingFailedPayload(payload_id);
     return;
@@ -93,7 +93,7 @@ void NearbyConnectionsStreamBufferManager::HandleBytesTransferred(
   // Empty `bytes` means the End Of File. There should be at `bytes_to_read`
   // bytes available in the input stream, so we should never face the EOF
   // condition.
-  NL_DCHECK(!bytes.result().Empty());
+  DCHECK(!bytes.result().Empty());
 
   payload_with_buffer->buffer += static_cast<std::string>(bytes.result());
 }
@@ -103,8 +103,8 @@ NearbyConnectionsStreamBufferManager::GetCompletePayloadAndStopTracking(
     int64_t payload_id) {
   auto it = id_to_payload_with_buffer_map_.find(payload_id);
   if (it == id_to_payload_with_buffer_map_.end()) {
-    NL_LOG(ERROR) << "Attempted to get complete payload with ID " << payload_id
-                  << ", but this payload was not being tracked.";
+    LOG(ERROR) << "Attempted to get complete payload with ID " << payload_id
+               << ", but this payload was not being tracked.";
     return NcByteArray();
   }
 

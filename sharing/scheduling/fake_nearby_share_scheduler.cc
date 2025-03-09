@@ -68,7 +68,7 @@ void FakeNearbyShareScheduler::OnStop() {
 }
 
 void FakeNearbyShareScheduler::InvokeRequestCallback() {
-  NL_DCHECK(can_invoke_request_callback_);
+  DCHECK(can_invoke_request_callback_);
   NotifyOfRequest();
 }
 

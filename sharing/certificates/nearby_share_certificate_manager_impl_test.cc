@@ -290,7 +290,7 @@ class NearbyShareCertificateManagerImplTest
               std::max(max_not_after_self_share, cert.not_after());
           break;
         default:
-          NL_DCHECK(false);
+          DCHECK(false);
           break;
       }
 

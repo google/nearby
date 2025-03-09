@@ -72,7 +72,7 @@ FakeNearbyFastInitiation::Factory::CreateInstance(Context* context) {
 
 FakeNearbyFastInitiation::FakeNearbyFastInitiation(Context* context)
     : context_(context) {
-  NL_DCHECK(context_);
+  DCHECK(context_);
 }
 
 bool FakeNearbyFastInitiation::IsLowEnergySupported() {

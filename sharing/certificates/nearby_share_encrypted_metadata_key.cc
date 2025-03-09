@@ -28,9 +28,8 @@ namespace sharing {
 NearbyShareEncryptedMetadataKey::NearbyShareEncryptedMetadataKey(
     std::vector<uint8_t> salt, std::vector<uint8_t> encrypted_key)
     : salt_(std::move(salt)), encrypted_key_(std::move(encrypted_key)) {
-  NL_DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKeySalt, salt_.size());
-  NL_DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKey,
-               encrypted_key_.size());
+  DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKeySalt, salt_.size());
+  DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKey, encrypted_key_.size());
 }
 
 NearbyShareEncryptedMetadataKey::NearbyShareEncryptedMetadataKey(

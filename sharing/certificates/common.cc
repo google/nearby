@@ -83,9 +83,9 @@ std::vector<uint8_t> GenerateRandomBytes(size_t num_bytes) {
 
 std::unique_ptr<crypto::Encryptor> CreateNearbyShareCtrEncryptor(
     const crypto::SymmetricKey* secret_key, absl::Span<const uint8_t> salt) {
-  NL_DCHECK(secret_key);
-  NL_DCHECK_EQ(kNearbyShareNumBytesSecretKey, secret_key->key().size());
-  NL_DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKeySalt, salt.size());
+  DCHECK(secret_key);
+  DCHECK_EQ(kNearbyShareNumBytesSecretKey, secret_key->key().size());
+  DCHECK_EQ(kNearbyShareNumBytesMetadataEncryptionKeySalt, salt.size());
 
   auto encryptor = std::make_unique<crypto::Encryptor>();
 
@@ -93,14 +93,14 @@ std::unique_ptr<crypto::Encryptor> CreateNearbyShareCtrEncryptor(
   // set via SetCounter().
   if (!encryptor->Init(secret_key, crypto::Encryptor::Mode::CTR,
                        /*iv=*/absl::Span<const uint8_t>())) {
-    NL_LOG(ERROR) << "Encryptor could not be initialized.";
+    LOG(ERROR) << "Encryptor could not be initialized.";
     return nullptr;
   }
 
   std::vector<uint8_t> iv =
       DeriveNearbyShareKey(salt, kNearbyShareNumBytesAesCtrIv);
   if (!encryptor->SetCounter(iv)) {
-    NL_LOG(ERROR) << "Could not set encryptor counter.";
+    LOG(ERROR) << "Could not set encryptor counter.";
     return nullptr;
   }
 

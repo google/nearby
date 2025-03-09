@@ -58,11 +58,11 @@ IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
                                            NearbyConnection* connection)
     : service_thread_(service_thread),
       connection_(connection) {
-  NL_DCHECK(connection);
+  DCHECK(connection);
 }
 
 IncomingFramesReader::~IncomingFramesReader() {
-  NL_LOG(INFO) << "~IncomingFramesReader is called";
+  LOG(INFO) << "~IncomingFramesReader is called";
   CloseAllPendingReads();
 }
 
@@ -110,8 +110,8 @@ void IncomingFramesReader::ProcessReadRequest(
         [reader = GetWeakPtr()]() {
           auto frame_reader = reader.lock();
           if (frame_reader == nullptr) {
-            NL_LOG(WARNING) << "IncomingFramesReader has already been released "
-                               "before read timeout.";
+            LOG(WARNING) << "IncomingFramesReader has already been released "
+                            "before read timeout.";
             return;
           }
           frame_reader->OnTimeout();
@@ -126,11 +126,11 @@ void IncomingFramesReader::ReadNextFrame() {
       [reader = GetWeakPtr()](std::optional<std::vector<uint8_t>> bytes) {
         auto frame_reader = reader.lock();
         if (frame_reader == nullptr) {
-          NL_LOG(WARNING) << "IncomingFramesReader is released before.";
+          LOG(WARNING) << "IncomingFramesReader is released before.";
           return;
         }
         if (!bytes.has_value()) {
-          NL_LOG(WARNING) << __func__ << ": Failed to read frame";
+          LOG(WARNING) << __func__ << ": Failed to read frame";
           frame_reader->CloseAllPendingReads();
           return;
         }
@@ -139,7 +139,7 @@ void IncomingFramesReader::ReadNextFrame() {
 }
 
 void IncomingFramesReader::OnTimeout() {
-  NL_LOG(WARNING) << __func__ << ": Timed out reading from NearbyConnection.";
+  LOG(WARNING) << __func__ << ": Timed out reading from NearbyConnection.";
   CloseAllPendingReads();
 }
 
@@ -147,7 +147,7 @@ void IncomingFramesReader::OnDataReadFromConnection(
     const std::vector<uint8_t>& bytes) {
   std::unique_ptr<V1Frame> frame = DecodeV1Frame(bytes);
   if (frame == nullptr) {
-    NL_LOG(WARNING)
+    LOG(WARNING)
         << __func__
         << ": Cannot decode frame. Not currently bound to nearby process";
     ReadNextFrame();
@@ -163,9 +163,9 @@ void IncomingFramesReader::OnDataReadFromConnection(
     const ReadFrameInfo& frame_info = read_frame_info_queue_.front();
     if (frame_info.frame_type.has_value() &&
         *frame_info.frame_type != frame_type) {
-      NL_LOG(WARNING) << __func__ << ": Failed to read frame of type "
-                      << *frame_info.frame_type << ", but got frame of type "
-                      << frame_type << ". Cached for later.";
+      LOG(WARNING) << __func__ << ": Failed to read frame of type "
+                   << *frame_info.frame_type << ", but got frame of type "
+                   << frame_type << ". Cached for later.";
       cached_frames_.push_back(std::move(frame));
       cached_frame = true;
     }
@@ -219,7 +219,7 @@ void IncomingFramesReader::Done(std::unique_ptr<V1Frame> frame) {
 
 std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
     std::optional<V1Frame::FrameType> frame_type) {
-  NL_VLOG(1) << __func__ << ": Fetching cached frame";
+  VLOG(1) << __func__ << ": Fetching cached frame";
   if (cached_frames_.empty()) {
     return nullptr;
   }
@@ -228,7 +228,7 @@ std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
     cached_frames_.pop_front();
     return frame;
   }
-  NL_VLOG(1) << __func__ << ": Requested frame type - " << *frame_type;
+  VLOG(1) << __func__ << ": Requested frame type - " << *frame_type;
 
   auto iter =
       std::find_if(cached_frames_.begin(), cached_frames_.end(),
@@ -237,7 +237,7 @@ std::unique_ptr<V1Frame> IncomingFramesReader::PopCachedFrame(
                    });
 
   if (iter == cached_frames_.end()) return nullptr;
-  NL_VLOG(1) << __func__ << ": Successfully read cached frame";
+  VLOG(1) << __func__ << ": Successfully read cached frame";
   std::unique_ptr<V1Frame> frame = std::move(*iter);
   cached_frames_.erase(iter);
   return frame;

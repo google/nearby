@@ -32,23 +32,4 @@
 #define NL_VLOG(level) VLOG(level)
 #define NL_LOG(severity) LOG(severity)
 
-#define NL_DLOG(severity) DLOG(severity)
-#define NL_DVLOG(severity) DVLOG(severity)
-
-#define NL_CHECK(expr) CHECK(expr)
-#define NL_CHECK_EQ(a, b) CHECK_EQ((a), (b))
-#define NL_CHECK_NE(a, b) CHECK_NE((a), (b))
-#define NL_CHECK_GE(a, b) CHECK_GE((a), (b))
-#define NL_CHECK_GT(a, b) CHECK_GT((a), (b))
-#define NL_CHECK_LE(a, b) CHECK_LE((a), (b))
-#define NL_CHECK_LT(a, b) CHECK_LT((a), (b))
-
-#define NL_DCHECK(expr) DCHECK((expr))
-#define NL_DCHECK_EQ(a, b) DCHECK_EQ((a), (b))
-#define NL_DCHECK_NE(a, b) DCHECK_NE((a), (b))
-#define NL_DCHECK_GE(a, b) DCHECK_GE((a), (b))
-#define NL_DCHECK_GT(a, b) DCHECK_GT((a), (b))
-#define NL_DCHECK_LE(a, b) DCHECK_LE((a), (b))
-#define NL_DCHECK_LT(a, b) DCHECK_LT((a), (b))
-
 #endif  // THIRD_PARTY_NEARBY_SHARING_INTERNAL_PUBLIC_LOGGING_H_
