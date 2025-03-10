@@ -34,6 +34,15 @@
 
 namespace nearby {
 namespace {
+// The most significant bits and the least significant bits or Bluetooth Base
+// UUID.
+// See Bluetooth Core Specification 6.0 Vol.3, Part B, Section 2.5.1
+const std::uint64_t kBluetoothBaseUuidMsb = 0x0000000000001000;
+const std::uint64_t kBluetoothBaseUuidLsb = 0x800000805F9B34FB;
+// Mask for UUID16 bits.
+const std::uint64_t kBluetoothBaseUuid16MsbMask = 0x0000FFFF00000000;
+
+
 std::ostream& write_hex(std::ostream& os, absl::string_view data) {
   for (const auto b : data) {
     os << std::setfill('0') << std::setw(2) << std::hex << std::uppercase
@@ -133,6 +142,16 @@ std::string Uuid::Get16BitAsString() const {
   write_hex(sixteen_bit_string, absl::string_view(&data, 1));
 
   return sixteen_bit_string.str();
+}
+
+std::optional<uint16_t> Uuid::GetBtUuid16() const {
+  // Verify that the UUID is in valid range.
+  if ((GetMostSigBits() & ~kBluetoothBaseUuid16MsbMask) !=
+          kBluetoothBaseUuidMsb ||
+      GetLeastSigBits() != kBluetoothBaseUuidLsb) {
+    return std::nullopt;
+  }
+  return (GetMostSigBits() & kBluetoothBaseUuid16MsbMask) >> 32;
 }
 
 std::array<char, 16> Uuid::data() const {

@@ -143,5 +143,36 @@ TEST(UuidTest, ConstructUuidFromString) {
   EXPECT_EQ(std::string(*a), "12345678-1234-1234-1234-123456789012");
 }
 
+TEST(UuidTest, GetBtUuid16Succeeds) {
+  std::optional<Uuid> a =
+      Uuid::FromString("0000ABCD-0000-1000-8000-00805F9B34FB");
+  ASSERT_TRUE(a.has_value());
+
+  std::optional<uint16_t> bt_uuid16 = a->GetBtUuid16();
+
+  ASSERT_TRUE(bt_uuid16.has_value());
+  EXPECT_EQ(bt_uuid16, 0xABCD);
+}
+
+TEST(UuidTest, GetBtUuid16FailsMsb) {
+  std::optional<Uuid> a =
+      Uuid::FromString("0100ABCD-0000-1000-8000-00805F9B34FB");
+  ASSERT_TRUE(a.has_value());
+
+  std::optional<uint16_t> bt_uuid16 = a->GetBtUuid16();
+
+  EXPECT_FALSE(bt_uuid16.has_value());
+}
+
+TEST(UuidTest, GetBtUuid16FailsLsb) {
+  std::optional<Uuid> a =
+      Uuid::FromString("0000ABCD-0000-1000-8000-00905F9B34FB");
+  ASSERT_TRUE(a.has_value());
+
+  std::optional<uint16_t> bt_uuid16 = a->GetBtUuid16();
+
+  EXPECT_FALSE(bt_uuid16.has_value());
+}
+
 }  // namespace
 }  // namespace nearby

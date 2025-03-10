@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,9 +28,8 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-#include "absl/strings/numbers.h"
+
 #include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -164,14 +164,6 @@ constexpr absl::Duration kMediumCheckInterval = Milliseconds(50);
 constexpr absl::Duration kPeripheralExpiryTime = Minutes(15);
 // Prevent too frequent cleanup tasks.
 constexpr absl::Duration kMaxPeripheralCleanupFrequency = Minutes(3);
-
-// The most significant bits and the least significant bits or Bluetooth Base
-// UUID.
-// See Bluetooth Core Specification 6.0 Vol.3, Part B, Section 2.5.1
-const std::uint64_t kBluetoothBaseUuidMsb = 0x0000000000001000;
-const std::uint64_t kBluetoothBaseUuidLsb = 0x800000805F9B34FB;
-// Mask for UUID16 bits.
-const std::uint64_t kBluetoothBaseUuid16MsbMask = 0x0000FFFF00000000;
 
 // Service Data - 16-bit UUID.  From Bluetooth Assigned Numbers Section 2.3.
 constexpr uint8_t kUuid16ServiceDataType = 0x16;
@@ -448,12 +440,15 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
 
   // This assumes that service_uuid has a valid UUID16 alias.
   // Verify that service_uuid in in valid range.
-  DCHECK_EQ(service_uuid_.GetMostSigBits() & ~kBluetoothBaseUuid16MsbMask,
-            kBluetoothBaseUuidMsb);
-  DCHECK_EQ(service_uuid_.GetLeastSigBits(), kBluetoothBaseUuidLsb);
+  std::optional<uint16_t> service_uuid16 = service_uuid_.GetBtUuid16();
+  if (!service_uuid16.has_value()) {
+    LOG(WARNING) << __func__
+                 << ": BLE cannot start to scan because the service UUID is "
+                    "not in valid range.";
+    return false;
+  }
 
-  service_uuid16_ =
-      (service_uuid_.GetMostSigBits() & kBluetoothBaseUuid16MsbMask) >> 32;
+  service_uuid16_ = *service_uuid16;
   std::unique_ptr<AdvertisementWatcher> watcher =
       CreateBleWatcher(service_uuid16_);
   if (watcher == nullptr) {
@@ -752,17 +747,16 @@ bool BleV2Medium::StartBleAdvertising(
 
     for (const auto& it : advertising_data.service_data) {
       DataWriter data_writer;
+      data_writer.ByteOrder(ByteOrder::LittleEndian);
 
-      std::string uuid_string = it.first.Get16BitAsString();
-      int uuid;
-      if (!absl::SimpleHexAtoi(uuid_string, &uuid)) {
+      std::optional<uint16_t> uuid16 = it.first.GetBtUuid16();
+      if (!uuid16.has_value()) {
         LOG(WARNING) << "BLE failed to get service UUID.";
         return false;
       }
+      LOG(WARNING) << "BLE service UUID: " << absl::StrCat(absl::Hex(*uuid16));
 
-      LOG(WARNING) << "BLE service UUID: " << absl::StrFormat("%#x", uuid);
-
-      data_writer.WriteUInt16(((uuid >> 8) & 0xff) | ((uuid & 0xff) << 8));
+      data_writer.WriteUInt16(*uuid16);
 
       for (int i = 0; i < it.second.size(); ++i) {
         data_writer.WriteByte(static_cast<uint8_t>(*(it.second.data() + i)));
@@ -1271,15 +1265,17 @@ void BleV2Medium::AdvertisementFoundHandler(
     uint16_t service_uuid16 = data_reader.ReadUInt16();
 
     for (auto service_uuid : service_uuid_list) {
-      uint16_t uuid16 =
-          (service_uuid.GetMostSigBits() & kBluetoothBaseUuid16MsbMask) >> 32;
-      if (uuid16 == service_uuid16) {
+      std::optional<uint16_t> uuid16 = service_uuid.GetBtUuid16();
+      if (!uuid16.has_value()) {
+        continue;
+      }
+      if (*uuid16 == service_uuid16) {
         std::string data;
 
         uint8_t unconsumed_buffer_length = data_reader.UnconsumedBufferLength();
         if (unconsumed_buffer_length > 27) {
           LOG(INFO) << "Skipping extended advertisement with service "
-                    << service_uuid.Get16BitAsString();
+                    << absl::StrCat(absl::Hex(*uuid16));
           return;
         }
         for (int i = 0; i < unconsumed_buffer_length; i++) {
