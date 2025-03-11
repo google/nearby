@@ -45,6 +45,7 @@
 namespace nearby {
 namespace windows {
 
+const bool tempFileNameSupport = true;
 const wchar_t* kUpOneLevel = L"..";
 constexpr wchar_t kDot = L'.';
 constexpr wchar_t kPathDelimiter = L'/';
@@ -133,6 +134,7 @@ std::wstring FilePath::GetDownloadPathInternal(std::wstring parent_folder,
 // starting at 1, using the next non-existing number, to the file name, just
 // before the first dot, or at the end if no dot. The absolute path is returned.
 std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
+  LOG(INFO) << "CreateOutputFileWithRename called";
   std::wstring sanitized_path(path);
 
   // Replace any \\ with /
@@ -180,6 +182,12 @@ std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
   if (count > 0) {
     LOG(INFO) << "Renamed " << string_utils::WideStringToString(path) << " to "
               << string_utils::WideStringToString(target);
+  }
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+          connections::config_package_nearby::nearby_connections_feature::
+              kEnableTransferFilesWithTempName) || tempFileNameSupport) {
+    LOG(INFO) << "Added temp file name support";
+    target += L"_qswtemp";
   }
 
   // The above leaves the file open, so close it.

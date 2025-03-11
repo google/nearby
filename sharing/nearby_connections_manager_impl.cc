@@ -32,6 +32,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex_lock.h"
@@ -892,6 +893,19 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
     if (auto status_listener = listener->lock()) {
       status_listener->OnStatusUpdate(
           std::make_unique<PayloadTransferUpdate>(update));
+    }
+    if (update.status == PayloadStatus::kSuccess) {
+      auto payload = GetIncomingPayload(update.payload_id);
+      std::wstring original_path(
+          payload->content.file_payload.file.path.wstring());
+      std::filesystem::path renamed_path(
+          original_path.substr(0, original_path.length() - 8));
+      std::string original_path_str =
+          payload->content.file_payload.file.path.generic_string();
+      std::string renamed_path_str = renamed_path.generic_string();
+      LOG(INFO) << "Rename: " << original_path_str << " to "
+                << renamed_path_str;
+      Rename(payload->content.file_payload.file.path, renamed_path);
     }
     return;
   }

@@ -83,6 +83,9 @@ constexpr auto kSafeToDisconnectVersion =
 // When true, use stable endpoint ID.
 constexpr auto kUseStableEndpointId =
     flags::Flag<bool>(kConfigPackage, "45639298", false);
+// When true, enable transferring files with temp name.
+constexpr auto kEnableTransferFilesWithTempName =
+    flags::Flag<bool>(kConfigPackage, "45684614", false);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
