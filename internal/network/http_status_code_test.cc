@@ -100,6 +100,8 @@ TEST(HttpStatusCode, TestReturnCorrectReasonPhrase) {
             "HTTP Version Not Supported");
   EXPECT_EQ(GetHttpReasonPhrase(HttpStatusCode::kHttpRequestUriTooLong),
             "Request-URI Too Long");
+  EXPECT_EQ(GetHttpReasonPhrase(static_cast<HttpStatusCode>(600)),
+           "Unknown HTTP status code");
 }
 
 }  // namespace

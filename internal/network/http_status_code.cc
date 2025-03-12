@@ -109,6 +109,8 @@ absl::string_view GetHttpReasonPhrase(HttpStatusCode code) {
       return "Gateway Timeout";
     case HttpStatusCode::kHttpVersionNotSupported:
       return "HTTP Version Not Supported";
+    default:
+      return "Unknown HTTP status code";
   }
 }
 
