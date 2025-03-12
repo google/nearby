@@ -184,6 +184,12 @@ bool WifiLanServerSocket::listen() {
   if (enable_blocking_socket_) {
     ip_addresses_ = GetIpv4Addresses();
 
+    if (ip_addresses_.empty()) {
+      LOG(ERROR) << "failed to start accepting connection without IP "
+                    "addresses configured on computer.";
+      return false;
+    }
+
     if (!server_socket_.Listen(ip_addresses_.front(), port_)) {
       LOG(ERROR) << "Failed to listen socket at " << ip_addresses_.front()
                  << ":" << port_;
