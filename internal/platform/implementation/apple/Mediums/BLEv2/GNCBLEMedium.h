@@ -136,6 +136,21 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
               completionHandler:(nullable GNCStartScanningCompletionHandler)completionHandler;
 
 /**
+ * Scans for peripherals that are advertising by one of the specified services.
+ *
+ * @param serviceUUIDs The service UUIDs to scan for. If multiple services are specified, the
+ *                     advertisementFoundHandler will be called for each service that is
+ *                     discovered.
+ * @param advertisementFoundHandler Called on a private queue when a peripheral has been discovered.
+ * @param completionHandler Called on a private queue with @c nil if successfully started scanning
+ *                          or an error if one has occured.
+ */
+- (void)startScanningForMultipleServices:(NSArray<CBUUID *> *)serviceUUIDs
+               advertisementFoundHandler:(GNCAdvertisementFoundHandler)advertisementFoundHandler
+                       completionHandler:
+                           (nullable GNCStartScanningCompletionHandler)completionHandler;
+
+/**
  * Stops scanning for peripherals.
  *
  * @param completionHandler Called on a private queue with @c nil if successfully stopped

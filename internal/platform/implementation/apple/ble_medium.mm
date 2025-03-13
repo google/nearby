@@ -205,6 +205,49 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   return blockError == nil;
 }
 
+bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_uuids,
+                                              api::ble_v2::TxPowerLevel tx_power_level,
+                                              api::ble_v2::BleMedium::ScanCallback callback) {
+  absl::MutexLock lock(&peripherals_mutex_);
+
+  if (service_uuids.empty()) {
+    GTMLoggerError(@"No service UUIDs provided");
+    return false;
+  }
+
+  NSMutableArray<CBUUID *> *serviceUUIDs = [NSMutableArray arrayWithCapacity:service_uuids.size()];
+  for (const Uuid &service_uuid : service_uuids) {
+    [serviceUUIDs addObject:CBUUID128FromCPP(service_uuid)];
+  }
+
+  scan_cb_ = std::move(callback);
+
+  // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
+  // map every time we stopped a scan, we would not be able to connect to peripherals that we
+  // discovered in that scan session.
+  peripherals_.clear();
+
+  socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
+  [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
+
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError *blockError = nil;
+  [medium_ startScanningForMultipleServices:serviceUUIDs
+      advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
+                                  NSDictionary<CBUUID *, NSData *> *serviceData) {
+        HandleAdvertisementFound(peripheral, serviceData);
+      }
+      completionHandler:^(NSError *error) {
+        if (error != nil) {
+          GTMLoggerError(@"Failed to start scanning for multiple services: %@", error);
+          blockError = error;
+        }
+        dispatch_semaphore_signal(semaphore);
+      }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  return blockError == nil;
+}
+
 bool BleMedium::StopScanning() {
   [socketCentralManager_ stopNoScanMode];
 

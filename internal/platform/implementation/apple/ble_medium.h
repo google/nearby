@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -85,6 +86,11 @@ class BleMedium : public api::ble_v2::BleMedium {
   // Scanning must be stopped before attempting to start scanning again.
   bool StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                      api::ble_v2::BleMedium::ScanCallback callback) override;
+
+  // Starts scanning on multiple services and returns whether or not it was successful.
+  bool StartMultipleServicesScanning(const std::vector<Uuid> &service_uuids,
+                                     api::ble_v2::TxPowerLevel tx_power_level,
+                                     api::ble_v2::BleMedium::ScanCallback callback) override;
 
   // Stops scanning.
   //
