@@ -33,7 +33,9 @@
 #import "internal/platform/implementation/apple/single_thread_executor.h"
 #include "internal/platform/implementation/apple/timer.h"
 #import "internal/platform/implementation/apple/utils.h"
+#include "internal/platform/implementation/apple/wifi.h"
 #include "internal/platform/implementation/apple/wifi_lan.h"
+#include "internal/platform/implementation/apple/wifi_hotspot.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/payload_id.h"
@@ -171,7 +173,9 @@ std::unique_ptr<ServerSyncMedium> ImplementationPlatform::CreateServerSyncMedium
   return nullptr;
 }
 
-std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() { return nullptr; }
+std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
+  return std::make_unique<apple::WifiMedium>();
+}
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   // Set `include_peer_to_peer` to true to support peer-to-peer connections for Apple devices in the
@@ -182,7 +186,11 @@ std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
 }
 
 std::unique_ptr<WifiHotspotMedium> ImplementationPlatform::CreateWifiHotspotMedium() {
+#if TARGET_OS_IOS
+  return std::make_unique<apple::WifiHotspotMedium>();
+#else
   return nullptr;
+#endif
 }
 
 std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium() {
