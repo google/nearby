@@ -542,6 +542,7 @@ void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
       LOG(ERROR) << __func__ << ": Failed to find characteristic="
                  << ::winrt::to_string(
                         ::winrt::to_hstring(gatt_local_characteristic.Uuid()));
+      deferral.Complete();
       return {};
     }
 
