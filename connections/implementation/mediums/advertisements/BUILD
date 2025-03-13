@@ -36,6 +36,7 @@ cc_library(
     hdrs = ["dct_advertisement.h"],
     deps = [
         ":common",
+        "//connections/implementation/mediums:utils",
         "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform:logging",

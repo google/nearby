@@ -42,6 +42,7 @@
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
+#include "connections/implementation/webrtc_state.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -70,13 +71,6 @@
 
 namespace nearby {
 namespace connections {
-
-// Represents the WebRtc state that mediums are connectable or not.
-enum class WebRtcState {
-  kUndefined = 0,
-  kConnectable = 1,
-  kUnconnectable = 2,
-};
 
 // Annotations for methods that need to run on PCP handler thread.
 // Use only in BasePcpHandler and derived classes.

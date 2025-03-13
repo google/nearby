@@ -48,6 +48,7 @@ cc_library(
         ":utils",
         ":webrtc_utils",
         "//connections:core_types",
+        "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
         "//connections/implementation/mediums/ble_v2:ble_advertisement_header",
@@ -124,6 +125,7 @@ cc_library(
     copts = ["-DNO_WEBRTC"],
     visibility = [
         "//connections/implementation:__pkg__",
+        "//connections/implementation/mediums/advertisements:__pkg__",
         "//connections/implementation/mediums/ble_v2:__subpackages__",
         "//connections/implementation/mediums/multiplex:__pkg__",
         "//internal/platform/implementation/windows:__pkg__",

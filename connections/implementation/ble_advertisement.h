@@ -19,8 +19,8 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
-#include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/pcp.h"
+#include "connections/implementation/webrtc_state.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 
