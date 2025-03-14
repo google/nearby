@@ -451,6 +451,9 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
       if (absl::Milliseconds(wait_milliseconds) > kGattServerTimeout) {
         LOG(ERROR) << __func__
                    << ": Failed to start GATT advertising due to timeout.";
+        // GattServiceProvider can become Started after the timeout.  Stop
+        // waiting for the status change and continue as if it has started..
+        break;
       }
     }
 
