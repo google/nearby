@@ -54,6 +54,7 @@ cc_library(
     srcs = [
         "advertisement_read_result.cc",
         "ble_advertisement.cc",
+        "ble_l2cap_packet.cc",
         "ble_packet.cc",
         "ble_utils.cc",
         "discovered_peripheral_tracker.cc",
@@ -63,6 +64,7 @@ cc_library(
     hdrs = [
         "advertisement_read_result.h",
         "ble_advertisement.h",
+        "ble_l2cap_packet.h",
         "ble_packet.h",
         "ble_utils.h",
         "discovered_peripheral_callback.h",
@@ -111,6 +113,7 @@ cc_test(
         "advertisement_read_result_test.cc",
         "ble_advertisement_header_test.cc",
         "ble_advertisement_test.cc",
+        "ble_l2cap_packet_test.cc",
         "ble_packet_test.cc",
         "ble_utils_test.cc",
         "bloom_filter_test.cc",

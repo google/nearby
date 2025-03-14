@@ -146,7 +146,7 @@ BleAdvertisementHeader::operator ByteArray() const {
   // Convert psm_ value to 2-bytes.
   ByteArray psm_bytes{kPsmValueByteLength};
   char *data = psm_bytes.data();
-  data[0] = psm_ & 0xFF00;
+  data[0] = (psm_ & 0xFF00) >> 8;
   data[1] = psm_ & 0x00FF;
 
   // clang-format off
