@@ -55,6 +55,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:util",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 

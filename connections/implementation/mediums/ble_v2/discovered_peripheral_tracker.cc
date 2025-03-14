@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,7 +26,10 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/time/time.h"
+#include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/advertisements/advertisement_util.h"
+#include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
@@ -34,6 +38,8 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
 #include "connections/implementation/mediums/lost_entity_tracker.h"
+#include "connections/implementation/pcp.h"
+#include "connections/implementation/webrtc_state.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
@@ -78,7 +84,7 @@ DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
 }
 
 void DiscoveredPeripheralTracker::StartTracking(
-    const std::string& service_id,
+    const std::string& service_id, bool include_dct_advertisement, Pcp pcp,
     DiscoveredPeripheralCallback discovered_peripheral_callback,
     const Uuid& fast_advertisement_service_uuid) {
   MutexLock lock(&mutex_);
@@ -88,10 +94,19 @@ void DiscoveredPeripheralTracker::StartTracking(
           std::move(discovered_peripheral_callback),
       .lost_entity_tracker =
           std::make_unique<LostEntityTracker<BleAdvertisement>>(),
-      .fast_advertisement_service_uuid = fast_advertisement_service_uuid};
+      .fast_advertisement_service_uuid = fast_advertisement_service_uuid,
+      .include_dct_advertisement = include_dct_advertisement,
+      .pcp = pcp};
 
   // Replace if key exists.
   service_id_infos_.insert_or_assign(service_id, std::move(service_id_info));
+
+  // Add service id hash to service id map for dct advertisement.
+  if (include_dct_advertisement) {
+    dct_service_id_hash_to_service_id_map_.insert_or_assign(
+        advertisements::ble::DctAdvertisement::ComputeServiceIdHash(service_id),
+        service_id);
+  }
 
   // Clear all of the GATT read results. With this cleared, we will now attempt
   // to reconnect to every peripheral we see, giving us a chance to search for
@@ -106,6 +121,8 @@ void DiscoveredPeripheralTracker::StartTracking(
 void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
+  dct_service_id_hash_to_service_id_map_.erase(
+      advertisements::ble::DctAdvertisement::ComputeServiceIdHash(service_id));
   service_id_infos_.erase(service_id);
 }
 
@@ -147,6 +164,17 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     }
     return;
   }
+
+  if (advertisement_data.service_data.contains(bleutils::kDctServiceUuid)) {
+    std::optional<BleAdvertisementData> dct_advertisement_data =
+        HandleDctAdvertisement(advertisement_data);
+
+    if (!dct_advertisement_data.has_value()) {
+      return;
+    }
+    advertisement_data = std::move(*dct_advertisement_data);
+  }
+
   HandleAdvertisement(peripheral, advertisement_data);
   HandleAdvertisementHeader(peripheral, advertisement_data,
                             std::move(advertisement_fetcher));
@@ -592,6 +620,64 @@ bool DiscoveredPeripheralTracker::IsDummyAdvertisementHeader(
          advertisement_header.GetNumSlots() == 1 &&
          advertisement_header.GetServiceIdBloomFilter() ==
              ByteArray(bloom_filter);
+}
+
+std::optional<BleAdvertisementData>
+DiscoveredPeripheralTracker::HandleDctAdvertisement(
+    const BleAdvertisementData& advertisement_data) {
+  // This is DCT advertisement. Build a new advertisement data base on DCT
+  // advertisement.
+  std::optional<advertisements::ble::DctAdvertisement> dct_advertisement =
+      advertisements::ble::DctAdvertisement::Parse(std::string(
+          advertisement_data.service_data.at(bleutils::kDctServiceUuid)));
+  if (!dct_advertisement.has_value()) {
+    LOG(WARNING) << "Failed to parse DCT advertisement.";
+    return std::nullopt;
+  }
+
+  std::optional<std::string> endpoint_id = dct_advertisement->GetEndpointId();
+  if (!endpoint_id.has_value()) {
+    LOG(WARNING) << "Failed to generate endpoint id.";
+    return std::nullopt;
+  }
+  const auto& it = dct_service_id_hash_to_service_id_map_.find(
+      dct_advertisement->GetServiceIdHash());
+  if (it == dct_service_id_hash_to_service_id_map_.end()) {
+    LOG(WARNING) << "Failed to find service id hash in the map.";
+    return std::nullopt;
+  }
+
+  std::string& service_id = it->second;
+  const auto& service_id_info_it = service_id_infos_.find(service_id);
+  if (service_id_info_it == service_id_infos_.end()) {
+    LOG(WARNING) << "Failed to find service id in the map.";
+    return std::nullopt;
+  }
+
+  ServiceIdInfo& service_id_info = service_id_info_it->second;
+  ByteArray service_id_hash = bleutils::GenerateServiceIdHash(service_id);
+
+  // Build the new BLE advertisement data.
+  std::string endpoint_info =
+      advertisements::BuildEndpointInfo(dct_advertisement->GetDeviceName());
+  connections::BleAdvertisement connections_advertisement(
+      connections::BleAdvertisement::Version::kV1, service_id_info.pcp,
+      /*service_id_hash=*/service_id_hash, *endpoint_id,
+      ByteArray(endpoint_info), /*bluetooth_mac_address=*/"",
+      /*uwb_address=*/ByteArray(),
+      /*web_rtc_state=*/WebRtcState::kUnconnectable);
+  BleAdvertisement medium_advertisement = {
+      mediums::BleAdvertisement::Version::kV2,
+      mediums::BleAdvertisement::SocketVersion::kV2,
+      /*service_id_hash=*/service_id_hash,
+      ByteArray(connections_advertisement),
+      ByteArray(dct_advertisement->GetDeviceToken()),
+      dct_advertisement->GetPsm()};
+  BleAdvertisementData new_advertisement_data{};
+  new_advertisement_data.service_data.insert(
+      {service_id_info.fast_advertisement_service_uuid,
+       medium_advertisement.ByteArrayWithExtraField()});
+  return new_advertisement_data;
 }
 
 void DiscoveredPeripheralTracker::HandleAdvertisementHeader(

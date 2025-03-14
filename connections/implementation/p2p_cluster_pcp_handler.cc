@@ -2624,7 +2624,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Scanning(
         *discovery_options.ble_options.alternate_uuid, service_id);
   }
   ErrorOr<bool> ble_v2_result = ble_v2_medium_.StartScanning(
-      service_id, power_level,
+      service_id, GetPcp(), power_level, client->IsDctEnabled(),
       {
           .peripheral_discovered_cb = absl::bind_front(
               &P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler, this,

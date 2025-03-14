@@ -40,6 +40,7 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/utils.h"
+#include "connections/implementation/pcp.h"
 #include "connections/power_level.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
@@ -372,14 +373,15 @@ bool BleV2::StopLegacyAdvertising(const std::string& input_service_id) {
   return status.ok();
 }
 
-void BleV2::AddAlternateUuidForService(
-    uint16_t uuid, const std::string& service_id) {
+void BleV2::AddAlternateUuidForService(uint16_t uuid,
+                                       const std::string& service_id) {
   MutexLock lock(&mutex_);
   medium_.AddAlternateUuidForService(uuid, service_id);
 }
 
-ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,
+ErrorOr<bool> BleV2::StartScanning(const std::string& service_id, Pcp pcp,
                                    PowerLevel power_level,
+                                   bool include_dct_advertisement,
                                    DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
@@ -406,7 +408,7 @@ ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,
 
   // Start to track the advertisement found for specific `service_id`.
   discovered_peripheral_tracker_.StartTracking(
-      service_id, std::move(callback),
+      service_id, include_dct_advertisement, pcp, std::move(callback),
       mediums::bleutils::kCopresenceServiceUuid);
 
   if (FeatureFlags::GetInstance().GetFlags().enable_ble_v2_async_scanning) {
@@ -425,44 +427,89 @@ ErrorOr<bool> BleV2::StartScanning(const std::string& service_id,
   scanned_service_ids_.insert(service_id);
   // TODO(b/213835576): We should re-start scanning once the power level is
   // changed.
-  if (!medium_.StartScanning(
-          mediums::bleutils::kCopresenceServiceUuid,
-          PowerLevelToTxPowerLevel(power_level),
-          {
-              .advertisement_found_cb =
-                  [this](BleV2Peripheral peripheral,
-                         BleAdvertisementData advertisement_data) {
-                    RunOnBleThread([this, peripheral = std::move(peripheral),
-                                    advertisement_data]() {
-                      MutexLock lock(&mutex_);
-                      discovered_peripheral_tracker_
-                          .ProcessFoundBleAdvertisement(
-                              std::move(peripheral), advertisement_data,
-                              [this](BleV2Peripheral peripheral, int num_slots,
-                                     int psm,
-                                     const std::vector<std::string>&
-                                         interesting_service_ids,
-                                     mediums::AdvertisementReadResult&
-                                         advertisement_read_result) {
-                                // Th`mutex_` is already held here. Use
-                                // `AssumeHeld` tell the thread
-                                // annotation static analysis that
-                                // `mutex_` is already exclusively
-                                // locked.
-                                AssumeHeld(mutex_);
-                                ProcessFetchGattAdvertisementsRequest(
-                                    std::move(peripheral), num_slots, psm,
-                                    interesting_service_ids,
-                                    advertisement_read_result);
-                              });
-                    });
-                  },
-          })) {
-    LOG(INFO) << "Failed to start scan of BLE services.";
-    discovered_peripheral_tracker_.StopTracking(service_id);
-    // Erase the service id that is just added.
-    scanned_service_ids_.erase(service_id);
-    return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
+  if (include_dct_advertisement) {
+    std::vector<Uuid> service_uuids = {
+        mediums::bleutils::kCopresenceServiceUuid,
+        mediums::bleutils::kDctServiceUuid};
+    if (!medium_.StartMultipleServicesScanning(
+            service_uuids, PowerLevelToTxPowerLevel(power_level),
+            {
+                .advertisement_found_cb =
+                    [this](BleV2Peripheral peripheral,
+                           BleAdvertisementData advertisement_data) {
+                      RunOnBleThread([this, peripheral = std::move(peripheral),
+                                      advertisement_data]() {
+                        MutexLock lock(&mutex_);
+                        discovered_peripheral_tracker_
+                            .ProcessFoundBleAdvertisement(
+                                std::move(peripheral), advertisement_data,
+                                [this](BleV2Peripheral peripheral,
+                                       int num_slots, int psm,
+                                       const std::vector<std::string>&
+                                           interesting_service_ids,
+                                       mediums::AdvertisementReadResult&
+                                           advertisement_read_result) {
+                                  // Th`mutex_` is already held here. Use
+                                  // `AssumeHeld` tell the thread
+                                  // annotation static analysis that
+                                  // `mutex_` is already exclusively
+                                  // locked.
+                                  AssumeHeld(mutex_);
+                                  ProcessFetchGattAdvertisementsRequest(
+                                      std::move(peripheral), num_slots, psm,
+                                      interesting_service_ids,
+                                      advertisement_read_result);
+                                });
+                      });
+                    },
+            })) {
+      LOG(INFO) << "Failed to start scan of multiple BLE services.";
+      discovered_peripheral_tracker_.StopTracking(service_id);
+      // Erase the service id that is just added.
+      scanned_service_ids_.erase(service_id);
+      return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
+    }
+
+  } else {
+    if (!medium_.StartScanning(
+            mediums::bleutils::kCopresenceServiceUuid,
+            PowerLevelToTxPowerLevel(power_level),
+            {
+                .advertisement_found_cb =
+                    [this](BleV2Peripheral peripheral,
+                           BleAdvertisementData advertisement_data) {
+                      RunOnBleThread([this, peripheral = std::move(peripheral),
+                                      advertisement_data]() {
+                        MutexLock lock(&mutex_);
+                        discovered_peripheral_tracker_
+                            .ProcessFoundBleAdvertisement(
+                                std::move(peripheral), advertisement_data,
+                                [this](BleV2Peripheral peripheral,
+                                       int num_slots, int psm,
+                                       const std::vector<std::string>&
+                                           interesting_service_ids,
+                                       mediums::AdvertisementReadResult&
+                                           advertisement_read_result) {
+                                  // Th`mutex_` is already held here. Use
+                                  // `AssumeHeld` tell the thread
+                                  // annotation static analysis that
+                                  // `mutex_` is already exclusively
+                                  // locked.
+                                  AssumeHeld(mutex_);
+                                  ProcessFetchGattAdvertisementsRequest(
+                                      std::move(peripheral), num_slots, psm,
+                                      interesting_service_ids,
+                                      advertisement_read_result);
+                                });
+                      });
+                    },
+            })) {
+      LOG(INFO) << "Failed to start scan of BLE services.";
+      discovered_peripheral_tracker_.StopTracking(service_id);
+      // Erase the service id that is just added.
+      scanned_service_ids_.erase(service_id);
+      return {Error(OperationResultCode::CONNECTIVITY_BLE_SCAN_FAILURE)};
+    }
   }
 
   absl::Duration peripheral_lost_timeout =

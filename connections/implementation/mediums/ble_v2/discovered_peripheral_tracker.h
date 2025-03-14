@@ -17,6 +17,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -31,6 +32,7 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/lost_entity_tracker.h"
+#include "connections/implementation/pcp.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -80,7 +82,7 @@ class DiscoveredPeripheralTracker {
   // that `fast_advertisement_service_uuid` will be ignored for regular
   // advertisement.
   void StartTracking(
-      const std::string& service_id,
+      const std::string& service_id, bool include_dct_advertisement, Pcp pcp,
       DiscoveredPeripheralCallback discovered_peripheral_callback,
       const Uuid& fast_advertisement_service_uuid) ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -120,6 +122,11 @@ class DiscoveredPeripheralTracker {
     // Used to check for fast advertisements delivered through BLE advertisement
     // service data, under the given UUID.
     Uuid fast_advertisement_service_uuid;
+
+    // Used to check for dct advertisements delivered through BLE advertisement
+    // service data.
+    bool include_dct_advertisement;
+    Pcp pcp;
   };
 
   // A container to hold the related informations for a GATT advertisement.
@@ -206,6 +213,10 @@ class DiscoveredPeripheralTracker {
   bool IsDummyAdvertisementHeader(
       const BleAdvertisementHeader& advertisement_header);
 
+  std::optional<api::ble_v2::BleAdvertisementData> HandleDctAdvertisement(
+      const api::ble_v2::BleAdvertisementData& advertisement_data)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   // Handles the advertisement header for regular advertisement.
   void HandleAdvertisementHeader(
       BleV2Peripheral peripheral,
@@ -230,7 +241,7 @@ class DiscoveredPeripheralTracker {
       const BleAdvertisementHeader& advertisement_header)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Fetches advertsiement from BLE medium if advertisement header is read in
+  // Fetches advertisement from BLE medium if advertisement header is read in
   // AdvertisementData.
   //
   // advertisement_fetcher : a fetcher passed from BLE medium to read the
@@ -284,6 +295,9 @@ class DiscoveredPeripheralTracker {
   // StartTracking, and removed in StopTracking.
   absl::flat_hash_map<std::string, ServiceIdInfo> service_id_infos_
       ABSL_GUARDED_BY(mutex_);
+
+  absl::flat_hash_map<std::string, std::string>
+      dct_service_id_hash_to_service_id_map_ ABSL_GUARDED_BY(mutex_);
 
   // ------------ ADVERTISEMENT HEADER MAPS ------------
   // Maps advertisement headers to AdvertisementReadResult. Tells us when to

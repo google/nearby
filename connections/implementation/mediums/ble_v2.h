@@ -33,6 +33,7 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_manager.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
+#include "connections/implementation/pcp.h"
 #include "connections/power_level.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -124,11 +125,15 @@ class BleV2 final {
   // Returns true, if the scanning is successfully enabled, false otherwise.
   //
   // service_id  - The service ID to track.
+  // pcp         - The PCP to use for the discovery.
   // power_level - The power level to use for the discovery.
+  // include_dct_advertisement - Whether to include the dct advertisement in
+  //                              the discovery. it is false by default.
   // discovered_peripheral_callback - The callback to invoke for discovery
   //                                  events.
-  ErrorOr<bool> StartScanning(const std::string& service_id,
+  ErrorOr<bool> StartScanning(const std::string& service_id, Pcp pcp,
                               PowerLevel power_level,
+                              bool include_dct_advertisement,
                               DiscoveredPeripheralCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 

@@ -20,6 +20,7 @@
 #include <string>
 
 #include "connections/implementation/mediums/advertisements/data_element.h"
+#include "connections/implementation/mediums/utils.h"
 #include "internal/crypto_cros/hkdf.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/crypto.h"
@@ -47,10 +48,7 @@ DctAdvertisement::DctAdvertisement(const std::string& service_id,
                                    const std::string& device_name, uint16_t psm,
                                    uint8_t dedup) {
   psm_ = psm;
-  service_id_hash_ = nearby::crypto::HkdfSha256(
-      /*secret=*/service_id, /*salt= */ kServiceIdHashSalt,
-      /*info=*/kServiceIdHashInfo,
-      /*derived_key_size=*/kServiceIdHashSize);
+  service_id_hash_ = ComputeServiceIdHash(service_id);
   if (device_name.size() > kMaxDeviceNameSize) {
     is_device_name_truncated_ = true;
     // Truncate the device name and make sure it is a valid UTF-8 string.
@@ -162,6 +160,19 @@ std::optional<std::string> DctAdvertisement::GenerateEndpointId(
   }
 
   return endpoint_id;
+}
+
+std::string DctAdvertisement::GenerateDeviceToken(
+    const std::string& device_name) {
+  return std::string(Utils::Sha256Hash(device_name, 2));
+}
+
+std::string DctAdvertisement::ComputeServiceIdHash(
+    const std::string& service_id) {
+  return nearby::crypto::HkdfSha256(
+      /*secret=*/service_id, /*salt= */ kServiceIdHashSalt,
+      /*info=*/kServiceIdHashInfo,
+      /*derived_key_size=*/kServiceIdHashSize);
 }
 
 std::string DctAdvertisement::ToData() const {

@@ -156,6 +156,7 @@ cc_test(
         ":mediums",
         ":utils",
         "//connections:core_types",
+        "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums/ble_v2",
         "//internal/flags:nearby_flags",

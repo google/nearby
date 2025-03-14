@@ -35,14 +35,24 @@ class DctAdvertisement {
 
   static std::optional<std::string> GenerateEndpointId(
       uint8_t dedup, const std::string& device_name);
+  static std::string GenerateDeviceToken(const std::string& device_name);
+  static std::string ComputeServiceIdHash(const std::string& service_id);
 
   std::string ToData() const;
 
   uint8_t GetVersion() const { return version_; }
+  uint16_t GetDedup() const { return dedup_; }
   uint16_t GetPsm() const { return psm_; }
   std::string GetServiceIdHash() const { return service_id_hash_; }
   bool IsDeviceNameTruncated() const { return is_device_name_truncated_; }
   std::string GetDeviceName() const { return device_name_; }
+
+  std::optional<std::string> GetEndpointId() const {
+    return GenerateEndpointId(dedup_, device_name_);
+  }
+  std::string GetDeviceToken() const {
+    return GenerateDeviceToken(device_name_);
+  }
 
  private:
   DctAdvertisement() = default;

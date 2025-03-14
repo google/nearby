@@ -25,6 +25,9 @@ namespace nearby::connections::advertisements {
 // Reads the device name from the endpoint info.
 std::optional<std::string> ReadDeviceName(const ByteArray& endpoint_info);
 
+// Build the endpoint info from the device name.
+std::string BuildEndpointInfo(const std::string& device_name);
+
 }  // namespace nearby::connections::advertisements
 
 #endif  // THIRD_PARTY_NEARBY_CONNECTIONS_IMPLEMENTATION_MEDIUMS_ADVERTISEMENTS_ADVERTISEMENT_UTIL_H_
