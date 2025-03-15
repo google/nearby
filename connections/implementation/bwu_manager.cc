@@ -34,6 +34,7 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#include "connections/medium_selector.h"
 #ifdef NO_WEBRTC
 #include "connections/implementation/webrtc_bwu_handler_stub.h"
 #else
@@ -345,6 +346,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
         << endpoint_id << " to medium "
         << location::nearby::proto::connections::Medium_Name(proposed_medium);
     in_progress_upgrades_.emplace(endpoint_id, client);
+    bwu_attempted_endpoints_.emplace(endpoint_id);
   });
 }
 
@@ -413,8 +415,15 @@ void BwuManager::OnEndpointDisconnect(ClientProxy* client,
         channel_manager_->GetConnectedEndpointsCount() <= 1) {
       RevertBwuMediumForEndpoint(service_id, endpoint_id);
     }
+    // When the endpoint disconnects, we should clear all state for it.s
+    bwu_attempted_endpoints_.erase(endpoint_id);
     barrier.CountDown();
   });
+}
+
+bool BwuManager::HasEndpointAttemptedToUpgrade(
+    const std::string& endpoint_id) const {
+  return bwu_attempted_endpoints_.contains(endpoint_id);
 }
 
 void BwuManager::RevertBwuMediumForEndpoint(const std::string& service_id,

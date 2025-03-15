@@ -568,6 +568,10 @@ class BasePcpHandler : public PcpHandler,
   Status VerifyConnectionRequest(const std::string& endpoint_id,
                                  ClientProxy* client);
 
+  void HandleConnectionResponse(const std::string& endpoint_id,
+                                ClientProxy* client,
+                                const EndpointManager::OfflineFrame& frame);
+
   // Returns true if the webrtc endpoint is created and appended into
   // discovered_endpoints_ with key endpoint_id.
   bool AppendWebRTCEndpoint(const std::string& endpoint_id,

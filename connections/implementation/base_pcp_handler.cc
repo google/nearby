@@ -154,6 +154,8 @@ void BasePcpHandler::DisconnectFromEndpointManager() {
   // Unregister ourselves from EPM message dispatcher.
   endpoint_manager_->UnregisterFrameProcessor(V1Frame::CONNECTION_RESPONSE,
                                               this);
+  endpoint_manager_->UnregisterFrameProcessor(V1Frame::BANDWIDTH_UPGRADE_RETRY,
+                                              this);
 }
 
 std::pair<Status, std::vector<ConnectionInfoVariant>>
@@ -727,6 +729,9 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
 
   // Set ourselves up so that we receive all acceptance/rejection messages
   endpoint_manager_->RegisterFrameProcessor(V1Frame::CONNECTION_RESPONSE, this);
+  // Set up for bandwidth upgrade retry.
+  endpoint_manager_->RegisterFrameProcessor(V1Frame::BANDWIDTH_UPGRADE_RETRY,
+                                            this);
 
   ConnectionOptions connection_options =
       pending_connection_info.connection_options;
@@ -1546,6 +1551,63 @@ Status BasePcpHandler::RejectConnection(ClientProxy* client,
                        client->GetClientId(), &response);
 }
 
+void BasePcpHandler::HandleConnectionResponse(const std::string& endpoint_id,
+                                              ClientProxy* client,
+                                              const OfflineFrame& frame) {
+  NEARBY_LOGS(INFO) << "OnConnectionResponse: endpoint_id=" << endpoint_id;
+
+  if (client->HasRemoteEndpointResponded(endpoint_id)) {
+    NEARBY_LOGS(INFO) << "OnConnectionResponse: already handled; endpoint_id="
+                      << endpoint_id;
+    return;
+  }
+
+  const ConnectionResponseFrame& connection_response =
+      frame.v1().connection_response();
+
+  // For backward compatible, here still check both status and
+  // response parameters until the response feature is roll out in all
+  // supported devices.
+  bool accepted = false;
+  if (connection_response.has_response()) {
+    accepted =
+        connection_response.response() == ConnectionResponseFrame::ACCEPT;
+  } else {
+    accepted = connection_response.status() == Status::kSuccess;
+  }
+  if (accepted) {
+    NEARBY_LOGS(INFO) << "OnConnectionResponse: remote accepted; endpoint_id="
+                      << endpoint_id;
+    client->RemoteEndpointAcceptedConnection(endpoint_id);
+  } else {
+    NEARBY_LOGS(INFO) << "OnConnectionResponse: remote rejected; endpoint_id="
+                      << endpoint_id
+                      << "; status=" << connection_response.status();
+    client->RemoteEndpointRejectedConnection(endpoint_id);
+  }
+
+  if (connection_response.has_os_info()) {
+    client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
+  }
+
+  if (connection_response.has_multiplex_socket_bitmask()) {
+    client->SetRemoteMultiplexSocketBitmask(
+        endpoint_id, connection_response.multiplex_socket_bitmask());
+  }
+
+  if (connection_response.has_safe_to_disconnect_version()) {
+    NEARBY_LOGS(INFO) << "[safe-to-disconnect]: endpoint_id=" << endpoint_id
+                      << "; Version = "
+                      << connection_response.safe_to_disconnect_version();
+    client->SetRemoteSafeToDisconnectVersion(
+        endpoint_id, connection_response.safe_to_disconnect_version());
+  }
+  channel_manager_->UpdateSafeToDisconnectForEndpoint(
+      endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));
+  EvaluateConnectionResult(client, endpoint_id,
+                           /* can_close_immediately= */ true);
+}
+
 void BasePcpHandler::OnIncomingFrame(
     OfflineFrame& frame, const std::string& endpoint_id, ClientProxy* client,
     location::nearby::proto::connections::Medium medium,
@@ -1554,62 +1616,52 @@ void BasePcpHandler::OnIncomingFrame(
   RunOnPcpHandlerThread(
       "incoming-frame",
       [this, client, endpoint_id, frame, &latch]() RUN_ON_PCP_HANDLER_THREAD() {
-        NEARBY_LOGS(INFO) << "OnConnectionResponse: endpoint_id="
-                          << endpoint_id;
-
-        if (client->HasRemoteEndpointResponded(endpoint_id)) {
-          NEARBY_LOGS(INFO)
-              << "OnConnectionResponse: already handled; endpoint_id="
-              << endpoint_id;
-          return;
+        if (frame.v1().has_connection_response()) {
+          HandleConnectionResponse(endpoint_id, client, frame);
         }
-
-        const ConnectionResponseFrame& connection_response =
-            frame.v1().connection_response();
-
-        // For backward compatible, here still check both status and
-        // response parameters until the response feature is roll out in all
-        // supported devices.
-        bool accepted = false;
-        if (connection_response.has_response()) {
-          accepted =
-              connection_response.response() == ConnectionResponseFrame::ACCEPT;
-        } else {
-          accepted = connection_response.status() == Status::kSuccess;
+        if (frame.v1().has_bandwidth_upgrade_retry()) {
+          const location::nearby::connections::BandwidthUpgradeRetryFrame&
+              retry_frame = frame.v1().bandwidth_upgrade_retry();
+          // The remote side wants to retry the BWU.
+          // Turn the mediums into a BooleanMediumSelector.
+          BooleanMediumSelector mediums;
+          for (const auto& medium : retry_frame.supported_medium()) {
+            switch (medium) {
+              case Medium::BLE:
+                mediums.ble = true;
+                break;
+              case Medium::BLUETOOTH:
+                mediums.bluetooth = true;
+                break;
+              case Medium::WIFI_LAN:
+                mediums.wifi_lan = true;
+                break;
+              case Medium::WIFI_HOTSPOT:
+                mediums.wifi_hotspot = true;
+                break;
+              case Medium::WIFI_DIRECT:
+                mediums.wifi_direct = true;
+                break;
+              case Medium::WEB_RTC:
+                mediums.web_rtc = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (frame.v1().bandwidth_upgrade_retry().is_request()) {
+            // Send our mediums to the remote.
+            channel_manager_->GetChannelForEndpoint(endpoint_id)
+                ->Write(parser::ForBwuRetry(GetConnectionMediumsByPriority()));
+          }
+          if (client->IsIncomingConnection(endpoint_id)) {
+            client->SetUpgradeMediums(endpoint_id, mediums);
+            if (client->AutoUpgradeBandwidth() &&
+                bwu_manager_->HasEndpointAttemptedToUpgrade(endpoint_id)) {
+              bwu_manager_->InitiateBwuForEndpoint(client, endpoint_id);
+            }
+          }
         }
-        if (accepted) {
-          NEARBY_LOGS(INFO)
-              << "OnConnectionResponse: remote accepted; endpoint_id="
-              << endpoint_id;
-          client->RemoteEndpointAcceptedConnection(endpoint_id);
-        } else {
-          NEARBY_LOGS(INFO)
-              << "OnConnectionResponse: remote rejected; endpoint_id="
-              << endpoint_id << "; status=" << connection_response.status();
-          client->RemoteEndpointRejectedConnection(endpoint_id);
-        }
-
-        if (connection_response.has_os_info()) {
-          client->SetRemoteOsInfo(endpoint_id, connection_response.os_info());
-        }
-
-        if (connection_response.has_multiplex_socket_bitmask()) {
-          client->SetRemoteMultiplexSocketBitmask(
-              endpoint_id, connection_response.multiplex_socket_bitmask());
-        }
-
-        if (connection_response.has_safe_to_disconnect_version()) {
-          NEARBY_LOGS(INFO)
-              << "[safe-to-disconnect]: endpoint_id=" << endpoint_id
-              << "; Version = "
-              << connection_response.safe_to_disconnect_version();
-          client->SetRemoteSafeToDisconnectVersion(
-              endpoint_id, connection_response.safe_to_disconnect_version());
-        }
-        channel_manager_->UpdateSafeToDisconnectForEndpoint(
-            endpoint_id, client->IsSafeToDisconnectEnabled(endpoint_id));
-        EvaluateConnectionResult(client, endpoint_id,
-                                 /* can_close_immediately= */ true);
 
         latch.CountDown();
       });
