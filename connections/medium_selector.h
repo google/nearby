@@ -24,6 +24,7 @@ namespace connections {
 using Medium = ::location::nearby::proto::connections::Medium;
 
 struct BooleanMediumSelector {
+  bool awdl = false;
   bool bluetooth = false;
   bool ble = false;
   bool web_rtc_no_cellular = false;
@@ -32,21 +33,22 @@ struct BooleanMediumSelector {
   bool wifi_hotspot = false;
   bool wifi_direct = false;
 
-
   constexpr bool Any(bool value) const {
-    return bluetooth == value || ble == value || web_rtc_no_cellular == value ||
-           web_rtc == value || wifi_lan == value || wifi_hotspot == value ||
-           wifi_direct == value;
+    return awdl == value || bluetooth == value || ble == value ||
+           web_rtc_no_cellular == value || web_rtc == value ||
+           wifi_lan == value || wifi_hotspot == value || wifi_direct == value;
   }
 
   constexpr bool All(bool value) const {
     return bluetooth == value && ble == value &&
            (web_rtc == value || web_rtc_no_cellular == value) &&
-           wifi_lan == value && wifi_hotspot == value && wifi_direct == value;
+           (awdl == value || wifi_lan == value) &&
+           wifi_hotspot == value && wifi_direct == value;
   }
 
   constexpr int Count(bool value) const {
     int count = 0;
+    if (awdl == value) count++;
     if (bluetooth == value) count++;
     if (ble == value) count++;
     if (wifi_lan == value) count++;
@@ -63,6 +65,7 @@ struct BooleanMediumSelector {
     wifi_lan = value;
     wifi_hotspot = value;
     wifi_direct = value;
+    awdl = value;
     return *this;
   }
 
@@ -83,6 +86,8 @@ struct BooleanMediumSelector {
     }
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
     if (ble == value) mediums.push_back(Medium::BLE);
+    if (awdl == value)
+      mediums.push_back(Medium::AWDL);
     return mediums;
   }
 };

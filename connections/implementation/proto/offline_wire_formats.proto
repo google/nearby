@@ -85,6 +85,7 @@ message ConnectionRequestFrame {
     BLE_L2CAP = 10;
     USB = 11;
     WEB_RTC_NON_CELLULAR = 12;
+    AWDL = 13;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 

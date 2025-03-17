@@ -86,6 +86,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 
 - (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port error:(NSError **)error {
   GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
+  NSLog(@"GNCNWFramework listenForServiceOnPort, includePeerToPeer: %d", _includePeerToPeer);
   BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:_includePeerToPeer];
   if (success) {
     [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
@@ -97,11 +98,13 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (void)startAdvertisingPort:(NSInteger)port
                  serviceName:(NSString *)serviceName
                  serviceType:(NSString *)serviceType
-                  txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+                  txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords
+           includePeerToPeer:(BOOL)includePeerToPeer {
   GNCNWFrameworkServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
   [serverSocket startAdvertisingServiceName:serviceName
                                 serviceType:serviceType
-                                 txtRecords:txtRecords];
+                                 txtRecords:txtRecords
+                           includePeerToPeer:includePeerToPeer];
 }
 
 - (void)stopAdvertisingPort:(NSInteger)port {

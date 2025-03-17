@@ -21,6 +21,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/ble.h"
@@ -143,6 +144,7 @@ class ImplementationPlatform {
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif
+  static std::unique_ptr<api::AwdlMedium> CreateAwdlMedium();
 
   // Gets HTTP response from remote server.
   //

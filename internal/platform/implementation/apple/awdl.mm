@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/wifi_lan.h"
+#import "internal/platform/implementation/apple/awdl.h"
 #import <Foundation/Foundation.h>
 
 #include <memory>
@@ -28,11 +28,11 @@
 namespace nearby {
 namespace apple {
 
-#pragma mark - WifiLanInputStream
+#pragma mark - AwdlInputStream
 
-WifiLanInputStream::WifiLanInputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
+AwdlInputStream::AwdlInputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-ExceptionOr<ByteArray> WifiLanInputStream::Read(std::int64_t size) {
+ExceptionOr<ByteArray> AwdlInputStream::Read(std::int64_t size) {
   NSError* error = nil;
   NSData* data = [socket_ readMaxLength:size error:&error];
   if (data == nil) {
@@ -42,17 +42,17 @@ ExceptionOr<ByteArray> WifiLanInputStream::Read(std::int64_t size) {
   return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
 }
 
-Exception WifiLanInputStream::Close() {
+Exception AwdlInputStream::Close() {
   // The input stream reads directly from the connection. It can not be closed without closing the
-  // connection itself. A call to `WifiLanSocket::Close` will close the connection.
+  // connection itself. A call to `AwdlSocket::Close` will close the connection.
   return {Exception::kSuccess};
 }
 
-#pragma mark - WifiLanOutputStream
+#pragma mark - AwdlOutputStream
 
-WifiLanOutputStream::WifiLanOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
+AwdlOutputStream::AwdlOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-Exception WifiLanOutputStream::Write(const ByteArray& data) {
+Exception AwdlOutputStream::Write(const ByteArray& data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {
@@ -62,51 +62,51 @@ Exception WifiLanOutputStream::Write(const ByteArray& data) {
   return {Exception::kSuccess};
 }
 
-Exception WifiLanOutputStream::Flush() {
+Exception AwdlOutputStream::Flush() {
   // Write blocks until the data has successfully been written/received, so no more work is needed
   // to flush.
   return {Exception::kSuccess};
 }
 
-Exception WifiLanOutputStream::Close() {
+Exception AwdlOutputStream::Close() {
   // The output stream writes directly to the connection. It can not be closed without closing the
-  // connection itself. A call to `WifiLanSocket::Close` will close the connection.
+  // connection itself. A call to `AwdlSocket::Close` will close the connection.
   return {Exception::kSuccess};
 }
 
-#pragma mark - WifiLanSocket
+#pragma mark - AwdlSocket
 
-WifiLanSocket::WifiLanSocket(GNCNWFrameworkSocket* socket)
+AwdlSocket::AwdlSocket(GNCNWFrameworkSocket* socket)
     : socket_(socket),
-      input_stream_(std::make_unique<WifiLanInputStream>(socket)),
-      output_stream_(std::make_unique<WifiLanOutputStream>(socket)) {}
+      input_stream_(std::make_unique<AwdlInputStream>(socket)),
+      output_stream_(std::make_unique<AwdlOutputStream>(socket)) {}
 
-InputStream& WifiLanSocket::GetInputStream() { return *input_stream_; }
+InputStream& AwdlSocket::GetInputStream() { return *input_stream_; }
 
-OutputStream& WifiLanSocket::GetOutputStream() { return *output_stream_; }
+OutputStream& AwdlSocket::GetOutputStream() { return *output_stream_; }
 
-Exception WifiLanSocket::Close() {
+Exception AwdlSocket::Close() {
   [socket_ close];
   return {Exception::kSuccess};
 }
 
-#pragma mark - WifiLanServerSocket
+#pragma mark - AwdlServerSocket
 
-WifiLanServerSocket::WifiLanServerSocket(GNCNWFrameworkServerSocket* server_socket)
+AwdlServerSocket::AwdlServerSocket(GNCNWFrameworkServerSocket* server_socket)
     : server_socket_(server_socket) {}
 
-std::string WifiLanServerSocket::GetIPAddress() const {
+std::string AwdlServerSocket::GetIPAddress() const {
   NSData* addressData = server_socket_.ipAddress.binaryRepresentation;
   return std::string((char*)addressData.bytes, addressData.length);
 }
 
-int WifiLanServerSocket::GetPort() const { return server_socket_.port; }
+int AwdlServerSocket::GetPort() const { return server_socket_.port; }
 
-std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
+std::unique_ptr<api::AwdlSocket> AwdlServerSocket::Accept() {
   NSError* error = nil;
   GNCNWFrameworkSocket* socket = [server_socket_ acceptWithError:&error];
   if (socket != nil) {
-    return std::make_unique<WifiLanSocket>(socket);
+    return std::make_unique<AwdlSocket>(socket);
   }
   if (error != nil) {
     GTMLoggerError(@"Error accepting socket: %@", error);
@@ -114,16 +114,16 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
   return nil;
 }
 
-Exception WifiLanServerSocket::Close() {
+Exception AwdlServerSocket::Close() {
   [server_socket_ close];
   return {Exception::kSuccess};
 }
 
-#pragma mark - WifiLanMedium
+#pragma mark - AwdlMedium
 
-WifiLanMedium::WifiLanMedium()
-    : medium_([[GNCNWFramework alloc] initWithIncludePeerToPeer:/*include_peer_to_peer*/ false]) {};
-bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
+AwdlMedium::AwdlMedium()
+    : medium_([[GNCNWFramework alloc] initWithIncludePeerToPeer:/*include_peer_to_peer*/true]) {};
+  bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   NSInteger port = nsd_service_info.GetPort();
   NSString* serviceName = @(nsd_service_info.GetServiceName().c_str());
   NSString* serviceType = @(nsd_service_info.GetServiceType().c_str());
@@ -131,21 +131,22 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   for (const auto& record : nsd_service_info.GetTxtRecords()) {
     [txtRecords setObject:@(record.second.c_str()) forKey:@(record.first.c_str())];
   }
+  NSLog(@"awdl.mm startAdvertising, includePeerToPeer:");
   [medium_ startAdvertisingPort:port
                     serviceName:serviceName
                     serviceType:serviceType
                      txtRecords:txtRecords
-              includePeerToPeer:/*include_peer_to_peer*/ false];
+                     includePeerToPeer:/*include_peer_to_peer*/true];
   return true;
 }
 
-bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
+bool AwdlMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
   NSInteger port = nsd_service_info.GetPort();
   [medium_ stopAdvertisingPort:port];
   return true;
 }
 
-bool WifiLanMedium::StartDiscovery(const std::string& service_type,
+bool AwdlMedium::StartDiscovery(const std::string& service_type,
                                    DiscoveredServiceCallback callback) {
   __block NSString* serviceType = @(service_type.c_str());
   __block DiscoveredServiceCallback client_callback = std::move(callback);
@@ -181,13 +182,13 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
   return result;
 }
 
-bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
+bool AwdlMedium::StopDiscovery(const std::string& service_type) {
   NSString* serviceType = @(service_type.c_str());
   [medium_ stopDiscoveryForServiceType:serviceType];
   return true;
 }
 
-std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) {
   NSError* error = nil;
   NSString* serviceName = @(remote_service_info.GetServiceName().c_str());
@@ -196,7 +197,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
                                                    serviceType:serviceType
                                                          error:&error];
   if (socket != nil) {
-    return std::make_unique<WifiLanSocket>(socket);
+    return std::make_unique<AwdlSocket>(socket);
   }
   if (error != nil) {
     GTMLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
@@ -205,7 +206,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   return nil;
 }
 
-std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
+std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
     const std::string& ip_address, int port, CancellationFlag* cancellation_flag) {
   NSError* error = nil;
   if (ip_address.size() != 4) {
@@ -216,7 +217,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   GNCIPv4Address* host = [GNCIPv4Address addressFromData:hostData];
   GNCNWFrameworkSocket* socket = [medium_ connectToHost:host port:port error:&error];
   if (socket != nil) {
-    return std::make_unique<WifiLanSocket>(socket);
+    return std::make_unique<AwdlSocket>(socket);
   }
   if (error != nil) {
     GTMLoggerError(@"Error connecting to %@:%d: %@", host, port, error);
@@ -224,11 +225,11 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   return nil;
 }
 
-std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
+std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(int port) {
   NSError* error = nil;
   GNCNWFrameworkServerSocket* serverSocket = [medium_ listenForServiceOnPort:port error:&error];
   if (serverSocket != nil) {
-    return std::make_unique<WifiLanServerSocket>(serverSocket);
+    return std::make_unique<AwdlServerSocket>(serverSocket);
   }
   if (error != nil) {
     GTMLoggerError(@"Error listening for service: %@", error);

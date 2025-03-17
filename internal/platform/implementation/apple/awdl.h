@@ -1,3 +1,4 @@
+
 // Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_APPLE_WIFI_LAN_H_
-#define PLATFORM_IMPL_APPLE_WIFI_LAN_H_
-
-#import <Foundation/Foundation.h>
-#import <Network/Network.h>
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_AWDL_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_AWDL_H_
 
 #include <string>
 #include <utility>
 
-#include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/nsd_service_info.h"
 
 @class GNCMBonjourBrowser;
@@ -36,10 +34,10 @@ namespace apple {
 /**
  * InputStream that reads from GNCMConnection.
  */
-class WifiLanInputStream : public InputStream {
+class AwdlInputStream : public InputStream {
  public:
-  explicit WifiLanInputStream(GNCNWFrameworkSocket* socket);
-  ~WifiLanInputStream() override = default;
+  explicit AwdlInputStream(GNCNWFrameworkSocket* socket);
+  ~AwdlInputStream() override = default;
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
   Exception Close() override;
@@ -51,10 +49,10 @@ class WifiLanInputStream : public InputStream {
 /**
  * OutputStream that writes to GNCMConnection.
  */
-class WifiLanOutputStream : public OutputStream {
+class AwdlOutputStream : public OutputStream {
  public:
-  explicit WifiLanOutputStream(GNCNWFrameworkSocket* socket);
-  ~WifiLanOutputStream() override = default;
+  explicit AwdlOutputStream(GNCNWFrameworkSocket* socket);
+  ~AwdlOutputStream() override = default;
 
   Exception Write(const ByteArray& data) override;
   Exception Flush() override;
@@ -65,12 +63,12 @@ class WifiLanOutputStream : public OutputStream {
 };
 
 /**
- * Concrete WifiLanSocket implementation.
+ * Concrete AwdlSocket implementation.
  */
-class WifiLanSocket : public api::WifiLanSocket {
+class AwdlSocket : public api::AwdlSocket {
  public:
-  explicit WifiLanSocket(GNCNWFrameworkSocket* socket);
-  ~WifiLanSocket() override = default;
+  explicit AwdlSocket(GNCNWFrameworkSocket* socket);
+  ~AwdlSocket() override = default;
 
   InputStream& GetInputStream() override;
   OutputStream& GetOutputStream() override;
@@ -78,52 +76,53 @@ class WifiLanSocket : public api::WifiLanSocket {
 
  private:
   GNCNWFrameworkSocket* socket_;
-  std::unique_ptr<WifiLanInputStream> input_stream_;
-  std::unique_ptr<WifiLanOutputStream> output_stream_;
+  std::unique_ptr<AwdlInputStream> input_stream_;
+  std::unique_ptr<AwdlOutputStream> output_stream_;
 };
 
 /**
- * Concrete WifiLanServerSocket implementation.
+ * Concrete AwdlServerSocket implementation.
  */
-class WifiLanServerSocket : public api::WifiLanServerSocket {
+class AwdlServerSocket : public api::AwdlServerSocket {
  public:
-  explicit WifiLanServerSocket(GNCNWFrameworkServerSocket*  server_socket);
-  ~WifiLanServerSocket() override = default;
+  explicit AwdlServerSocket(GNCNWFrameworkServerSocket* server_socket);
+  ~AwdlServerSocket() override = default;
 
   std::string GetIPAddress() const override;
   int GetPort() const override;
-  std::unique_ptr<api::WifiLanSocket> Accept() override;
+  std::unique_ptr<api::AwdlSocket> Accept() override;
   Exception Close() override;
 
  private:
-   GNCNWFrameworkServerSocket* server_socket_;
+  GNCNWFrameworkServerSocket* server_socket_;
 };
 
 /**
- * Concrete WifiLanMedium implementation.
+ * Concrete AwdlMedium implementation.
  */
-class WifiLanMedium : public api::WifiLanMedium {
+class AwdlMedium : public api::AwdlMedium {
  public:
-  explicit WifiLanMedium();
-  ~WifiLanMedium() override = default;
+  explicit AwdlMedium();
+  ~AwdlMedium() override = default;
 
-  WifiLanMedium(const WifiLanMedium&) = delete;
-  WifiLanMedium& operator=(const WifiLanMedium&) = delete;
+  AwdlMedium(const AwdlMedium&) = delete;
+  AwdlMedium& operator=(const AwdlMedium&) = delete;
 
   bool IsNetworkConnected() const override { return true; }
   absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() override {
     return absl::nullopt;
   }
 
+  // void SetIncludePeerToPeerForApplePlatform(bool include_peer_to_peer) override;
   bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
   bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override;
   bool StartDiscovery(const std::string& service_type, DiscoveredServiceCallback callback) override;
   bool StopDiscovery(const std::string& service_type) override;
-  std::unique_ptr<api::WifiLanSocket> ConnectToService(
-      const NsdServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) override;
-  std::unique_ptr<api::WifiLanSocket> ConnectToService(
-      const std::string& ip_address, int port, CancellationFlag* cancellation_flag) override;
-  std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override;
+  std::unique_ptr<api::AwdlSocket> ConnectToService(const NsdServiceInfo& remote_service_info,
+                                                    CancellationFlag* cancellation_flag) override;
+  std::unique_ptr<api::AwdlSocket> ConnectToService(const std::string& ip_address, int port,
+                                                    CancellationFlag* cancellation_flag) override;
+  std::unique_ptr<api::AwdlServerSocket> ListenForService(int port) override;
 
  private:
   GNCNWFramework* medium_;
@@ -134,4 +133,4 @@ class WifiLanMedium : public api::WifiLanMedium {
 }  // namespace apple
 }  // namespace nearby
 
-#endif  // PLATFORM_IMPL_APPLE_WIFI_LAN_H_
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_AWDL_H_
