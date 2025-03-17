@@ -342,6 +342,7 @@ cc_test(
     srcs = ["offline_frames_validator_test.cc"],
     deps = [
         ":internal",
+        "//connections:core_types",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",
