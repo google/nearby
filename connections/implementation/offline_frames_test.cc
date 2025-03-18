@@ -23,6 +23,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/connection_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/flags/nearby_flags.h"
@@ -47,10 +48,11 @@ constexpr bool kSupports5ghz = true;
 constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
 constexpr int kApFrequency = 2412;
 constexpr absl::string_view kIp4Bytes = {"8xqT"};
-constexpr std::array<Medium, 9> kMediums = {
+constexpr std::array<Medium, 11> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
     Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
     Medium::NFC,  Medium::WIFI_DIRECT, Medium::WEB_RTC,
+    Medium::USB,  Medium::AWDL,
 };
 constexpr int kKeepAliveIntervalMillis = 1000;
 constexpr int kKeepAliveTimeoutMillis = 5000;
@@ -117,6 +119,8 @@ TEST(OfflineFramesTest, CanGenerateLegacyConnectionRequest) {
         mediums: NFC
         mediums: WIFI_DIRECT
         mediums: WEB_RTC
+        mediums: USB
+        mediums: AWDL
         keep_alive_interval_millis: 1000
         keep_alive_timeout_millis: 5000
       >
@@ -166,6 +170,8 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
         mediums: NFC
         mediums: WIFI_DIRECT
         mediums: WEB_RTC
+        mediums: USB
+        mediums: AWDL
         keep_alive_interval_millis: 1000
         keep_alive_timeout_millis: 5000
         connections_device {
@@ -226,6 +232,8 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
         mediums: NFC
         mediums: WIFI_DIRECT
         mediums: WEB_RTC
+        mediums: USB
+        mediums: AWDL
         keep_alive_interval_millis: 1000
         keep_alive_timeout_millis: 5000
         presence_device {
