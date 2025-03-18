@@ -85,6 +85,7 @@ message ConnectionRequestFrame {
     BLE_L2CAP = 10;
     USB = 11;
     WEB_RTC_NON_CELLULAR = 12;
+    AWDL = 13;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 
@@ -244,6 +245,7 @@ message BandwidthUpgradeNegotiationFrame {
       // 10 is reserved.
       USB = 11;
       WEB_RTC_NON_CELLULAR = 12;
+      AWDL = 13;
     }
 
     // Accompanies Medium.WIFI_HOTSPOT.
@@ -354,6 +356,7 @@ message BandwidthUpgradeRetryFrame {
     BLE_L2CAP = 10;
     USB = 11;
     WEB_RTC_NON_CELLULAR = 12;
+    AWDL = 13;
   }
   // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
 

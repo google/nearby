@@ -111,8 +111,7 @@ class FakeBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler:
-  ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(
+  ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
       const UpgradePathInfo& upgrade_path_info) final {
@@ -166,6 +165,7 @@ class FakeBwuHandler : public BaseBwuHandler {
       case location::nearby::proto::connections::NFC:
       case location::nearby::proto::connections::BLE_L2CAP:
       case location::nearby::proto::connections::USB:
+      case location::nearby::proto::connections::AWDL:
         return ByteArray{};
     }
   }
