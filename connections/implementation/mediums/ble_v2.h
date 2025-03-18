@@ -70,6 +70,10 @@ class BleV2 final {
     kDct = 2,
   };
 
+  // Callback that is invoked when a new l2cap connection is accepted.
+  using AcceptedL2capConnectionCallback = absl::AnyInvocable<void(
+      BleL2capSocket socket, const std::string& service_id)>;
+
   explicit BleV2(BluetoothRadio& bluetooth_radio);
   ~BleV2();
 
@@ -108,7 +112,7 @@ class BleV2 final {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // (TODO:hais) update this after ble_v2 async api refactor.
-  // Stop Ble advertising with dummy bytes for legagy device.
+  // Stop Ble advertising with dummy bytes for legacy device.
   bool StopLegacyAdvertising(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -147,8 +151,9 @@ class BleV2 final {
 
   // Starts a worker thread, creates a Ble socket, associates it with a
   // service id.
-  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
-                                          AcceptedConnectionCallback callback)
+  ErrorOr<bool> StartAcceptingConnections(
+      const std::string& service_id, AcceptedConnectionCallback callback,
+      AcceptedL2capConnectionCallback l2cap_callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Closes socket corresponding to a service id.
@@ -307,6 +312,16 @@ class BleV2 final {
       ABSL_GUARDED_BY(mutex_);
 
   mediums::InstantOnLostManager instant_on_lost_manager_;
+
+  // A map of service_id -> L2capServerSocket. If map is non-empty, we
+  // are currently listening for incoming connections.
+  absl::flat_hash_map<std::string, BleL2capServerSocket> l2cap_server_sockets_
+      ABSL_GUARDED_BY(mutex_);
+
+  // Tracks currently connected incoming sockets. This lets the device know when
+  // it's okay to restart L2CAP server related operations.
+  absl::flat_hash_map<std::string, BleL2capSocket> incoming_l2cap_sockets_
+      ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

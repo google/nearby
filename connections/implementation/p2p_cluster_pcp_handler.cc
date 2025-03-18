@@ -32,6 +32,7 @@
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/ble_endpoint_channel.h"
+#include "connections/implementation/ble_l2cap_endpoint_channel.h"
 #include "connections/implementation/ble_v2_endpoint_channel.h"
 #include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/bluetooth_endpoint_channel.h"
@@ -49,6 +50,7 @@
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
+#include "connections/implementation/webrtc_state.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/wifi_lan_service_info.h"
 #include "connections/medium_selector.h"
@@ -1393,6 +1395,10 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
               absl::bind_front(
                   &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
                   client_proxy, local_endpoint_id,
+                  options.listening_endpoint_type),
+              absl::bind_front(
+                  &P2pClusterPcpHandler::BleL2CAPConnectionAcceptedHandler,
+                  this, client_proxy, local_endpoint_id,
                   options.listening_endpoint_type))) {
         LOG(WARNING)
             << "Failed to start listening for incoming connections on ble_v2";
@@ -2427,6 +2433,29 @@ void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(
       });
 }
 
+void P2pClusterPcpHandler::BleL2CAPConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_info,
+    NearbyDevice::Type device_type, BleL2capSocket socket,
+    const std::string& service_id) {
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Invalid socket in accept callback("
+                 << absl::BytesToHexString(local_endpoint_info)
+                 << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-ble-l2cap-on-incoming-connection",
+      [this, client, service_id, device_type,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        ByteArray remote_peripheral_info = socket.GetRemotePeripheral().GetId();
+        auto channel = std::make_unique<BleL2capEndpointChannel>(
+            service_id, std::string(remote_peripheral_info), socket);
+
+        OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
+                             BLE, device_type);
+      });
+}
+
 ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
@@ -2454,7 +2483,11 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
         service_id,
         absl::bind_front(&P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler,
                          this, client, local_endpoint_info.AsStringView(),
-                         NearbyDevice::Type::kConnectionsDevice));
+                         NearbyDevice::Type::kConnectionsDevice),
+        absl::bind_front(
+            &P2pClusterPcpHandler::BleL2CAPConnectionAcceptedHandler, this,
+            client, local_endpoint_info.AsStringView(),
+            NearbyDevice::Type::kConnectionsDevice));
     if (ble_v2_result.has_error()) {
       LOG(WARNING)
           << "In StartBleV2Advertising("
