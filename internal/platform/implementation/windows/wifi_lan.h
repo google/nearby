@@ -252,6 +252,9 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Check if a network connection to a primary router exist.
   bool IsNetworkConnected() const override;
 
+  // Sets whether to include peer-to-peer services.
+  void SetAwdlEnabled(bool enable_awdl) override;
+
   // Starts to advertising
   bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
 

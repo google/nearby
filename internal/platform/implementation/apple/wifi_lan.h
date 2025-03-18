@@ -114,7 +114,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() override {
     return absl::nullopt;
   }
-
+  void SetAwdlEnabled(bool enable_awdl) override;
   bool StartAdvertising(const NsdServiceInfo& nsd_service_info) override;
   bool StopAdvertising(const NsdServiceInfo& nsd_service_info) override;
   bool StartDiscovery(const std::string& service_type, DiscoveredServiceCallback callback) override;

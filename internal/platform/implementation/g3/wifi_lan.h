@@ -140,6 +140,13 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Check if a network connection to a primary router exist.
   bool IsNetworkConnected() const override { return true; }
 
+
+  // Sets whether to include peer-to-peer services.
+  //
+  // This is a no-op for g3.
+  void SetAwdlEnabled(
+      bool enable_awdl) override {}
+
   // Starts WifiLan advertising.
   //
   // nsd_service_info - NsdServiceInfo data that's advertised through mDNS

@@ -128,4 +128,10 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
                                             port:(NSInteger)port
                                            error:(NSError **_Nullable)error;
 
+/**
+ * Sets whether to include peer-to-peer services.
+ *
+ * @param enable_awdl Whether to include peer-to-peer services.
+ */
+- (void) setAwdlEnabled:(BOOL)enable_awdl;
 @end

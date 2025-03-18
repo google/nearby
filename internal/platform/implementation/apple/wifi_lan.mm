@@ -121,8 +121,11 @@ Exception WifiLanServerSocket::Close() {
 
 #pragma mark - WifiLanMedium
 
+
 WifiLanMedium::WifiLanMedium(bool include_peer_to_peer)
     : medium_([[GNCNWFramework alloc] initWithIncludePeerToPeer:include_peer_to_peer]) {}
+
+void WifiLanMedium::SetAwdlEnabled(bool enable_awdl) { [medium_ setAwdlEnabled:enable_awdl]; }
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   NSInteger port = nsd_service_info.GetPort();
