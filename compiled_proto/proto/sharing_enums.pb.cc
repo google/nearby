@@ -94,13 +94,19 @@ bool EventType_IsValid(int value) {
     case 65:
     case 66:
     case 67:
+    case 68:
+    case 69:
+    case 70:
+    case 71:
+    case 72:
+    case 73:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[68] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[74] = {};
 
 static const char EventType_names[] =
   "ACCEPT_AGREEMENTS"
@@ -128,6 +134,8 @@ static const char EventType_names[] =
   "ESTABLISH_CONNECTION"
   "FAST_INIT_DISCOVER_DEVICE"
   "FAST_SHARE_SERVER_RESPONSE"
+  "HATS_JOINT_EVENT"
+  "HIGH_QUALITY_MEDIUM_SETUP"
   "INSTALL_APK"
   "LAUNCH_ACTIVITY"
   "LAUNCH_CONSENT"
@@ -138,14 +146,17 @@ static const char EventType_names[] =
   "PREFERENCES_USAGE"
   "PROCESS_RECEIVED_ATTACHMENTS_END"
   "QR_CODE_LINK_SHOWN"
+  "QR_CODE_OPENED_IN_WEB_CLIENT"
   "RECEIVE_ATTACHMENTS_END"
   "RECEIVE_ATTACHMENTS_START"
   "RECEIVE_FAST_INITIALIZATION"
   "RECEIVE_INTRODUCTION"
+  "RECEIVE_PREVIEWS"
   "REMOVE_CONTACT"
   "REMOVE_QUICK_SETTINGS_TILE"
   "REQUEST_SETTING_PERMISSIONS"
   "RESPOND_TO_INTRODUCTION"
+  "RPC_CALL_STATUS"
   "SCAN_FOR_SHARE_TARGETS_END"
   "SCAN_FOR_SHARE_TARGETS_START"
   "SEND_ATTACHMENTS_END"
@@ -161,6 +172,7 @@ static const char EventType_names[] =
   "SET_DEVICE_NAME"
   "SET_VISIBILITY"
   "SHOW_ALLOW_PERMISSION_AUTO_ACCESS"
+  "START_QR_CODE_SESSION"
   "TAP_FEEDBACK"
   "TAP_HELP"
   "TAP_PRIVACY_NOTIFICATION"
@@ -198,120 +210,132 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EventType_entries[] = 
   { {EventType_names + 489, 20}, 48 },
   { {EventType_names + 509, 25}, 61 },
   { {EventType_names + 534, 26}, 25 },
-  { {EventType_names + 560, 11}, 40 },
-  { {EventType_names + 571, 15}, 31 },
-  { {EventType_names + 586, 14}, 42 },
-  { {EventType_names + 600, 20}, 38 },
-  { {EventType_names + 620, 21}, 22 },
-  { {EventType_names + 641, 25}, 21 },
-  { {EventType_names + 666, 26}, 60 },
-  { {EventType_names + 692, 17}, 55 },
-  { {EventType_names + 709, 32}, 43 },
-  { {EventType_names + 741, 18}, 59 },
-  { {EventType_names + 759, 23}, 18 },
-  { {EventType_names + 782, 25}, 17 },
-  { {EventType_names + 807, 27}, 10 },
-  { {EventType_names + 834, 20}, 13 },
-  { {EventType_names + 854, 14}, 24 },
-  { {EventType_names + 868, 26}, 37 },
-  { {EventType_names + 894, 27}, 47 },
-  { {EventType_names + 921, 23}, 14 },
-  { {EventType_names + 944, 26}, 6 },
-  { {EventType_names + 970, 28}, 5 },
-  { {EventType_names + 998, 20}, 16 },
-  { {EventType_names + 1018, 22}, 15 },
-  { {EventType_names + 1040, 25}, 62 },
-  { {EventType_names + 1065, 27}, 66 },
-  { {EventType_names + 1092, 24}, 9 },
-  { {EventType_names + 1116, 17}, 12 },
-  { {EventType_names + 1133, 10}, 26 },
-  { {EventType_names + 1143, 12}, 57 },
-  { {EventType_names + 1155, 11}, 63 },
-  { {EventType_names + 1166, 14}, 28 },
-  { {EventType_names + 1180, 15}, 45 },
-  { {EventType_names + 1195, 14}, 3 },
-  { {EventType_names + 1209, 33}, 65 },
-  { {EventType_names + 1242, 12}, 35 },
-  { {EventType_names + 1254, 8}, 34 },
-  { {EventType_names + 1262, 24}, 33 },
-  { {EventType_names + 1286, 11}, 58 },
-  { {EventType_names + 1297, 29}, 52 },
-  { {EventType_names + 1326, 23}, 39 },
-  { {EventType_names + 1349, 24}, 44 },
-  { {EventType_names + 1373, 18}, 0 },
-  { {EventType_names + 1391, 10}, 41 },
-  { {EventType_names + 1401, 18}, 67 },
+  { {EventType_names + 560, 16}, 72 },
+  { {EventType_names + 576, 25}, 68 },
+  { {EventType_names + 601, 11}, 40 },
+  { {EventType_names + 612, 15}, 31 },
+  { {EventType_names + 627, 14}, 42 },
+  { {EventType_names + 641, 20}, 38 },
+  { {EventType_names + 661, 21}, 22 },
+  { {EventType_names + 682, 25}, 21 },
+  { {EventType_names + 707, 26}, 60 },
+  { {EventType_names + 733, 17}, 55 },
+  { {EventType_names + 750, 32}, 43 },
+  { {EventType_names + 782, 18}, 59 },
+  { {EventType_names + 800, 28}, 71 },
+  { {EventType_names + 828, 23}, 18 },
+  { {EventType_names + 851, 25}, 17 },
+  { {EventType_names + 876, 27}, 10 },
+  { {EventType_names + 903, 20}, 13 },
+  { {EventType_names + 923, 16}, 73 },
+  { {EventType_names + 939, 14}, 24 },
+  { {EventType_names + 953, 26}, 37 },
+  { {EventType_names + 979, 27}, 47 },
+  { {EventType_names + 1006, 23}, 14 },
+  { {EventType_names + 1029, 15}, 69 },
+  { {EventType_names + 1044, 26}, 6 },
+  { {EventType_names + 1070, 28}, 5 },
+  { {EventType_names + 1098, 20}, 16 },
+  { {EventType_names + 1118, 22}, 15 },
+  { {EventType_names + 1140, 25}, 62 },
+  { {EventType_names + 1165, 27}, 66 },
+  { {EventType_names + 1192, 24}, 9 },
+  { {EventType_names + 1216, 17}, 12 },
+  { {EventType_names + 1233, 10}, 26 },
+  { {EventType_names + 1243, 12}, 57 },
+  { {EventType_names + 1255, 11}, 63 },
+  { {EventType_names + 1266, 14}, 28 },
+  { {EventType_names + 1280, 15}, 45 },
+  { {EventType_names + 1295, 14}, 3 },
+  { {EventType_names + 1309, 33}, 65 },
+  { {EventType_names + 1342, 21}, 70 },
+  { {EventType_names + 1363, 12}, 35 },
+  { {EventType_names + 1375, 8}, 34 },
+  { {EventType_names + 1383, 24}, 33 },
+  { {EventType_names + 1407, 11}, 58 },
+  { {EventType_names + 1418, 29}, 52 },
+  { {EventType_names + 1447, 23}, 39 },
+  { {EventType_names + 1470, 24}, 44 },
+  { {EventType_names + 1494, 18}, 0 },
+  { {EventType_names + 1512, 10}, 41 },
+  { {EventType_names + 1522, 18}, 67 },
 };
 
 static const int EventType_entries_by_number[] = {
-  65, // 0 -> UNKNOWN_EVENT_TYPE
+  71, // 0 -> UNKNOWN_EVENT_TYPE
   0, // 1 -> ACCEPT_AGREEMENTS
   21, // 2 -> ENABLE_NEARBY_SHARING
-  56, // 3 -> SET_VISIBILITY
+  61, // 3 -> SET_VISIBILITY
   14, // 4 -> DESCRIBE_ATTACHMENTS
-  44, // 5 -> SCAN_FOR_SHARE_TARGETS_START
-  43, // 6 -> SCAN_FOR_SHARE_TARGETS_END
+  49, // 5 -> SCAN_FOR_SHARE_TARGETS_START
+  48, // 6 -> SCAN_FOR_SHARE_TARGETS_END
   5, // 7 -> ADVERTISE_DEVICE_PRESENCE_START
   4, // 8 -> ADVERTISE_DEVICE_PRESENCE_END
-  49, // 9 -> SEND_FAST_INITIALIZATION
-  37, // 10 -> RECEIVE_FAST_INITIALIZATION
+  54, // 9 -> SEND_FAST_INITIALIZATION
+  40, // 10 -> RECEIVE_FAST_INITIALIZATION
   16, // 11 -> DISCOVER_SHARE_TARGET
-  50, // 12 -> SEND_INTRODUCTION
-  38, // 13 -> RECEIVE_INTRODUCTION
-  42, // 14 -> RESPOND_TO_INTRODUCTION
-  46, // 15 -> SEND_ATTACHMENTS_START
-  45, // 16 -> SEND_ATTACHMENTS_END
-  36, // 17 -> RECEIVE_ATTACHMENTS_START
-  35, // 18 -> RECEIVE_ATTACHMENTS_END
+  55, // 12 -> SEND_INTRODUCTION
+  41, // 13 -> RECEIVE_INTRODUCTION
+  46, // 14 -> RESPOND_TO_INTRODUCTION
+  51, // 15 -> SEND_ATTACHMENTS_START
+  50, // 16 -> SEND_ATTACHMENTS_END
+  39, // 17 -> RECEIVE_ATTACHMENTS_START
+  38, // 18 -> RECEIVE_ATTACHMENTS_END
   10, // 19 -> CANCEL_SENDING_ATTACHMENTS
   9, // 20 -> CANCEL_RECEIVING_ATTACHMENTS
-  30, // 21 -> OPEN_RECEIVED_ATTACHMENTS
-  29, // 22 -> LAUNCH_SETUP_ACTIVITY
+  32, // 21 -> OPEN_RECEIVED_ATTACHMENTS
+  31, // 22 -> LAUNCH_SETUP_ACTIVITY
   2, // 23 -> ADD_CONTACT
-  39, // 24 -> REMOVE_CONTACT
+  43, // 24 -> REMOVE_CONTACT
   24, // 25 -> FAST_SHARE_SERVER_RESPONSE
-  51, // 26 -> SEND_START
+  56, // 26 -> SEND_START
   1, // 27 -> ACCEPT_FAST_INITIALIZATION
-  54, // 28 -> SET_DATA_USAGE
+  59, // 28 -> SET_DATA_USAGE
   17, // 29 -> DISMISS_FAST_INITIALIZATION
   8, // 30 -> CANCEL_CONNECTION
-  26, // 31 -> LAUNCH_ACTIVITY
+  28, // 31 -> LAUNCH_ACTIVITY
   18, // 32 -> DISMISS_PRIVACY_NOTIFICATION
-  60, // 33 -> TAP_PRIVACY_NOTIFICATION
-  59, // 34 -> TAP_HELP
-  58, // 35 -> TAP_FEEDBACK
+  66, // 33 -> TAP_PRIVACY_NOTIFICATION
+  65, // 34 -> TAP_HELP
+  64, // 35 -> TAP_FEEDBACK
   3, // 36 -> ADD_QUICK_SETTINGS_TILE
-  40, // 37 -> REMOVE_QUICK_SETTINGS_TILE
-  28, // 38 -> LAUNCH_PHONE_CONSENT
-  63, // 39 -> TAP_QUICK_SETTINGS_TILE
-  25, // 40 -> INSTALL_APK
-  66, // 41 -> VERIFY_APK
-  27, // 42 -> LAUNCH_CONSENT
-  33, // 43 -> PROCESS_RECEIVED_ATTACHMENTS_END
-  64, // 44 -> TOGGLE_SHOW_NOTIFICATION
-  55, // 45 -> SET_DEVICE_NAME
+  44, // 37 -> REMOVE_QUICK_SETTINGS_TILE
+  30, // 38 -> LAUNCH_PHONE_CONSENT
+  69, // 39 -> TAP_QUICK_SETTINGS_TILE
+  27, // 40 -> INSTALL_APK
+  72, // 41 -> VERIFY_APK
+  29, // 42 -> LAUNCH_CONSENT
+  35, // 43 -> PROCESS_RECEIVED_ATTACHMENTS_END
+  70, // 44 -> TOGGLE_SHOW_NOTIFICATION
+  60, // 45 -> SET_DEVICE_NAME
   11, // 46 -> DECLINE_AGREEMENTS
-  41, // 47 -> REQUEST_SETTING_PERMISSIONS
+  45, // 47 -> REQUEST_SETTING_PERMISSIONS
   22, // 48 -> ESTABLISH_CONNECTION
   15, // 49 -> DEVICE_SETTINGS
   7, // 50 -> AUTO_DISMISS_FAST_INITIALIZATION
   6, // 51 -> APP_CRASH
-  62, // 52 -> TAP_QUICK_SETTINGS_FILE_SHARE
+  68, // 52 -> TAP_QUICK_SETTINGS_FILE_SHARE
   20, // 53 -> DISPLAY_PRIVACY_NOTIFICATION
   19, // 54 -> DISPLAY_PHONE_CONSENT
-  32, // 55 -> PREFERENCES_USAGE
+  34, // 55 -> PREFERENCES_USAGE
   13, // 56 -> DEFAULT_OPT_IN
-  52, // 57 -> SETUP_WIZARD
-  61, // 58 -> TAP_QR_CODE
-  34, // 59 -> QR_CODE_LINK_SHOWN
-  31, // 60 -> PARSING_FAILED_ENDPOINT_ID
+  57, // 57 -> SETUP_WIZARD
+  67, // 58 -> TAP_QR_CODE
+  36, // 59 -> QR_CODE_LINK_SHOWN
+  33, // 60 -> PARSING_FAILED_ENDPOINT_ID
   23, // 61 -> FAST_INIT_DISCOVER_DEVICE
-  47, // 62 -> SEND_DESKTOP_NOTIFICATION
-  53, // 63 -> SET_ACCOUNT
+  52, // 62 -> SEND_DESKTOP_NOTIFICATION
+  58, // 63 -> SET_ACCOUNT
   12, // 64 -> DECRYPT_CERTIFICATE_FAILURE
-  57, // 65 -> SHOW_ALLOW_PERMISSION_AUTO_ACCESS
-  48, // 66 -> SEND_DESKTOP_TRANSFER_EVENT
-  67, // 67 -> WAITING_FOR_ACCEPT
+  62, // 65 -> SHOW_ALLOW_PERMISSION_AUTO_ACCESS
+  53, // 66 -> SEND_DESKTOP_TRANSFER_EVENT
+  73, // 67 -> WAITING_FOR_ACCEPT
+  26, // 68 -> HIGH_QUALITY_MEDIUM_SETUP
+  47, // 69 -> RPC_CALL_STATUS
+  63, // 70 -> START_QR_CODE_SESSION
+  37, // 71 -> QR_CODE_OPENED_IN_WEB_CLIENT
+  25, // 72 -> HATS_JOINT_EVENT
+  42, // 73 -> RECEIVE_PREVIEWS
 };
 
 const std::string& EventType_Name(
@@ -320,12 +344,12 @@ const std::string& EventType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           EventType_entries,
           EventType_entries_by_number,
-          68, EventType_strings);
+          74, EventType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       EventType_entries,
       EventType_entries_by_number,
-      68, value);
+      74, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      EventType_strings[idx].get();
 }
@@ -333,7 +357,7 @@ bool EventType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EventType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      EventType_entries, 68, name, &int_value);
+      EventType_entries, 74, name, &int_value);
   if (success) {
     *value = static_cast<EventType>(int_value);
   }
@@ -345,32 +369,36 @@ bool EventCategory_IsValid(int value) {
     case 1:
     case 2:
     case 3:
+    case 4:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventCategory_strings[4] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventCategory_strings[5] = {};
 
 static const char EventCategory_names[] =
   "RECEIVING_EVENT"
+  "RPC_EVENT"
   "SENDING_EVENT"
   "SETTINGS_EVENT"
   "UNKNOWN_EVENT_CATEGORY";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EventCategory_entries[] = {
   { {EventCategory_names + 0, 15}, 2 },
-  { {EventCategory_names + 15, 13}, 1 },
-  { {EventCategory_names + 28, 14}, 3 },
-  { {EventCategory_names + 42, 22}, 0 },
+  { {EventCategory_names + 15, 9}, 4 },
+  { {EventCategory_names + 24, 13}, 1 },
+  { {EventCategory_names + 37, 14}, 3 },
+  { {EventCategory_names + 51, 22}, 0 },
 };
 
 static const int EventCategory_entries_by_number[] = {
-  3, // 0 -> UNKNOWN_EVENT_CATEGORY
-  1, // 1 -> SENDING_EVENT
+  4, // 0 -> UNKNOWN_EVENT_CATEGORY
+  2, // 1 -> SENDING_EVENT
   0, // 2 -> RECEIVING_EVENT
-  2, // 3 -> SETTINGS_EVENT
+  3, // 3 -> SETTINGS_EVENT
+  1, // 4 -> RPC_EVENT
 };
 
 const std::string& EventCategory_Name(
@@ -379,12 +407,12 @@ const std::string& EventCategory_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           EventCategory_entries,
           EventCategory_entries_by_number,
-          4, EventCategory_strings);
+          5, EventCategory_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       EventCategory_entries,
       EventCategory_entries_by_number,
-      4, value);
+      5, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      EventCategory_strings[idx].get();
 }
@@ -392,7 +420,7 @@ bool EventCategory_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EventCategory* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      EventCategory_entries, 4, name, &int_value);
+      EventCategory_entries, 5, name, &int_value);
   if (success) {
     *value = static_cast<EventCategory>(int_value);
   }
@@ -698,19 +726,21 @@ bool AttachmentTransmissionStatus_IsValid(int value) {
     case 27:
     case 28:
     case 29:
+    case 30:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AttachmentTransmissionStatus_strings[30] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AttachmentTransmissionStatus_strings[31] = {};
 
 static const char AttachmentTransmissionStatus_names[] =
   "AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT"
   "CANCELED_ATTACHMENT_TRANSMISSION_STATUS"
   "COMPLETE_ATTACHMENT_TRANSMISSION_STATUS"
   "FAILED_ATTACHMENT_TRANSMISSION_STATUS"
+  "FAILED_DISALLOWED_MEDIUM"
   "FAILED_NO_PAYLOAD"
   "FAILED_NO_SHARE_TARGET_ENDPOINT"
   "FAILED_NO_TRANSFER_UPDATE_CALLBACK"
@@ -743,65 +773,67 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry AttachmentTransmission
   { {AttachmentTransmissionStatus_names + 44, 39}, 2 },
   { {AttachmentTransmissionStatus_names + 83, 39}, 1 },
   { {AttachmentTransmissionStatus_names + 122, 37}, 3 },
-  { {AttachmentTransmissionStatus_names + 159, 17}, 15 },
-  { {AttachmentTransmissionStatus_names + 176, 31}, 12 },
-  { {AttachmentTransmissionStatus_names + 207, 34}, 8 },
-  { {AttachmentTransmissionStatus_names + 241, 22}, 14 },
-  { {AttachmentTransmissionStatus_names + 263, 35}, 19 },
-  { {AttachmentTransmissionStatus_names + 298, 30}, 21 },
-  { {AttachmentTransmissionStatus_names + 328, 36}, 18 },
-  { {AttachmentTransmissionStatus_names + 364, 40}, 20 },
-  { {AttachmentTransmissionStatus_names + 404, 26}, 13 },
-  { {AttachmentTransmissionStatus_names + 430, 30}, 17 },
-  { {AttachmentTransmissionStatus_names + 460, 50}, 26 },
-  { {AttachmentTransmissionStatus_names + 510, 25}, 16 },
-  { {AttachmentTransmissionStatus_names + 535, 37}, 29 },
-  { {AttachmentTransmissionStatus_names + 572, 28}, 9 },
-  { {AttachmentTransmissionStatus_names + 600, 27}, 7 },
-  { {AttachmentTransmissionStatus_names + 627, 47}, 24 },
-  { {AttachmentTransmissionStatus_names + 674, 19}, 11 },
-  { {AttachmentTransmissionStatus_names + 693, 73}, 27 },
-  { {AttachmentTransmissionStatus_names + 766, 55}, 28 },
-  { {AttachmentTransmissionStatus_names + 821, 19}, 4 },
-  { {AttachmentTransmissionStatus_names + 840, 39}, 22 },
-  { {AttachmentTransmissionStatus_names + 879, 20}, 5 },
-  { {AttachmentTransmissionStatus_names + 899, 40}, 23 },
-  { {AttachmentTransmissionStatus_names + 939, 38}, 0 },
-  { {AttachmentTransmissionStatus_names + 977, 38}, 10 },
-  { {AttachmentTransmissionStatus_names + 1015, 58}, 25 },
+  { {AttachmentTransmissionStatus_names + 159, 24}, 30 },
+  { {AttachmentTransmissionStatus_names + 183, 17}, 15 },
+  { {AttachmentTransmissionStatus_names + 200, 31}, 12 },
+  { {AttachmentTransmissionStatus_names + 231, 34}, 8 },
+  { {AttachmentTransmissionStatus_names + 265, 22}, 14 },
+  { {AttachmentTransmissionStatus_names + 287, 35}, 19 },
+  { {AttachmentTransmissionStatus_names + 322, 30}, 21 },
+  { {AttachmentTransmissionStatus_names + 352, 36}, 18 },
+  { {AttachmentTransmissionStatus_names + 388, 40}, 20 },
+  { {AttachmentTransmissionStatus_names + 428, 26}, 13 },
+  { {AttachmentTransmissionStatus_names + 454, 30}, 17 },
+  { {AttachmentTransmissionStatus_names + 484, 50}, 26 },
+  { {AttachmentTransmissionStatus_names + 534, 25}, 16 },
+  { {AttachmentTransmissionStatus_names + 559, 37}, 29 },
+  { {AttachmentTransmissionStatus_names + 596, 28}, 9 },
+  { {AttachmentTransmissionStatus_names + 624, 27}, 7 },
+  { {AttachmentTransmissionStatus_names + 651, 47}, 24 },
+  { {AttachmentTransmissionStatus_names + 698, 19}, 11 },
+  { {AttachmentTransmissionStatus_names + 717, 73}, 27 },
+  { {AttachmentTransmissionStatus_names + 790, 55}, 28 },
+  { {AttachmentTransmissionStatus_names + 845, 19}, 4 },
+  { {AttachmentTransmissionStatus_names + 864, 39}, 22 },
+  { {AttachmentTransmissionStatus_names + 903, 20}, 5 },
+  { {AttachmentTransmissionStatus_names + 923, 40}, 23 },
+  { {AttachmentTransmissionStatus_names + 963, 38}, 0 },
+  { {AttachmentTransmissionStatus_names + 1001, 38}, 10 },
+  { {AttachmentTransmissionStatus_names + 1039, 58}, 25 },
 };
 
 static const int AttachmentTransmissionStatus_entries_by_number[] = {
-  27, // 0 -> UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS
+  28, // 0 -> UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS
   2, // 1 -> COMPLETE_ATTACHMENT_TRANSMISSION_STATUS
   1, // 2 -> CANCELED_ATTACHMENT_TRANSMISSION_STATUS
   3, // 3 -> FAILED_ATTACHMENT_TRANSMISSION_STATUS
-  23, // 4 -> REJECTED_ATTACHMENT
-  25, // 5 -> TIMED_OUT_ATTACHMENT
+  24, // 4 -> REJECTED_ATTACHMENT
+  26, // 5 -> TIMED_OUT_ATTACHMENT
   0, // 6 -> AWAITING_REMOTE_ACCEPTANCE_FAILED_ATTACHMENT
-  18, // 7 -> NOT_ENOUGH_SPACE_ATTACHMENT
-  6, // 8 -> FAILED_NO_TRANSFER_UPDATE_CALLBACK
-  17, // 9 -> MEDIA_UNAVAILABLE_ATTACHMENT
-  28, // 10 -> UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT
-  20, // 11 -> NO_ATTACHMENT_FOUND
-  5, // 12 -> FAILED_NO_SHARE_TARGET_ENDPOINT
-  12, // 13 -> FAILED_PAIRED_KEYHANDSHAKE
-  7, // 14 -> FAILED_NULL_CONNECTION
-  4, // 15 -> FAILED_NO_PAYLOAD
-  15, // 16 -> FAILED_WRITE_INTRODUCTION
-  13, // 17 -> FAILED_UNKNOWN_REMOTE_RESPONSE
-  10, // 18 -> FAILED_NULL_CONNECTION_INIT_OUTGOING
-  8, // 19 -> FAILED_NULL_CONNECTION_DISCONNECTED
-  11, // 20 -> FAILED_NULL_CONNECTION_LOST_CONNECTIVITY
-  9, // 21 -> FAILED_NULL_CONNECTION_FAILURE
-  24, // 22 -> REJECTED_ATTACHMENT_TRANSMISSION_STATUS
-  26, // 23 -> TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS
-  19, // 24 -> NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS
-  29, // 25 -> UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS
-  14, // 26 -> FAILED_UNKNOWN_REMOTE_RESPONSE_TRANSMISSION_STATUS
-  21, // 27 -> NO_RESPONSE_FRAME_CONNECTION_CLOSED_LOST_CONNECTIVITY_TRANSMISSION_STATUS
-  22, // 28 -> NO_RESPONSE_FRAME_CONNECTION_CLOSED_TRANSMISSION_STATUS
-  16, // 29 -> LOST_CONNECTIVITY_TRANSMISSION_STATUS
+  19, // 7 -> NOT_ENOUGH_SPACE_ATTACHMENT
+  7, // 8 -> FAILED_NO_TRANSFER_UPDATE_CALLBACK
+  18, // 9 -> MEDIA_UNAVAILABLE_ATTACHMENT
+  29, // 10 -> UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT
+  21, // 11 -> NO_ATTACHMENT_FOUND
+  6, // 12 -> FAILED_NO_SHARE_TARGET_ENDPOINT
+  13, // 13 -> FAILED_PAIRED_KEYHANDSHAKE
+  8, // 14 -> FAILED_NULL_CONNECTION
+  5, // 15 -> FAILED_NO_PAYLOAD
+  16, // 16 -> FAILED_WRITE_INTRODUCTION
+  14, // 17 -> FAILED_UNKNOWN_REMOTE_RESPONSE
+  11, // 18 -> FAILED_NULL_CONNECTION_INIT_OUTGOING
+  9, // 19 -> FAILED_NULL_CONNECTION_DISCONNECTED
+  12, // 20 -> FAILED_NULL_CONNECTION_LOST_CONNECTIVITY
+  10, // 21 -> FAILED_NULL_CONNECTION_FAILURE
+  25, // 22 -> REJECTED_ATTACHMENT_TRANSMISSION_STATUS
+  27, // 23 -> TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS
+  20, // 24 -> NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS
+  30, // 25 -> UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS
+  15, // 26 -> FAILED_UNKNOWN_REMOTE_RESPONSE_TRANSMISSION_STATUS
+  22, // 27 -> NO_RESPONSE_FRAME_CONNECTION_CLOSED_LOST_CONNECTIVITY_TRANSMISSION_STATUS
+  23, // 28 -> NO_RESPONSE_FRAME_CONNECTION_CLOSED_TRANSMISSION_STATUS
+  17, // 29 -> LOST_CONNECTIVITY_TRANSMISSION_STATUS
+  4, // 30 -> FAILED_DISALLOWED_MEDIUM
 };
 
 const std::string& AttachmentTransmissionStatus_Name(
@@ -810,12 +842,12 @@ const std::string& AttachmentTransmissionStatus_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           AttachmentTransmissionStatus_entries,
           AttachmentTransmissionStatus_entries_by_number,
-          30, AttachmentTransmissionStatus_strings);
+          31, AttachmentTransmissionStatus_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       AttachmentTransmissionStatus_entries,
       AttachmentTransmissionStatus_entries_by_number,
-      30, value);
+      31, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      AttachmentTransmissionStatus_strings[idx].get();
 }
@@ -823,7 +855,7 @@ bool AttachmentTransmissionStatus_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AttachmentTransmissionStatus* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      AttachmentTransmissionStatus_entries, 30, name, &int_value);
+      AttachmentTransmissionStatus_entries, 31, name, &int_value);
   if (success) {
     *value = static_cast<AttachmentTransmissionStatus>(int_value);
   }
@@ -2566,19 +2598,21 @@ bool SharingUseCase_IsValid(int value) {
     case 5:
     case 6:
     case 7:
+    case 8:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SharingUseCase_strings[8] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SharingUseCase_strings[9] = {};
 
 static const char SharingUseCase_names[] =
   "USE_CASE_APP_SHARE"
   "USE_CASE_NEARBY_SHARE"
   "USE_CASE_NEARBY_SHARE_WITH_QR_CODE"
   "USE_CASE_QUICK_SETTING_FILE_SHARE"
+  "USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE"
   "USE_CASE_REMOTE_COPY_PASTE"
   "USE_CASE_SETUP_WIZARD"
   "USE_CASE_UNKNOWN"
@@ -2589,21 +2623,23 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SharingUseCase_entries
   { {SharingUseCase_names + 18, 21}, 1 },
   { {SharingUseCase_names + 39, 34}, 7 },
   { {SharingUseCase_names + 73, 33}, 5 },
-  { {SharingUseCase_names + 106, 26}, 2 },
-  { {SharingUseCase_names + 132, 21}, 6 },
-  { {SharingUseCase_names + 153, 16}, 0 },
-  { {SharingUseCase_names + 169, 24}, 3 },
+  { {SharingUseCase_names + 106, 40}, 8 },
+  { {SharingUseCase_names + 146, 26}, 2 },
+  { {SharingUseCase_names + 172, 21}, 6 },
+  { {SharingUseCase_names + 193, 16}, 0 },
+  { {SharingUseCase_names + 209, 24}, 3 },
 };
 
 static const int SharingUseCase_entries_by_number[] = {
-  6, // 0 -> USE_CASE_UNKNOWN
+  7, // 0 -> USE_CASE_UNKNOWN
   1, // 1 -> USE_CASE_NEARBY_SHARE
-  4, // 2 -> USE_CASE_REMOTE_COPY_PASTE
-  7, // 3 -> USE_CASE_WIFI_CREDENTIAL
+  5, // 2 -> USE_CASE_REMOTE_COPY_PASTE
+  8, // 3 -> USE_CASE_WIFI_CREDENTIAL
   0, // 4 -> USE_CASE_APP_SHARE
   3, // 5 -> USE_CASE_QUICK_SETTING_FILE_SHARE
-  5, // 6 -> USE_CASE_SETUP_WIZARD
+  6, // 6 -> USE_CASE_SETUP_WIZARD
   2, // 7 -> USE_CASE_NEARBY_SHARE_WITH_QR_CODE
+  4, // 8 -> USE_CASE_REDIRECTED_FROM_BLUETOOTH_SHARE
 };
 
 const std::string& SharingUseCase_Name(
@@ -2612,12 +2648,12 @@ const std::string& SharingUseCase_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           SharingUseCase_entries,
           SharingUseCase_entries_by_number,
-          8, SharingUseCase_strings);
+          9, SharingUseCase_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       SharingUseCase_entries,
       SharingUseCase_entries_by_number,
-      8, value);
+      9, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      SharingUseCase_strings[idx].get();
 }
@@ -2625,7 +2661,7 @@ bool SharingUseCase_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SharingUseCase* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      SharingUseCase_entries, 8, name, &int_value);
+      SharingUseCase_entries, 9, name, &int_value);
   if (success) {
     *value = static_cast<SharingUseCase>(int_value);
   }
