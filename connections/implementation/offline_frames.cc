@@ -550,6 +550,10 @@ UpgradePathInfo::Medium MediumToUpgradePathInfoMedium(Medium medium) {
       return UpgradePathInfo::WEB_RTC;
     case Medium::WEB_RTC_NON_CELLULAR:
       return UpgradePathInfo::WEB_RTC_NON_CELLULAR;
+    case Medium::USB:
+      return UpgradePathInfo::USB;
+    case Medium::AWDL:
+      return UpgradePathInfo::AWDL;
     default:
       return UpgradePathInfo::UNKNOWN_MEDIUM;
   }
@@ -577,6 +581,10 @@ Medium UpgradePathInfoMediumToMedium(UpgradePathInfo::Medium medium) {
       return Medium::WEB_RTC;
     case UpgradePathInfo::WEB_RTC_NON_CELLULAR:
       return Medium::WEB_RTC_NON_CELLULAR;
+    case UpgradePathInfo::USB:
+      return Medium::USB;
+    case UpgradePathInfo::AWDL:
+      return Medium::AWDL;
     default:
       return Medium::UNKNOWN_MEDIUM;
   }
@@ -592,6 +600,8 @@ ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium) {
       return ConnectionRequestFrame::WIFI_HOTSPOT;
     case Medium::BLE:
       return ConnectionRequestFrame::BLE;
+    case Medium::BLE_L2CAP:
+      return ConnectionRequestFrame::BLE_L2CAP;
     case Medium::WIFI_LAN:
       return ConnectionRequestFrame::WIFI_LAN;
     case Medium::WIFI_AWARE:
@@ -604,6 +614,10 @@ ConnectionRequestFrame::Medium MediumToConnectionRequestMedium(Medium medium) {
       return ConnectionRequestFrame::WEB_RTC;
     case Medium::WEB_RTC_NON_CELLULAR:
       return ConnectionRequestFrame::WEB_RTC_NON_CELLULAR;
+    case Medium::USB:
+      return ConnectionRequestFrame::USB;
+    case Medium::AWDL:
+      return ConnectionRequestFrame::AWDL;
     default:
       return ConnectionRequestFrame::UNKNOWN_MEDIUM;
   }
@@ -619,6 +633,8 @@ Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium) {
       return Medium::WIFI_HOTSPOT;
     case ConnectionRequestFrame::BLE:
       return Medium::BLE;
+    case ConnectionRequestFrame::BLE_L2CAP:
+      return Medium::BLE_L2CAP;
     case ConnectionRequestFrame::WIFI_LAN:
       return Medium::WIFI_LAN;
     case ConnectionRequestFrame::WIFI_AWARE:
@@ -631,6 +647,10 @@ Medium ConnectionRequestMediumToMedium(ConnectionRequestFrame::Medium medium) {
       return Medium::WEB_RTC;
     case ConnectionRequestFrame::WEB_RTC_NON_CELLULAR:
       return Medium::WEB_RTC_NON_CELLULAR;
+    case ConnectionRequestFrame::USB:
+      return Medium::USB;
+    case ConnectionRequestFrame::AWDL:
+      return Medium::AWDL;
     default:
       return Medium::UNKNOWN_MEDIUM;
   }
