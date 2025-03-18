@@ -277,11 +277,12 @@ enum ConnectionRequestFrame_Medium : int {
   ConnectionRequestFrame_Medium_WEB_RTC = 9,
   ConnectionRequestFrame_Medium_BLE_L2CAP = 10,
   ConnectionRequestFrame_Medium_USB = 11,
-  ConnectionRequestFrame_Medium_WEB_RTC_NON_CELLULAR = 12
+  ConnectionRequestFrame_Medium_WEB_RTC_NON_CELLULAR = 12,
+  ConnectionRequestFrame_Medium_AWDL = 13
 };
 bool ConnectionRequestFrame_Medium_IsValid(int value);
 constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame_Medium_Medium_MIN = ConnectionRequestFrame_Medium_UNKNOWN_MEDIUM;
-constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame_Medium_Medium_MAX = ConnectionRequestFrame_Medium_WEB_RTC_NON_CELLULAR;
+constexpr ConnectionRequestFrame_Medium ConnectionRequestFrame_Medium_Medium_MAX = ConnectionRequestFrame_Medium_AWDL;
 constexpr int ConnectionRequestFrame_Medium_Medium_ARRAYSIZE = ConnectionRequestFrame_Medium_Medium_MAX + 1;
 
 const std::string& ConnectionRequestFrame_Medium_Name(ConnectionRequestFrame_Medium value);
@@ -426,11 +427,12 @@ enum BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium : int {
   BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_WIFI_DIRECT = 8,
   BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_WEB_RTC = 9,
   BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_USB = 11,
-  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_WEB_RTC_NON_CELLULAR = 12
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_WEB_RTC_NON_CELLULAR = 12,
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_AWDL = 13
 };
 bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(int value);
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Medium_MIN = BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_UNKNOWN_MEDIUM;
-constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Medium_MAX = BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_WEB_RTC_NON_CELLULAR;
+constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Medium_MAX = BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_AWDL;
 constexpr int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Medium_ARRAYSIZE = BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Medium_MAX + 1;
 
 const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_Name(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value);
@@ -479,11 +481,12 @@ enum BandwidthUpgradeRetryFrame_Medium : int {
   BandwidthUpgradeRetryFrame_Medium_WEB_RTC = 9,
   BandwidthUpgradeRetryFrame_Medium_BLE_L2CAP = 10,
   BandwidthUpgradeRetryFrame_Medium_USB = 11,
-  BandwidthUpgradeRetryFrame_Medium_WEB_RTC_NON_CELLULAR = 12
+  BandwidthUpgradeRetryFrame_Medium_WEB_RTC_NON_CELLULAR = 12,
+  BandwidthUpgradeRetryFrame_Medium_AWDL = 13
 };
 bool BandwidthUpgradeRetryFrame_Medium_IsValid(int value);
 constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame_Medium_Medium_MIN = BandwidthUpgradeRetryFrame_Medium_UNKNOWN_MEDIUM;
-constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame_Medium_Medium_MAX = BandwidthUpgradeRetryFrame_Medium_WEB_RTC_NON_CELLULAR;
+constexpr BandwidthUpgradeRetryFrame_Medium BandwidthUpgradeRetryFrame_Medium_Medium_MAX = BandwidthUpgradeRetryFrame_Medium_AWDL;
 constexpr int BandwidthUpgradeRetryFrame_Medium_Medium_ARRAYSIZE = BandwidthUpgradeRetryFrame_Medium_Medium_MAX + 1;
 
 const std::string& BandwidthUpgradeRetryFrame_Medium_Name(BandwidthUpgradeRetryFrame_Medium value);
@@ -1386,6 +1389,8 @@ class ConnectionRequestFrame final :
     ConnectionRequestFrame_Medium_USB;
   static constexpr Medium WEB_RTC_NON_CELLULAR =
     ConnectionRequestFrame_Medium_WEB_RTC_NON_CELLULAR;
+  static constexpr Medium AWDL =
+    ConnectionRequestFrame_Medium_AWDL;
   static inline bool Medium_IsValid(int value) {
     return ConnectionRequestFrame_Medium_IsValid(value);
   }
@@ -1443,6 +1448,7 @@ class ConnectionRequestFrame final :
     kEndpointInfoFieldNumber = 6,
     kDeviceInfoFieldNumber = 11,
     kMediumMetadataFieldNumber = 7,
+    kLocationHintFieldNumber = 15,
     kNonceFieldNumber = 4,
     kKeepAliveIntervalMillisFieldNumber = 8,
     kKeepAliveTimeoutMillisFieldNumber = 9,
@@ -1576,6 +1582,24 @@ class ConnectionRequestFrame final :
       ::location::nearby::connections::MediumMetadata* medium_metadata);
   ::location::nearby::connections::MediumMetadata* unsafe_arena_release_medium_metadata();
 
+  // optional .location.nearby.connections.LocationHint location_hint = 15;
+  bool has_location_hint() const;
+  private:
+  bool _internal_has_location_hint() const;
+  public:
+  void clear_location_hint();
+  const ::location::nearby::connections::LocationHint& location_hint() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::LocationHint* release_location_hint();
+  ::location::nearby::connections::LocationHint* mutable_location_hint();
+  void set_allocated_location_hint(::location::nearby::connections::LocationHint* location_hint);
+  private:
+  const ::location::nearby::connections::LocationHint& _internal_location_hint() const;
+  ::location::nearby::connections::LocationHint* _internal_mutable_location_hint();
+  public:
+  void unsafe_arena_set_allocated_location_hint(
+      ::location::nearby::connections::LocationHint* location_hint);
+  ::location::nearby::connections::LocationHint* unsafe_arena_release_location_hint();
+
   // optional int32 nonce = 4;
   bool has_nonce() const;
   private:
@@ -1700,6 +1724,7 @@ class ConnectionRequestFrame final :
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_info_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr device_info_;
   ::location::nearby::connections::MediumMetadata* medium_metadata_;
+  ::location::nearby::connections::LocationHint* location_hint_;
   int32_t nonce_;
   int32_t keep_alive_interval_millis_;
   int32_t keep_alive_timeout_millis_;
@@ -1860,11 +1885,13 @@ class ConnectionResponseFrame final :
   enum : int {
     kHandshakeDataFieldNumber = 2,
     kOsInfoFieldNumber = 4,
+    kLocationHintFieldNumber = 8,
     kStatusFieldNumber = 1,
     kResponseFieldNumber = 3,
     kMultiplexSocketBitmaskFieldNumber = 5,
     kNearbyConnectionsVersionFieldNumber = 6,
     kSafeToDisconnectVersionFieldNumber = 7,
+    kKeepAliveTimeoutMillisFieldNumber = 9,
   };
   // optional bytes handshake_data = 2;
   bool has_handshake_data() const;
@@ -1901,6 +1928,24 @@ class ConnectionResponseFrame final :
   void unsafe_arena_set_allocated_os_info(
       ::location::nearby::connections::OsInfo* os_info);
   ::location::nearby::connections::OsInfo* unsafe_arena_release_os_info();
+
+  // optional .location.nearby.connections.LocationHint location_hint = 8;
+  bool has_location_hint() const;
+  private:
+  bool _internal_has_location_hint() const;
+  public:
+  void clear_location_hint();
+  const ::location::nearby::connections::LocationHint& location_hint() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::LocationHint* release_location_hint();
+  ::location::nearby::connections::LocationHint* mutable_location_hint();
+  void set_allocated_location_hint(::location::nearby::connections::LocationHint* location_hint);
+  private:
+  const ::location::nearby::connections::LocationHint& _internal_location_hint() const;
+  ::location::nearby::connections::LocationHint* _internal_mutable_location_hint();
+  public:
+  void unsafe_arena_set_allocated_location_hint(
+      ::location::nearby::connections::LocationHint* location_hint);
+  ::location::nearby::connections::LocationHint* unsafe_arena_release_location_hint();
 
   // optional int32 status = 1 [deprecated = true];
   PROTOBUF_DEPRECATED bool has_status() const;
@@ -1967,6 +2012,19 @@ class ConnectionResponseFrame final :
   void _internal_set_safe_to_disconnect_version(int32_t value);
   public:
 
+  // optional int32 keep_alive_timeout_millis = 9;
+  bool has_keep_alive_timeout_millis() const;
+  private:
+  bool _internal_has_keep_alive_timeout_millis() const;
+  public:
+  void clear_keep_alive_timeout_millis();
+  int32_t keep_alive_timeout_millis() const;
+  void set_keep_alive_timeout_millis(int32_t value);
+  private:
+  int32_t _internal_keep_alive_timeout_millis() const;
+  void _internal_set_keep_alive_timeout_millis(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.connections.ConnectionResponseFrame)
  private:
   class _Internal;
@@ -1978,11 +2036,13 @@ class ConnectionResponseFrame final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr handshake_data_;
   ::location::nearby::connections::OsInfo* os_info_;
+  ::location::nearby::connections::LocationHint* location_hint_;
   int32_t status_;
   int response_;
   int32_t multiplex_socket_bitmask_;
   int32_t nearby_connections_version_;
   int32_t safe_to_disconnect_version_;
+  int32_t keep_alive_timeout_millis_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -2136,6 +2196,7 @@ class PayloadTransferFrame_PayloadHeader final :
     kTotalSizeFieldNumber = 3,
     kTypeFieldNumber = 2,
     kIsSensitiveFieldNumber = 4,
+    kLastModifiedTimestampMillisFieldNumber = 7,
   };
   // optional string file_name = 5;
   bool has_file_name() const;
@@ -2225,6 +2286,19 @@ class PayloadTransferFrame_PayloadHeader final :
   void _internal_set_is_sensitive(bool value);
   public:
 
+  // optional int64 last_modified_timestamp_millis = 7;
+  bool has_last_modified_timestamp_millis() const;
+  private:
+  bool _internal_has_last_modified_timestamp_millis() const;
+  public:
+  void clear_last_modified_timestamp_millis();
+  int64_t last_modified_timestamp_millis() const;
+  void set_last_modified_timestamp_millis(int64_t value);
+  private:
+  int64_t _internal_last_modified_timestamp_millis() const;
+  void _internal_set_last_modified_timestamp_millis(int64_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.connections.PayloadTransferFrame.PayloadHeader)
  private:
   class _Internal;
@@ -2240,6 +2314,7 @@ class PayloadTransferFrame_PayloadHeader final :
   int64_t total_size_;
   int type_;
   bool is_sensitive_;
+  int64_t last_modified_timestamp_millis_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -4164,6 +4239,8 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
     BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_USB;
   static constexpr Medium WEB_RTC_NON_CELLULAR =
     BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_WEB_RTC_NON_CELLULAR;
+  static constexpr Medium AWDL =
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_AWDL;
   static inline bool Medium_IsValid(int value) {
     return BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(value);
   }
@@ -5193,6 +5270,8 @@ class BandwidthUpgradeRetryFrame final :
     BandwidthUpgradeRetryFrame_Medium_USB;
   static constexpr Medium WEB_RTC_NON_CELLULAR =
     BandwidthUpgradeRetryFrame_Medium_WEB_RTC_NON_CELLULAR;
+  static constexpr Medium AWDL =
+    BandwidthUpgradeRetryFrame_Medium_AWDL;
   static inline bool Medium_IsValid(int value) {
     return BandwidthUpgradeRetryFrame_Medium_IsValid(value);
   }
@@ -6159,6 +6238,7 @@ class AutoResumeFrame final :
     kPendingPayloadIdFieldNumber = 2,
     kEventTypeFieldNumber = 1,
     kNextPayloadChunkIndexFieldNumber = 3,
+    kVersionFieldNumber = 4,
   };
   // optional int64 pending_payload_id = 2;
   bool has_pending_payload_id() const;
@@ -6199,6 +6279,19 @@ class AutoResumeFrame final :
   void _internal_set_next_payload_chunk_index(int32_t value);
   public:
 
+  // optional int32 version = 4;
+  bool has_version() const;
+  private:
+  bool _internal_has_version() const;
+  public:
+  void clear_version();
+  int32_t version() const;
+  void set_version(int32_t value);
+  private:
+  int32_t _internal_version() const;
+  void _internal_set_version(int32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.connections.AutoResumeFrame)
  private:
   class _Internal;
@@ -6211,6 +6304,7 @@ class AutoResumeFrame final :
   int64_t pending_payload_id_;
   int event_type_;
   int32_t next_payload_chunk_index_;
+  int32_t version_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -6357,6 +6451,7 @@ class AutoReconnectFrame final :
 
   enum : int {
     kEndpointIdFieldNumber = 1,
+    kLastEndpointIdFieldNumber = 3,
     kEventTypeFieldNumber = 2,
   };
   // optional string endpoint_id = 1;
@@ -6375,6 +6470,24 @@ class AutoReconnectFrame final :
   const std::string& _internal_endpoint_id() const;
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_endpoint_id(const std::string& value);
   std::string* _internal_mutable_endpoint_id();
+  public:
+
+  // optional string last_endpoint_id = 3;
+  bool has_last_endpoint_id() const;
+  private:
+  bool _internal_has_last_endpoint_id() const;
+  public:
+  void clear_last_endpoint_id();
+  const std::string& last_endpoint_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_last_endpoint_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_last_endpoint_id();
+  PROTOBUF_NODISCARD std::string* release_last_endpoint_id();
+  void set_allocated_last_endpoint_id(std::string* last_endpoint_id);
+  private:
+  const std::string& _internal_last_endpoint_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_last_endpoint_id(const std::string& value);
+  std::string* _internal_mutable_last_endpoint_id();
   public:
 
   // optional .location.nearby.connections.AutoReconnectFrame.EventType event_type = 2;
@@ -6400,6 +6513,7 @@ class AutoReconnectFrame final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr last_endpoint_id_;
   int event_type_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
@@ -9991,7 +10105,7 @@ inline void ConnectionRequestFrame::set_allocated_handshake_data(std::string* ha
 
 // optional int32 nonce = 4;
 inline bool ConnectionRequestFrame::_internal_has_nonce() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionRequestFrame::has_nonce() const {
@@ -9999,7 +10113,7 @@ inline bool ConnectionRequestFrame::has_nonce() const {
 }
 inline void ConnectionRequestFrame::clear_nonce() {
   nonce_ = 0;
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline int32_t ConnectionRequestFrame::_internal_nonce() const {
   return nonce_;
@@ -10009,7 +10123,7 @@ inline int32_t ConnectionRequestFrame::nonce() const {
   return _internal_nonce();
 }
 inline void ConnectionRequestFrame::_internal_set_nonce(int32_t value) {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
   nonce_ = value;
 }
 inline void ConnectionRequestFrame::set_nonce(int32_t value) {
@@ -10223,7 +10337,7 @@ inline void ConnectionRequestFrame::set_allocated_medium_metadata(::location::ne
 
 // optional int32 keep_alive_interval_millis = 8;
 inline bool ConnectionRequestFrame::_internal_has_keep_alive_interval_millis() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool ConnectionRequestFrame::has_keep_alive_interval_millis() const {
@@ -10231,7 +10345,7 @@ inline bool ConnectionRequestFrame::has_keep_alive_interval_millis() const {
 }
 inline void ConnectionRequestFrame::clear_keep_alive_interval_millis() {
   keep_alive_interval_millis_ = 0;
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 inline int32_t ConnectionRequestFrame::_internal_keep_alive_interval_millis() const {
   return keep_alive_interval_millis_;
@@ -10241,7 +10355,7 @@ inline int32_t ConnectionRequestFrame::keep_alive_interval_millis() const {
   return _internal_keep_alive_interval_millis();
 }
 inline void ConnectionRequestFrame::_internal_set_keep_alive_interval_millis(int32_t value) {
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000100u;
   keep_alive_interval_millis_ = value;
 }
 inline void ConnectionRequestFrame::set_keep_alive_interval_millis(int32_t value) {
@@ -10251,7 +10365,7 @@ inline void ConnectionRequestFrame::set_keep_alive_interval_millis(int32_t value
 
 // optional int32 keep_alive_timeout_millis = 9;
 inline bool ConnectionRequestFrame::_internal_has_keep_alive_timeout_millis() const {
-  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
   return value;
 }
 inline bool ConnectionRequestFrame::has_keep_alive_timeout_millis() const {
@@ -10259,7 +10373,7 @@ inline bool ConnectionRequestFrame::has_keep_alive_timeout_millis() const {
 }
 inline void ConnectionRequestFrame::clear_keep_alive_timeout_millis() {
   keep_alive_timeout_millis_ = 0;
-  _has_bits_[0] &= ~0x00000100u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 inline int32_t ConnectionRequestFrame::_internal_keep_alive_timeout_millis() const {
   return keep_alive_timeout_millis_;
@@ -10269,7 +10383,7 @@ inline int32_t ConnectionRequestFrame::keep_alive_timeout_millis() const {
   return _internal_keep_alive_timeout_millis();
 }
 inline void ConnectionRequestFrame::_internal_set_keep_alive_timeout_millis(int32_t value) {
-  _has_bits_[0] |= 0x00000100u;
+  _has_bits_[0] |= 0x00000200u;
   keep_alive_timeout_millis_ = value;
 }
 inline void ConnectionRequestFrame::set_keep_alive_timeout_millis(int32_t value) {
@@ -10279,7 +10393,7 @@ inline void ConnectionRequestFrame::set_keep_alive_timeout_millis(int32_t value)
 
 // optional int32 device_type = 10 [default = 0, deprecated = true];
 inline bool ConnectionRequestFrame::_internal_has_device_type() const {
-  bool value = (_has_bits_[0] & 0x00000200u) != 0;
+  bool value = (_has_bits_[0] & 0x00000400u) != 0;
   return value;
 }
 inline bool ConnectionRequestFrame::has_device_type() const {
@@ -10287,7 +10401,7 @@ inline bool ConnectionRequestFrame::has_device_type() const {
 }
 inline void ConnectionRequestFrame::clear_device_type() {
   device_type_ = 0;
-  _has_bits_[0] &= ~0x00000200u;
+  _has_bits_[0] &= ~0x00000400u;
 }
 inline int32_t ConnectionRequestFrame::_internal_device_type() const {
   return device_type_;
@@ -10297,7 +10411,7 @@ inline int32_t ConnectionRequestFrame::device_type() const {
   return _internal_device_type();
 }
 inline void ConnectionRequestFrame::_internal_set_device_type(int32_t value) {
-  _has_bits_[0] |= 0x00000200u;
+  _has_bits_[0] |= 0x00000400u;
   device_type_ = value;
 }
 inline void ConnectionRequestFrame::set_device_type(int32_t value) {
@@ -10524,7 +10638,7 @@ inline ::location::nearby::connections::PresenceDevice* ConnectionRequestFrame::
 
 // optional .location.nearby.connections.ConnectionRequestFrame.ConnectionMode connection_mode = 14;
 inline bool ConnectionRequestFrame::_internal_has_connection_mode() const {
-  bool value = (_has_bits_[0] & 0x00000400u) != 0;
+  bool value = (_has_bits_[0] & 0x00000800u) != 0;
   return value;
 }
 inline bool ConnectionRequestFrame::has_connection_mode() const {
@@ -10532,7 +10646,7 @@ inline bool ConnectionRequestFrame::has_connection_mode() const {
 }
 inline void ConnectionRequestFrame::clear_connection_mode() {
   connection_mode_ = 0;
-  _has_bits_[0] &= ~0x00000400u;
+  _has_bits_[0] &= ~0x00000800u;
 }
 inline ::location::nearby::connections::ConnectionRequestFrame_ConnectionMode ConnectionRequestFrame::_internal_connection_mode() const {
   return static_cast< ::location::nearby::connections::ConnectionRequestFrame_ConnectionMode >(connection_mode_);
@@ -10543,12 +10657,102 @@ inline ::location::nearby::connections::ConnectionRequestFrame_ConnectionMode Co
 }
 inline void ConnectionRequestFrame::_internal_set_connection_mode(::location::nearby::connections::ConnectionRequestFrame_ConnectionMode value) {
   assert(::location::nearby::connections::ConnectionRequestFrame_ConnectionMode_IsValid(value));
-  _has_bits_[0] |= 0x00000400u;
+  _has_bits_[0] |= 0x00000800u;
   connection_mode_ = value;
 }
 inline void ConnectionRequestFrame::set_connection_mode(::location::nearby::connections::ConnectionRequestFrame_ConnectionMode value) {
   _internal_set_connection_mode(value);
   // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionRequestFrame.connection_mode)
+}
+
+// optional .location.nearby.connections.LocationHint location_hint = 15;
+inline bool ConnectionRequestFrame::_internal_has_location_hint() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  PROTOBUF_ASSUME(!value || location_hint_ != nullptr);
+  return value;
+}
+inline bool ConnectionRequestFrame::has_location_hint() const {
+  return _internal_has_location_hint();
+}
+inline void ConnectionRequestFrame::clear_location_hint() {
+  if (location_hint_ != nullptr) location_hint_->Clear();
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline const ::location::nearby::connections::LocationHint& ConnectionRequestFrame::_internal_location_hint() const {
+  const ::location::nearby::connections::LocationHint* p = location_hint_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::LocationHint&>(
+      ::location::nearby::connections::_LocationHint_default_instance_);
+}
+inline const ::location::nearby::connections::LocationHint& ConnectionRequestFrame::location_hint() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionRequestFrame.location_hint)
+  return _internal_location_hint();
+}
+inline void ConnectionRequestFrame::unsafe_arena_set_allocated_location_hint(
+    ::location::nearby::connections::LocationHint* location_hint) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(location_hint_);
+  }
+  location_hint_ = location_hint;
+  if (location_hint) {
+    _has_bits_[0] |= 0x00000040u;
+  } else {
+    _has_bits_[0] &= ~0x00000040u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.ConnectionRequestFrame.location_hint)
+}
+inline ::location::nearby::connections::LocationHint* ConnectionRequestFrame::release_location_hint() {
+  _has_bits_[0] &= ~0x00000040u;
+  ::location::nearby::connections::LocationHint* temp = location_hint_;
+  location_hint_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::LocationHint* ConnectionRequestFrame::unsafe_arena_release_location_hint() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionRequestFrame.location_hint)
+  _has_bits_[0] &= ~0x00000040u;
+  ::location::nearby::connections::LocationHint* temp = location_hint_;
+  location_hint_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::LocationHint* ConnectionRequestFrame::_internal_mutable_location_hint() {
+  _has_bits_[0] |= 0x00000040u;
+  if (location_hint_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::LocationHint>(GetArenaForAllocation());
+    location_hint_ = p;
+  }
+  return location_hint_;
+}
+inline ::location::nearby::connections::LocationHint* ConnectionRequestFrame::mutable_location_hint() {
+  ::location::nearby::connections::LocationHint* _msg = _internal_mutable_location_hint();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionRequestFrame.location_hint)
+  return _msg;
+}
+inline void ConnectionRequestFrame::set_allocated_location_hint(::location::nearby::connections::LocationHint* location_hint) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete location_hint_;
+  }
+  if (location_hint) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::LocationHint>::GetOwningArena(location_hint);
+    if (message_arena != submessage_arena) {
+      location_hint = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location_hint, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000040u;
+  } else {
+    _has_bits_[0] &= ~0x00000040u;
+  }
+  location_hint_ = location_hint;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionRequestFrame.location_hint)
 }
 
 inline bool ConnectionRequestFrame::has_Device() const {
@@ -10566,7 +10770,7 @@ inline ConnectionRequestFrame::DeviceCase ConnectionRequestFrame::Device_case() 
 
 // optional int32 status = 1 [deprecated = true];
 inline bool ConnectionResponseFrame::_internal_has_status() const {
-  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_status() const {
@@ -10574,7 +10778,7 @@ inline bool ConnectionResponseFrame::has_status() const {
 }
 inline void ConnectionResponseFrame::clear_status() {
   status_ = 0;
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 inline int32_t ConnectionResponseFrame::_internal_status() const {
   return status_;
@@ -10584,7 +10788,7 @@ inline int32_t ConnectionResponseFrame::status() const {
   return _internal_status();
 }
 inline void ConnectionResponseFrame::_internal_set_status(int32_t value) {
-  _has_bits_[0] |= 0x00000004u;
+  _has_bits_[0] |= 0x00000008u;
   status_ = value;
 }
 inline void ConnectionResponseFrame::set_status(int32_t value) {
@@ -10663,7 +10867,7 @@ inline void ConnectionResponseFrame::set_allocated_handshake_data(std::string* h
 
 // optional .location.nearby.connections.ConnectionResponseFrame.ResponseStatus response = 3;
 inline bool ConnectionResponseFrame::_internal_has_response() const {
-  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_response() const {
@@ -10671,7 +10875,7 @@ inline bool ConnectionResponseFrame::has_response() const {
 }
 inline void ConnectionResponseFrame::clear_response() {
   response_ = 0;
-  _has_bits_[0] &= ~0x00000008u;
+  _has_bits_[0] &= ~0x00000010u;
 }
 inline ::location::nearby::connections::ConnectionResponseFrame_ResponseStatus ConnectionResponseFrame::_internal_response() const {
   return static_cast< ::location::nearby::connections::ConnectionResponseFrame_ResponseStatus >(response_);
@@ -10682,7 +10886,7 @@ inline ::location::nearby::connections::ConnectionResponseFrame_ResponseStatus C
 }
 inline void ConnectionResponseFrame::_internal_set_response(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus value) {
   assert(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus_IsValid(value));
-  _has_bits_[0] |= 0x00000008u;
+  _has_bits_[0] |= 0x00000010u;
   response_ = value;
 }
 inline void ConnectionResponseFrame::set_response(::location::nearby::connections::ConnectionResponseFrame_ResponseStatus value) {
@@ -10782,7 +10986,7 @@ inline void ConnectionResponseFrame::set_allocated_os_info(::location::nearby::c
 
 // optional int32 multiplex_socket_bitmask = 5;
 inline bool ConnectionResponseFrame::_internal_has_multiplex_socket_bitmask() const {
-  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_multiplex_socket_bitmask() const {
@@ -10790,7 +10994,7 @@ inline bool ConnectionResponseFrame::has_multiplex_socket_bitmask() const {
 }
 inline void ConnectionResponseFrame::clear_multiplex_socket_bitmask() {
   multiplex_socket_bitmask_ = 0;
-  _has_bits_[0] &= ~0x00000010u;
+  _has_bits_[0] &= ~0x00000020u;
 }
 inline int32_t ConnectionResponseFrame::_internal_multiplex_socket_bitmask() const {
   return multiplex_socket_bitmask_;
@@ -10800,7 +11004,7 @@ inline int32_t ConnectionResponseFrame::multiplex_socket_bitmask() const {
   return _internal_multiplex_socket_bitmask();
 }
 inline void ConnectionResponseFrame::_internal_set_multiplex_socket_bitmask(int32_t value) {
-  _has_bits_[0] |= 0x00000010u;
+  _has_bits_[0] |= 0x00000020u;
   multiplex_socket_bitmask_ = value;
 }
 inline void ConnectionResponseFrame::set_multiplex_socket_bitmask(int32_t value) {
@@ -10810,7 +11014,7 @@ inline void ConnectionResponseFrame::set_multiplex_socket_bitmask(int32_t value)
 
 // optional int32 nearby_connections_version = 6 [deprecated = true];
 inline bool ConnectionResponseFrame::_internal_has_nearby_connections_version() const {
-  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_nearby_connections_version() const {
@@ -10818,7 +11022,7 @@ inline bool ConnectionResponseFrame::has_nearby_connections_version() const {
 }
 inline void ConnectionResponseFrame::clear_nearby_connections_version() {
   nearby_connections_version_ = 0;
-  _has_bits_[0] &= ~0x00000020u;
+  _has_bits_[0] &= ~0x00000040u;
 }
 inline int32_t ConnectionResponseFrame::_internal_nearby_connections_version() const {
   return nearby_connections_version_;
@@ -10828,7 +11032,7 @@ inline int32_t ConnectionResponseFrame::nearby_connections_version() const {
   return _internal_nearby_connections_version();
 }
 inline void ConnectionResponseFrame::_internal_set_nearby_connections_version(int32_t value) {
-  _has_bits_[0] |= 0x00000020u;
+  _has_bits_[0] |= 0x00000040u;
   nearby_connections_version_ = value;
 }
 inline void ConnectionResponseFrame::set_nearby_connections_version(int32_t value) {
@@ -10838,7 +11042,7 @@ inline void ConnectionResponseFrame::set_nearby_connections_version(int32_t valu
 
 // optional int32 safe_to_disconnect_version = 7;
 inline bool ConnectionResponseFrame::_internal_has_safe_to_disconnect_version() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool ConnectionResponseFrame::has_safe_to_disconnect_version() const {
@@ -10846,7 +11050,7 @@ inline bool ConnectionResponseFrame::has_safe_to_disconnect_version() const {
 }
 inline void ConnectionResponseFrame::clear_safe_to_disconnect_version() {
   safe_to_disconnect_version_ = 0;
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline int32_t ConnectionResponseFrame::_internal_safe_to_disconnect_version() const {
   return safe_to_disconnect_version_;
@@ -10856,12 +11060,130 @@ inline int32_t ConnectionResponseFrame::safe_to_disconnect_version() const {
   return _internal_safe_to_disconnect_version();
 }
 inline void ConnectionResponseFrame::_internal_set_safe_to_disconnect_version(int32_t value) {
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
   safe_to_disconnect_version_ = value;
 }
 inline void ConnectionResponseFrame::set_safe_to_disconnect_version(int32_t value) {
   _internal_set_safe_to_disconnect_version(value);
   // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionResponseFrame.safe_to_disconnect_version)
+}
+
+// optional .location.nearby.connections.LocationHint location_hint = 8;
+inline bool ConnectionResponseFrame::_internal_has_location_hint() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  PROTOBUF_ASSUME(!value || location_hint_ != nullptr);
+  return value;
+}
+inline bool ConnectionResponseFrame::has_location_hint() const {
+  return _internal_has_location_hint();
+}
+inline void ConnectionResponseFrame::clear_location_hint() {
+  if (location_hint_ != nullptr) location_hint_->Clear();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const ::location::nearby::connections::LocationHint& ConnectionResponseFrame::_internal_location_hint() const {
+  const ::location::nearby::connections::LocationHint* p = location_hint_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::LocationHint&>(
+      ::location::nearby::connections::_LocationHint_default_instance_);
+}
+inline const ::location::nearby::connections::LocationHint& ConnectionResponseFrame::location_hint() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionResponseFrame.location_hint)
+  return _internal_location_hint();
+}
+inline void ConnectionResponseFrame::unsafe_arena_set_allocated_location_hint(
+    ::location::nearby::connections::LocationHint* location_hint) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(location_hint_);
+  }
+  location_hint_ = location_hint;
+  if (location_hint) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.ConnectionResponseFrame.location_hint)
+}
+inline ::location::nearby::connections::LocationHint* ConnectionResponseFrame::release_location_hint() {
+  _has_bits_[0] &= ~0x00000004u;
+  ::location::nearby::connections::LocationHint* temp = location_hint_;
+  location_hint_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::LocationHint* ConnectionResponseFrame::unsafe_arena_release_location_hint() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.ConnectionResponseFrame.location_hint)
+  _has_bits_[0] &= ~0x00000004u;
+  ::location::nearby::connections::LocationHint* temp = location_hint_;
+  location_hint_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::LocationHint* ConnectionResponseFrame::_internal_mutable_location_hint() {
+  _has_bits_[0] |= 0x00000004u;
+  if (location_hint_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::LocationHint>(GetArenaForAllocation());
+    location_hint_ = p;
+  }
+  return location_hint_;
+}
+inline ::location::nearby::connections::LocationHint* ConnectionResponseFrame::mutable_location_hint() {
+  ::location::nearby::connections::LocationHint* _msg = _internal_mutable_location_hint();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.ConnectionResponseFrame.location_hint)
+  return _msg;
+}
+inline void ConnectionResponseFrame::set_allocated_location_hint(::location::nearby::connections::LocationHint* location_hint) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete location_hint_;
+  }
+  if (location_hint) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::LocationHint>::GetOwningArena(location_hint);
+    if (message_arena != submessage_arena) {
+      location_hint = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, location_hint, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  location_hint_ = location_hint;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.ConnectionResponseFrame.location_hint)
+}
+
+// optional int32 keep_alive_timeout_millis = 9;
+inline bool ConnectionResponseFrame::_internal_has_keep_alive_timeout_millis() const {
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  return value;
+}
+inline bool ConnectionResponseFrame::has_keep_alive_timeout_millis() const {
+  return _internal_has_keep_alive_timeout_millis();
+}
+inline void ConnectionResponseFrame::clear_keep_alive_timeout_millis() {
+  keep_alive_timeout_millis_ = 0;
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline int32_t ConnectionResponseFrame::_internal_keep_alive_timeout_millis() const {
+  return keep_alive_timeout_millis_;
+}
+inline int32_t ConnectionResponseFrame::keep_alive_timeout_millis() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.ConnectionResponseFrame.keep_alive_timeout_millis)
+  return _internal_keep_alive_timeout_millis();
+}
+inline void ConnectionResponseFrame::_internal_set_keep_alive_timeout_millis(int32_t value) {
+  _has_bits_[0] |= 0x00000100u;
+  keep_alive_timeout_millis_ = value;
+}
+inline void ConnectionResponseFrame::set_keep_alive_timeout_millis(int32_t value) {
+  _internal_set_keep_alive_timeout_millis(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.ConnectionResponseFrame.keep_alive_timeout_millis)
 }
 
 // -------------------------------------------------------------------
@@ -11117,6 +11439,34 @@ inline void PayloadTransferFrame_PayloadHeader::set_allocated_parent_folder(std:
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.PayloadTransferFrame.PayloadHeader.parent_folder)
+}
+
+// optional int64 last_modified_timestamp_millis = 7;
+inline bool PayloadTransferFrame_PayloadHeader::_internal_has_last_modified_timestamp_millis() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool PayloadTransferFrame_PayloadHeader::has_last_modified_timestamp_millis() const {
+  return _internal_has_last_modified_timestamp_millis();
+}
+inline void PayloadTransferFrame_PayloadHeader::clear_last_modified_timestamp_millis() {
+  last_modified_timestamp_millis_ = int64_t{0};
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline int64_t PayloadTransferFrame_PayloadHeader::_internal_last_modified_timestamp_millis() const {
+  return last_modified_timestamp_millis_;
+}
+inline int64_t PayloadTransferFrame_PayloadHeader::last_modified_timestamp_millis() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.PayloadTransferFrame.PayloadHeader.last_modified_timestamp_millis)
+  return _internal_last_modified_timestamp_millis();
+}
+inline void PayloadTransferFrame_PayloadHeader::_internal_set_last_modified_timestamp_millis(int64_t value) {
+  _has_bits_[0] |= 0x00000040u;
+  last_modified_timestamp_millis_ = value;
+}
+inline void PayloadTransferFrame_PayloadHeader::set_last_modified_timestamp_millis(int64_t value) {
+  _internal_set_last_modified_timestamp_millis(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.PayloadTransferFrame.PayloadHeader.last_modified_timestamp_millis)
 }
 
 // -------------------------------------------------------------------
@@ -14465,6 +14815,34 @@ inline void AutoResumeFrame::set_next_payload_chunk_index(int32_t value) {
   // @@protoc_insertion_point(field_set:location.nearby.connections.AutoResumeFrame.next_payload_chunk_index)
 }
 
+// optional int32 version = 4;
+inline bool AutoResumeFrame::_internal_has_version() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool AutoResumeFrame::has_version() const {
+  return _internal_has_version();
+}
+inline void AutoResumeFrame::clear_version() {
+  version_ = 0;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline int32_t AutoResumeFrame::_internal_version() const {
+  return version_;
+}
+inline int32_t AutoResumeFrame::version() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.AutoResumeFrame.version)
+  return _internal_version();
+}
+inline void AutoResumeFrame::_internal_set_version(int32_t value) {
+  _has_bits_[0] |= 0x00000008u;
+  version_ = value;
+}
+inline void AutoResumeFrame::set_version(int32_t value) {
+  _internal_set_version(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.AutoResumeFrame.version)
+}
+
 // -------------------------------------------------------------------
 
 // AutoReconnectFrame
@@ -14540,7 +14918,7 @@ inline void AutoReconnectFrame::set_allocated_endpoint_id(std::string* endpoint_
 
 // optional .location.nearby.connections.AutoReconnectFrame.EventType event_type = 2;
 inline bool AutoReconnectFrame::_internal_has_event_type() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool AutoReconnectFrame::has_event_type() const {
@@ -14548,7 +14926,7 @@ inline bool AutoReconnectFrame::has_event_type() const {
 }
 inline void AutoReconnectFrame::clear_event_type() {
   event_type_ = 0;
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline ::location::nearby::connections::AutoReconnectFrame_EventType AutoReconnectFrame::_internal_event_type() const {
   return static_cast< ::location::nearby::connections::AutoReconnectFrame_EventType >(event_type_);
@@ -14559,12 +14937,81 @@ inline ::location::nearby::connections::AutoReconnectFrame_EventType AutoReconne
 }
 inline void AutoReconnectFrame::_internal_set_event_type(::location::nearby::connections::AutoReconnectFrame_EventType value) {
   assert(::location::nearby::connections::AutoReconnectFrame_EventType_IsValid(value));
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   event_type_ = value;
 }
 inline void AutoReconnectFrame::set_event_type(::location::nearby::connections::AutoReconnectFrame_EventType value) {
   _internal_set_event_type(value);
   // @@protoc_insertion_point(field_set:location.nearby.connections.AutoReconnectFrame.event_type)
+}
+
+// optional string last_endpoint_id = 3;
+inline bool AutoReconnectFrame::_internal_has_last_endpoint_id() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool AutoReconnectFrame::has_last_endpoint_id() const {
+  return _internal_has_last_endpoint_id();
+}
+inline void AutoReconnectFrame::clear_last_endpoint_id() {
+  last_endpoint_id_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& AutoReconnectFrame::last_endpoint_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.AutoReconnectFrame.last_endpoint_id)
+  return _internal_last_endpoint_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void AutoReconnectFrame::set_last_endpoint_id(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000002u;
+ last_endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.AutoReconnectFrame.last_endpoint_id)
+}
+inline std::string* AutoReconnectFrame::mutable_last_endpoint_id() {
+  std::string* _s = _internal_mutable_last_endpoint_id();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.AutoReconnectFrame.last_endpoint_id)
+  return _s;
+}
+inline const std::string& AutoReconnectFrame::_internal_last_endpoint_id() const {
+  return last_endpoint_id_.Get();
+}
+inline void AutoReconnectFrame::_internal_set_last_endpoint_id(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  last_endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* AutoReconnectFrame::_internal_mutable_last_endpoint_id() {
+  _has_bits_[0] |= 0x00000002u;
+  return last_endpoint_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* AutoReconnectFrame::release_last_endpoint_id() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.AutoReconnectFrame.last_endpoint_id)
+  if (!_internal_has_last_endpoint_id()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  auto* p = last_endpoint_id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (last_endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    last_endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void AutoReconnectFrame::set_allocated_last_endpoint_id(std::string* last_endpoint_id) {
+  if (last_endpoint_id != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  last_endpoint_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), last_endpoint_id,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (last_endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    last_endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.AutoReconnectFrame.last_endpoint_id)
 }
 
 // -------------------------------------------------------------------

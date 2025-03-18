@@ -137,11 +137,12 @@ enum Medium : int {
   WEB_RTC = 9,
   BLE_L2CAP = 10,
   USB = 11,
-  WEB_RTC_NON_CELLULAR = 12
+  WEB_RTC_NON_CELLULAR = 12,
+  AWDL = 13
 };
 bool Medium_IsValid(int value);
 constexpr Medium Medium_MIN = UNKNOWN_MEDIUM;
-constexpr Medium Medium_MAX = WEB_RTC_NON_CELLULAR;
+constexpr Medium Medium_MAX = AWDL;
 constexpr int Medium_ARRAYSIZE = Medium_MAX + 1;
 
 const std::string& Medium_Name(Medium value);
@@ -227,6 +228,27 @@ inline const std::string& ConnectionMode_Name(T enum_t_value) {
 }
 bool ConnectionMode_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionMode* value);
+enum InstantConnectionResult : int {
+  UNKNOWN_INSTANT_CONNECTION_RESULT = 0,
+  INSTANT_CONNECTION_SUCCESS = 1,
+  INSTANT_CONNECTION_FAILURE = 2,
+  INSTANT_CONNECTION_TIMEOUT = 3
+};
+bool InstantConnectionResult_IsValid(int value);
+constexpr InstantConnectionResult InstantConnectionResult_MIN = UNKNOWN_INSTANT_CONNECTION_RESULT;
+constexpr InstantConnectionResult InstantConnectionResult_MAX = INSTANT_CONNECTION_TIMEOUT;
+constexpr int InstantConnectionResult_ARRAYSIZE = InstantConnectionResult_MAX + 1;
+
+const std::string& InstantConnectionResult_Name(InstantConnectionResult value);
+template<typename T>
+inline const std::string& InstantConnectionResult_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, InstantConnectionResult>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function InstantConnectionResult_Name.");
+  return InstantConnectionResult_Name(static_cast<InstantConnectionResult>(enum_t_value));
+}
+bool InstantConnectionResult_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, InstantConnectionResult* value);
 enum ConnectionRequestResponse : int {
   UNKNOWN_CONNECTION_REQUEST_RESPONSE = 0,
   ACCEPTED = 1,
@@ -1018,6 +1040,7 @@ template <> struct is_proto_enum< ::location::nearby::proto::connections::Medium
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionTechnology> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionBand> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionMode> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::connections::InstantConnectionResult> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionRequestResponse> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionAttemptResult> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::ConnectionAttemptDirection> : ::std::true_type {};

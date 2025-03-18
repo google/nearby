@@ -232,15 +232,17 @@ bool Medium_IsValid(int value) {
     case 10:
     case 11:
     case 12:
+    case 13:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Medium_strings[13] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> Medium_strings[14] = {};
 
 static const char Medium_names[] =
+  "AWDL"
   "BLE"
   "BLE_L2CAP"
   "BLUETOOTH"
@@ -256,35 +258,37 @@ static const char Medium_names[] =
   "WIFI_LAN";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry Medium_entries[] = {
-  { {Medium_names + 0, 3}, 4 },
-  { {Medium_names + 3, 9}, 10 },
-  { {Medium_names + 12, 9}, 2 },
-  { {Medium_names + 21, 4}, 1 },
-  { {Medium_names + 25, 3}, 7 },
-  { {Medium_names + 28, 14}, 0 },
-  { {Medium_names + 42, 3}, 11 },
-  { {Medium_names + 45, 7}, 9 },
-  { {Medium_names + 52, 20}, 12 },
-  { {Medium_names + 72, 10}, 6 },
-  { {Medium_names + 82, 11}, 8 },
-  { {Medium_names + 93, 12}, 3 },
-  { {Medium_names + 105, 8}, 5 },
+  { {Medium_names + 0, 4}, 13 },
+  { {Medium_names + 4, 3}, 4 },
+  { {Medium_names + 7, 9}, 10 },
+  { {Medium_names + 16, 9}, 2 },
+  { {Medium_names + 25, 4}, 1 },
+  { {Medium_names + 29, 3}, 7 },
+  { {Medium_names + 32, 14}, 0 },
+  { {Medium_names + 46, 3}, 11 },
+  { {Medium_names + 49, 7}, 9 },
+  { {Medium_names + 56, 20}, 12 },
+  { {Medium_names + 76, 10}, 6 },
+  { {Medium_names + 86, 11}, 8 },
+  { {Medium_names + 97, 12}, 3 },
+  { {Medium_names + 109, 8}, 5 },
 };
 
 static const int Medium_entries_by_number[] = {
-  5, // 0 -> UNKNOWN_MEDIUM
-  3, // 1 -> MDNS
-  2, // 2 -> BLUETOOTH
-  11, // 3 -> WIFI_HOTSPOT
-  0, // 4 -> BLE
-  12, // 5 -> WIFI_LAN
-  9, // 6 -> WIFI_AWARE
-  4, // 7 -> NFC
-  10, // 8 -> WIFI_DIRECT
-  7, // 9 -> WEB_RTC
-  1, // 10 -> BLE_L2CAP
-  6, // 11 -> USB
-  8, // 12 -> WEB_RTC_NON_CELLULAR
+  6, // 0 -> UNKNOWN_MEDIUM
+  4, // 1 -> MDNS
+  3, // 2 -> BLUETOOTH
+  12, // 3 -> WIFI_HOTSPOT
+  1, // 4 -> BLE
+  13, // 5 -> WIFI_LAN
+  10, // 6 -> WIFI_AWARE
+  5, // 7 -> NFC
+  11, // 8 -> WIFI_DIRECT
+  8, // 9 -> WEB_RTC
+  2, // 10 -> BLE_L2CAP
+  7, // 11 -> USB
+  9, // 12 -> WEB_RTC_NON_CELLULAR
+  0, // 13 -> AWDL
 };
 
 const std::string& Medium_Name(
@@ -293,12 +297,12 @@ const std::string& Medium_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           Medium_entries,
           Medium_entries_by_number,
-          13, Medium_strings);
+          14, Medium_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       Medium_entries,
       Medium_entries_by_number,
-      13, value);
+      14, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      Medium_strings[idx].get();
 }
@@ -306,7 +310,7 @@ bool Medium_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, Medium* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      Medium_entries, 13, name, &int_value);
+      Medium_entries, 14, name, &int_value);
   if (success) {
     *value = static_cast<Medium>(int_value);
   }
@@ -526,6 +530,65 @@ bool ConnectionMode_Parse(
       ConnectionMode_entries, 2, name, &int_value);
   if (success) {
     *value = static_cast<ConnectionMode>(int_value);
+  }
+  return success;
+}
+bool InstantConnectionResult_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> InstantConnectionResult_strings[4] = {};
+
+static const char InstantConnectionResult_names[] =
+  "INSTANT_CONNECTION_FAILURE"
+  "INSTANT_CONNECTION_SUCCESS"
+  "INSTANT_CONNECTION_TIMEOUT"
+  "UNKNOWN_INSTANT_CONNECTION_RESULT";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry InstantConnectionResult_entries[] = {
+  { {InstantConnectionResult_names + 0, 26}, 2 },
+  { {InstantConnectionResult_names + 26, 26}, 1 },
+  { {InstantConnectionResult_names + 52, 26}, 3 },
+  { {InstantConnectionResult_names + 78, 33}, 0 },
+};
+
+static const int InstantConnectionResult_entries_by_number[] = {
+  3, // 0 -> UNKNOWN_INSTANT_CONNECTION_RESULT
+  1, // 1 -> INSTANT_CONNECTION_SUCCESS
+  0, // 2 -> INSTANT_CONNECTION_FAILURE
+  2, // 3 -> INSTANT_CONNECTION_TIMEOUT
+};
+
+const std::string& InstantConnectionResult_Name(
+    InstantConnectionResult value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          InstantConnectionResult_entries,
+          InstantConnectionResult_entries_by_number,
+          4, InstantConnectionResult_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      InstantConnectionResult_entries,
+      InstantConnectionResult_entries_by_number,
+      4, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     InstantConnectionResult_strings[idx].get();
+}
+bool InstantConnectionResult_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, InstantConnectionResult* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      InstantConnectionResult_entries, 4, name, &int_value);
+  if (success) {
+    *value = static_cast<InstantConnectionResult>(int_value);
   }
   return success;
 }
