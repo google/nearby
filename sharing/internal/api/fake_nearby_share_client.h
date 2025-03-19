@@ -149,6 +149,19 @@ class FakeNearbyIdentityClient
     query_shared_credentials_responses_ = responses;
   }
 
+  void GetAccountInfo(
+    const google::nearby::identity::v1::GetAccountInfoRequest& request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<google::nearby::identity::v1::
+                                      GetAccountInfoResponse>& response) &&>
+        callback) override;
+
+  void SetGetAccountInfoResponse(
+      absl::StatusOr<google::nearby::identity::v1::GetAccountInfoResponse>
+          response) {
+    get_account_info_response_ = response;
+  }
+
   std::vector<google::nearby::identity::v1::PublishDeviceRequest>
       publish_device_requests_;
   absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>
@@ -159,6 +172,11 @@ class FakeNearbyIdentityClient
   std::vector<absl::StatusOr<
       google::nearby::identity::v1::QuerySharedCredentialsResponse>>
       query_shared_credentials_responses_;
+
+  std::vector<google::nearby::identity::v1::GetAccountInfoRequest>
+      get_account_info_requests_;
+  absl::StatusOr<google::nearby::identity::v1::GetAccountInfoResponse>
+      get_account_info_response_;
 };
 
 class FakeNearbyShareClientFactory

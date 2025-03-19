@@ -97,6 +97,16 @@ void FakeNearbyIdentityClient::PublishDevice(
   std::move(callback)(publish_device_response_);
 }
 
+void FakeNearbyIdentityClient::GetAccountInfo(
+    const google::nearby::identity::v1::GetAccountInfoRequest& request,
+    absl::AnyInvocable<
+        void(const absl::StatusOr<google::nearby::identity::v1::
+                                      GetAccountInfoResponse>& response) &&>
+        callback) {
+  get_account_info_requests_.emplace_back(request);
+  std::move(callback)(get_account_info_response_);
+}
+
 std::unique_ptr<nearby::sharing::api::SharingRpcClient>
 FakeNearbyShareClientFactory::CreateInstance() {
   auto instance = std::make_unique<FakeNearbyShareClient>();

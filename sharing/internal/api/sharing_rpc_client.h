@@ -48,6 +48,14 @@ class IdentityRpcClient {
           void(const absl::StatusOr<google::nearby::identity::v1::
                                         PublishDeviceResponse>& response) &&>
           callback) = 0;
+
+  virtual void GetAccountInfo(
+      const google::nearby::identity::v1::GetAccountInfoRequest& request,
+      absl::AnyInvocable<
+          void(const absl::StatusOr<
+               google::nearby::identity::v1::GetAccountInfoResponse>& response)
+              &&>
+          callback) = 0;
 };
 
 // SharingRpcClient is used to access Nearby Share backend APIs.
