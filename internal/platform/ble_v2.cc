@@ -19,7 +19,10 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/types/optional.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -247,6 +250,12 @@ BleV2ServerSocket BleV2Medium::OpenServerSocket(const std::string& service_id) {
   return BleV2ServerSocket(*this, impl_->OpenServerSocket(service_id));
 }
 
+BleL2capServerSocket BleV2Medium::OpenL2capServerSocket(
+    const std::string& service_id) {
+  // TODO(mingshiouwu): Replace with a real implementation listening flow.
+  return BleL2capServerSocket(*this, nullptr);
+}
+
 BleV2Socket BleV2Medium::Connect(const std::string& service_id,
                                  TxPowerLevel tx_power_level,
                                  const BleV2Peripheral& peripheral,
@@ -257,6 +266,13 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
                                                     device, cancellation_flag));
   });
   return socket;
+}
+
+BleL2capSocket BleV2Medium::ConnectOverL2cap(
+    const std::string& service_id, TxPowerLevel tx_power_level,
+    const BleV2Peripheral& peripheral, CancellationFlag* cancellation_flag) {
+  // TODO(mingshiouwu): Replace with a real implementation connecting flow.
+  return BleL2capSocket(peripheral, nullptr);
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {

@@ -32,6 +32,7 @@
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/ble_endpoint_channel.h"
+#include "connections/implementation/ble_l2cap_endpoint_channel.h"
 #include "connections/implementation/ble_v2_endpoint_channel.h"
 #include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/bluetooth_endpoint_channel.h"
@@ -44,11 +45,13 @@
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/implementation/mediums/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/pcp_handler.h"
+#include "connections/implementation/webrtc_state.h"
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
 #include "connections/implementation/wifi_lan_service_info.h"
 #include "connections/medium_selector.h"
@@ -1386,17 +1389,42 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
     // ble_v2
-    if (options.enable_ble_listening &&
-        !ble_v2_medium_.IsAcceptingConnections(std::string(service_id))) {
-      if (!ble_v2_medium_.StartAcceptingConnections(
-              std::string(service_id),
-              absl::bind_front(
-                  &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
-        LOG(WARNING)
-            << "Failed to start listening for incoming connections on ble_v2";
-      } else {
+    if (options.enable_ble_listening) {
+      bool accepting_connections_success = false;
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_connections_feature::
+                  kEnableBleL2cap)) {
+        // ble_l2cap flow
+        if (!ble_v2_medium_.IsAcceptingL2capConnections(
+                std::string(service_id))) {
+          if (!ble_v2_medium_.StartAcceptingL2capConnections(
+                  std::string(service_id),
+                  absl::bind_front(
+                      &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler,
+                      this, client_proxy, local_endpoint_id,
+                      options.listening_endpoint_type))) {
+            LOG(WARNING) << "Failed to start listening for incoming L2CAP "
+                            "connections on ble_v2";
+          } else {
+            accepting_connections_success = true;
+          }
+        }
+      }
+      // ble GATT flow
+      if (!ble_v2_medium_.IsAcceptingConnections(std::string(service_id))) {
+        if (!ble_v2_medium_.StartAcceptingConnections(
+                std::string(service_id),
+                absl::bind_front(
+                    &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
+                    client_proxy, local_endpoint_id,
+                    options.listening_endpoint_type))) {
+          LOG(WARNING) << "Failed to start listening for incoming GATT"
+                          "connections on ble_v2";
+        } else {
+          accepting_connections_success = true;
+        }
+      }
+      if (accepting_connections_success) {
         started_mediums.push_back(BLE);
       }
     }
@@ -1417,6 +1445,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       }
     }
   }
+
   if (options.enable_wlan_listening &&
       !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAcceptingConnections(
@@ -2427,6 +2456,29 @@ void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(
       });
 }
 
+void P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_info,
+    NearbyDevice::Type device_type, BleL2capSocket socket,
+    const std::string& service_id) {
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Invalid socket in accept callback("
+                 << absl::BytesToHexString(local_endpoint_info)
+                 << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-ble-l2cap-on-incoming-connection",
+      [this, client, service_id, device_type,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        ByteArray remote_peripheral_info = socket.GetRemotePeripheral().GetId();
+        auto channel = std::make_unique<BleL2capEndpointChannel>(
+            service_id, std::string(remote_peripheral_info), socket);
+
+        OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
+                             BLE, device_type);
+      });
+}
+
 ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
     ClientProxy* client, const std::string& service_id,
     const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
@@ -2450,12 +2502,24 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
           << service_id;
       return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
     }
+    ErrorOr<bool> ble_l2cap_result = true;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableBleL2cap)) {
+      ble_l2cap_result = ble_v2_medium_.StartAcceptingL2capConnections(
+          service_id,
+          absl::bind_front(
+              &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler, this,
+              client, local_endpoint_info.AsStringView(),
+              NearbyDevice::Type::kConnectionsDevice));
+    }
+
     ErrorOr<bool> ble_v2_result = ble_v2_medium_.StartAcceptingConnections(
         service_id,
         absl::bind_front(&P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler,
                          this, client, local_endpoint_info.AsStringView(),
                          NearbyDevice::Type::kConnectionsDevice));
-    if (ble_v2_result.has_error()) {
+    if (ble_v2_result.has_error() && ble_l2cap_result.has_error()) {
       LOG(WARNING)
           << "In StartBleV2Advertising("
           << absl::BytesToHexString(local_endpoint_info.data())
@@ -2655,6 +2719,31 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
   VLOG(1) << "Client " << client->GetClientId()
           << " is attempting to connect to (" << peripheral.ToReadableString()
           << ") over BLE.";
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
+      peripheral.GetPsm() !=
+          mediums::BleAdvertisementHeader::kDefaultPsmValue) {
+    ErrorOr<BleL2capSocket> ble_l2cap_socket_result =
+        ble_v2_medium_.ConnectOverL2cap(
+            endpoint->service_id, peripheral,
+            client->GetCancellationFlag(endpoint->endpoint_id));
+    if (!ble_l2cap_socket_result.has_error()) {
+      LOG(INFO) << "In BleV2ConnectImpl(), connected to BLE L2CAP device "
+                << absl::BytesToHexString(peripheral.GetId().data())
+                << " for endpoint(id=" << endpoint->endpoint_id << ").";
+      auto channel = std::make_unique<BleL2capEndpointChannel>(
+          endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+          ble_l2cap_socket_result.value());
+      return BasePcpHandler::ConnectImplResult{
+          .medium = BLE,
+          .status = {Status::kSuccess},
+          .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
+          .endpoint_channel = std::move(channel),
+      };
+    }
+  }
+
   ErrorOr<BleV2Socket> ble_socket_result = ble_v2_medium_.Connect(
       endpoint->service_id, peripheral,
       client->GetCancellationFlag(endpoint->endpoint_id));
