@@ -19,35 +19,36 @@
 #include <memory>
 #include <string>
 
-#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
-#include "internal/platform/mutex.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 
+// This InstantOnLostManager class is thread-compatible, and all methods are
+// executed on a single thread.
 class InstantOnLostManager {
  public:
   InstantOnLostManager() = default;
   ~InstantOnLostManager() = default;
 
   void OnAdvertisingStarted(const std::string& service_id,
-                            const ByteArray& advertisement_data)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-  void OnAdvertisingStopped(const std::string& service_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+                            const ByteArray& advertisement_data);
+  void OnAdvertisingStopped(const std::string& service_id);
 
-  bool Shutdown() ABSL_LOCKS_EXCLUDED(mutex_);
+  bool Shutdown();
 
-  std::list<std::string> GetOnLostHashes() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool IsOnLostAdvertising() ABSL_LOCKS_EXCLUDED(mutex_);
+  // For testing only.
+  std::list<std::string> GetOnLostHashesForTesting();
+  bool IsOnLostAdvertisingForTesting();
 
  private:
   struct OnLostAdvertisementHashInfo {
@@ -59,34 +60,29 @@ class InstantOnLostManager {
     }
   };
 
-  bool StartInstantOnLostAdvertisement() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool StopOnLostAdvertising() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  void RemoveExpiredOnLostAdvertisements()
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  std::list<std::string> GetOnLostHashesInternal()
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StartInstantOnLostAdvertisement();
+  bool StopOnLostAdvertising();
+  void RemoveExpiredOnLostAdvertisements();
+  std::list<std::string> GetOnLostHashesInternal();
 
-  Mutex mutex_;
+  void RunOnInstantOnLostThread(absl::string_view task_name,
+                                absl::AnyInvocable<void()> task);
 
-  std::unique_ptr<CancelableAlarm> stop_advertising_alarm_
-      ABSL_GUARDED_BY(mutex_);
+  bool is_shutdown_ = false;
+  ScheduledExecutor service_thread_;
+  std::unique_ptr<CancelableAlarm> stop_advertising_alarm_;
 
   // BLE medium used for lost packet advertising.
-  BluetoothAdapter adapter_ ABSL_GUARDED_BY(mutex_);
-  BleV2Medium ble_medium_ ABSL_GUARDED_BY(mutex_) = BleV2Medium{adapter_};
-  bool is_on_lost_advertising_ ABSL_GUARDED_BY(mutex_) = false;
-
-  bool is_shutdown_ ABSL_GUARDED_BY(mutex_) = false;
-
-  ScheduledExecutor executor_ ABSL_GUARDED_BY(mutex_);
+  BluetoothAdapter adapter_;
+  BleV2Medium ble_medium_ = BleV2Medium{adapter_};
+  bool is_on_lost_advertising_ = false;
+  absl::Time last_advertising_start_time_ = absl::InfinitePast();
 
   // Active on lost advertising, the maximum size is 5.
-  std::list<OnLostAdvertisementHashInfo> active_on_lost_advertising_list_
-      ABSL_GUARDED_BY(mutex_);
+  std::list<OnLostAdvertisementHashInfo> active_on_lost_advertising_list_;
 
   // Map of service ID to advertisement data hash.
-  absl::flat_hash_map<std::string, ByteArray> active_advertising_map_
-      ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, ByteArray> active_advertising_map_;
 };
 
 }  // namespace mediums

@@ -44,9 +44,9 @@ TEST(InstantOnLostManager, StartOnLostAdvertisingAfterStopAdvertising) {
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData1.data(), kData1.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
   absl::SleepFor(kOnLostAdvertisingDuration);
-  EXPECT_FALSE(instant_on_lost_manager.IsOnLostAdvertising());
+  EXPECT_FALSE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
 }
 
 TEST(InstantOnLostManager, NoOnLostAdvertisingWhenAdvertiseAgain) {
@@ -56,7 +56,7 @@ TEST(InstantOnLostManager, NoOnLostAdvertisingWhenAdvertiseAgain) {
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData1.data(), kData1.size()));
-  EXPECT_FALSE(instant_on_lost_manager.IsOnLostAdvertising());
+  EXPECT_FALSE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
   instant_on_lost_manager.Shutdown();
 }
 
@@ -65,18 +65,18 @@ TEST(InstantOnLostManager, MultipleAdvertisingOnSameServiceId) {
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData1.data(), kData1.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 1);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 1);
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData2.data(), kData2.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 2);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 2);
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData3.data(), kData3.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 3);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 3);
   instant_on_lost_manager.Shutdown();
 }
 
@@ -100,8 +100,8 @@ TEST(InstantOnLostManager, MaximumOnLostHashesInOnLostAdvertising) {
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdC), ByteArray(kData6.data(), kData6.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdC));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 5);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 5);
   instant_on_lost_manager.Shutdown();
 }
 
@@ -119,7 +119,7 @@ TEST(InstantOnLostManager, AdvertisingOnShutdownManager) {
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData1.data(), kData1.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_FALSE(instant_on_lost_manager.IsOnLostAdvertising());
+  EXPECT_FALSE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
 }
 
 TEST(InstantOnLostManager, RemoveExpiredOnLostAdvertisement) {
@@ -127,20 +127,20 @@ TEST(InstantOnLostManager, RemoveExpiredOnLostAdvertisement) {
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData1.data(), kData1.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 1);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 1);
   absl::SleepFor(absl::Milliseconds(1050));
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData2.data(), kData2.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 2);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 2);
   absl::SleepFor(absl::Milliseconds(1050));
   instant_on_lost_manager.OnAdvertisingStarted(
       std::string(kServiceIdA), ByteArray(kData3.data(), kData3.size()));
   instant_on_lost_manager.OnAdvertisingStopped(std::string(kServiceIdA));
-  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertising());
-  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashes().size(), 2);
+  EXPECT_TRUE(instant_on_lost_manager.IsOnLostAdvertisingForTesting());
+  EXPECT_EQ(instant_on_lost_manager.GetOnLostHashesForTesting().size(), 2);
   instant_on_lost_manager.Shutdown();
 }
 
