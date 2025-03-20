@@ -15,15 +15,15 @@
 #ifndef PLATFORM_PUBLIC_CANCELABLE_ALARM_H_
 #define PLATFORM_PUBLIC_CANCELABLE_ALARM_H_
 
+#include <stdbool.h>
+
+#include <atomic>
 #include <cstdint>
-#include <memory>
 #include <string>
-#include <utility>
 
 #include "absl/functional/any_invocable.h"
-#include "internal/platform/cancelable.h"
-#include "internal/platform/mutex.h"
-#include "internal/platform/mutex_lock.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
@@ -37,45 +37,20 @@ class CancelableAlarm {
  public:
   CancelableAlarm() = default;
   CancelableAlarm(absl::string_view name, absl::AnyInvocable<void()>&& runnable,
-                  absl::Duration delay, ScheduledExecutor* scheduled_executor,
-                  bool is_recurring = false)
-      : name_(name), scheduled_executor_(scheduled_executor), delay_(delay) {
-    if (is_recurring) {
-      runnable_ = std::move(runnable);
-      Schedule();
-    } else {
-      cancelable_ = scheduled_executor_->Schedule(std::move(runnable), delay_);
-    }
-  }
-  ~CancelableAlarm() = default;
+                  absl::Duration delay, ScheduledExecutor* scheduled_executor);
+  ~CancelableAlarm();
 
-  bool Cancel() {
-    MutexLock lock(&mutex_);
-    return cancelable_.Cancel();
-  }
+  void Cancel();
+  bool IsRunning();
 
-  bool IsValid() {
-    MutexLock lock(&mutex_);
-    return cancelable_.IsValid();
-  }
+  bool IsValid();
 
  private:
-  void Schedule() {
-    MutexLock lock(&mutex_);
-    cancelable_ = scheduled_executor_->Schedule(
-        [this]() {
-          runnable_();
-          Schedule();
-        },
-        delay_);
-  }
-
-  Mutex mutex_;
-  std::string name_;
-  Cancelable cancelable_;
-  ScheduledExecutor* scheduled_executor_;
-  absl::Duration delay_;
-  absl::AnyInvocable<void()> runnable_;
+  const std::string name_;
+  // The timer state is dependent on the order of expiration and cancellation.
+  // The |run_cnt_| is used to track what order these tasks occured.
+  // The task that runs last will be responsible for deleting the |run_cnt_|.
+  std::atomic<int8_t>* run_cnt_ = nullptr;
 };
 
 }  // namespace nearby
