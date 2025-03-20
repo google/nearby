@@ -28,7 +28,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
-
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
@@ -651,14 +650,19 @@ bool BleV2Medium::StopScanning() {
   LOG(INFO) << __func__ << ": BLE StopScanning: service_uuid: "
             << absl::StrCat(absl::Hex(service_uuid16_));
   if (!adapter_->IsEnabled()) {
-    LOG(WARNING) << "BLE cannot stop scanning because the "
+    LOG(WARNING) << "BLE is trying to stop scanning when the "
                     "bluetooth adapter is not enabled.";
-    return false;
+    if (!watchers_.empty()) {
+      LOG(INFO) << "Clear watchers when adapter is not enabled.";
+      watchers_.clear();
+    }
+
+    return true;
   }
 
   if (watchers_.empty()) {
     LOG(WARNING) << "BLE scanning is not running.";
-    return false;
+    return true;
   }
 
   watchers_.clear();
