@@ -79,6 +79,10 @@ class WifiLanMedium {
   // Check if a network connection to a primary router exist.
   virtual bool IsNetworkConnected() const = 0;
 
+  // Sets whether the service is using AWDL or not.
+  virtual void SetAwdlEnabled(
+      bool enable_awdl) = 0;
+
   // Starts WifiLan advertising.
   //
   // nsd_service_info - NsdServiceInfo data that's advertised through mDNS

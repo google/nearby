@@ -741,7 +741,8 @@ ServiceController* ServiceControllerRouter::GetServiceController() {
                                      /*web_rtc=*/true,
                                      /*wifi_lan=*/true,
                                      /*wifi_hotspot=*/false,
-                                     /*wifi_direct=*/true};
+                                     /*wifi_direct=*/true,
+                                     /*awdl=*/false};
       service_controller_ =
           std::make_unique<OfflineServiceController>(bwu_config);
     } else {

@@ -84,6 +84,10 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return self;
 }
 
+- (void)setAwdlEnabled:(BOOL)enable_awdl {
+  _includePeerToPeer = enable_awdl;
+}
+
 - (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port error:(NSError **)error {
   GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
   BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:_includePeerToPeer];

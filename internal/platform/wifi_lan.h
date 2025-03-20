@@ -39,13 +39,16 @@
 
 namespace nearby {
 
+using location::nearby::proto::connections::Medium::AWDL;
+using location::nearby::proto::connections::Medium::WIFI_LAN;
+
 class WifiLanSocket : public MediumSocket {
  public:
-  WifiLanSocket()
-      : MediumSocket(location::nearby::proto::connections::Medium::WIFI_LAN) {}
+  explicit WifiLanSocket(bool enable_awdl = false)
+      : MediumSocket(enable_awdl ? AWDL : WIFI_LAN) {}
   WifiLanSocket(const WifiLanSocket&) = default;
   WifiLanSocket& operator=(const WifiLanSocket&) = default;
-  ~WifiLanSocket() override = default;
+  virtual ~WifiLanSocket() override = default;
 
   // Creates a physical WifiLanSocket from a platform implementation.
   explicit WifiLanSocket(std::unique_ptr<api::WifiLanSocket> socket)
@@ -140,12 +143,12 @@ class WifiLanSocket : public MediumSocket {
   bool is_virtual_socket_ = false;
 };
 
-class WifiLanServerSocket final {
+class WifiLanServerSocket {
  public:
   WifiLanServerSocket() = default;
   WifiLanServerSocket(const WifiLanServerSocket&) = default;
   WifiLanServerSocket& operator=(const WifiLanServerSocket&) = default;
-  ~WifiLanServerSocket() = default;
+  virtual ~WifiLanServerSocket() = default;
   explicit WifiLanServerSocket(std::unique_ptr<api::WifiLanServerSocket> socket)
       : impl_(std::move(socket)) {}
 
@@ -203,8 +206,11 @@ class WifiLanMedium {
     DiscoveredServiceCallback medium_callback;
   };
 
-  WifiLanMedium() : impl_(Platform::CreateWifiLanMedium()) {}
-  ~WifiLanMedium() = default;
+  explicit WifiLanMedium() : impl_(Platform::CreateWifiLanMedium()) {}
+  virtual ~WifiLanMedium() = default;
+
+  // Sets whether the service is using internal peer-to-peer services or not.
+  void SetAwdlEnabled(bool enable_awdl);
 
   // Starts WifiLan advertising.
   //
