@@ -14,11 +14,15 @@
 
 #include "internal/platform/monitored_runnable.h"
 
+#include <string>
 #include <utility>
 
-// TODO: Support thread status
+#include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/pending_job_registry.h"
+#include "internal/platform/runnable.h"
 
 #define SET_THREAD_STATUS(NAME)
 
@@ -29,29 +33,33 @@ absl::Duration kMinReportedTaskDuration = absl::Seconds(10);
 }  // namespace
 
 MonitoredRunnable::MonitoredRunnable(Runnable&& runnable)
-    : runnable_{std::move(runnable)} {}
+    : MonitoredRunnable(absl::StrCat("Task_", absl::Hex(this)),
+                        std::move(runnable)) {}
 
 MonitoredRunnable::MonitoredRunnable(const std::string& name,
                                      Runnable&& runnable)
     : name_{name}, runnable_{std::move(runnable)} {
+  VLOG(1) << "Task: \"" << name_ << "\" scheduled";
   PendingJobRegistry::GetInstance().AddPendingJob(name_, post_time_);
 }
 
 void MonitoredRunnable::operator()() {
   SET_THREAD_STATUS(name_.c_str());
-  auto start_time = SystemClock::ElapsedRealtime();
-  auto start_delay = start_time - post_time_;
+  absl::Time start_time = SystemClock::ElapsedRealtime();
+  absl::Duration start_delay = start_time - post_time_;
   if (start_delay >= kMinReportedStartDelay) {
-    NEARBY_LOGS(INFO) << "Task: \"" << name_ << "\" started after "
-                      << absl::ToInt64Seconds(start_delay) << " seconds";
+    LOG(INFO) << "Task: \"" << name_ << "\" started after " << start_delay;
+  } else {
+    VLOG(1) << "Task: \"" << name_ << "\" started after " << start_delay;
   }
   PendingJobRegistry::GetInstance().RemovePendingJob(name_, post_time_);
   PendingJobRegistry::GetInstance().AddRunningJob(name_, post_time_);
   runnable_();
-  auto task_duration = SystemClock::ElapsedRealtime() - start_time;
+  absl::Duration task_duration = SystemClock::ElapsedRealtime() - start_time;
   if (task_duration >= kMinReportedTaskDuration) {
-    NEARBY_LOGS(INFO) << "Task: \"" << name_ << "\" finished after "
-                      << absl::ToInt64Seconds(task_duration) << " seconds";
+    LOG(INFO) << "Task: \"" << name_ << "\" finished after " << task_duration;
+  } else {
+    VLOG(1) << "Task: \"" << name_ << "\" finished after " << task_duration;
   }
   PendingJobRegistry::GetInstance().RemoveRunningJob(name_, post_time_);
   PendingJobRegistry::GetInstance().ListJobs();

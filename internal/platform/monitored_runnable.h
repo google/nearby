@@ -18,8 +18,8 @@
 #include <string>
 
 #include "absl/time/time.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/system_clock.h"
 
 namespace nearby {
 
@@ -37,7 +37,7 @@ class MonitoredRunnable {
  private:
   const std::string name_;
   Runnable runnable_;
-  absl::Time post_time_ = SystemClock::ElapsedRealtime();
+  const absl::Time post_time_ = SystemClock::ElapsedRealtime();
 };
 
 }  // namespace nearby
