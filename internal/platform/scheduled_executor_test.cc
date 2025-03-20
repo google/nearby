@@ -22,28 +22,12 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancelable.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/test/fake_clock.h"
 
 namespace nearby {
-
-class ScheduledExecutorTest : public ::testing::Test {
- public:
-  void SetUp() override {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        platform::config_package_nearby::nearby_platform_feature::
-            kEnableTaskScheduler,
-        true);
-  }
-
-  void TearDown() override {
-    NearbyFlags::GetInstance().ResetOverridedValues();
-  }
-};
 
 // kShortDelay must be significant enough to guarantee that OS under heavy load
 // should be able to execute the non-blocking test paths within this time.
@@ -53,11 +37,11 @@ absl::Duration kShortDelay = absl::Milliseconds(100);
 // will let kShortDelay fire and jobs scheduled before the kLongDelay fires.
 absl::Duration kLongDelay = 10 * kShortDelay;
 
-TEST_F(ScheduledExecutorTest, ConsructorDestructorWorks) {
+TEST(ScheduledExecutorTest, ConsructorDestructorWorks) {
   ScheduledExecutor executor;
 }
 
-TEST_F(ScheduledExecutorTest, CanExecute) {
+TEST(ScheduledExecutorTest, CanExecute) {
   absl::Mutex mutex;
   absl::CondVar cond;
   std::atomic_bool done = false;
@@ -75,7 +59,7 @@ TEST_F(ScheduledExecutorTest, CanExecute) {
   EXPECT_TRUE(done);
 }
 
-TEST_F(ScheduledExecutorTest, CanSchedule) {
+TEST(ScheduledExecutorTest, CanSchedule) {
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   absl::Mutex mutex;
@@ -103,7 +87,7 @@ TEST_F(ScheduledExecutorTest, CanSchedule) {
   EXPECT_EQ(value, 5);
 }
 
-TEST_F(ScheduledExecutorTest, CanCancel) {
+TEST(ScheduledExecutorTest, CanCancel) {
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   Cancelable cancelable =
@@ -114,7 +98,7 @@ TEST_F(ScheduledExecutorTest, CanCancel) {
   EXPECT_EQ(value, 0);
 }
 
-TEST_F(ScheduledExecutorTest, CanCancelTwice) {
+TEST(ScheduledExecutorTest, CanCancelTwice) {
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   Cancelable cancelable =
@@ -128,7 +112,7 @@ TEST_F(ScheduledExecutorTest, CanCancelTwice) {
   EXPECT_EQ(value, 0);
 }
 
-TEST_F(ScheduledExecutorTest, FailToCancel) {
+TEST(ScheduledExecutorTest, FailToCancel) {
   absl::Mutex mutex;
   absl::CondVar cond;
   ScheduledExecutor executor;
@@ -151,8 +135,8 @@ TEST_F(ScheduledExecutorTest, FailToCancel) {
   EXPECT_EQ(value, 1);
 }
 
-TEST_F(ScheduledExecutorTest,
-       CancelWhileRunning_TaskCompletesBeforeCancelReturns) {
+TEST(ScheduledExecutorTest,
+     CancelWhileRunning_TaskCompletesBeforeCancelReturns) {
   CountDownLatch start_latch(1);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
@@ -171,8 +155,8 @@ TEST_F(ScheduledExecutorTest,
   EXPECT_EQ(value, 1);
 }
 
-TEST_F(ScheduledExecutorTest,
-       CancelTwiceWhileRunning_TaskCompletesBeforeCancelReturns) {
+TEST(ScheduledExecutorTest,
+     CancelTwiceWhileRunning_TaskCompletesBeforeCancelReturns) {
   CountDownLatch start_latch(1);
   ScheduledExecutor executor;
   std::atomic_int value = 0;
@@ -193,7 +177,7 @@ TEST_F(ScheduledExecutorTest,
   EXPECT_EQ(value, 1);
 }
 
-TEST_F(ScheduledExecutorTest, ShutdownWaitsForRunningTasks) {
+TEST(ScheduledExecutorTest, ShutdownWaitsForRunningTasks) {
   ScheduledExecutor executor;
   std::atomic_int value = 0;
   executor.Execute([&]() {
@@ -206,14 +190,14 @@ TEST_F(ScheduledExecutorTest, ShutdownWaitsForRunningTasks) {
   EXPECT_EQ(value, 1);
 }
 
-TEST_F(ScheduledExecutorTest, ExecuteAfterShutdownFails) {
+TEST(ScheduledExecutorTest, ExecuteAfterShutdownFails) {
   ScheduledExecutor executor;
 
   executor.Shutdown();
   executor.Execute([&]() { FAIL() << "Task should not run"; });
 }
 
-TEST_F(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
+TEST(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
   CountDownLatch latch(1);
   ScheduledExecutor executor;
 
@@ -226,7 +210,7 @@ TEST_F(ScheduledExecutorTest, ExecuteDuringShutdownFails) {
   executor.Shutdown();
 }
 
-TEST_F(ScheduledExecutorTest, SimulatedClockCanSchedule) {
+TEST(ScheduledExecutorTest, SimulatedClockCanSchedule) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   FakeClock* fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock().value();
@@ -264,8 +248,8 @@ TEST_F(ScheduledExecutorTest, SimulatedClockCanSchedule) {
   MediumEnvironment::Instance().Stop();
 }
 
-TEST_F(ScheduledExecutorTest,
-       DestroyExecutorWithSimulatedClockIgnoresPendingTasks) {
+TEST(ScheduledExecutorTest,
+     DestroyExecutorWithSimulatedClockIgnoresPendingTasks) {
   MediumEnvironment::Instance().Start({.use_simulated_clock = true});
   FakeClock* fake_clock =
       MediumEnvironment::Instance().GetSimulatedClock().value();
@@ -290,7 +274,7 @@ struct ScheduledThreadCheckTestClass {
   int getValue() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor) { return value; }
 };
 
-TEST_F(ScheduledExecutorTest, ThreadCheck_Execute) {
+TEST(ScheduledExecutorTest, ThreadCheck_Execute) {
   ScheduledThreadCheckTestClass test_class;
   absl::Notification notification;
 
@@ -303,7 +287,7 @@ TEST_F(ScheduledExecutorTest, ThreadCheck_Execute) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(2)));
 }
 
-TEST_F(ScheduledExecutorTest, ThreadCheck_Schedule) {
+TEST(ScheduledExecutorTest, ThreadCheck_Schedule) {
   ScheduledThreadCheckTestClass test_class;
   absl::Notification notification;
 

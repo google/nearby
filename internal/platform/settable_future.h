@@ -47,14 +47,8 @@ class SettableFuture : public api::SettableFuture<T> {
       : timer_(std::make_unique<TimerImpl>()) {
     timer_->Start(absl::ToInt64Milliseconds(timeout), 0, [this] {
       // Offload the timeout to a single thread executor.
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              platform::config_package_nearby::nearby_platform_feature::
-                  kEnableTaskScheduler)) {
-        executor_ = api::ImplementationPlatform::CreateSingleThreadExecutor();
-        executor_->Execute([this]() { SetException({Exception::kTimeout}); });
-      } else {
-        SetException({Exception::kTimeout});
-      }
+      executor_ = api::ImplementationPlatform::CreateSingleThreadExecutor();
+      executor_->Execute([this]() { SetException({Exception::kTimeout}); });
     });
   }
 

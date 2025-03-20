@@ -19,9 +19,7 @@
 
 #include <atomic>
 #include <memory>
-#include <vector>
 
-#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/scheduled_executor.h"
@@ -31,8 +29,6 @@
 
 namespace nearby {
 namespace windows {
-
-#define TIMER_NAME_BUFFER_SIZE 64
 
 // An Executor that can schedule commands to run after a given delay, or to
 // execute periodically.
@@ -58,46 +54,9 @@ class ScheduledExecutor : public api::ScheduledExecutor {
   void Shutdown() override;
 
  private:
-  class ScheduledTask : public api::Cancelable {
-   public:
-    explicit ScheduledTask(Runnable&& task, absl::Duration duration)
-        : task_(std::move(task)), duration_(duration) {}
-
-    bool Cancel() override {
-      if (is_executed_ || is_cancelled_) {
-        return false;
-      }
-
-      is_cancelled_ = true;
-      notification_.Notify();
-      return true;
-    };
-
-    void Start() {
-      if (is_executed_ ||
-          notification_.WaitForNotificationWithTimeout(duration_)) {
-        return;
-      }
-
-      is_executed_ = true;
-      task_();
-    }
-
-    bool IsDone() const { return is_cancelled_ || is_executed_; }
-
-   private:
-    Runnable task_;
-    absl::Duration duration_;
-    absl::Notification notification_;
-    bool is_cancelled_ = false;
-    bool is_executed_ = false;
-  };
-
   std::unique_ptr<nearby::windows::Executor> executor_ = nullptr;
-  std::vector<std::shared_ptr<ScheduledTask>> scheduled_tasks_;
   std::atomic_bool shut_down_ = false;
 
-  const bool use_task_scheduler_;
   TaskScheduler task_scheduler_;
 };
 

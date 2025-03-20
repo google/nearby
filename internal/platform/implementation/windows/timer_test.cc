@@ -14,37 +14,19 @@
 
 #include "internal/platform/implementation/timer.h"
 
-#include <chrono>  // NOLINT
 #include <memory>
-#include <thread>  // NOLINT
 
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 
-class TimerTest : public ::testing::TestWithParam<bool> {
- public:
-  void SetUp() override {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        platform::config_package_nearby::nearby_platform_feature::
-            kEnableTaskScheduler,
-        GetParam());
-  }
-
-  void TearDown() override {
-    NearbyFlags::GetInstance().ResetOverridedValues();
-  }
-};
-
-TEST_P(TimerTest, TestCreateTimer) {
+TEST(TimerTest, TestCreateTimer) {
   int count = 0;
 
   std::unique_ptr<nearby::api::Timer> timer =
@@ -56,7 +38,7 @@ TEST_P(TimerTest, TestCreateTimer) {
 }
 
 // This test case cannot run on Google3
-TEST_P(TimerTest, TestRepeatTimer) {
+TEST(TimerTest, TestRepeatTimer) {
   CountDownLatch latch(3);
   int count = 0;
   std::unique_ptr<nearby::api::Timer> timer =
@@ -73,7 +55,7 @@ TEST_P(TimerTest, TestRepeatTimer) {
   EXPECT_TRUE(timer->Stop());
 }
 
-TEST_P(TimerTest, TestFireNow) {
+TEST(TimerTest, TestFireNow) {
   int count = 0;
   absl::Notification notification;
 
@@ -90,9 +72,6 @@ TEST_P(TimerTest, TestFireNow) {
       notification.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
   EXPECT_EQ(count, 1);
 }
-
-INSTANTIATE_TEST_SUITE_P(TimerTaskSchedulerFlagTest, TimerTest,
-                         testing::Bool());
 
 }  // namespace
 }  // namespace windows
