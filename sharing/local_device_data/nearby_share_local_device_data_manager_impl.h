@@ -104,7 +104,6 @@ class NearbyShareLocalDeviceDataManagerImpl
   std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
   std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
       nearby_identity_client_;
-  const std::string device_id_;
   std::unique_ptr<TaskRunner> executor_;
 };
 

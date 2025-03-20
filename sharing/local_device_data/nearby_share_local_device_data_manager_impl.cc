@@ -136,7 +136,6 @@ NearbyShareLocalDeviceDataManagerImpl::NearbyShareLocalDeviceDataManagerImpl(
       device_info_(device_info),
       nearby_share_client_(rpc_client_factory->CreateInstance()),
       nearby_identity_client_(rpc_client_factory->CreateIdentityInstance()),
-      device_id_(GetId()),
       executor_(context->CreateSequencedTaskRunner()) {}
 
 NearbyShareLocalDeviceDataManagerImpl::
@@ -216,7 +215,7 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
 
         UpdateDeviceRequest request;
         request.mutable_device()->set_name(
-            absl::StrCat(kDeviceIdPrefix, device_id_));
+            absl::StrCat(kDeviceIdPrefix, GetId()));
         request.mutable_device()->mutable_contacts()->Add(contacts.begin(),
                                                           contacts.end());
         request.mutable_update_mask()->add_paths(
@@ -254,7 +253,7 @@ void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
               << certificates.size() << " certificates.";
 
     PublishDeviceRequest request;
-    request.mutable_device()->set_name(absl::StrCat("devices/", device_id_));
+    request.mutable_device()->set_name(absl::StrCat("devices/", GetId()));
     LOG(INFO) << __func__
               << ": [Call Identity API] PublishDeviceRequest with Device.name: "
               << request.device().name();
@@ -367,7 +366,7 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
     }
     UpdateDeviceRequest request;
     request.mutable_device()->set_name(
-        absl::StrCat(kDeviceIdPrefix, device_id_));
+        absl::StrCat(kDeviceIdPrefix, GetId()));
     request.mutable_device()->mutable_public_certificates()->Add(
         certificates.begin(), certificates.end());
     request.mutable_update_mask()->add_paths(

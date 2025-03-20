@@ -29,7 +29,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/substitute.h"
 #include "absl/time/time.h"
-#include "absl/types/optional.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
 #include "internal/test/fake_device_info.h"
@@ -246,7 +245,7 @@ class NearbyShareLocalDeviceDataManagerImplTest
         absl::Milliseconds(1000)));
   }
 
- private:
+ protected:
   nearby::FakePreferenceManager preference_manager_;
   nearby::FakeAccountManager fake_account_manager_;
   nearby::FakeDeviceInfo fake_device_info_;
@@ -558,6 +557,42 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, PublishDevice_Failure) {
   Sync();
   EXPECT_FALSE(returned_success);
   EXPECT_FALSE(returned_make_another_call);
+}
+
+TEST_F(NearbyShareLocalDeviceDataManagerImplTest,
+       PublishDevice_DeviceIdChangedAfterReset) {
+  CreateManager();
+  bool returned_success;
+  PublishDeviceResponse response;
+
+  identity_client()->SetPublishDeviceResponse(
+      absl::StatusOr<PublishDeviceResponse>(response));
+  manager()->PublishDevice(GetTestCertificates(), /*is_second_call=*/true,
+                           [&returned_success](
+                               bool success, bool make_another_call) {
+                             returned_success = success;
+                           });
+
+  Sync();
+  EXPECT_TRUE(returned_success);
+  ASSERT_EQ(identity_client()->publish_device_requests().size(), 1);
+  std::string device_id =
+      identity_client()->publish_device_requests().back().device().name();
+  // Reset device ID.
+  preference_manager_.SetString(prefs::kNearbySharingDeviceIdName,
+                                std::string());
+  manager()->PublishDevice(
+      GetTestCertificates(), /*is_second_call=*/true,
+      [&returned_success](bool success, bool make_another_call) {
+        returned_success = success;
+      });
+  Sync();
+  EXPECT_TRUE(returned_success);
+  ASSERT_EQ(identity_client()->publish_device_requests().size(), 2);
+  std::string new_device_id =
+      identity_client()->publish_device_requests().back().device().name();
+
+  EXPECT_NE(device_id, new_device_id);
 }
 
 }  // namespace
