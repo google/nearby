@@ -82,6 +82,7 @@
 #include "internal/platform/wifi.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 #include "proto/connections_enums.pb.h"
+#include "proto/connections_enums.proto.h"
 
 namespace nearby {
 namespace connections {
@@ -196,6 +197,14 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
     } else if (medium == location::nearby::proto::connections::WIFI_LAN) {
       std::pair<std::string, int> ip_port_pair =
           mediums_->GetWifiLan().GetCredentials(std::string(service_id));
+      WifiLanConnectionInfo info(
+          ip_port_pair.first,
+          absl::StrCat(absl::Hex(ip_port_pair.second, absl::kZeroPad16)), "",
+          {});
+      connection_infos.push_back(info);
+    } else if (medium == location::nearby::proto::connections::AWDL) {
+      std::pair<std::string, int> ip_port_pair =
+          mediums_->GetAwdl().GetCredentials(std::string(service_id));
       WifiLanConnectionInfo info(
           ip_port_pair.first,
           absl::StrCat(absl::Hex(ip_port_pair.second, absl::kZeroPad16)), "",
@@ -331,6 +340,10 @@ std::string BasePcpHandler::GetStringValueOfSupportedMediums(
 void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
                                     std::ostringstream& result) const {
   result << "{ ";
+  if (allowed.awdl) {
+    result << location::nearby::proto::connections::Medium_Name(Medium::AWDL)
+           << " ";
+  }
   if (allowed.bluetooth) {
     result << location::nearby::proto::connections::Medium_Name(
                   Medium::BLUETOOTH)
@@ -416,6 +429,24 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
             !advertising_options.allowed.web_rtc) {
           // The local client does not allow WebRTC for listening or upgrades,
           // ignore.
+          continue;
+        }
+      }
+
+      // Upgrade from Awdl to Wifi LAN or Wifi LAN to Awdl P2P will cause
+      // the connection to failed
+      if (my_medium == location::nearby::proto::connections::Medium::AWDL ||
+          my_medium == location::nearby::proto::connections::Medium::WIFI_LAN) {
+        if (pending_connection_info.medium ==
+                location::nearby::proto::connections::Medium::AWDL ||
+            pending_connection_info.medium ==
+                location::nearby::proto::connections::Medium::WIFI_LAN) {
+          NEARBY_LOGS(INFO)
+              << "Not allow to upgrade from "
+              << location::nearby::proto::connections::Medium_Name(
+                     pending_connection_info.medium)
+              << " to "
+              << location::nearby::proto::connections::Medium_Name(my_medium);
           continue;
         }
       }

@@ -36,11 +36,13 @@
  * @param serviceName The Bonjour name of the service.
  * @param serviceType The Bonjour type of the service.
  * @param txtRecords The TXT record to advertise with the service.
+ * @param includePeerToPeer Indicates if the service should be configured for peer-to-peer
+ * connections.
  */
 - (void)startAdvertisingServiceName:(nonnull NSString *)serviceName
                         serviceType:(nonnull NSString *)serviceType
-                         txtRecords:(nonnull NSDictionary<NSString *, NSString *> *)txtRecords;
-
+                         txtRecords:(nonnull NSDictionary<NSString *, NSString *> *)txtRecords
+                             includePeerToPeer:(BOOL)includePeerToPeer;
 /**
  * Removes the Bonjour service advertisement.
  */

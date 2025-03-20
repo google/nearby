@@ -16,6 +16,7 @@ licenses(["notice"])
 cc_library(
     name = "mediums",
     srcs = [
+        "awdl.cc",
         "ble.cc",
         "ble_v2.cc",
         "bluetooth_classic.cc",
@@ -28,6 +29,7 @@ cc_library(
         "wifi_lan.cc",
     ],
     hdrs = [
+        "awdl.h",
         "ble.h",
         "ble_v2.h",
         "bluetooth_classic.h",

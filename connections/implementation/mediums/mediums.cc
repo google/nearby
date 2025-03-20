@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/awdl.h"
 
 namespace nearby {
 namespace connections {
@@ -35,5 +36,6 @@ WifiDirect& Mediums::GetWifiDirect() { return wifi_direct_; }
 
 mediums::WebRtc& Mediums::GetWebRtc() { return webrtc_; }
 
+Awdl& Mediums::GetAwdl() { return awdl_; }
 }  // namespace connections
 }  // namespace nearby

@@ -210,10 +210,16 @@
       return YES;
   }
 }
-
 - (void)startAdvertisingServiceName:(NSString *)serviceName
                         serviceType:(NSString *)serviceType
-                         txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+                         txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords
+                  includePeerToPeer:(BOOL)includePeerToPeer {
+  // Create a parameters object configured to support TCP. TLS MUST be disabled for Nearby to
+  // function properly.
+  nw_parameters_t parameters =
+      nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
+                                      /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
+  nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
   nw_advertise_descriptor_t advertiseDescriptor = nw_advertise_descriptor_create_bonjour_service(
       [serviceName UTF8String], [serviceType UTF8String], /*domain=*/nil);
   nw_txt_record_t txtRecord = nw_txt_record_create_dictionary();

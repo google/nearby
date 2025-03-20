@@ -15,6 +15,7 @@
 #ifndef CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
 #define CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
 
+#include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble_v2.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
@@ -65,6 +66,9 @@ class Mediums {
   // Returns a handle to the WebRtc medium.
   mediums::WebRtc& GetWebRtc();
 
+  // Returns a handle to the Awdl medium.
+  Awdl& GetAwdl();
+
  private:
   // The order of declaration is critical for both construction and
   // destruction.
@@ -83,6 +87,7 @@ class Mediums {
   WifiHotspot wifi_hotspot_;
   WifiDirect wifi_direct_;
   mediums::WebRtc webrtc_;
+  Awdl awdl_;
 };
 
 }  // namespace connections

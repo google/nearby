@@ -29,7 +29,7 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 @interface GNCNWFramework : NSObject
 
 /** Whether to include peer-to-peer services. */
-@property(atomic, readonly) BOOL includePeerToPeer;
+@property(atomic, readwrite) BOOL includePeerToPeer;
 
 /**
  * @remark init is not an available initializer.
@@ -70,11 +70,13 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param serviceName The Bonjour name of the service.
  * @param serviceType The Bonjour type of the service.
  * @param txtRecords The TXT record to advertise with the service.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  */
 - (void)startAdvertisingPort:(NSInteger)port
                  serviceName:(nonnull NSString *)serviceName
                  serviceType:(nonnull NSString *)serviceType
-                  txtRecords:(nonnull NSDictionary<NSString *, NSString *> *)txtRecords;
+                  txtRecords:(nonnull NSDictionary<NSString *, NSString *> *)txtRecords
+           includePeerToPeer:(BOOL)includePeerToPeer;
 
 /**
  * Removes the Bonjour service advertisement.
