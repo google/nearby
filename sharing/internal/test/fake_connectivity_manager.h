@@ -28,6 +28,7 @@ namespace nearby {
 class FakeConnectivityManager : public ConnectivityManager {
  public:
   bool IsLanConnected() override { return is_lan_connected_; }
+  bool IsInternetConnected() override { return is_internet_connected_; }
   bool IsHPRealtekDevice() override { return is_hp_realtek_device_; }
   void SetIsHPRealtekDevice(bool is_hp_realtek_device) {
     is_hp_realtek_device_ = is_hp_realtek_device;
@@ -36,7 +37,7 @@ class FakeConnectivityManager : public ConnectivityManager {
 
   void RegisterConnectionListener(
       absl::string_view listener_name,
-      std::function<void(ConnectionType, bool)> callback) override {
+      std::function<void(ConnectionType, bool, bool)> callback) override {
     listeners_.emplace(listener_name, std::move(callback));
   }
   void UnregisterConnectionListener(absl::string_view listener_name) override {
@@ -47,7 +48,16 @@ class FakeConnectivityManager : public ConnectivityManager {
   void SetLanConnected(bool connected) {
     is_lan_connected_ = connected;
     for (auto& listener : listeners_) {
-      listener.second(connection_type_, is_lan_connected_);
+      listener.second(connection_type_, is_lan_connected_,
+                      is_internet_connected_);
+    }
+  }
+
+  void SetInternetConnected(bool connected) {
+    is_internet_connected_ = connected;
+    for (auto& listener : listeners_) {
+      listener.second(connection_type_, is_lan_connected_,
+                      is_internet_connected_);
     }
   }
 
@@ -55,16 +65,19 @@ class FakeConnectivityManager : public ConnectivityManager {
   void SetConnectionType(ConnectionType connection_type) {
     connection_type_ = connection_type;
     for (auto& listener : listeners_) {
-      listener.second(connection_type_, is_lan_connected_);
+      listener.second(connection_type_, is_lan_connected_,
+                      is_internet_connected_);
     }
   }
   int GetListenerCount() const { return listeners_.size(); }
 
  private:
   bool is_lan_connected_ = true;
+  bool is_internet_connected_ = true;
   bool is_hp_realtek_device_ = false;
   ConnectionType connection_type_ = ConnectionType::kWifi;
-  absl::flat_hash_map<std::string, std::function<void(ConnectionType, bool)>>
+  absl::flat_hash_map<std::string,
+                      std::function<void(ConnectionType, bool, bool)>>
       listeners_;
 };
 

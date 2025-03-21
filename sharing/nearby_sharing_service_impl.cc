@@ -238,7 +238,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   context_->GetConnectivityManager()->RegisterConnectionListener(
       kConnectionListenerName,
       [this](nearby::ConnectivityManager::ConnectionType type,
-             bool is_lan_connected) {
+             bool is_lan_connected, bool is_internet_connected) {
         OnNetworkChanged(type);
         OnLanConnectedChanged(is_lan_connected);
       });

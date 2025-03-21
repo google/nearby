@@ -14,8 +14,6 @@
 
 #include "sharing/internal/test/fake_connectivity_manager.h"
 
-#include <string>
-
 #include "gtest/gtest.h"
 #include "sharing/internal/public/connectivity_manager.h"
 
@@ -47,9 +45,9 @@ TEST(FakeConnectivityManager, TestListener) {
       connection_manager.GetConnectionType();
   bool is_lan_connected = false;
   connection_manager.RegisterConnectionListener(
-      "test",
-      [&connection_type, &is_lan_connected](
-          ConnectivityManager::ConnectionType connection, bool connected) {
+      "test", [&connection_type, &is_lan_connected](
+                  ConnectivityManager::ConnectionType connection,
+                  bool connected, bool internet_connected) {
         connection_type = connection;
         is_lan_connected = connected;
       });
