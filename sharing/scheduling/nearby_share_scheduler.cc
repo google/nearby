@@ -14,7 +14,6 @@
 
 #include "sharing/scheduling/nearby_share_scheduler.h"
 
-#include <functional>
 #include <utility>
 
 namespace nearby {
@@ -22,8 +21,6 @@ namespace sharing {
 
 NearbyShareScheduler::NearbyShareScheduler(OnRequestCallback callback)
     : callback_(std::move(callback)) {}
-
-NearbyShareScheduler::~NearbyShareScheduler() = default;
 
 void NearbyShareScheduler::Start() {
   is_running_ = true;

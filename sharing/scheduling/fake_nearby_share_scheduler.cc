@@ -59,16 +59,8 @@ size_t FakeNearbyShareScheduler::GetNumConsecutiveFailures() const {
   return num_consecutive_failures_;
 }
 
-void FakeNearbyShareScheduler::OnStart() {
-  can_invoke_request_callback_ = true;
-}
-
-void FakeNearbyShareScheduler::OnStop() {
-  can_invoke_request_callback_ = false;
-}
-
 void FakeNearbyShareScheduler::InvokeRequestCallback() {
-  DCHECK(can_invoke_request_callback_);
+  DCHECK(is_running());
   NotifyOfRequest();
 }
 

@@ -41,7 +41,6 @@ namespace {
 
 using ::nearby::sharing::api::PreferenceManager;
 
-constexpr absl::Duration kZeroTimeDelta = absl::ZeroDuration();
 constexpr absl::Duration kBaseRetryDelay = absl::Seconds(5);
 constexpr absl::Duration kMaxRetryDelay = absl::Hours(1);
 
@@ -57,13 +56,26 @@ NearbyShareSchedulerBase::NearbyShareSchedulerBase(
       clock_(context->GetClock()),
       retry_failures_(retry_failures),
       require_connectivity_(require_connectivity),
-      pref_name_(pref_name) {
+      pref_name_(pref_name),
+      connection_listener_name_(absl::Substitute("scheduler-$0", pref_name_)) {
   timer_ = context->CreateTimer();
-  connection_listener_name_ = absl::Substitute(
-      "scheduler-$0-$1", pref_name_, absl::ToUnixNanos(absl::UnixEpoch()));
 
-  InitializePersistedRequest();
-  is_initialized_ = true;
+  // On startup, set a pending immediate request if the pref service indicates
+  // that there was an in-progress request or a pending immediate request at the
+  // time of shutdown.
+  bool is_waiting = IsWaitingForResult();
+  if (!is_waiting) {
+    // If scheduler has failed, speed up the data sync when there are issues.
+    if (GetNumConsecutiveFailures() > 0) {
+      LOG(WARNING) << ": Run the scheduler " << pref_name_
+                   << " immediately due to having failed runs.";
+      is_waiting = true;
+    }
+  }
+  if (is_waiting) {
+    SetHasPendingImmediateRequest(true);
+    SetIsWaitingForResult(false);
+  }
 
   if (require_connectivity_) {
     connectivity_manager_->RegisterConnectionListener(
@@ -115,10 +127,8 @@ void NearbyShareSchedulerBase::Reschedule() {
   std::optional<absl::Duration> delay = GetTimeUntilNextRequest();
   if (!delay.has_value()) return;
 
-  int64_t delay_milliseconds = (*delay) / absl::Milliseconds(1);
-
-  timer_->Start(delay_milliseconds, delay_milliseconds,
-                [this]() { OnTimerFired(); });
+  int64_t delay_milliseconds = absl::ToInt64Milliseconds(*delay);
+  timer_->Start(delay_milliseconds, /*period=*/0, [this]() { OnTimerFired(); });
 }
 
 std::optional<absl::Time> NearbyShareSchedulerBase::GetLastSuccessTime() const {
@@ -135,7 +145,7 @@ std::optional<absl::Duration>
 NearbyShareSchedulerBase::GetTimeUntilNextRequest() const {
   if (!is_running() || IsWaitingForResult()) return std::nullopt;
 
-  if (HasPendingImmediateRequest()) return kZeroTimeDelta;
+  if (HasPendingImmediateRequest()) return absl::ZeroDuration();
 
   absl::Time now = clock_->Now();
 
@@ -156,22 +166,7 @@ bool NearbyShareSchedulerBase::IsWaitingForResult() const {
   if (pref_value.has_value()) {
     is_waiting = pref_value.value();
   }
-
-  if (is_waiting) {
-    return true;
-  }
-
-  // The scheduler must be initialized if it is not initialized or has failed.
-  // This will speed up the data sync when there are issues.
-  if (!is_initialized_) {
-    if (GetNumConsecutiveFailures() > 0) {
-      LOG(WARNING) << ": Run the scheduler " << pref_name_
-                   << " immediately due to having failed runs.";
-      return true;
-    }
-  }
-
-  return false;
+  return is_waiting;
 }
 
 size_t NearbyShareSchedulerBase::GetNumConsecutiveFailures() const {
@@ -255,13 +250,6 @@ void NearbyShareSchedulerBase::SetIsWaitingForResult(
       is_waiting_for_result);
 }
 
-void NearbyShareSchedulerBase::InitializePersistedRequest() {
-  if (IsWaitingForResult()) {
-    SetHasPendingImmediateRequest(true);
-    SetIsWaitingForResult(false);
-  }
-}
-
 std::optional<absl::Duration> NearbyShareSchedulerBase::TimeUntilRetry(
     absl::Time now) const {
   if (!retry_failures_) return std::nullopt;
@@ -279,11 +267,15 @@ std::optional<absl::Duration> NearbyShareSchedulerBase::TimeUntilRetry(
 
   absl::Duration time_elapsed_since_last_attempt = now - *GetLastAttemptTime();
 
-  return std::max(kZeroTimeDelta, delay - time_elapsed_since_last_attempt);
+  return std::max(absl::ZeroDuration(),
+                  delay - time_elapsed_since_last_attempt);
 }
 
 void NearbyShareSchedulerBase::OnTimerFired() {
-  DCHECK(is_running());
+  if (!is_running()) {
+    LOG(DFATAL) << "Timer fired after stop for scheduler: " << pref_name_;
+    return;
+  }
   if (require_connectivity_ &&
       (connectivity_manager_->GetConnectionType() ==
        nearby::ConnectivityManager::ConnectionType::kNone)) {
@@ -296,6 +288,9 @@ void NearbyShareSchedulerBase::OnTimerFired() {
 }
 
 void NearbyShareSchedulerBase::PrintSchedulerState() const {
+  if (!VLOG_IS_ON(1)) {
+    return;
+  }
   std::optional<absl::Time> last_attempt_time = GetLastAttemptTime();
   std::optional<absl::Time> last_success_time = GetLastSuccessTime();
   std::optional<absl::Duration> time_until_next_request =

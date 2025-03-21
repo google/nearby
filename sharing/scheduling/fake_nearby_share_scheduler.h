@@ -57,10 +57,9 @@ class FakeNearbyShareScheduler : public NearbyShareScheduler {
 
  private:
   // NearbyShareScheduler:
-  void OnStart() override;
-  void OnStop() override;
+  void OnStart() override {};
+  void OnStop() override {};
 
-  bool can_invoke_request_callback_ = false;
   size_t num_immediate_requests_ = 0;
   size_t num_reschedule_calls_ = 0;
   std::vector<bool> handled_results_;

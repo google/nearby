@@ -17,6 +17,7 @@
 
 #include <stddef.h>
 
+#include <atomic>
 #include <functional>
 #include <optional>
 
@@ -37,7 +38,7 @@ class NearbyShareScheduler {
   using OnRequestCallback = std::function<void()>;
 
   explicit NearbyShareScheduler(OnRequestCallback callback);
-  virtual ~NearbyShareScheduler();
+  virtual ~NearbyShareScheduler() = default;
 
   void Start();
   void Stop();
@@ -81,8 +82,8 @@ class NearbyShareScheduler {
   void NotifyOfRequest();
 
  private:
-  bool is_running_ = false;
-  OnRequestCallback callback_;
+  const OnRequestCallback callback_;
+  std::atomic<bool> is_running_ = false;
 };
 
 }  // namespace sharing

@@ -48,6 +48,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         ":format",
+        "//internal/platform:types",
         "//sharing/internal/api:platform",
         "//sharing/internal/public:logging",
         "//sharing/internal/public:types",

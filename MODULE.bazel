@@ -3,7 +3,7 @@ bazel_dep(name = "rules_apple", version = "3.19.0")
 bazel_dep(name = "rules_cc", version = "0.0.16")
 bazel_dep(name = "rules_rust", version = "0.54.1")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "abseil-cpp", version = "20240116.1", repo_name = "com_google_absl")
+bazel_dep(name = "abseil-cpp", version = "20250127.0", repo_name = "com_google_absl")
 
 # version of prebuilt protoc in com_github_protobuf_prebuilt must match this.
 bazel_dep(name = "protobuf", version = "29.0", repo_name = "com_google_protobuf")
