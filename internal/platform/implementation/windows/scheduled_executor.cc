@@ -20,6 +20,8 @@
 #include <utility>
 
 #include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/runnable.h"
@@ -38,12 +40,22 @@ ScheduledExecutor::ScheduledExecutor()
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable&& runnable, absl::Duration duration) {
   if (shut_down_) {
-    LOG(ERROR) << __func__
-                << ": Attempt to Schedule on a shut down executor.";
+    LOG(ERROR) << __func__ << ": Attempt to Schedule on a shut down executor.";
 
     return nullptr;
   }
-  return task_scheduler_.Schedule(std::move(runnable), duration);
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kRunScheduledExecutorCallbackOnExecutorThread)) {
+    return task_scheduler_.Schedule(
+        [this, runnable = std::move(runnable)]() mutable {
+          Execute(std::move(runnable));
+        },
+        duration);
+  } else {
+    return task_scheduler_.Schedule(std::move(runnable), duration);
+  }
 }
 
 void ScheduledExecutor::Execute(Runnable&& runnable) {

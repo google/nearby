@@ -89,6 +89,10 @@ constexpr auto kEnableBlockingSocket =
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);
 
+// Run scheduled executor callback on executor thread.
+constexpr auto kRunScheduledExecutorCallbackOnExecutorThread =
+    flags::Flag<bool>(kConfigPackage, "45686494", false);
+
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform
