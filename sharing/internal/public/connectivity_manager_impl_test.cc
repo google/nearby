@@ -112,12 +112,12 @@ TEST(ConnectivityManagerImpl, IsHPRealtekDevice_NotRealtekDevice) {
 }
 
 TEST(ConnectivityManagerImpl, RegisterConnectionListener) {
-  std::function<void(ConnectivityManager::ConnectionType, bool)> listener_1 =
-      [](ConnectivityManager::ConnectionType connection_type,
-         bool is_lan_connected) {};
-  std::function<void(ConnectivityManager::ConnectionType, bool)> listener_2 =
-      [](ConnectivityManager::ConnectionType connection_type,
-         bool is_lan_connected) {};
+  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
+      listener_1 = [](ConnectivityManager::ConnectionType connection_type,
+                      bool is_lan_connected, bool is_internet_connected) {};
+  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
+      listener_2 = [](ConnectivityManager::ConnectionType connection_type,
+                      bool is_lan_connected, bool is_internet_connected) {};
 
   MockSharingPlatform sharing_platform;
   ConnectivityManagerImpl connectivity_manager_impl(sharing_platform);
@@ -133,12 +133,12 @@ TEST(ConnectivityManagerImpl, RegisterConnectionListener) {
 }
 
 TEST(ConnectivityManagerImpl, UnregisterConnectionListener) {
-  std::function<void(ConnectivityManager::ConnectionType, bool)> listener_1 =
-      [](ConnectivityManager::ConnectionType connection_type,
-         bool is_lan_connected) {};
-  std::function<void(ConnectivityManager::ConnectionType, bool)> listener_2 =
-      [](ConnectivityManager::ConnectionType connection_type,
-         bool is_lan_connected) {};
+  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
+      listener_1 = [](ConnectivityManager::ConnectionType connection_type,
+                      bool is_lan_connected, bool is_internet_connected) {};
+  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
+      listener_2 = [](ConnectivityManager::ConnectionType connection_type,
+                      bool is_lan_connected, bool is_internet_connected) {};
 
   MockSharingPlatform sharing_platform;
   ConnectivityManagerImpl connectivity_manager_impl(sharing_platform);

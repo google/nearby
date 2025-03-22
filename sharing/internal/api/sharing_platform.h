@@ -57,7 +57,8 @@ class SharingPlatform {
   virtual void UpdateLoggingLevel() = 0;
 
   virtual std::unique_ptr<nearby::api::NetworkMonitor> CreateNetworkMonitor(
-      std::function<void(nearby::api::NetworkMonitor::ConnectionType, bool)>
+      std::function<void(nearby::api::NetworkMonitor::ConnectionType, bool,
+                         bool)>
           callback) = 0;
 
   virtual BluetoothAdapter& GetBluetoothAdapter() = 0;

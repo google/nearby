@@ -81,8 +81,8 @@ NearbyShareSchedulerBase::NearbyShareSchedulerBase(
     connectivity_manager_->RegisterConnectionListener(
         connection_listener_name_,
         [this](nearby::ConnectivityManager::ConnectionType connection_type,
-               bool is_lan_connected) {
-          OnConnectionChanged(connection_type);
+               bool is_lan_connected, bool is_internet_connected) {
+          OnConnectionChanged(is_internet_connected);
         });
   }
 }
@@ -116,7 +116,6 @@ void NearbyShareSchedulerBase::HandleResult(bool success) {
 
   SetIsWaitingForResult(false);
   Reschedule();
-  PrintSchedulerState();
 }
 
 void NearbyShareSchedulerBase::Reschedule() {
@@ -125,10 +124,15 @@ void NearbyShareSchedulerBase::Reschedule() {
   timer_->Stop();
 
   std::optional<absl::Duration> delay = GetTimeUntilNextRequest();
-  if (!delay.has_value()) return;
-
-  int64_t delay_milliseconds = absl::ToInt64Milliseconds(*delay);
-  timer_->Start(delay_milliseconds, /*period=*/0, [this]() { OnTimerFired(); });
+  if (!delay.has_value()) {
+    LOG(INFO) << "Task \"" << pref_name_ << "\"" << " not scheduled";
+  } else {
+    int64_t delay_milliseconds = absl::ToInt64Milliseconds(*delay);
+    LOG(INFO) << "Task \"" << pref_name_ << "\"" << " scheduled for " << *delay;
+    timer_->Start(delay_milliseconds, /*period=*/0,
+                  [this]() { OnTimerFired(); });
+  }
+  PrintSchedulerState(delay);
 }
 
 std::optional<absl::Time> NearbyShareSchedulerBase::GetLastSuccessTime() const {
@@ -182,15 +186,12 @@ size_t NearbyShareSchedulerBase::GetNumConsecutiveFailures() const {
 
 void NearbyShareSchedulerBase::OnStart() {
   Reschedule();
-  LOG(INFO) << "Starting Nearby Share scheduler \"" << pref_name_ << "\"";
-  PrintSchedulerState();
 }
 
 void NearbyShareSchedulerBase::OnStop() { timer_->Stop(); }
 
-void NearbyShareSchedulerBase::OnConnectionChanged(
-    nearby::ConnectivityManager::ConnectionType connection_type) {
-  if (connection_type == nearby::ConnectivityManager::ConnectionType::kNone)
+void NearbyShareSchedulerBase::OnConnectionChanged(bool is_internet_connected) {
+  if (!is_internet_connected)
     return;
 
   Reschedule();
@@ -276,9 +277,9 @@ void NearbyShareSchedulerBase::OnTimerFired() {
     LOG(DFATAL) << "Timer fired after stop for scheduler: " << pref_name_;
     return;
   }
-  if (require_connectivity_ &&
-      (connectivity_manager_->GetConnectionType() ==
-       nearby::ConnectivityManager::ConnectionType::kNone)) {
+  if (require_connectivity_ && !connectivity_manager_->IsInternetConnected()) {
+    LOG(INFO) << "Task \"" << pref_name_
+              << "\" ignored, no internet connection";
     return;
   }
 
@@ -287,14 +288,13 @@ void NearbyShareSchedulerBase::OnTimerFired() {
   NotifyOfRequest();
 }
 
-void NearbyShareSchedulerBase::PrintSchedulerState() const {
+void NearbyShareSchedulerBase::PrintSchedulerState(
+    std::optional<absl::Duration> time_until_next_request) const {
   if (!VLOG_IS_ON(1)) {
     return;
   }
   std::optional<absl::Time> last_attempt_time = GetLastAttemptTime();
   std::optional<absl::Time> last_success_time = GetLastSuccessTime();
-  std::optional<absl::Duration> time_until_next_request =
-      GetTimeUntilNextRequest();
 
   std::stringstream ss;
   ss << "State of Nearby Share scheduler \"" << pref_name_ << "\":"
