@@ -24,26 +24,32 @@ namespace nearby {
 class FakeNetworkMonitor : public api::NetworkMonitor {
  public:
   explicit FakeNetworkMonitor(
-      std::function<void(api::NetworkMonitor::ConnectionType, bool)> callback)
+      std::function<void(api::NetworkMonitor::ConnectionType, bool, bool)>
+          callback)
       : api::NetworkMonitor(callback) {}
 
   ~FakeNetworkMonitor() override { callback_ = nullptr; }
 
   bool IsLanConnected() override { return is_lan_connected_; }
+  bool IsInternetConnected() override { return is_internet_connected_; }
 
   api::NetworkMonitor::ConnectionType GetCurrentConnection() override {
     return api::NetworkMonitor::ConnectionType::kWifi;
   }
 
   void SetLanConnected(bool connected) { is_lan_connected_ = connected; }
+  void SetInternetConnected(bool connected) {
+    is_internet_connected_ = connected;
+  }
 
   void TestNetworkChangeToEthernet() {
     callback_(api::NetworkMonitor::ConnectionType::kEthernet,
-              is_lan_connected_);
+              is_lan_connected_, is_internet_connected_);
   }
 
  private:
   bool is_lan_connected_ = true;
+  bool is_internet_connected_ = true;
 };
 
 }  // namespace nearby

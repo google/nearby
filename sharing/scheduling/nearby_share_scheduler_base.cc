@@ -81,7 +81,7 @@ NearbyShareSchedulerBase::NearbyShareSchedulerBase(
     connectivity_manager_->RegisterConnectionListener(
         connection_listener_name_,
         [this](nearby::ConnectivityManager::ConnectionType connection_type,
-               bool is_lan_connected) {
+               bool is_lan_connected, bool is_internet_connected) {
           OnConnectionChanged(connection_type);
         });
   }

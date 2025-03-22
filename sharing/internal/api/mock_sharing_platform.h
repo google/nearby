@@ -56,11 +56,12 @@ class MockSharingPlatform : public SharingPlatform {
 
   MOCK_METHOD(void, UpdateLoggingLevel, (), (override));
 
-  MOCK_METHOD(
-      std::unique_ptr<nearby::api::NetworkMonitor>, CreateNetworkMonitor,
-      (std::function<void(nearby::api::NetworkMonitor::ConnectionType, bool)>
-           callback),
-      (override));
+  MOCK_METHOD(std::unique_ptr<nearby::api::NetworkMonitor>,
+              CreateNetworkMonitor,
+              (std::function<void(nearby::api::NetworkMonitor::ConnectionType,
+                                  bool, bool)>
+                   callback),
+              (override));
 
   MOCK_METHOD(nearby::sharing::api::BluetoothAdapter&, GetBluetoothAdapter, (),
               (override));

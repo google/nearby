@@ -29,6 +29,7 @@ class MockNetworkMonitor : public nearby::api::NetworkMonitor {
   ~MockNetworkMonitor() override = default;
 
   MOCK_METHOD(bool, IsLanConnected, (), (override));
+  MOCK_METHOD(bool, IsInternetConnected, (), (override));
 
   MOCK_METHOD(ConnectionType, GetCurrentConnection, (), (override));
 };

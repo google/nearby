@@ -40,12 +40,16 @@ class ConnectivityManager {
   virtual ~ConnectivityManager() = default;
 
   virtual bool IsLanConnected() = 0;
+  virtual bool IsInternetConnected() = 0;
 
   virtual ConnectionType GetConnectionType() = 0;
 
+  // Registers a listener for connection changes. The listener will be called
+  // with the current connection type, whether the device is connected to a
+  // LAN network and whether the device is connected to internet.
   virtual void RegisterConnectionListener(
       absl::string_view listener_name,
-      std::function<void(ConnectionType, bool)>) = 0;
+      std::function<void(ConnectionType, bool, bool)>) = 0;
   virtual void UnregisterConnectionListener(
       absl::string_view listener_name) = 0;
   // Is the device a HP device with Realtek wireless module.

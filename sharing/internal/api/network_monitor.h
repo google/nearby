@@ -38,21 +38,28 @@ class NetworkMonitor {
     kLast = k5G
   };
 
-  explicit NetworkMonitor(std::function<void(ConnectionType, bool)> callback) {
+  // Registers a callback for connection changes. The callback will be called
+  // with the current connection type, whether the device is connected to a
+  // LAN network and whether the device is connected to internet.
+  explicit NetworkMonitor(
+      std::function<void(ConnectionType, bool, bool)> callback) {
     callback_ = std::move(callback);
   }
 
   virtual ~NetworkMonitor() = default;
 
   // Returns true if connected to an AP (Access Point), not necessarily
-  // connected to the internet
+  // connected to the internet.
   virtual bool IsLanConnected() = 0;
+
+  // Returns true if connected to internet.
+  virtual bool IsInternetConnected() = 0;
 
   // Returns the type of connection used currently to access the internet
   virtual ConnectionType GetCurrentConnection() = 0;
 
  protected:
-  std::function<void(ConnectionType, bool)> callback_;
+  std::function<void(ConnectionType, bool, bool)> callback_;
 };
 
 }  // namespace api

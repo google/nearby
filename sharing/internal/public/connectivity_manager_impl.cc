@@ -65,19 +65,24 @@ ConnectivityManagerImpl::ConnectivityManagerImpl(SharingPlatform& platform)
     : platform_(platform) {
   network_monitor_ = platform.CreateNetworkMonitor(
       [this](api::NetworkMonitor::ConnectionType connection_type,
-             bool is_lan_connected) {
+             bool is_lan_connected, bool is_internet_connected) {
         ConnectionType new_connection_type =
             static_cast<ConnectionType>(connection_type);
         VLOG(1) << ": New connection type:"
                 << GetConnectionTypeString(new_connection_type);
         for (auto& listener : listeners_) {
-          listener.second(new_connection_type, is_lan_connected);
+          listener.second(new_connection_type, is_lan_connected,
+                          is_internet_connected);
         }
       });
 }
 
 bool ConnectivityManagerImpl::IsLanConnected() {
   return network_monitor_->IsLanConnected();
+}
+
+bool ConnectivityManagerImpl::IsInternetConnected() {
+  return network_monitor_->IsInternetConnected();
 }
 
 bool ConnectivityManagerImpl::IsHPRealtekDevice() {
@@ -114,7 +119,7 @@ ConnectionType ConnectivityManagerImpl::GetConnectionType() {
 
 void ConnectivityManagerImpl::RegisterConnectionListener(
     absl::string_view listener_name,
-    std::function<void(ConnectionType, bool)> callback) {
+    std::function<void(ConnectionType, bool, bool)> callback) {
   listeners_.emplace(listener_name, std::move(callback));
 }
 

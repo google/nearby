@@ -38,18 +38,20 @@ class ConnectivityManagerImpl : public ConnectivityManager {
       nearby::sharing::api::SharingPlatform& platform);
 
   bool IsLanConnected() override;
+  bool IsInternetConnected() override;
   bool IsHPRealtekDevice() override;
   ConnectionType GetConnectionType() override;
 
   void RegisterConnectionListener(
       absl::string_view listener_name,
-      std::function<void(ConnectionType, bool)> callback) override;
+      std::function<void(ConnectionType, bool, bool)> callback) override;
   void UnregisterConnectionListener(absl::string_view listener_name) override;
 
   int GetListenerCount() const;
 
  private:
-  absl::flat_hash_map<std::string, std::function<void(ConnectionType, bool)>>
+  absl::flat_hash_map<std::string,
+                      std::function<void(ConnectionType, bool, bool)>>
       listeners_;
   std::unique_ptr<api::NetworkMonitor> network_monitor_;
   nearby::sharing::api::SharingPlatform& platform_;
