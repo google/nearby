@@ -276,6 +276,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   BasePcpHandler::ConnectImplResult BleV2ConnectImpl(ClientProxy* client,
                                                      BleV2Endpoint* endpoint);
 
+  void RunServiceDiscovered(ClientProxy* client, NsdServiceInfo service_info,
+                            const std::string& service_id);
+  void RunServiceLost(ClientProxy* client, NsdServiceInfo service_info,
+                      const std::string& service_id);
   // WifiLan
   bool IsRecognizedWifiLanEndpoint(
       const std::string& service_id,
