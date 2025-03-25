@@ -24,8 +24,10 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_advertisement.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
@@ -204,6 +206,16 @@ bool InstantOnLostManager::StartInstantOnLostAdvertisement() {
       ByteArray(on_lost_advertisement->ToBytes()));
 
   StopOnLostAdvertising();
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kDisableInstantOnLostOnBleWithoutExtended) &&
+      !ble_medium_.IsExtendedAdvertisementsAvailable()) {
+    LOG(WARNING)
+        << __func__
+        << ":  Disabling instant on lost on BLE without extended advertising.";
+    return false;
+  }
 
   if (!ble_medium_.StartAdvertising(advertisement_data, advertise_parameters)) {
     LOG(ERROR) << __func__
