@@ -32,7 +32,7 @@ TEST(FakeTimer, TestOneTimeTimer) {
   EXPECT_TRUE(timer.IsRunning());
   clock.FastForward(absl::Milliseconds(1000));
   EXPECT_EQ(count, 1);
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_FALSE(timer.IsRunning());
 }
 
@@ -45,7 +45,7 @@ TEST(FakeTimer, TestRepeatTimer) {
   EXPECT_TRUE(timer.IsRunning());
   clock.FastForward(absl::Milliseconds(1000));
   EXPECT_EQ(count, 10);
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_FALSE(timer.IsRunning());
 }
 
@@ -56,7 +56,7 @@ TEST(FakeTimer, TestInvalidInput) {
   auto callback = [&count]() { ++count; };
   timer.Start(-100, 100, callback);
   EXPECT_FALSE(timer.IsRunning());
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
 }
 
 TEST(FakeTimer, TestStopTimerBeforeClockUpdate) {
@@ -66,7 +66,7 @@ TEST(FakeTimer, TestStopTimerBeforeClockUpdate) {
   auto callback = [&count]() { ++count; };
   timer.Start(100, 100, callback);
   EXPECT_TRUE(timer.IsRunning());
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_FALSE(timer.IsRunning());
   clock.FastForward(absl::Milliseconds(1000));
   EXPECT_EQ(count, 0);
@@ -85,7 +85,7 @@ TEST(FakeTimer, TestUpdateMultipleTimesClockForOnetimeTimer) {
   EXPECT_EQ(count, 1);
   clock.FastForward(absl::Milliseconds(1000));
   EXPECT_EQ(count, 1);
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_FALSE(timer.IsRunning());
 }
 
@@ -98,7 +98,7 @@ TEST(FakeTimer, TestInstantRunTimer) {
   EXPECT_TRUE(timer.IsRunning());
   clock.FastForward(absl::Milliseconds(1000));
   EXPECT_EQ(count, 11);
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_FALSE(timer.IsRunning());
 }
 
@@ -112,7 +112,7 @@ TEST(FakeTimer, TestTimerDestructor) {
     EXPECT_EQ(clock.GetObserversCount(), 1);
     EXPECT_TRUE(timer.IsRunning());
     EXPECT_EQ(count, 0);
-    EXPECT_TRUE(timer.Stop());
+    timer.Stop();
     EXPECT_FALSE(timer.IsRunning());
   }
   EXPECT_EQ(clock.GetObserversCount(), 0);

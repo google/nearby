@@ -16,7 +16,8 @@
 
 #include <utility>
 
-#include "absl/time/clock.h"
+#include "absl/functional/any_invocable.h"
+#include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -39,15 +40,13 @@ bool TimerImpl::Start(int delay, int period,
   return true;
 }
 
-bool TimerImpl::Stop() {
+void TimerImpl::Stop() {
   if (internal_timer_ == nullptr) {
-    return true;
+    return;
   }
-  if (internal_timer_->Stop()) {
-    internal_timer_ = nullptr;
-    return true;
-  }
-  return false;
+  // Stop returns false if timer has already fired.  We can ignore that.
+  internal_timer_->Stop();
+  internal_timer_ = nullptr;
 }
 
 bool TimerImpl::IsRunning() { return (internal_timer_ != nullptr); }

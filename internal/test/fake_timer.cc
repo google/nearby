@@ -36,9 +36,9 @@ bool FakeTimer::Start(int delay, int period,
   return InternalStart(delay, period, std::move(callback));
 }
 
-bool FakeTimer::Stop() {
+void FakeTimer::Stop() {
   MutexLock lock(&mutex_);
-  return InternalStop();
+  InternalStop();
 }
 
 bool FakeTimer::IsRunning() {
@@ -115,13 +115,12 @@ bool FakeTimer::InternalStart(int delay, int period,
   return true;
 }
 
-bool FakeTimer::InternalStop() {
+void FakeTimer::InternalStop() {
   if (timer_data_.id.empty()) {
-    return true;
+    return;
   }
   clock_->RemoveObserver(timer_data_.id);
   timer_data_ = {};
-  return true;
 }
 
 }  // namespace nearby

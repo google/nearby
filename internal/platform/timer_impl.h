@@ -18,7 +18,7 @@
 #include <memory>
 
 #include "absl/functional/any_invocable.h"
-#include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/timer.h"
 #include "internal/platform/timer.h"
 
 namespace nearby {
@@ -28,7 +28,7 @@ class TimerImpl : public Timer {
 
   bool Start(int delay, int period,
              absl::AnyInvocable<void()> callback) override;
-  bool Stop() override;
+  void Stop() override;
   bool IsRunning() override;
   bool FireNow() override;
 

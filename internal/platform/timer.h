@@ -35,7 +35,7 @@ class Timer {
   // @return Returns true if succeed, otherwise false is returned.
   virtual bool Start(int delay, int period,
                      absl::AnyInvocable<void()> callback) = 0;
-  virtual bool Stop() = 0;
+  virtual void Stop() = 0;
   virtual bool IsRunning() = 0;
   virtual bool FireNow() = 0;
 };

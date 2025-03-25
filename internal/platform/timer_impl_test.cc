@@ -15,6 +15,8 @@
 #include "internal/platform/timer_impl.h"
 
 #include "gtest/gtest.h"
+#include "absl/synchronization/notification.h"
+#include "absl/time/time.h"
 
 namespace nearby {
 namespace {
@@ -24,7 +26,7 @@ TEST(TimerImpl, TestCreateTimer) {
 
   EXPECT_FALSE(timer.Start(-100, 0, nullptr));
   EXPECT_TRUE(timer.Start(100, 100, []() {}));
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
 }
 
 TEST(TimerImpl, TestRunningStatus) {
@@ -32,7 +34,7 @@ TEST(TimerImpl, TestRunningStatus) {
 
   EXPECT_TRUE(timer.Start(100, 100, []() {}));
   EXPECT_TRUE(timer.IsRunning());
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_FALSE(timer.IsRunning());
 }
 
@@ -41,7 +43,7 @@ TEST(TimerImpl, TestStartRunningTimer) {
 
   EXPECT_TRUE(timer.Start(100, 100, []() {}));
   EXPECT_FALSE(timer.Start(100, 100, []() {}));
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
 }
 
 TEST(TimerImpl, TestFireNow) {
@@ -50,8 +52,36 @@ TEST(TimerImpl, TestFireNow) {
 
   EXPECT_TRUE(timer.Start(100, 100, [&count]() { ++count; }));
   EXPECT_TRUE(timer.FireNow());
-  EXPECT_TRUE(timer.Stop());
+  timer.Stop();
   EXPECT_EQ(count, 1);
+}
+
+TEST(TimerImpl, TestStopAfterFire) {
+  TimerImpl timer;
+  absl::Notification notification;
+  EXPECT_TRUE(timer.Start(0, 0, [&notification]() {
+    notification.Notify();
+  }));
+  notification.WaitForNotificationWithTimeout(absl::Seconds(1));
+
+  timer.Stop();
+}
+
+TEST(TimerImpl, TestRestartAfterFire) {
+  TimerImpl timer;
+  absl::Notification notification;
+  EXPECT_TRUE(timer.Start(0, 0, [&notification]() {
+    notification.Notify();
+  }));
+  notification.WaitForNotificationWithTimeout(absl::Seconds(1));
+  timer.Stop();
+  absl::Notification notification2;
+
+  EXPECT_TRUE(timer.Start(100, 100, [&notification2]() {
+    notification2.Notify();
+  }));
+  notification2.WaitForNotificationWithTimeout(absl::Seconds(1));
+  timer.Stop();
 }
 
 }  // namespace
