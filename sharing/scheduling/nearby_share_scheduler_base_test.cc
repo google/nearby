@@ -133,7 +133,7 @@ class NearbyShareSchedulerBaseTest : public ::testing::Test {
   size_t on_request_call_count() const { return on_request_call_count_; }
   NearbyShareScheduler* scheduler() { return scheduler_.get(); }
 
- private:
+ protected:
   nearby::FakePreferenceManager preference_manager_;
   nearby::FakeContext fake_context_;
   size_t on_request_call_count_ = 0;
@@ -404,6 +404,19 @@ TEST_F(NearbyShareSchedulerBaseTest, RestoreSchedulingData) {
   EXPECT_EQ(scheduler()->GetNumConsecutiveFailures(), 1u);
 }
 
+
+TEST_F(NearbyShareSchedulerBaseTest, InternetConnectivityChange) {
+  fake_context_.fake_connectivity_manager()->SetInternetConnected(false);
+  CreateScheduler(/*retry_failures=*/true, /*require_connectivity=*/true);
+  StartScheduling();
+  scheduler()->MakeImmediateRequest();
+  ASSERT_NO_FATAL_FAILURE(RunPendingRequest());
+  EXPECT_EQ(on_request_call_count(), 0);
+
+  fake_context_.fake_connectivity_manager()->SetInternetConnected(true);
+  ASSERT_NO_FATAL_FAILURE(RunPendingRequest());
+  EXPECT_EQ(on_request_call_count(), 1);
+}
 }  // namespace
 }  // namespace sharing
 }  // namespace nearby

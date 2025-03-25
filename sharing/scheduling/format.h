@@ -23,7 +23,6 @@ namespace nearby {
 namespace utils {
 
 std::string TimeFormatShortDateAndTimeWithTimeZone(absl::Time time);
-std::string TimeDurationFormatWithSeconds(absl::Duration duration);
 
 }  // namespace utils
 }  // namespace nearby

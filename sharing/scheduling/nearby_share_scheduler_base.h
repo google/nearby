@@ -83,8 +83,7 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
   void OnStop() override;
 
  private:
-  void OnConnectionChanged(
-      nearby::ConnectivityManager::ConnectionType connection_type);
+  void OnInternetConnectivityChanged(bool is_internet_connected);
 
   std::optional<absl::Time> GetLastAttemptTime() const;
   bool HasPendingImmediateRequest() const;
@@ -106,7 +105,8 @@ class NearbyShareSchedulerBase : public NearbyShareScheduler {
   // connectivity is restored.
   void OnTimerFired();
 
-  void PrintSchedulerState() const;
+  void PrintSchedulerState(
+      std::optional<absl::Duration> time_until_next_request) const;
 
   nearby::ConnectivityManager* const connectivity_manager_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
