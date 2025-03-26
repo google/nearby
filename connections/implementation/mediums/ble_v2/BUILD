@@ -54,8 +54,6 @@ cc_library(
     srcs = [
         "advertisement_read_result.cc",
         "ble_advertisement.cc",
-        "ble_l2cap_packet.cc",
-        "ble_packet.cc",
         "ble_utils.cc",
         "discovered_peripheral_tracker.cc",
         "instant_on_lost_advertisement.cc",
@@ -64,8 +62,6 @@ cc_library(
     hdrs = [
         "advertisement_read_result.h",
         "ble_advertisement.h",
-        "ble_l2cap_packet.h",
-        "ble_packet.h",
         "ble_utils.h",
         "discovered_peripheral_callback.h",
         "discovered_peripheral_tracker.h",
@@ -75,6 +71,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         "//connections/implementation:__subpackages__",
+        "//internal/platform/implementation/shared:__pkg__",
     ],
     deps = [
         ":ble_advertisement_header",
@@ -94,7 +91,6 @@ cc_library(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
-        "//proto/mediums:ble_frames_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
@@ -113,8 +109,6 @@ cc_test(
         "advertisement_read_result_test.cc",
         "ble_advertisement_header_test.cc",
         "ble_advertisement_test.cc",
-        "ble_l2cap_packet_test.cc",
-        "ble_packet_test.cc",
         "ble_utils_test.cc",
         "bloom_filter_test.cc",
         "discovered_peripheral_tracker_test.cc",
@@ -137,7 +131,6 @@ cc_test(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
-        "//proto/mediums:ble_frames_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/hash:hash_testing",

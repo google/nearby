@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_L2CAP_PACKET_H_
-#define CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_L2CAP_PACKET_H_
+#ifndef PLATFORM_IMPL_SHARED_BLE_L2CAP_PACKET_H_
+#define PLATFORM_IMPL_SHARED_BLE_L2CAP_PACKET_H_
 
 #include <string>
 
@@ -22,8 +22,7 @@
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
-namespace connections {
-namespace mediums {
+namespace shared {
 
 // Represents the format of the BLE L2CAP packet used in L2CAP socket for
 // requesting/responsing.
@@ -52,10 +51,13 @@ class BleL2capPacket {
 
   static constexpr int kCommandLength = 1;
   static constexpr int kDataLength = 2;
+  // The maximum length of the advertisement raw data.
+  static constexpr int kMaxAdvertisementLength =
+      connections::mediums::BleAdvertisement::kMaxAdvertisementLength;
   // The maximum length of a BleL2capPacket is the length when carry the
   // advertisement raw data.
   static constexpr int kMaxLength =
-      kCommandLength + kDataLength + BleAdvertisement::kMaxAdvertisementLength;
+      kCommandLength + kDataLength + kMaxAdvertisementLength;
 
   // Creates a BleL2capPacket from the raw bytes.
   static absl::StatusOr<BleL2capPacket> CreateFromBytes(const ByteArray& bytes);
@@ -128,8 +130,7 @@ class BleL2capPacket {
   ByteArray advertisement_;
 };
 
-}  // namespace mediums
-}  // namespace connections
+}  // namespace shared
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_L2CAP_PACKET_H_
+#endif  // PLATFORM_IMPL_SHARED_BLE_L2CAP_PACKET_H_

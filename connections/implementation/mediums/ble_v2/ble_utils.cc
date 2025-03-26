@@ -24,7 +24,6 @@
 #include "absl/strings/str_format.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
-#include "connections/implementation/mediums/ble_v2/ble_packet.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/prng.h"
@@ -89,14 +88,15 @@ ByteArray GenerateServiceIdHash(const std::string& service_id,
       // legacy hash for testing only.
     case BleAdvertisement::Version::kV1:
       return Utils::Sha256Hash(StringToPrintableHexString(service_id),
-                               BlePacket::kServiceIdHashLength);
+                               BleAdvertisement::kServiceIdHashLength);
     case BleAdvertisement::Version::kV2:
       [[fallthrough]];
     case BleAdvertisement::Version::kUndefined:
       [[fallthrough]];
     default:
       // Use the latest known hashing scheme.
-      return Utils::Sha256Hash(service_id, BlePacket::kServiceIdHashLength);
+      return Utils::Sha256Hash(service_id,
+                               BleAdvertisement::kServiceIdHashLength);
   }
 }
 

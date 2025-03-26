@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/ble_v2/ble_packet.h"
+#include "internal/platform/implementation/shared/ble_packet.h"
 
 #include <cstdint>
 #include <limits>
@@ -27,8 +27,7 @@
 #include "proto/mediums/ble_frames.pb.h"
 
 namespace nearby {
-namespace connections {
-namespace mediums {
+namespace shared {
 
 using ::location::nearby::mediums::SocketControlFrame;
 using ::location::nearby::mediums::SocketVersion;
@@ -183,6 +182,5 @@ bool BlePacket::IsControlPacket() const {
   return packet_type_ == BlePacketType::kControl;
 }
 
-}  // namespace mediums
-}  // namespace connections
+}  // namespace shared
 }  // namespace nearby

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/ble_v2/ble_l2cap_packet.h"
+#include "internal/platform/implementation/shared/ble_l2cap_packet.h"
 
 #include <string>
 #include <utility>
@@ -27,8 +27,7 @@
 #include "internal/platform/stream_reader.h"
 
 namespace nearby {
-namespace connections {
-namespace mediums {
+namespace shared {
 
 BleL2capPacket::BleL2capPacket(Command command,
                                const ByteArray* service_id_hash,
@@ -85,7 +84,8 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromBytes(
   }
 
   if (command_data == Command::kRequestAdvertisement) {
-    if (data_length < BleAdvertisement::kServiceIdHashLength) {
+    if (data_length <
+        connections::mediums::BleAdvertisement::kServiceIdHashLength) {
       LOG(INFO)
           << "Cannot deserialize BleL2capPacket: service id hash length, got "
           << data_length;
@@ -102,7 +102,8 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromBytes(
     }
     return BleL2capPacket(command_data, &service_id_hash_data.value(), nullptr);
   } else if (command_data == Command::kResponseAdvertisement) {
-    if (data_length > BleAdvertisement::kMaxAdvertisementLength) {
+    if (data_length >
+        connections::mediums::BleAdvertisement::kMaxAdvertisementLength) {
       LOG(INFO) << "Cannot deserialize BleL2capPacket: advertisement length, "
                    "got "
                 << data_length;
@@ -138,7 +139,8 @@ absl::StatusOr<ByteArray> BleL2capPacket::ByteArrayForRequestAdvertisement(
 
 absl::StatusOr<ByteArray> BleL2capPacket::ByteArrayForResponseAdvertisement(
     const ByteArray& advertisement) {
-  if (advertisement.size() < BleAdvertisement::kMinAdvertisementLength) {
+  if (advertisement.size() <
+      connections::mediums::BleAdvertisement::kMinAdvertisementLength) {
     return absl::InvalidArgumentError(
         "Cannot deserialize BleL2capPacket: advertisement size is too small.");
   }
@@ -168,7 +170,8 @@ ByteArray BleL2capPacket::ByteArrayForDataConnectionFailure() {
 }
 
 ByteArray BleL2capPacket::GenerateServiceIdHash(const std::string& service_id) {
-  return Utils::Sha256Hash(service_id, BleAdvertisement::kServiceIdHashLength);
+  return connections::Utils::Sha256Hash(
+      service_id, connections::mediums::BleAdvertisement::kServiceIdHashLength);
 }
 
 ByteArray BleL2capPacket::ByteArrayForCommand(BleL2capPacket::Command command,
@@ -187,6 +190,5 @@ ByteArray BleL2capPacket::ByteArrayForCommand(BleL2capPacket::Command command,
   return ByteArray{std::move(out)};
 }
 
-}  // namespace mediums
-}  // namespace connections
+}  // namespace shared
 }  // namespace nearby

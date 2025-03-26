@@ -92,3 +92,46 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "ble_packet",
+    srcs = [
+        "ble_l2cap_packet.cc",
+        "ble_packet.cc",
+    ],
+    hdrs = [
+        "ble_l2cap_packet.h",
+        "ble_packet.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//internal/platform/implementation:__subpackages__"],
+    deps = [
+        "//connections/implementation/mediums:utils",
+        "//connections/implementation/mediums/ble_v2",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+        "//internal/platform:util",
+        "//proto/mediums:ble_frames_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "ble_packet_test",
+    srcs = [
+        "ble_l2cap_packet_test.cc",
+        "ble_packet_test.cc",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//internal/platform/implementation:__subpackages__"],
+    deps = [
+        ":ble_packet",
+        "//internal/platform:base",
+        "//proto/mediums:ble_frames_cc_proto",
+        "//testing/base/public:gunit_for_library",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
