@@ -56,6 +56,11 @@ MediumSocket* WifiLanSocket::CreateVirtualSocket(
   return virtual_socket.get();
 }
 
+void WifiLanMedium::SetAwdlEnabled(
+    bool enable_awdl) {
+  return impl_->SetAwdlEnabled(enable_awdl);
+}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return impl_->StartAdvertising(nsd_service_info);
 }

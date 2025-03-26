@@ -79,6 +79,9 @@ bool WifiLanMedium::IsNetworkConnected() const {
   return connection_profile != nullptr;
 }
 
+void WifiLanMedium::SetAwdlEnabled(
+    bool enable_awdl) {}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   bool socket_found = false;
   WifiLanServerSocket* server_socket_ptr = nullptr;

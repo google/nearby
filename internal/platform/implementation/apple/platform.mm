@@ -34,8 +34,8 @@
 #include "internal/platform/implementation/apple/timer.h"
 #import "internal/platform/implementation/apple/utils.h"
 #include "internal/platform/implementation/apple/wifi.h"
-#include "internal/platform/implementation/apple/wifi_lan.h"
 #include "internal/platform/implementation/apple/wifi_hotspot.h"
+#include "internal/platform/implementation/apple/wifi_lan.h"
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/payload_id.h"
@@ -178,11 +178,8 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 }
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
-  // Set `include_peer_to_peer` to true to support peer-to-peer connections for Apple devices in the
-  // `WifiLan` medium.
-  // TODO: b/397530274 - This also retains the flexibility to add apple nw p2p medium to
-  // the NC layer but for now it is not needed.
-  return std::make_unique<apple::WifiLanMedium>(/*include_peer_to_peer=*/true);
+
+  return std::make_unique<apple::WifiLanMedium>();
 }
 
 std::unique_ptr<WifiHotspotMedium> ImplementationPlatform::CreateWifiHotspotMedium() {
