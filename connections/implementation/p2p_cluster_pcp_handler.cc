@@ -1035,9 +1035,9 @@ bool P2pClusterPcpHandler::IsRecognizedWifiLanEndpoint(
   return true;
 }
 
-void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
-    ClientProxy* client, NsdServiceInfo service_info,
-    const std::string& service_id) {
+void P2pClusterPcpHandler::RunServiceDiscovered(ClientProxy* client,
+                                                NsdServiceInfo service_info,
+                                                const std::string& service_id) {
   RunOnPcpHandlerThread(
       "p2p-wifi-service-discovered",
       [this, client, service_id, service_info]() RUN_ON_PCP_HANDLER_THREAD() {
@@ -1081,11 +1081,15 @@ void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
       });
 }
 
-void P2pClusterPcpHandler::WifiLanServiceLostHandler(
+void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
     ClientProxy* client, NsdServiceInfo service_info,
     const std::string& service_id) {
-  LOG(INFO) << "WifiLan: [LOST, SCHED] service_info=" << &service_info
-            << ", service_name=" << service_info.GetServiceName();
+  RunServiceDiscovered(client, service_info, service_id);
+}
+
+void P2pClusterPcpHandler::RunServiceLost(ClientProxy* client,
+                                          NsdServiceInfo service_info,
+                                          const std::string& service_id) {
   RunOnPcpHandlerThread(
       "p2p-wifi-service-lost",
       [this, client, service_id, service_info]() RUN_ON_PCP_HANDLER_THREAD() {
@@ -1122,6 +1126,14 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
                                    WebRtcState::kUndefined,
                                });
       });
+}
+
+void P2pClusterPcpHandler::WifiLanServiceLostHandler(
+    ClientProxy* client, NsdServiceInfo service_info,
+    const std::string& service_id) {
+  LOG(INFO) << "WifiLan: [LOST, SCHED] service_info=" << &service_info
+            << ", service_name=" << service_info.GetServiceName();
+  RunServiceLost(client, service_info, service_id);
 }
 
 BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
@@ -1359,6 +1371,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       operation_result_with_mediums;
   int update_index =
       client_proxy->GetAnalyticsRecorder().GetNextAdvertisingUpdateIndex();
+  // bluetooth
   if (options.enable_bluetooth_listening &&
       !bluetooth_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> bluetooth_result =
@@ -1433,7 +1446,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
     }
     std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
         operation_result_with_medium = GetOperationResultWithMediumByResultCode(
-            client_proxy, Medium::BLUETOOTH, update_index,
+            client_proxy, Medium::WIFI_LAN, update_index,
             wifi_lan_result.has_error()
                 ? wifi_lan_result.error().operation_result_code().value()
                 : OperationResultCode::DETAIL_SUCCESS);
