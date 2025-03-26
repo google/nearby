@@ -20,7 +20,9 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
@@ -75,7 +77,7 @@ class NearbyShareLocalDeviceDataManagerImpl
       nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory);
 
   // NearbyShareLocalDeviceDataManager:
-  std::string GetId() override;
+  std::string GetId() ABSL_LOCKS_EXCLUDED(id_gen_mutex_) override;
   std::string GetDeviceName() const override;
   DeviceNameValidationResult ValidateDeviceName(
       absl::string_view name) override;
@@ -105,6 +107,7 @@ class NearbyShareLocalDeviceDataManagerImpl
   std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
       nearby_identity_client_;
   std::unique_ptr<TaskRunner> executor_;
+  absl::Mutex id_gen_mutex_;
 };
 
 }  // namespace sharing

@@ -32,6 +32,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
@@ -142,6 +143,7 @@ NearbyShareLocalDeviceDataManagerImpl::
     ~NearbyShareLocalDeviceDataManagerImpl() = default;
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetId() {
+  absl::MutexLock lock(&id_gen_mutex_);
   std::string id =
       preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
   if (!id.empty()) return id;
