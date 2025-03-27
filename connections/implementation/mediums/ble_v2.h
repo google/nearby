@@ -182,6 +182,13 @@ class BleV2 final {
                                CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Establishes connection to Ble peripheral.
+  // Returns socket instance. On success, BleSocket.IsValid() return true.
+  ErrorOr<BleL2capSocket> ConnectOverL2cap(const std::string& service_id,
+                                           const BleV2Peripheral& peripheral,
+                                           CancellationFlag* cancellation_flag)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Returns true if this object owns a valid platform implementation.
   bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);

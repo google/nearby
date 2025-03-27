@@ -45,6 +45,7 @@
 #include "connections/implementation/mediums/advertisements/advertisement_util.h"
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/implementation/mediums/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
@@ -2715,6 +2716,36 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
   VLOG(1) << "Client " << client->GetClientId()
           << " is attempting to connect to (" << peripheral.ToReadableString()
           << ") over BLE.";
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
+      peripheral.GetPsm() !=
+          mediums::BleAdvertisementHeader::kDefaultPsmValue) {
+    ErrorOr<BleL2capSocket> ble_l2cap_socket_result =
+        ble_v2_medium_.ConnectOverL2cap(
+            endpoint->service_id, peripheral,
+            client->GetCancellationFlag(endpoint->endpoint_id));
+    if (!ble_l2cap_socket_result.has_error()) {
+      LOG(INFO) << "In BleV2ConnectImpl(), connected to Ble L2CAP device "
+                << absl::BytesToHexString(peripheral.GetId().data())
+                << " for endpoint(id=" << endpoint->endpoint_id << ").";
+      auto channel = std::make_unique<BleL2capEndpointChannel>(
+          endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+          ble_l2cap_socket_result.value());
+      return BasePcpHandler::ConnectImplResult{
+          .medium = BLE,
+          .status = {Status::kSuccess},
+          .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
+          .endpoint_channel = std::move(channel),
+      };
+    } else {
+      LOG(WARNING) << "In BleV2ConnectImpl(), failed to connect to Ble L2CAP "
+                      "device "
+                   << absl::BytesToHexString(peripheral.GetId().data())
+                   << " for endpoint(id=" << endpoint->endpoint_id << ").";
+    }
+  }
+
   ErrorOr<BleV2Socket> ble_socket_result = ble_v2_medium_.Connect(
       endpoint->service_id, peripheral,
       client->GetCancellationFlag(endpoint->endpoint_id));

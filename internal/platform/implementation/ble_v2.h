@@ -580,6 +580,16 @@ class BleMedium {
       const std::string& service_id, TxPowerLevel tx_power_level,
       BlePeripheral& peripheral, CancellationFlag* cancellation_flag) = 0;
 
+  // Connects to a BLE peripheral over L2CAP.
+  //
+  // On success, returns a new BleL2capSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleL2capSocket> ConnectOverL2cap(
+      const std::string& service_id, TxPowerLevel tx_power_level,
+      BlePeripheral& peripheral, CancellationFlag* cancellation_flag) {
+    return nullptr;
+  };
+
   // Requests if support extended advertisement.
   virtual bool IsExtendedAdvertisementsAvailable() = 0;
 

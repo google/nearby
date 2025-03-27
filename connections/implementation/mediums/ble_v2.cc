@@ -836,6 +836,43 @@ ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
   return socket;
 }
 
+ErrorOr<BleL2capSocket> BleV2::ConnectOverL2cap(
+    const std::string& service_id, const BleV2Peripheral& peripheral,
+    CancellationFlag* cancellation_flag) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    LOG(WARNING) << "Refusing to create client Ble L2CAP socket because "
+                    "service_id is empty.";
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't create client Ble L2CAP socket [service_id="
+              << service_id << "]; Ble isn't available.";
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    LOG(WARNING) << "Can't create client Ble L2CAP socket due to cancel.";
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_BLE_OUTGOING_CONNECTION)};
+  }
+
+  BleL2capSocket socket = medium_.ConnectOverL2cap(
+      service_id, PowerLevelToTxPowerLevel(PowerLevel::kHighPower), peripheral,
+      cancellation_flag);
+
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Failed to Connect via Ble L2CAP [service_id=" << service_id
+                 << "]";
+    return {Error(OperationResultCode::
+                      CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+
+  return socket;
+}
+
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
 
 bool BleV2::IsAdvertisingLocked(const std::string& service_id) const {

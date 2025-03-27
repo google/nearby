@@ -516,12 +516,19 @@ class BleV2Medium final {
   // On Success, BleL2capServerSocket::IsValid() returns true.
   BleL2capServerSocket OpenL2capServerSocket(const std::string& service_id);
 
-  // Returns a new BleLanSocket.
-  // On Success, BleLanSocket::IsValid() returns true.
+  // Returns a new BleV2Socket.
+  // On Success, BleV2Socket::IsValid() returns true.
   BleV2Socket Connect(const std::string& service_id,
                       api::ble_v2::TxPowerLevel tx_power_level,
                       const BleV2Peripheral& peripheral,
                       CancellationFlag* cancellation_flag);
+
+  // Returns a new BleL2capSocket.
+  // On Success, BleL2capSocket::IsValid() returns true.
+  BleL2capSocket ConnectOverL2cap(const std::string& service_id,
+                                  api::ble_v2::TxPowerLevel tx_power_level,
+                                  const BleV2Peripheral& peripheral,
+                                  CancellationFlag* cancellation_flag);
 
   bool IsExtendedAdvertisementsAvailable();
 

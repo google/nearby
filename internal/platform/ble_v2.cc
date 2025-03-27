@@ -268,6 +268,13 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
   return socket;
 }
 
+BleL2capSocket BleV2Medium::ConnectOverL2cap(
+    const std::string& service_id, TxPowerLevel tx_power_level,
+    const BleV2Peripheral& peripheral, CancellationFlag* cancellation_flag) {
+  // TODO(mingshiouwu): Replace with a real implementation connecting flow.
+  return BleL2capSocket(peripheral, nullptr);
+}
+
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
 }
