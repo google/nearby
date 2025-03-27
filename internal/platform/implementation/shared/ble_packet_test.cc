@@ -12,20 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/ble_v2/ble_packet.h"
+#include "internal/platform/implementation/shared/ble_packet.h"
 
-#include <algorithm>
+#include <cstring>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 #include "proto/mediums/ble_frames.proto.h"
 
 namespace nearby {
-namespace connections {
-namespace mediums {
+namespace shared {
 namespace {
 using ::location::nearby::mediums::SocketControlFrame;
 using ::protobuf_matchers::EqualsProto;
@@ -220,6 +221,6 @@ TEST(BlePacketTest,
 }
 
 }  // namespace
-}  // namespace mediums
-}  // namespace connections
+
+}  // namespace shared
 }  // namespace nearby

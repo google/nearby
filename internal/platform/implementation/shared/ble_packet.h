@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PACKET_H_
-#define CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PACKET_H_
+#ifndef PLATFORM_IMPL_SHARED_BLE_PACKET_H_
+#define PLATFORM_IMPL_SHARED_BLE_PACKET_H_
 
 #include "absl/status/statusor.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
-namespace connections {
-namespace mediums {
+namespace shared {
 
 // Represents the format of data sent over Ble sockets.
 //
@@ -101,8 +100,7 @@ class BlePacket {
   ByteArray data_;
 };
 
-}  // namespace mediums
-}  // namespace connections
+}  // namespace shared
 }  // namespace nearby
 
-#endif  // CORE_INTERNAL_MEDIUMS_BLE_V2_BLE_PACKET_H_
+#endif  // PLATFORM_IMPL_SHARED_BLE_PACKET_H_

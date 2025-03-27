@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/ble_v2/ble_l2cap_packet.h"
+#include "internal/platform/implementation/shared/ble_l2cap_packet.h"
 
 #include <string>
 
@@ -21,8 +21,7 @@
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
-namespace connections {
-namespace mediums {
+namespace shared {
 namespace {
 
 constexpr absl::string_view kInCorrectData = {"\x01\x02\x03\x04\x05"};
@@ -198,6 +197,5 @@ TEST(BleL2capPacketTest, CreateFromBytesWithInvalidLengthAdvertisement) {
 }
 
 }  // namespace
-}  // namespace mediums
-}  // namespace connections
+}  // namespace shared
 }  // namespace nearby
