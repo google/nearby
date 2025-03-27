@@ -399,7 +399,7 @@ class BleL2capSocket {
   virtual Exception Close() = 0;
 
   // Sets the close notifier by client side.
-  virtual void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {};
+  virtual void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {}
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
@@ -588,7 +588,7 @@ class BleMedium {
       const std::string& service_id, TxPowerLevel tx_power_level,
       BlePeripheral& peripheral, CancellationFlag* cancellation_flag) {
     return nullptr;
-  };
+  }
 
   // Requests if support extended advertisement.
   virtual bool IsExtendedAdvertisementsAvailable() = 0;

@@ -339,7 +339,7 @@ class BleL2capSocket final {
  public:
   BleL2capSocket(BleV2Peripheral peripheral,
                  std::unique_ptr<api::ble_v2::BleL2capSocket> socket)
-      : peripheral_(peripheral) {};
+      : peripheral_(peripheral) {}
   BleL2capSocket(const BleL2capSocket&) = default;
   BleL2capSocket& operator=(const BleL2capSocket&) = default;
   ~BleL2capSocket() = default;
