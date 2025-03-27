@@ -188,6 +188,9 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   std::unique_ptr<api::ble_v2::BleServerSocket> OpenServerSocket(
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
 
+  std::unique_ptr<api::ble_v2::BleL2capServerSocket> OpenL2capServerSocket(
+      const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Connects to existing remote Ble peripheral.
   //
   // On success, returns a new BleSocket.

@@ -779,6 +779,12 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
   return server_socket;
 }
 
+std::unique_ptr<api::ble_v2::BleL2capServerSocket>
+BleV2Medium::OpenL2capServerSocket(const std::string& service_id) {
+  // TODO(mingshiouwu): add more codes for g3 testing.
+  return nullptr;
+}
+
 std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string& service_id, TxPowerLevel tx_power_level,
     api::ble_v2::BlePeripheral& remote_peripheral,

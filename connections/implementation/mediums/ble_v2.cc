@@ -175,9 +175,7 @@ ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
   // Wrap the connections advertisement to the medium advertisement.
   ByteArray service_id_hash = mediums::bleutils::GenerateHash(
       service_id, mediums::BleAdvertisement::kServiceIdHashLength);
-  // Get psm value from L2CAP server if L2CAP is supported. Now just use the
-  // default value.
-  int psm = mediums::BleAdvertisementHeader::kDefaultPsmValue;
+  int psm = medium_.GetPSM();
   mediums::BleAdvertisement medium_advertisement = {
       mediums::BleAdvertisement::Version::kV2,
       mediums::BleAdvertisement::SocketVersion::kV2,
@@ -570,13 +568,13 @@ ErrorOr<bool> BleV2::StartAcceptingConnections(
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
-    LOG(INFO)
+    LOG(WARNING)
         << "Refusing to start accepting BLE connections with empty service id.";
     return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
   }
 
   if (IsAcceptingConnectionsLocked(service_id)) {
-    LOG(INFO)
+    LOG(WARNING)
         << "Refusing to start accepting BLE connections for " << service_id
         << " because another BLE peripheral socket is already in-progress.";
     return {Error(OperationResultCode::
@@ -596,47 +594,128 @@ ErrorOr<bool> BleV2::StartAcceptingConnections(
   }
 
   BleV2ServerSocket server_socket = medium_.OpenServerSocket(service_id);
-  if (!server_socket.IsValid()) {
-    LOG(INFO) << "Failed to start accepting Ble connections for service_id="
-              << service_id;
-    return {Error(
-        OperationResultCode::CONNECTIVITY_BLE_SERVER_SOCKET_CREATION_FAILURE)};
+  if (server_socket.IsValid()) {
+    // Mark the fact that there's an in-progress Ble server accepting
+    // connections.
+    auto owned_server_socket =
+        server_sockets_.insert({service_id, std::move(server_socket)})
+            .first->second;
+    // Start the accept loop on a dedicated thread - this stays alive and
+    // listening for new incoming connections until
+    // StopAcceptingL2capConnections() is invoked.
+    accept_loops_runner_.Execute(
+        "ble-accept",
+        [this, service_id, callback = std::move(callback),
+         server_socket = std::move(owned_server_socket)]() mutable {
+          while (true) {
+            BleV2Socket client_socket = server_socket.Accept();
+            if (!client_socket.IsValid()) {
+              LOG(WARNING) << "The client socket to accept is invalid.";
+              server_socket.Close();
+              break;
+            } else {
+              LOG(INFO) << "The client Ble GATT socket has been accepted.";
+            }
+            {
+              MutexLock lock(&mutex_);
+              client_socket.SetCloseNotifier([this, service_id]() {
+                MutexLock lock(&mutex_);
+                incoming_sockets_.erase(service_id);
+              });
+              incoming_sockets_.insert({service_id, client_socket});
+            }
+            if (callback) {
+              callback(std::move(client_socket), service_id);
+            }
+          }
+        });
+  } else {
+    LOG(INFO)
+        << "Failed to start accepting Ble GATT connections for service_id="
+        << service_id;
+  }
+  LOG(INFO) << "Start accepting Ble GATT connections for service_id="
+            << service_id;
+  return {true};
+}
+
+// TODO(mingshiouwu): Add unit test for ble_l2cap flow
+ErrorOr<bool> BleV2::StartAcceptingL2capConnections(
+    const std::string& service_id, AcceptedL2capConnectionCallback callback) {
+  MutexLock lock(&mutex_);
+  if (service_id.empty()) {
+    LOG(WARNING)
+        << "Refusing to start accepting Ble L2CAP connections with empty "
+           "service id.";
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
   }
 
-  // Mark the fact that there's an in-progress Ble server accepting
-  // connections.
-  auto owned_server_socket =
-      server_sockets_.insert({service_id, std::move(server_socket)})
-          .first->second;
+  if (IsAcceptingL2capConnectionsLocked(service_id)) {
+    LOG(WARNING)
+        << "Refusing to start accepting Ble L2CAP connections for "
+        << service_id
+        << " because another Ble peripheral socket is already in-progress.";
+    return {Error(OperationResultCode::
+                      CLIENT_DUPLICATE_ACCEPTING_BLE_CONNECTION_REQUEST)};
+  }
 
-  // Start the accept loop on a dedicated thread - this stays alive and
-  // listening for new incoming connections until StopAcceptingConnections() is
-  // invoked.
-  accept_loops_runner_.Execute(
-      "ble-accept",
-      [this, service_id = service_id, callback = std::move(callback),
-       server_socket = std::move(owned_server_socket)]() mutable {
-        while (true) {
-          BleV2Socket client_socket = server_socket.Accept();
-          if (!client_socket.IsValid()) {
-            LOG(WARNING) << "The client socket to accept is invalid.";
-            server_socket.Close();
-            break;
-          }
-          {
-            MutexLock lock(&mutex_);
-            client_socket.SetCloseNotifier([this, service_id]() {
+  if (!radio_.IsEnabled()) {
+    LOG(INFO) << "Can't start accepting Ble L2CAP connections for "
+              << service_id << " because Bluetooth isn't enabled.";
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't start accepting Ble L2CAP connections for "
+              << service_id << " because Ble isn't available.";
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
+  }
+
+  BleL2capServerSocket server_socket =
+      medium_.OpenL2capServerSocket(service_id);
+  if (server_socket.IsValid()) {
+    // Mark the fact that there's an in-progress Ble server accepting
+    // connections.
+    auto owned_server_socket =
+        l2cap_server_socket_map_.insert({service_id, std::move(server_socket)})
+            .first->second;
+    // Start the accept loop on a dedicated thread - this stays alive and
+    // listening for new incoming connections until StopAcceptingConnections()
+    // is invoked.
+    accept_loops_runner_.Execute(
+        "ble-l2cap-accept",
+        [this, service_id, callback = std::move(callback),
+         server_socket = std::move(owned_server_socket)]() mutable {
+          while (true) {
+            BleL2capSocket client_socket = server_socket.Accept();
+            if (!client_socket.IsValid()) {
+              LOG(WARNING) << "The client L2CAP socket to accept is invalid.";
+              server_socket.Close();
+              break;
+            } else {
+              LOG(INFO) << "The client L2CAP socket has been accepted.";
+            }
+            {
               MutexLock lock(&mutex_);
-              incoming_sockets_.erase(service_id);
-            });
-            incoming_sockets_.insert({service_id, client_socket});
+              client_socket.SetCloseNotifier([this, service_id]() {
+                MutexLock lock(&mutex_);
+                incoming_sockets_.erase(service_id);
+              });
+              l2cap_incoming_service_id_to_socket_map_.insert(
+                  {service_id, client_socket});
+            }
+            if (callback) {
+              callback(std::move(client_socket), service_id);
+            }
           }
-          if (callback) {
-            callback(std::move(client_socket), service_id);
-          }
-        }
-      });
-
+        });
+  } else {
+    LOG(INFO)
+        << "Failed to start accepting Ble L2CAP connections for service_id="
+        << service_id;
+  }
+  LOG(INFO) << "Start accepting Ble L2CAP connections for service_id="
+            << service_id;
   return {true};
 }
 
@@ -675,9 +754,49 @@ bool BleV2::StopAcceptingConnections(const std::string& service_id) {
   return true;
 }
 
+bool BleV2::StopAcceptingL2capConnections(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+
+  const auto it = l2cap_server_socket_map_.find(service_id);
+  if (it == l2cap_server_socket_map_.end()) {
+    LOG(INFO) << "Can't stop accepting Ble L2CAP connections because it was "
+                 "never started.";
+    return false;
+  }
+
+  // Closing the BleL2capServerSocket will kick off the suicide of the thread
+  // in accept_loops_thread_pool_ that blocks on BleL2capServerSocket.accept().
+  // That may take some time to complete, but there's no particular reason to
+  // wait around for it.
+  auto item = l2cap_server_socket_map_.extract(it);
+
+  // Store a handle to the BleL2capServerSocket, so we can use it after
+  // removing the entry from l2cap_server_socket_map_; making it scoped
+  // is a bonus that takes care of deallocation before we leave this method.
+  BleL2capServerSocket& listening_socket = item.mapped();
+
+  // Regardless of whether or not we fail to close the existing
+  // BleL2capServerSocket, remove it from l2cap_server_socket_map_ so that it
+  // frees up this service for another round.
+
+  // Finally, close the BleL2capServerSocket.
+  if (!listening_socket.Close().Ok()) {
+    LOG(INFO) << "Failed to close Ble L2CAP server socket for service_id="
+              << service_id;
+    return false;
+  }
+
+  return true;
+}
+
 bool BleV2::IsAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
   return IsAcceptingConnectionsLocked(service_id);
+}
+
+bool BleV2::IsAcceptingL2capConnections(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+  return IsAcceptingL2capConnectionsLocked(service_id);
 }
 
 ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
@@ -739,6 +858,10 @@ bool BleV2::IsScanningLocked(const std::string& service_id) const {
 
 bool BleV2::IsAcceptingConnectionsLocked(const std::string& service_id) {
   return server_sockets_.contains(service_id);
+}
+
+bool BleV2::IsAcceptingL2capConnectionsLocked(const std::string& service_id) {
+  return l2cap_server_socket_map_.contains(service_id);
 }
 
 bool BleV2::IsAdvertisementGattServerRunningLocked() {

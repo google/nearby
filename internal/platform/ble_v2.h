@@ -335,6 +335,78 @@ class GattClient final {
   std::unique_ptr<api::ble_v2::GattClient> impl_;
 };
 
+class BleL2capSocket final {
+ public:
+  BleL2capSocket(BleV2Peripheral peripheral,
+                 std::unique_ptr<api::ble_v2::BleL2capSocket> socket)
+      : peripheral_(peripheral) {};
+  BleL2capSocket(const BleL2capSocket&) = default;
+  BleL2capSocket& operator=(const BleL2capSocket&) = default;
+  ~BleL2capSocket() = default;
+  explicit BleL2capSocket(std::unique_ptr<api::ble_v2::BleL2capSocket> socket)
+      : impl_(std::move(socket)) {}
+
+  // Returns InputStream of the BleL2capSocket.
+  InputStream& GetInputStream() { return impl_->GetInputStream(); }
+  // Returns OutputStream of the BleL2capSocket.
+  OutputStream& GetOutputStream() { return impl_->GetOutputStream(); }
+  // Sets the close notifier by client side.
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    impl_->SetCloseNotifier(std::move(notifier));
+  }
+  // Closes the BleL2capSocket.
+  Exception Close() { return impl_->Close(); }
+  // Returns BlePeripheral object which wraps a valid BlePeripheral pointer.
+  BleV2Peripheral& GetRemotePeripheral() { return peripheral_; }
+  // Returns true if a BleL2capSocket is usable. If this method returns false,
+  // it is not safe to call any other method.
+  bool IsValid() const { return impl_ != nullptr; }
+  api::ble_v2::BleL2capSocket& GetImpl() { return *impl_; }
+
+ private:
+  std::shared_ptr<api::ble_v2::BleL2capSocket> impl_;
+  BleV2Peripheral peripheral_;
+};
+
+class BleL2capServerSocket final {
+ public:
+  BleL2capServerSocket(
+      BleV2Medium& medium,
+      std::unique_ptr<api::ble_v2::BleL2capServerSocket> socket)
+      : medium_(&medium), impl_(std::move(socket)) {}
+  BleL2capServerSocket(const BleL2capServerSocket&) = default;
+  BleL2capServerSocket& operator=(const BleL2capServerSocket&) = default;
+  ~BleL2capServerSocket() = default;
+  explicit BleL2capServerSocket(
+      std::unique_ptr<api::ble_v2::BleL2capServerSocket> socket)
+      : impl_(std::move(socket)) {}
+
+  // Accepts an incoming connection.
+  BleL2capSocket Accept() {
+    std::unique_ptr<api::ble_v2::BleL2capSocket> socket = impl_->Accept();
+    if (!socket) {
+      LOG(INFO) << "BleL2capServerSocket Accept() failed on server socket: "
+                << this;
+    }
+    return BleL2capSocket(std::move(socket));
+  }
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  Exception Close() {
+    LOG(INFO) << "BleL2capServerSocket Closing:: " << this;
+    return impl_->Close();
+  }
+
+  // Returns true if a BleL2capServerSocket is usable. If this method returns
+  // false, it is not safe to call any other method.
+  bool IsValid() const { return impl_ != nullptr; }
+  api::ble_v2::BleL2capServerSocket& GetImpl() { return *impl_; }
+
+ private:
+  BleV2Medium* medium_ = nullptr;
+  std::shared_ptr<api::ble_v2::BleL2capServerSocket> impl_;
+};
+
 // Container of operations that can be performed over the BLE medium.
 class BleV2Medium final {
  public:
@@ -440,6 +512,10 @@ class BleV2Medium final {
   // On Success, BleServerSocket::IsValid() returns true.
   BleV2ServerSocket OpenServerSocket(const std::string& service_id);
 
+  // Returns a new BleL2capServerSocket.
+  // On Success, BleL2capServerSocket::IsValid() returns true.
+  BleL2capServerSocket OpenL2capServerSocket(const std::string& service_id);
+
   // Returns a new BleLanSocket.
   // On Success, BleLanSocket::IsValid() returns true.
   BleV2Socket Connect(const std::string& service_id,
@@ -460,6 +536,12 @@ class BleV2Medium final {
   void AddAlternateUuidForService(uint16_t uuid,
                                   const std::string& service_id) {
     impl_->AddAlternateUuidForService(uuid, service_id);
+  }
+
+  // Returns PSM value.
+  int GetPSM() {
+    // TODO(mingshiouwu): Replace with real implementation.
+    return 0;
   }
 
  private:

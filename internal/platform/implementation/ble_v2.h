@@ -376,6 +376,54 @@ class BleServerSocket {
   virtual Exception Close() = 0;
 };
 
+// A BLE L2CAP client socket for requesting L2CAP socket.
+class BleL2capSocket {
+ public:
+  virtual ~BleL2capSocket() = default;
+
+  // Returns the InputStream of the BleL2capSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleL2capSocket object is destroyed.
+  virtual InputStream& GetInputStream() = 0;
+
+  // Returns the OutputStream of the BleL2capSocket.
+  // On error, returned stream will report Exception::kIo on any operation.
+  //
+  // The returned object is not owned by the caller, and can be invalidated once
+  // the BleL2capSocket object is destroyed.
+  virtual OutputStream& GetOutputStream() = 0;
+
+  // Returns Exception::kIo on error, Exception::kSuccess otherwise.
+  virtual Exception Close() = 0;
+
+  // Sets the close notifier by client side.
+  virtual void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {};
+
+  // Returns valid BlePeripheral pointer if there is a connection, and
+  // nullptr otherwise.
+  virtual BlePeripheral* GetRemotePeripheral() = 0;
+};
+
+// A BLE L2CAP server socket for listening incoming L2CAP socket.
+class BleL2capServerSocket {
+ public:
+  virtual ~BleL2capServerSocket() = default;
+
+  // Blocks until either:
+  // - at least one incoming connection request is available, or
+  // - ServerSocket is closed.
+  // On success, returns connected socket, ready to exchange data.
+  // Returns nullptr on error.
+  // Once error is reported, it is permanent, and L2CAP ServerSocket has to be
+  // closed.
+  virtual std::unique_ptr<BleL2capSocket> Accept() = 0;
+
+  // Closes the L2CAP server socket.
+  virtual Exception Close() = 0;
+};
+
 // The main BLE medium used inside of Nearby. This serves as the entry point
 // for all BLE and GATT related operations.
 class BleMedium {
@@ -514,6 +562,15 @@ class BleMedium {
   // On error, returns nullptr.
   virtual std::unique_ptr<BleServerSocket> OpenServerSocket(
       const std::string& service_id) = 0;
+
+  // Opens a BLE l2cap server socket based on service ID.
+  //
+  // On success, returns a new BleL2capServerSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<BleL2capServerSocket> OpenL2capServerSocket(
+      const std::string& service_id) {
+    return nullptr;
+  }
 
   // Connects to a BLE peripheral.
   //
