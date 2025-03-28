@@ -23,6 +23,7 @@ package(default_visibility = [
 objc_library(
     name = "apple",
     srcs = [
+        "awdl.mm",
         "crypto.mm",
         "device_info.mm",
         "multi_thread_executor.mm",
@@ -34,6 +35,7 @@ objc_library(
         "wifi_lan.mm",
     ],
     hdrs = [
+        "awdl.h",
         "device_info.h",
         "multi_thread_executor.h",
         "preferences_manager.h",

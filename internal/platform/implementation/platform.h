@@ -21,6 +21,7 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/ble.h"
@@ -126,6 +127,7 @@ class ImplementationPlatform {
   static std::unique_ptr<ScheduledExecutor> CreateScheduledExecutor();
 
   // Protocol implementations, domain-specific support
+  static std::unique_ptr<AwdlMedium> CreateAwdlMedium();
   static std::unique_ptr<BluetoothAdapter> CreateBluetoothAdapter();
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
       BluetoothAdapter&);

@@ -75,13 +75,36 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   NSMutableDictionary<NSString *, nw_browser_t> *_serviceBrowsers;
 }
 
-- (instancetype)initWithIncludePeerToPeer:(BOOL)includePeerToPeer {
+- (instancetype)init {
   if (self = [super init]) {
-    _includePeerToPeer = includePeerToPeer;
+    _includePeerToPeer = NO;
     _serverSockets = [NSMapTable strongToWeakObjectsMapTable];
     _serviceBrowsers = [[NSMutableDictionary alloc] init];
   }
   return self;
+}
+
+static GNCNWFramework *gInstance = nil;
+
++ (GNCNWFramework *)sharedInstance {
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    @synchronized([GNCNWFramework class]) {
+      if (!gInstance) {
+        gInstance = [[self alloc] init];
+      }
+    }
+  });
+
+  return gInstance;
+}
+
+- (BOOL) isListeningForAnyService {
+  return _serverSockets.count > 0;
+}
+
+- (BOOL) isDiscoveringAnyService {
+  return _serviceBrowsers.count > 0;
 }
 
 - (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port error:(NSError **)error {
@@ -107,6 +130,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 - (void)stopAdvertisingPort:(NSInteger)port {
   GNCNWFrameworkServerSocket *serverSocket = [_serverSockets objectForKey:@(port)];
   [serverSocket stopAdvertising];
+  [_serverSockets removeObjectForKey:@(port)];
 }
 
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType

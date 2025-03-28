@@ -29,20 +29,10 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 @interface GNCNWFramework : NSObject
 
 /** Whether to include peer-to-peer services. */
-@property(atomic, readonly) BOOL includePeerToPeer;
+@property(atomic, readwrite) BOOL includePeerToPeer;
 
-/**
- * @remark init is not an available initializer.
- *
- */
-- (nonnull instancetype)init NS_UNAVAILABLE;
-
-/**
- * Initializes the @c GNCNWFramework object.
- *
- * @param includePeerToPeer Whether to include peer-to-peer services.
- */
-- (nonnull instancetype)initWithIncludePeerToPeer:(BOOL)includePeerToPeer NS_DESIGNATED_INITIALIZER;
+/** The shared instance of the @c GNCNWFramework object. */
++ (nonnull instancetype)sharedInstance;
 
 /**
  * Listens for incoming connections on a given port.
@@ -128,4 +118,13 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
                                             port:(NSInteger)port
                                            error:(NSError **_Nullable)error;
 
+/**
+ * Returns YES if the framework is listening for any service.
+ */
+- (BOOL)isListeningForAnyService;
+
+/**
+ * Returns YES if the framework is discovering any service.
+ */
+- (BOOL)isDiscoveringAnyService;
 @end
