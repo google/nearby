@@ -383,6 +383,11 @@ ErrorOr<bool> BleV2::StartScanning(const std::string& service_id, Pcp pcp,
                                    DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
+  if (!is_restore_scanning_) {
+    current_scan_params_ = {service_id, pcp, power_level,
+                            include_dct_advertisement};
+  }
+
   if (service_id.empty()) {
     LOG(INFO) << "Can not start BLE scanning with empty service id.";
     return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
@@ -525,6 +530,17 @@ ErrorOr<bool> BleV2::StartScanning(const std::string& service_id, Pcp pcp,
 
   LOG(INFO) << "Turned on BLE scanning with service id=" << service_id;
   return {true};
+}
+
+ErrorOr<bool> BleV2::RestoreScanning() {
+  is_restore_scanning_ = true;
+  auto result = StartScanning(current_scan_params_.service_id,
+                       current_scan_params_.pcp,
+                       current_scan_params_.power_level,
+                       current_scan_params_.include_dct_advertisement,
+                       {});
+  is_restore_scanning_ = false;
+  return result;
 }
 
 bool BleV2::StopScanning(const std::string& service_id) {
