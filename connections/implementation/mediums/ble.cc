@@ -238,6 +238,10 @@ bool Ble::StartScanning(const std::string& service_id,
                         DiscoveredPeripheralCallback callback) {
   MutexLock lock(&mutex_);
 
+  if (!is_restore_scanning_) {
+    current_scan_params_ = {service_id, fast_advertisement_service_uuid};
+  }
+
   discovered_peripheral_callback_ = std::move(callback);
 
   if (service_id.empty()) {
@@ -301,6 +305,15 @@ bool Ble::StartScanning(const std::string& service_id,
   // Mark the fact that we're currently performing a BLE discovering.
   scanning_info_.Add(service_id);
   return true;
+}
+
+bool Ble::RestoreScanning() {
+  is_restore_scanning_ = true;
+  auto result =
+      StartScanning(current_scan_params_.service_id,
+                    current_scan_params_.fast_advertisement_service_uuid, {});
+  is_restore_scanning_ = false;
+  return result;
 }
 
 bool Ble::StopScanning(const std::string& service_id) {
