@@ -141,6 +141,10 @@ class BleV2 final {
                               DiscoveredPeripheralCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Restores BLE scanning.
+  // Returns true, if the scanning is successfully restored, false otherwise.
+  ErrorOr<bool> RestoreScanning();
+
   // Disables BLE scanning for a service ID.
   // Returns true, if the scanning was previously enabled, false otherwise.
   bool StopScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
@@ -207,6 +211,13 @@ class BleV2 final {
     ByteArray dct_advertisement;
     PowerLevel power_level;
     AdvertisingType advertising_type;
+  };
+
+  struct CurrentScanParams {
+    std::string service_id;
+    Pcp pcp;
+    PowerLevel power_level;
+    bool include_dct_advertisement;
   };
 
   // Same as IsAvailable(), but must be called with `mutex_` held.
@@ -341,6 +352,9 @@ class BleV2 final {
   // it's okay to restart L2CAP server related operations.
   absl::flat_hash_map<std::string, BleL2capSocket>
       l2cap_incoming_service_id_to_socket_map_ ABSL_GUARDED_BY(mutex_);
+
+      CurrentScanParams current_scan_params_;
+      bool is_restore_scanning_ = false;
 };
 
 }  // namespace connections
