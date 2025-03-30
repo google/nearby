@@ -15,7 +15,17 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+@class GNCBLEL2CAPStream;
+@protocol GNCPeripheralManager;
+
 NS_ASSUME_NONNULL_BEGIN
+
+/**
+ * Completion handler for starting listening for an L2CAP channel.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
+typedef void (^GNCStartListeningL2CAPChannelCompletionHandler)(NSError *_Nullable error);
 
 /**
  * An object that publishes the @c PSM value.
@@ -28,11 +38,33 @@ NS_ASSUME_NONNULL_BEGIN
 @property(atomic, readonly) CBL2CAPPSM PSM;
 
 /**
- * Retrieves the L2CAP channel.
+ * Creates a L2CAP server with a provided peripheral manager.
  *
- * @return The L2CAP channel, or nil if the channel is not available.
+ * @param peripheralManager The peripheral manager instance. Note: This is only exposed for testing
+ *                          and can be used to inject a fake peripheral manager.
  */
-- (nullable CBL2CAPChannel *)getChannel;
+- (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager;
+
+/**
+ * Starts listening for an L2CAP channel.
+ *
+ * @param completionHandler The completion handler to call when the L2CAP channel is started.
+ */
+- (void)startListeningChannelWithCompletionHandler:
+    (GNCStartListeningL2CAPChannelCompletionHandler)completionHandler;
+
+/**
+ * Accepts an incoming L2CAP connection.
+ *
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ * @return The L2CAP stream, or @c nil if no error occurred.
+ */
+- (nullable GNCBLEL2CAPStream *)acceptWithError:(NSError **)error;
+
+/**
+ * Closes the L2CAP channel
+ */
+- (void)close;
 
 @end
 
