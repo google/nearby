@@ -287,6 +287,8 @@ void NcStartAdvertising(
         std::string(advertising_options->fast_advertisement_service_uuid.data,
                     advertising_options->fast_advertisement_service_uuid.size);
   }
+  cpp_advertising_options.allowed.awdl =
+      advertising_options->common_options.allowed_mediums[NC_MEDIUM_AWDL];
 
   cpp_advertising_options.is_out_of_band_connection =
       advertising_options->is_out_of_band_connection;
@@ -378,6 +380,8 @@ void NcStartDiscovery(NC_INSTANCE instance, const NC_DATA* service_id,
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];
   cpp_discovery_options.allowed.web_rtc =
       discovery_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
+  cpp_discovery_options.allowed.awdl =
+      discovery_options->common_options.allowed_mediums[NC_MEDIUM_AWDL];
 
   NC_DISCOVERY_LISTENER discovery_listener_copy = *discovery_listener;
   ::nearby::connections::DiscoveryListener listener;
