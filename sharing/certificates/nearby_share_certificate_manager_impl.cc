@@ -39,7 +39,6 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "proto/identity/v1/resources.pb.h"
 #include "proto/identity/v1/rpcs.pb.h"
@@ -53,7 +52,6 @@
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
-#include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
@@ -424,7 +422,9 @@ void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
       return;
     }
 
-    if (!account_manager_.GetCurrentAccount().has_value()) {
+    std::string device_id = local_device_data_manager_->GetId();
+    if (!account_manager_.GetCurrentAccount().has_value() ||
+        device_id.empty()) {
       LOG(WARNING) << "Ignore certificates download, no logged in account.";
       download_public_certificates_scheduler_->HandleResult(/*success=*/true);
       return;
@@ -434,7 +434,7 @@ void NearbyShareCertificateManagerImpl::DownloadPublicCertificates() {
     // FetchNextPage() returns.
     auto context = std::make_unique<CertificateDownloadContext>(
         nearby_client_.get(), nearby_identity_client_.get(),
-        kDeviceIdPrefix + local_device_data_manager_->GetId(),
+        kDeviceIdPrefix + device_id,
         absl::bind_front(&NearbyShareCertificateManagerImpl::
                              OnPublicCertificatesDownloadFailure,
                          this),

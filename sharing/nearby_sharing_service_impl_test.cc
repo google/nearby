@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>  // NOLINT(build/c++17)
@@ -4821,6 +4822,10 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   // Used to check whether the setting is cleared after login.
   service_->GetSettings()->SetIsAnalyticsEnabled(true);
 
+  std::string device_id =
+      preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
+  EXPECT_TRUE(device_id.empty());
+
   // Create account.
   AccountManager::Account account;
   account.id = kTestAccountId;
@@ -4830,11 +4835,17 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   std::unique_ptr<SigninAttempt> signin_attempt =
       service_->GetAccountManager()->Login("test_client_id",
                                            "test_client_secret");
+  account_manager().NotifyLogin(kTestAccountId);
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
   ASSERT_TRUE(service_->GetAccountManager()->GetCurrentAccount().has_value());
   EXPECT_EQ(service_->GetAccountManager()->GetCurrentAccount()->id,
             kTestAccountId);
+  device_id =
+      preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
+  EXPECT_FALSE(device_id.empty());
+  EXPECT_EQ(device_id.size(), 10u);
+  for (const char c : device_id) EXPECT_TRUE(std::isalnum(c));
 
   // Logout user.
   absl::Notification logout_notification;
@@ -4848,6 +4859,9 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
   EXPECT_TRUE(service_->GetSettings()->GetIsAnalyticsEnabled());
   EXPECT_FALSE(service_->GetAccountManager()->GetCurrentAccount().has_value());
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  device_id =
+      preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
+  EXPECT_TRUE(device_id.empty());
 }
 
 TEST_F(NearbySharingServiceImplTest, LoginShouldSetContactsVisibility) {

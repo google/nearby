@@ -32,7 +32,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
@@ -150,6 +149,19 @@ constexpr absl::string_view kConnectionListenerName = "nearby-share-service";
 constexpr absl::string_view kScreenStateListenerName = "nearby-share-service";
 constexpr absl::string_view kProfileRelativePath = "Google/Nearby/Sharing";
 
+// Using the alphanumeric characters below, this provides 36^10 unique device
+// IDs. Note that the uniqueness requirement is not global; the IDs are only
+// used to differentiate between devices associated with a single GAIA account.
+// This ID length agrees with the GmsCore implementation.
+constexpr size_t kDeviceIdLength = 10;
+
+// Possible characters used in a randomly generated device ID. This agrees with
+// the GmsCore implementation.
+constexpr std::array<char, 36> kAlphaNumericChars = {
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+  'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+  'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
 bool ShouldBlockSurfaceRegistration(BlockedVendorId registering_vendor_id,
                                     BlockedVendorId blocked_vendor_id) {
   return blocked_vendor_id != BlockedVendorId::kNone &&
@@ -186,6 +198,15 @@ OSType ToProtoOsType(::nearby::api::DeviceInfo::OsType os_type) {
     case ::nearby::api::DeviceInfo::OsType::kUnknown:
       return OSType::UNKNOWN_OS_TYPE;
   }
+}
+
+std::string GenerateDeviceId() {
+  std::string id;
+  absl::BitGen bitgen;
+  for (size_t i = 0; i < kDeviceIdLength; ++i)
+    id += kAlphaNumericChars[absl::Uniform(
+        bitgen, 0, static_cast<int>(kAlphaNumericChars.size()))];
+  return id;
 }
 
 }  // namespace
@@ -3590,6 +3611,10 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
       LOG(INFO) << "Clear public certificates. result: " << result;
     });
   } else {
+    // on login generate a new device id
+    std::string device_id = GenerateDeviceId();
+    preference_manager_.SetString(prefs::kNearbySharingDeviceIdName, device_id);
+
     // should clear scheduled task to make it works immediately
     settings_->RemoveSettingsObserver(this);
     prefs::ResetSchedulers(preference_manager_);

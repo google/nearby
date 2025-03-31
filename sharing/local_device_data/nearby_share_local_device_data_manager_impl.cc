@@ -16,7 +16,6 @@
 
 #include <stddef.h>
 
-#include <array>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -27,7 +26,6 @@
 
 #include "absl/algorithm/algorithm.h"
 #include "absl/memory/memory.h"
-#include "absl/random/random.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -61,19 +59,6 @@ using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::SharingRpcClientFactory;
 using ::nearby::sharing::proto::UpdateDeviceRequest;
 using ::nearby::sharing::proto::UpdateDeviceResponse;
-
-// Using the alphanumeric characters below, this provides 36^10 unique device
-// IDs. Note that the uniqueness requirement is not global; the IDs are only
-// used to differentiate between devices associated with a single GAIA account.
-// This ID length agrees with the GmsCore implementation.
-constexpr size_t kDeviceIdLength = 10;
-
-// Possible characters used in a randomly generated device ID. This agrees with
-// the GmsCore implementation.
-constexpr std::array<char, 36> kAlphaNumericChars = {
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-    'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
 constexpr absl::string_view kDeviceIdPrefix = "users/me/devices/";
 constexpr absl::string_view kContactsFieldMaskPath = "contacts";
@@ -142,18 +127,7 @@ NearbyShareLocalDeviceDataManagerImpl::
     ~NearbyShareLocalDeviceDataManagerImpl() = default;
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetId() {
-  std::string id =
-      preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
-  if (!id.empty()) return id;
-
-  absl::BitGen bitgen;
-  for (size_t i = 0; i < kDeviceIdLength; ++i)
-    id += kAlphaNumericChars[absl::Uniform(
-        bitgen, 0, static_cast<int>(kAlphaNumericChars.size()))];
-
-  preference_manager_.SetString(prefs::kNearbySharingDeviceIdName, id);
-
-  return id;
+  return preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
 }
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDeviceName() const {
@@ -205,7 +179,9 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
           return;
         }
 
-        if (!account_manager_.GetCurrentAccount().has_value()) {
+        std::string device_id = GetId();
+        if (!account_manager_.GetCurrentAccount().has_value() ||
+            device_id.empty()) {
           LOG(WARNING) << __func__
                        << ": skip to upload contacts due "
                           "to no login account.";
@@ -215,7 +191,7 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
 
         UpdateDeviceRequest request;
         request.mutable_device()->set_name(
-            absl::StrCat(kDeviceIdPrefix, GetId()));
+            absl::StrCat(kDeviceIdPrefix, device_id));
         request.mutable_device()->mutable_contacts()->Add(contacts.begin(),
                                                           contacts.end());
         request.mutable_update_mask()->add_paths(
@@ -249,11 +225,18 @@ void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
       callback(/*success=*/false, /*contact_removed=*/false);
       return;
     }
+    std::string device_id = GetId();
+    if (device_id.empty()) {
+      LOG(WARNING) << __func__
+                   << ": [Call Identity API] failed, device id is empty.";
+      callback(/*success=*/false, /*contact_removed=*/false);
+      return;
+    }
     LOG(INFO) << __func__ << ": [Call Identity API]  Upload "
               << certificates.size() << " certificates.";
 
     PublishDeviceRequest request;
-    request.mutable_device()->set_name(absl::StrCat("devices/", GetId()));
+    request.mutable_device()->set_name(absl::StrCat("devices/", device_id));
     LOG(INFO) << __func__
               << ": [Call Identity API] PublishDeviceRequest with Device.name: "
               << request.device().name();
@@ -357,7 +340,9 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
       return;
     }
 
-    if (!account_manager_.GetCurrentAccount().has_value()) {
+    std::string device_id = GetId();
+    if (!account_manager_.GetCurrentAccount().has_value() ||
+        device_id.empty()) {
       LOG(WARNING) << __func__
                    << ": skip to upload certificates due "
                       "to no login account.";
@@ -366,7 +351,7 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadCertificates(
     }
     UpdateDeviceRequest request;
     request.mutable_device()->set_name(
-        absl::StrCat(kDeviceIdPrefix, GetId()));
+        absl::StrCat(kDeviceIdPrefix, device_id));
     request.mutable_device()->mutable_public_certificates()->Add(
         certificates.begin(), certificates.end());
     request.mutable_update_mask()->add_paths(

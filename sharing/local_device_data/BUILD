@@ -42,7 +42,6 @@ cc_library(
         "//sharing/proto:share_cc_proto",
         "//util/hash:highway_fingerprint",
         "@com_google_absl//absl/algorithm",
-        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status:statusor",
