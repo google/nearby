@@ -111,6 +111,11 @@ constexpr size_t kNearbyShareCertificateStorageMaxNumInitializeAttempts = 3;
 constexpr absl::Duration kNearbySharePublicCertificateDownloadPeriod =
     absl::Hours(12);
 
+// The frequency with which to upload local device certificates and refresh
+// contacts list.
+constexpr absl::Duration kNearbyShareLocalCertificateUploadPeriod =
+    absl::Hours(24);
+
 }  // namespace sharing
 }  // namespace nearby
 

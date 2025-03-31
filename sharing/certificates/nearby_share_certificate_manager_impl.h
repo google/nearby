@@ -19,7 +19,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,7 +37,6 @@
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/impl/common/nearby_identity_grpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/enums.pb.h"
@@ -154,7 +152,7 @@ class NearbyShareCertificateManagerImpl
       NearbyShareEncryptedMetadataKey encrypted_metadata_key,
       CertDecryptedCallback callback) override;
   void DownloadPublicCertificates() override;
-  void PrivateCertificateRefresh(bool force_upload) override;
+  void ForceUploadPrivateCertificates() override;
   void ClearPublicCertificates(std::function<void(bool)> callback) override;
   void OnStart() override;
   void OnStop() override;
@@ -189,22 +187,22 @@ class NearbyShareCertificateManagerImpl
   // certificates are present, and no expiration event is scheduled.
   std::optional<absl::Time> NextPublicCertificateExpirationTime();
 
-  // Invoked by the private certificate expiration scheduler when an expired
-  // private certificate needs to be removed or if no private certificates exist
-  // yet. New certificate(s) will be created, and an upload to the Nearby Share
-  // server will be requested.
-  void OnPrivateCertificateExpiration();
+  // Clears all existing private certificates and regenerates new ones, then
+  // uploads them to the server, without triggering contacts update.
+  void RegeneratePrivateCertificates();
 
-  // Invoked by the public certificate expiration scheduler when an expired
-  // public certificate needs to be removed from storage.
-  void OnPublicCertificateExpiration();
+  // Certificate operations that run on the executor.
+  // Returns true if the operation was successful.
+  bool RefreshPrivateCertificatesInExecutor(bool force_upload);
+  bool UploadDeviceCertificatesInExecutor(bool force_update_contacts);
+  bool DownloadPublicCertificatesInExecutor();
+  bool RemoveExpiredPublicCertificatesInExecutor();
 
-  void UploadLocalDeviceCertificates();
-
-  void OnPublicCertificatesDownloadSuccess(
+  // Updates the public certificates in the certificate storage. Returns true if
+  // the certificates were successfully updated.
+  bool UpdatePublicCertificates(
       const std::vector<nearby::sharing::proto::PublicCertificate>&
           certificates);
-  void OnPublicCertificatesDownloadFailure();
 
   Context* const context_;
   AccountManager& account_manager_;
@@ -220,16 +218,10 @@ class NearbyShareCertificateManagerImpl
       private_certificate_expiration_scheduler_;
   std::unique_ptr<NearbyShareScheduler>
       public_certificate_expiration_scheduler_;
-  std::unique_ptr<NearbyShareScheduler>
-      upload_local_device_certificates_scheduler_;
+  std::unique_ptr<NearbyShareScheduler> force_contacts_update_scheduler_;
   std::unique_ptr<NearbyShareScheduler> download_public_certificates_scheduler_;
 
   std::unique_ptr<TaskRunner> executor_;
-  // Whether we need to regenerate the certificates and make another
-  // PublishDevice call. At every PublishDevice call, we check
-  // PublishDeviceResponse to see if contacts are removed. In which case, we
-  // need to regenerate the certificates and make another PublishDevice call.
-  bool call_publish_device_after_certs_regen_ = false;
 };
 
 }  // namespace sharing

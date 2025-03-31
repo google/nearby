@@ -27,7 +27,6 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
 namespace nearby {
@@ -119,9 +118,9 @@ class NearbyShareCertificateManager {
   // OnPublicCertificatesDownloaded().
   virtual void DownloadPublicCertificates() = 0;
 
-  // Checks the expiration of the private certificates and Refreshes if needed.
-  // If force_upload is true, the private certificates will always be uploaded.
-  virtual void PrivateCertificateRefresh(bool force_upload) = 0;
+  // Checks the expiration of the private certificates and Refreshes if needed,
+  // then upload to the server and refresh the contacts list.
+  virtual void ForceUploadPrivateCertificates() = 0;
 
   // Clears all public certificates. when account logout,the public certificates
   // should be cleared.
