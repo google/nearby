@@ -90,6 +90,9 @@ constexpr auto kUseStableEndpointId =
 constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
     flags::Flag<bool>(kConfigPackage, "45687098", true);
 
+// When true, AWDL feature.
+constexpr auto kEnableAwdl =
+    flags::Flag<bool>(kConfigPackage, "45669531", true);
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections

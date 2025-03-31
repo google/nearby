@@ -331,6 +331,10 @@ std::string BasePcpHandler::GetStringValueOfSupportedMediums(
 void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
                                     std::ostringstream& result) const {
   result << "{ ";
+  if (allowed.awdl) {
+    result << location::nearby::proto::connections::Medium_Name(Medium::AWDL)
+           << " ";
+  }
   if (allowed.bluetooth) {
     result << location::nearby::proto::connections::Medium_Name(
                   Medium::BLUETOOTH)
@@ -416,6 +420,24 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
             !advertising_options.allowed.web_rtc) {
           // The local client does not allow WebRTC for listening or upgrades,
           // ignore.
+          continue;
+        }
+      }
+
+      // Upgrade from Awdl to Wifi LAN or Wifi LAN to Awdl P2P will cause
+      // the connection to failed, so block the upgrade.
+      if (my_medium == location::nearby::proto::connections::Medium::AWDL ||
+          my_medium == location::nearby::proto::connections::Medium::WIFI_LAN) {
+        if (pending_connection_info.medium ==
+                location::nearby::proto::connections::Medium::AWDL ||
+            pending_connection_info.medium ==
+                location::nearby::proto::connections::Medium::WIFI_LAN) {
+          NEARBY_LOGS(INFO)
+              << "Not allow to upgrade from "
+              << location::nearby::proto::connections::Medium_Name(
+                     pending_connection_info.medium)
+              << " to "
+              << location::nearby::proto::connections::Medium_Name(my_medium);
           continue;
         }
       }
@@ -1169,6 +1191,9 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
   if (allowed.wifi_direct) {
     allowed.wifi_direct = mediums_->GetWifiDirect().IsGOAvailable();
+  }
+  if (allowed.awdl) {
+    allowed.awdl = mediums_->GetAwdl().IsAvailable();
   }
 }
 
