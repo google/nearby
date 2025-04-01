@@ -226,6 +226,9 @@ message BandwidthUpgradeNegotiationFrame {
     CLIENT_INTRODUCTION = 4;
     UPGRADE_FAILURE = 5;
     CLIENT_INTRODUCTION_ACK = 6;
+    // The event type that requires the remote device to send the available
+    // upgrade path.
+    UPGRADE_PATH_REQUEST = 7;
   }
 
   // Accompanies UPGRADE_PATH_AVAILABLE and UPGRADE_FAILURE events.
@@ -299,6 +302,12 @@ message BandwidthUpgradeNegotiationFrame {
       optional LocationHint location_hint = 2;
     }
 
+    message UpgradePathRequest {
+      // Supported mediums on the advertiser device.
+      repeated Medium mediums = 1 [packed = true];
+      optional MediumMetadata medium_meta_data = 2;
+    }
+
     optional Medium medium = 1;
 
     // Exactly one of the following fields will be set.
@@ -314,6 +323,8 @@ message BandwidthUpgradeNegotiationFrame {
 
     // An ack will be sent after the CLIENT_INTRODUCTION frame.
     optional bool supports_client_introduction_ack = 9;
+
+    optional UpgradePathRequest upgrade_path_request = 10;
   }
 
   // Accompanies SAFE_TO_CLOSE_PRIOR_CHANNEL events.
@@ -460,6 +471,8 @@ message MediumMetadata {
   optional WifiAwareUsableChannels wifi_aware_usable_channels = 10;
   // Usable WiFi Hotspot STA channels on the local device.
   optional WifiHotspotStaUsableChannels wifi_hotspot_sta_usable_channels = 11;
+  // The supported medium roles.
+  optional MediumRole medium_role = 12;
 }
 
 // Available channels on the local device.
@@ -485,6 +498,18 @@ message WifiAwareUsableChannels {
 // Usable WiFi Hotspot STA channels on the local device.
 message WifiHotspotStaUsableChannels {
   repeated int32 channels = 1 [packed = true];
+}
+
+// The medium roles.
+message MediumRole {
+  optional bool support_wifi_direct_group_owner = 1;
+  optional bool support_wifi_direct_group_client = 2;
+  optional bool support_wifi_hotspot_host = 3;
+  optional bool support_wifi_hotspot_client = 4;
+  optional bool support_wifi_aware_publisher = 5;
+  optional bool support_wifi_aware_subscriber = 6;
+  optional bool support_awdl_publisher = 7;
+  optional bool support_awdl_subscriber = 8;
 }
 
 // LocationHint is used to specify a location as well as format.
