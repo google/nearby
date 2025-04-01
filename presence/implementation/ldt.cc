@@ -23,7 +23,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #ifdef NEARBY_CHROMIUM
-#include "third_party/beto-core/src/nearby/presence/ldt_np_adv_ffi/c/include/np_ldt.h"
+#include "third_party/nearby/src/presence/implementation/np_ldt.h"
 #else
 #include "np_ldt.h"
 #endif
