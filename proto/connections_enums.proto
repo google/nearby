@@ -477,6 +477,7 @@ enum OperationResultCategory {
   CATEGORY_CONNECTIVITY_ERROR = 7;
   CATEGORY_MISCELLANEOUS = 8;
   CATEGORY_IO_ERROR = 9;
+  CATEGORY_DCT_ERROR = 10;
 }
 
 // This enum is not used to determine success rate, but for devs to understand
@@ -1266,6 +1267,58 @@ enum OperationResultCode {
   NEARBY_REMOTE_EXCEPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4608;
   // Bad file description when processing received payload
   NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609;
+
+  // Section of CATEGORY_DCT_ERROR, from 5000
+  // BLE is disabled
+  DCT_ERROR_BLE_DISABLED = 5000;
+  // Failed to start BLE advertisement
+  DCT_ERROR_BLE_ADV_FAILED = 5001;
+  // Failed to start BLE scan
+  DCT_ERROR_BLE_SCAN_FAILED = 5002;
+  // Failed to start L2CAP server
+  DCT_ERROR_L2CAP_SERVER_FAILED = 5003;
+  // Failed to start L2CAP client
+  DCT_ERROR_L2CAP_CLIENT_FAILED = 5004;
+  // Failed to start MDNS discovery
+  DCT_ERROR_MDNS_DISCOVERY_TIMEOUT = 5005;
+  // Failed to register MDNS service
+  DCT_ERROR_MDNS_REGISTER_SERVICE = 5006;
+  // Failed to start TLS SPAKE for initial connection
+  DCT_ERROR_INITIAL_TLS_SPAKE = 5007;
+  // Failed to start TLS SPAKE for subsequent connection
+  DCT_ERROR_SUBSEQUENT_TLS_SPAKE = 5008;
+  // Failed to send request
+  DCT_ERROR_REQUEST_FAILED = 5009;
+  // Failed to receive response
+  DCT_ERROR_RESPONSE_FAILED = 5010;
+  // Failed to exchange control messages
+  DCT_ERROR_CONTROL_MESSAGE_EXCHANGE = 5011;
+  // DCT device capability mismatch
+  DCT_ERROR_CAPABILITY_MISMATCH = 5012;
+  // High speed medium is unavailable
+  DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE = 5013;
+  // Wifi is disabled
+  DCT_ERROR_WIFI_DISABLED = 5014;
+  // Wifi is disconnected
+  DCT_ERROR_WIFI_DISCONNECTED = 5015;
+  // Failed to transfer wifi credential
+  DCT_ERROR_WIFI_CREDENTIAL_TRANSFER = 5016;
+  // Failed to connect to wifi internet
+  DCT_ERROR_WIFI_INTERNET_CONNECTION = 5017;
+  // Failed to upgrade to high speed medium
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 5018;
+  // Tcp keepalive timeout
+  DCT_ERROR_KEEPALIVE_TIMEOUT = 5019;
+  // Connection lost
+  DCT_ERROR_ESTABLISHED_CONNECTION_LOST = 5020;
+  // User cancelled the connection
+  DCT_ERROR_USER_CANCELLED = 5021;
+  // Service cancelled
+  DCT_ERROR_SERVICE_CANCELLED = 5022;
+  // Faile to verify integrity
+  DCT_ERROR_UNVERIFIED_INTEGRITY = 5023;
+  // HTTP server closed
+  DCT_ERROR_HTTP_SERVER_CLOSED = 5024;
 }
 
 enum StopAdvertisingReason {
