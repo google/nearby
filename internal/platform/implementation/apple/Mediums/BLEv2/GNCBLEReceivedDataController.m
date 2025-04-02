@@ -12,24 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEReceivedDataController.h"
 
 #import <Foundation/Foundation.h>
 
-@protocol GNCPeripheralManager;
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GNCBLEL2CAPServer (Testing)
+@implementation GNCBLEReceivedDataController
 
-/**
- * Creates a L2CAP server with a provided peripheral manager.
- *
- * This is only exposed for testing and can be used to inject a fake peripheral manager.
- *
- * @param peripheralManager The peripheral manager instance.
- */
-- (instancetype)initWithPeripheralManager:(id<GNCPeripheralManager>)peripheralManager;
++ (instancetype)receivedDataHandler:(GNCBLEReceivedDataHandler)receivedDataHandler {
+  GNCBLEReceivedDataController *controller = [[self alloc] init];
+  controller.receivedDataHandler = receivedDataHandler;
+  return controller;
+}
 
 @end
 

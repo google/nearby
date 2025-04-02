@@ -97,6 +97,9 @@ BleV2::~BleV2() {
   while (!server_sockets_.empty()) {
     StopAcceptingConnections(server_sockets_.begin()->first);
   }
+  while (!l2cap_server_sockets_.empty()) {
+    StopAcceptingL2capConnections(l2cap_server_sockets_.begin()->first);
+  }
 
   serial_executor_.Shutdown();
   alarm_executor_.Shutdown();
@@ -175,7 +178,11 @@ ErrorOr<bool> BleV2::StartAdvertising(const std::string& service_id,
   // Wrap the connections advertisement to the medium advertisement.
   ByteArray service_id_hash = mediums::bleutils::GenerateHash(
       service_id, mediums::BleAdvertisement::kServiceIdHashLength);
-  int psm = medium_.GetPSM();
+  int psm = mediums::BleAdvertisementHeader::kDefaultPsmValue;
+  const auto it = l2cap_server_sockets_.find(service_id);
+  if (it != l2cap_server_sockets_.end()) {
+    psm = it->second.GetPSM();
+  }
   mediums::BleAdvertisement medium_advertisement = {
       mediums::BleAdvertisement::Version::kV2,
       mediums::BleAdvertisement::SocketVersion::kV2,
@@ -677,7 +684,7 @@ ErrorOr<bool> BleV2::StartAcceptingL2capConnections(
     // Mark the fact that there's an in-progress Ble server accepting
     // connections.
     auto owned_server_socket =
-        l2cap_server_socket_map_.insert({service_id, std::move(server_socket)})
+        l2cap_server_sockets_.insert({service_id, std::move(server_socket)})
             .first->second;
     // Start the accept loop on a dedicated thread - this stays alive and
     // listening for new incoming connections until StopAcceptingConnections()
@@ -701,7 +708,7 @@ ErrorOr<bool> BleV2::StartAcceptingL2capConnections(
                 MutexLock lock(&mutex_);
                 incoming_sockets_.erase(service_id);
               });
-              l2cap_incoming_service_id_to_socket_map_.insert(
+              l2cap_incoming_service_id_to_sockets_.insert(
                   {service_id, client_socket});
             }
             if (callback) {
@@ -757,8 +764,8 @@ bool BleV2::StopAcceptingConnections(const std::string& service_id) {
 bool BleV2::StopAcceptingL2capConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
-  const auto it = l2cap_server_socket_map_.find(service_id);
-  if (it == l2cap_server_socket_map_.end()) {
+  const auto it = l2cap_server_sockets_.find(service_id);
+  if (it == l2cap_server_sockets_.end()) {
     LOG(INFO) << "Can't stop accepting Ble L2CAP connections because it was "
                  "never started.";
     return false;
@@ -768,15 +775,15 @@ bool BleV2::StopAcceptingL2capConnections(const std::string& service_id) {
   // in accept_loops_thread_pool_ that blocks on BleL2capServerSocket.accept().
   // That may take some time to complete, but there's no particular reason to
   // wait around for it.
-  auto item = l2cap_server_socket_map_.extract(it);
+  auto item = l2cap_server_sockets_.extract(it);
 
   // Store a handle to the BleL2capServerSocket, so we can use it after
-  // removing the entry from l2cap_server_socket_map_; making it scoped
+  // removing the entry from l2cap_server_sockets_; making it scoped
   // is a bonus that takes care of deallocation before we leave this method.
   BleL2capServerSocket& listening_socket = item.mapped();
 
   // Regardless of whether or not we fail to close the existing
-  // BleL2capServerSocket, remove it from l2cap_server_socket_map_ so that it
+  // BleL2capServerSocket, remove it from l2cap_server_sockets_ so that it
   // frees up this service for another round.
 
   // Finally, close the BleL2capServerSocket.
@@ -898,7 +905,7 @@ bool BleV2::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 bool BleV2::IsAcceptingL2capConnectionsLocked(const std::string& service_id) {
-  return l2cap_server_socket_map_.contains(service_id);
+  return l2cap_server_sockets_.contains(service_id);
 }
 
 bool BleV2::IsAdvertisementGattServerRunningLocked() {
