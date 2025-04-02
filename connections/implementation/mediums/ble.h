@@ -77,6 +77,10 @@ class Ble {
                      DiscoveredPeripheralCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Restores BLE scanning.
+  // Returns true, if the scanning is successfully restored, false otherwise.
+  bool RestoreScanning();
+
   // Disables Ble discovery mode.
   bool StopScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -160,6 +164,11 @@ class Ble {
     absl::flat_hash_set<std::string> service_ids;
   };
 
+  struct CurrentScanParams {
+    std::string service_id;
+    std::string fast_advertisement_service_uuid;
+  };
+
   static constexpr int kMaxAdvertisementLength = 512;
 
   static ByteArray GenerateHash(const std::string& source, size_t size);
@@ -193,6 +202,8 @@ class Ble {
   ScanningInfo scanning_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveredPeripheralCallback discovered_peripheral_callback_;
   AcceptingConnectionsInfo accepting_connections_info_ ABSL_GUARDED_BY(mutex_);
+  CurrentScanParams current_scan_params_;
+  bool is_restore_scanning_ = false;
 };
 
 }  // namespace connections

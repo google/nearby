@@ -118,11 +118,30 @@ void DiscoveredPeripheralTracker::StartTracking(
   ClearDataForServiceId(service_id);
 }
 
+void DiscoveredPeripheralTracker::RestoreTracking(
+  const std::string& service_id, bool include_dct_advertisement, Pcp pcp,
+  const Uuid& fast_advertisement_service_uuid) {
+  DiscoveredPeripheralCallback discovered_peripheral_callback = {};
+  if (service_id_callback_for_restore_tracking_.contains(service_id)) {
+    discovered_peripheral_callback =
+        std::move(service_id_callback_for_restore_tracking_[service_id]);
+  }
+  service_id_callback_for_restore_tracking_.erase(service_id);
+  StartTracking(service_id, include_dct_advertisement, pcp,
+                std::move(discovered_peripheral_callback),
+                fast_advertisement_service_uuid);
+}
+
 void DiscoveredPeripheralTracker::StopTracking(const std::string& service_id) {
   MutexLock lock(&mutex_);
-
   dct_service_id_hash_to_service_id_map_.erase(
       advertisements::ble::DctAdvertisement::ComputeServiceIdHash(service_id));
+
+  const auto sii_it = service_id_infos_.find(service_id);
+  if (sii_it == service_id_infos_.end()) return;
+
+  service_id_callback_for_restore_tracking_[service_id] =
+      std::move(sii_it->second.discovered_peripheral_callback);
   service_id_infos_.erase(service_id);
 }
 

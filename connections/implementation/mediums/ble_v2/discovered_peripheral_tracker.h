@@ -86,6 +86,17 @@ class DiscoveredPeripheralTracker {
       DiscoveredPeripheralCallback discovered_peripheral_callback,
       const Uuid& fast_advertisement_service_uuid) ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Restore tracking discoveries for a particular service Id.
+  //
+  // service_id                      - The service ID to track.
+  // include_dct_advertisement       - Whether to include dct advertisement.
+  // pcp                             - The pcp mode.
+  // fast_advertisement_service_uuid - The service UUID to look for fast
+  //                                   advertisements on.
+  void RestoreTracking(const std::string& service_id,
+                     bool include_dct_advertisement, Pcp pcp,
+                     const Uuid& fast_advertisement_service_uuid);
+
   // Stops tracking discoveries for a particular service Id.
   void StopTracking(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -345,6 +356,11 @@ class DiscoveredPeripheralTracker {
       ABSL_GUARDED_BY(mutex_);
   absl::Time last_lost_info_update_time_ ABSL_GUARDED_BY(mutex_) =
       absl::InfinitePast();
+
+  // Maps service ID to DiscoveredPeripheralCallback. It's used to restore
+  // the previous stopped tracking.
+  absl::flat_hash_map<std::string, DiscoveredPeripheralCallback>
+  service_id_callback_for_restore_tracking_;
 };
 
 }  // namespace mediums
