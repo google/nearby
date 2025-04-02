@@ -333,14 +333,14 @@ class BleV2 final {
 
   // A map of service_id -> L2capServerSocket. If map is non-empty, we
   // are currently listening for incoming connections.
-  absl::flat_hash_map<std::string, BleL2capServerSocket>
-      l2cap_server_socket_map_ ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, BleL2capServerSocket> l2cap_server_sockets_
+      ABSL_GUARDED_BY(mutex_);
 
   // A map of service_id -> BleL2capSocket.
   // Tracks currently connected incoming sockets. This lets the device know when
   // it's okay to restart L2CAP server related operations.
   absl::flat_hash_map<std::string, BleL2capSocket>
-      l2cap_incoming_service_id_to_socket_map_ ABSL_GUARDED_BY(mutex_);
+      l2cap_incoming_service_id_to_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

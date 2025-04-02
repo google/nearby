@@ -16,13 +16,11 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@class GNCBLEL2CAPStream;
-
 /// Block invoked when the stream is closed.
 typedef void (^GNCBLEL2CAPStreamClosedBlock)(void);
 
 /// Block invoked when |data| is received from the remote device on the L2CAP connection.
-typedef void (^GNCBLEL2CAPControllerReceivedDataBlock)(NSData *data);
+typedef void (^GNCBLEL2CAPStreamReceivedDataBlock)(NSData *data);
 
 /**
  * Abstraction to take in two streams returned from L2CAP controller and provide a simplified
@@ -38,7 +36,7 @@ typedef void (^GNCBLEL2CAPControllerReceivedDataBlock)(NSData *data);
 /// Invokes |receivedDataBlock| with data received |inputStream|.
 /// The blocks are invoked on an arbitrary queue with DISPATCH_QUEUE_PRIORITY_HIGH.
 - (instancetype)initWithClosedBlock:(GNCBLEL2CAPStreamClosedBlock)closedBlock
-                  receivedDataBlock:(GNCBLEL2CAPControllerReceivedDataBlock)receivedDataBlock
+                  receivedDataBlock:(GNCBLEL2CAPStreamReceivedDataBlock)receivedDataBlock
                         inputStream:(NSInputStream *)inputStream
                        outputStream:(NSOutputStream *)outputStream NS_DESIGNATED_INITIALIZER;
 
@@ -51,6 +49,9 @@ typedef void (^GNCBLEL2CAPControllerReceivedDataBlock)(NSData *data);
 /// mean the device received it. NO indicates writing failed, which typically happens when the
 /// stream is torn down.
 - (void)sendData:(NSData *)data completionBlock:(void (^)(BOOL))completionBlock;
+
+/// Closes the stream.
+- (void)close;
 
 /// Tears down the stream.
 - (void)tearDown;

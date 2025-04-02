@@ -37,6 +37,7 @@
 #import "internal/platform/implementation/apple/ble_gatt_server.h"
 #import "internal/platform/implementation/apple/ble_peripheral.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
+#import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
 #import "internal/platform/implementation/apple/ble_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
@@ -48,6 +49,7 @@
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 
@@ -360,6 +362,24 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
     return nullptr;
   }
   return std::move(server_socket);
+}
+
+std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSocket(
+    const std::string &service_id) {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block GNCBLEL2CAPServer* block_l2cap_server = nil;
+  [medium_ openL2CAPServerWithCompletionHandler:^(GNCBLEL2CAPServer *server, NSError *error) {
+    if (error != nil) {
+      GTMLoggerError(@"Error opening L2CAP server: %@", error);
+    }
+    block_l2cap_server = server;
+    dispatch_semaphore_signal(semaphore);
+  }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (!block_l2cap_server) {
+    return nullptr;
+  }
+  return std::make_unique<BleL2capServerSocket>(block_l2cap_server);
 }
 
 // TODO(b/290385712): Add support for @c cancellation_flag.

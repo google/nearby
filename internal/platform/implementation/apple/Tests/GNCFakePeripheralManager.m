@@ -72,10 +72,13 @@
         initWithDescription:@"Fulfilled when peripheral responds to a request with success."];
     _respondToRequestErrorExpectation = [[XCTestExpectation alloc]
         initWithDescription:@"Fulfilled when peripheral responds to a request with an error."];
+    _unpublishExpectation = [[XCTestExpectation alloc]
+        initWithDescription:@"Fulfilled when L2CAP channel is unpublished."];
     _isAdvertising = NO;
     _state = CBManagerStateUnknown;
     _advertisementData = nil;
     _services = [[NSMutableArray alloc] init];
+    _PSM = 192;
   }
   return self;
 }
@@ -141,6 +144,7 @@
   [peripheralDelegate gnc_peripheralManager:self
                    didUnpublishL2CAPChannel:_PSM
                                       error:_didUnPublishL2CAPChannelError];
+  [_unpublishExpectation fulfill];
 }
 
 #pragma mark - Testing Helpers

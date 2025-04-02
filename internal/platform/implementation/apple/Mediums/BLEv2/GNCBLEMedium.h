@@ -18,6 +18,7 @@
 @class GNCBLEGATTServer;
 @class GNCBLEGATTClient;
 @class GNCBLEGATTCharacteristic;
+@class GNCBLEL2CAPServer;
 
 @protocol GNCPeripheral;
 
@@ -86,6 +87,15 @@ typedef void (^GNCGATTDisconnectionHandler)();
  */
 typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable client,
                                                    NSError *_Nullable error);
+
+/**
+ * A block to be invoked when a call to @c openL2CAPServerWithCompletionHandler: has completed.
+ *
+ * @param server The successfully started L2CAP server, or @c nil if an error occurred.
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
+typedef void (^GNCOpenL2CAPServerCompletionHandler)(GNCBLEL2CAPServer *_Nullable server,
+                                                    NSError *_Nullable error);
 
 /**
  * The main BLE medium used inside of Nearby. This serves as the entry point for all BLE and GATT
@@ -180,6 +190,14 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
                     disconnectionHandler:(nullable GNCGATTDisconnectionHandler)disconnectionHandler
                        completionHandler:
                            (nullable GNCGATTConnectionCompletionHandler)completionHandler;
+
+/**
+ * Opens an L2CAP server.
+ *
+ * @param completionHandler Called on a private queue with the L2CAP server if successfully started
+ *                          or an error if one has occured.
+ */
+- (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler;
 
 @end
 

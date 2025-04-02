@@ -252,8 +252,7 @@ BleV2ServerSocket BleV2Medium::OpenServerSocket(const std::string& service_id) {
 
 BleL2capServerSocket BleV2Medium::OpenL2capServerSocket(
     const std::string& service_id) {
-  // TODO(mingshiouwu): Replace with a real implementation listening flow.
-  return BleL2capServerSocket(*this, nullptr);
+  return BleL2capServerSocket(*this, impl_->OpenL2capServerSocket(service_id));
 }
 
 BleV2Socket BleV2Medium::Connect(const std::string& service_id,
