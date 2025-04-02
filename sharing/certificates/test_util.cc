@@ -313,8 +313,6 @@ nearby::sharing::proto::PublicCertificate GetNearbyShareTestPublicCertificate(
       ToJavaTime(not_before + kNearbyShareCertificateValidityPeriod +
                  GetNearbyShareTestValidityOffset()) /
       1000);
-  cert.set_for_selected_contacts(
-      visibility == DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
   cert.set_metadata_encryption_key(
       std::string(GetNearbyShareTestMetadataEncryptionKey().begin(),
                   GetNearbyShareTestMetadataEncryptionKey().end()));

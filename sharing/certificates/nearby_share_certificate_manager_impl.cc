@@ -85,9 +85,8 @@ using ::nearby::sharing::proto::PublicCertificate;
 
 constexpr char kDeviceIdPrefix[] = "users/me/devices/";
 
-constexpr std::array<DeviceVisibility, 3> kVisibilities = {
+constexpr std::array<DeviceVisibility, 2> kVisibilities = {
     DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
-    DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS,
     DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE,
 };
 
@@ -801,11 +800,7 @@ void NearbyShareCertificateManagerImpl::PrivateCertificateRefresh(
         << "Creating "
         << kNearbyShareNumPrivateCertificates -
                num_valid_certs[DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS]
-        << " all-contacts visibility and "
-        << kNearbyShareNumPrivateCertificates -
-               num_valid_certs
-                   [DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS]
-        << " selected-contacts visibility private certificates.";
+        << " all-contacts visibility.";
 
     for (DeviceVisibility visibility : kVisibilities) {
       while (num_valid_certs[visibility] < kNearbyShareNumPrivateCertificates) {

@@ -47,7 +47,7 @@ message PublicCertificate {
   Timestamp end_time = 5;
 
   // Indicates if this public certificate is only for selected contacts.
-  bool for_selected_contacts = 6;
+  bool for_selected_contacts = 6 [deprecated = true];
 
   // This aes key is uploaded from device to server, but not returned to device.
   // It is only public to the server, for encrypting personal info metadata.

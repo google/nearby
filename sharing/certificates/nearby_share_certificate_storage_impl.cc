@@ -362,9 +362,16 @@ NearbyShareCertificateStorageImpl::GetPrivateCertificates() const {
   for (const PrivateCertificateData& cert_data : list) {
     std::optional<NearbySharePrivateCertificate> cert(
         NearbySharePrivateCertificate::FromCertificateData(cert_data));
-    if (!cert) return std::nullopt;
-
-    certs.push_back(*std::move(cert));
+    if (!cert) {
+      return std::nullopt;
+    }
+    // Skip selected contacts visibility certificates.  They are obsolete.
+    if (cert->visibility() ==
+            proto::DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE ||
+        cert->visibility() ==
+            proto::DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS) {
+      certs.push_back(*std::move(cert));
+    }
   }
   return certs;
 }

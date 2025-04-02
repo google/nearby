@@ -757,41 +757,40 @@ TEST_F(NearbyShareCertificateStorageImplTest,
   std::vector<NearbySharePrivateCertificate> certs_all_contacts =
       CreatePrivateCertificates(
           3, DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  std::vector<NearbySharePrivateCertificate> certs_selected_contacts =
-      CreatePrivateCertificates(
-          3, DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
+  std::vector<NearbySharePrivateCertificate> certs_self =
+      CreatePrivateCertificates(3,
+                                DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   std::vector<NearbySharePrivateCertificate> all_certs;
-  all_certs.reserve(certs_all_contacts.size() + certs_selected_contacts.size());
+  all_certs.reserve(certs_all_contacts.size() + certs_self.size());
   all_certs.insert(all_certs.end(), certs_all_contacts.begin(),
                    certs_all_contacts.end());
-  all_certs.insert(all_certs.end(), certs_selected_contacts.begin(),
-                   certs_selected_contacts.end());
+  all_certs.insert(all_certs.end(), certs_self.begin(), certs_self.end());
 
-  // Remove all-contacts certs then selected-contacts certs.
+  // Remove all-contacts certs then remove self certs.
   {
     cert_store->ReplacePrivateCertificates(all_certs);
     cert_store->ClearPrivateCertificatesOfVisibility(
         DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
     auto certs_after = cert_store->GetPrivateCertificates();
     ASSERT_TRUE(certs_after.has_value());
-    ASSERT_EQ(certs_selected_contacts.size(), certs_after->size());
-    for (size_t i = 0; i < certs_selected_contacts.size(); ++i) {
-      EXPECT_EQ(certs_selected_contacts[i].ToCertificateData(),
+    ASSERT_EQ(certs_self.size(), certs_after->size());
+    for (size_t i = 0; i < certs_self.size(); ++i) {
+      EXPECT_EQ(certs_self[i].ToCertificateData(),
                 (*certs_after)[i].ToCertificateData());
     }
 
     cert_store->ClearPrivateCertificatesOfVisibility(
-        DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
+        DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
     certs_after = cert_store->GetPrivateCertificates();
     ASSERT_TRUE(certs_after.has_value());
     EXPECT_EQ(certs_after->size(), 0u);
   }
 
-  // Remove selected-contacts certs then all-contacts certs.
+  // Remove self certs then remove all-contacts certs.
   {
     cert_store->ReplacePrivateCertificates(all_certs);
     cert_store->ClearPrivateCertificatesOfVisibility(
-        DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
+        DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
     auto certs_after = cert_store->GetPrivateCertificates();
     ASSERT_TRUE(certs_after.has_value());
     ASSERT_EQ(certs_all_contacts.size(), certs_after->size());

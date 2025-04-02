@@ -297,8 +297,6 @@ NearbySharePrivateCertificate::ToPublicCertificate() const {
       ToJavaTime(not_before_ - not_before_offset) / 1000);
   public_certificate.mutable_end_time()->set_seconds(
       ToJavaTime(not_after_ + not_after_offset) / 1000);
-  public_certificate.set_for_selected_contacts(
-      visibility_ == DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
   public_certificate.set_metadata_encryption_key(std::string(
       metadata_encryption_key_.begin(), metadata_encryption_key_.end()));
   public_certificate.set_encrypted_metadata_bytes(std::string(

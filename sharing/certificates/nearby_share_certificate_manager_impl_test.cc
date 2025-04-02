@@ -257,14 +257,12 @@ class NearbyShareCertificateManagerImplTest
     // and self-share
     std::vector<NearbySharePrivateCertificate> certs =
         *cert_store_->GetPrivateCertificates();
-    EXPECT_EQ(3 * kNearbyShareNumPrivateCertificates, certs.size());
+    EXPECT_EQ(2 * kNearbyShareNumPrivateCertificates, certs.size());
 
     absl::Time min_not_before_all_contacts = absl::InfiniteFuture();
-    absl::Time min_not_before_selected_contacts = absl::InfiniteFuture();
     absl::Time min_not_before_self_share = absl::InfiniteFuture();
 
     absl::Time max_not_after_all_contacts = absl::InfinitePast();
-    absl::Time max_not_after_selected_contacts = absl::InfinitePast();
     absl::Time max_not_after_self_share = absl::InfinitePast();
 
     for (const auto& cert : certs) {
@@ -276,12 +274,6 @@ class NearbyShareCertificateManagerImplTest
               std::min(min_not_before_all_contacts, cert.not_before());
           max_not_after_all_contacts =
               std::max(max_not_after_all_contacts, cert.not_after());
-          break;
-        case DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS:
-          min_not_before_selected_contacts =
-              std::min(min_not_before_selected_contacts, cert.not_before());
-          max_not_after_selected_contacts =
-              std::max(max_not_after_selected_contacts, cert.not_after());
           break;
         case DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE:
           min_not_before_self_share =
@@ -303,10 +295,9 @@ class NearbyShareCertificateManagerImplTest
     EXPECT_EQ(max_not_after_all_contacts - min_not_before_all_contacts,
               kNearbyShareNumPrivateCertificates *
                   kNearbyShareCertificateValidityPeriod);
-    EXPECT_EQ(
-        max_not_after_selected_contacts - min_not_before_selected_contacts,
-        kNearbyShareNumPrivateCertificates *
-            kNearbyShareCertificateValidityPeriod);
+    EXPECT_EQ(max_not_after_self_share - min_not_before_self_share,
+              kNearbyShareNumPrivateCertificates *
+                  kNearbyShareCertificateValidityPeriod);
   }
 
   void RunUpload(bool success) {
@@ -324,7 +315,7 @@ class NearbyShareCertificateManagerImplTest
     EXPECT_EQ(local_device_data_manager_->upload_certificates_calls()
                   .back()
                   .certificates.size(),
-              3 * kNearbyShareNumPrivateCertificates);
+              2 * kNearbyShareNumPrivateCertificates);
 
     EXPECT_EQ(upload_scheduler_->handled_results().size(),
               initial_num_handled_results + 1);
@@ -346,7 +337,7 @@ class NearbyShareCertificateManagerImplTest
     EXPECT_EQ(local_device_data_manager_->publish_device_calls()
                   .back()
                   .certificates.size(),
-              3 * kNearbyShareNumPrivateCertificates);
+              2 * kNearbyShareNumPrivateCertificates);
 
     EXPECT_EQ(upload_scheduler_->handled_results().size(),
               initial_num_handled_results + 1);
@@ -506,10 +497,8 @@ class NearbyShareCertificateManagerImplTest
   void PopulatePrivateCertificates() {
     private_certificates_.clear();
     const auto& metadata = GetNearbyShareTestMetadata();
-    for (auto visibility :
-         {DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
-          DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS,
-          DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE}) {
+    for (auto visibility : {DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
+                            DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE}) {
       private_certificates_.emplace_back(visibility, t0, metadata);
       private_certificates_.emplace_back(
           visibility, t0 + kNearbyShareCertificateValidityPeriod, metadata);
@@ -572,8 +561,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   cert_store_->ReplacePrivateCertificates({});
   EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
       DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
-  EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
-      DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
 
   // Set up valid all-contacts visibility certificate.
   NearbySharePrivateCertificate private_certificate =
@@ -596,8 +583,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
             encrypted_metadata_key->encrypted_key());
   EXPECT_EQ(GetNearbyShareTestEncryptedMetadataKey().salt(),
             encrypted_metadata_key->salt());
-  EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
-      DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
 
   // Verify that storage is updated when salts are consumed during encryption.
   EXPECT_NE(cert_store_->GetPrivateCertificates()->at(0).ToCertificateData(),
@@ -622,8 +607,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   FastForward(kNearbyShareCertificateValidityPeriod);
   EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
       DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
-  EXPECT_FALSE(cert_manager_->EncryptPrivateCertificateMetadataKey(
-      DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest, SignWithPrivateCertificate) {
@@ -653,11 +636,6 @@ TEST_F(NearbyShareCertificateManagerImplTest, SignWithPrivateCertificate) {
       *cert_manager_->SignWithPrivateCertificate(
           DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
           GetNearbyShareTestPayloadToSign())));
-
-  // No selected-contact visibility certificate in storage.
-  EXPECT_FALSE(cert_manager_->SignWithPrivateCertificate(
-      DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS,
-      GetNearbyShareTestPayloadToSign()));
 
   // No certificates exist for hidden or unspecified visibility.
   EXPECT_FALSE(cert_manager_->SignWithPrivateCertificate(
@@ -695,11 +673,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
             cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
                 DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
                 GetNearbyShareTestPayloadToSign()));
-
-  // No selected-contact visibility certificate in storage.
-  EXPECT_FALSE(cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
-      DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS,
-      GetNearbyShareTestPayloadToSign()));
 
   // No certificates exist for hidden or unspecified visibility.
   EXPECT_FALSE(cert_manager_->HashAuthenticationTokenWithPrivateCertificate(
@@ -850,7 +823,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   EXPECT_EQ(local_device_data_manager_->publish_device_calls()
                 .back()
                 .certificates.size(),
-            3 * kNearbyShareNumPrivateCertificates);
+            2 * kNearbyShareNumPrivateCertificates);
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,
@@ -899,7 +872,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
       ++num_expected_calls;
       EXPECT_TRUE(certs.empty());
     } else {
-      EXPECT_EQ(certs.size(), 9u);
+      EXPECT_EQ(certs.size(), 6u);
     }
 
     EXPECT_EQ(num_expected_calls,
