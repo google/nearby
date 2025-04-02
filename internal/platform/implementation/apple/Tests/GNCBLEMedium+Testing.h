@@ -17,6 +17,7 @@
 #import <Foundation/Foundation.h>
 
 @protocol GNCCentralManager;
+@protocol GNCPeripheralManager;
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -37,6 +38,15 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDictionary<CBUUID *, NSData *> *)decodeAdvertisementData:
     (NSDictionary<NSString *, id> *)advertisementData;
 
+/**
+ * Opens a L2CAP server with a provided peripheral manager.
+ *
+ * @param completionHandler The completion handler to call when the L2CAP channel is started.
+ * @param peripheralManager The peripheral manager instance. Note: This is only exposed for testing
+ *                          and can be used to inject a fake peripheral manager.
+ */
+- (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler
+                           peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager;
 @end
 
 NS_ASSUME_NONNULL_END

@@ -20,6 +20,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
@@ -42,6 +43,7 @@ static NSError *AlreadyScanningError() {
 
   // The active GATT server, or @nil if one hasn't been started yet.
   GNCBLEGATTServer *_server;
+  GNCBLEL2CAPServer *_l2capServer;
 
   // The services that is being actively scanned for.
   NSMutableArray<CBUUID *> *_scanningServiceUUIDs;
@@ -178,6 +180,34 @@ static NSError *AlreadyScanningError() {
     _disconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
     _connectionCompletionHandlers[remotePeripheral.identifier] = completionHandler;
     [_centralManager connectPeripheral:remotePeripheral options:@{}];
+  });
+}
+
+
+- (void)openL2CAPServerWithCompletionHandler:
+    (GNCOpenL2CAPServerCompletionHandler)completionHandler {
+  [self openL2CAPServerWithCompletionHandler:completionHandler peripheralManager:nil];
+}
+
+- (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler
+                           peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager {
+  // Capture the completion handler.
+  GNCOpenL2CAPServerCompletionHandler localCompletionHandler = completionHandler;
+  dispatch_async(_queue, ^{
+    if (!_l2capServer) {
+      if (!peripheralManager) {
+        _l2capServer = [[GNCBLEL2CAPServer alloc] init];
+      } else {
+        _l2capServer = [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:peripheralManager];
+      }
+    }
+    [_l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+      if (error) {
+        localCompletionHandler(nil, error);
+        return;
+      }
+      localCompletionHandler(_l2capServer, nil);
+    }];
   });
 }
 

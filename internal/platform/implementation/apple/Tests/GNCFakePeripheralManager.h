@@ -44,6 +44,9 @@ NS_ASSUME_NONNULL_BEGIN
 /** Expectation fulfilled when peripheral responds to a request with an error. */
 @property(nonatomic, readonly) XCTestExpectation *respondToRequestErrorExpectation;
 
+/** Expectation fulfilled when peripheral unpublishes an L2CAP channel. */
+@property(nonatomic, readonly) XCTestExpectation *unpublishExpectation;
+
 /**
  * Similates an @c addService: error.
  *

@@ -16,8 +16,6 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@class GNCBLEL2CAPStream;
-
 /// Block invoked when the stream is closed.
 typedef void (^GNCBLEL2CAPStreamClosedBlock)(void);
 
@@ -51,6 +49,9 @@ typedef void (^GNCBLEL2CAPControllerReceivedDataBlock)(NSData *data);
 /// mean the device received it. NO indicates writing failed, which typically happens when the
 /// stream is torn down.
 - (void)sendData:(NSData *)data completionBlock:(void (^)(BOOL))completionBlock;
+
+/// Closes the stream.
+- (void)close;
 
 /// Tears down the stream.
 - (void)tearDown;

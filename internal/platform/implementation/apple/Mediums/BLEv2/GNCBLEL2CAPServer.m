@@ -18,12 +18,13 @@
 #import <Foundation/Foundation.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-static char *const kGNCBLEL2CAPServerQueueLabel = "com.nearby.GNCBLEL2CAPServer";
+static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAPServer";
 
 @interface GNCBLEL2CAPServer () <GNCPeripheralManagerDelegate>
 @property(atomic, readwrite) CBL2CAPPSM PSM;
@@ -32,18 +33,19 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.nearby.GNCBLEL2CAPServer"
 @implementation GNCBLEL2CAPServer {
   dispatch_queue_t _queue;
   id<GNCPeripheralManager> _peripheralManager;
+  NSString *_serviceID;
+  GNCStartListeningL2CAPChannelCompletionHandler _startListeningL2CAPChannelcompletionHandler;
 
-  // The L2CAP channel that is used to send and receive data.
-  CBL2CAPChannel *_channel;
+  CBL2CAPChannel *_l2CAPChannel;
+  GNCBLEL2CAPStream *_l2CAPStream;
+  BOOL _alreadyStartedWhenPeripheralPoweredOff;
 }
 
 - (instancetype)init {
   self = [super init];
   if (self) {
+    _startListeningL2CAPChannelcompletionHandler = nil;
     _queue = dispatch_queue_create(kGNCBLEL2CAPServerQueueLabel, DISPATCH_QUEUE_SERIAL);
-    _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:nil queue:_queue];
-    // Set for @c GNCPeripheralManager to be able to forward callbacks.
-    _peripheralManager.peripheralDelegate = self;
   }
   return self;
 }
@@ -53,16 +55,54 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.nearby.GNCBLEL2CAPServer"
 - (instancetype)initWithPeripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager {
   self = [super init];
   if (self) {
+    _startListeningL2CAPChannelcompletionHandler = nil;
     _queue = dispatch_get_main_queue();
-    _peripheralManager = peripheralManager;
-    // Set for @c GNCPeripheralManager to be able to forward callbacks.
-    _peripheralManager.peripheralDelegate = self;
+    if (peripheralManager) {
+      _peripheralManager = peripheralManager;
+      // Set for @c GNCPeripheralManager to be able to forward callbacks.
+      _peripheralManager.peripheralDelegate = self;
+    }
   }
   return self;
 }
 
-- (nullable CBL2CAPChannel *)getChannel {
-  return _channel;
+- (void)startListeningChannelWithCompletionHandler:
+    (GNCStartListeningL2CAPChannelCompletionHandler)completionHandler {
+  _startListeningL2CAPChannelcompletionHandler = completionHandler;
+  if (!_queue) {
+    _startListeningL2CAPChannelcompletionHandler([NSError
+        errorWithDomain:GNCBLEErrorDomain
+                   code:GNCBLEErrorL2CAPListeningOnQueueNil
+               userInfo:nil]);
+    return;
+  }
+  if (!_peripheralManager) {
+    // Lazy initialization to avoid system dialog on app startup before pairing.
+    _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:self
+                                                                 queue:_queue
+                                                               options:nil];
+
+    // Set for @c GNCPeripheralManager to be able to forward callbacks.
+    _peripheralManager.peripheralDelegate = self;
+  }
+
+  if (_peripheralManager.state == CBManagerStatePoweredOn) {
+    // Bluetooth link is already encrypted, however encryption is not required here to avoid getting
+    // insufficient authentication errors due to initialization order.
+    [_peripheralManager publishL2CAPChannelWithEncryption:NO];
+  } else {
+    GTMLoggerInfo(@"[NEARBY] Peripheral must be on to start, waiting.");
+    _alreadyStartedWhenPeripheralPoweredOff = YES;
+  }
+}
+
+- (nullable GNCBLEL2CAPStream *)acceptWithError:(NSError **)error {
+  // TODO: b/399815436 - Implement to wrap up l2cap channel with |GNCBLEL2CAPStream|.
+  return nil;
+}
+
+- (void)close {
+  [self shutDown];
 }
 
 #pragma mark - GNCPeripheralManagerDelegate
@@ -70,10 +110,18 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.nearby.GNCBLEL2CAPServer"
 - (void)gnc_peripheralManagerDidUpdateState:(id<GNCPeripheralManager>)peripheral {
   dispatch_assert_queue(_queue);
   if (_peripheralManager.state == CBManagerStatePoweredOn) {
-    [_peripheralManager publishL2CAPChannelWithEncryption:NO];
+    if (_alreadyStartedWhenPeripheralPoweredOff) {
+      // Only setup once so that toggling Bluetooth does not cause an L2CAP channel to be
+      // published every time since a new instance is created for each new channel.
+      _alreadyStartedWhenPeripheralPoweredOff = NO;
+
+      // Bluetooth link is already encrypted, however encryption is not required here to avoid
+      // getting insufficient authentication errors due to initialization order.
+      [_peripheralManager publishL2CAPChannelWithEncryption:NO];
+    }
   }
   if (_peripheralManager.state == CBManagerStatePoweredOff) {
-    [_peripheralManager unpublishL2CAPChannel:_PSM];
+    [self shutDown];
   }
 }
 
@@ -81,20 +129,30 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.nearby.GNCBLEL2CAPServer"
        didPublishL2CAPChannel:(CBL2CAPPSM)PSM
                         error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
+  GTMLoggerDebug(@"[NEARBY] didPublishL2CAPChannel with PSM: %@", @(PSM));
   if (error) {
-    GTMLoggerError(@"Failed to publish L2CAP channel: %@", error);
+    GTMLoggerError(@"[NEARBY] Failed to publish L2CAP channel: %@", error);
+    if (_startListeningL2CAPChannelcompletionHandler) {
+      _startListeningL2CAPChannelcompletionHandler(error);
+    }
+    return;
   }
-  GTMLoggerInfo(@"Published L2CAP channel with PSM: %d", PSM);
   _PSM = PSM;
+  if (_startListeningL2CAPChannelcompletionHandler) {
+    _startListeningL2CAPChannelcompletionHandler(nil);
+  }
 }
 
 - (void)gnc_peripheralManager:(id<GNCPeripheralManager>)peripheral
      didUnpublishL2CAPChannel:(CBL2CAPPSM)PSM
                         error:(NSError *)error {
   dispatch_assert_queue(_queue);
+  GTMLoggerDebug(@"[NEARBY] didUnpublishL2CAPChannel on PSM %@", @(PSM));
   if (error) {
-    GTMLoggerError(@"Failed to unpublish L2CAP channel: %@", error);
+    GTMLoggerError(@"[NEARBY] Failed to unpublish L2CAP channel: %@", error);
   }
+  [_l2CAPStream tearDown];
+  _l2CAPStream = nil;
   _PSM = 0;
 }
 
@@ -102,55 +160,63 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.nearby.GNCBLEL2CAPServer"
           didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
                         error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
+  GTMLoggerDebug(@"[NEARBY] didOpenL2CAPChannel");
   if (error) {
-    GTMLoggerError(@"Failed to open L2CAP channel: %@", error);
+    GTMLoggerError(@"[NEARBY] Failed to open L2CAP channel: %@", error);
     return;
   }
-  GTMLoggerInfo(@"Opened L2CAP channel with PSM: %d", channel.PSM);
-  _channel = channel;
-  // TODO: b/399815436 - Implement to wrap up l2cap channel.
+
+  // Cleanup older references.
+  if (_l2CAPStream || _l2CAPChannel) {
+    // The device may establish a new L2CAP socket connection while the old socket is still
+    // connected if sysproxy stopped for a reason other than Bluetooth disconnection. Closing the
+    // channel here ensures the server and the client state is reset between the two
+    // connection sessions.
+    [self closeL2CAPChannel];
+  }
+
+  _l2CAPChannel = channel;
+  // TODO: b/399815436 - Implement to wrap up l2cap channel with |GNCBLEL2CAPStream|.
 }
 
 #pragma mark - CBPeripheralManagerDelegate
 
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheral {
-  dispatch_async(_queue, ^{
-    [self gnc_peripheralManagerDidUpdateState:peripheral];
-  });
+  [self gnc_peripheralManagerDidUpdateState:peripheral];
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
     didPublishL2CAPChannel:(CBL2CAPPSM)PSM
                      error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    [self gnc_peripheralManager:peripheral didPublishL2CAPChannel:PSM error:error];
-  });
+  [self gnc_peripheralManager:peripheral didPublishL2CAPChannel:PSM error:error];
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
     didUnpublishL2CAPChannel:(CBL2CAPPSM)PSM
                        error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    [self gnc_peripheralManager:peripheral didUnpublishL2CAPChannel:PSM error:error];
-  });
+  [self gnc_peripheralManager:peripheral didUnpublishL2CAPChannel:PSM error:error];
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
       didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
                     error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    [self gnc_peripheralManager:peripheral didOpenL2CAPChannel:channel error:error];
-  });
+  [self gnc_peripheralManager:peripheral didOpenL2CAPChannel:channel error:error];
 }
 
 #pragma mark Private
 
-- (void)tearDown {
+- (void)shutDown {
   if (_PSM > 0) {
     [_peripheralManager unpublishL2CAPChannel:_PSM];
   }
   _peripheralManager.peripheralDelegate = nil;
   _peripheralManager = nil;
+}
+
+- (void)closeL2CAPChannel {
+  [_l2CAPStream tearDown];
+  _l2CAPStream = nil;
+  _l2CAPChannel = nil;
 }
 
 @end
