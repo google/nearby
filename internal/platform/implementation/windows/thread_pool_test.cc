@@ -15,6 +15,8 @@
 #include "internal/platform/implementation/windows/thread_pool.h"
 
 #include <atomic>
+#include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -77,6 +79,114 @@ TEST(ThreadPool, ShutdownWaitsForRunningTasks) {
   pool->ShutDown();
 
   EXPECT_EQ(value, 1);
+}
+
+TEST(ThreadPool, RunNoDelayedTask) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id =
+      pool->Run([&]() { value += 1; }, absl::ZeroDuration());
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(200));
+  EXPECT_EQ(value, 1);
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, RunDelayedTask) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id =
+      pool->Run([&]() { value += 1; }, absl::Seconds(1));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(200));
+  EXPECT_EQ(value, 0);
+  absl::SleepFor(absl::Milliseconds(1000));
+  EXPECT_EQ(value, 1);
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, CancelDelayedTask) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id =
+      pool->Run([&]() { value += 1; }, absl::Seconds(1));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(200));
+  EXPECT_TRUE(pool->CancelDelayedTask(delayed_task_id.value()));
+  absl::SleepFor(absl::Milliseconds(1000));
+  EXPECT_EQ(value, 0);
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, CancelRunningDelayedTask) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id = pool->Run(
+      [&]() {
+        value += 1;
+        absl::SleepFor(absl::Milliseconds(1000));
+      },
+      absl::Milliseconds(100));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(300));
+  EXPECT_TRUE(pool->CancelDelayedTask(delayed_task_id.value()));
+  EXPECT_EQ(value, 1);
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, CancelDelayedTaskAfterShutDown) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id =
+      pool->Run([&]() { value += 1; }, absl::Seconds(1));
+  absl::SleepFor(absl::Milliseconds(200));
+  pool->ShutDown();
+  EXPECT_FALSE(pool->CancelDelayedTask(delayed_task_id.value()));
+}
+
+TEST(ThreadPool, CancelDelayedTaskInCallback) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id;
+  delayed_task_id = pool->Run(
+      [&]() {
+        value += 1;
+        pool->CancelDelayedTask(delayed_task_id.value());
+      },
+      absl::Milliseconds(100));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(500));
+  EXPECT_EQ(value, 1);
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, RunRepeatedTask) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id;
+  delayed_task_id = pool->Run([&]() { value += 1; }, absl::Milliseconds(500),
+                              absl::Milliseconds(500));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(1200));
+  pool->CancelDelayedTask(delayed_task_id.value());
+  EXPECT_EQ(value, 2);
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, CancelRepeatedTaskInCallback) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id;
+  delayed_task_id = pool->Run(
+      [&]() {
+        value += 1;
+        pool->CancelDelayedTask(delayed_task_id.value());
+      },
+      absl::Milliseconds(500), absl::Milliseconds(500));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(2000));
+  EXPECT_EQ(value, 1);
+  pool->ShutDown();
 }
 
 }  // namespace
