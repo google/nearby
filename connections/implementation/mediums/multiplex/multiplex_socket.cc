@@ -124,6 +124,7 @@ MultiplexSocket* MultiplexSocket::CreateIncomingSocket(
           new (&storage_ble) MultiplexSocket(physical_socket);
       break;
     case Medium::WIFI_LAN:
+    case Medium::AWDL:
       alignas(
           MultiplexSocket) static char storage_wlan[sizeof(MultiplexSocket)];
       multiplex_incoming_socket =
@@ -167,6 +168,7 @@ MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
           new (&storage_ble) MultiplexSocket(physical_socket);
       break;
     case Medium::WIFI_LAN:
+    case Medium::AWDL:
       alignas(
           MultiplexSocket) static char storage_wlan[sizeof(MultiplexSocket)];
       multiplex_outgoing_socket =

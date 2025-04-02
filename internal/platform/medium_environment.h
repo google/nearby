@@ -29,6 +29,7 @@
 #include "absl/types/optional.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/borrowable.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -87,6 +88,8 @@ class MediumEnvironment {
 #endif
   using WifiLanDiscoveredServiceCallback =
       api::WifiLanMedium::DiscoveredServiceCallback;
+  using AwdlDiscoveredServiceCallback =
+      api::AwdlMedium::DiscoveredServiceCallback;
 
   struct BleV2MediumStatus {
     bool is_advertising;
@@ -275,11 +278,21 @@ class MediumEnvironment {
   // expects they should communicate.
   void RegisterWifiLanMedium(api::WifiLanMedium& medium);
 
+  // Adds medium-related info to allow for discovery/advertising to work.
+  // This provides access to this medium from other mediums, when protocol
+  // expects they should communicate.
+  void RegisterAwdlMedium(api::AwdlMedium& medium);
+
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
   void UpdateWifiLanMediumForAdvertising(api::WifiLanMedium& medium,
                                          const NsdServiceInfo& nsd_service_info,
                                          bool enabled);
+  // Updates advertising info to indicate the current medium is exposing
+  // advertising event.
+  void UpdateAwdlMediumForAdvertising(api::AwdlMedium& medium,
+                                      const NsdServiceInfo& nsd_service_info,
+                                      bool enabled);
 
   // Updates discovery callback info to allow for dispatch of discovery events.
   //
@@ -290,6 +303,16 @@ class MediumEnvironment {
       api::WifiLanMedium& medium, WifiLanDiscoveredServiceCallback callback,
       const std::string& service_type, bool enabled);
 
+  // Updates discovery callback info to allow for dispatch of discovery events.
+  //
+  // This should be called when discoverable state changes.
+  // A valid callback should be assigned when discovery `enabled` as true; or
+  // an empty callback is assigned with discovery `enabled` as false.
+  void UpdateAwdlMediumForDiscovery(api::AwdlMedium& medium,
+                                    AwdlDiscoveredServiceCallback callback,
+                                    const std::string& service_type,
+                                    bool enabled);
+
   // Gets Fake IP address for WifiLan medium.
   std::string GetFakeIPAddress() const;
 
@@ -299,9 +322,16 @@ class MediumEnvironment {
   // Removes medium-related info. This should correspond to device power off.
   void UnregisterWifiLanMedium(api::WifiLanMedium& medium);
 
+  // Removes medium-related info. This should correspond to device power off.
+  void UnregisterAwdlMedium(api::AwdlMedium& medium);
+
   // Returns WifiLan medium whose advertising service matching IP address and
   // port, or nullptr.
   api::WifiLanMedium* GetWifiLanMedium(const std::string& ip_address, int port);
+
+  // Returns Awdl medium whose advertising service matching IP address and
+  // port, or nullptr.
+  api::AwdlMedium* GetAwdlMedium(const std::string& ip_address, int port);
 
   // Adds medium-related info to allow for start/connect WifiDirect to work.
   void RegisterWifiDirectMedium(api::WifiDirectMedium& medium);
@@ -434,6 +464,16 @@ class MediumEnvironment {
     absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services;
   };
 
+  struct AwdlMediumContext {
+    // advertising service type vs NsdServiceInfo map.
+    absl::flat_hash_map<std::string, NsdServiceInfo> advertising_services;
+    // discovered service type vs callback map.
+    absl::flat_hash_map<std::string, AwdlDiscoveredServiceCallback>
+        discovered_callbacks;
+    // discovered service vs service type map.
+    absl::flat_hash_map<std::string, NsdServiceInfo> discovered_services;
+  };
+
   struct WifiDirectMediumContext {
     // Set to "true" for Medium act as WifiDirect GO role; "false" for GC role
     bool is_go = false;
@@ -484,6 +524,10 @@ class MediumEnvironment {
                                     const NsdServiceInfo& service_info,
                                     bool enabled);
 
+  void OnAwdlServiceStateChanged(AwdlMediumContext& info,
+                                 const NsdServiceInfo& service_info,
+                                 bool enabled);
+
   void RunOnMediumEnvironmentThread(Runnable runnable);
 
   std::atomic_bool enabled_ = false;
@@ -516,6 +560,8 @@ class MediumEnvironment {
 
   absl::flat_hash_map<api::WifiLanMedium*, WifiLanMediumContext>
       wifi_lan_mediums_;
+
+  absl::flat_hash_map<api::AwdlMedium*, AwdlMediumContext> awdl_mediums_;
 
   Mutex mutex_;
   absl::flat_hash_map<api::WifiDirectMedium*, WifiDirectMediumContext>

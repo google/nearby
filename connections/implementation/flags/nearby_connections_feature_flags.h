@@ -89,6 +89,9 @@ constexpr auto kUseStableEndpointId =
 // When true, disable instant on lost on BLE without extended feature.
 constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
     flags::Flag<bool>(kConfigPackage, "45687098", true);
+// When true, enable multiplexing in NC for AWDL.
+constexpr auto kEnableMultiplexAwdl =
+    flags::Flag<bool>(kConfigPackage, "45696647", true);
 
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby

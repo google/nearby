@@ -39,6 +39,7 @@
 #include "internal/base/files.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -301,6 +302,10 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<windows::WifiLanMedium>();
+}
+
+std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
+  return nullptr;
 }
 
 std::unique_ptr<WifiHotspotMedium>

@@ -33,6 +33,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -93,6 +94,7 @@ void MediumEnvironment::Reset() {
     webrtc_signaling_complete_callback_.clear();
 #endif
     wifi_lan_mediums_.clear();
+    awdl_mediums_.clear();
     {
       MutexLock lock(&mutex_);
       wifi_direct_mediums_.clear();
@@ -372,6 +374,64 @@ void MediumEnvironment::OnWifiLanServiceStateChanged(
         << "OnWifiLanServiceStateChanged: exisitng service; context=" << &info
         << "; service_type=" << service_type << "; enabled=" << enabled
         << "; notify=" << enable_notifications_.load();
+    if (enabled) {
+      if (enable_notifications_) {
+        RunOnMediumEnvironmentThread(
+            [&info, service_info = service_info, service_type]() {
+              auto item = info.discovered_callbacks.find(service_type);
+              if (item != info.discovered_callbacks.end()) {
+                item->second.service_discovered_cb(service_info);
+              }
+            });
+      }
+    } else {
+      // Known service is off.
+      // Erase it from the map, and report as lost.
+      if (enable_notifications_) {
+        RunOnMediumEnvironmentThread(
+            [&info, service_info = service_info, service_type]() {
+              auto item = info.discovered_callbacks.find(service_type);
+              if (item != info.discovered_callbacks.end()) {
+                item->second.service_lost_cb(service_info);
+              }
+            });
+      }
+      info.discovered_services.erase(item);
+    }
+  }
+}
+
+void MediumEnvironment::OnAwdlServiceStateChanged(
+    AwdlMediumContext& info, const NsdServiceInfo& service_info, bool enabled) {
+  if (!enabled_) return;
+  std::string service_name = service_info.GetServiceName();
+  std::string service_type = service_info.GetServiceType();
+  auto item = info.discovered_services.find(service_name);
+  if (item == info.discovered_services.end()) {
+    NEARBY_LOGS(INFO) << "OnAwdlServiceStateChanged; context=" << &info
+                      << "; service_type=" << service_type
+                      << "; enabled=" << enabled
+                      << "; notify=" << enable_notifications_.load();
+    if (enabled) {
+      // Find advertising service with matched service_type. Report it as
+      // discovered.
+      NsdServiceInfo discovered_service_info(service_info);
+      info.discovered_services.insert({service_name, discovered_service_info});
+      if (enable_notifications_) {
+        RunOnMediumEnvironmentThread(
+            [&info, discovered_service_info, service_type]() {
+              auto item = info.discovered_callbacks.find(service_type);
+              if (item != info.discovered_callbacks.end()) {
+                item->second.service_discovered_cb(discovered_service_info);
+              }
+            });
+      }
+    }
+  } else {
+    NEARBY_LOGS(INFO) << "OnAwdlServiceStateChanged: exisitng service; context="
+                      << &info << "; service_type=" << service_type
+                      << "; enabled=" << enabled
+                      << "; notify=" << enable_notifications_.load();
     if (enabled) {
       if (enable_notifications_) {
         RunOnMediumEnvironmentThread(
@@ -876,6 +936,14 @@ void MediumEnvironment::RegisterWifiLanMedium(api::WifiLanMedium& medium) {
   });
 }
 
+void MediumEnvironment::RegisterAwdlMedium(api::AwdlMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    awdl_mediums_.insert({&medium, AwdlMediumContext{}});
+    NEARBY_LOGS(INFO) << "Registered: Awdl medium:" << &medium;
+  });
+}
+
 void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
     api::WifiLanMedium& medium, const NsdServiceInfo& service_info,
     bool enabled) {
@@ -905,6 +973,36 @@ void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
       OnWifiLanServiceStateChanged(info, service_info, enabled);
     }
   });
+}
+
+void MediumEnvironment::UpdateAwdlMediumForAdvertising(
+    api::AwdlMedium& medium, const NsdServiceInfo& service_info, bool enabled) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread(
+      [this, &medium, service_info = service_info, enabled]() {
+        std::string service_name = service_info.GetServiceName();
+        std::string service_type = service_info.GetServiceType();
+        NEARBY_LOGS(INFO) << "Update Awdl medium for advertising: this=" << this
+                          << "; medium=" << &medium
+                          << "; service_name=" << service_name
+                          << "; service_type=" << service_type
+                          << ", enabled=" << enabled;
+        for (auto& medium_info : awdl_mediums_) {
+          auto& local_medium = medium_info.first;
+          auto& info = medium_info.second;
+          // Do not send notification to the same medium but update
+          // service info map.
+          if (local_medium == &medium) {
+            if (enabled) {
+              info.advertising_services.insert({service_name, service_info});
+            } else {
+              info.advertising_services.erase(service_name);
+            }
+            continue;
+          }
+          OnAwdlServiceStateChanged(info, service_info, enabled);
+        }
+      });
 }
 
 void MediumEnvironment::UpdateWifiLanMediumForDiscovery(
@@ -940,6 +1038,39 @@ void MediumEnvironment::UpdateWifiLanMediumForDiscovery(
   });
 }
 
+void MediumEnvironment::UpdateAwdlMediumForDiscovery(
+    api::AwdlMedium& medium, AwdlDiscoveredServiceCallback callback,
+    const std::string& service_type, bool enabled) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium, callback = std::move(callback),
+                                service_type, enabled]() mutable {
+    auto item = awdl_mediums_.find(&medium);
+    if (item == awdl_mediums_.end()) {
+      NEARBY_LOGS(INFO)
+          << "UpdateAwdlMediumForDiscovery failed. There is no medium "
+             "registered.";
+      return;
+    }
+    auto& context = item->second;
+    context.discovered_callbacks.insert({service_type, std::move(callback)});
+    NEARBY_LOGS(INFO) << "Update Awdl medium for discovery: this=" << this
+                      << "; medium=" << &medium
+                      << "; service_type=" << service_type
+                      << "; enabled=" << enabled;
+    for (auto& medium_info : awdl_mediums_) {
+      auto& local_medium = medium_info.first;
+      auto& info = medium_info.second;
+      // Do not send notification to the same medium.
+      if (local_medium == &medium) continue;
+      // Search advertising services and send notification.
+      for (auto& advertising_service : info.advertising_services) {
+        auto& service_info = advertising_service.second;
+        OnAwdlServiceStateChanged(context, service_info, /*enabled=*/true);
+      }
+    }
+  });
+}
+
 void MediumEnvironment::UnregisterWifiLanMedium(api::WifiLanMedium& medium) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
@@ -949,12 +1080,45 @@ void MediumEnvironment::UnregisterWifiLanMedium(api::WifiLanMedium& medium) {
   });
 }
 
+void MediumEnvironment::UnregisterAwdlMedium(api::AwdlMedium& medium) {
+  if (!enabled_) return;
+  RunOnMediumEnvironmentThread([this, &medium]() {
+    auto item = awdl_mediums_.extract(&medium);
+    if (item.empty()) return;
+    NEARBY_LOGS(INFO) << "Unregistered Awdl medium:" << &medium;
+  });
+}
+
 api::WifiLanMedium* MediumEnvironment::GetWifiLanMedium(
     const std::string& ip_address, int port) {
   api::WifiLanMedium* result = nullptr;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([&]() {
     for (auto& medium_info : wifi_lan_mediums_) {
+      auto* medium_found = medium_info.first;
+      auto& info = medium_info.second;
+      for (auto& advertising_service : info.advertising_services) {
+        auto& service_info = advertising_service.second;
+        if (ip_address == service_info.GetIPAddress() &&
+            port == service_info.GetPort()) {
+          result = medium_found;
+          latch.CountDown();
+          return;
+        }
+      }
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return result;
+}
+
+api::AwdlMedium* MediumEnvironment::GetAwdlMedium(const std::string& ip_address,
+                                                  int port) {
+  api::AwdlMedium* result = nullptr;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    for (auto& medium_info : awdl_mediums_) {
       auto* medium_found = medium_info.first;
       auto& info = medium_info.second;
       for (auto& advertising_service : info.advertising_services) {

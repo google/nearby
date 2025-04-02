@@ -28,6 +28,7 @@
 #include "internal/base/files.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -36,6 +37,7 @@
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/g3/awdl.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/log_message.h"
@@ -211,6 +213,10 @@ std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<WifiLanMedium> ImplementationPlatform::CreateWifiLanMedium() {
   return std::make_unique<g3::WifiLanMedium>();
+}
+
+std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
+  return std::make_unique<g3::AwdlMedium>();
 }
 
 std::unique_ptr<WifiHotspotMedium>

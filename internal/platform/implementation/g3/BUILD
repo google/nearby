@@ -62,6 +62,7 @@ cc_library(
     name = "comm",
     testonly = True,
     srcs = [
+        "awdl.cc",
         "ble.cc",
         "ble_v2.cc",
         "bluetooth_adapter.cc",
@@ -72,6 +73,7 @@ cc_library(
         "wifi_lan.cc",
     ],
     hdrs = [
+        "awdl.h",
         "ble.h",
         "ble_v2.h",
         "bluetooth_adapter.h",
