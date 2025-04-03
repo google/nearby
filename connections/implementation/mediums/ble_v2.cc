@@ -557,6 +557,16 @@ bool BleV2::StopScanning(const std::string& service_id) {
   return medium_.StopScanning();
 }
 
+bool BleV2::MediumStopScanning() {
+  MutexLock lock(&mutex_);
+  return medium_.MediumStopScanning();
+}
+
+bool BleV2::MediumRestoreScanning() {
+  MutexLock lock(&mutex_);
+  return medium_.MediumRestoreScanning();
+}
+
 bool BleV2::IsScanning(const std::string& service_id) const {
   MutexLock lock(&mutex_);
 

@@ -158,6 +158,16 @@ static NSError *AlreadyScanningError() {
   });
 }
 
+- (void)mediumRestoreScanning:
+    (nullable GNCStartScanningCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    [self internalStartScanningIfPoweredOn];
+    if (completionHandler) {
+      completionHandler(nil);
+    }
+  });
+}
+
 - (void)startGATTServerWithCompletionHandler:
     (nullable GNCGATTServerCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{

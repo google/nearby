@@ -494,6 +494,12 @@ class BleV2Medium final {
   // TODO(b/271305977) remove this function.
   bool StopScanning();
 
+  // Disables BLE scanning at platform Medium level.
+  bool MediumStopScanning();
+
+  // Restores BLE scanning at platform Medium level.
+  bool MediumRestoreScanning();
+
   std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> StartScanning(
       const Uuid& service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback callback);

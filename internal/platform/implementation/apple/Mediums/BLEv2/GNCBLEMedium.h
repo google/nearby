@@ -159,6 +159,9 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
 - (void)stopScanningWithCompletionHandler:
     (nullable GNCStopScanningCompletionHandler)completionHandler;
 
+- (void)mediumRestoreScanning:
+    (nullable GNCStartScanningCompletionHandler)completionHandler;
+
 /**
  * Starts a GATT server.
  *
