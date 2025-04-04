@@ -145,6 +145,12 @@ class BleV2 final {
   // Returns true, if the scanning was previously enabled, false otherwise.
   bool StopScanning(const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Disables BLE scanning at platform Medium level.
+  bool MediumStopScanning();
+
+  // Restores BLE scanning at platform Medium level.
+  bool MediumRestoreScanning();
+
   // Returns true if the scanning for service ID is enabled.
   bool IsScanning(const std::string& service_id) const
       ABSL_LOCKS_EXCLUDED(mutex_);
