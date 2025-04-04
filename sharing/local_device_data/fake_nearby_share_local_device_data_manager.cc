@@ -133,9 +133,9 @@ void FakeNearbyShareLocalDeviceDataManager::UploadCertificates(
 
 void FakeNearbyShareLocalDeviceDataManager::PublishDevice(
     std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-    bool is_second_call, PublishDeviceCallback callback) {
-  publish_device_calls_.emplace_back(std::move(certificates), is_second_call,
-                                     callback);
+    bool force_update_contacts, PublishDeviceCallback callback) {
+  publish_device_calls_.emplace_back(std::move(certificates),
+                                     force_update_contacts, callback);
   if (is_sync_mode_) {
     callback(publish_device_result_, false);
   }
