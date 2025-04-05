@@ -359,6 +359,10 @@ void BasePcpHandler::OptionsAllowed(const BooleanMediumSelector& allowed,
                   Medium::WIFI_DIRECT)
            << " ";
   }
+  if (allowed.awdl) {
+    result << location::nearby::proto::connections::Medium_Name(Medium::AWDL)
+           << " ";
+  }
   result << "}";
 }
 
@@ -1169,6 +1173,9 @@ void BasePcpHandler::StripOutUnavailableMediums(
   }
   if (allowed.wifi_direct) {
     allowed.wifi_direct = mediums_->GetWifiDirect().IsGOAvailable();
+  }
+  if (allowed.awdl) {
+    allowed.awdl = mediums_->GetAwdl().IsAvailable();
   }
 }
 

@@ -46,6 +46,7 @@ struct MediumsDart {
   int64_t wifi_lan;
   int64_t wifi_hotspot;
   int64_t web_rtc;
+  int64_t awdl;
   // LINT.ThenChange(//depot/google3/location/nearby/apps/helloconnections/plugins/nearby_connections/platform/lib/types/mediums.dart)
 };
 

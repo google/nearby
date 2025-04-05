@@ -29,6 +29,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
+#include "connections/implementation/awdl_endpoint_channel.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
 #include "connections/implementation/ble_endpoint_channel.h"
@@ -61,6 +62,7 @@
 #include "connections/v3/connection_listening_options.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
+#include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -81,6 +83,7 @@ namespace connections {
 namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::location::nearby::proto::connections::Medium::AWDL;
 using ::location::nearby::proto::connections::Medium::BLE;
 using ::location::nearby::proto::connections::Medium::BLUETOOTH;
 using ::location::nearby::proto::connections::Medium::UNKNOWN_MEDIUM;
@@ -110,6 +113,7 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
     InjectedBluetoothDeviceStore& injected_bluetooth_device_store, Pcp pcp)
     : BasePcpHandler(mediums, endpoint_manager, endpoint_channel_manager,
                      bwu_manager, pcp),
+      awdl_medium_(mediums->GetAwdl()),
       bluetooth_radio_(mediums->GetBluetoothRadio()),
       bluetooth_medium_(mediums->GetBluetoothClassic()),
       ble_medium_(mediums->GetBle()),
@@ -165,6 +169,32 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 
   WebRtcState web_rtc_state{WebRtcState::kUnconnectable};
 
+  // AWDL
+  if (advertising_options.allowed.awdl &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
+    ErrorOr<Medium> awdl_result =
+        StartAwdlAdvertising(client, service_id, local_endpoint_id,
+                             local_endpoint_info, web_rtc_state);
+
+    Medium awdl_medium = UNKNOWN_MEDIUM;
+    if (awdl_result.has_value()) {
+      awdl_medium = awdl_result.value();
+    }
+    if (awdl_medium != UNKNOWN_MEDIUM) {
+      LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: Awdl added";
+      mediums_started_successfully.push_back(awdl_medium);
+    }
+    std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+        operation_result_with_medium = GetOperationResultWithMediumByResultCode(
+            client, AWDL, /*update_index=*/0,
+            awdl_result.has_error()
+                ? awdl_result.error().operation_result_code().value()
+                : OperationResultCode::DETAIL_SUCCESS);
+    operation_result_with_mediums.push_back(*operation_result_with_medium);
+  }
+
+  // WifiLan
   if (advertising_options.allowed.wifi_lan) {
     ErrorOr<Medium> wifi_lan_result =
         StartWifiLanAdvertising(client, service_id, local_endpoint_id,
@@ -346,6 +376,12 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
+    awdl_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+    awdl_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+  }
 
   return {Status::kSuccess};
 }
@@ -1006,7 +1042,96 @@ void P2pClusterPcpHandler::BleV2LegacyDeviceDiscoveredHandler() {
       });
 }
 
-bool P2pClusterPcpHandler::IsRecognizedWifiLanEndpoint(
+void P2pClusterPcpHandler::AwdlServiceDiscoveredHandler(
+    ClientProxy* client, NsdServiceInfo service_info,
+    const std::string& service_id) {
+  RunOnPcpHandlerThread(
+      "p2p-awdl-service-discovered",
+      [this, client, service_id, service_info]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          LOG(WARNING) << "Skipping discovery of NsdServiceInfo "
+                       << service_info.GetServiceName()
+                       << " because we are no longer discovering.";
+          return;
+        }
+
+        // Parse the WifiLanServiceInfo.
+        WifiLanServiceInfo wifi_lan_service_info(service_info);
+        // Make sure the medium service name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiServiceEndpoint(service_id,
+                                             wifi_lan_service_info)) {
+          return;
+        }
+
+        // Report the discovered endpoint to the client.
+        LOG(INFO) << "Found NsdServiceInfo " << service_info.GetServiceName()
+                  << " (with endpoint_id="
+                  << wifi_lan_service_info.GetEndpointId()
+                  << "and endpoint_info="
+                  << absl::BytesToHexString(
+                         wifi_lan_service_info.GetEndpointInfo().data())
+                  << ").";
+        StopEndpointLostByMediumAlarm(wifi_lan_service_info.GetEndpointId(),
+                                      AWDL);
+        OnEndpointFound(client, std::make_shared<AwdlEndpoint>(AwdlEndpoint{
+                                    {
+                                        wifi_lan_service_info.GetEndpointId(),
+                                        wifi_lan_service_info.GetEndpointInfo(),
+                                        service_id,
+                                        AWDL,
+                                        wifi_lan_service_info.GetWebRtcState(),
+                                    },
+                                    service_info,
+                                }));
+      });
+}
+
+void P2pClusterPcpHandler::AwdlServiceLostHandler(
+    ClientProxy* client, NsdServiceInfo service_info,
+    const std::string& service_id) {
+  LOG(INFO) << "Awdl: [LOST, SCHED] service_info=" << &service_info
+            << ", service_name=" << service_info.GetServiceName();
+  RunOnPcpHandlerThread(
+      "p2p-wifi-service-lost",
+      [this, client, service_id, service_info]() RUN_ON_PCP_HANDLER_THREAD() {
+        // Make sure we are still discovering before proceeding.
+        if (!client->IsDiscovering()) {
+          LOG(WARNING) << "Ignoring lost NsdServiceInfo "
+                       << service_info.GetServiceName()
+                       << " because we are no longer "
+                          "discovering.";
+          return;
+        }
+
+        // Parse the WifiLanServiceInfo.
+        WifiLanServiceInfo wifi_lan_service_info(service_info);
+
+        // Make sure the medium service name points to a valid
+        // endpoint we're discovering.
+        if (!IsRecognizedWifiServiceEndpoint(service_id, wifi_lan_service_info))
+          return;
+
+        // Report the lost endpoint to the client.
+        LOG(INFO) << "Lost NsdServiceInfo " << service_info.GetServiceName()
+                  << " (with endpoint_id="
+                  << wifi_lan_service_info.GetEndpointId()
+                  << " and endpoint_info="
+                  << absl::BytesToHexString(
+                         wifi_lan_service_info.GetEndpointInfo().data())
+                  << ").";
+        OnEndpointLost(client, DiscoveredEndpoint{
+                                   wifi_lan_service_info.GetEndpointId(),
+                                   wifi_lan_service_info.GetEndpointInfo(),
+                                   service_id,
+                                   AWDL,
+                                   WebRtcState::kUndefined,
+                               });
+      });
+}
+
+bool P2pClusterPcpHandler::IsRecognizedWifiServiceEndpoint(
     const std::string& service_id,
     const WifiLanServiceInfo& wifi_lan_service_info) const {
   if (!wifi_lan_service_info.IsValid()) {
@@ -1056,7 +1181,8 @@ void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
         WifiLanServiceInfo wifi_lan_service_info(service_info);
         // Make sure the WifiLan service name points to a valid
         // endpoint we're discovering.
-        if (!IsRecognizedWifiLanEndpoint(service_id, wifi_lan_service_info)) {
+        if (!IsRecognizedWifiServiceEndpoint(service_id,
+                                             wifi_lan_service_info)) {
           return;
         }
 
@@ -1106,7 +1232,7 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
 
         // Make sure the WifiLan service name points to a valid
         // endpoint we're discovering.
-        if (!IsRecognizedWifiLanEndpoint(service_id, wifi_lan_service_info))
+        if (!IsRecognizedWifiServiceEndpoint(service_id, wifi_lan_service_info))
           return;
 
         // Report the lost endpoint to the client.
@@ -1141,6 +1267,31 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
   std::vector<ConnectionsLog::OperationResultWithMedium>
       operation_result_with_mediums;
 
+  // Due to singleton, apple only allow start discovery once. So need to keep
+  // the start discovery order of awdl before the wifi_lan.
+  if (discovery_options.allowed.awdl &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
+    ErrorOr<Medium> awdl_result = StartAwdlDiscovery(client, service_id);
+    Medium awdl_medium = UNKNOWN_MEDIUM;
+    if (awdl_result.has_value()) {
+      awdl_medium = awdl_result.value();
+    }
+    if (awdl_medium != UNKNOWN_MEDIUM) {
+      LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: AWDL added";
+      mediums_started_successfully.push_back(awdl_medium);
+    }
+    std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+        operation_result_with_medium = GetOperationResultWithMediumByResultCode(
+            client, AWDL,
+            /*update_index=*/0,
+            awdl_result.has_error()
+                ? awdl_result.error().operation_result_code().value()
+                : OperationResultCode::DETAIL_SUCCESS);
+    operation_result_with_mediums.push_back(*operation_result_with_medium);
+  }
+
+  // WifiLan
   if (discovery_options.allowed.wifi_lan) {
     ErrorOr<Medium> wifi_lan_result = StartWifiLanDiscovery(client, service_id);
     Medium wifi_lan_medium = UNKNOWN_MEDIUM;
@@ -1247,6 +1398,11 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
 
 Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
   wifi_lan_medium_.StopDiscovery(client->GetDiscoveryServiceId());
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
+    awdl_medium_.StopDiscovery(client->GetDiscoveryServiceId());
+  }
+
   if (bluetooth_classic_client_id_to_service_id_map_.contains(
           client->GetClientId())) {
     bluetooth_medium_.StopDiscovery(
@@ -1337,6 +1493,13 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
       auto* wifi_lan_endpoint = down_cast<WifiLanEndpoint*>(endpoint);
       if (wifi_lan_endpoint) {
         return WifiLanConnectImpl(client, wifi_lan_endpoint);
+      }
+      break;
+    }
+    case AWDL: {
+      auto* awdl_endpoint = down_cast<AwdlEndpoint*>(endpoint);
+      if (awdl_endpoint) {
+        return AwdlConnectImpl(client, awdl_endpoint);
       }
       break;
     }
@@ -1540,6 +1703,15 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       mediums_->GetBle().StopAcceptingConnections(std::string(service_id));
     }
   }
+  // awdl
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl) &&
+      (NeedsToTurnOffAdvertisingMedium(AWDL, old_options,
+                                       advertising_options) ||
+       needs_restart)) {
+    mediums_->GetAwdl().StopAdvertising(std::string(service_id));
+    mediums_->GetAwdl().StopAcceptingConnections(std::string(service_id));
+  }
   // wifi lan
   if (NeedsToTurnOffAdvertisingMedium(WIFI_LAN, old_options,
                                       advertising_options) ||
@@ -1623,6 +1795,37 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
                   client, BLE, update_index,
                   ble_result.has_error()
                       ? ble_result.error().operation_result_code().value()
+                      : OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    }
+  }
+  // awdl
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl) &&
+      new_mediums.awdl && !advertising_options.low_power) {
+    if (old_mediums.awdl && !needs_restart) {
+      restarted_mediums.push_back(AWDL);
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, AWDL, update_index,
+                  OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    } else {
+      ErrorOr<Medium> awdl_result = StartAwdlAdvertising(
+          client, std::string(service_id), std::string(local_endpoint_id),
+          ByteArray(std::string(local_endpoint_info)), web_rtc_state);
+      if (awdl_result.has_value() && awdl_result.value() != UNKNOWN_MEDIUM) {
+        restarted_mediums.push_back(AWDL);
+      } else {
+        status = {Status::kWifiLanError};
+      }
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, AWDL, update_index,
+                  awdl_result.has_error()
+                      ? awdl_result.error().operation_result_code().value()
                       : OperationResultCode::DETAIL_SUCCESS);
       operation_result_with_mediums.push_back(*operation_result_with_medium);
     }
@@ -1782,6 +1985,14 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
     bluetooth_medium_.StopDiscovery(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, BLUETOOTH);
   }
+  // awdl
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl) &&
+      (NeedsToTurnOffDiscoveryMedium(AWDL, old_options, discovery_options) ||
+       needs_restart)) {
+    mediums_->GetAwdl().StopDiscovery(std::string(service_id));
+    StartEndpointLostByMediumAlarms(client, AWDL);
+  }
   // wifi lan
   if (NeedsToTurnOffDiscoveryMedium(WIFI_LAN, old_options, discovery_options) ||
       needs_restart) {
@@ -1880,6 +2091,38 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
                         : OperationResultCode::DETAIL_SUCCESS);
         operation_result_with_mediums.push_back(*operation_result_with_medium);
       }
+    }
+  }
+  // awdl (note: keep the awdl logic before the wifi lan logic)
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableAwdl) &&
+      new_mediums.awdl && !discovery_options.low_power) {
+    should_start_discovery = true;
+    if (!needs_restart && old_mediums.awdl) {
+      restarted_mediums.push_back(AWDL);
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, AWDL, update_index,
+                  OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
+    } else {
+      ErrorOr<Medium> awdl_result =
+          StartAwdlDiscovery(client, std::string(service_id));
+      if (awdl_result.has_value()) {
+        restarted_mediums.push_back(AWDL);
+      } else {
+        LOG(WARNING) << "UpdateDiscoveryOptionsImpl: unable to restart "
+                        "awdl scanning";
+      }
+      std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
+          operation_result_with_medium =
+              GetOperationResultWithMediumByResultCode(
+                  client, AWDL, update_index,
+                  awdl_result.has_error()
+                      ? awdl_result.error().operation_result_code().value()
+                      : OperationResultCode::DETAIL_SUCCESS);
+      operation_result_with_mediums.push_back(*operation_result_with_medium);
     }
   }
   // wifi lan
@@ -2772,6 +3015,30 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
   };
 }
 
+void P2pClusterPcpHandler::AwdlConnectionAcceptedHandler(
+    ClientProxy* client, absl::string_view local_endpoint_id,
+    absl::string_view local_endpoint_info, NearbyDevice::Type device_type,
+    const std::string& service_id, AwdlSocket socket) {
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Invalid socket in accept callback("
+                 << absl::BytesToHexString(local_endpoint_info)
+                 << "), client=" << client->GetClientId();
+    return;
+  }
+  RunOnPcpHandlerThread(
+      "p2p-awdl-on-incoming-connection",
+      [this, client, local_endpoint_id, service_id, device_type,
+       socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
+        std::string remote_service_name = std::string(local_endpoint_id);
+        auto channel = std::make_unique<AwdlEndpointChannel>(
+            service_id, /*channel_name=*/remote_service_name, socket);
+        ByteArray remote_service_name_byte{remote_service_name};
+
+        OnIncomingConnection(client, remote_service_name_byte,
+                             std::move(channel), AWDL, device_type);
+      });
+}
+
 void P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler(
     ClientProxy* client, absl::string_view local_endpoint_id,
     absl::string_view local_endpoint_info, NearbyDevice::Type device_type,
@@ -2794,6 +3061,92 @@ void P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler(
         OnIncomingConnection(client, remote_service_name_byte,
                              std::move(channel), WIFI_LAN, device_type);
       });
+}
+
+ErrorOr<Medium> P2pClusterPcpHandler::StartAwdlAdvertising(
+    ClientProxy* client, const std::string& service_id,
+    const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
+    WebRtcState web_rtc_state) {
+  //  Start listening for connections before advertising in case a connection
+  //  request comes in very quickly.
+  LOG(INFO) << "P2pClusterPcpHandler::StartAwdlAdvertising: service="
+            << service_id << ": start";
+  if (!awdl_medium_.IsAcceptingConnections(service_id)) {
+    ErrorOr<bool> awdl_result = awdl_medium_.StartAcceptingConnections(
+        service_id,
+        absl::bind_front(&P2pClusterPcpHandler::AwdlConnectionAcceptedHandler,
+                         this, client, local_endpoint_id,
+                         local_endpoint_info.AsStringView(),
+                         NearbyDevice::Type::kConnectionsDevice));
+    if (awdl_result.has_error()) {
+      LOG(WARNING)
+          << "In StartAwdlAdvertising("
+          << absl::BytesToHexString(local_endpoint_info.data())
+          << "), client=" << client->GetClientId()
+          << " failed to start listening for incoming Awdl connections "
+             "to service_id="
+          << service_id;
+      return {Error(awdl_result.error().operation_result_code().value())};
+    }
+    LOG(INFO) << "In StartAwdlAdvertising("
+              << absl::BytesToHexString(local_endpoint_info.data())
+              << "), client=" << client->GetClientId()
+              << " started listening for incoming Awdl connections "
+                 "to service_id = "
+              << service_id;
+  }
+
+  // Generate a WifiLanServiceInfo with which to become AWDL discoverable.
+  const ByteArray service_id_hash =
+      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
+  WifiLanServiceInfo service_info{kWifiLanServiceInfoVersion,
+                                  GetPcp(),
+                                  local_endpoint_id,
+                                  service_id_hash,
+                                  local_endpoint_info,
+                                  ByteArray{},
+                                  web_rtc_state};
+  NsdServiceInfo nsd_service_info(service_info);
+  if (!nsd_service_info.IsValid()) {
+    LOG(WARNING) << "In StartAwdlAdvertising("
+                 << absl::BytesToHexString(local_endpoint_info.data())
+                 << "), client=" << client->GetClientId()
+                 << " failed to generate WifiLanServiceInfo {version="
+                 << static_cast<int>(kWifiLanServiceInfoVersion)
+                 << ", pcp=" << PcpToStrategy(GetPcp()).GetName()
+                 << ", endpoint_id=" << local_endpoint_id
+                 << ", service_id_hash="
+                 << absl::BytesToHexString(service_id_hash.data())
+                 << ", endpoint_info="
+                 << absl::BytesToHexString(local_endpoint_info.data()) << "}.";
+    awdl_medium_.StopAcceptingConnections(service_id);
+    return {
+        Error(OperationResultCode::NEARBY_WIFI_LAN_ADVERTISE_TO_BYTES_FAILURE)};
+  }
+  LOG(INFO) << "In StartAwdlAdvertising("
+            << absl::BytesToHexString(local_endpoint_info.data())
+            << "), client=" << client->GetClientId()
+            << " generated WifiLanServiceInfo "
+            << nsd_service_info.GetServiceName()
+            << " with service_id=" << service_id;
+
+  ErrorOr<bool> awdl_result =
+      awdl_medium_.StartAdvertising(service_id, nsd_service_info);
+  if (awdl_result.has_error()) {
+    LOG(INFO) << "In StartAwdlAdvertising("
+              << absl::BytesToHexString(local_endpoint_info.data())
+              << "), client=" << client->GetClientId()
+              << " couldn't advertise with WifiLanServiceInfo "
+              << nsd_service_info.GetServiceName();
+    awdl_medium_.StopAcceptingConnections(service_id);
+    return {Error(awdl_result.error().operation_result_code().value())};
+  }
+  LOG(INFO) << "In StartAwdlAdvertising("
+            << absl::BytesToHexString(local_endpoint_info.data())
+            << "), client=" << client->GetClientId()
+            << " advertised with WifiLanServiceInfo "
+            << nsd_service_info.GetServiceName();
+  return {AWDL};
 }
 
 ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
@@ -2883,6 +3236,30 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
   return {WIFI_LAN};
 }
 
+ErrorOr<Medium> P2pClusterPcpHandler::StartAwdlDiscovery(
+    ClientProxy* client, const std::string& service_id) {
+  ErrorOr<bool> result = awdl_medium_.StartDiscovery(
+      service_id,
+      {
+          .service_discovered_cb = absl::bind_front(
+              &P2pClusterPcpHandler::AwdlServiceDiscoveredHandler, this,
+              client),
+          .service_lost_cb = absl::bind_front(
+              &P2pClusterPcpHandler::AwdlServiceLostHandler, this, client),
+      });
+  if (!result.has_error()) {
+    LOG(INFO) << "In StartAwdlDiscovery(), client=" << client->GetClientId()
+              << " started scanning for Wifi devices for service_id="
+              << service_id;
+    return {AWDL};
+  } else {
+    LOG(INFO) << "In StartAwdlDiscovery(), client=" << client->GetClientId()
+              << " couldn't start scanning on Wifi for service_id="
+              << service_id;
+    return {Error(result.error().operation_result_code().value())};
+  }
+}
+
 ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanDiscovery(
     ClientProxy* client, const std::string& service_id) {
   ErrorOr<bool> result = wifi_lan_medium_.StartDiscovery(
@@ -2905,6 +3282,42 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanDiscovery(
               << service_id;
     return {Error(result.error().operation_result_code().value())};
   }
+}
+
+BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::AwdlConnectImpl(
+    ClientProxy* client, AwdlEndpoint* endpoint) {
+  LOG(INFO) << "Client " << client->GetClientId()
+            << " is attempting to connect to endpoint(id="
+            << endpoint->endpoint_id << ") over Awdl.";
+  ErrorOr<AwdlSocket> socket_result =
+      awdl_medium_.Connect(endpoint->service_id, endpoint->service_info,
+                           client->GetCancellationFlag(endpoint->endpoint_id));
+  if (socket_result.has_error()) {
+    LOG(ERROR) << "In AwdlConnectImpl(), failed to connect to service "
+               << endpoint->service_info.GetServiceName()
+               << " for endpoint(id=" << endpoint->endpoint_id << ").";
+    return BasePcpHandler::ConnectImplResult{
+        .status = {Status::kWifiLanError},
+        .operation_result_code =
+            socket_result.error().operation_result_code().value(),
+    };
+  }
+  LOG(INFO) << "In AwdlConnectImpl(), connect to service "
+            << " socket=" << &socket_result.value().GetImpl()
+            << " for endpoint(id=" << endpoint->endpoint_id << ").";
+
+  auto channel = std::make_unique<AwdlEndpointChannel>(
+      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+      socket_result.value());
+  LOG(INFO) << "Client " << client->GetClientId()
+            << " created Awdl endpoint channel to endpoint(id="
+            << endpoint->endpoint_id << ").";
+  return BasePcpHandler::ConnectImplResult{
+      .medium = AWDL,
+      .status = {Status::kSuccess},
+      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
+      .endpoint_channel = std::move(channel),
+  };
 }
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(

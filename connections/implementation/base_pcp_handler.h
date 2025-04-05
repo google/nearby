@@ -251,6 +251,14 @@ class BasePcpHandler : public PcpHandler,
     BleV2Peripheral ble_peripheral;
   };
 
+  struct AwdlEndpoint : public DiscoveredEndpoint {
+    AwdlEndpoint(DiscoveredEndpoint endpoint,
+                 const NsdServiceInfo& service_info)
+        : DiscoveredEndpoint(std::move(endpoint)), service_info(service_info) {}
+
+    NsdServiceInfo service_info;
+  };
+
   struct WifiLanEndpoint : public DiscoveredEndpoint {
     WifiLanEndpoint(DiscoveredEndpoint endpoint,
                     const NsdServiceInfo& service_info)

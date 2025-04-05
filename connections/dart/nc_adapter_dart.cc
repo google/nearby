@@ -491,6 +491,8 @@ void StartAdvertisingDart(NC_INSTANCE instance, DataDart service_id,
       options_dart.mediums.wifi_hotspot;
   advertising_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC] =
       options_dart.mediums.web_rtc;
+  advertising_options.common_options.allowed_mediums[NC_MEDIUM_AWDL] =
+      options_dart.mediums.awdl != 0;
 
   NC_CONNECTION_REQUEST_INFO request_info{};
 
@@ -567,6 +569,8 @@ void StartDiscoveryDart(NC_INSTANCE instance, DataDart service_id,
       options_dart.mediums.ble != 0;
   discovery_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN] =
       options_dart.mediums.wifi_lan != 0;
+  discovery_options.common_options.allowed_mediums[NC_MEDIUM_AWDL] =
+      options_dart.mediums.awdl != 0;
   discovery_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT] =
       options_dart.mediums.wifi_hotspot;
   discovery_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC] =
@@ -647,6 +651,8 @@ void RequestConnectionDart(NC_INSTANCE instance, int endpoint_id,
       options_dart.mediums.ble != 0;
   connection_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN] =
       options_dart.mediums.wifi_lan != 0;
+  connection_options.common_options.allowed_mediums[NC_MEDIUM_AWDL] =
+      options_dart.mediums.awdl != 0;
   connection_options.common_options.allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT] =
       options_dart.mediums.wifi_hotspot;
   connection_options.common_options.allowed_mediums[NC_MEDIUM_WEB_RTC] =
