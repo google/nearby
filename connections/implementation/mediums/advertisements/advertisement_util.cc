@@ -24,9 +24,10 @@
 
 namespace nearby::connections::advertisements {
 namespace {
+constexpr uint8_t kFakeEncryptionSize = 16;
 constexpr absl::string_view kFakeEncryptionKey =
     "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f";
-}
+}  // namespace
 
 // Should always match the protocol implementation to read device name.
 // LINT.IfChange
@@ -70,7 +71,7 @@ std::string BuildEndpointInfo(const std::string& device_name) {
   // VERSION | HAS_DEVICE_NAME | DEVICE_TYPE
   endpoint_info.push_back(0x22);
   // salt and encrypted_metadata_key
-  endpoint_info.append(kFakeEncryptionKey.data(), kFakeEncryptionKey.size());
+  endpoint_info.append(kFakeEncryptionKey.data(), kFakeEncryptionSize);
   endpoint_info.push_back(device_name.size());
   endpoint_info.append(device_name);
   return endpoint_info;

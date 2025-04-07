@@ -49,5 +49,11 @@ TEST(AdvertisementUtilTest, ReadInvaidDeviceName) {
           .has_value());
 }
 
+TEST(AdvertisementUtilTest, BuildEndpointInfo) {
+  std::string device_name = "Test_device";
+  std::string endpoint_info = BuildEndpointInfo(device_name);
+  EXPECT_EQ(ReadDeviceName(ByteArray(endpoint_info)), device_name);
+}
+
 }  // namespace
 }  // namespace nearby::connections::advertisements
