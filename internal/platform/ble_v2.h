@@ -191,8 +191,7 @@ class BleV2ServerSocket final {
     std::unique_ptr<api::ble_v2::BleSocket> socket = impl_->Accept();
     BleV2Peripheral peripheral;
     if (!socket) {
-      NEARBY_LOGS(INFO) << "BleServerSocket Accept() failed on server socket: "
-                        << this;
+      LOG(INFO) << "BleServerSocket Accept() failed on server socket: " << this;
     } else {
       auto* platform_peripheral = socket->GetRemotePeripheral();
       if (platform_peripheral != nullptr) {
@@ -204,7 +203,7 @@ class BleV2ServerSocket final {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() {
-    NEARBY_LOGS(INFO) << "BleServerSocket Closing:: " << this;
+    LOG(INFO) << "BleServerSocket Closing:: " << this;
     return impl_->Close();
   }
 
@@ -381,6 +380,9 @@ class BleL2capServerSocket final {
       std::unique_ptr<api::ble_v2::BleL2capServerSocket> socket)
       : impl_(std::move(socket)) {}
 
+  // Gets PSM value has been published by the server.
+  int GetPSM() { return impl_->GetPSM(); }
+
   // Accepts an incoming connection.
   BleL2capSocket Accept() {
     std::unique_ptr<api::ble_v2::BleL2capSocket> socket = impl_->Accept();
@@ -543,12 +545,6 @@ class BleV2Medium final {
   void AddAlternateUuidForService(uint16_t uuid,
                                   const std::string& service_id) {
     impl_->AddAlternateUuidForService(uuid, service_id);
-  }
-
-  // Returns PSM value.
-  int GetPSM() {
-    // TODO(mingshiouwu): Replace with real implementation.
-    return 0;
   }
 
  private:

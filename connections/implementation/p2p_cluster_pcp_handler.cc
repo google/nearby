@@ -369,6 +369,12 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
           config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
     ble_v2_medium_.StopAdvertising(client->GetAdvertisingServiceId());
     ble_v2_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableBleL2cap)) {
+      ble_v2_medium_.StopAcceptingL2capConnections(
+          client->GetAdvertisingServiceId());
+    }
   } else {
     ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
     ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
@@ -1606,6 +1612,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
       }
     }
   }
+  // wifi lan
   if (options.enable_wlan_listening &&
       !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAcceptingConnections(

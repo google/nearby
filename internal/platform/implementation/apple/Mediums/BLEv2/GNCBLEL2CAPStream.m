@@ -39,11 +39,11 @@
 
 @interface GNCBLEL2CAPStream () <NSStreamDelegate>
 
-/// Input stream from the watch. Operations to this stream are synchronized by |_streamQueue|
+/// Input stream from the device. Operations to this stream are synchronized by |_streamQueue|
 /// dispatch queue.
 @property(nonatomic, nullable) NSInputStream *inputStream;
 
-/// Output stream to the watch. Operations to this stream are synchronized by synchronized access on
+/// Output stream to the device. Operations to this stream are synchronized by synchronized access on
 /// |_writeBufferArray|.
 @property(nonatomic, nullable) NSOutputStream *outputStream;
 
@@ -51,12 +51,12 @@
 
 @implementation GNCBLEL2CAPStream {
   GNCBLEL2CAPStreamClosedBlock _closedBlock;
-  GNCBLEL2CAPControllerReceivedDataBlock _receivedDataBlock;
+  GNCBLEL2CAPStreamReceivedDataBlock _receivedDataBlock;
 
   /// Serial queue used when invoking |_receivedDataBlock|.
   dispatch_queue_t _receivedDataQueue;
 
-  /// Queue used exclusively from events on |toWatchStream| and |fromWatchStream|.
+  /// Queue used exclusively from events on |inputStream| and |outputStream|.
   dispatch_queue_t _streamQueue;
 
   /// Pending data to be written to the remote device, synchronized access on itself.
@@ -75,7 +75,7 @@
 #pragma mark Public
 
 - (instancetype)initWithClosedBlock:(GNCBLEL2CAPStreamClosedBlock)closedBlock
-                  receivedDataBlock:(GNCBLEL2CAPControllerReceivedDataBlock)receivedDataBlock
+                  receivedDataBlock:(GNCBLEL2CAPStreamReceivedDataBlock)receivedDataBlock
                         inputStream:(NSInputStream *)inputStream
                        outputStream:(NSOutputStream *)outputStream {
   self = [super init];
@@ -97,6 +97,10 @@
     [self configureStreamsWithInputStream:inputStream outputStream:outputStream];
   }
   return self;
+}
+
+- (void)close {
+  _closedBlock();
 }
 
 - (void)tearDown {
@@ -300,7 +304,7 @@
   }
 }
 
-/// Receives data from watch and invokes |_receivedDataBlock|.
+/// Receives data from device and invokes |_receivedDataBlock|.
 - (void)receiveStreamData {
   dispatch_assert_queue_debug(_streamQueue);
 
@@ -312,7 +316,7 @@
     [data appendBytes:readBuffer length:(NSUInteger)bytesRead];
 
     if (_verboseLoggingEnabled) {
-      GTMLoggerDebug(@"[NEARBY] Stream data from watch of length %@", @(data.length));
+      GTMLoggerDebug(@"[NEARBY] Stream data from device of length %@", @(data.length));
     }
 
     dispatch_async(_receivedDataQueue, ^{
