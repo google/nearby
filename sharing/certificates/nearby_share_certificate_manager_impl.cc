@@ -448,6 +448,12 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
       [&download_succeeded]() { download_succeeded = false; },
       [this, &download_succeeded](
           const std::vector<PublicCertificate>& certificates) {
+        if (VLOG_IS_ON(1)) {
+          for (const auto& certificate : certificates) {
+            VLOG(1) << "Downloaded certificate id: "
+                    << absl::BytesToHexString(certificate.secret_id());
+          }
+        }
         download_succeeded = UpdatePublicCertificates(certificates);
       });
   if (UsingIdentityRpc()) {
@@ -493,7 +499,16 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
   std::vector<PublicCertificate> public_certs;
   public_certs.reserve(private_certs->size());
   for (const NearbySharePrivateCertificate& private_cert : *private_certs) {
-    public_certs.push_back(*private_cert.ToPublicCertificate());
+    std::optional<PublicCertificate> public_cert =
+        private_cert.ToPublicCertificate();
+    if (!public_cert.has_value()) {
+      LOG(WARNING) << "Failed to convert private certificate to public "
+                      "certificate.";
+      continue;
+    }
+    VLOG(1) << "Uploading public certificate id: "
+            << absl::BytesToHexString(public_cert->secret_id());
+    public_certs.push_back(*public_cert);
   }
 
   LOG(INFO) << "Uploading " << public_certs.size()
