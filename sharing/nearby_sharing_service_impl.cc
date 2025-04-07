@@ -676,10 +676,8 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
             // The Identity API does not support contact manager which triggers
             // Certificate refresh in DownloadContacts. Force upload explicitly.
             VLOG(1) << __func__
-                    << ": [Call Identity API] PrivateCertificateRefresh force "
-                       "upload.";
-            certificate_manager_->PrivateCertificateRefresh(
-                /*force_upload=*/true);
+                    << ": [Call Identity API] ForceUploadPrivateCertificates.";
+            certificate_manager_->ForceUploadPrivateCertificates();
           }
         }
         InvalidateReceiveSurfaceState();
