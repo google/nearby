@@ -147,6 +147,20 @@ bool BleV2Medium::StopScanning() {
   NEARBY_LOGS(INFO) << "Ble Scanning disabled: impl=" << GetImpl();
   return impl_->StopScanning();
 }
+bool BleV2Medium::MediumStopScanning() {
+  MutexLock lock(&mutex_);
+  if (!scanning_enabled_) {
+    return true;
+  }
+  NEARBY_LOGS(INFO) << "Medium level BLE_V2 Scanning disabled: impl="
+                    << GetImpl();
+  return impl_->StopScanning();
+}
+
+bool BleV2Medium::MediumRestoreScanning() {
+  MutexLock lock(&mutex_);
+  return impl_->MediumRestoreScanning();
+}
 
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>
 BleV2Medium::StartScanning(const Uuid& service_uuid,
