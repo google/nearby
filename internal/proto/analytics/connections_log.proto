@@ -57,6 +57,13 @@ message ConnectionsLog {
 
   // Encapsulates one session of a client connected to Nearby Connections API.
   message ClientSession {
+    enum DeviceType {
+      UNKNOWN_TYPE = 0;
+      NEARBY_CONNECTION = 1;
+      NEARBY_PRESENCE = 2;
+      DCT = 3;
+    }
+
     // Elapsed time in milliseconds between Client connect and
     // disconnect.
     optional int64 duration_millis = 1;
@@ -70,6 +77,9 @@ message ConnectionsLog {
     // All the connection tokens used in this client session.
     optional string connection_token = 4
         /* type = ST_SESSION_ID */;
+
+    // The type of the device.
+    optional DeviceType device_type = 5;
   }
 
   message OperationResult {
@@ -321,8 +331,52 @@ message ConnectionsLog {
         10;
   }
 
+  message DctDeviceInfo {
+    enum Platform {
+      UNKNOWN = 0;
+      ANDROID = 1;
+      IOS = 2;
+      CROS = 3;
+      WINDOWS = 4;
+    }
+    optional string device_model = 1;
+    optional Platform device_platform = 2;
+    optional string country_code = 3;
+    optional string manufacturer = 4;
+  }
+
+  message DctDisconnectionReasonDetail {
+    enum DctDisconnectionReason {
+      UNKNOWN_DISCONNECTION_REASON = 0;
+      DCT_ERROR_MDNS_DISCOVERY_TIMEOUT = 1;
+      DCT_ERROR_MDNS_REGISTER_SERVICE = 2;
+      DCT_ERROR_SUBSEQUENT_TLS_SPAKE = 3;
+      DCT_ERROR_REQUEST_FAILED = 4;
+      DCT_ERROR_RESPONSE_FAILED = 5;
+      DCT_ERROR_CONTROL_MESSAGE_EXCHANGE = 6;
+      DCT_ERROR_CAPABILITY_MISMATCH = 7;
+      DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE = 8;
+      DCT_ERROR_WIFI_DISABLED = 9;
+      DCT_ERROR_WIFI_DISCONNECTED = 10;
+      DCT_ERROR_WIFI_CREDENTIAL_TRANSFER = 11;
+      DCT_ERROR_WIFI_INTERNET_CONNECTION = 12;
+      DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 13;
+      DCT_ERROR_USER_CANCELLED = 14;
+      DCT_ERROR_SERVICE_CANCELLED = 15;
+      DCT_ERROR_UNVERIFIED_INTEGRITY = 16;
+    }
+    optional bool is_local_disconnection = 1;
+    optional DctDisconnectionReason disconnection_reason = 2;
+  }
+
   // A successfully-established connection over a particular medium.
   message EstablishedConnection {
+    enum SafeDisconnectionResult {
+      UNKNOWN_SAFE_DISCONNECTION_RESULT = 0;
+      SAFE_DISCONNECTION = 1;
+      UNSAFE_DISCONNECTION = 2;
+    }
+
     // Elapsed time in milliseconds that the connection is active.
     optional int64 duration_millis = 1;
 
@@ -355,11 +409,11 @@ message ConnectionsLog {
     // The result code of this established connection
     optional OperationResult operation_result = 10;
 
-    enum SafeDisconnectionResult {
-      UNKNOWN_SAFE_DISCONNECTION_RESULT = 0;
-      SAFE_DISCONNECTION = 1;
-      UNSAFE_DISCONNECTION = 2;
-    }
+    // The DCT remote device info
+    optional DctDeviceInfo dct_remote_device_info = 11;
+
+    // DCT disconnection reason details
+    optional DctDisconnectionReasonDetail dct_disconnection_reason_detail = 12;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
