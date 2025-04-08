@@ -1668,34 +1668,45 @@ void BasePcpHandler::OnEndpointFound(
   DiscoveredEndpoint* owned_endpoint = nullptr;
   for (auto& item = range.first; item != range.second; ++item) {
     auto& discovered_endpoint = item->second;
-    if (discovered_endpoint->endpoint_info != endpoint->endpoint_info) {
-      // Endpoint info should be same for an endpoint ID. If it is changed,
-      // we should reset discovered endpoints of the endpoint ID, and use the
-      // new endpoint info and medium as discovered endpoint.
-      NEARBY_LOGS(INFO) << "Endpoint info of endpoint " << endpoint_id
-                        << " changed on medium "
-                        << location::nearby::proto::connections::Medium_Name(
-                               endpoint->medium);
-      // Report endpoint lost
-      client->OnEndpointLost(endpoint->service_id, endpoint->endpoint_id);
-      // Reset discovered endpoints
-      discovered_endpoints_.erase(item->first);
-      // Add the endpoint as discovered endpoint.
-      owned_endpoint =
-          discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
-              ->second.get();
-      StopEndpointLostByMediumAlarm(owned_endpoint->endpoint_id,
-                                    owned_endpoint->medium);
-      client->OnEndpointFound(
-          owned_endpoint->service_id, owned_endpoint->endpoint_id,
-          owned_endpoint->endpoint_info, owned_endpoint->medium);
-      return;
-    }
-    if (discovered_endpoint->medium == endpoint->medium) {
-      NEARBY_LOGS(INFO) << "Ignore the dup endpoint info on medium "
-                        << location::nearby::proto::connections::Medium_Name(
-                               endpoint->medium);
-      return;
+    if (client->IsDctEnabled()) {
+      // Because the DCT endpoint info is mocked on BLE, we need to specially
+      // handle it to avoid device refresh between different mediums.
+      if (discovered_endpoint->medium == endpoint->medium) {
+        NEARBY_LOGS(INFO) << "Ignore the dup endpoint info on medium "
+                          << location::nearby::proto::connections::Medium_Name(
+                                 endpoint->medium);
+        return;
+      }
+    } else {
+      if (discovered_endpoint->endpoint_info != endpoint->endpoint_info) {
+        // Endpoint info should be same for an endpoint ID. If it is changed,
+        // we should reset discovered endpoints of the endpoint ID, and use the
+        // new endpoint info and medium as discovered endpoint.
+        NEARBY_LOGS(INFO) << "Endpoint info of endpoint " << endpoint_id
+                          << " changed on medium "
+                          << location::nearby::proto::connections::Medium_Name(
+                                 endpoint->medium);
+        // Report endpoint lost
+        client->OnEndpointLost(endpoint->service_id, endpoint->endpoint_id);
+        // Reset discovered endpoints
+        discovered_endpoints_.erase(item->first);
+        // Add the endpoint as discovered endpoint.
+        owned_endpoint =
+            discovered_endpoints_.emplace(endpoint_id, std::move(endpoint))
+                ->second.get();
+        StopEndpointLostByMediumAlarm(owned_endpoint->endpoint_id,
+                                      owned_endpoint->medium);
+        client->OnEndpointFound(
+            owned_endpoint->service_id, owned_endpoint->endpoint_id,
+            owned_endpoint->endpoint_info, owned_endpoint->medium);
+        return;
+      }
+      if (discovered_endpoint->medium == endpoint->medium) {
+        NEARBY_LOGS(INFO) << "Ignore the dup endpoint info on medium "
+                          << location::nearby::proto::connections::Medium_Name(
+                                 endpoint->medium);
+        return;
+      }
     }
   }
 
