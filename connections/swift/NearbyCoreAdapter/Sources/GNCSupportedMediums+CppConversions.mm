@@ -31,6 +31,7 @@ using ::nearby::connections::BooleanMediumSelector;
   selector.wifi_lan = self.wifiLAN;
   selector.wifi_hotspot = self.wifiHotspot;
   selector.wifi_direct = self.wifiDirect;
+  selector.awdl = self.awdl;
 
   return selector;
 }

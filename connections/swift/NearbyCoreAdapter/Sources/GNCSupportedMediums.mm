@@ -17,7 +17,13 @@
 @implementation GNCSupportedMediums
 
 - (instancetype)initWithAllMediumsEnabled {
-  return [self initWithBluetooth:YES ble:YES webRTC:YES wifiLAN:YES wifiHotspot:YES wifiDirect:YES];
+  return [self initWithBluetooth:YES
+                             ble:YES
+                          webRTC:YES
+                         wifiLAN:YES
+                     wifiHotspot:YES
+                      wifiDirect:YES
+                            awdl:YES];
 }
 
 - (instancetype)initWithBluetooth:(BOOL)bluetooth
@@ -25,7 +31,8 @@
                            webRTC:(BOOL)webRTC
                           wifiLAN:(BOOL)wifiLAN
                       wifiHotspot:(BOOL)wifiHotspot
-                       wifiDirect:(BOOL)wifiDirect {
+                       wifiDirect:(BOOL)wifiDirect
+                             awdl:(BOOL)awdl {
   self = [super init];
   if (self) {
     _bluetooth = bluetooth;
@@ -34,6 +41,7 @@
     _wifiLAN = wifiLAN;
     _wifiHotspot = wifiHotspot;
     _wifiDirect = wifiDirect;
+    _awdl = awdl;
   }
   return self;
 }

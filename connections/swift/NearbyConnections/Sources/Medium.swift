@@ -21,4 +21,5 @@ public enum Medium {
   case wifiLAN
   case wifiHotspot
   case wifiDirect
+  case awdl
 }

@@ -27,7 +27,7 @@ public class Advertiser {
 
   /// The set of all mediums that can be used for advertising.
   let allMediums: Set<Medium> = [
-    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect,
+    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect, .awdl
   ]
 
   lazy var connection: InternalConnection? = {
@@ -86,7 +86,8 @@ public class Advertiser {
       webRTC: mediums.contains(.webRTC),
       wifiLAN: mediums.contains(.wifiLAN),
       wifiHotspot: mediums.contains(.wifiHotspot),
-      wifiDirect: mediums.contains(.wifiDirect)
+      wifiDirect: mediums.contains(.wifiDirect),
+      awdl: mediums.contains(.awdl)
     )
 
     // Start advertising with the options

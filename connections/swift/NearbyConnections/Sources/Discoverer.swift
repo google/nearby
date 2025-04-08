@@ -26,7 +26,7 @@ public class Discoverer {
 
   /// The set of all mediums that can be used for discovering and connecting.
   let allMediums: Set<Medium> = [
-    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect,
+    .bluetooth, .ble, .webRTC, .wifiLAN, .wifiHotspot, .wifiDirect, .awdl
   ]
 
   lazy var connection: InternalConnection? = {
@@ -81,7 +81,8 @@ public class Discoverer {
       webRTC: mediums.contains(.webRTC),
       wifiLAN: mediums.contains(.wifiLAN),
       wifiHotspot: mediums.contains(.wifiHotspot),
-      wifiDirect: mediums.contains(.wifiDirect)
+      wifiDirect: mediums.contains(.wifiDirect),
+      awdl: mediums.contains(.awdl)
     )
 
     GNCCoreAdapter.shared.startDiscovery(
@@ -134,7 +135,8 @@ public class Discoverer {
       webRTC: mediums.contains(.webRTC),
       wifiLAN: mediums.contains(.wifiLAN),
       wifiHotspot: mediums.contains(.wifiHotspot),
-      wifiDirect: mediums.contains(.wifiDirect)
+      wifiDirect: mediums.contains(.wifiDirect),
+      awdl: mediums.contains(.awdl)
     )
 
     GNCCoreAdapter.shared.requestConnection(

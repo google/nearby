@@ -28,7 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
                            webRTC:(BOOL)webRTC
                           wifiLAN:(BOOL)wifiLAN
                       wifiHotspot:(BOOL)wifiHotspot
-                       wifiDirect:(BOOL)wifiDirect NS_DESIGNATED_INITIALIZER;
+                       wifiDirect:(BOOL)wifiDirect
+                             awdl:(BOOL)awdl  NS_DESIGNATED_INITIALIZER;
 
 @property(nonatomic) BOOL bluetooth;
 @property(nonatomic) BOOL ble;
@@ -36,6 +37,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic) BOOL wifiLAN;
 @property(nonatomic) BOOL wifiHotspot;
 @property(nonatomic) BOOL wifiDirect;
+@property(nonatomic) BOOL awdl;
 
 @end
 
