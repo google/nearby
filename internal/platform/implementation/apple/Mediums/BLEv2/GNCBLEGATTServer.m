@@ -23,6 +23,8 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -221,8 +223,15 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
       encoded = [encoded substringToIndex:22];
     }
 #else
-    if (encoded.length > 20) {
-      encoded = [encoded substringToIndex:20];
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            platform::config_package_nearby::nearby_platform_feature::kEnableBleL2cap)) {
+      if (encoded.length > 23) {
+        encoded = [encoded substringToIndex:23];
+      }
+    } else {
+      if (encoded.length > 20) {
+        encoded = [encoded substringToIndex:20];
+      }
     }
 #endif  // defined(NC_IOS_SDK)
 

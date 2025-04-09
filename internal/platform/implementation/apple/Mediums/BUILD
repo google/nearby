@@ -73,6 +73,8 @@ objc_library(
     ],
     deps = [
         "//internal/encoding:base85",
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
         "//proto/mediums:ble_frames_cc_proto",
