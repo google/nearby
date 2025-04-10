@@ -81,6 +81,8 @@ class P2pClusterPcpHandlerTest : public testing::Test {
  protected:
   void SetUp() override {
     NEARBY_LOGS(INFO) << "SetUp: begin";
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     SetBleExtendedAdvertisementsAvailable(true);
     SetDisableBluetoothClassicScanning(true);
     SetBleV2Enabled(true);
@@ -245,6 +247,8 @@ class P2pClusterPcpHandlerTestWithParam
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2,
         ble_v2_enabled);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     bool is_disable_bluetooth_scanning = std::get<2>(GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::

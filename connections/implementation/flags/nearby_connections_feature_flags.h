@@ -91,11 +91,11 @@ constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
     flags::Flag<bool>(kConfigPackage, "45687098", true);
 // When true, enable multiplexing in NC for AWDL.
 constexpr auto kEnableMultiplexAwdl =
-    flags::Flag<bool>(kConfigPackage, "45696647", true);
+    flags::Flag<bool>(kConfigPackage, "45690761", false);
 
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
-    flags::Flag<bool>(kConfigPackage, "45669531", true);
+    flags::Flag<bool>(kConfigPackage, "45690762", false);
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections

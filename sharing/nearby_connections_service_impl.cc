@@ -142,6 +142,9 @@ void NearbyConnectionsServiceImpl::StartDiscovery(
 
   NcDiscoveryOptions options{};
   options.strategy = ConvertToServiceStrategy(discovery_options.strategy);
+  // NcDiscoveryOptions enabled all mediums by default, we should apply the
+  // settings from discovery_options.
+  options.allowed.SetAll(false);
   options.allowed.ble = discovery_options.allowed_mediums.ble;
   options.allowed.bluetooth = discovery_options.allowed_mediums.bluetooth;
   options.allowed.web_rtc = discovery_options.allowed_mediums.web_rtc;
