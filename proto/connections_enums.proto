@@ -1311,11 +1311,11 @@ enum OperationResultCode {
   DCT_ERROR_KEEPALIVE_TIMEOUT = 5019;
   // Connection lost
   DCT_ERROR_ESTABLISHED_CONNECTION_LOST = 5020;
-  // User cancelled the connection
+  // User cancellation
   DCT_ERROR_USER_CANCELLED = 5021;
-  // Service cancelled
+  // Service cancellation
   DCT_ERROR_SERVICE_CANCELLED = 5022;
-  // Faile to verify integrity
+  // Failed to verify integrity
   DCT_ERROR_UNVERIFIED_INTEGRITY = 5023;
   // HTTP server closed
   DCT_ERROR_HTTP_SERVER_CLOSED = 5024;
