@@ -93,6 +93,10 @@ constexpr auto kSocketSendBufferSize =
 constexpr auto kRunScheduledExecutorCallbackOnExecutorThread =
     flags::Flag<bool>(kConfigPackage, "45686494", false);
 
+// Disable/Enable L2CAP feature in BLE V2.
+constexpr auto kEnableBleL2cap =
+    flags::Flag<bool>(kConfigPackage, "45688120", false);
+
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform
