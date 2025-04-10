@@ -221,6 +221,14 @@ NcContext* GetContext(NC_INSTANCE instance) {
 
 NC_INSTANCE NcCreateService() {
   NcContext nc_context;
+
+#if defined(NC_IOS_SDK)
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableAwdl,
+      true);
+#endif
+
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
   nc_context.core = new ::nearby::connections::Core(nc_context.router);
 
