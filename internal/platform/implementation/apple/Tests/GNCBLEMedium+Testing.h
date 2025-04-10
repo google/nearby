@@ -17,6 +17,7 @@
 #import <Foundation/Foundation.h>
 
 @protocol GNCCentralManager;
+@protocol GNCPeripheralManager;
 
 NS_ASSUME_NONNULL_BEGIN
 

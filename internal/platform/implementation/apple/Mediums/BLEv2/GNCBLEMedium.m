@@ -20,6 +20,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
@@ -33,6 +34,16 @@ static NSError *AlreadyScanningError() {
   return [NSError errorWithDomain:GNCBLEErrorDomain code:GNCBLEErrorAlreadyScanning userInfo:nil];
 }
 
+static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
+    id<GNCPeripheralManager> _Nullable peripheralManager) {
+  if (!peripheralManager) {
+    return [[GNCBLEL2CAPServer alloc] init];
+  } else {
+    return [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:peripheralManager
+                                                          queue:dispatch_get_main_queue()];
+  }
+}
+
 @interface GNCBLEMedium () <GNCCentralManagerDelegate, CBCentralManagerDelegate>
 @end
 
@@ -42,6 +53,7 @@ static NSError *AlreadyScanningError() {
 
   // The active GATT server, or @nil if one hasn't been started yet.
   GNCBLEGATTServer *_server;
+  GNCBLEL2CAPServer *_l2capServer;
 
   // The services that is being actively scanned for.
   NSMutableArray<CBUUID *> *_scanningServiceUUIDs;
@@ -178,6 +190,26 @@ static NSError *AlreadyScanningError() {
     _disconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
     _connectionCompletionHandlers[remotePeripheral.identifier] = completionHandler;
     [_centralManager connectPeripheral:remotePeripheral options:@{}];
+  });
+}
+
+- (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler
+                           peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager {
+  // Capture the completion handler.
+  GNCOpenL2CAPServerCompletionHandler localCompletionHandler = completionHandler;
+  dispatch_async(_queue, ^{
+    if (!_l2capServer) {
+      _l2capServer = CreateL2CapServer(peripheralManager);
+    }
+    __weak __typeof__(GNCBLEL2CAPServer *) weakL2capServer = _l2capServer;
+    [_l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+      __typeof__(GNCBLEL2CAPServer *) strongL2capServer = weakL2capServer;
+      if (error) {
+        localCompletionHandler(nil, error);
+        return;
+      }
+      localCompletionHandler(strongL2capServer, nil);
+    }];
   });
 }
 

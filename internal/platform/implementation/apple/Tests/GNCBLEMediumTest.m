@@ -24,6 +24,7 @@
 #import "internal/platform/implementation/apple/Tests/GNCBLEMedium+Testing.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakeCentralManager.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakePeripheral.h"
+#import "internal/platform/implementation/apple/Tests/GNCFakePeripheralManager.h"
 
 static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 
@@ -269,6 +270,28 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
     XCTAssertNil(error);
     [expectation fulfill];
   }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
+}
+
+#pragma mark - Open L2CAP Channel
+
+- (void)testOpenL2CAPServerSocket {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Open L2CAP server."];
+
+  // Open L2CAP server is fully covered with @c GNCBLEL2CAPServer tests.
+  [medium
+      openL2CAPServerWithCompletionHandler:^(GNCBLEL2CAPServer *l2capServer, NSError *error) {
+        XCTAssertNotNil(l2capServer);
+        XCTAssertNil(error);
+        [expectation fulfill];
+      }
+                         peripheralManager:fakePeripheralManager];
 
   [self waitForExpectations:@[ expectation ] timeout:3];
 }
