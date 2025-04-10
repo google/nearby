@@ -18,58 +18,102 @@
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Tests/GNCBLEL2CAPServer+Testing.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakePeripheralManager.h"
-
-static const int kPSM = 192;
 
 @interface GNCBLEL2CAPServerTest : XCTestCase
 @end
 
 @implementation GNCBLEL2CAPServerTest
 
-#pragma mark - Publish L2CAP channel
+#pragma mark Tests
 
-- (void)testPublishL2CAPChannel {
+- (void)testPublishL2CAPChannelWhenStartListeningChannel {
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
-
-  fakePeripheralManager.PSM = kPSM;
   GNCBLEL2CAPServer *l2capServer =
-      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager];
-
+      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                     queue:dispatch_get_main_queue()];
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
-  XCTAssertEqual([l2capServer PSM], kPSM);
-  XCTAssertNotNil([l2capServer getChannel]);
+  [l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+    XCTAssertEqual(error, nil);
+    XCTAssertEqual([l2capServer PSM], fakePeripheralManager.PSM);
+  }];
 }
 
 - (void)testFailedToPublishL2CAPChannel {
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
-
   fakePeripheralManager.didPublishL2CAPChannelError = [NSError errorWithDomain:@"fake"
                                                                           code:0
                                                                       userInfo:nil];
-  fakePeripheralManager.PSM = kPSM;
   GNCBLEL2CAPServer *l2capServer =
-      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager];
-
+      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                     queue:dispatch_get_main_queue()];
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
 
-  XCTAssertNotEqual([l2capServer PSM], kPSM);
-  XCTAssertNil([l2capServer getChannel]);
+  [l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+    XCTAssertEqual(error, fakePeripheralManager.didPublishL2CAPChannelError);
+    XCTAssertEqual([l2capServer PSM], 0);
+  }];
 }
 
-- (void)testUnPublishL2CAPChannel {
+- (void)testPoweredOffUnpublishesChannel {
   GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
-
-  fakePeripheralManager.PSM = kPSM;
   GNCBLEL2CAPServer *l2capServer =
-      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager];
-
+      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                     queue:dispatch_get_main_queue()];
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+
+  [l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+    XCTAssertEqual(error, nil);
+    XCTAssertEqual([l2capServer PSM], fakePeripheralManager.PSM);
+  }];
+
   [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOff];
 
+  [self waitForExpectations:@[ fakePeripheralManager.unpublishExpectation ] timeout:0.0];
+}
+
+- (void)testStartPeripheralManagerInitiallyOff {
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEL2CAPServer *l2capServer =
+      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                     queue:dispatch_get_main_queue()];
+
+  [l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+    XCTAssertEqual(error, nil);
+    XCTAssertEqual([l2capServer PSM], fakePeripheralManager.PSM);
+  }];
+
+  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+}
+
+- (void)testClose {
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  GNCBLEL2CAPServer *l2capServer =
+      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                     queue:dispatch_get_main_queue()];
+  [fakePeripheralManager simulatePeripheralManagerDidUpdateState:CBManagerStatePoweredOn];
+
+  [l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
+    XCTAssertEqual(error, nil);
+    XCTAssertEqual([l2capServer PSM], fakePeripheralManager.PSM);
+  }];
+
+  [l2capServer close];
+
   XCTAssertEqual([l2capServer PSM], 0);
+}
+
+- (void)testCloseDoesNotUnpublishesChannelIfNotConnected {
+  GNCFakePeripheralManager *fakePeripheralManager = [[GNCFakePeripheralManager alloc] init];
+  fakePeripheralManager.unpublishExpectation.inverted = YES;
+  GNCBLEL2CAPServer *l2capServer =
+      [[GNCBLEL2CAPServer alloc] initWithPeripheralManager:fakePeripheralManager
+                                                     queue:dispatch_get_main_queue()];
+
+  [l2capServer close];
+
+  [self waitForExpectations:@[ fakePeripheralManager.unpublishExpectation ] timeout:1.0];
 }
 
 @end
