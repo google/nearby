@@ -30,6 +30,7 @@ objc_library(
         "GNCBLEGATTServerTest.m",
         "GNCBLEL2CAPFakeInputOutputStream.h",
         "GNCBLEL2CAPFakeInputOutputStream.m",
+        "GNCBLEL2CAPPacketTest.m",
         "GNCBLEL2CAPServerTest.m",
         "GNCBLEL2CAPStreamTest.m",
         "GNCBLEMedium+Testing.h",
