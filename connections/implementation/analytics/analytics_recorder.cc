@@ -111,7 +111,13 @@ OperationResultCategory ConvertToOperationResultCategory(
   if (result_code == OperationResultCode::DETAIL_SUCCESS) {
     return OperationResultCategory::CATEGORY_SUCCESS;
   }
-  // Section of CATEGORY_NEARBY_ERROR, starting from 4500
+  // TODO(b/409865630): check later if we need to add back the dct error.
+  // Section of CATEGORY_DCT_ERROR, from 5000 to 5499 if (result_code
+  // >= OperationResultCode::DCT_ERROR_BLE_DISABLED) {
+  //  return OperationResultCategory::CATEGORY_DCT_ERROR;
+  //}
+
+  // Section of CATEGORY_NEARBY_ERROR, starting from 4500 to 4999
   if (result_code >=
       OperationResultCode::NEARBY_BLE_ADVERTISEMENT_MAPPING_TO_MAC_ERROR) {
     return OperationResultCategory::CATEGORY_NEARBY_ERROR;
