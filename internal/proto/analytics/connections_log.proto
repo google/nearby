@@ -331,7 +331,7 @@ message ConnectionsLog {
         10;
   }
 
-  message DctDeviceInfo {
+  message DeviceInfo {
     enum Platform {
       UNKNOWN = 0;
       ANDROID = 1;
@@ -345,8 +345,8 @@ message ConnectionsLog {
     optional string manufacturer = 4;
   }
 
-  message DctDisconnectionReasonDetail {
-    enum DctDisconnectionReason {
+  message DisconnectionReasonDetail {
+    enum DisconnectionReason {
       UNKNOWN_DISCONNECTION_REASON = 0;
       DCT_ERROR_MDNS_DISCOVERY_TIMEOUT = 1;
       DCT_ERROR_MDNS_REGISTER_SERVICE = 2;
@@ -366,7 +366,7 @@ message ConnectionsLog {
       DCT_ERROR_UNVERIFIED_INTEGRITY = 16;
     }
     optional bool is_local_disconnection = 1;
-    optional DctDisconnectionReason disconnection_reason = 2;
+    optional DisconnectionReason disconnection_reason = 2;
   }
 
   // A successfully-established connection over a particular medium.
@@ -409,11 +409,11 @@ message ConnectionsLog {
     // The result code of this established connection
     optional OperationResult operation_result = 10;
 
-    // The DCT remote device info
-    optional DctDeviceInfo dct_remote_device_info = 11;
+    // The remote device info
+    optional DeviceInfo remote_device_info = 11;
 
-    // DCT disconnection reason details
-    optional DctDisconnectionReasonDetail dct_disconnection_reason_detail = 12;
+    // The disconnection reason details
+    optional DisconnectionReasonDetail disconnection_reason_detail = 12;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
