@@ -170,6 +170,16 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   });
 }
 
+- (void)resumeMediumScanning:
+    (nullable GNCStartScanningCompletionHandler)completionHandler {
+  dispatch_async(_queue, ^{
+    [self internalStartScanningIfPoweredOn];
+    if (completionHandler) {
+      completionHandler(nil);
+    }
+  });
+}
+
 - (void)startGATTServerWithCompletionHandler:
     (nullable GNCGATTServerCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{

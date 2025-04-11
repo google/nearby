@@ -512,6 +512,10 @@ class BleMedium {
   // Stops scanning.
   virtual bool StopScanning() = 0;
 
+  virtual bool PauseMediumScanning() { return true; }
+
+  virtual bool ResumeMediumScanning() { return true; }
+
   struct ScanningSession {
     absl::AnyInvocable<absl::Status()> stop_scanning;
   };

@@ -266,6 +266,24 @@ bool BleMedium::StopScanning() {
   return blockError == nil;
 }
 
+bool BleMedium::PauseMediumScanning() {
+  return StopScanning();
+}
+
+bool BleMedium::ResumeMediumScanning() {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError *blockError = nil;
+  [medium_ resumeMediumScanning:^(NSError *error) {
+        if (error != nil) {
+          GTMLoggerError(@"Failed to start scanning for multiple services: %@", error);
+          blockError = error;
+        }
+        dispatch_semaphore_signal(semaphore);
+      }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  return blockError == nil;
+}
+
 // TODO(b/290385712): Add implementation that calls ServerGattConnectionCallback methods.
 std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {

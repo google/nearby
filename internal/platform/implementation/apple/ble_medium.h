@@ -97,6 +97,16 @@ class BleMedium : public api::ble_v2::BleMedium {
   // Returns whether or not scanning was successfully stopped.
   bool StopScanning() override;
 
+  // Pauses BLE scanning at platform Medium level.
+  //
+  // Returns whether or not scanning was successfully paused.
+  bool PauseMediumScanning() override;
+
+  // Resumes BLE scanning at platform Medium level.
+  //
+  // Returns whether or not scanning was successfully resumed.
+  bool ResumeMediumScanning() override;
+
   // TODO(b/290385712): ServerGattConnectionCallback methods are not yet implemented.
   //
   // Starts a GATT server. Returns a nullptr upon error.

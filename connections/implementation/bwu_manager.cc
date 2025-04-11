@@ -23,6 +23,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/bind_front.h"
+#include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
 #include "connections/implementation/bluetooth_bwu_handler.h"
@@ -31,9 +32,11 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/flags/nearby_flags.h"
 #ifdef NO_WEBRTC
 #include "connections/implementation/webrtc_bwu_handler_stub.h"
 #else
@@ -897,6 +900,8 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   // Get service ID from the old channel. Don't keep the old channel's shared
   // pointer in scope longer than necessary.
   std::string service_id;
+  Medium old_medium = Medium::UNKNOWN_MEDIUM;
+  bool disable_ble_scanning = false;
   {
     std::shared_ptr<EndpointChannel> old_channel =
         channel_manager_->GetChannelForEndpoint(endpoint_id);
@@ -910,11 +915,44 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
           Error(OperationResultCode::NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL)};
     }
     service_id = old_channel->GetServiceId();
+    old_medium = old_channel->GetMedium();
+  }
+
+  bool enable_ble_v2 = NearbyFlags::GetInstance().GetBoolFlag(
+    config_package_nearby::nearby_connections_feature::kEnableBleV2);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableStopBLEScanningOnWifiUpgrade)) {
+    if (client->GetLocalOsInfo().type() ==
+            location::nearby::connections::OsInfo::APPLE &&
+        old_medium == Medium::BLE && medium == Medium::WIFI_HOTSPOT) {
+      disable_ble_scanning = true;
+      if (enable_ble_v2) {
+        NEARBY_LOGS(INFO)
+            << "For Apple OS, if upgrade from BLE_V2 to WIFI_HOTSPOT, "
+               "we need to pause "
+               "BLE_V2 scanning because it can interfere with WIFI "
+               "Hotspot scanning and connection.";
+        ble_v2_medium_.PauseMediumScanning();
+      }
+    }
   }
 
   ErrorOr<std::unique_ptr<EndpointChannel>> result =
       handler->CreateUpgradedEndpointChannel(client, service_id, endpoint_id,
                                              upgrade_path_info);
+
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableStopBLEScanningOnWifiUpgrade)) {
+    if (disable_ble_scanning) {
+      if (enable_ble_v2) {
+        NEARBY_LOGS(INFO) << "Resume BLE_V2 scanning.";
+        ble_v2_medium_.ResumeMediumScanning();
+      }
+    }
+  }
+
   if (result.has_error() || !result.has_value()) {
     NEARBY_LOGS(ERROR) << "BwuManager failed to create an endpoint "
                           "channel to endpoint"

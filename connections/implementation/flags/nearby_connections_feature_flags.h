@@ -89,6 +89,9 @@ constexpr auto kUseStableEndpointId =
 // When true, disable instant on lost on BLE without extended feature.
 constexpr auto kDisableInstantOnLostOnBleWithoutExtended =
     flags::Flag<bool>(kConfigPackage, "45687098", true);
+// When true, stop BLE_V2 scanning when upgrading to WIFI Hotspot or WFD.
+constexpr auto kEnableStopBLEScanningOnWifiUpgrade =
+    flags::Flag<bool>(kConfigPackage, "45687902", false);
 // When true, enable multiplexing in NC for AWDL.
 constexpr auto kEnableMultiplexAwdl =
     flags::Flag<bool>(kConfigPackage, "45690761", false);
