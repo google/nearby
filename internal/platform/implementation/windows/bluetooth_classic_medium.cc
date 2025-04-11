@@ -937,15 +937,17 @@ bool BluetoothClassicMedium::StopAdvertising() {
   } catch (std::exception exception) {
     LOG(ERROR) << __func__
                << ": StopAdvertising exception: " << exception.what();
-    return false;
   } catch (const winrt::hresult_error& ex) {
     LOG(ERROR) << __func__ << ": StopAdvertising exception: " << ex.code()
                << ": " << winrt::to_string(ex.message());
-    return false;
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
-    return false;
   }
+
+  rfcomm_provider_ = nullptr;
+  raw_server_socket_ = nullptr;
+  server_socket_ = nullptr;
+  return false;
 }
 
 bool BluetoothClassicMedium::InitializeServiceSdpAttributes(
