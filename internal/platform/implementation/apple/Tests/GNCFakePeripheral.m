@@ -119,6 +119,18 @@ NS_ASSUME_NONNULL_BEGIN
   }
 }
 
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM {
+  [self delayDelegateUsingBlock:^() {
+    if (_openL2CAPChannelError) {
+      CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
+      [peripheralDelegate gnc_peripheral:self
+                     didOpenL2CAPChannel:channel
+                                   error:_openL2CAPChannelError];
+    }
+    // TODO: b/399815436 - Add testing for L2CAP channels if error is nil.
+  }];
+}
+
 @end
 
 NS_ASSUME_NONNULL_END

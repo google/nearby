@@ -55,6 +55,15 @@ NS_ASSUME_NONNULL_BEGIN
 /** Similates a delay in all delegate calls by the specified amount. */
 @property(nonatomic, readwrite) NSTimeInterval delegateDelay;
 
+/**
+ * Similates a @c openL2CAPChannelWithPSM: error.
+ *
+ * Setting this error to a value other than @c nil will simulate a failure when calling
+ * @c openL2CAPChannelWithPSM: and will call the
+ * @c gnc_peripheral:didOpenL2CAPChannel:error: delegate method with the provided error.
+ */
+@property(nonatomic, nullable, readwrite) NSError *openL2CAPChannelError;
+
 @end
 
 NS_ASSUME_NONNULL_END
