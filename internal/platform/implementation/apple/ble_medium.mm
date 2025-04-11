@@ -35,6 +35,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/ble_gatt_client.h"
 #import "internal/platform/implementation/apple/ble_gatt_server.h"
+#import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
 #import "internal/platform/implementation/apple/ble_peripheral.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
 #import "internal/platform/implementation/apple/ble_socket.h"
@@ -42,6 +43,7 @@
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 // TODO(b/293336684): Old Weave imports that need to be deleted once shared Weave is complete.
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
@@ -360,6 +362,29 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
     return nullptr;
   }
   return std::move(server_socket);
+}
+
+std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSocket(
+    const std::string &service_id) {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block GNCBLEL2CAPServer *block_l2cap_server = nil;
+  [medium_
+      openL2CAPServerWithCompletionHandler:^(GNCBLEL2CAPServer *server, NSError *error) {
+        if (error != nil) {
+          GTMLoggerError(@"Error opening L2CAP server: %@", error);
+        }
+        block_l2cap_server = server;
+        dispatch_semaphore_signal(semaphore);
+      }
+                         peripheralManager:nil];
+  if (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC)) != 0) {
+    GTMLoggerError(@"Opening L2CAP server timed out.");
+    return nullptr;
+  }
+  if (!block_l2cap_server) {
+    return nullptr;
+  }
+  return std::make_unique<BleL2capServerSocket>(block_l2cap_server);
 }
 
 // TODO(b/290385712): Add support for @c cancellation_flag.

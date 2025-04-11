@@ -15,6 +15,7 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+@class GNCBLEL2CAPStream;
 @protocol GNCPeripheralManager;
 
 NS_ASSUME_NONNULL_BEGIN

@@ -18,6 +18,7 @@
 #import <Foundation/Foundation.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
@@ -36,7 +37,7 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   GNCStartListeningL2CAPChannelCompletionHandler _startListeningL2CAPChannelcompletionHandler;
 
   CBL2CAPChannel *_l2CAPChannel;
-
+  GNCBLEL2CAPStream *_l2CAPStream;
   /// Whether start call has been performed when the peripheral was off.
   BOOL _alreadyStartedWhenPeripheralPoweredOff;
 }
@@ -141,6 +142,8 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   if (error) {
     GTMLoggerError(@"[NEARBY] Failed to unpublish L2CAP channel: %@", error);
   }
+  [_l2CAPStream tearDown];
+  _l2CAPStream = nil;
   _PSM = 0;
 }
 
@@ -155,7 +158,7 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   }
 
   // Cleanup older references.
-  if (_l2CAPChannel) {
+  if (_l2CAPStream || _l2CAPChannel) {
     // The device may establish a new L2CAP socket connection while the old socket is still
     // connected if sysproxy stopped for a reason other than Bluetooth disconnection. Closing the
     // channel here ensures the server and the client state is reset between the two
@@ -202,6 +205,8 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
 }
 
 - (void)closeL2CAPChannel {
+  [_l2CAPStream tearDown];
+  _l2CAPStream = nil;
   _l2CAPChannel = nil;
 }
 

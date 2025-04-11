@@ -17,10 +17,7 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
-#include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -411,6 +408,9 @@ class BleL2capServerSocket {
  public:
   virtual ~BleL2capServerSocket() = default;
 
+  // Gets PSM value has been published by the server.
+  virtual int GetPSM() const = 0;
+
   // Blocks until either:
   // - at least one incoming connection request is available, or
   // - ServerSocket is closed.
@@ -567,6 +567,7 @@ class BleMedium {
   //
   // On success, returns a new BleL2capServerSocket.
   // On error, returns nullptr.
+  // Platform implementation should override this method if it supports L2CAP.
   virtual std::unique_ptr<BleL2capServerSocket> OpenL2capServerSocket(
       const std::string& service_id) {
     return nullptr;
