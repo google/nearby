@@ -336,6 +336,7 @@ class GattClient final {
 
 class BleL2capSocket final {
  public:
+  BleL2capSocket() = default;
   BleL2capSocket(BleV2Peripheral peripheral,
                  std::unique_ptr<api::ble_v2::BleL2capSocket> socket)
       : peripheral_(peripheral) {}

@@ -21,6 +21,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
@@ -54,6 +55,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   // The active GATT server, or @nil if one hasn't been started yet.
   GNCBLEGATTServer *_server;
   GNCBLEL2CAPServer *_l2capServer;
+  GNCBLEL2CAPClient *_l2capClient;
 
   // The services that is being actively scanned for.
   NSMutableArray<CBUUID *> *_scanningServiceUUIDs;
@@ -220,6 +222,18 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
       }
       localCompletionHandler(strongL2capServer, nil);
     }];
+  });
+}
+
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM peripheral:(id<GNCPeripheral>)remotePeripheral {
+  dispatch_async(_queue, ^{
+    if (!_l2capClient) {
+      _l2capClient =
+          [[GNCBLEL2CAPClient alloc] initWithPeripheral:remotePeripheral
+                            requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
+                            }];
+    }
+    [_l2capClient openL2CAPChannelWithPSM:PSM];
   });
 }
 

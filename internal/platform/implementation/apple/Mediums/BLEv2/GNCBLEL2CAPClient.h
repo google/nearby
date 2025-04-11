@@ -45,6 +45,14 @@ typedef void (^GNCRequestDisconnectionHandler)(id<GNCPeripheral> peripheral);
 - (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
        requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
 
+/**
+ * Opens a L2CAP channel with the @c PSM.
+ *
+ * @param PSM The PSM to use for opening the L2CAP channel.
+ */
+// TODO: b/399815436 - Add CompletionHandler for this method.
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM;
+
 /** Cancels an active or pending local connection to a peripheral. */
 - (void)disconnect;
 

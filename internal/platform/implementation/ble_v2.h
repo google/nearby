@@ -589,8 +589,9 @@ class BleMedium {
   //
   // On success, returns a new BleL2capSocket.
   // On error, returns nullptr.
+  // Platform implementation should override this method if it supports L2CAP.
   virtual std::unique_ptr<BleL2capSocket> ConnectOverL2cap(
-      const std::string& service_id, TxPowerLevel tx_power_level,
+      int psm, const std::string& service_id, TxPowerLevel tx_power_level,
       BlePeripheral& peripheral, CancellationFlag* cancellation_flag) {
     return nullptr;
   }
