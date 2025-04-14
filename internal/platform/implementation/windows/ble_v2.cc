@@ -845,23 +845,22 @@ bool BleV2Medium::StartBleAdvertising(
 bool BleV2Medium::StopBleAdvertising() {
   LOG(INFO) << __func__ << ": Stop BLE advertising.";
   try {
-    if (!adapter_->IsEnabled()) {
-      LOG(WARNING) << "BLE cannot stop advertising because the "
-                      "bluetooth adapter is not enabled.";
-      return false;
-    }
-
     if (!is_ble_publisher_started_) {
       LOG(WARNING) << "BLE advertising is not running.";
-      return false;
+      return true;
     }
 
     // publisher_ may be null when status changed during advertising.
-    if (publisher_ == nullptr ||
-        publisher_.Status() !=
-            BluetoothLEAdvertisementPublisherStatus::Started) {
+    if (publisher_ == nullptr) {
       LOG(WARNING) << "No started publisher is running.";
-      return false;
+      return true;
+    }
+
+    if (!adapter_->IsEnabled()) {
+      LOG(WARNING) << "Bluetooth adapter is disabled during BLE advertising.";
+      publisher_ = nullptr;
+      is_ble_publisher_started_ = false;
+      return true;
     }
 
     publisher_.Stop();
@@ -891,18 +890,17 @@ bool BleV2Medium::StopBleAdvertising() {
   } catch (std::exception exception) {
     LOG(ERROR) << __func__
                << ": Exception to stop BLE advertising: " << exception.what();
-
-    return false;
   } catch (const winrt::hresult_error& ex) {
     LOG(ERROR) << __func__
                << ": Exception to stop BLE advertising: " << ex.code() << ": "
                << winrt::to_string(ex.message());
-
-    return false;
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
-    return false;
   }
+
+  publisher_ = nullptr;
+  is_ble_publisher_started_ = false;
+  return false;
 }
 
 bool BleV2Medium::StartGattAdvertising(
@@ -972,20 +970,22 @@ bool BleV2Medium::StartGattAdvertising(
 bool BleV2Medium::StopGattAdvertising() {
   try {
     LOG(INFO) << __func__ << ": Stop GATT advertising.";
-    if (!adapter_->IsEnabled()) {
-      LOG(WARNING) << "BLE cannot stop GATT advertising because the "
-                      "bluetooth adapter is not enabled.";
-      return false;
-    }
 
     if (!is_gatt_publisher_started_) {
       LOG(WARNING) << "BLE GATT advertising is not running.";
-      return false;
+      return true;
+    }
+
+    if (!adapter_->IsEnabled()) {
+      LOG(WARNING)
+          << "Bluetooth adapter is disabled during BLE GATT advertising.";
+      is_gatt_publisher_started_ = false;
+      return true;
     }
 
     if (ble_gatt_server_ == nullptr) {
       LOG(WARNING) << "No Gatt server is running.";
-      return false;
+      return true;
     }
 
     bool stop_result = ble_gatt_server_->StopAdvertisement();
@@ -996,18 +996,16 @@ bool BleV2Medium::StopGattAdvertising() {
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Exception to stop BLE GATT advertising: "
                << exception.what();
-
-    return false;
   } catch (const winrt::hresult_error& ex) {
     LOG(ERROR) << __func__
                << ": Exception to stop BLE GATT advertising: " << ex.code()
                << ": " << winrt::to_string(ex.message());
-
-    return false;
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
-    return false;
   }
+
+  is_gatt_publisher_started_ = false;
+  return false;
 }
 
 void BleV2Medium::PublisherHandler(
