@@ -304,11 +304,11 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
       int port) override;
 
   // Advertiser start WiFi Hotspot with specific Credentials.
-  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials_) override;
+  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override;
   // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;
   // Discoverer connects to the Hotspot
-  bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials_) override;
+  bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials) override;
   // Discoverer disconnects from the Hotspot
   bool DisconnectWifiHotspot() override;
 
@@ -325,12 +325,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
     kMediumStatusConnected = (1 << 2),
   };
 
-  // Implemented the disconnection to WiFi hotspot, and used to avoid deadlock.
-  bool InternalDisconnectWifiHotspot();
-  // Restore the WiFi connection after disconnect from the Hotspot
-  void RestoreWifiConnection();
-  // Delete the network profile of the WiFi hotspot
-  bool DeleteNetworkProfile(winrt::hstring ssid);
   // Store the Hotspot SSID to local storage
   void StoreHotspotSsid(std::string ssid);
   // Get the Hotspot SSID from local storage
@@ -343,11 +337,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   bool IsBeaconing() { return (medium_status_ & kMediumStatusBeaconing) != 0; }
   // Discoverer is connected with the Hotspot
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
-
-  bool ConnectWifiHotspotWithWinRt(HotspotCredentials* hotspot_credentials);
-  bool ConnectWifiHotspotWithNative(HotspotCredentials* hotspot_credentials);
-  bool DisconnectWifiHotspotWithWinRt();
-  bool DisconnectWifiHotspotWithNative();
 
   WiFiDirectAdvertisementPublisher publisher_{nullptr};
   WiFiDirectConnectionListener listener_{nullptr};
@@ -364,10 +353,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
       WiFiDirectConnectionListener const& sender,
       WiFiDirectConnectionRequestedEventArgs const& event);
   winrt::event_token connection_requested_token_;
-
-  WiFiAdapter wifi_adapter_{nullptr};
-  WiFiAvailableNetwork wifi_original_network_{nullptr};
-  winrt::hstring wifi_connected_hotspot_ssid_ = winrt::hstring(L"");
 
   // Gets error message from exception pointer
   std::string GetErrorMessage(std::exception_ptr eptr);
