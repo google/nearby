@@ -1336,6 +1336,13 @@ enum StopDiscoveringReason {
   // Session is finished and stop discovering
   FINISH_SESSION_STOP_DISCOVERING = 2;
 }
+
+enum DeviceType {
+  UNKNOWN_TYPE = 0;
+  NEARBY_CONNECTION = 1;
+  NEARBY_PRESENCE = 2;
+  DCT = 3;
+}
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )

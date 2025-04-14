@@ -57,13 +57,6 @@ message ConnectionsLog {
 
   // Encapsulates one session of a client connected to Nearby Connections API.
   message ClientSession {
-    enum DeviceType {
-      UNKNOWN_TYPE = 0;
-      NEARBY_CONNECTION = 1;
-      NEARBY_PRESENCE = 2;
-      DCT = 3;
-    }
-
     // Elapsed time in milliseconds between Client connect and
     // disconnect.
     optional int64 duration_millis = 1;
@@ -78,8 +71,7 @@ message ConnectionsLog {
     optional string connection_token = 4
         /* type = ST_SESSION_ID */;
 
-    // The type of the device.
-    optional DeviceType device_type = 5;
+    reserved 5;  // device type isdeprecated and moved to StrategySession
   }
 
   message OperationResult {
@@ -180,6 +172,9 @@ message ConnectionsLog {
     // The readon of stopping discoverying
     optional location.nearby.proto.connections.StopDiscoveringReason
         stop_reason = 9;
+
+    // The type of the device.
+    optional location.nearby.proto.connections.DeviceType device_type = 10;
   }
 
   // An endpoint discovered on a particular medium during discovery.
@@ -265,6 +260,9 @@ message ConnectionsLog {
     // The readon of stopping advertising
     optional location.nearby.proto.connections.StopAdvertisingReason
         stop_reason = 7;
+
+    // The type of the device.
+    optional location.nearby.proto.connections.DeviceType device_type = 8;
   }
 
   // A request to connect, corresponding to the API's concept of
@@ -329,9 +327,12 @@ message ConnectionsLog {
     // The connection mode.
     optional location.nearby.proto.connections.ConnectionMode connection_mode =
         10;
+
+    // The type of the device.
+    optional location.nearby.proto.connections.DeviceType device_type = 11;
   }
 
-  message DctDeviceInfo {
+  message DeviceInfo {
     enum Platform {
       UNKNOWN = 0;
       ANDROID = 1;
@@ -345,8 +346,8 @@ message ConnectionsLog {
     optional string manufacturer = 4;
   }
 
-  message DctDisconnectionReasonDetail {
-    enum DctDisconnectionReason {
+  message DisconnectionReasonDetail {
+    enum DisconnectionReason {
       UNKNOWN_DISCONNECTION_REASON = 0;
       DCT_ERROR_MDNS_DISCOVERY_TIMEOUT = 1;
       DCT_ERROR_MDNS_REGISTER_SERVICE = 2;
@@ -366,7 +367,7 @@ message ConnectionsLog {
       DCT_ERROR_UNVERIFIED_INTEGRITY = 16;
     }
     optional bool is_local_disconnection = 1;
-    optional DctDisconnectionReason disconnection_reason = 2;
+    optional DisconnectionReason disconnection_reason = 2;
   }
 
   // A successfully-established connection over a particular medium.
@@ -409,11 +410,14 @@ message ConnectionsLog {
     // The result code of this established connection
     optional OperationResult operation_result = 10;
 
-    // The DCT remote device info
-    optional DctDeviceInfo dct_remote_device_info = 11;
+    // The remote device info
+    optional DeviceInfo remote_device_info = 11;
 
-    // DCT disconnection reason details
-    optional DctDisconnectionReasonDetail dct_disconnection_reason_detail = 12;
+    // The disconnection reason details
+    optional DisconnectionReasonDetail disconnection_reason_detail = 12;
+
+    // The type of the device.
+    optional location.nearby.proto.connections.DeviceType device_type = 13;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
@@ -478,6 +482,8 @@ message ConnectionsLog {
 
     // The result code of this upgrade attempt
     optional OperationResult operation_result = 9;
+
+    optional location.nearby.proto.connections.DeviceType device_type = 10;
   }
 
   // Next Id: 22
