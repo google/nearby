@@ -106,6 +106,11 @@ class ServerRunnable final {
     }
 
     // Message 1 (Client Init)
+    NEARBY_LOGS(INFO) << "Calling channel_->Read()";
+    if (channel_ == nullptr || channel_->IsClosed()) {
+      NEARBY_LOGS(INFO) << "channel_ is null or closed";
+      return;
+    }
     ExceptionOr<ByteArray> client_init = channel_->Read();
     if (!client_init.ok()) {
       LogException();
@@ -214,7 +219,7 @@ class ServerRunnable final {
   ClientProxy* client_;
   ScheduledExecutor* alarm_executor_;
   const std::string endpoint_id_;
-  EndpointChannel* channel_;
+  EndpointChannel* channel_ = nullptr;
   EncryptionRunner::ResultListener listener_;
 };
 

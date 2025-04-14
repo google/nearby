@@ -281,6 +281,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
 }
 
 void BaseEndpointChannel::Close() {
+  NEARBY_LOGS(INFO) << __func__ << ": BaseEndpointChannel::Close() called.";
   {
     // In case channel is paused, resume it first thing.
     MutexLock lock(&is_paused_mutex_);
@@ -292,6 +293,7 @@ void BaseEndpointChannel::Close() {
     UnblockPausedWriter();
   }
   CloseIo();
+  NEARBY_LOGS(INFO) << __func__ << ": Calling CloseImpl().";
   CloseImpl();
 }
 
