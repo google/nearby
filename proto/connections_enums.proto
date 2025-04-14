@@ -1336,6 +1336,9 @@ enum StopDiscoveringReason {
   // Session is finished and stop discovering
   FINISH_SESSION_STOP_DISCOVERING = 2;
 }
+
+// Todo: add instant connection result and error stage codes
+
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
