@@ -359,6 +359,12 @@ bool BleMedium::StopScanning(const std::string& service_id) {
       return false;
     }
 
+    if (watcher_ == nullptr) {
+      NEARBY_LOGS(WARNING) << "BLE watcher not initialized or already stopped.";
+      is_watcher_started_ = false;
+      return false;
+    }
+
     watcher_.Stop();
 
     // Don't need to wait for the status becomes to `Stopped`. If application
