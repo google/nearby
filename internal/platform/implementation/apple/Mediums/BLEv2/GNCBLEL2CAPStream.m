@@ -320,6 +320,8 @@
     }
 
     dispatch_async(_receivedDataQueue, ^{
+      [_delegate stream:self didReceiveData:data];
+      // TODO: b/399815436 - Remove below once the delegate is implemented.
       self->_receivedDataBlock(data);
     });
   } else if (bytesRead < 0) {
@@ -328,6 +330,7 @@
     GTMLoggerDebug(@"[NEARBY] End of stream reached. Disconnecting");
     // This indicates the L2CAP socket is closed. Notifying the owner so that it can tear down this
     // stream and update its own state.
+    [_delegate stream:self didDisconnectWithError:nil];
     _closedBlock();
   }
 }

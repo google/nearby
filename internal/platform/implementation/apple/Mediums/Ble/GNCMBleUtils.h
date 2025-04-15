@@ -30,6 +30,29 @@ typedef NS_ENUM(NSUInteger, GNCMBleAdvertisementLength) {
   GNCMBleAdvertisementLengthServiceIDHash = 3,
 };
 
+typedef NS_ENUM(NSInteger, GNCMBleL2CapCommand) {
+  // Use to fetch advertisement from server with serviceId.
+  GNCMBleL2CapCommandRequestAdvertisement = 1,
+  // Use to notify the server have fetched all advertisements completely.
+  GNCMBleL2CapCommandRequestAdvertisementFinish = 2,
+  // Use to notify the server current L2CAP socket use for file transferring.
+  GNCMBleL2CapCommandRequestDataConnection = 3,
+  // 11-20 reserved
+  // Use to response the advertisement raw data to the client.
+  GNCMBleL2CapCommandResponseAdvertisement = 21,
+  // Use to response the queried service ID not exist in server side.
+  GNCMBleL2CapCommandResponseServiceIdNotFound = 22,
+  // Use to notify the data connection ready
+  GNCMBleL2CapCommandResponseDataConnectionReady = 23,
+  // Use to notify failure for requesting the data connection.
+  GNCMBleL2CapCommandResponseDataConnectionFailure = 24,
+};
+
+typedef struct GNCMBleL2CapPacket {
+  GNCMBleL2CapCommand command;
+  NSData *data;
+} GNCMBleL2CapPacket;
+
 /** Computes a hash from a service ID string. */
 NSData *GNCMServiceIDHash(NSString *serviceID);
 
@@ -44,6 +67,12 @@ NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data);
 
 /** Creates the disconnection packet for Ble SocketControlFrame. */
 NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash);
+
+/** Parses the BLE L2CAP packet from the data. */
+GNCMBleL2CapPacket *_Nullable GNCMParseBleL2CapPacket(NSData *data);
+
+/** Creates the BLE L2CAP packet from the command and data. */
+NSData *_Nullable GNCMGenerateBleL2CapPacket(GNCMBleL2CapCommand command, NSData *_Nullable data);
 
 /**
  * Calls the completion handler with (a) YES if the GNSSocket connected, or (b) NO if it failed to
