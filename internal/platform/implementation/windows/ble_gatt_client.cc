@@ -118,21 +118,13 @@ BleGattClient::~BleGattClient() {
 bool BleGattClient::DiscoverServiceAndCharacteristics(
     const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
   absl::MutexLock lock(&mutex_);
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableBleV2Gatt)) {
-    BluetoothAdapter bluetooth_adapter;
-    if (bluetooth_adapter.IsExtendedAdvertisingSupported()) {
-      LOG(WARNING) << __func__ << ": GATT is disabled.";
-      return false;
-    }
 
-    if (!bluetooth_adapter.IsCentralRoleSupported()) {
-      LOG(ERROR) << __func__
-                 << ": Bluetooth Hardware does not support Central "
-                    "Role, which is required to start GATT client.";
-      return false;
-    }
+  BluetoothAdapter bluetooth_adapter;
+  if (!bluetooth_adapter.IsCentralRoleSupported()) {
+    LOG(ERROR) << __func__
+               << ": Bluetooth Hardware does not support Central "
+                  "Role, which is required to start GATT client.";
+    return false;
   }
 
   std::string flat_characteristics =

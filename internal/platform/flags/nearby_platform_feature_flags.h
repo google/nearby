@@ -33,10 +33,6 @@ namespace nearby_platform_feature {
 constexpr auto kEnableHotspotWin32Socket =
     flags::Flag<bool>(kConfigPackage, "45401992", true);
 
-// Disable/Enable GATT feature in BLE V2.
-constexpr auto kEnableBleV2Gatt =
-    flags::Flag<bool>(kConfigPackage, "45415180", false);
-
 // The maximum scanning times for available hotspots.
 constexpr auto kWifiHotspotScanMaxRetries =
     flags::Flag<int64_t>(kConfigPackage, "45415883", 3);

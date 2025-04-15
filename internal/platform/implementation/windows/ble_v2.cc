@@ -568,14 +568,6 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
   absl::MutexLock lock(&mutex_);
   LOG(INFO) << __func__ << ": Start GATT server.";
 
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableBleV2Gatt)) {
-    if (adapter_->IsExtendedAdvertisingSupported()) {
-      LOG(WARNING) << __func__ << ": GATT is disabled.";
-      return nullptr;
-    }
-  }
   auto gatt_server =
       std::make_unique<BleGattServer>(adapter_, std::move(callback));
 
@@ -599,15 +591,6 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
   LOG(INFO) << "ConnectToGattServer is called, address: "
             << peripheral.GetAddress()
             << ", power:" << TxPowerLevelToName(tx_power_level);
-
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableBleV2Gatt)) {
-    if (adapter_->IsExtendedAdvertisingSupported()) {
-      LOG(WARNING) << __func__ << ": GATT is disabled.";
-      return nullptr;
-    }
-  }
 
   try {
     BluetoothLEDevice ble_device =
