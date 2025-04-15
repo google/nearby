@@ -133,13 +133,6 @@ bool BleGattClient::DiscoverServiceAndCharacteristics(
                     "Role, which is required to start GATT client.";
       return false;
     }
-
-    if (!NearbyFlags::GetInstance().GetBoolFlag(
-            platform::config_package_nearby::nearby_platform_feature::
-                kEnableBleV2GattOnNonExtendedDevice)) {
-      LOG(WARNING) << __func__ << ": GATT is disabled.";
-      return false;
-    }
   }
 
   std::string flat_characteristics =
