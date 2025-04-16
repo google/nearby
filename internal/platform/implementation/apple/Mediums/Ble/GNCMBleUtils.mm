@@ -26,6 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 static const uint8_t kGNCMControlPacketServiceIDHash[] = {0x00, 0x00, 0x00};
 static const NSTimeInterval kBleSocketConnectionTimeout = 5.0;
+static const int kL2CAPDataLength = 2;
 
 NSData *GNCMServiceIDHash(NSString *serviceID) {
   return [GNCSha256String(serviceID)
@@ -87,6 +88,79 @@ NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash) {
   return packet;
 }
 
+GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data) {
+  if (data.length < 1) {
+    GTMLoggerError(@"[NEARBY] Invalid packet length: %@", @(data.length));
+    return nil;
+  }
+
+  GNCMBLEL2CAPPacket *packet = new GNCMBLEL2CAPPacket;
+  const char *bytes = (const char *)[data bytes];
+  NSUInteger receivedDataLength = [data length];
+
+  // Extract command
+  GNCMBLEL2CAPCommand command = (GNCMBLEL2CAPCommand)bytes[0];
+  if (command == GNCMBLEL2CAPCommandRequestAdvertisement ||
+      command == GNCMBLEL2CAPCommandRequestAdvertisementFinish ||
+      command == GNCMBLEL2CAPCommandRequestDataConnection ||
+      command == GNCMBLEL2CAPCommandResponseAdvertisement ||
+      command == GNCMBLEL2CAPCommandResponseServiceIdNotFound ||
+      command== GNCMBLEL2CAPCommandResponseDataConnectionReady ||
+      command == GNCMBLEL2CAPCommandResponseDataConnectionFailure) {
+    packet->command = command;
+  } else {
+    GTMLoggerError(@"[NEARBY] Invalid command: %lu", command);
+    return nil;
+  }
+
+  // Extract data
+  if (receivedDataLength > 3) {
+    // Extract data length (2 bytes, big endian)
+    int dataLength = (bytes[1] << 8) | bytes[2];
+
+    // Validate data length
+    if (dataLength != (int)(receivedDataLength - 3)) {
+      GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: %d, Actual: %lu", dataLength,
+                     receivedDataLength - 3);
+      return nil;
+    }
+    if (dataLength > 0) {
+      packet->data = [NSData dataWithBytes:(bytes + 3) length:dataLength];
+    } else {
+      packet->data = nil;
+    }
+  }
+
+  return packet;
+}
+
+NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData *_Nullable data) {
+  if (command != GNCMBLEL2CAPCommandRequestAdvertisement &&
+      command != GNCMBLEL2CAPCommandRequestAdvertisementFinish &&
+      command != GNCMBLEL2CAPCommandRequestDataConnection &&
+      command != GNCMBLEL2CAPCommandResponseAdvertisement &&
+      command != GNCMBLEL2CAPCommandResponseServiceIdNotFound &&
+      command != GNCMBLEL2CAPCommandResponseDataConnectionReady &&
+      command != GNCMBLEL2CAPCommandResponseDataConnectionFailure) {
+    GTMLoggerError(@"[NEARBY] Invalid command to generate packet: %lu", command);
+    return nil;
+  }
+  NSMutableData *packet = [NSMutableData dataWithBytes:(uint8_t *)&command length:1];
+  if (data != nil) {
+    uint8_t bytes[kL2CAPDataLength];
+    int value = (int)(data.length);
+
+    // Extract the bytes from the int, assuming big-endian order.
+    bytes[1] = (value >> 0) & 0xFF;
+    bytes[0] = (value >> 8) & 0xFF;
+
+    NSMutableData *dataPacket = [NSMutableData dataWithBytes:bytes length:kL2CAPDataLength];
+    [dataPacket appendData:data];
+    [packet appendData:dataPacket];
+  }
+  return packet;
+}
+
 @interface GNCMBleSocketDelegate : NSObject <GNSSocketDelegate>
 @property(nonatomic) GNCMBoolHandler connectedHandler;
 @end
@@ -141,3 +215,4 @@ void GNCMWaitForConnection(GNSSocket *socket, GNCMBoolHandler completion) {
 }
 
 NS_ASSUME_NONNULL_END
+    
