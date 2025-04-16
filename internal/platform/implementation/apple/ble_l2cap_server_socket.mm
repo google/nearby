@@ -20,25 +20,61 @@
 #include <utility>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
-#import "internal/platform/implementation/apple/ble_l2cap_socket.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
 namespace apple {
 
-BleL2capServerSocket::BleL2capServerSocket(GNCBLEL2CAPServer* l2cap_server)
-    : l2cap_server_(l2cap_server) {}
+BleL2capServerSocket::~BleL2capServerSocket() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+}
 
-int BleL2capServerSocket::GetPSM() const { return [l2cap_server_ PSM]; }
+int BleL2capServerSocket::GetPSM() const { return PSM_; }
+
+void BleL2capServerSocket::SetPSM(int PSM) { PSM_ = PSM; }
 
 std::unique_ptr<api::ble_v2::BleL2capSocket> BleL2capServerSocket::Accept() {
-  // TODO: edwinwu - Implement to wrap up l2cap channel with |GNCBLEL2CAPStream|.
-  return nullptr;
+  absl::MutexLock lock(&mutex_);
+  while (!closed_ && pending_sockets_.empty()) {
+    cond_.Wait(&mutex_);
+  }
+  if (closed_) return {};
+
+  std::unique_ptr<BleL2capSocket> remote_socket =
+      std::move(pending_sockets_.extract(pending_sockets_.begin()).value());
+  return std::move(remote_socket);
+}
+
+bool BleL2capServerSocket::Connect(std::unique_ptr<BleL2capSocket> socket) {
+  absl::MutexLock lock(&mutex_);
+  if (closed_) {
+    return false;
+  }
+  pending_sockets_.insert(std::move(socket));
+  cond_.SignalAll();
+  return !closed_;
 }
 
 Exception BleL2capServerSocket::Close() {
-  [l2cap_server_ close];
+  absl::MutexLock lock(&mutex_);
+  return DoClose();
+}
+
+Exception BleL2capServerSocket::DoClose() {
+  bool should_notify = !closed_;
+  closed_ = true;
+  if (should_notify) {
+    cond_.SignalAll();
+    if (close_notifier_) {
+      auto notifier = std::move(close_notifier_);
+      mutex_.Unlock();
+      // Notifier may contain calls to public API, and may cause deadlock, if
+      // mutex_ is held during the call.
+      notifier();
+      mutex_.Lock();
+    }
+  }
   return {Exception::kSuccess};
 }
 
