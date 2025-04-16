@@ -214,10 +214,14 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
     }
     auto elapsed = SystemClock::ElapsedRealtime() - start_time;
     if (elapsed > kDecryptRetryTimeout) {
-      LOG(WARNING) << "Can't decrypt the message. Timeout after " << elapsed;
+      LOG(WARNING) << "Can't decrypt the message with size = " << data.size()
+                   << " from "
+                   << location::nearby::proto::connections::Medium_Name(
+                          endpoint_channel->GetMedium())
+                   << ". Timeout after " << elapsed;
       return Exception::kTimeout;
     }
-    SystemClock::Sleep(absl::Milliseconds(1));
+    SystemClock::Sleep(absl::Milliseconds(10));
   }
 }
 

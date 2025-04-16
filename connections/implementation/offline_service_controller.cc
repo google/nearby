@@ -178,9 +178,9 @@ void OfflineServiceController::SendPayload(
     Payload payload) {
   if (stop_) return;
   NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
-                    << " is sending payload " << payload.GetId()
-                    << " to endpoint_ids {" << absl::StrJoin(endpoint_ids, ",")
-                    << "}";
+                    << " is sending payload {id:" << payload.GetId()
+                    << ", type:" << payload.GetType() << "} to endpoint_ids {"
+                    << absl::StrJoin(endpoint_ids, ",") << "}";
   payload_manager_.SendPayload(client, endpoint_ids, std::move(payload));
 }
 

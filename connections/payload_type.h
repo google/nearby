@@ -15,15 +15,58 @@
 #ifndef CORE_PAYLOAD_TYPE_H_
 #define CORE_PAYLOAD_TYPE_H_
 
+#include <ostream>
+
 namespace nearby {
 namespace connections {
 
 enum class PayloadType { kUnknown = 0, kBytes = 1, kFile = 2, kStream = 3 };
+
 enum class PayloadDirection {
   UNKNOWN_DIRECTION_PAYLOAD = 0,
   INCOMING_PAYLOAD = 1,
   OUTGOING_PAYLOAD = 2,
 };
+
+inline std::ostream& operator<<(std::ostream& os, PayloadType payload_type) {
+  switch (payload_type) {
+    case PayloadType::kUnknown:
+      os << "kUnknown";
+      break;
+    case PayloadType::kBytes:
+      os << "kBytes";
+      break;
+    case PayloadType::kFile:
+      os << "kFile";
+      break;
+    case PayloadType::kStream:
+      os << "kStream";
+      break;
+    default:
+      os << "Invalid PayloadType";
+      break;
+  }
+  return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os,
+                                PayloadDirection payload_direction) {
+  switch (payload_direction) {
+    case PayloadDirection::UNKNOWN_DIRECTION_PAYLOAD:
+      os << "UNKNOWN_DIRECTION_PAYLOAD";
+      break;
+    case PayloadDirection::INCOMING_PAYLOAD:
+      os << "INCOMING_PAYLOAD";
+      break;
+    case PayloadDirection::OUTGOING_PAYLOAD:
+      os << "OUTGOING_PAYLOAD";
+      break;
+    default:
+      os << "Invalid PayloadDirection";
+      break;
+  }
+  return os;
+}
 
 }  // namespace connections
 }  // namespace nearby
