@@ -16,7 +16,7 @@
 
 #import "GoogleToolboxForMac/GTMLogger.h"
 
-#define READ_BUFFER_SIZE 409600
+enum { READ_BUFFER_SIZE = 409600 };
 
 /** A pending packet that will be written to the L2CAP socket. */
 @interface GNCBLEL2CAPStreamWriteOperation : NSObject
@@ -51,9 +51,8 @@
 
 @implementation GNCBLEL2CAPStream {
   GNCBLEL2CAPStreamClosedBlock _closedBlock;
-  GNCBLEL2CAPControllerReceivedDataBlock _receivedDataBlock;
 
-  /// Serial queue used when invoking |_receivedDataBlock|.
+  /// Serial queue used when invoking delegate didReceiveData.
   dispatch_queue_t _receivedDataQueue;
 
   /// Queue used exclusively from events on |inputStream| and |outputStream|.
@@ -75,7 +74,6 @@
 #pragma mark Public
 
 - (instancetype)initWithClosedBlock:(GNCBLEL2CAPStreamClosedBlock)closedBlock
-                  receivedDataBlock:(GNCBLEL2CAPControllerReceivedDataBlock)receivedDataBlock
                         inputStream:(NSInputStream *)inputStream
                        outputStream:(NSOutputStream *)outputStream {
   self = [super init];
@@ -90,7 +88,6 @@
                                   DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1));
 
     _closedBlock = closedBlock;
-    _receivedDataBlock = receivedDataBlock;
 
     _writeBufferArray = [NSMutableArray array];
 
@@ -320,7 +317,7 @@
     }
 
     dispatch_async(_receivedDataQueue, ^{
-      self->_receivedDataBlock(data);
+      [_delegate stream:self didReceiveData:data];
     });
   } else if (bytesRead < 0) {
     GTMLoggerError(@"[NEARBY] Stream read error: %@", self.inputStream.streamError);
@@ -328,6 +325,7 @@
     GTMLoggerDebug(@"[NEARBY] End of stream reached. Disconnecting");
     // This indicates the L2CAP socket is closed. Notifying the owner so that it can tear down this
     // stream and update its own state.
+    [_delegate stream:self didDisconnectWithError:nil];
     _closedBlock();
   }
 }

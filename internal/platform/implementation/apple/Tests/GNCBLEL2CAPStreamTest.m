@@ -21,6 +21,7 @@
 @interface GNCBLEL2CAPStreamTest : XCTestCase
 @end
 
+// TODO: edwinwu - Add tests for the stream received delegate.
 @implementation GNCBLEL2CAPStreamTest {
   GNCBLEL2CAPFakeInputOutputStream* _fakeInputOutputStream;
   GNCBLEL2CAPStream* _stream;
@@ -36,43 +37,6 @@
 
 #pragma mark Tests
 
-/// Tests that received data block called twice with two messages (in order) with size of the stream
-/// buffer.
-- (void)testReceivedDataBlockForTwoBufferSizeMessagesFromWatch {
-  // GIVEN
-  NSData* dummyData1 = [@"dummyData1" dataUsingEncoding:NSASCIIStringEncoding];
-  NSData* dummyData2 = [@"dummyData2" dataUsingEncoding:NSASCIIStringEncoding];
-  NSMutableData* expectedData = [NSMutableData dataWithData:dummyData1];
-  [expectedData appendData:dummyData2];
-
-  _fakeInputOutputStream =
-      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:dummyData1.length];
-
-  XCTestExpectation* expectation = [self expectationWithDescription:@"Received data from watch."];
-  expectation.expectedFulfillmentCount = 2;
-
-  NSMutableData* receivedData = [NSMutableData data];
-  _stream = [[GNCBLEL2CAPStream alloc]
-      initWithClosedBlock:^{
-        XCTFail(@"Should not be invoked.");
-      }
-      receivedDataBlock:^(NSData* data) {
-        [receivedData appendData:data];
-        [expectation fulfill];
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
-
-  // WHEN
-  [_fakeInputOutputStream writeFromDevice:dummyData1];
-  [_fakeInputOutputStream writeFromDevice:dummyData2];
-
-  // THEN
-  [self waitForExpectations:@[ expectation ] timeout:1.0];
-
-  XCTAssertEqualObjects(receivedData, expectedData);
-}
-
 /// Tests data larger that buffer size is sent to watch despite chunking.
 - (void)testSendDataWithSmallerStreamBuffer {
   // GIVEN
@@ -83,11 +47,8 @@
   _stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^{
       }
-      receivedDataBlock:^(NSData* data) {
-        XCTFail(@"Should not call block.");
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   // WHEN
   [_stream sendData:dummyData
@@ -108,11 +69,8 @@
   _stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^{
       }
-      receivedDataBlock:^(NSData* data) {
-        XCTFail(@"Should not call block.");
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   // WHEN
   XCTestExpectation* completionExpectation =
@@ -137,11 +95,8 @@
   _stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^{
       }
-      receivedDataBlock:^(NSData* data) {
-        XCTFail(@"Should not call block.");
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   // WHEN
   XCTestExpectation* noCompletionExpectation =
@@ -166,11 +121,8 @@
   _stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^{
       }
-      receivedDataBlock:^(NSData* data) {
-        XCTFail(@"Should not call block.");
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   // WHEN
   XCTestExpectation* completionExpectation =
@@ -197,11 +149,8 @@
   _stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^{
       }
-      receivedDataBlock:^(NSData* data) {
-        XCTFail(@"Should not call block.");
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   XCTestExpectation* completionExpectation =
       [self expectationWithDescription:@"Completion is called"];
@@ -232,11 +181,8 @@
   _stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^{
       }
-      receivedDataBlock:^(NSData* data) {
-        [expectation fulfill];
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   // WHEN
   [_stream tearDown];
@@ -262,63 +208,14 @@
       initWithClosedBlock:^{
         [disconnectedExpectation fulfill];
       }
-      receivedDataBlock:^(NSData* data) {
-        XCTFail(@"Should not call block.");
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
+              inputStream:_fakeInputOutputStream.inputStream
+             outputStream:_fakeInputOutputStream.outputStream];
 
   // WHEN
   [_fakeInputOutputStream tearDown];
 
   // THEN
   [self waitForExpectations:@[ disconnectedExpectation ] timeout:1.0];
-}
-
-/// Tests that received data block is not invoked concurrently and the data is passed in the order
-/// it was written.
-- (void)testForwardsReceivedDataSeriallyInCorrectOrder {
-  // GIVEN
-  NSMutableArray<NSData*>* testData = [NSMutableArray array];
-  for (int i = 0; i < 10; i++) {
-    [testData addObject:[[NSString stringWithFormat:@"testData%@", @(i)]
-                            dataUsingEncoding:NSASCIIStringEncoding]];
-  }
-  // Buffer size is as small as possible so that the stream does not combine the written packets.
-  _fakeInputOutputStream =
-      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:testData[0].length];
-
-  XCTestExpectation* receivedDataExpectation =
-      [self expectationWithDescription:@"Received data from watch."];
-  receivedDataExpectation.expectedFulfillmentCount = testData.count;
-
-  __block BOOL processingData = NO;
-  NSMutableArray<NSData*>* receivedData = [NSMutableArray array];
-  _stream = [[GNCBLEL2CAPStream alloc]
-      initWithClosedBlock:^{
-        XCTFail(@"Should not be invoked.");
-      }
-      receivedDataBlock:^(NSData* data) {
-        XCTAssertFalse(processingData, @"Received data block must not be invoked concurrently");
-        processingData = YES;
-        dispatch_sync(dispatch_get_main_queue(), ^{
-          [receivedData addObject:data];
-          [receivedDataExpectation fulfill];
-        });
-        processingData = NO;
-      }
-      inputStream:_fakeInputOutputStream.inputStream
-      outputStream:_fakeInputOutputStream.outputStream];
-
-  // WHEN
-  for (NSData* data in testData) {
-    [_fakeInputOutputStream writeFromDevice:data];
-  }
-
-  // THEN
-  [self waitForExpectations:@[ receivedDataExpectation ] timeout:1];
-
-  XCTAssertEqualObjects(receivedData, testData);
 }
 
 @end
