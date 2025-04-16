@@ -14,13 +14,29 @@
 
 #import <Foundation/Foundation.h>
 
+@class GNCBLEL2CAPStream;
+
 NS_ASSUME_NONNULL_BEGIN
 
 /// Block invoked when the stream is closed.
 typedef void (^GNCBLEL2CAPStreamClosedBlock)(void);
 
-/// Block invoked when |data| is received from the remote device on the L2CAP connection.
-typedef void (^GNCBLEL2CAPControllerReceivedDataBlock)(NSData *data);
+/** Delegate for @c GNCBLEL2CAPStream. */
+@protocol GNCBLEL2CAPStreamDelegate <NSObject>
+
+/**
+ * Called when data is received from the remote device on the L2CAP connection.
+ *
+ * @param data The data received from the remote device.
+ */
+- (void)stream:(GNCBLEL2CAPStream *)stream didReceiveData:(NSData *)data;
+
+/**
+ * Called when the stream is closed.
+ */
+- (void)stream:(GNCBLEL2CAPStream *)stream didDisconnectWithError:(NSError *_Nullable)error;
+
+@end
 
 /**
  * Abstraction to take in two streams returned from L2CAP controller and provide a simplified
@@ -29,14 +45,14 @@ typedef void (^GNCBLEL2CAPControllerReceivedDataBlock)(NSData *data);
  */
 @interface GNCBLEL2CAPStream : NSObject
 
+/// Delegate for @c GNCBLEL2CAPStream
+@property(nonatomic, weak) id<GNCBLEL2CAPStreamDelegate> delegate;
+
 /// Returns an instance of @c GNCBLEL2CAPStream which sends and receives data on |inputStream|
 /// and |outputStream|.
 /// Invokes |closedBlock| if stream closed signal is received when reading data.
 /// The stream should be torn down when this block is called.
-/// Invokes |receivedDataBlock| with data received |inputStream|.
-/// The blocks are invoked on an arbitrary queue with DISPATCH_QUEUE_PRIORITY_HIGH.
 - (instancetype)initWithClosedBlock:(GNCBLEL2CAPStreamClosedBlock)closedBlock
-                  receivedDataBlock:(GNCBLEL2CAPControllerReceivedDataBlock)receivedDataBlock
                         inputStream:(NSInputStream *)inputStream
                        outputStream:(NSOutputStream *)outputStream NS_DESIGNATED_INITIALIZER;
 

@@ -14,9 +14,12 @@
 
 #include <memory>
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
-#import "internal/platform/implementation/apple/ble_peripheral.h"
 #include "internal/platform/implementation/ble_v2.h"
+
+#import "internal/platform/implementation/apple/ble_peripheral.h"
+
+@class GNCMConnectionHandlers;
+@class GNCBLEL2CAPConnection;
 
 namespace nearby {
 namespace apple {
@@ -24,11 +27,8 @@ namespace apple {
 /** A readable stream of bytes. */
 class BleL2capInputStream : public InputStream {
  public:
-  // Creates a BleL2capInputStream.
-  //
-  // @param stream The underlying stream to use for reading and writing.
-  explicit BleL2capInputStream(GNCBLEL2CAPStream* stream);
-  ~BleL2capInputStream() override = default;
+  explicit BleL2capInputStream(GNCBLEL2CAPConnection* connection);
+  ~BleL2capInputStream() override;
 
   // Reads at most `size` bytes from the input stream.
   //
@@ -41,22 +41,24 @@ class BleL2capInputStream : public InputStream {
   Exception Close() override;
 
  private:
-  GNCBLEL2CAPStream* stream_;
+  GNCMConnectionHandlers *connectionHandlers_;
+  GNCBLEL2CAPConnection* connection_;
+  NSMutableArray<NSData *> *newDataPackets_;
+  NSMutableData *accumulatedData_;
+  NSCondition *condition_;
 };
 
 /** A writable stream of bytes. */
 class BleL2capOutputStream : public OutputStream {
  public:
-  // Creates a BleL2capOutputStream.
-  //
-  // @param stream The underlying stream to use for reading and writing.
-  explicit BleL2capOutputStream(GNCBLEL2CAPStream* stream);
-  ~BleL2capOutputStream() override = default;
+  explicit BleL2capOutputStream(GNCBLEL2CAPConnection* connection)
+      : connection_(connection), condition_([[NSCondition alloc] init]) {}
+  ~BleL2capOutputStream() override;
 
   // Write the provided bytes to the output stream.
   //
   // Returns Exception::kIo on error, otherwise Exception::kSuccess.
-  Exception Write(const ByteArray& data) override;
+  Exception Write(const ByteArray &data) override;
 
   // no-op
   //
@@ -69,7 +71,8 @@ class BleL2capOutputStream : public OutputStream {
   Exception Close() override;
 
  private:
-  GNCBLEL2CAPStream* stream_;
+  GNCBLEL2CAPConnection* connection_;
+  NSCondition *condition_;
 };
 
 /**
@@ -77,45 +80,46 @@ class BleL2capOutputStream : public OutputStream {
  */
 class BleL2capSocket : public api::ble_v2::BleL2capSocket {
  public:
-  explicit BleL2capSocket(GNCBLEL2CAPStream* stream);
+  explicit BleL2capSocket(GNCBLEL2CAPConnection* connection);
 
-  // The peripheral used to create the socket must outlive the socket or
-  // undefined behavior will occur.
-  BleL2capSocket(GNCBLEL2CAPStream* stream,
-                 api::ble_v2::BlePeripheral* peripheral);
-  ~BleL2capSocket() override = default;
+  // The peripheral used to create the socket must outlive the socket or undefined behavior will
+  // occur.
+  BleL2capSocket(GNCBLEL2CAPConnection* connection, api::ble_v2::BlePeripheral *peripheral);
+  ~BleL2capSocket() override;
 
   // Returns the InputStream of the BleL2capSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the BleL2capSocket object is destroyed.
-  InputStream& GetInputStream() override;
+  BleL2capInputStream &GetInputStream() override { return *input_stream_; }
 
   // Returns the OutputStream of the BleL2capSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the BleL2capSocket object is destroyed.
-  OutputStream& GetOutputStream() override;
+  BleL2capOutputStream &GetOutputStream() override { return *output_stream_; }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
-
+  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
   // Sets the close notifier by client side.
-  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) override;
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) override {};
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  api::ble_v2::BlePeripheral* GetRemotePeripheral() override {
-    return peripheral_;
-  }
+  api::ble_v2::BlePeripheral *GetRemotePeripheral() override { return peripheral_; }
+
+  bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  GNCBLEL2CAPStream* stream_;
+  void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  mutable absl::Mutex mutex_;
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleL2capInputStream> input_stream_;
   std::unique_ptr<BleL2capOutputStream> output_stream_;
-  api::ble_v2::BlePeripheral* peripheral_;
+  api::ble_v2::BlePeripheral *peripheral_;
 };
 
 }  // namespace apple
