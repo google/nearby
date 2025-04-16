@@ -24,7 +24,7 @@ objc_library(
         "BLEv2/GNCBLEError.m",
         "BLEv2/GNCBLEGATTCharacteristic.m",
         "BLEv2/GNCBLEGATTClient.m",
-        "BLEv2/GNCBLEGATTServer.m",
+        "BLEv2/GNCBLEGATTServer.mm",
         "BLEv2/GNCBLEL2CAPServer.m",
         "BLEv2/GNCBLEL2CAPStream.m",
         "BLEv2/GNCBLEMedium.m",
@@ -73,6 +73,8 @@ objc_library(
     ],
     deps = [
         "//internal/encoding:base85",
+        "//internal/flags:nearby_flags",
+        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
         "//proto/mediums:ble_frames_cc_proto",

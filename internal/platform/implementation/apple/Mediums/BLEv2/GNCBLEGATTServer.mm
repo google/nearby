@@ -17,6 +17,8 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
@@ -26,7 +28,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
+constexpr char kDispatchQueueLabel[] = "com.nearby.GNCBLEGATTServer";
 
 @interface GNCBLEGATTServer () <GNCPeripheralManagerDelegate>
 @end
@@ -59,7 +61,7 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
 - (instancetype)init {
   self = [super init];
   if (self) {
-    _queue = dispatch_queue_create(kGNCBLEGATTServerQueueLabel, DISPATCH_QUEUE_SERIAL);
+    _queue = dispatch_queue_create(kDispatchQueueLabel, DISPATCH_QUEUE_SERIAL);
     _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:nil queue:_queue];
     // Set for @c GNCPeripheralManager to be able to forward callbacks.
     _peripheralManager.peripheralDelegate = self;
@@ -221,8 +223,27 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
       encoded = [encoded substringToIndex:22];
     }
 #else
-    if (encoded.length > 20) {
-      encoded = [encoded substringToIndex:20];
+    if (nearby::NearbyFlags::GetInstance().GetBoolFlag(
+            nearby::platform::config_package_nearby::nearby_platform_feature::kEnableBleL2cap)) {
+      // 23 bytes is the standard length which we used in the NC protocol with PSM.
+      // Actually, the IOS can advertise with more data than that, but we would still like to return
+      // fail early here since extra bytes are not expected in current NC protocol.
+      if (encoded.length > 23) {
+        if (completionHandler) {
+          completionHandler([NSError
+              errorWithDomain:GNCBLEErrorDomain
+                         code:GNCBLEErrorInvalidServiceData
+                     userInfo:@{
+                       NSLocalizedDescriptionKey :
+                           @"Failed to start advertising due to the advertising data is too large."
+                     }]);
+        }
+        return;
+      }
+    } else {
+      if (encoded.length > 20) {
+        encoded = [encoded substringToIndex:20];
+      }
     }
 #endif  // defined(NC_IOS_SDK)
 

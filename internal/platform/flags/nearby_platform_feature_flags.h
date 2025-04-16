@@ -33,6 +33,10 @@ namespace nearby_platform_feature {
 constexpr auto kEnableHotspotWin32Socket =
     flags::Flag<bool>(kConfigPackage, "45401992", true);
 
+// Disable/Enable BLE L2CAP feature.
+constexpr auto kEnableBleL2cap =
+    flags::Flag<bool>(kConfigPackage, "45691698", false);
+
 // The maximum scanning times for available hotspots.
 constexpr auto kWifiHotspotScanMaxRetries =
     flags::Flag<int64_t>(kConfigPackage, "45415883", 3);
