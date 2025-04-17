@@ -45,6 +45,7 @@ cc_library(
         "//internal:__subpackages__",
         "//internal/platform/implementation/windows:__subpackages__",
         "//location/nearby/apps/better_together/plugins:__subpackages__",
+        "//location/nearby/apps/better_together/windows/nearby_share:__pkg__",
         "//sharing:__subpackages__",
     ],
 )
