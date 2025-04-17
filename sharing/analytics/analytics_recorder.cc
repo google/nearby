@@ -124,6 +124,8 @@ AttachmentSourceType GetLoggerAttachmentSourceType(
       return AttachmentSourceType::ATTACHMENT_SOURCE_PASTE;
     case Attachment::SourceType::kSelectFoldersButton:
       return AttachmentSourceType::ATTACHMENT_SOURCE_SELECT_FOLDERS_BUTTON;
+    case Attachment::SourceType::kShareActivation:
+      return AttachmentSourceType::ATTACHMENT_SOURCE_SHARE_ACTIVATION;
     default:
       return AttachmentSourceType::ATTACHMENT_SOURCE_UNKNOWN;
   }

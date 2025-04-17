@@ -43,6 +43,7 @@ class Attachment {
     kSelectFilesButton,
     kPaste,
     kSelectFoldersButton,
+    kShareActivation,
     kMaxValue = kSelectFoldersButton
   };
 
