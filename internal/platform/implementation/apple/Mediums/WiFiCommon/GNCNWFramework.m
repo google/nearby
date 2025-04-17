@@ -107,8 +107,11 @@ static GNCNWFramework *gInstance = nil;
   return _serviceBrowsers.count > 0;
 }
 
-- (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port error:(NSError **)error {
+- (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
+                                     includePeerToPeer:(BOOL)includePeerToPeer
+                                                 error:(NSError **)error {
   GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
+  _includePeerToPeer = includePeerToPeer;
   BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:_includePeerToPeer];
   if (success) {
     [_serverSockets setObject:serverSocket forKey:@(serverSocket.port)];
@@ -136,6 +139,7 @@ static GNCNWFramework *gInstance = nil;
 - (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
+                   includePeerToPeer:(BOOL)includePeerToPeer
                                error:(NSError **)error {
   if ([_serviceBrowsers objectForKey:serviceType] != nil) {
     if (error != nil) {
@@ -151,6 +155,7 @@ static GNCNWFramework *gInstance = nil;
   nw_parameters_t parameters =
       nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
                                       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
+  _includePeerToPeer = includePeerToPeer;
   nw_parameters_set_include_peer_to_peer(parameters, _includePeerToPeer);
   nw_browse_descriptor_t descriptor =
       nw_browse_descriptor_create_bonjour_service([serviceType UTF8String], /*domain=*/nil);
@@ -286,10 +291,11 @@ static GNCNWFramework *gInstance = nil;
 
 - (GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                    port:(NSInteger)port
+                      includePeerToPeer:(BOOL)includePeerToPeer
                                   error:(NSError **)error {
   nw_endpoint_t endpoint =
       nw_endpoint_create_host(host.dottedRepresentation.UTF8String, @(port).stringValue.UTF8String);
-  return [self connectToEndpoint:endpoint includePeerToPeer:(BOOL)NO error:error];
+  return [self connectToEndpoint:endpoint includePeerToPeer:(BOOL)includePeerToPeer error:error];
 }
 
 - (GNCNWFrameworkSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
@@ -304,7 +310,8 @@ static GNCNWFramework *gInstance = nil;
   nw_parameters_t parameters =
       nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
                                       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
-  nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
+  _includePeerToPeer = includePeerToPeer;
+  nw_parameters_set_include_peer_to_peer(parameters, _includePeerToPeer);
   nw_connection_t connection = nw_connection_create(endpoint, parameters);
   nw_connection_set_queue(connection, dispatch_get_main_queue());
   nw_connection_set_state_changed_handler(

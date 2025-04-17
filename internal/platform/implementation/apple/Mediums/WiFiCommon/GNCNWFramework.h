@@ -29,7 +29,7 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 @interface GNCNWFramework : NSObject
 
 /** Whether to include peer-to-peer services. */
-@property(atomic, readwrite) BOOL includePeerToPeer;
+@property(atomic, readonly) BOOL includePeerToPeer;
 
 /** The shared instance of the @c GNCNWFramework object. */
 + (nonnull instancetype)sharedInstance;
@@ -47,10 +47,12 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param port The port on which the listener can accept connections. Should be a number between 1
  *             and 65536 to open a server socket on that exact port. Zero can be used to listen on
  *             a random port.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a server socket or nil if an error has occured.
  */
 - (nullable GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
+                                              includePeerToPeer:(BOOL)includePeerToPeer
                                                           error:(NSError **_Nullable)error;
 
 /**
@@ -79,12 +81,14 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param serviceType The Bonjour type of the service.
  * @param serviceFoundHandler A handler called when a new service is found.
  * @param serviceLostHandler A handler called when a previously discovered service is lost.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when discovery has successfully started.
  */
 - (BOOL)startDiscoveryForServiceType:(nonnull NSString *)serviceType
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
+                   includePeerToPeer:(BOOL)includePeerToPeer
                                error:(NSError **_Nullable)error;
 
 /**
@@ -111,11 +115,13 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  *
  * @param host The IPv4 address to connect to.
  * @param port The port to connect to.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
 - (nullable GNCNWFrameworkSocket *)connectToHost:(nonnull GNCIPv4Address *)host
                                             port:(NSInteger)port
+                               includePeerToPeer:(BOOL)includePeerToPeer
                                            error:(NSError **_Nullable)error;
 
 /**

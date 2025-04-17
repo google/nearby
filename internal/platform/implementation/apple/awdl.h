@@ -21,8 +21,6 @@
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/nsd_service_info.h"
 
-@class GNCMBonjourBrowser;
-@class GNCMBonjourService;
 @class GNCNWFramework;
 @class GNCNWFrameworkServerSocket;
 @class GNCNWFrameworkSocket;
@@ -124,6 +122,7 @@ class AwdlMedium : public api::AwdlMedium {
 
  private:
   GNCNWFramework* medium_;
+  DiscoveredServiceCallback service_callback_;
   absl::AnyInvocable<void(NsdServiceInfo)> service_discovered_cb_;
   absl::AnyInvocable<void(NsdServiceInfo)> service_lost_cb_;
 };

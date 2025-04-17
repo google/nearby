@@ -23,6 +23,7 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/network_utils.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
@@ -125,124 +126,58 @@ WifiLanMedium::WifiLanMedium(bool include_peer_to_peer)
     : medium_([GNCNWFramework sharedInstance]) {}
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
-  NSInteger port = nsd_service_info.GetPort();
-  NSString* serviceName = @(nsd_service_info.GetServiceName().c_str());
-  NSString* serviceType = @(nsd_service_info.GetServiceType().c_str());
-  NSMutableDictionary<NSString*, NSString*>* txtRecords = [[NSMutableDictionary alloc] init];
-  for (const auto& record : nsd_service_info.GetTxtRecords()) {
-    [txtRecords setObject:@(record.second.c_str()) forKey:@(record.first.c_str())];
-  }
-  [medium_ startAdvertisingPort:port
-                    serviceName:serviceName
-                    serviceType:serviceType
-                     txtRecords:txtRecords];
-  return true;
+  return network_utils::StartAdvertising(medium_, nsd_service_info);
 }
 
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
-  NSInteger port = nsd_service_info.GetPort();
-  [medium_ stopAdvertisingPort:port];
-  return true;
+  return network_utils::StopAdvertising(medium_, nsd_service_info);
 }
 
 bool WifiLanMedium::StartDiscovery(const std::string& service_type,
                                    DiscoveredServiceCallback callback) {
-  if (medium_.isDiscoveringAnyService) {
-    GTMLoggerError(@"Error already discovering for service");
-    return false;
-  }
-  __block NSString* serviceType = @(service_type.c_str());
-  __block DiscoveredServiceCallback client_callback = std::move(callback);
+  service_callback_ = std::move(callback);
+  network_utils::NetworkDiscoveredServiceCallback network_callback = {
+      .network_service_discovered_cb =
+          [this](const NsdServiceInfo& service_info) {
+            service_callback_.service_discovered_cb(service_info);
+          },
+      .network_service_lost_cb =
+          [this](const NsdServiceInfo& service_info) {
+            service_callback_.service_lost_cb(service_info);
+          }};
 
-  medium_.includePeerToPeer = NO;
-  NSError* error = nil;
-  BOOL result = [medium_ startDiscoveryForServiceType:serviceType
-      serviceFoundHandler:^(NSString* name, NSDictionary<NSString*, NSString*>* txtRecords) {
-        NsdServiceInfo nsd_service_info;
-        nsd_service_info.SetServiceType([serviceType UTF8String]);
-        nsd_service_info.SetServiceName([name UTF8String]);
-        [txtRecords
-            enumerateKeysAndObjectsUsingBlock:[nsd_service_info = &nsd_service_info](
-                                                  NSString* key, NSString* val, BOOL* stop) {
-              nsd_service_info->SetTxtRecord([key UTF8String], [val UTF8String]);
-            }];
-        client_callback.service_discovered_cb(nsd_service_info);
-      }
-      serviceLostHandler:^(NSString* name, NSDictionary<NSString*, NSString*>* txtRecords) {
-        NsdServiceInfo nsd_service_info;
-        nsd_service_info.SetServiceType([serviceType UTF8String]);
-        nsd_service_info.SetServiceName([name UTF8String]);
-        [txtRecords
-            enumerateKeysAndObjectsUsingBlock:[nsd_service_info = &nsd_service_info](
-                                                  NSString* key, NSString* val, BOOL* stop) {
-              nsd_service_info->SetTxtRecord([key UTF8String], [val UTF8String]);
-            }];
-        client_callback.service_lost_cb(nsd_service_info);
-      }
-      error:&error];
-  if (error != nil) {
-    GTMLoggerError(@"Error starting discovery for service type<%@>: %@", serviceType, error);
-  }
-  return result;
+  return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback), false);
 }
 
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
-  NSString* serviceType = @(service_type.c_str());
-  [medium_ stopDiscoveryForServiceType:serviceType];
-  return true;
+  return network_utils::StopDiscovery(medium_, service_type);
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info, CancellationFlag* cancellation_flag) {
-  NSError* error = nil;
-  NSString* serviceName = @(remote_service_info.GetServiceName().c_str());
-  NSString* serviceType = @(remote_service_info.GetServiceType().c_str());
-  GNCNWFrameworkSocket* socket = [medium_ connectToServiceName:serviceName
-                                                   serviceType:serviceType
-                                                         error:&error];
+  GNCNWFrameworkSocket* socket =
+      network_utils::ConnectToService(medium_, remote_service_info, cancellation_flag);
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
-  }
-  if (error != nil) {
-    GTMLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
-                   error);
   }
   return nil;
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port, CancellationFlag* cancellation_flag) {
-  medium_.includePeerToPeer = NO;
-  NSError* error = nil;
-  if (ip_address.size() != 4) {
-    GTMLoggerError(@"Error IP address must be 4 bytes, but is %lu bytes", ip_address.size());
-    return nil;
-  }
-  NSData* hostData = [NSData dataWithBytes:ip_address.data() length:ip_address.size()];
-  GNCIPv4Address* host = [GNCIPv4Address addressFromData:hostData];
-  GNCNWFrameworkSocket* socket = [medium_ connectToHost:host port:port error:&error];
+  GNCNWFrameworkSocket* socket = network_utils::ConnectToService(
+      medium_, ip_address, port, /*include_peer_to_peer=*/false, cancellation_flag);
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
-  }
-  if (error != nil) {
-    GTMLoggerError(@"Error connecting to %@:%d: %@", host, port, error);
   }
   return nil;
 }
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int port) {
-  if (medium_.isListeningForAnyService) {
-    GTMLoggerError(@"Error already listening for service");
-    return nil;
-  }
-  NSError* error = nil;
-  medium_.includePeerToPeer = NO;
-  GNCNWFrameworkServerSocket* serverSocket = [medium_ listenForServiceOnPort:port error:&error];
+  GNCNWFrameworkServerSocket* serverSocket =
+      network_utils::ListenForService(medium_, port, /*include_peer_to_peer=*/false);
   if (serverSocket != nil) {
     return std::make_unique<WifiLanServerSocket>(serverSocket);
-  }
-  if (error != nil) {
-    GTMLoggerError(@"Error listening for service: %@", error);
   }
   return nil;
 }
