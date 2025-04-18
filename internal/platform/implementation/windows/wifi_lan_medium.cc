@@ -220,6 +220,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
     }
 
     LOG(ERROR) << "failed to stop mDNS advertising.";
+    medium_status_ &= (~kMediumStatusAdvertising);
     return false;
   } else {
     dnssd_service_instance_ = nullptr;

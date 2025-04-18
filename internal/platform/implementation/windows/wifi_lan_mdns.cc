@@ -157,24 +157,18 @@ bool WifiLanMdns::StopMdnsService() {
 
   if (status != DNS_REQUEST_PENDING) {
     NEARBY_LOGS(ERROR) << "Failed to stop mDNS advertising.";
+    CleanUp();
     return false;
   }
 
   if (!dns_service_notification_->WaitForNotificationWithTimeout(
           kDnsServiceTimeout)) {
     LOG(ERROR) << "Failed to start mDNS advertising.";
+    CleanUp();
     return false;
   }
 
-  dns_service_notification_ = nullptr;
-  if (dns_service_instance_.keys != nullptr) {
-    delete[] dns_service_instance_.keys;
-    delete[] dns_service_instance_.values;
-    dns_service_instance_.keys = nullptr;
-    dns_service_instance_.values = nullptr;
-  }
-
-  is_service_started_ = false;
+  CleanUp();
   LOG(INFO) << "Succeeded to stop mDNS advertising.";
 
   return true;
@@ -204,6 +198,17 @@ void WifiLanMdns::DnsServiceRegisterComplete(DWORD Status, PVOID pQueryContext,
   LOG(INFO) << "DnsServiceRegisterComplete: " << Status;
   WifiLanMdns* mdns = static_cast<WifiLanMdns*>(pQueryContext);
   mdns->NotifyStatusUpdated(Status);
+}
+
+void WifiLanMdns::CleanUp() {
+  is_service_started_ = false;
+  dns_service_notification_ = nullptr;
+  if (dns_service_instance_.keys != nullptr) {
+    delete[] dns_service_instance_.keys;
+    delete[] dns_service_instance_.values;
+    dns_service_instance_.keys = nullptr;
+    dns_service_instance_.values = nullptr;
+  }
 }
 
 }  // namespace nearby::windows

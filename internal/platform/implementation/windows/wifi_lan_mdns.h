@@ -38,9 +38,10 @@ class WifiLanMdns {
 
   bool StartMdnsService(
       const std::string& service_name, const std::string& service_type,
-      int port, absl::flat_hash_map<std::string, std::string> text_records);
+      int port, absl::flat_hash_map<std::string, std::string> text_records)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool StopMdnsService();
+  bool StopMdnsService() ABSL_LOCKS_EXCLUDED(mutex_);
 
   void NotifyStatusUpdated(DWORD status);
 
@@ -48,6 +49,7 @@ class WifiLanMdns {
   static void DnsServiceRegisterComplete(DWORD Status, PVOID pQueryContext,
                                          PDNS_SERVICE_INSTANCE pInstance);
   std::optional<std::string> GetComputerName();
+  void CleanUp() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   absl::Mutex mutex_;
   std::unique_ptr<absl::Notification> dns_service_notification_ = nullptr;
