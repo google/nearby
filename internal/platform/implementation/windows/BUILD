@@ -158,7 +158,10 @@ cc_library(
     hdrs = [
         "string_utils.h",
     ],
-    visibility = ["//location/nearby:__subpackages__"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby:__subpackages__",
+    ],
     deps = [
         "//internal/platform:logging",
         "@com_google_absl//absl/strings",
