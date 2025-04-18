@@ -32,7 +32,7 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
   GNCRequestDisconnectionHandler _requestDisconnectionHandler;
 
   // The L2CAP channel that is used to send and receive data.
-  CBL2CAPChannel *_channel;
+  CBL2CAPChannel *_l2CAPChannel;
 }
 
 - (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
@@ -58,6 +58,10 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
   return self;
 };
 
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM {
+  [_peripheral openL2CAPChannelWithPSM:PSM];
+}
+
 - (void)disconnect {
   dispatch_async(_queue, ^{
     _requestDisconnectionHandler(_peripheral);
@@ -74,7 +78,7 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
     return;
   }
   GTMLoggerInfo(@"[NEARBY] Opened L2CAP channel: %@", channel);
-  _channel = channel;
+  _l2CAPChannel = channel;
   // TODO: b/399815436 - Implement to wrap up l2cap channel.
 }
 

@@ -211,6 +211,15 @@ typedef void (^GNCOpenL2CAPServerCompletionHandler)(GNCBLEL2CAPServer *_Nullable
 - (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler
                            peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager;
 
+/**
+ * Opens a L2CAP channel with the @c PSM on the remote peripheral.
+ *
+ * @param PSM The PSM to use for opening the L2CAP channel.
+ * @param remotePeripheral The peripheral to which the L2CAP channel is being opened.
+ */
+// TODO: b/399815436 - Add CompletionHandler for this method.
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM peripheral:(id<GNCPeripheral>)remotePeripheral;
+
 @end
 
 NS_ASSUME_NONNULL_END

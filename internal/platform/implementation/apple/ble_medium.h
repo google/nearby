@@ -147,6 +147,18 @@ class BleMedium : public api::ble_v2::BleMedium {
                                                   api::ble_v2::BlePeripheral &peripheral,
                                                   CancellationFlag *cancellation_flag) override;
 
+  // TODO(b/290385712): cancellation_flag support is not yet implemented.
+  //
+  // Connects to a BLE peripheral over L2CAP.
+  //
+  // The peripheral must outlive the socket or undefined behavior will occur. The peripheral
+  // should not be modified by this method.
+  //
+  // On success, returns a new BleL2capSocket. On error, returns nullptr.
+  std::unique_ptr<api::ble_v2::BleL2capSocket> ConnectOverL2cap(
+      int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
+      api::ble_v2::BlePeripheral &peripheral, CancellationFlag *cancellation_flag) override;
+
   // Returns whether the hardware supports BOTH advertising extensions and extended scans.
   //
   // This is currently always false for all Apple hardware.

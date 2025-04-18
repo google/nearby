@@ -112,6 +112,18 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)readValueForCharacteristic:(CBCharacteristic *)characteristic;
 
+/**
+ * Opens an L2CAP channel with the specified PSM.
+ *
+ * When you call this method to open an L2CAP channel, the peripheral calls the
+ * @c peripheral:didOpenL2CAPChannel:error: method of its delegate object. If the peripheral
+ * successfully opens the L2CAP channel, you can access it through the peripheral’s @c l2capChannels
+ * property.
+ *
+ * @param PSM The PSM value to use for the L2CAP channel.
+ */
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM;
+
 @end
 
 /**
