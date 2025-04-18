@@ -131,6 +131,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param peripheral The peripheral to which the services belong.
  * @param error The reason the call failed, or @c nil if no error occurred.
  */
+@optional
 - (void)gnc_peripheral:(id<GNCPeripheral>)peripheral didDiscoverServices:(nullable NSError *)error;
 
 /**
@@ -164,6 +165,19 @@ NS_ASSUME_NONNULL_BEGIN
     didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
                               error:(nullable NSError *)error;
 
+/**
+ * Tells the delegate that the peripheral opened an L2CAP channel.
+ *
+ * Called when your app calls the @c openL2CAPChannel: method. If successful, the @c error parameter
+ * is @c nil. If unsuccessful, the @c error parameter returns the cause of the failure.
+ *
+ * @param peripheral The peripheral providing this information.
+ * @param channel The L2CAP channel that was opened.
+ * @param error The reason the call failed, or @c nil if no error occurred.
+ */
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
+    didOpenL2CAPChannel:(CBL2CAPChannel *)characteristic
+                  error:(nullable NSError *)error;
 @end
 
 /**

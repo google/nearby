@@ -285,7 +285,9 @@ static NSError *AlreadyReadingCharacteristicError() {
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(nullable NSError *)error {
   dispatch_async(_queue, ^{
-    [self gnc_peripheral:peripheral didDiscoverServices:error];
+    if ([self respondsToSelector:@selector(gnc_peripheral:didDiscoverServices:)]) {
+      [self gnc_peripheral:peripheral didDiscoverServices:error];
+    }
   });
 }
 
@@ -293,7 +295,10 @@ static NSError *AlreadyReadingCharacteristicError() {
     didDiscoverCharacteristicsForService:(CBService *)service
                                    error:(nullable NSError *)error {
   dispatch_async(_queue, ^{
-    [self gnc_peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
+    if ([self respondsToSelector:@selector(gnc_peripheral:
+                                     didDiscoverCharacteristicsForService:error:)]) {
+      [self gnc_peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
+    }
   });
 }
 
@@ -301,7 +306,10 @@ static NSError *AlreadyReadingCharacteristicError() {
     didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
                               error:(nullable NSError *)error {
   dispatch_async(_queue, ^{
-    [self gnc_peripheral:peripheral didUpdateValueForCharacteristic:characteristic error:error];
+    if ([self respondsToSelector:@selector(gnc_peripheral:
+                                     didUpdateValueForCharacteristic:error:)]) {
+      [self gnc_peripheral:peripheral didUpdateValueForCharacteristic:characteristic error:error];
+    }
   });
 }
 
