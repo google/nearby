@@ -18,6 +18,7 @@ load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows
 
 package(default_visibility = [
     "//connections:__subpackages__",
+    "//googlemac/iPhone/Nearby:__subpackages__",
     "//location/nearby:__subpackages__",
 ])
 
