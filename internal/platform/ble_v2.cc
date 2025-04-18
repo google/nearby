@@ -284,8 +284,14 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
 BleL2capSocket BleV2Medium::ConnectOverL2cap(
     const std::string& service_id, TxPowerLevel tx_power_level,
     const BleV2Peripheral& peripheral, CancellationFlag* cancellation_flag) {
-  // TODO(mingshiouwu): Replace with a real implementation connecting flow.
-  return BleL2capSocket(peripheral, nullptr);
+  BleL2capSocket socket;
+  peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
+    socket = BleL2capSocket(
+        peripheral,
+        impl_->ConnectOverL2cap(peripheral.GetPsm(), service_id, tx_power_level,
+                                device, cancellation_flag));
+  });
+  return socket;
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {

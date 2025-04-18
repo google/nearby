@@ -33,6 +33,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/ble_gatt_client.h"
 #import "internal/platform/implementation/apple/ble_gatt_server.h"
 #import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
@@ -459,6 +460,24 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &se
   // Send the (empty) intro packet, which the BLE advertiser is expecting.
   socket->GetOutputStream().Write(ByteArray());
   return std::move(socket);
+}
+
+std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
+    int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral &peripheral, CancellationFlag *cancellation_flag) {
+  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
+  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
+  BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
+  if (non_empty_peripheral == nullptr) {
+    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is empty.");
+    return nullptr;
+  }
+
+  // TODO: b/399815436 - Continue to add implementation for this method when BleL2capSocket is
+  // ready.
+  [medium_ openL2CAPChannelWithPSM:psm peripheral:non_empty_peripheral->GetPeripheral()];
+
+  return nullptr;
 }
 
 bool BleMedium::IsExtendedAdvertisementsAvailable() {
