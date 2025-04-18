@@ -476,12 +476,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
             [@"012345678901234567890123456789" dataUsingEncoding:NSUTF8StringEncoding],
       }
          completionHandler:^(NSError *error) {
-           XCTAssertNil(error);
-           XCTAssertTrue(fakePeripheralManager.isAdvertising);
-           NSDictionary<NSString *, id> *data = fakePeripheralManager.advertisementData;
-           XCTAssertEqualObjects(data[CBAdvertisementDataLocalNameKey], @"MDEyMzQ1Njc4OTAxMjM0");
-           XCTAssertEqualObjects(data[CBAdvertisementDataServiceUUIDsKey][0],
-                                 [CBUUID UUIDWithString:@"FEF3"]);
+           XCTAssertNotNil(error);
+           XCTAssertFalse(fakePeripheralManager.isAdvertising);
            [expectation fulfill];
          }];
 

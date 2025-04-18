@@ -210,22 +210,23 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     NSString *encoded = [value webSafeBase64EncodedString];
 #endif  // defined(NC_IOS_SDK)
 
-    // Apple only "guarantees" (best effort) 28 bytes of advertisement data. Base64 encoding
-    // increases the size of the original data so we must truncate it to ensure it still meets the
-    // 28 byte limit. Since we have a 2-byte service UUID and the header for local name and service
-    // UUID is 2 bytes each, that leaves us with a maximum of 22 bytes for the local name. However,
-    // it seems in practice we can only reliably advertise a 20-byte local name on iOS.
-#if defined(NC_IOS_SDK)
-    // DCT is using 22 bytes as length limit.
-    if (encoded.length > 22) {
-      encoded = [encoded substringToIndex:22];
+    // 23 bytes is the standard length which we used in the NC protocol with PSM. The BLE v2
+    // advertisement header is default with psm value included so the length is always 23 bytes.
+    // The IOS can advertise with more data than that, but we would still like to return
+    // fail early here since extra bytes are not expected in current NC protocol. This is not a
+    // hardware limit.
+    if (encoded.length > 23) {
+      if (completionHandler) {
+        completionHandler([NSError
+            errorWithDomain:GNCBLEErrorDomain
+                       code:GNCBLEErrorInvalidServiceData
+                   userInfo:@{
+                     NSLocalizedDescriptionKey :
+                         @"Failed to start advertising due to the advertising data is too large."
+                   }]);
+      }
+      return;
     }
-#else
-    if (encoded.length > 20) {
-      encoded = [encoded substringToIndex:20];
-    }
-#endif  // defined(NC_IOS_SDK)
-
     _advertisementData = @{
       CBAdvertisementDataLocalNameKey : encoded,
       CBAdvertisementDataServiceUUIDsKey : @[ serviceUUID ]
