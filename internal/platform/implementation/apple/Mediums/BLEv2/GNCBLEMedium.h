@@ -15,6 +15,9 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
+
 @class GNCBLEGATTServer;
 @class GNCBLEGATTClient;
 @class GNCBLEGATTCharacteristic;
@@ -88,15 +91,6 @@ typedef void (^GNCGATTDisconnectionHandler)();
  */
 typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable client,
                                                    NSError *_Nullable error);
-
-/**
- * A block to be invoked when a call to @c openL2CAPServerWithCompletionHandler: has completed.
- *
- * @param server The successfully started L2CAP server, or @c nil if an error occurred.
- * @param error The cause of the failure, or @c nil if no error occurred.
- */
-typedef void (^GNCOpenL2CAPServerCompletionHandler)(GNCBLEL2CAPServer *_Nullable server,
-                                                    NSError *_Nullable error);
 
 /**
  * The main BLE medium used inside of Nearby. This serves as the entry point for all BLE and GATT
@@ -204,12 +198,19 @@ typedef void (^GNCOpenL2CAPServerCompletionHandler)(GNCBLEL2CAPServer *_Nullable
 /**
  * Opens a L2CAP server.
  *
- * @param completionHandler Called on a private queue with the L2CAP server if successfully started
- *                          or an error if one has occurred.
- * @param peripheralManager The peripheral manager instance.
+ * @param psmPublishedCompletionHandler Called on a private queue with @c nil if the PSM has been
+ *                                       published or an error if one has occurred.
+ * @param channelOpenedCompletionHandler Called on a private queue with the opened L2CAP stream if
+ *                                        successfully opened or an error if one has occurred.
+ * @param peripheralManager The peripheral manager to use for the L2CAP server.
  */
-- (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler
-                           peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager;
+- (void)openL2CAPServerWithPSMPublishedCompletionHandler:
+            (GNCOpenL2CAPServerPSMPublishedCompletionHandler)psmPublishedCompletionHandler
+                          channelOpenedCompletionHandler:
+                              (GNCOpenL2CAPServerChannelOpendCompletionHandler)
+                                  channelOpenedCompletionHandler
+                                       peripheralManager:
+                                           (nullable id<GNCPeripheralManager>)peripheralManager;
 
 /**
  * Opens a L2CAP channel with the @c PSM on the remote peripheral.

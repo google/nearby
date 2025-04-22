@@ -34,7 +34,8 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   dispatch_queue_t _queue;
   id<GNCPeripheralManager> _peripheralManager;
   NSString *_serviceID;
-  GNCStartListeningL2CAPChannelCompletionHandler _startListeningL2CAPChannelcompletionHandler;
+  GNCOpenL2CAPServerPSMPublishedCompletionHandler _psmPublishedCompletionHandler;
+  GNCOpenL2CAPServerChannelOpendCompletionHandler _channelOpenedCompletionHandler;
 
   CBL2CAPChannel *_l2CAPChannel;
   GNCBLEL2CAPStream *_l2CAPStream;
@@ -62,14 +63,17 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   return self;
 }
 
-- (void)startListeningChannelWithCompletionHandler:
-    (GNCStartListeningL2CAPChannelCompletionHandler)completionHandler {
-  _startListeningL2CAPChannelcompletionHandler = [completionHandler copy];
+- (void)startListeningChannelWithPSMPublishedCompletionHandler:
+            (GNCOpenL2CAPServerPSMPublishedCompletionHandler)psmPublishedCompletionHandler
+                                channelOpenedCompletionHandler:
+                                    (GNCOpenL2CAPServerChannelOpendCompletionHandler)
+                                        channelOpenedCompletionHandler {
+  _psmPublishedCompletionHandler = [psmPublishedCompletionHandler copy];
+  _channelOpenedCompletionHandler = [channelOpenedCompletionHandler copy];
   if (!_queue) {
-    _startListeningL2CAPChannelcompletionHandler([NSError
-        errorWithDomain:GNCBLEErrorDomain
-                   code:GNCBLEErrorL2CAPListeningOnQueueNil
-               userInfo:nil]);
+    _psmPublishedCompletionHandler(0, [NSError errorWithDomain:GNCBLEErrorDomain
+                                                          code:GNCBLEErrorL2CAPListeningOnQueueNil
+                                                      userInfo:nil]);
     return;
   }
   if (!_peripheralManager) {
@@ -123,14 +127,14 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   GTMLoggerDebug(@"[NEARBY] didPublishL2CAPChannel with PSM: %@", @(PSM));
   if (error) {
     GTMLoggerError(@"[NEARBY] Failed to publish L2CAP channel: %@", error);
-    if (_startListeningL2CAPChannelcompletionHandler) {
-      _startListeningL2CAPChannelcompletionHandler(error);
+    if (_psmPublishedCompletionHandler) {
+      _psmPublishedCompletionHandler(0, error);
     }
     return;
   }
   _PSM = PSM;
-  if (_startListeningL2CAPChannelcompletionHandler) {
-    _startListeningL2CAPChannelcompletionHandler(nil);
+  if (_psmPublishedCompletionHandler) {
+    _psmPublishedCompletionHandler(PSM, nil);
   }
 }
 
@@ -151,9 +155,14 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
           didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
                         error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
-  GTMLoggerDebug(@"[NEARBY] didOpenL2CAPChannel");
-  if (error) {
-    GTMLoggerError(@"[NEARBY] Failed to open L2CAP channel: %@", error);
+  GTMLoggerDebug(
+      @"[NEARBY] didOpenL2CAPChannel, channel: %@, inputStream: %@, outputStream: %@, error: %@",
+      channel, channel.inputStream, channel.outputStream, error);
+  // TODO: edwinwu - channel.inputStream is null when doing testing. Refactor tests in the future.
+  if (error || (channel && (!channel.inputStream || !channel.outputStream))) {
+    if (_channelOpenedCompletionHandler) {
+      _channelOpenedCompletionHandler(nil, error);
+    }
     return;
   }
 
@@ -167,7 +176,19 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   }
 
   _l2CAPChannel = channel;
-  // TODO: b/399815436 - Implement to wrap up l2cap channel with |GNCBLEL2CAPStream|.
+  __weak __typeof__(self) weakSelf = self;
+  _l2CAPStream = [[GNCBLEL2CAPStream alloc]
+      initWithClosedBlock:^{
+        __typeof__(self) strongSelf = weakSelf;
+        // Indicates the L2CAP socket is closed. Clean up the resources used for the old
+        // connection so that a new one can be established.
+        [strongSelf closeL2CAPChannel];
+      }
+              inputStream:_l2CAPChannel.inputStream
+             outputStream:_l2CAPChannel.outputStream];
+  if (_channelOpenedCompletionHandler) {
+    _channelOpenedCompletionHandler(_l2CAPStream, nil);
+  }
 }
 
 #pragma mark - CBPeripheralManagerDelegate

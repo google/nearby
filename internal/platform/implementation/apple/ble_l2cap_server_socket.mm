@@ -27,18 +27,21 @@
 namespace nearby {
 namespace apple {
 
-BleL2capServerSocket::BleL2capServerSocket(GNCBLEL2CAPServer* l2cap_server)
-    : l2cap_server_(l2cap_server) {}
+int BleL2capServerSocket::GetPSM() const { return PSM_; }
 
-int BleL2capServerSocket::GetPSM() const { return [l2cap_server_ PSM]; }
+void BleL2capServerSocket::SetPSM(int PSM) { PSM_ = PSM; }
 
 std::unique_ptr<api::ble_v2::BleL2capSocket> BleL2capServerSocket::Accept() {
-  // TODO: edwinwu - Implement to wrap up l2cap channel with |GNCBLEL2CAPStream|.
+  // TODO: b/399815436 - Implement to accept incoming l2cap connection.
   return nullptr;
 }
 
+bool BleL2capServerSocket::Connect(std::unique_ptr<BleL2capSocket> socket) {
+  // TODO: b/399815436 - Implement to connect to l2cap server socket.
+  return false;
+}
+
 Exception BleL2capServerSocket::Close() {
-  [l2cap_server_ close];
   return {Exception::kSuccess};
 }
 

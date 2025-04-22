@@ -56,6 +56,8 @@
 
 @end
 
+static const uint16_t kPSM = 192;
+
 @implementation GNCFakePeripheralManager {
   CBManagerState _state;
   BOOL _isAdvertising;
@@ -64,6 +66,8 @@
 }
 
 @synthesize peripheralDelegate;
+
+#pragma mark Public
 
 - (instancetype)init {
   self = [super init];
@@ -78,7 +82,7 @@
     _state = CBManagerStateUnknown;
     _advertisementData = nil;
     _services = [[NSMutableArray alloc] init];
-    _PSM = 192;
+    _PSM = kPSM;
   }
   return self;
 }

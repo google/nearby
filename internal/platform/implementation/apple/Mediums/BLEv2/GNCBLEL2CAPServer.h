@@ -21,11 +21,21 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /**
- * Completion handler for starting listening for an L2CAP channel.
+ * A block to be invoked when the PSM is published.
  *
+ * @param PSM The PSM value of the L2CAP channel.
  * @param error The cause of the failure, or @c nil if no error occurred.
  */
-typedef void (^GNCStartListeningL2CAPChannelCompletionHandler)(NSError *_Nullable error);
+typedef void (^GNCOpenL2CAPServerPSMPublishedCompletionHandler)(uint16_t PSM,
+                                                                NSError *_Nullable error);
+/**
+ * A block to be invoked when a call to @c openL2CAPServerWithCompletionHandler: has completed.
+ *
+ * @param stream The successfully started L2CAP stream, or @c nil if an error occurred.
+ * @param error The cause of the failure, or @c nil if no error occurred.
+ */
+typedef void (^GNCOpenL2CAPServerChannelOpendCompletionHandler)(GNCBLEL2CAPStream *_Nullable stream,
+                                                                NSError *_Nullable error);
 
 /**
  * An object that publishes the @c PSM value.
@@ -50,10 +60,15 @@ typedef void (^GNCStartListeningL2CAPChannelCompletionHandler)(NSError *_Nullabl
 /**
  * Starts listening for an L2CAP channel.
  *
- * @param completionHandler The completion handler to call when the L2CAP channel is started.
+ * @param psmPublishedCompletionHandler The completion handler to call when the PSM is published.
+ * @param channelOpenedCompletionHandler The completion handler to call when the L2CAP channel is
+ * opened.
  */
-- (void)startListeningChannelWithCompletionHandler:
-    (GNCStartListeningL2CAPChannelCompletionHandler)completionHandler;
+- (void)startListeningChannelWithPSMPublishedCompletionHandler:
+            (GNCOpenL2CAPServerPSMPublishedCompletionHandler)psmPublishedCompletionHandler
+                                channelOpenedCompletionHandler:
+                                    (GNCOpenL2CAPServerChannelOpendCompletionHandler)
+                                        channelOpenedCompletionHandler;
 
 /**
  * Closes the L2CAP channel.

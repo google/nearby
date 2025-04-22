@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #import "internal/platform/implementation/apple/ble_medium.h"
-#import "internal/platform/implementation/apple/utils.h"
 
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
@@ -31,26 +30,29 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPConnection.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
-#import "internal/platform/implementation/apple/ble_gatt_client.h"
-#import "internal/platform/implementation/apple/ble_gatt_server.h"
-#import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
-#import "internal/platform/implementation/apple/ble_peripheral.h"
-#import "internal/platform/implementation/apple/ble_server_socket.h"
-#import "internal/platform/implementation/apple/ble_socket.h"
-#import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 // TODO(b/293336684): Old Weave imports that need to be deleted once shared Weave is complete.
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
+#import "internal/platform/implementation/apple/ble_gatt_client.h"
+#import "internal/platform/implementation/apple/ble_gatt_server.h"
+#import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
+#import "internal/platform/implementation/apple/ble_l2cap_socket.h"
+#import "internal/platform/implementation/apple/ble_peripheral.h"
+#import "internal/platform/implementation/apple/ble_server_socket.h"
+#import "internal/platform/implementation/apple/ble_socket.h"
+#import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
+#import "internal/platform/implementation/apple/utils.h"
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 
@@ -267,20 +269,18 @@ bool BleMedium::StopScanning() {
   return blockError == nil;
 }
 
-bool BleMedium::PauseMediumScanning() {
-  return StopScanning();
-}
+bool BleMedium::PauseMediumScanning() { return StopScanning(); }
 
 bool BleMedium::ResumeMediumScanning() {
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
   [medium_ resumeMediumScanning:^(NSError *error) {
-        if (error != nil) {
-          GTMLoggerError(@"Failed to start scanning for multiple services: %@", error);
-          blockError = error;
-        }
-        dispatch_semaphore_signal(semaphore);
-      }];
+    if (error != nil) {
+      GTMLoggerError(@"Failed to start scanning for multiple services: %@", error);
+      blockError = error;
+    }
+    dispatch_semaphore_signal(semaphore);
+  }];
   dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
   return blockError == nil;
 }
@@ -386,26 +386,36 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
 std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSocket(
     const std::string &service_id) {
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block GNCBLEL2CAPServer *block_l2cap_server = nil;
+  __block NSError *blockPSMPublishedError = nil;
+  auto l2cap_server_socket = std::make_unique<BleL2capServerSocket>();
+  __block auto l2cap_server_socket_ptr = l2cap_server_socket.get();
+  std::string service_id_str = service_id;
   [medium_
-      openL2CAPServerWithCompletionHandler:^(GNCBLEL2CAPServer *server, NSError *error) {
-        if (error != nil) {
-          GTMLoggerError(@"Error opening L2CAP server: %@", error);
+      openL2CAPServerWithPSMPublishedCompletionHandler:^(uint16_t PSM, NSError *_Nullable error) {
+        if (error) {
+          blockPSMPublishedError = error;
+          dispatch_semaphore_signal(semaphore);
+          return;
         }
-        block_l2cap_server = server;
+        l2cap_server_socket_ptr->SetPSM(PSM);
         dispatch_semaphore_signal(semaphore);
       }
-                         peripheralManager:nil];
-  if (dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC)) != 0) {
-    GTMLoggerError(@"Opening L2CAP server timed out.");
+      channelOpenedCompletionHandler:^(GNCBLEL2CAPStream *_Nullable stream,
+                                       NSError *_Nullable error) {
+        if (error != nil) {
+          GTMLoggerError(@"Error opening L2CAP channel in L2CAP server: %@", error);
+          return;
+        }
+        // TODO: b/399815436 - Implement to create socket when stream is ready.
+      }
+      peripheralManager:nil];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (blockPSMPublishedError != nil) {
     return nullptr;
   }
-  if (!block_l2cap_server) {
-    return nullptr;
-  }
-  return std::make_unique<BleL2capServerSocket>(block_l2cap_server);
-}
 
+  return std::move(l2cap_server_socket);
+}
 // TODO(b/290385712): Add support for @c cancellation_flag.
 // TODO(b/293336684): Old Weave code that need to be deleted once shared Weave is complete.
 std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &service_id,

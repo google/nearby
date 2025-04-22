@@ -32,14 +32,14 @@ namespace apple {
 // A BLE L2CAP server socket for listening incoming L2CAP socket.
 class BleL2capServerSocket : public api::ble_v2::BleL2capServerSocket {
  public:
-  // Creates a BLE L2CAP server socket.
-  //
-  // @param l2cap_server The L2CAP server to use.
-  explicit BleL2capServerSocket(GNCBLEL2CAPServer* l2cap_server);
+  BleL2capServerSocket() = default;
   ~BleL2capServerSocket() override = default;
 
   // Gets PSM value has been published by the server.
   int GetPSM() const override;
+
+  // Sets PSM value has been published by the server.
+  void SetPSM(int PSM);
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -53,10 +53,12 @@ class BleL2capServerSocket : public api::ble_v2::BleL2capServerSocket {
   // Closes the L2CAP server socket.
   Exception Close() override;
 
+  // Connects to the L2CAP server socket.
+  bool Connect(std::unique_ptr<BleL2capSocket> socket);
+
  private:
-  // The L2CAP server to use for listening incoming L2CAP socket and publishing
-  // PSM value.
-  GNCBLEL2CAPServer* l2cap_server_;
+  // The PSM value of the L2CAP server socket.
+  int PSM_ = 0;
 };
 
 }  // namespace apple

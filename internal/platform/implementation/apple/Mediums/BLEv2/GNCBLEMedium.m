@@ -172,8 +172,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   });
 }
 
-- (void)resumeMediumScanning:
-    (nullable GNCStartScanningCompletionHandler)completionHandler {
+- (void)resumeMediumScanning:(nullable GNCStartScanningCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
     [self internalStartScanningIfPoweredOn];
     if (completionHandler) {
@@ -205,23 +204,20 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   });
 }
 
-- (void)openL2CAPServerWithCompletionHandler:(GNCOpenL2CAPServerCompletionHandler)completionHandler
-                           peripheralManager:(nullable id<GNCPeripheralManager>)peripheralManager {
-  // Capture the completion handler.
-  GNCOpenL2CAPServerCompletionHandler localCompletionHandler = completionHandler;
+- (void)openL2CAPServerWithPSMPublishedCompletionHandler:
+            (GNCOpenL2CAPServerPSMPublishedCompletionHandler)psmPublishedCompletionHandler
+                          channelOpenedCompletionHandler:
+                              (GNCOpenL2CAPServerChannelOpendCompletionHandler)
+                                  channelOpenedCompletionHandler
+                                       peripheralManager:
+                                           (nullable id<GNCPeripheralManager>)peripheralManager {
   dispatch_async(_queue, ^{
     if (!_l2capServer) {
       _l2capServer = CreateL2CapServer(peripheralManager);
     }
-    __weak __typeof__(GNCBLEL2CAPServer *) weakL2capServer = _l2capServer;
-    [_l2capServer startListeningChannelWithCompletionHandler:^(NSError *error) {
-      __typeof__(GNCBLEL2CAPServer *) strongL2capServer = weakL2capServer;
-      if (error) {
-        localCompletionHandler(nil, error);
-        return;
-      }
-      localCompletionHandler(strongL2capServer, nil);
-    }];
+    [_l2capServer
+        startListeningChannelWithPSMPublishedCompletionHandler:psmPublishedCompletionHandler
+                                channelOpenedCompletionHandler:channelOpenedCompletionHandler];
   });
 }
 
