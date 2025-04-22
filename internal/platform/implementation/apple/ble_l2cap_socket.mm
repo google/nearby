@@ -14,9 +14,9 @@
 
 #import "internal/platform/implementation/apple/ble_l2cap_socket.h"
 
-#import <Foundation/Foundation.h>
-
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
+#include "internal/platform/implementation/ble_v2.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPConnection.h"
+#import "internal/platform/implementation/apple/utils.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
@@ -24,55 +24,182 @@ namespace apple {
 
 #pragma mark - BleL2capInputStream
 
-BleL2capInputStream::BleL2capInputStream(GNCBLEL2CAPStream* stream) : stream_(stream) {
-  GTMLoggerInfo(@"BleL2capInputStream::BleL2capInputStream");
+BleL2capInputStream::BleL2capInputStream(GNCBLEL2CAPConnection *connection)
+    : connection_(connection),
+      newDataPackets_([NSMutableArray array]),
+      accumulatedData_([NSMutableData data]),
+      condition_([[NSCondition alloc] init]) {
+  // Create the handlers of incoming data from the remote endpoint.
+  connection.connectionHandlers = [GNCMConnectionHandlers
+      payloadHandler:^(NSData *data) {
+        [condition_ lock];
+        // Add the incoming data to the data packet array to be processed in read() below.
+        [newDataPackets_ addObject:data];
+        [condition_ broadcast];
+        [condition_ unlock];
+      }
+      disconnectedHandler:^{
+        [condition_ lock];
+        // Release the data packet array, meaning the stream has been closed or severed.
+        newDataPackets_ = nil;
+        [condition_ broadcast];
+        [condition_ unlock];
+      }];
+}
+
+BleL2capInputStream::~BleL2capInputStream() {
+  NSCAssert(!newDataPackets_, @"BleInputStream not closed before destruction");
 }
 
 ExceptionOr<ByteArray> BleL2capInputStream::Read(std::int64_t size) {
-  // TODO: edwinwu - Implement to read data from l2cap channel.
-  return {Exception::kIo};
+  // Block until either (a) the connection has been closed, (b) we have enough data to return.
+  NSData *dataToReturn;
+  [condition_ lock];
+  while (true) {
+    // Check if the stream has been closed or severed.
+    if (!newDataPackets_) break;
+
+    if (newDataPackets_.count > 0) {
+      // Add the packet data to the accumulated data.
+      for (NSData *data in newDataPackets_) {
+        if (data.length > 0) {
+          [accumulatedData_ appendData:data];
+        }
+      }
+      [newDataPackets_ removeAllObjects];
+    }
+
+    if (accumulatedData_.length > 0) {
+      // Return up to |size| bytes of the data.
+      std::int64_t sizeToReturn = (accumulatedData_.length < size) ? accumulatedData_.length : size;
+      NSRange range = NSMakeRange(0, (NSUInteger)sizeToReturn);
+      dataToReturn = [accumulatedData_ subdataWithRange:range];
+      [accumulatedData_ replaceBytesInRange:range withBytes:nil length:0];
+      break;
+    }
+
+    [condition_ wait];
+  }
+  [condition_ unlock];
+
+  if (dataToReturn) {
+    GTMLoggerInfo(@"[NEARBY] BleL2capInputStream: Received data of size: %lu",
+                  (unsigned long)dataToReturn.length);
+    return ExceptionOr<ByteArray>{ByteArray((const char *)dataToReturn.bytes, dataToReturn.length)};
+  } else {
+    return ExceptionOr<ByteArray>{Exception::kIo};
+  }
 }
 
 Exception BleL2capInputStream::Close() {
-  // The input stream reads directly from the connection. It can not be closed without closing the
-  // connection itself. A call to `BleL2capSocket::Close` will close the connection.
+  // Unblock pending read operation.
+  [condition_ lock];
+  newDataPackets_ = nil;
+  [condition_ broadcast];
+  [condition_ unlock];
   return {Exception::kSuccess};
 }
 
 #pragma mark - BleL2capOutputStream
 
-BleL2capOutputStream::BleL2capOutputStream(GNCBLEL2CAPStream* stream) : stream_(stream) {}
-
-Exception BleL2capOutputStream::Write(const ByteArray& data) {
-  // TODO: edwinwu - Implement to write data to l2cap channel.
-  return {Exception::kIo};
+BleL2capOutputStream::~BleL2capOutputStream() {
+  NSCAssert(!connection_, @"BleL2capOutputStream not closed before destruction");
 }
 
-Exception BleL2capOutputStream::Flush() { return {Exception::kSuccess}; }
+Exception BleL2capOutputStream::Write(const ByteArray &data) {
+  [condition_ lock];
+  GTMLoggerInfo(@"[NEARBY] BleL2capOutputStream: Sending data of size: %lu",
+                NSDataFromByteArray(data).length);
 
-Exception BleL2capOutputStream::Close() { return {Exception::kSuccess}; }
+  if (!connection_) {
+    [condition_ unlock];
+    return {Exception::kIo};
+  }
 
-#pragma mark - BleL2capSocket
+  NSMutableData *packet = [NSMutableData dataWithBytes:data.data() length:data.size()];
 
-BleL2capSocket::BleL2capSocket(GNCBLEL2CAPStream* stream)
-    : BleL2capSocket(stream, new EmptyBlePeripheral()) {}
+  // Send the data, blocking until the completion handler is called.
+  __block BOOL isComplete = NO;
+  __block BOOL sendResult = NO;
+  NSCondition *condition = condition_;  // don't capture |this| in completion
 
-BleL2capSocket::BleL2capSocket(GNCBLEL2CAPStream* stream, api::ble_v2::BlePeripheral* peripheral)
-    : stream_(stream),
-      input_stream_(std::make_unique<BleL2capInputStream>(stream)),
-      output_stream_(std::make_unique<BleL2capOutputStream>(stream)),
-      peripheral_(peripheral) {}
+  [connection_ sendData:packet
+             completion:^(BOOL result) {
+               [condition lock];
+               if (isComplete) {
+                 [condition unlock];
+                 return;
+               }
+               isComplete = YES;
+               sendResult = result;
+               [condition broadcast];
+               [condition unlock];
+             }];
 
-InputStream& BleL2capSocket::GetInputStream() { return *input_stream_; }
+  while (connection_ && !isComplete) {
+    [condition_ wait];
+  }
 
-OutputStream& BleL2capSocket::GetOutputStream() { return *output_stream_; }
+  if (sendResult == YES) {
+    [condition_ unlock];
+    return {Exception::kSuccess};
+  } else {
+    [condition_ unlock];
+    return {Exception::kIo};
+  }
+}
 
-Exception BleL2capSocket::Close() {
-  [stream_ close];
+Exception BleL2capOutputStream::Flush() {
+  // The write() function blocks until the data is received by the remote endpoint, so there's
+  // nothing to do here.
   return {Exception::kSuccess};
 }
 
-void BleL2capSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {}
+Exception BleL2capOutputStream::Close() {
+  GTMLoggerInfo(@"[NEARBY] edwin : BleL2capOutputStream Closing");
+  // Unblock pending write operation.
+  [condition_ lock];
+  connection_ = nil;
+  [condition_ broadcast];
+  [condition_ unlock];
+  return {Exception::kSuccess};
+}
+
+#pragma mark - BleL2capSocket
+
+BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection)
+    : BleL2capSocket(connection, new EmptyBlePeripheral()) {}
+
+BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection,
+                               api::ble_v2::BlePeripheral *peripheral)
+    : input_stream_(std::make_unique<BleL2capInputStream>(connection)),
+      output_stream_(std::make_unique<BleL2capOutputStream>(connection)),
+      peripheral_(peripheral) {}
+
+BleL2capSocket::~BleL2capSocket() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+}
+
+bool BleL2capSocket::IsClosed() const {
+  absl::MutexLock lock(&mutex_);
+  return closed_;
+}
+
+Exception BleL2capSocket::Close() {
+  absl::MutexLock lock(&mutex_);
+  DoClose();
+  return {Exception::kSuccess};
+}
+
+void BleL2capSocket::DoClose() {
+  GTMLoggerInfo(@"[NEARBY] edwin : BleL2capSocket DoClose");
+  if (!closed_) {
+    input_stream_->Close();
+    output_stream_->Close();
+    closed_ = true;
+  }
+}
 
 }  // namespace apple
 }  // namespace nearby

@@ -406,7 +406,15 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
           GTMLoggerError(@"Error opening L2CAP channel in L2CAP server: %@", error);
           return;
         }
-        // TODO: b/399815436 - Implement to create socket when stream is ready.
+        GNCBLEL2CAPConnection *connection =
+            [GNCBLEL2CAPConnection connectionWithStream:stream
+                                              serviceID:@(service_id_str.c_str())
+                                     incomingConnection:YES
+                                          callbackQueue:dispatch_get_main_queue()];
+        auto socket = std::make_unique<BleL2capSocket>(connection);
+        if (l2cap_server_socket_ptr) {
+          l2cap_server_socket_ptr->AddPendingSocket(std::move(socket));
+        }
       }
       peripheralManager:nil];
   dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
