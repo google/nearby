@@ -19,15 +19,18 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment.h"
 #include "sharing/common/nearby_share_enums.h"
 
 namespace nearby {
 namespace sharing {
 
+using ::location::nearby::proto::sharing::AttachmentSourceType;
+
 WifiCredentialsAttachment::WifiCredentialsAttachment(
     std::string ssid, SecurityType security_type, std::string password,
-    bool is_hidden, int32_t batch_id, SourceType source_type)
+    bool is_hidden, int32_t batch_id, AttachmentSourceType source_type)
     : Attachment(Attachment::Family::kWifiCredentials, ssid.size(), batch_id,
                  source_type),
       ssid_(ssid),
@@ -38,7 +41,7 @@ WifiCredentialsAttachment::WifiCredentialsAttachment(
 WifiCredentialsAttachment::WifiCredentialsAttachment(
     int64_t id, std::string ssid, SecurityType security_type,
     std::string password, bool is_hidden, int32_t batch_id,
-    SourceType source_type)
+    AttachmentSourceType source_type)
     : Attachment(id, Attachment::Family::kWifiCredentials, ssid.size(),
                  batch_id, source_type),
       ssid_(ssid),

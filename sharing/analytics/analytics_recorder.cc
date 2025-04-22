@@ -26,7 +26,6 @@
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_device_settings.h"
 #include "sharing/analytics/analytics_information.h"
-#include "sharing/attachment.h"
 #include "sharing/attachment_container.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/file_attachment.h"
@@ -40,7 +39,6 @@ namespace sharing {
 namespace analytics {
 namespace {
 
-using ::location::nearby::proto::sharing::AttachmentSourceType;
 using ::location::nearby::proto::sharing::DeviceRelationship;
 using ::location::nearby::proto::sharing::DeviceType;
 using ::location::nearby::proto::sharing::EstablishConnectionStatus;
@@ -111,26 +109,6 @@ location::nearby::proto::sharing::DataUsage GetLoggerDataUsage(
   }
 }
 
-AttachmentSourceType GetLoggerAttachmentSourceType(
-    Attachment::SourceType source_type) {
-  switch (source_type) {
-    case Attachment::SourceType::kContextMenu:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_CONTEXT_MENU;
-    case Attachment::SourceType::kDragAndDrop:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_DRAG_AND_DROP;
-    case Attachment::SourceType::kSelectFilesButton:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_SELECT_FILES_BUTTON;
-    case Attachment::SourceType::kPaste:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_PASTE;
-    case Attachment::SourceType::kSelectFoldersButton:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_SELECT_FOLDERS_BUTTON;
-    case Attachment::SourceType::kShareActivation:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_SHARE_ACTIVATION;
-    default:
-      return AttachmentSourceType::ATTACHMENT_SOURCE_UNKNOWN;
-  }
-}
-
 void SetShareTargetInfo(SharingLog::ShareTargetInfo* share_target_info,
                         ShareTargetType device_type,
                         DeviceRelationship relationship,
@@ -188,8 +166,7 @@ void SetAttachmentInfo(SharingLog::AttachmentsInfo* attachments_info,
         attachments_info->mutable_text_attachment()->Add();
     text_attachment->set_type(type);
     text_attachment->set_size_bytes(attachment.size());
-    text_attachment->set_source_type(
-        GetLoggerAttachmentSourceType(attachment.source_type()));
+    text_attachment->set_source_type(attachment.source_type());
     text_attachment->set_batch_id(attachment.batch_id());
   }
 
@@ -224,16 +201,14 @@ void SetAttachmentInfo(SharingLog::AttachmentsInfo* attachments_info,
     file_attachment->set_type(type);
     file_attachment->set_size_bytes(attachment.size());
     file_attachment->set_offset_bytes(0);
-    file_attachment->set_source_type(
-        GetLoggerAttachmentSourceType(attachment.source_type()));
+    file_attachment->set_source_type(attachment.source_type());
     file_attachment->set_batch_id(attachment.batch_id());
   }
 
   for (const auto& attachment : attachments.GetWifiCredentialsAttachments()) {
     SharingLog::WifiCredentialsAttachment* wifi_credentials_attachment =
         attachments_info->mutable_wifi_credentials_attachment()->Add();
-    wifi_credentials_attachment->set_source_type(
-        GetLoggerAttachmentSourceType(attachment.source_type()));
+    wifi_credentials_attachment->set_source_type(attachment.source_type());
     wifi_credentials_attachment->set_batch_id(attachment.batch_id());
   }
 }

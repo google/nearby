@@ -18,10 +18,13 @@
 #include <limits>
 
 #include "absl/random/random.h"
+#include "proto/sharing_enums.pb.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
+
+using ::location::nearby::proto::sharing::AttachmentSourceType;
 
 int64_t CreateRandomId() {
   absl::BitGen gen;
@@ -32,7 +35,7 @@ int64_t CreateRandomId() {
 
 // TODO(b/258690183): Add unit tests for Attachment with same and different ids
 Attachment::Attachment(Attachment::Family family, int64_t size,
-                       int32_t batch_id, SourceType source_type)
+                       int32_t batch_id, AttachmentSourceType source_type)
     : id_(CreateRandomId()),
       family_(family),
       size_(size),
@@ -40,7 +43,7 @@ Attachment::Attachment(Attachment::Family family, int64_t size,
       source_type_(source_type) {}
 
 Attachment::Attachment(int64_t id, Attachment::Family family, int64_t size,
-                       int32_t batch_id, SourceType source_type)
+                       int32_t batch_id, AttachmentSourceType source_type)
     : id_(id == 0 ? CreateRandomId() : id),
       family_(family),
       size_(size),

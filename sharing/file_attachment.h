@@ -22,6 +22,19 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#if defined(_WIN32)
+#if defined(PLATFORM_UNKNOWN)
+#define UNDEF_PLATFORM_UNKNOWN
+#pragma push_macro("PLATFORM_UNKNOWN")
+#undef PLATFORM_UNKNOWN
+#endif  // defined(PLATFORM_UNKNOWN)
+#endif   // defined(_WIN32)
+#include "proto/sharing_enums.pb.h"
+#if defined(_WIN32)
+#if defined(UNDEF_PLATFORM_UNKNOWN)
+#pragma pop_macro("PLATFORM_UNKNOWN")
+#endif  // defined(UNDEF_PLATFORM_UNKNOWN)
+#endif  // defined(_WIN32)
 #include "sharing/attachment.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -35,14 +48,16 @@ class FileAttachment : public Attachment {
  public:
   using Type = nearby::sharing::service::proto::FileMetadata::Type;
 
-  explicit FileAttachment(std::filesystem::path file_path,
-                          absl::string_view mime_type = "",
-                          std::string parent_folder = "", int32_t batch_id = 0,
-                          SourceType source_type = SourceType::kUnknown);
-  FileAttachment(int64_t id, int64_t size, std::string file_name,
-                 std::string mime_type, Type type,
-                 std::string parent_folder = "", int32_t batch_id = 0,
-                 SourceType source_type = SourceType::kUnknown);
+  explicit FileAttachment(
+      std::filesystem::path file_path, absl::string_view mime_type = "",
+      std::string parent_folder = "", int32_t batch_id = 0,
+      location::nearby::proto::sharing::AttachmentSourceType source_type =
+          location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
+  FileAttachment(
+      int64_t id, int64_t size, std::string file_name, std::string mime_type,
+      Type type, std::string parent_folder = "", int32_t batch_id = 0,
+      location::nearby::proto::sharing::AttachmentSourceType source_type =
+          location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
   FileAttachment(const FileAttachment&) = default;
   FileAttachment(FileAttachment&&) = default;
   FileAttachment& operator=(const FileAttachment&) = default;

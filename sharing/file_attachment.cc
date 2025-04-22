@@ -22,6 +22,7 @@
 
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment.h"
 #include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -31,6 +32,8 @@
 namespace nearby {
 namespace sharing {
 namespace {
+
+using ::location::nearby::proto::sharing::AttachmentSourceType;
 
 FileAttachment::Type FileAttachmentTypeFromMimeType(
     absl::string_view mime_type) {
@@ -58,7 +61,7 @@ std::string MimeTypeFromPath(const std::filesystem::path& path) {
 FileAttachment::FileAttachment(std::filesystem::path file_path,
                                absl::string_view mime_type,
                                std::string parent_folder, int32_t batch_id,
-                               SourceType source_type)
+                               AttachmentSourceType source_type)
     : Attachment(Attachment::Family::kFile, /*size=*/0, batch_id, source_type),
       mime_type_(mime_type.empty() ? MimeTypeFromPath(file_path) : mime_type),
       type_(FileAttachmentTypeFromMimeType(mime_type_)),
@@ -71,7 +74,7 @@ FileAttachment::FileAttachment(std::filesystem::path file_path,
 FileAttachment::FileAttachment(int64_t id, int64_t size, std::string file_name,
                                std::string mime_type, Type type,
                                std::string parent_folder, int32_t batch_id,
-                               SourceType source_type)
+                               AttachmentSourceType source_type)
     : Attachment(id, Attachment::Family::kFile, size, batch_id, source_type),
       file_name_(std::move(file_name)),
       mime_type_(std::move(mime_type)),

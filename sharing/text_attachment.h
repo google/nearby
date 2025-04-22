@@ -20,6 +20,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -32,16 +33,20 @@ class TextAttachment : public Attachment {
  public:
   using Type = nearby::sharing::service::proto::TextMetadata::Type;
 
-  TextAttachment(Type type, std::string text_body,
-                 std::optional<std::string> text_title,
-                 std::optional<std::string> mime_type, int32_t batch_id = 0,
-                 SourceType source_type = SourceType::kUnknown);
-  TextAttachment(int64_t id, Type type, std::string text_title, int64_t size,
-                 int32_t batch_id = 0,
-                 SourceType source_type = SourceType::kUnknown);
-  TextAttachment(int64_t id, Type type, std::string text_body,
-                 std::string text_title, int64_t size, std::string mime_type,
-                 int32_t batch_id, SourceType source_type);
+  TextAttachment(
+      Type type, std::string text_body, std::optional<std::string> text_title,
+      std::optional<std::string> mime_type, int32_t batch_id = 0,
+      location::nearby::proto::sharing::AttachmentSourceType source_type =
+          location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
+  TextAttachment(
+      int64_t id, Type type, std::string text_title, int64_t size,
+      int32_t batch_id = 0,
+      location::nearby::proto::sharing::AttachmentSourceType source_type =
+          location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
+  TextAttachment(
+      int64_t id, Type type, std::string text_body, std::string text_title,
+      int64_t size, std::string mime_type, int32_t batch_id,
+      location::nearby::proto::sharing::AttachmentSourceType source_type);
   TextAttachment(const TextAttachment&) = default;
   TextAttachment(TextAttachment&&) = default;
   TextAttachment& operator=(const TextAttachment&) = default;

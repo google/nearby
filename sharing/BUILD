@@ -52,6 +52,7 @@ cc_library(
     ],
     deps = [
         "//internal/network:url",
+        "//proto:sharing_enums_cc_proto",
         "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/internal/base",
@@ -781,6 +782,7 @@ cc_test(
     deps = [
         ":attachment_compare",
         ":attachments",
+        "//proto:sharing_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

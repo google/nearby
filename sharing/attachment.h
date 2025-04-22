@@ -18,6 +18,7 @@
 #include <cstdint>
 
 #include "absl/strings/string_view.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/common/nearby_share_enums.h"
 
 namespace nearby {
@@ -34,23 +35,12 @@ class Attachment {
     kMaxValue = kWifiCredentials
   };
 
-  // TODO(b/269353084): Auto-generate codes when a new source type in
-  // sharing_enums.proto is added.
-  enum class SourceType {
-    kUnknown,
-    kContextMenu,
-    kDragAndDrop,
-    kSelectFilesButton,
-    kPaste,
-    kSelectFoldersButton,
-    kShareActivation,
-    kMaxValue = kSelectFoldersButton
-  };
-
-  Attachment(Family family, int64_t size, int32_t batch_id,
-             SourceType source_type);
-  Attachment(int64_t id, Family family, int64_t size, int32_t batch_id,
-             SourceType source_type);
+  Attachment(
+      Family family, int64_t size, int32_t batch_id,
+      location::nearby::proto::sharing::AttachmentSourceType source_type);
+  Attachment(
+      int64_t id, Family family, int64_t size, int32_t batch_id,
+      location::nearby::proto::sharing::AttachmentSourceType source_type);
   Attachment(const Attachment&);
   Attachment(Attachment&&);
   Attachment& operator=(const Attachment&);
@@ -62,7 +52,9 @@ class Attachment {
   int64_t size() const { return size_; }
   void set_size(int64_t size) { size_ = size; }
   int32_t batch_id() const { return batch_id_; }
-  SourceType source_type() const { return source_type_; }
+  location::nearby::proto::sharing::AttachmentSourceType source_type() const {
+    return source_type_;
+  }
 
   virtual absl::string_view GetDescription() const = 0;
   virtual ShareType GetShareType() const = 0;
@@ -72,7 +64,7 @@ class Attachment {
   Family family_;
   int64_t size_;
   int32_t batch_id_;
-  SourceType source_type_;
+  location::nearby::proto::sharing::AttachmentSourceType source_type_;
 };
 
 }  // namespace sharing

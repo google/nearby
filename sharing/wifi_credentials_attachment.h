@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -32,15 +33,16 @@ class WifiCredentialsAttachment : public Attachment {
   using SecurityType =
       nearby::sharing::service::proto::WifiCredentialsMetadata::SecurityType;
 
-  WifiCredentialsAttachment(std::string ssid, SecurityType security_type,
-                            std::string password = "", bool is_hidden = false,
-                            int32_t batch_id = 0,
-                            SourceType source_type = SourceType::kUnknown);
-  WifiCredentialsAttachment(int64_t id, std::string ssid,
-                            SecurityType security_type,
-                            std::string password = "", bool is_hidden = false,
-                            int32_t batch_id = 0,
-                            SourceType source_type = SourceType::kUnknown);
+  WifiCredentialsAttachment(
+      std::string ssid, SecurityType security_type, std::string password = "",
+      bool is_hidden = false, int32_t batch_id = 0,
+      location::nearby::proto::sharing::AttachmentSourceType source_type =
+          location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
+  WifiCredentialsAttachment(
+      int64_t id, std::string ssid, SecurityType security_type,
+      std::string password = "", bool is_hidden = false, int32_t batch_id = 0,
+      location::nearby::proto::sharing::AttachmentSourceType source_type =
+          location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
   WifiCredentialsAttachment(const WifiCredentialsAttachment&) = default;
   WifiCredentialsAttachment(WifiCredentialsAttachment&&) = default;
   WifiCredentialsAttachment& operator=(const WifiCredentialsAttachment&) =

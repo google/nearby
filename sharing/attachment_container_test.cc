@@ -22,7 +22,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "sharing/attachment.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
 #include "sharing/file_attachment.h"
 #include "sharing/text_attachment.h"
@@ -31,6 +31,7 @@
 namespace nearby::sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::AttachmentSourceType;
 using testing::Eq;
 using testing::IsEmpty;
 using testing::IsFalse;
@@ -45,22 +46,22 @@ class AttachmentContainerTest : public ::testing::Test {
                nearby::sharing::service::proto::TextMetadata::URL,
                "A bit of text body", "Some text title", /*size=*/18,
                "text/html", /*batch_id=*/987654,
-               nearby::sharing::Attachment::SourceType::kDragAndDrop),
+               AttachmentSourceType::ATTACHMENT_SOURCE_DRAG_AND_DROP),
         text2_(/*id=*/98564L,
                nearby::sharing::service::proto::TextMetadata::ADDRESS,
                "A bit of text body 2", "Some text title 2", /*size=*/20,
                "text/plain",
                /*batch_id=*/456547,
-               nearby::sharing::Attachment::SourceType::kContextMenu),
+               AttachmentSourceType::ATTACHMENT_SOURCE_CONTEXT_MENU),
         file1_(/*id=*/436346L, /*size=*/100000, "someFileName", "image/jpeg",
                nearby::sharing::service::proto::FileMetadata::IMAGE,
                "/usr/local/tmp", /*batch_id=*/66657L,
-               nearby::sharing::Attachment::SourceType::kSelectFilesButton),
+               AttachmentSourceType::ATTACHMENT_SOURCE_SELECT_FILES_BUTTON),
         wifi1_(
             /*id=*/57457L, "GoogleGuest",
             nearby::sharing::service::proto::WifiCredentialsMetadata::WPA_PSK,
             "somepassword", true, /*batch_id=*/99707L,
-            nearby::sharing::Attachment::SourceType::kPaste) {
+            AttachmentSourceType::ATTACHMENT_SOURCE_PASTE) {
     file1_.set_file_path(
         std::filesystem::u8path("/usr/local/tmp/someFileName.jpg"));
   }

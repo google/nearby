@@ -26,6 +26,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/network/url.h"
+#include "proto/sharing_enums.pb.h"
 #include "sharing/attachment.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/wire_format.pb.h"
@@ -34,6 +35,7 @@ namespace nearby {
 namespace sharing {
 namespace {
 
+using ::location::nearby::proto::sharing::AttachmentSourceType;
 using ::nearby::network::Url;
 
 // Tries to get a valid host name from the |text|. Returns nullopt otherwise.
@@ -118,7 +120,8 @@ std::string GetTextTitle(const std::string& text_body,
 TextAttachment::TextAttachment(Type type, std::string text_body,
                                std::optional<std::string> text_title,
                                std::optional<std::string> mime_type,
-                               int32_t batch_id, SourceType source_type)
+                               int32_t batch_id,
+                               AttachmentSourceType source_type)
     : Attachment(Attachment::Family::kText, text_body.size(), batch_id,
                  source_type),
       type_(type),
@@ -130,7 +133,7 @@ TextAttachment::TextAttachment(Type type, std::string text_body,
 
 TextAttachment::TextAttachment(int64_t id, Type type, std::string text_title,
                                int64_t size, int32_t batch_id,
-                               SourceType source_type)
+                               AttachmentSourceType source_type)
     : Attachment(id, Attachment::Family::kText, size, batch_id, source_type),
       type_(type),
       text_title_(std::move(text_title)) {}
@@ -138,7 +141,7 @@ TextAttachment::TextAttachment(int64_t id, Type type, std::string text_title,
 TextAttachment::TextAttachment(int64_t id, Type type, std::string text_body,
                                std::string text_title, int64_t size,
                                std::string mime_type, int32_t batch_id,
-                               SourceType source_type)
+                               AttachmentSourceType source_type)
     : Attachment(id, Attachment::Family::kText, size, batch_id, source_type),
       type_(type),
       text_title_(std::move(text_title)),
