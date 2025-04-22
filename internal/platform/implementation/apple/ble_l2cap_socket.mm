@@ -156,7 +156,7 @@ Exception BleL2capOutputStream::Flush() {
 }
 
 Exception BleL2capOutputStream::Close() {
-  GTMLoggerInfo(@"[NEARBY] edwin : BleL2capOutputStream Closing");
+  GTMLoggerInfo(@"[NEARBY] BleL2capOutputStream Closing");
   // Unblock pending write operation.
   [condition_ lock];
   connection_ = nil;
@@ -193,7 +193,7 @@ Exception BleL2capSocket::Close() {
 }
 
 void BleL2capSocket::DoClose() {
-  GTMLoggerInfo(@"[NEARBY] edwin : BleL2capSocket DoClose");
+  GTMLoggerInfo(@"[NEARBY] BleL2capSocket DoClose");
   if (!closed_) {
     input_stream_->Close();
     output_stream_->Close();
