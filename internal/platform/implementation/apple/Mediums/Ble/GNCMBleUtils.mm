@@ -16,6 +16,7 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
 
 #import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
@@ -24,8 +25,20 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-static const uint8_t kGNCMControlPacketServiceIDHash[] = {0x00, 0x00, 0x00};
-static const NSTimeInterval kBleSocketConnectionTimeout = 5.0;
+namespace {
+constexpr uint8_t kGNCMControlPacketServiceIDHash[] = {0x00, 0x00, 0x00};
+constexpr NSTimeInterval kBleSocketConnectionTimeout = 5.0;
+
+bool IsSupportedCommand(GNCMBLEL2CAPCommand command) {
+  return (command == GNCMBLEL2CAPCommandRequestAdvertisement ||
+          command == GNCMBLEL2CAPCommandRequestAdvertisementFinish ||
+          command == GNCMBLEL2CAPCommandRequestDataConnection ||
+          command == GNCMBLEL2CAPCommandResponseAdvertisement ||
+          command == GNCMBLEL2CAPCommandResponseServiceIdNotFound ||
+          command == GNCMBLEL2CAPCommandResponseDataConnectionReady ||
+          command == GNCMBLEL2CAPCommandResponseDataConnectionFailure);
+}
+}  // namespace
 
 NSData *GNCMServiceIDHash(NSString *serviceID) {
   return [GNCSha256String(serviceID)
@@ -85,6 +98,88 @@ NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash) {
   NSData *frameData = [NSData dataWithBytes:stream.str().data() length:stream.str().length()];
   [packet appendData:frameData];
   return packet;
+}
+
+@implementation GNCMBLEL2CAPPacket
+
+- (instancetype)initWithCommand:(GNCMBLEL2CAPCommand)command data:(nullable NSData *)data {
+  self = [super init];
+  if (self) {
+    _command = command;
+    _data = data;
+  }
+  return self;
+}
+
+@end
+
+// TODO: b/399815436 - Add unit tests for this function.
+GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data) {
+  if (data.length < 1) {
+    GTMLoggerError(@"[NEARBY] Invalid packet length: %@", @(data.length));
+    return nil;
+  }
+
+  // Extract command
+  const uint8_t *bytes = static_cast<const uint8_t *>(data.bytes);
+  NSUInteger receivedDataLength = [data length];
+  GNCMBLEL2CAPCommand command = (GNCMBLEL2CAPCommand)bytes[0];
+  if (!IsSupportedCommand(command)) {
+    GTMLoggerError(@"[NEARBY] Invalid command: %lu", command);
+    return nil;
+  }
+
+  // Extract data
+  NSData *packetData = nil;
+  if (receivedDataLength > 3) {
+    // Extract data length (2 bytes, big endian)
+    int dataLength = (bytes[1] << 8) | bytes[2];
+
+    // Validate data length
+    if (dataLength != (int)(receivedDataLength - 3)) {
+      GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: %d, Actual: %lu", dataLength,
+                     receivedDataLength - 3);
+      return nil;
+    }
+    if (dataLength > 0) {
+      packetData = [NSData dataWithBytes:&bytes[3] length:dataLength];
+    } else {
+      packetData = nil;
+    }
+  }
+  return [[GNCMBLEL2CAPPacket alloc] initWithCommand:command data:packetData];
+}
+
+// TODO: b/399815436 - Add unit tests for this function.
+NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData *_Nullable data) {
+  if (!IsSupportedCommand(command)) {
+    GTMLoggerError(@"[NEARBY] Invalid command to generate packet: %lu", command);
+    return nil;
+  }
+
+  std::vector<uint8_t> packet;
+  packet.push_back((uint8_t)command);
+  if (data != nil) {
+    if (data.length > 65535) {
+      GTMLoggerError(@"[NEARBY] Data length is too large: %lu", data.length);
+      return nil;
+    }
+    // Prepare length bytes
+    uint16_t value = (uint16_t)data.length;
+    uint8_t bytes[2];
+    // Store length in big-endian order.
+    bytes[0] = (value >> 8) & 0xFF;
+    bytes[1] = (value >> 0) & 0xFF;
+
+    // Append length bytes to the packet
+    packet.insert(packet.end(), bytes, bytes + 2);
+
+    // Append the data to the packet
+    const uint8_t *dataBytes = static_cast<const uint8_t *>(data.bytes);
+    packet.insert(packet.end(), dataBytes, dataBytes + data.length);
+  }
+
+  return [NSData dataWithBytes:packet.data() length:packet.size()];
 }
 
 @interface GNCMBleSocketDelegate : NSObject <GNSSocketDelegate>

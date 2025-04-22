@@ -30,6 +30,40 @@ typedef NS_ENUM(NSUInteger, GNCMBleAdvertisementLength) {
   GNCMBleAdvertisementLengthServiceIDHash = 3,
 };
 
+typedef NS_ENUM(NSUInteger, GNCMBLEL2CAPCommand) {
+  // Use to fetch advertisement from server with serviceId.
+  GNCMBLEL2CAPCommandRequestAdvertisement = 1,
+  // Use to notify the server have fetched all advertisements completely.
+  GNCMBLEL2CAPCommandRequestAdvertisementFinish = 2,
+  // Use to notify the server current L2CAP socket use for file transferring.
+  GNCMBLEL2CAPCommandRequestDataConnection = 3,
+  // 11-20 reserved
+  // Use to response the advertisement raw data to the client.
+  GNCMBLEL2CAPCommandResponseAdvertisement = 21,
+  // Use to response the queried service ID not exist in server side.
+  GNCMBLEL2CAPCommandResponseServiceIdNotFound = 22,
+  // Use to notify the data connection ready
+  GNCMBLEL2CAPCommandResponseDataConnectionReady = 23,
+  // Use to notify failure for requesting the data connection.
+  GNCMBLEL2CAPCommandResponseDataConnectionFailure = 24,
+};
+
+/**
+ * Represents the format of the BLE L2CAP packet used in L2CAP socket for
+ * requesting/responsing.
+ *
+ * [COMMAND] or [COMMAND][LENGTH][DATA]
+ */
+@interface GNCMBLEL2CAPPacket : NSObject
+@property(nonatomic, readonly) GNCMBLEL2CAPCommand command;
+@property(nonatomic, readonly, nullable) NSData *data;
+
+- (instancetype)initWithCommand:(GNCMBLEL2CAPCommand)command
+                           data:(nullable NSData *)data NS_DESIGNATED_INITIALIZER;
+
+- (instancetype)init NS_UNAVAILABLE;
+@end
+
 /** Computes a hash from a service ID string. */
 NSData *GNCMServiceIDHash(NSString *serviceID);
 
@@ -44,6 +78,12 @@ NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data);
 
 /** Creates the disconnection packet for Ble SocketControlFrame. */
 NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash);
+
+/** Parses the BLE L2CAP packet from the data. */
+GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data);
+
+/** Creates the BLE L2CAP packet from the command and data. */
+NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData *_Nullable data);
 
 /**
  * Calls the completion handler with (a) YES if the GNSSocket connected, or (b) NO if it failed to

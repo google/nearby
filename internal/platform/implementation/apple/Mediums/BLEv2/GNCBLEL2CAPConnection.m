@@ -52,6 +52,11 @@ static NSData *PrefixLengthData(NSData *data) {
 @property(nonatomic) NSData *serviceIDHash;
 @property(nonatomic) dispatch_queue_t callbackQueue;
 @property(nonatomic) BOOL incomingConnection;
+@property(nonatomic) BOOL handledIncomingConnectionL2CAPPacket;
+@property(nonatomic) BOOL handledOutgoingConnectionL2CAPPacket;
+@property(nonatomic) BOOL handledReceivedL2CAPRequestDataConnectionPacket;
+@property(nonatomic) BOOL handledReceivedL2CAPResponseDataConnectionReadyPacket;
+@property(nonatomic) BOOL handledReceivedBLEIntroPacket;
 @end
 
 @implementation GNCBLEL2CAPConnection
@@ -108,7 +113,22 @@ static NSData *PrefixLengthData(NSData *data) {
 
   // Validate the L2CAP packet.
   // TODO: b/399815436 - Refactor the validation logic to connections layer.
- 
+  if (_incomingConnection) {
+    if (!_handledIncomingConnectionL2CAPPacket) {
+      [self handleIncomingConnectionL2CAPPacketFromData:realData];
+      return;
+    }
+    if (!_handledReceivedBLEIntroPacket) {
+      [self handleBLEIntroPacketFromData:realData];
+      return;
+    }
+  } else {
+    if (!_handledOutgoingConnectionL2CAPPacket) {
+      [self handleOutgoingConnectionL2CAPPacketFromData:realData];
+      return;
+    }
+  }
+
   // Extract the service ID prefix from each data packet and validate it.
   NSUInteger prefixLength = _serviceIDHash.length;
   if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
@@ -148,11 +168,86 @@ static NSData *PrefixLengthData(NSData *data) {
   int realDataLength = CFSwapInt32BigToHost(
       *(int *)([[data subdataWithRange:NSMakeRange(0, kL2CAPPacketLength)] bytes]));
   if (realDataLength != (data.length - kL2CAPPacketLength)) {
-    GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: %d, Actual: %lu",
-                   realDataLength, data.length - kL2CAPPacketLength);
+    GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: %d, Actual: %lu", realDataLength,
+                   data.length - kL2CAPPacketLength);
     return nil;
   }
   return [data subdataWithRange:NSMakeRange(kL2CAPPacketLength, data.length - kL2CAPPacketLength)];
+}
+
+- (void)handleIncomingConnectionL2CAPPacketFromData:(NSData *)data {
+  GNCMBLEL2CAPPacket *l2capPacket = GNCMParseBLEL2CAPPacket(data);
+  if (!l2capPacket) {
+    return;
+  }
+  switch (l2capPacket.command) {
+    case GNCMBLEL2CAPCommandRequestDataConnection: {
+      NSData *packet = PrefixLengthData(
+          GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommandResponseDataConnectionReady, nil));
+      __weak __typeof__(self) weakSelf = self;
+      dispatch_async(_selfQueue, ^{
+        __typeof__(self) strongSelf = weakSelf;
+        if (!strongSelf) {
+          return;
+        }
+        [strongSelf->_stream sendData:packet
+                      completionBlock:^(BOOL result){
+                      }];
+      });
+      _handledReceivedL2CAPRequestDataConnectionPacket = YES;
+    } break;
+    case GNCMBLEL2CAPCommandRequestAdvertisement:
+    case GNCMBLEL2CAPCommandRequestAdvertisementFinish:
+    case GNCMBLEL2CAPCommandResponseAdvertisement:
+    case GNCMBLEL2CAPCommandResponseServiceIdNotFound:
+    case GNCMBLEL2CAPCommandResponseDataConnectionReady:
+    case GNCMBLEL2CAPCommandResponseDataConnectionFailure:
+    default:
+      break;  // fall through
+  }
+  _handledIncomingConnectionL2CAPPacket = _handledReceivedL2CAPRequestDataConnectionPacket;
+}
+
+- (void)handleOutgoingConnectionL2CAPPacketFromData:(NSData *)data {
+  GNCMBLEL2CAPPacket *l2capPacket = GNCMParseBLEL2CAPPacket(data);
+  if (!l2capPacket) {
+    return;
+  }
+  switch (l2capPacket.command) {
+    case GNCMBLEL2CAPCommandResponseDataConnectionReady: {
+      _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
+      NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
+      __weak __typeof__(self) weakSelf = self;
+      dispatch_async(_selfQueue, ^{
+        __strong __typeof__(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+          return;
+        }
+        [strongSelf->_stream sendData:introData
+                      completionBlock:^(BOOL result){
+                      }];
+      });
+    } break;
+    case GNCMBLEL2CAPCommandRequestAdvertisement:
+    case GNCMBLEL2CAPCommandRequestDataConnection:
+    case GNCMBLEL2CAPCommandRequestAdvertisementFinish:
+    case GNCMBLEL2CAPCommandResponseAdvertisement:
+    case GNCMBLEL2CAPCommandResponseServiceIdNotFound:
+    case GNCMBLEL2CAPCommandResponseDataConnectionFailure:
+    default:
+      break;  // fall through
+  }
+  _handledOutgoingConnectionL2CAPPacket = _handledReceivedL2CAPResponseDataConnectionReadyPacket;
+}
+
+- (void)handleBLEIntroPacketFromData:(NSData *)data {
+  NSData *serviceIDHash = GNCMParseBLEFramesIntroductionPacket(data);
+  if ([serviceIDHash isEqual:_serviceIDHash]) {
+    _handledReceivedBLEIntroPacket = YES;
+    GTMLoggerInfo(@"[NEARBY]: Received BLE intro packet and handled.");
+  } else {
+    GTMLoggerInfo(@"[NEARBY]: Received wrong BLE intro packet and discarded.");
+  }
 }
 
 @end
