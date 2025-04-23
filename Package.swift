@@ -678,5 +678,5 @@ let package = Package(
     ),
   ],
   cLanguageStandard: .c99,
-  cxxLanguageStandard: .cxx17
+  cxxLanguageStandard: .cxx20
 )
