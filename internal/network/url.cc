@@ -14,12 +14,15 @@
 
 #include "internal/network/url.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <ostream>
-#include <regex>  //NOLINT
 #include <string>
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/network/utils.h"
@@ -34,10 +37,6 @@ absl::StatusOr<Url> Url::Create(absl::string_view url_string) {
   }
 
   return url;
-}
-
-bool Url::SetUrlPath(absl::string_view url_path) {
-  return ApplyUrlString(url_path);
 }
 
 std::string Url::GetUrlPath() const {
@@ -55,47 +54,66 @@ uint16_t Url::GetPort() const { return port_; }
 
 absl::string_view Url::GetFragment() const { return fragment_; }
 
-bool Url::ApplyUrlString(absl::string_view url_string) {
+bool Url::SetUrlPath(absl::string_view url_string) {
   // Refer to: https://www.rfc-editor.org/rfc/rfc3986#page-50
-  std::regex url_reg(
-      R"(^(([^:\/?#]+):)?(//([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?)",
-      std::regex::extended);
-
-  std::smatch matches;
-  std::string url{url_string};
-
-  std::regex_search(url, matches, url_reg);
-  scheme_ = matches[2];
-  if (!(scheme_ == "http" || scheme_ == "https")) {
+  if (url_string.starts_with("http://")) {
+    url_string = url_string.substr(7);
+    scheme_ = "http";
+  } else if (url_string.starts_with("https://")) {
+    url_string = url_string.substr(8);
+    scheme_ = "https";
+  } else {
     return false;
   }
-
-  std::string authority = matches[4];
+  absl::string_view authority;
+  size_t path_start = url_string.find_first_of("?/#");
+  if (path_start != std::string::npos) {
+    authority = url_string.substr(0, path_start);
+    url_string = url_string.substr(path_start);
+  } else {
+    authority = url_string;
+    url_string = "";
+  }
   if (authority.empty()) {
     return false;
   }
-
-  size_t pos = authority.find(':');
-  if (pos != std::string::npos) {
-    host_ = authority.substr(0, pos);
-    port_ = std::stoi(authority.substr(pos + 1));
+  size_t port_start = authority.find(':');
+  if (port_start != std::string::npos) {
+    host_ = authority.substr(0, port_start);
+    int port;
+    if (absl::SimpleAtoi(authority.substr(port_start + 1), &port)) {
+      port_ = port;
+    } else {
+      return false;
+    }
   } else {
     host_ = authority;
     port_ = scheme_ == "http" ? 80 : 443;
   }
-  path_ = matches[5];
-  if (path_ == "/") {
-    path_ = "";
+  if (url_string.empty()) {
+    return true;
   }
-
-  query_parameters_.clear();
-  std::string query = matches[7];
+  size_t query_start = url_string.find_first_of('?');
+  if (query_start != std::string::npos) {
+    path_ = url_string.substr(0, query_start);
+    url_string = url_string.substr(query_start + 1);
+  } else {
+    path_ = url_string;
+  }
+  absl::string_view query;
+  size_t fragment_start = url_string.find_first_of('#');
+  if (fragment_start != std::string::npos) {
+    query = url_string.substr(0, fragment_start);
+    fragment_ = url_string.substr(fragment_start + 1);
+  } else {
+    query = url_string;
+  }
   if (!query.empty()) {
     // split by &
     size_t start = 0;
     size_t end = 0;
     while ((end = query.find('&', start)) != std::string::npos) {
-      std::string kv = query.substr(start, end - start);
+      absl::string_view kv = query.substr(start, end - start);
       start = end + 1;
       size_t eq_pos = kv.find('=');
       if (eq_pos <= 0 || eq_pos == std::string::npos) {
@@ -114,8 +132,9 @@ bool Url::ApplyUrlString(absl::string_view url_string) {
       }
     }
   }
-
-  fragment_ = matches[9];
+  if (path_ == "/") {
+    path_ = "";
+  }
   return true;
 }
 

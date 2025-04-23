@@ -114,6 +114,10 @@ TEST(Url, TestInvalidUrl) {
   ASSERT_FALSE(url.ok());
   url = Url::Create("::::hjskoiskjk");
   ASSERT_FALSE(url.ok());
+  url = Url::Create("http://www.google.com:abcd/erwe");
+  ASSERT_FALSE(url.ok());
+  url = Url::Create("http:///www.google.com");
+  ASSERT_FALSE(url.ok());
 }
 
 TEST(Url, TestStreamOutput) {

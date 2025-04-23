@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_NETWORK_URL_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_NETWORK_URL_H_
 
+#include <cstdint>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -41,7 +42,7 @@ class Url {
 
   static absl::StatusOr<Url> Create(absl::string_view url_string);
 
-  bool SetUrlPath(absl::string_view url_path);
+  bool SetUrlPath(absl::string_view url_string);
   std::string GetUrlPath() const;
 
   absl::string_view GetScheme() const;
@@ -56,7 +57,6 @@ class Url {
   const QueryParameters& GetAllQueryStrings() const;
 
  private:
-  bool ApplyUrlString(absl::string_view url_string);
   std::string GetQueryString() const;
   std::string GetPortString() const;
   std::string GetFragmentString() const;
