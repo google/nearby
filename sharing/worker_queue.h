@@ -101,11 +101,11 @@ class WorkerQueue {
       return;
     }
     if (is_scheduled_.exchange(true)) {
-      LOG(ERROR) << "Already scheduled";
+      VLOG(1) << "Already scheduled";
       // Already scheduled.
       return;
     }
-    LOG(ERROR) << "Scheduling callback";
+    VLOG(1) << "Scheduling callback";
     task_runner_->PostTask([this]() {
       if (is_stopped_) {
         return;
