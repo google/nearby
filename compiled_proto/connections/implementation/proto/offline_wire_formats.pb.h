@@ -45,7 +45,7 @@ struct TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fforma
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[38]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[40]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -87,6 +87,9 @@ extern BandwidthUpgradeNegotiationFrame_UpgradePathInfoDefaultTypeInternal _Band
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials;
 struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentialsDefaultTypeInternal;
 extern BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials_default_instance_;
+class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest;
+struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequestDefaultTypeInternal;
+extern BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequestDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest_default_instance_;
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials;
 struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentialsDefaultTypeInternal;
 extern BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials_default_instance_;
@@ -129,6 +132,9 @@ extern LocationStandardDefaultTypeInternal _LocationStandard_default_instance_;
 class MediumMetadata;
 struct MediumMetadataDefaultTypeInternal;
 extern MediumMetadataDefaultTypeInternal _MediumMetadata_default_instance_;
+class MediumRole;
+struct MediumRoleDefaultTypeInternal;
+extern MediumRoleDefaultTypeInternal _MediumRole_default_instance_;
 class OfflineFrame;
 struct OfflineFrameDefaultTypeInternal;
 extern OfflineFrameDefaultTypeInternal _OfflineFrame_default_instance_;
@@ -183,6 +189,7 @@ template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_Cli
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_BluetoothCredentials>(Arena*);
+template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials>(Arena*);
 template<> ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials* Arena::CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials>(Arena*);
@@ -197,6 +204,7 @@ template<> ::location::nearby::connections::KeepAliveFrame* Arena::CreateMaybeMe
 template<> ::location::nearby::connections::LocationHint* Arena::CreateMaybeMessage<::location::nearby::connections::LocationHint>(Arena*);
 template<> ::location::nearby::connections::LocationStandard* Arena::CreateMaybeMessage<::location::nearby::connections::LocationStandard>(Arena*);
 template<> ::location::nearby::connections::MediumMetadata* Arena::CreateMaybeMessage<::location::nearby::connections::MediumMetadata>(Arena*);
+template<> ::location::nearby::connections::MediumRole* Arena::CreateMaybeMessage<::location::nearby::connections::MediumRole>(Arena*);
 template<> ::location::nearby::connections::OfflineFrame* Arena::CreateMaybeMessage<::location::nearby::connections::OfflineFrame>(Arena*);
 template<> ::location::nearby::connections::OsInfo* Arena::CreateMaybeMessage<::location::nearby::connections::OsInfo>(Arena*);
 template<> ::location::nearby::connections::PairedKeyEncryptionFrame* Arena::CreateMaybeMessage<::location::nearby::connections::PairedKeyEncryptionFrame>(Arena*);
@@ -452,11 +460,12 @@ enum BandwidthUpgradeNegotiationFrame_EventType : int {
   BandwidthUpgradeNegotiationFrame_EventType_SAFE_TO_CLOSE_PRIOR_CHANNEL = 3,
   BandwidthUpgradeNegotiationFrame_EventType_CLIENT_INTRODUCTION = 4,
   BandwidthUpgradeNegotiationFrame_EventType_UPGRADE_FAILURE = 5,
-  BandwidthUpgradeNegotiationFrame_EventType_CLIENT_INTRODUCTION_ACK = 6
+  BandwidthUpgradeNegotiationFrame_EventType_CLIENT_INTRODUCTION_ACK = 6,
+  BandwidthUpgradeNegotiationFrame_EventType_UPGRADE_PATH_REQUEST = 7
 };
 bool BandwidthUpgradeNegotiationFrame_EventType_IsValid(int value);
 constexpr BandwidthUpgradeNegotiationFrame_EventType BandwidthUpgradeNegotiationFrame_EventType_EventType_MIN = BandwidthUpgradeNegotiationFrame_EventType_UNKNOWN_EVENT_TYPE;
-constexpr BandwidthUpgradeNegotiationFrame_EventType BandwidthUpgradeNegotiationFrame_EventType_EventType_MAX = BandwidthUpgradeNegotiationFrame_EventType_CLIENT_INTRODUCTION_ACK;
+constexpr BandwidthUpgradeNegotiationFrame_EventType BandwidthUpgradeNegotiationFrame_EventType_EventType_MAX = BandwidthUpgradeNegotiationFrame_EventType_UPGRADE_PATH_REQUEST;
 constexpr int BandwidthUpgradeNegotiationFrame_EventType_EventType_ARRAYSIZE = BandwidthUpgradeNegotiationFrame_EventType_EventType_MAX + 1;
 
 const std::string& BandwidthUpgradeNegotiationFrame_EventType_Name(BandwidthUpgradeNegotiationFrame_EventType value);
@@ -4097,6 +4106,173 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials final :
 };
 // -------------------------------------------------------------------
 
+class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest) */ {
+ public:
+  inline BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest() : BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest(nullptr) {}
+  ~BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest() override;
+  explicit constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& from);
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest&& from) noexcept
+    : BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest() {
+    *this = ::std::move(from);
+  }
+
+  inline BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& operator=(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& operator=(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* internal_default_instance() {
+    return reinterpret_cast<const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest*>(
+               &_BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    14;
+
+  friend void swap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& a, BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& from);
+  void MergeFrom(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest";
+  }
+  protected:
+  explicit BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMediumsFieldNumber = 1,
+    kMediumMetaDataFieldNumber = 2,
+  };
+  // repeated .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium mediums = 1 [packed = true];
+  int mediums_size() const;
+  private:
+  int _internal_mediums_size() const;
+  public:
+  void clear_mediums();
+  private:
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium _internal_mediums(int index) const;
+  void _internal_add_mediums(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* _internal_mutable_mediums();
+  public:
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium mediums(int index) const;
+  void set_mediums(int index, ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value);
+  void add_mediums(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value);
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>& mediums() const;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>* mutable_mediums();
+
+  // optional .location.nearby.connections.MediumMetadata medium_meta_data = 2;
+  bool has_medium_meta_data() const;
+  private:
+  bool _internal_has_medium_meta_data() const;
+  public:
+  void clear_medium_meta_data();
+  const ::location::nearby::connections::MediumMetadata& medium_meta_data() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::MediumMetadata* release_medium_meta_data();
+  ::location::nearby::connections::MediumMetadata* mutable_medium_meta_data();
+  void set_allocated_medium_meta_data(::location::nearby::connections::MediumMetadata* medium_meta_data);
+  private:
+  const ::location::nearby::connections::MediumMetadata& _internal_medium_meta_data() const;
+  ::location::nearby::connections::MediumMetadata* _internal_mutable_medium_meta_data();
+  public:
+  void unsafe_arena_set_allocated_medium_meta_data(
+      ::location::nearby::connections::MediumMetadata* medium_meta_data);
+  ::location::nearby::connections::MediumMetadata* unsafe_arena_release_medium_meta_data();
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedField<int> mediums_;
+  mutable std::atomic<int> _mediums_cached_byte_size_;
+  ::location::nearby::connections::MediumMetadata* medium_meta_data_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
+// -------------------------------------------------------------------
+
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo) */ {
  public:
@@ -4143,7 +4319,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
                &_BandwidthUpgradeNegotiationFrame_UpgradePathInfo_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    15;
 
   friend void swap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo& a, BandwidthUpgradeNegotiationFrame_UpgradePathInfo& b) {
     a.Swap(&b);
@@ -4213,6 +4389,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
   typedef BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials WifiAwareCredentials;
   typedef BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials WifiDirectCredentials;
   typedef BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials WebRtcCredentials;
+  typedef BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest UpgradePathRequest;
 
   typedef BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium Medium;
   static constexpr Medium UNKNOWN_MEDIUM =
@@ -4271,6 +4448,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
     kWifiAwareCredentialsFieldNumber = 5,
     kWifiDirectCredentialsFieldNumber = 6,
     kWebRtcCredentialsFieldNumber = 8,
+    kUpgradePathRequestFieldNumber = 10,
     kMediumFieldNumber = 1,
     kSupportsDisablingEncryptionFieldNumber = 7,
     kSupportsClientIntroductionAckFieldNumber = 9,
@@ -4383,6 +4561,24 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
       ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials* web_rtc_credentials);
   ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials* unsafe_arena_release_web_rtc_credentials();
 
+  // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest upgrade_path_request = 10;
+  bool has_upgrade_path_request() const;
+  private:
+  bool _internal_has_upgrade_path_request() const;
+  public:
+  void clear_upgrade_path_request();
+  const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& upgrade_path_request() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* release_upgrade_path_request();
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* mutable_upgrade_path_request();
+  void set_allocated_upgrade_path_request(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* upgrade_path_request);
+  private:
+  const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& _internal_upgrade_path_request() const;
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* _internal_mutable_upgrade_path_request();
+  public:
+  void unsafe_arena_set_allocated_upgrade_path_request(
+      ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* upgrade_path_request);
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* unsafe_arena_release_upgrade_path_request();
+
   // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
   bool has_medium() const;
   private:
@@ -4437,6 +4633,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo final :
   ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiAwareCredentials* wifi_aware_credentials_;
   ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiDirectCredentials* wifi_direct_credentials_;
   ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials* web_rtc_credentials_;
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* upgrade_path_request_;
   int medium_;
   bool supports_disabling_encryption_;
   bool supports_client_introduction_ack_;
@@ -4490,7 +4687,7 @@ class BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel final :
                &_BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    16;
 
   friend void swap(BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel& a, BandwidthUpgradeNegotiationFrame_SafeToClosePriorChannel& b) {
     a.Swap(&b);
@@ -4632,7 +4829,7 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction final :
                &_BandwidthUpgradeNegotiationFrame_ClientIntroduction_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    17;
 
   friend void swap(BandwidthUpgradeNegotiationFrame_ClientIntroduction& a, BandwidthUpgradeNegotiationFrame_ClientIntroduction& b) {
     a.Swap(&b);
@@ -4794,7 +4991,7 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroductionAck final :
                &_BandwidthUpgradeNegotiationFrame_ClientIntroductionAck_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    18;
 
   friend void swap(BandwidthUpgradeNegotiationFrame_ClientIntroductionAck& a, BandwidthUpgradeNegotiationFrame_ClientIntroductionAck& b) {
     a.Swap(&b);
@@ -4918,7 +5115,7 @@ class BandwidthUpgradeNegotiationFrame final :
                &_BandwidthUpgradeNegotiationFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    19;
 
   friend void swap(BandwidthUpgradeNegotiationFrame& a, BandwidthUpgradeNegotiationFrame& b) {
     a.Swap(&b);
@@ -5002,6 +5199,8 @@ class BandwidthUpgradeNegotiationFrame final :
     BandwidthUpgradeNegotiationFrame_EventType_UPGRADE_FAILURE;
   static constexpr EventType CLIENT_INTRODUCTION_ACK =
     BandwidthUpgradeNegotiationFrame_EventType_CLIENT_INTRODUCTION_ACK;
+  static constexpr EventType UPGRADE_PATH_REQUEST =
+    BandwidthUpgradeNegotiationFrame_EventType_UPGRADE_PATH_REQUEST;
   static inline bool EventType_IsValid(int value) {
     return BandwidthUpgradeNegotiationFrame_EventType_IsValid(value);
   }
@@ -5181,7 +5380,7 @@ class BandwidthUpgradeRetryFrame final :
                &_BandwidthUpgradeRetryFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    20;
 
   friend void swap(BandwidthUpgradeRetryFrame& a, BandwidthUpgradeRetryFrame& b) {
     a.Swap(&b);
@@ -5390,7 +5589,7 @@ class KeepAliveFrame final :
                &_KeepAliveFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    21;
 
   friend void swap(KeepAliveFrame& a, KeepAliveFrame& b) {
     a.Swap(&b);
@@ -5547,7 +5746,7 @@ class DisconnectionFrame final :
                &_DisconnectionFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    22;
 
   friend void swap(DisconnectionFrame& a, DisconnectionFrame& b) {
     a.Swap(&b);
@@ -5704,7 +5903,7 @@ class PairedKeyEncryptionFrame final :
                &_PairedKeyEncryptionFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    23;
 
   friend void swap(PairedKeyEncryptionFrame& a, PairedKeyEncryptionFrame& b) {
     a.Swap(&b);
@@ -5851,7 +6050,7 @@ class AuthenticationMessageFrame final :
                &_AuthenticationMessageFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    24;
 
   friend void swap(AuthenticationMessageFrame& a, AuthenticationMessageFrame& b) {
     a.Swap(&b);
@@ -5998,7 +6197,7 @@ class AuthenticationResultFrame final :
                &_AuthenticationResultFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    24;
+    25;
 
   friend void swap(AuthenticationResultFrame& a, AuthenticationResultFrame& b) {
     a.Swap(&b);
@@ -6140,7 +6339,7 @@ class AutoResumeFrame final :
                &_AutoResumeFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    25;
+    26;
 
   friend void swap(AutoResumeFrame& a, AutoResumeFrame& b) {
     a.Swap(&b);
@@ -6355,7 +6554,7 @@ class AutoReconnectFrame final :
                &_AutoReconnectFrame_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    26;
+    27;
 
   friend void swap(AutoReconnectFrame& a, AutoReconnectFrame& b) {
     a.Swap(&b);
@@ -6565,7 +6764,7 @@ class MediumMetadata final :
                &_MediumMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    27;
+    28;
 
   friend void swap(MediumMetadata& a, MediumMetadata& b) {
     a.Swap(&b);
@@ -6639,6 +6838,7 @@ class MediumMetadata final :
     kWifiLanUsableChannelsFieldNumber = 9,
     kWifiAwareUsableChannelsFieldNumber = 10,
     kWifiHotspotStaUsableChannelsFieldNumber = 11,
+    kMediumRoleFieldNumber = 12,
     kSupports5GhzFieldNumber = 1,
     kSupports6GhzFieldNumber = 4,
     kMobileRadioFieldNumber = 5,
@@ -6770,6 +6970,24 @@ class MediumMetadata final :
       ::location::nearby::connections::WifiHotspotStaUsableChannels* wifi_hotspot_sta_usable_channels);
   ::location::nearby::connections::WifiHotspotStaUsableChannels* unsafe_arena_release_wifi_hotspot_sta_usable_channels();
 
+  // optional .location.nearby.connections.MediumRole medium_role = 12;
+  bool has_medium_role() const;
+  private:
+  bool _internal_has_medium_role() const;
+  public:
+  void clear_medium_role();
+  const ::location::nearby::connections::MediumRole& medium_role() const;
+  PROTOBUF_NODISCARD ::location::nearby::connections::MediumRole* release_medium_role();
+  ::location::nearby::connections::MediumRole* mutable_medium_role();
+  void set_allocated_medium_role(::location::nearby::connections::MediumRole* medium_role);
+  private:
+  const ::location::nearby::connections::MediumRole& _internal_medium_role() const;
+  ::location::nearby::connections::MediumRole* _internal_mutable_medium_role();
+  public:
+  void unsafe_arena_set_allocated_medium_role(
+      ::location::nearby::connections::MediumRole* medium_role);
+  ::location::nearby::connections::MediumRole* unsafe_arena_release_medium_role();
+
   // optional bool supports_5_ghz = 1;
   bool has_supports_5_ghz() const;
   private:
@@ -6838,6 +7056,7 @@ class MediumMetadata final :
   ::location::nearby::connections::WifiLanUsableChannels* wifi_lan_usable_channels_;
   ::location::nearby::connections::WifiAwareUsableChannels* wifi_aware_usable_channels_;
   ::location::nearby::connections::WifiHotspotStaUsableChannels* wifi_hotspot_sta_usable_channels_;
+  ::location::nearby::connections::MediumRole* medium_role_;
   bool supports_5_ghz_;
   bool supports_6_ghz_;
   bool mobile_radio_;
@@ -6892,7 +7111,7 @@ class AvailableChannels final :
                &_AvailableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    28;
+    29;
 
   friend void swap(AvailableChannels& a, AvailableChannels& b) {
     a.Swap(&b);
@@ -7043,7 +7262,7 @@ class WifiDirectCliUsableChannels final :
                &_WifiDirectCliUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    29;
+    30;
 
   friend void swap(WifiDirectCliUsableChannels& a, WifiDirectCliUsableChannels& b) {
     a.Swap(&b);
@@ -7194,7 +7413,7 @@ class WifiLanUsableChannels final :
                &_WifiLanUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    30;
+    31;
 
   friend void swap(WifiLanUsableChannels& a, WifiLanUsableChannels& b) {
     a.Swap(&b);
@@ -7345,7 +7564,7 @@ class WifiAwareUsableChannels final :
                &_WifiAwareUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    31;
+    32;
 
   friend void swap(WifiAwareUsableChannels& a, WifiAwareUsableChannels& b) {
     a.Swap(&b);
@@ -7496,7 +7715,7 @@ class WifiHotspotStaUsableChannels final :
                &_WifiHotspotStaUsableChannels_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    32;
+    33;
 
   friend void swap(WifiHotspotStaUsableChannels& a, WifiHotspotStaUsableChannels& b) {
     a.Swap(&b);
@@ -7601,6 +7820,253 @@ class WifiHotspotStaUsableChannels final :
 };
 // -------------------------------------------------------------------
 
+class MediumRole final :
+    public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.MediumRole) */ {
+ public:
+  inline MediumRole() : MediumRole(nullptr) {}
+  ~MediumRole() override;
+  explicit constexpr MediumRole(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  MediumRole(const MediumRole& from);
+  MediumRole(MediumRole&& from) noexcept
+    : MediumRole() {
+    *this = ::std::move(from);
+  }
+
+  inline MediumRole& operator=(const MediumRole& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline MediumRole& operator=(MediumRole&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const std::string& unknown_fields() const {
+    return _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString);
+  }
+  inline std::string* mutable_unknown_fields() {
+    return _internal_metadata_.mutable_unknown_fields<std::string>();
+  }
+
+  static const MediumRole& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const MediumRole* internal_default_instance() {
+    return reinterpret_cast<const MediumRole*>(
+               &_MediumRole_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    34;
+
+  friend void swap(MediumRole& a, MediumRole& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(MediumRole* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(MediumRole* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  MediumRole* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<MediumRole>(arena);
+  }
+  void CheckTypeAndMergeFrom(const ::PROTOBUF_NAMESPACE_ID::MessageLite& from)  final;
+  void CopyFrom(const MediumRole& from);
+  void MergeFrom(const MediumRole& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  void InternalSwap(MediumRole* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "location.nearby.connections.MediumRole";
+  }
+  protected:
+  explicit MediumRole(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  std::string GetTypeName() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kSupportWifiDirectGroupOwnerFieldNumber = 1,
+    kSupportWifiDirectGroupClientFieldNumber = 2,
+    kSupportWifiHotspotHostFieldNumber = 3,
+    kSupportWifiHotspotClientFieldNumber = 4,
+    kSupportWifiAwarePublisherFieldNumber = 5,
+    kSupportWifiAwareSubscriberFieldNumber = 6,
+    kSupportAwdlPublisherFieldNumber = 7,
+    kSupportAwdlSubscriberFieldNumber = 8,
+  };
+  // optional bool support_wifi_direct_group_owner = 1;
+  bool has_support_wifi_direct_group_owner() const;
+  private:
+  bool _internal_has_support_wifi_direct_group_owner() const;
+  public:
+  void clear_support_wifi_direct_group_owner();
+  bool support_wifi_direct_group_owner() const;
+  void set_support_wifi_direct_group_owner(bool value);
+  private:
+  bool _internal_support_wifi_direct_group_owner() const;
+  void _internal_set_support_wifi_direct_group_owner(bool value);
+  public:
+
+  // optional bool support_wifi_direct_group_client = 2;
+  bool has_support_wifi_direct_group_client() const;
+  private:
+  bool _internal_has_support_wifi_direct_group_client() const;
+  public:
+  void clear_support_wifi_direct_group_client();
+  bool support_wifi_direct_group_client() const;
+  void set_support_wifi_direct_group_client(bool value);
+  private:
+  bool _internal_support_wifi_direct_group_client() const;
+  void _internal_set_support_wifi_direct_group_client(bool value);
+  public:
+
+  // optional bool support_wifi_hotspot_host = 3;
+  bool has_support_wifi_hotspot_host() const;
+  private:
+  bool _internal_has_support_wifi_hotspot_host() const;
+  public:
+  void clear_support_wifi_hotspot_host();
+  bool support_wifi_hotspot_host() const;
+  void set_support_wifi_hotspot_host(bool value);
+  private:
+  bool _internal_support_wifi_hotspot_host() const;
+  void _internal_set_support_wifi_hotspot_host(bool value);
+  public:
+
+  // optional bool support_wifi_hotspot_client = 4;
+  bool has_support_wifi_hotspot_client() const;
+  private:
+  bool _internal_has_support_wifi_hotspot_client() const;
+  public:
+  void clear_support_wifi_hotspot_client();
+  bool support_wifi_hotspot_client() const;
+  void set_support_wifi_hotspot_client(bool value);
+  private:
+  bool _internal_support_wifi_hotspot_client() const;
+  void _internal_set_support_wifi_hotspot_client(bool value);
+  public:
+
+  // optional bool support_wifi_aware_publisher = 5;
+  bool has_support_wifi_aware_publisher() const;
+  private:
+  bool _internal_has_support_wifi_aware_publisher() const;
+  public:
+  void clear_support_wifi_aware_publisher();
+  bool support_wifi_aware_publisher() const;
+  void set_support_wifi_aware_publisher(bool value);
+  private:
+  bool _internal_support_wifi_aware_publisher() const;
+  void _internal_set_support_wifi_aware_publisher(bool value);
+  public:
+
+  // optional bool support_wifi_aware_subscriber = 6;
+  bool has_support_wifi_aware_subscriber() const;
+  private:
+  bool _internal_has_support_wifi_aware_subscriber() const;
+  public:
+  void clear_support_wifi_aware_subscriber();
+  bool support_wifi_aware_subscriber() const;
+  void set_support_wifi_aware_subscriber(bool value);
+  private:
+  bool _internal_support_wifi_aware_subscriber() const;
+  void _internal_set_support_wifi_aware_subscriber(bool value);
+  public:
+
+  // optional bool support_awdl_publisher = 7;
+  bool has_support_awdl_publisher() const;
+  private:
+  bool _internal_has_support_awdl_publisher() const;
+  public:
+  void clear_support_awdl_publisher();
+  bool support_awdl_publisher() const;
+  void set_support_awdl_publisher(bool value);
+  private:
+  bool _internal_support_awdl_publisher() const;
+  void _internal_set_support_awdl_publisher(bool value);
+  public:
+
+  // optional bool support_awdl_subscriber = 8;
+  bool has_support_awdl_subscriber() const;
+  private:
+  bool _internal_has_support_awdl_subscriber() const;
+  public:
+  void clear_support_awdl_subscriber();
+  bool support_awdl_subscriber() const;
+  void set_support_awdl_subscriber(bool value);
+  private:
+  bool _internal_support_awdl_subscriber() const;
+  void _internal_set_support_awdl_subscriber(bool value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:location.nearby.connections.MediumRole)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  bool support_wifi_direct_group_owner_;
+  bool support_wifi_direct_group_client_;
+  bool support_wifi_hotspot_host_;
+  bool support_wifi_hotspot_client_;
+  bool support_wifi_aware_publisher_;
+  bool support_wifi_aware_subscriber_;
+  bool support_awdl_publisher_;
+  bool support_awdl_subscriber_;
+  friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
+};
+// -------------------------------------------------------------------
+
 class LocationHint final :
     public ::PROTOBUF_NAMESPACE_ID::MessageLite /* @@protoc_insertion_point(class_definition:location.nearby.connections.LocationHint) */ {
  public:
@@ -7647,7 +8113,7 @@ class LocationHint final :
                &_LocationHint_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    33;
+    35;
 
   friend void swap(LocationHint& a, LocationHint& b) {
     a.Swap(&b);
@@ -7809,7 +8275,7 @@ class LocationStandard final :
                &_LocationStandard_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    34;
+    36;
 
   friend void swap(LocationStandard& a, LocationStandard& b) {
     a.Swap(&b);
@@ -7961,7 +8427,7 @@ class OsInfo final :
                &_OsInfo_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    35;
+    37;
 
   friend void swap(OsInfo& a, OsInfo& b) {
     a.Swap(&b);
@@ -8137,7 +8603,7 @@ class ConnectionsDevice final :
                &_ConnectionsDevice_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    36;
+    38;
 
   friend void swap(ConnectionsDevice& a, ConnectionsDevice& b) {
     a.Swap(&b);
@@ -8339,7 +8805,7 @@ class PresenceDevice final :
                &_PresenceDevice_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    37;
+    39;
 
   friend void swap(PresenceDevice& a, PresenceDevice& b) {
     a.Swap(&b);
@@ -13194,11 +13660,150 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials::
 
 // -------------------------------------------------------------------
 
+// BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
+
+// repeated .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium mediums = 1 [packed = true];
+inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_mediums_size() const {
+  return mediums_.size();
+}
+inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::mediums_size() const {
+  return _internal_mediums_size();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::clear_mediums() {
+  mediums_.Clear();
+}
+inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_mediums(int index) const {
+  return static_cast< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium >(mediums_.Get(index));
+}
+inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::mediums(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.mediums)
+  return _internal_mediums(index);
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::set_mediums(int index, ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value) {
+  assert(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(value));
+  mediums_.Set(index, value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.mediums)
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_add_mediums(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value) {
+  assert(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(value));
+  mediums_.Add(value);
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::add_mediums(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value) {
+  _internal_add_mediums(value);
+  // @@protoc_insertion_point(field_add:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.mediums)
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>&
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::mediums() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.mediums)
+  return mediums_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_mutable_mediums() {
+  return &mediums_;
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedField<int>*
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::mutable_mediums() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.mediums)
+  return _internal_mutable_mediums();
+}
+
+// optional .location.nearby.connections.MediumMetadata medium_meta_data = 2;
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_has_medium_meta_data() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  PROTOBUF_ASSUME(!value || medium_meta_data_ != nullptr);
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::has_medium_meta_data() const {
+  return _internal_has_medium_meta_data();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::clear_medium_meta_data() {
+  if (medium_meta_data_ != nullptr) medium_meta_data_->Clear();
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline const ::location::nearby::connections::MediumMetadata& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_medium_meta_data() const {
+  const ::location::nearby::connections::MediumMetadata* p = medium_meta_data_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::MediumMetadata&>(
+      ::location::nearby::connections::_MediumMetadata_default_instance_);
+}
+inline const ::location::nearby::connections::MediumMetadata& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::medium_meta_data() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.medium_meta_data)
+  return _internal_medium_meta_data();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::unsafe_arena_set_allocated_medium_meta_data(
+    ::location::nearby::connections::MediumMetadata* medium_meta_data) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(medium_meta_data_);
+  }
+  medium_meta_data_ = medium_meta_data;
+  if (medium_meta_data) {
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.medium_meta_data)
+}
+inline ::location::nearby::connections::MediumMetadata* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::release_medium_meta_data() {
+  _has_bits_[0] &= ~0x00000001u;
+  ::location::nearby::connections::MediumMetadata* temp = medium_meta_data_;
+  medium_meta_data_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::MediumMetadata* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::unsafe_arena_release_medium_meta_data() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.medium_meta_data)
+  _has_bits_[0] &= ~0x00000001u;
+  ::location::nearby::connections::MediumMetadata* temp = medium_meta_data_;
+  medium_meta_data_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::MediumMetadata* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_internal_mutable_medium_meta_data() {
+  _has_bits_[0] |= 0x00000001u;
+  if (medium_meta_data_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::MediumMetadata>(GetArenaForAllocation());
+    medium_meta_data_ = p;
+  }
+  return medium_meta_data_;
+}
+inline ::location::nearby::connections::MediumMetadata* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::mutable_medium_meta_data() {
+  ::location::nearby::connections::MediumMetadata* _msg = _internal_mutable_medium_meta_data();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.medium_meta_data)
+  return _msg;
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::set_allocated_medium_meta_data(::location::nearby::connections::MediumMetadata* medium_meta_data) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete medium_meta_data_;
+  }
+  if (medium_meta_data) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::MediumMetadata>::GetOwningArena(medium_meta_data);
+    if (message_arena != submessage_arena) {
+      medium_meta_data = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, medium_meta_data, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000001u;
+  } else {
+    _has_bits_[0] &= ~0x00000001u;
+  }
+  medium_meta_data_ = medium_meta_data;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest.medium_meta_data)
+}
+
+// -------------------------------------------------------------------
+
 // BandwidthUpgradeNegotiationFrame_UpgradePathInfo
 
 // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_has_medium() const {
-  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_medium() const {
@@ -13206,7 +13811,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_medium() const
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::clear_medium() {
   medium_ = 0;
-  _has_bits_[0] &= ~0x00000040u;
+  _has_bits_[0] &= ~0x00000080u;
 }
 inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_medium() const {
   return static_cast< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium >(medium_);
@@ -13217,7 +13822,7 @@ inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_Upgrade
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_set_medium(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value) {
   assert(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium_IsValid(value));
-  _has_bits_[0] |= 0x00000040u;
+  _has_bits_[0] |= 0x00000080u;
   medium_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::set_medium(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_Medium value) {
@@ -13767,7 +14372,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::set_allocated_web_
 
 // optional bool supports_disabling_encryption = 7;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_has_supports_disabling_encryption() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_supports_disabling_encryption() const {
@@ -13775,7 +14380,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_supports_disab
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::clear_supports_disabling_encryption() {
   supports_disabling_encryption_ = false;
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_supports_disabling_encryption() const {
   return supports_disabling_encryption_;
@@ -13785,7 +14390,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::supports_disabling
   return _internal_supports_disabling_encryption();
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_set_supports_disabling_encryption(bool value) {
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000100u;
   supports_disabling_encryption_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::set_supports_disabling_encryption(bool value) {
@@ -13795,7 +14400,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::set_supports_disab
 
 // optional bool supports_client_introduction_ack = 9;
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_has_supports_client_introduction_ack() const {
-  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_supports_client_introduction_ack() const {
@@ -13803,7 +14408,7 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_supports_clien
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::clear_supports_client_introduction_ack() {
   supports_client_introduction_ack_ = false;
-  _has_bits_[0] &= ~0x00000100u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_supports_client_introduction_ack() const {
   return supports_client_introduction_ack_;
@@ -13813,12 +14418,102 @@ inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::supports_client_in
   return _internal_supports_client_introduction_ack();
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_set_supports_client_introduction_ack(bool value) {
-  _has_bits_[0] |= 0x00000100u;
+  _has_bits_[0] |= 0x00000200u;
   supports_client_introduction_ack_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::set_supports_client_introduction_ack(bool value) {
   _internal_set_supports_client_introduction_ack(value);
   // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.supports_client_introduction_ack)
+}
+
+// optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.UpgradePathRequest upgrade_path_request = 10;
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_has_upgrade_path_request() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  PROTOBUF_ASSUME(!value || upgrade_path_request_ != nullptr);
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo::has_upgrade_path_request() const {
+  return _internal_has_upgrade_path_request();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::clear_upgrade_path_request() {
+  if (upgrade_path_request_ != nullptr) upgrade_path_request_->Clear();
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_upgrade_path_request() const {
+  const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* p = upgrade_path_request_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest&>(
+      ::location::nearby::connections::_BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest_default_instance_);
+}
+inline const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& BandwidthUpgradeNegotiationFrame_UpgradePathInfo::upgrade_path_request() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.upgrade_path_request)
+  return _internal_upgrade_path_request();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::unsafe_arena_set_allocated_upgrade_path_request(
+    ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* upgrade_path_request) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(upgrade_path_request_);
+  }
+  upgrade_path_request_ = upgrade_path_request;
+  if (upgrade_path_request) {
+    _has_bits_[0] |= 0x00000040u;
+  } else {
+    _has_bits_[0] &= ~0x00000040u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.upgrade_path_request)
+}
+inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::release_upgrade_path_request() {
+  _has_bits_[0] &= ~0x00000040u;
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* temp = upgrade_path_request_;
+  upgrade_path_request_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::unsafe_arena_release_upgrade_path_request() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.upgrade_path_request)
+  _has_bits_[0] &= ~0x00000040u;
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* temp = upgrade_path_request_;
+  upgrade_path_request_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_internal_mutable_upgrade_path_request() {
+  _has_bits_[0] |= 0x00000040u;
+  if (upgrade_path_request_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>(GetArenaForAllocation());
+    upgrade_path_request_ = p;
+  }
+  return upgrade_path_request_;
+}
+inline ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::mutable_upgrade_path_request() {
+  ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* _msg = _internal_mutable_upgrade_path_request();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.upgrade_path_request)
+  return _msg;
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::set_allocated_upgrade_path_request(::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* upgrade_path_request) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete upgrade_path_request_;
+  }
+  if (upgrade_path_request) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>::GetOwningArena(upgrade_path_request);
+    if (message_arena != submessage_arena) {
+      upgrade_path_request = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, upgrade_path_request, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000040u;
+  } else {
+    _has_bits_[0] &= ~0x00000040u;
+  }
+  upgrade_path_request_ = upgrade_path_request;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.upgrade_path_request)
 }
 
 // -------------------------------------------------------------------
@@ -15020,7 +15715,7 @@ inline void AutoReconnectFrame::set_allocated_last_endpoint_id(std::string* last
 
 // optional bool supports_5_ghz = 1;
 inline bool MediumMetadata::_internal_has_supports_5_ghz() const {
-  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  bool value = (_has_bits_[0] & 0x00000100u) != 0;
   return value;
 }
 inline bool MediumMetadata::has_supports_5_ghz() const {
@@ -15028,7 +15723,7 @@ inline bool MediumMetadata::has_supports_5_ghz() const {
 }
 inline void MediumMetadata::clear_supports_5_ghz() {
   supports_5_ghz_ = false;
-  _has_bits_[0] &= ~0x00000080u;
+  _has_bits_[0] &= ~0x00000100u;
 }
 inline bool MediumMetadata::_internal_supports_5_ghz() const {
   return supports_5_ghz_;
@@ -15038,7 +15733,7 @@ inline bool MediumMetadata::supports_5_ghz() const {
   return _internal_supports_5_ghz();
 }
 inline void MediumMetadata::_internal_set_supports_5_ghz(bool value) {
-  _has_bits_[0] |= 0x00000080u;
+  _has_bits_[0] |= 0x00000100u;
   supports_5_ghz_ = value;
 }
 inline void MediumMetadata::set_supports_5_ghz(bool value) {
@@ -15186,7 +15881,7 @@ inline void MediumMetadata::set_allocated_ip_address(std::string* ip_address) {
 
 // optional bool supports_6_ghz = 4;
 inline bool MediumMetadata::_internal_has_supports_6_ghz() const {
-  bool value = (_has_bits_[0] & 0x00000100u) != 0;
+  bool value = (_has_bits_[0] & 0x00000200u) != 0;
   return value;
 }
 inline bool MediumMetadata::has_supports_6_ghz() const {
@@ -15194,7 +15889,7 @@ inline bool MediumMetadata::has_supports_6_ghz() const {
 }
 inline void MediumMetadata::clear_supports_6_ghz() {
   supports_6_ghz_ = false;
-  _has_bits_[0] &= ~0x00000100u;
+  _has_bits_[0] &= ~0x00000200u;
 }
 inline bool MediumMetadata::_internal_supports_6_ghz() const {
   return supports_6_ghz_;
@@ -15204,7 +15899,7 @@ inline bool MediumMetadata::supports_6_ghz() const {
   return _internal_supports_6_ghz();
 }
 inline void MediumMetadata::_internal_set_supports_6_ghz(bool value) {
-  _has_bits_[0] |= 0x00000100u;
+  _has_bits_[0] |= 0x00000200u;
   supports_6_ghz_ = value;
 }
 inline void MediumMetadata::set_supports_6_ghz(bool value) {
@@ -15214,7 +15909,7 @@ inline void MediumMetadata::set_supports_6_ghz(bool value) {
 
 // optional bool mobile_radio = 5;
 inline bool MediumMetadata::_internal_has_mobile_radio() const {
-  bool value = (_has_bits_[0] & 0x00000200u) != 0;
+  bool value = (_has_bits_[0] & 0x00000400u) != 0;
   return value;
 }
 inline bool MediumMetadata::has_mobile_radio() const {
@@ -15222,7 +15917,7 @@ inline bool MediumMetadata::has_mobile_radio() const {
 }
 inline void MediumMetadata::clear_mobile_radio() {
   mobile_radio_ = false;
-  _has_bits_[0] &= ~0x00000200u;
+  _has_bits_[0] &= ~0x00000400u;
 }
 inline bool MediumMetadata::_internal_mobile_radio() const {
   return mobile_radio_;
@@ -15232,7 +15927,7 @@ inline bool MediumMetadata::mobile_radio() const {
   return _internal_mobile_radio();
 }
 inline void MediumMetadata::_internal_set_mobile_radio(bool value) {
-  _has_bits_[0] |= 0x00000200u;
+  _has_bits_[0] |= 0x00000400u;
   mobile_radio_ = value;
 }
 inline void MediumMetadata::set_mobile_radio(bool value) {
@@ -15242,7 +15937,7 @@ inline void MediumMetadata::set_mobile_radio(bool value) {
 
 // optional int32 ap_frequency = 6 [default = -1];
 inline bool MediumMetadata::_internal_has_ap_frequency() const {
-  bool value = (_has_bits_[0] & 0x00000400u) != 0;
+  bool value = (_has_bits_[0] & 0x00000800u) != 0;
   return value;
 }
 inline bool MediumMetadata::has_ap_frequency() const {
@@ -15250,7 +15945,7 @@ inline bool MediumMetadata::has_ap_frequency() const {
 }
 inline void MediumMetadata::clear_ap_frequency() {
   ap_frequency_ = -1;
-  _has_bits_[0] &= ~0x00000400u;
+  _has_bits_[0] &= ~0x00000800u;
 }
 inline int32_t MediumMetadata::_internal_ap_frequency() const {
   return ap_frequency_;
@@ -15260,7 +15955,7 @@ inline int32_t MediumMetadata::ap_frequency() const {
   return _internal_ap_frequency();
 }
 inline void MediumMetadata::_internal_set_ap_frequency(int32_t value) {
-  _has_bits_[0] |= 0x00000400u;
+  _has_bits_[0] |= 0x00000800u;
   ap_frequency_ = value;
 }
 inline void MediumMetadata::set_ap_frequency(int32_t value) {
@@ -15718,6 +16413,96 @@ inline void MediumMetadata::set_allocated_wifi_hotspot_sta_usable_channels(::loc
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.MediumMetadata.wifi_hotspot_sta_usable_channels)
 }
 
+// optional .location.nearby.connections.MediumRole medium_role = 12;
+inline bool MediumMetadata::_internal_has_medium_role() const {
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  PROTOBUF_ASSUME(!value || medium_role_ != nullptr);
+  return value;
+}
+inline bool MediumMetadata::has_medium_role() const {
+  return _internal_has_medium_role();
+}
+inline void MediumMetadata::clear_medium_role() {
+  if (medium_role_ != nullptr) medium_role_->Clear();
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline const ::location::nearby::connections::MediumRole& MediumMetadata::_internal_medium_role() const {
+  const ::location::nearby::connections::MediumRole* p = medium_role_;
+  return p != nullptr ? *p : reinterpret_cast<const ::location::nearby::connections::MediumRole&>(
+      ::location::nearby::connections::_MediumRole_default_instance_);
+}
+inline const ::location::nearby::connections::MediumRole& MediumMetadata::medium_role() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumMetadata.medium_role)
+  return _internal_medium_role();
+}
+inline void MediumMetadata::unsafe_arena_set_allocated_medium_role(
+    ::location::nearby::connections::MediumRole* medium_role) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(medium_role_);
+  }
+  medium_role_ = medium_role;
+  if (medium_role) {
+    _has_bits_[0] |= 0x00000080u;
+  } else {
+    _has_bits_[0] &= ~0x00000080u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:location.nearby.connections.MediumMetadata.medium_role)
+}
+inline ::location::nearby::connections::MediumRole* MediumMetadata::release_medium_role() {
+  _has_bits_[0] &= ~0x00000080u;
+  ::location::nearby::connections::MediumRole* temp = medium_role_;
+  medium_role_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::location::nearby::connections::MediumRole* MediumMetadata::unsafe_arena_release_medium_role() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.MediumMetadata.medium_role)
+  _has_bits_[0] &= ~0x00000080u;
+  ::location::nearby::connections::MediumRole* temp = medium_role_;
+  medium_role_ = nullptr;
+  return temp;
+}
+inline ::location::nearby::connections::MediumRole* MediumMetadata::_internal_mutable_medium_role() {
+  _has_bits_[0] |= 0x00000080u;
+  if (medium_role_ == nullptr) {
+    auto* p = CreateMaybeMessage<::location::nearby::connections::MediumRole>(GetArenaForAllocation());
+    medium_role_ = p;
+  }
+  return medium_role_;
+}
+inline ::location::nearby::connections::MediumRole* MediumMetadata::mutable_medium_role() {
+  ::location::nearby::connections::MediumRole* _msg = _internal_mutable_medium_role();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.MediumMetadata.medium_role)
+  return _msg;
+}
+inline void MediumMetadata::set_allocated_medium_role(::location::nearby::connections::MediumRole* medium_role) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete medium_role_;
+  }
+  if (medium_role) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::location::nearby::connections::MediumRole>::GetOwningArena(medium_role);
+    if (message_arena != submessage_arena) {
+      medium_role = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, medium_role, submessage_arena);
+    }
+    _has_bits_[0] |= 0x00000080u;
+  } else {
+    _has_bits_[0] &= ~0x00000080u;
+  }
+  medium_role_ = medium_role;
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.MediumMetadata.medium_role)
+}
+
 // -------------------------------------------------------------------
 
 // AvailableChannels
@@ -15971,6 +16756,234 @@ inline ::PROTOBUF_NAMESPACE_ID::RepeatedField< int32_t >*
 WifiHotspotStaUsableChannels::mutable_channels() {
   // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.WifiHotspotStaUsableChannels.channels)
   return _internal_mutable_channels();
+}
+
+// -------------------------------------------------------------------
+
+// MediumRole
+
+// optional bool support_wifi_direct_group_owner = 1;
+inline bool MediumRole::_internal_has_support_wifi_direct_group_owner() const {
+  bool value = (_has_bits_[0] & 0x00000001u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_wifi_direct_group_owner() const {
+  return _internal_has_support_wifi_direct_group_owner();
+}
+inline void MediumRole::clear_support_wifi_direct_group_owner() {
+  support_wifi_direct_group_owner_ = false;
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline bool MediumRole::_internal_support_wifi_direct_group_owner() const {
+  return support_wifi_direct_group_owner_;
+}
+inline bool MediumRole::support_wifi_direct_group_owner() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_wifi_direct_group_owner)
+  return _internal_support_wifi_direct_group_owner();
+}
+inline void MediumRole::_internal_set_support_wifi_direct_group_owner(bool value) {
+  _has_bits_[0] |= 0x00000001u;
+  support_wifi_direct_group_owner_ = value;
+}
+inline void MediumRole::set_support_wifi_direct_group_owner(bool value) {
+  _internal_set_support_wifi_direct_group_owner(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_wifi_direct_group_owner)
+}
+
+// optional bool support_wifi_direct_group_client = 2;
+inline bool MediumRole::_internal_has_support_wifi_direct_group_client() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_wifi_direct_group_client() const {
+  return _internal_has_support_wifi_direct_group_client();
+}
+inline void MediumRole::clear_support_wifi_direct_group_client() {
+  support_wifi_direct_group_client_ = false;
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline bool MediumRole::_internal_support_wifi_direct_group_client() const {
+  return support_wifi_direct_group_client_;
+}
+inline bool MediumRole::support_wifi_direct_group_client() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_wifi_direct_group_client)
+  return _internal_support_wifi_direct_group_client();
+}
+inline void MediumRole::_internal_set_support_wifi_direct_group_client(bool value) {
+  _has_bits_[0] |= 0x00000002u;
+  support_wifi_direct_group_client_ = value;
+}
+inline void MediumRole::set_support_wifi_direct_group_client(bool value) {
+  _internal_set_support_wifi_direct_group_client(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_wifi_direct_group_client)
+}
+
+// optional bool support_wifi_hotspot_host = 3;
+inline bool MediumRole::_internal_has_support_wifi_hotspot_host() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_wifi_hotspot_host() const {
+  return _internal_has_support_wifi_hotspot_host();
+}
+inline void MediumRole::clear_support_wifi_hotspot_host() {
+  support_wifi_hotspot_host_ = false;
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline bool MediumRole::_internal_support_wifi_hotspot_host() const {
+  return support_wifi_hotspot_host_;
+}
+inline bool MediumRole::support_wifi_hotspot_host() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_wifi_hotspot_host)
+  return _internal_support_wifi_hotspot_host();
+}
+inline void MediumRole::_internal_set_support_wifi_hotspot_host(bool value) {
+  _has_bits_[0] |= 0x00000004u;
+  support_wifi_hotspot_host_ = value;
+}
+inline void MediumRole::set_support_wifi_hotspot_host(bool value) {
+  _internal_set_support_wifi_hotspot_host(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_wifi_hotspot_host)
+}
+
+// optional bool support_wifi_hotspot_client = 4;
+inline bool MediumRole::_internal_has_support_wifi_hotspot_client() const {
+  bool value = (_has_bits_[0] & 0x00000008u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_wifi_hotspot_client() const {
+  return _internal_has_support_wifi_hotspot_client();
+}
+inline void MediumRole::clear_support_wifi_hotspot_client() {
+  support_wifi_hotspot_client_ = false;
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline bool MediumRole::_internal_support_wifi_hotspot_client() const {
+  return support_wifi_hotspot_client_;
+}
+inline bool MediumRole::support_wifi_hotspot_client() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_wifi_hotspot_client)
+  return _internal_support_wifi_hotspot_client();
+}
+inline void MediumRole::_internal_set_support_wifi_hotspot_client(bool value) {
+  _has_bits_[0] |= 0x00000008u;
+  support_wifi_hotspot_client_ = value;
+}
+inline void MediumRole::set_support_wifi_hotspot_client(bool value) {
+  _internal_set_support_wifi_hotspot_client(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_wifi_hotspot_client)
+}
+
+// optional bool support_wifi_aware_publisher = 5;
+inline bool MediumRole::_internal_has_support_wifi_aware_publisher() const {
+  bool value = (_has_bits_[0] & 0x00000010u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_wifi_aware_publisher() const {
+  return _internal_has_support_wifi_aware_publisher();
+}
+inline void MediumRole::clear_support_wifi_aware_publisher() {
+  support_wifi_aware_publisher_ = false;
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline bool MediumRole::_internal_support_wifi_aware_publisher() const {
+  return support_wifi_aware_publisher_;
+}
+inline bool MediumRole::support_wifi_aware_publisher() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_wifi_aware_publisher)
+  return _internal_support_wifi_aware_publisher();
+}
+inline void MediumRole::_internal_set_support_wifi_aware_publisher(bool value) {
+  _has_bits_[0] |= 0x00000010u;
+  support_wifi_aware_publisher_ = value;
+}
+inline void MediumRole::set_support_wifi_aware_publisher(bool value) {
+  _internal_set_support_wifi_aware_publisher(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_wifi_aware_publisher)
+}
+
+// optional bool support_wifi_aware_subscriber = 6;
+inline bool MediumRole::_internal_has_support_wifi_aware_subscriber() const {
+  bool value = (_has_bits_[0] & 0x00000020u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_wifi_aware_subscriber() const {
+  return _internal_has_support_wifi_aware_subscriber();
+}
+inline void MediumRole::clear_support_wifi_aware_subscriber() {
+  support_wifi_aware_subscriber_ = false;
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline bool MediumRole::_internal_support_wifi_aware_subscriber() const {
+  return support_wifi_aware_subscriber_;
+}
+inline bool MediumRole::support_wifi_aware_subscriber() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_wifi_aware_subscriber)
+  return _internal_support_wifi_aware_subscriber();
+}
+inline void MediumRole::_internal_set_support_wifi_aware_subscriber(bool value) {
+  _has_bits_[0] |= 0x00000020u;
+  support_wifi_aware_subscriber_ = value;
+}
+inline void MediumRole::set_support_wifi_aware_subscriber(bool value) {
+  _internal_set_support_wifi_aware_subscriber(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_wifi_aware_subscriber)
+}
+
+// optional bool support_awdl_publisher = 7;
+inline bool MediumRole::_internal_has_support_awdl_publisher() const {
+  bool value = (_has_bits_[0] & 0x00000040u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_awdl_publisher() const {
+  return _internal_has_support_awdl_publisher();
+}
+inline void MediumRole::clear_support_awdl_publisher() {
+  support_awdl_publisher_ = false;
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline bool MediumRole::_internal_support_awdl_publisher() const {
+  return support_awdl_publisher_;
+}
+inline bool MediumRole::support_awdl_publisher() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_awdl_publisher)
+  return _internal_support_awdl_publisher();
+}
+inline void MediumRole::_internal_set_support_awdl_publisher(bool value) {
+  _has_bits_[0] |= 0x00000040u;
+  support_awdl_publisher_ = value;
+}
+inline void MediumRole::set_support_awdl_publisher(bool value) {
+  _internal_set_support_awdl_publisher(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_awdl_publisher)
+}
+
+// optional bool support_awdl_subscriber = 8;
+inline bool MediumRole::_internal_has_support_awdl_subscriber() const {
+  bool value = (_has_bits_[0] & 0x00000080u) != 0;
+  return value;
+}
+inline bool MediumRole::has_support_awdl_subscriber() const {
+  return _internal_has_support_awdl_subscriber();
+}
+inline void MediumRole::clear_support_awdl_subscriber() {
+  support_awdl_subscriber_ = false;
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline bool MediumRole::_internal_support_awdl_subscriber() const {
+  return support_awdl_subscriber_;
+}
+inline bool MediumRole::support_awdl_subscriber() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.MediumRole.support_awdl_subscriber)
+  return _internal_support_awdl_subscriber();
+}
+inline void MediumRole::_internal_set_support_awdl_subscriber(bool value) {
+  _has_bits_[0] |= 0x00000080u;
+  support_awdl_subscriber_ = value;
+}
+inline void MediumRole::set_support_awdl_subscriber(bool value) {
+  _internal_set_support_awdl_subscriber(value);
+  // @@protoc_insertion_point(field_set:location.nearby.connections.MediumRole.support_awdl_subscriber)
 }
 
 // -------------------------------------------------------------------
@@ -16860,6 +17873,10 @@ PresenceDevice::mutable_identity_type() {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
