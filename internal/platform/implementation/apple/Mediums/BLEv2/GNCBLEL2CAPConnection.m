@@ -57,6 +57,9 @@ static NSData *PrefixLengthData(NSData *data) {
 @property(nonatomic) BOOL handledReceivedL2CAPRequestDataConnectionPacket;
 @property(nonatomic) BOOL handledReceivedL2CAPResponseDataConnectionReadyPacket;
 @property(nonatomic) BOOL handledReceivedBLEIntroPacket;
+@property(nonatomic) NSUInteger expectedDataLength;
+@property(nonatomic) NSMutableData *undeliveredData;
+@property(nonatomic) BOOL verboseLoggingEnabled;
 @end
 
 @implementation GNCBLEL2CAPConnection
@@ -75,6 +78,8 @@ static NSData *PrefixLengthData(NSData *data) {
                                          dispatch_queue_attr_make_with_qos_class(
                                              DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1))];
   [connection setIncomingConnection:incomingConnection];
+  [connection setUndeliveredData:[NSMutableData data]];
+  [connection setExpectedDataLength:0];
   return connection;
 }
 
@@ -91,7 +96,9 @@ static NSData *PrefixLengthData(NSData *data) {
 
     // Prefix the service ID hash.
     packet = PrefixLengthData(PrefixDataWithServiceIDHash(_serviceIDHash, data));
-    GTMLoggerInfo(@"[NEARBY] GNCBLEL2CAPConnection data to be sent: %@", [packet description]);
+    if (_verboseLoggingEnabled) {
+      GTMLoggerDebug(@"[NEARBY] GNCBLEL2CAPConnection data to be sent: %@", [packet description]);
+    }
     [_stream sendData:packet
         completionBlock:^(BOOL result) {
           dispatch_async(_callbackQueue, ^{
@@ -104,45 +111,33 @@ static NSData *PrefixLengthData(NSData *data) {
 #pragma mark GNCBLEL2CAPStreamDelegate
 
 - (void)stream:(GNCBLEL2CAPStream *)stream didReceiveData:(NSData *)data {
-  GTMLoggerDebug(@"[NEARBY] BLEL2CAPConnection didReceiveData, data: %@", [data description]);
-
-  NSData *realData = [self extractRealDataFromData:data];
-  if (realData == nil) {
+  if (_verboseLoggingEnabled) {
+    GTMLoggerDebug(@"[NEARBY] BLEL2CAPConnection didReceiveData, data: %@, length: %lu",
+                   [data debugDescription], data.length);
+  }
+  if (!data.length) {
     return;
   }
 
-  // Validate the L2CAP packet.
-  // TODO: b/399815436 - Refactor the validation logic to connections layer.
-  if (_incomingConnection) {
-    if (!_handledIncomingConnectionL2CAPPacket) {
-      [self handleIncomingConnectionL2CAPPacketFromData:realData];
-      return;
-    }
-    if (!_handledReceivedBLEIntroPacket) {
-      [self handleBLEIntroPacketFromData:realData];
-      return;
-    }
-  } else {
-    if (!_handledOutgoingConnectionL2CAPPacket) {
-      [self handleOutgoingConnectionL2CAPPacketFromData:realData];
-      return;
-    }
-  }
-
-  // Extract the service ID prefix from each data packet and validate it.
-  NSUInteger prefixLength = _serviceIDHash.length;
-  if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
-    GTMLoggerInfo(@"[NEARBY]: Received wrong data packet and discarded");
-    return;
-  }
-
+  __weak __typeof__(self) weakSelf = self;
   dispatch_async(_selfQueue, ^{
-    if (_connectionHandlers.payloadHandler) {
-      dispatch_async(_callbackQueue, ^{
-        _connectionHandlers.payloadHandler([NSData
-            dataWithData:[realData subdataWithRange:NSMakeRange(prefixLength,
-                                                                realData.length - prefixLength)]]);
-      });
+    __typeof__(self) strongSelf = weakSelf;
+    if (!strongSelf) {
+      return;
+    }
+    [strongSelf->_undeliveredData appendData:data];
+
+    while (strongSelf->_undeliveredData.length) {
+      NSUInteger bytesProcessed = [self processReceivedPacket];
+      if (bytesProcessed == 0) {
+        // Don't have a full packet yet, wait for more data from device.
+        break;
+      }
+      // Clear processed data.
+      strongSelf->_expectedDataLength = 0;
+      [strongSelf->_undeliveredData replaceBytesInRange:NSMakeRange(0, bytesProcessed)
+                                              withBytes:nil
+                                                 length:0];
     }
   });
 }
@@ -159,20 +154,79 @@ static NSData *PrefixLengthData(NSData *data) {
 
 #pragma mark Private
 
+- (NSUInteger)processReceivedPacket {
+  dispatch_assert_queue(_selfQueue);
+
+  NSUInteger bytesProcessed = 0;
+  NSData *realData = [self extractRealDataFromData:_undeliveredData];
+  if (!realData) {
+    return bytesProcessed;
+  }
+  bytesProcessed = realData.length + kL2CAPPacketLength;
+
+  // Validate the L2CAP packet.
+  // TODO: b/399815436 - Refactor the validation logic to connections layer.
+  if (_incomingConnection) {
+    if (!_handledIncomingConnectionL2CAPPacket) {
+      [self handleIncomingConnectionL2CAPPacketFromData:realData];
+      return bytesProcessed;
+    }
+    if (!_handledReceivedBLEIntroPacket) {
+      [self handleBLEIntroPacketFromData:realData];
+      return bytesProcessed;
+    }
+  } else {
+    if (!_handledOutgoingConnectionL2CAPPacket) {
+      [self handleOutgoingConnectionL2CAPPacketFromData:realData];
+      return bytesProcessed;
+    }
+  }
+
+  // Extract the service ID prefix from each data packet and validate it.
+  NSUInteger prefixLength = _serviceIDHash.length;
+  if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
+    GTMLoggerError(@"[NEARBY]: Received wrong data packet and discarded");
+    return bytesProcessed;
+  }
+
+  if (_connectionHandlers.payloadHandler) {
+    dispatch_async(_callbackQueue, ^{
+      _connectionHandlers.payloadHandler([NSData
+          dataWithData:[realData subdataWithRange:NSMakeRange(prefixLength,
+                                                              realData.length - prefixLength)]]);
+    });
+  }
+  return bytesProcessed;
+}
+
+/// Checks whether |data| at least has length |_expectedDataLength| and returns the real data;
+/// Returns nil in case it has not enough data.
 - (NSData *_Nullable)extractRealDataFromData:(NSData *)data {
-  if (data.length < kL2CAPPacketLength) {
-    GTMLoggerError(@"[NEARBY] Packet length mismatch. Expected: > %d, Actual: %lu",
-                   kL2CAPPacketLength, data.length);
-    return nil;
+  // Store the expected data length if it is not set yet.
+  if (!_expectedDataLength) {
+    if (data.length < kL2CAPPacketLength) {
+      GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: > %d, Actual: %lu",
+                     kL2CAPPacketLength, data.length);
+      return nil;
+    }
+    _expectedDataLength = CFSwapInt32BigToHost(
+        *(int *)([[data subdataWithRange:NSMakeRange(0, kL2CAPPacketLength)] bytes]));
   }
-  int realDataLength = CFSwapInt32BigToHost(
-      *(int *)([[data subdataWithRange:NSMakeRange(0, kL2CAPPacketLength)] bytes]));
-  if (realDataLength != (data.length - kL2CAPPacketLength)) {
-    GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: %d, Actual: %lu", realDataLength,
-                   data.length - kL2CAPPacketLength);
+  NSUInteger realDataLength = data.length - kL2CAPPacketLength;
+  if (realDataLength < _expectedDataLength) {
+    GTMLoggerError(@"[NEARBY] Insufficient data. Expected: %lu, Actual: %lu", _expectedDataLength,
+                   realDataLength);
     return nil;
+  } else if (realDataLength == _expectedDataLength) {
+    return [data subdataWithRange:NSMakeRange(kL2CAPPacketLength, realDataLength)];
+  } else {
+    // This is a case where the data length is larger than the expected length.
+    // The first |_expectedDataLength| bytes are copied and used as the actual data. The
+    // remaining bytes will be stored in _undeliveredData for future use.
+    GTMLoggerInfo(@"[NEARBY] Data length mismatch. Expected: %lu, Actual: %lu", _expectedDataLength,
+                  realDataLength);
+    return [data subdataWithRange:NSMakeRange(kL2CAPPacketLength, _expectedDataLength)];
   }
-  return [data subdataWithRange:NSMakeRange(kL2CAPPacketLength, data.length - kL2CAPPacketLength)];
 }
 
 - (void)handleIncomingConnectionL2CAPPacketFromData:(NSData *)data {
@@ -182,17 +236,11 @@ static NSData *PrefixLengthData(NSData *data) {
   }
   switch (l2capPacket.command) {
     case GNCMBLEL2CAPCommandRequestDataConnection: {
-      NSData *packet = PrefixLengthData(
-          GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommandResponseDataConnectionReady, nil));
-      __weak __typeof__(self) weakSelf = self;
       dispatch_async(_selfQueue, ^{
-        __typeof__(self) strongSelf = weakSelf;
-        if (!strongSelf) {
-          return;
-        }
-        [strongSelf->_stream sendData:packet
-                      completionBlock:^(BOOL result){
-                      }];
+        [_stream sendData:PrefixLengthData(GNCMGenerateBLEL2CAPPacket(
+                              GNCMBLEL2CAPCommandResponseDataConnectionReady, nil))
+            completionBlock:^(BOOL result){
+            }];
       });
       _handledReceivedL2CAPRequestDataConnectionPacket = YES;
     } break;
@@ -216,16 +264,10 @@ static NSData *PrefixLengthData(NSData *data) {
   switch (l2capPacket.command) {
     case GNCMBLEL2CAPCommandResponseDataConnectionReady: {
       _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
-      NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
-      __weak __typeof__(self) weakSelf = self;
       dispatch_async(_selfQueue, ^{
-        __strong __typeof__(weakSelf) strongSelf = weakSelf;
-        if (!strongSelf) {
-          return;
-        }
-        [strongSelf->_stream sendData:introData
-                      completionBlock:^(BOOL result){
-                      }];
+        [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash))
+            completionBlock:^(BOOL result){
+            }];
       });
     } break;
     case GNCMBLEL2CAPCommandRequestAdvertisement:
