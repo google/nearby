@@ -49,7 +49,7 @@ class WebRtcSignalingMessenger {
 class WebRtcMedium {
  public:
   using PeerConnectionCallback = absl::AnyInvocable<void(
-      rtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
+      webrtc::scoped_refptr<webrtc::PeerConnectionInterface>)>;
 
   virtual ~WebRtcMedium() = default;
 

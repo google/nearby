@@ -756,7 +756,7 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
           }},
       },
       {
-          .adapter_type_changed_cb = {[this](rtc::AdapterType adapter_type) {
+          .adapter_type_changed_cb = {[this](webrtc::AdapterType adapter_type) {
             OffloadFromThread("rtc-adapter-type-changed",
                               [this, adapter_type]() {
                                 if (FeatureFlags::GetInstance()
@@ -770,13 +770,13 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
       *medium_);
 }
 
-void WebRtc::AdapterTypeChangedHandler(rtc::AdapterType adapter_type) {
+void WebRtc::AdapterTypeChangedHandler(webrtc::AdapterType adapter_type) {
   MutexLock lock(&mutex_);
-  is_using_cellular_ = adapter_type == rtc::ADAPTER_TYPE_CELLULAR ||
-                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_2G ||
-                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_3G ||
-                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_4G ||
-                       adapter_type == rtc::ADAPTER_TYPE_CELLULAR_5G;
+  is_using_cellular_ = adapter_type == webrtc::ADAPTER_TYPE_CELLULAR ||
+                       adapter_type == webrtc::ADAPTER_TYPE_CELLULAR_2G ||
+                       adapter_type == webrtc::ADAPTER_TYPE_CELLULAR_3G ||
+                       adapter_type == webrtc::ADAPTER_TYPE_CELLULAR_4G ||
+                       adapter_type == webrtc::ADAPTER_TYPE_CELLULAR_5G;
 }
 
 void WebRtc::RemoveConnectionFlow(const WebrtcPeerId& remote_peer_id) {

@@ -80,7 +80,7 @@ void WebRtcMedium::CreatePeerConnection(
   rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
   webrtc::PeerConnectionDependencies dependencies(observer);
 
-  std::unique_ptr<rtc::Thread> signaling_thread = rtc::Thread::Create();
+  std::unique_ptr<webrtc::Thread> signaling_thread = webrtc::Thread::Create();
   signaling_thread->SetName("signaling_thread", nullptr);
   RTC_CHECK(signaling_thread->Start()) << "Failed to start thread";
 
@@ -89,7 +89,7 @@ void WebRtcMedium::CreatePeerConnection(
       webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
-  rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
+  webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory = webrtc::CreateModularPeerConnectionFactory(
           std::move(factory_dependencies));
   RTC_CHECK(peer_connection_factory != nullptr)

@@ -34,8 +34,8 @@ class MockPeerConnectionObserver : public webrtc::PeerConnectionObserver {
   void OnSignalingChange(
       webrtc::PeerConnectionInterface::SignalingState new_state) override {}
 
-  void OnDataChannel(
-      rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) override {}
+  void OnDataChannel(webrtc::scoped_refptr<webrtc::DataChannelInterface>
+                         data_channel) override {}
 
   void OnIceGatheringChange(
       webrtc::PeerConnectionInterface::IceGatheringState new_state) override {}
@@ -64,7 +64,7 @@ TEST(WebrtcTest, CreatePeerConnectionSucceeds) {
   WebRtcMedium medium;
   medium.CreatePeerConnection(
       std::nullopt, observer.get(),
-      [](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
+      [](webrtc::scoped_refptr<webrtc::PeerConnectionInterface>
              peer_connection) mutable {
         if (!peer_connection) {
           FAIL() << "Peer connection should have been non-null";

@@ -187,8 +187,8 @@ void ConnectionFlow::CreateOfferOnSignalingThread(
   CreateSocketFromDataChannel(result.MoveValue());
 
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
-      new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
+  webrtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
+      new webrtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
           this, success_future, State::kCreatingOffer,
           State::kWaitingForAnswer));
   pc->CreateOffer(observer.get(), options);
@@ -218,8 +218,8 @@ void ConnectionFlow::CreateAnswerOnSignalingThread(
     return;
   }
   webrtc::PeerConnectionInterface::RTCOfferAnswerOptions options;
-  rtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
-      new rtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
+  webrtc::scoped_refptr<CreateSessionDescriptionObserverImpl> observer(
+      new webrtc::RefCountedObject<CreateSessionDescriptionObserverImpl>(
           this, success_future, State::kCreatingAnswer,
           State::kWaitingToConnect));
   auto pc = GetPeerConnection();
@@ -230,8 +230,8 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   CHECK(!IsRunningOnSignalingThread());
   if (!sdp.IsValid()) return false;
 
-  rtc::scoped_refptr<SetLocalDescriptionObserver> observer(
-      new rtc::RefCountedObject<SetLocalDescriptionObserver>());
+  webrtc::scoped_refptr<SetLocalDescriptionObserver> observer(
+      new webrtc::RefCountedObject<SetLocalDescriptionObserver>());
 
   if (!RunOnSignalingThread([this, observer, sdp = std::move(sdp)]() mutable {
         if (state_ == State::kEnded) {
@@ -262,8 +262,8 @@ bool ConnectionFlow::SetRemoteSessionDescription(SessionDescriptionWrapper sdp,
                                                  State exit_state) {
   if (!sdp.IsValid()) return false;
 
-  rtc::scoped_refptr<SetRemoteDescriptionObserver> observer(
-      new rtc::RefCountedObject<SetRemoteDescriptionObserver>());
+  webrtc::scoped_refptr<SetRemoteDescriptionObserver> observer(
+      new webrtc::RefCountedObject<SetRemoteDescriptionObserver>());
 
   if (!RunOnSignalingThread([this, observer, sdp = std::move(sdp),
                              expected_entry_state, exit_state]() mutable {
@@ -373,9 +373,9 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
   // to access, but it is not safe to access ConnectionFlow member variables
   // unless the Future::Set() returns true.
   webrtc_medium.CreatePeerConnection(
-      this,
-      [this, success_future](rtc::scoped_refptr<webrtc::PeerConnectionInterface>
-                                 peer_connection) mutable {
+      this, [this, success_future](
+                webrtc::scoped_refptr<webrtc::PeerConnectionInterface>
+                    peer_connection) mutable {
         if (!peer_connection) {
           success_future.Set(false);
           return;
@@ -415,7 +415,7 @@ void ConnectionFlow::OnSignalingStable() {
 }
 
 void ConnectionFlow::CreateSocketFromDataChannel(
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+    webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   NEARBY_LOGS(INFO) << "Creating data channel socket";
   auto socket =
       std::make_unique<WebRtcSocket>("WebRtcSocket", std::move(data_channel));
@@ -455,7 +455,7 @@ void ConnectionFlow::OnSignalingChange(
 }
 
 void ConnectionFlow::OnDataChannel(
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
+    webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel) {
   NEARBY_LOGS(INFO) << "OnDataChannel";
   CHECK(IsRunningOnSignalingThread());
   CreateSocketFromDataChannel(std::move(data_channel));
@@ -486,7 +486,7 @@ void ConnectionFlow::OnRenegotiationNeeded() {
 }
 
 void ConnectionFlow::OnIceSelectedCandidatePairChanged(
-    const cricket::CandidatePairChangeEvent& event) {
+    const webrtc::CandidatePairChangeEvent& event) {
   NEARBY_LOGS(INFO) << "OnIceSelectedCandidatePairChanged";
   CHECK(IsRunningOnSignalingThread());
   // TODO(edwinwu) - Implement the unit test for this. We should be able to get
@@ -546,29 +546,28 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
   }
   // We are off signaling thread, so we can't use peer connection's methods
   // but we can access the signaling thread handle.
-  pc->signaling_thread()->PostTask(
-      [can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
-       task = std::move(runnable)]() mutable {
-        // Don't run the task if the weak_ptr is no longer valid.
-        // shared_ptr |can_run_tasks_| is destroyed on the same thread
-        // (signaling thread). This guarantees that if the weak_ptr is valid
-        // when this task starts, it will stay valid until the task ends.
-        if (!can_run_tasks.lock()) {
-          NEARBY_LOGS(INFO)
-              << "Peer connection already closed. Cannot run tasks.";
-          return;
-        }
-        task();
-      });
+  pc->signaling_thread()->PostTask([can_run_tasks =
+                                        std::weak_ptr<void>(can_run_tasks_),
+                                    task = std::move(runnable)]() mutable {
+    // Don't run the task if the weak_ptr is no longer valid.
+    // shared_ptr |can_run_tasks_| is destroyed on the same thread
+    // (signaling thread). This guarantees that if the weak_ptr is valid
+    // when this task starts, it will stay valid until the task ends.
+    if (!can_run_tasks.lock()) {
+      NEARBY_LOGS(INFO) << "Peer connection already closed. Cannot run tasks.";
+      return;
+    }
+    task();
+  });
   return true;
 }
 
 bool ConnectionFlow::IsRunningOnSignalingThread() {
   return signaling_thread_for_dcheck_only_ != nullptr &&
-         signaling_thread_for_dcheck_only_ == rtc::Thread::Current();
+         signaling_thread_for_dcheck_only_ == webrtc::Thread::Current();
 }
 
-rtc::scoped_refptr<webrtc::PeerConnectionInterface>
+webrtc::scoped_refptr<webrtc::PeerConnectionInterface>
 ConnectionFlow::GetPeerConnection() {
   // We must use a mutex to ensure that peer connection is
   // fully initialized.
@@ -578,7 +577,7 @@ ConnectionFlow::GetPeerConnection() {
   return peer_connection_;
 }
 
-rtc::scoped_refptr<webrtc::PeerConnectionInterface>
+webrtc::scoped_refptr<webrtc::PeerConnectionInterface>
 ConnectionFlow::GetAndResetPeerConnection() {
   MutexLock lock(&mutex_);
   return std::move(peer_connection_);

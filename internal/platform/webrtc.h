@@ -92,7 +92,7 @@ class WebRtcMedium {
             .GetFlags()
             .support_web_rtc_non_cellular_medium && non_cellular_) {
       std::optional<webrtc::PeerConnectionFactoryInterface::Options> options;
-      options->network_ignore_mask |= rtc::ADAPTER_TYPE_CELLULAR;
+      options->network_ignore_mask |= webrtc::ADAPTER_TYPE_CELLULAR;
       impl_->CreatePeerConnection(options, observer, std::move(callback));
     } else {
       impl_->CreatePeerConnection(observer, std::move(callback));
