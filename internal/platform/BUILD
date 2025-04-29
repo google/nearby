@@ -348,6 +348,21 @@ cc_library(
 )
 
 cc_library(
+    name = "mac_address",
+    srcs = ["mac_address.cc"],
+    hdrs = ["mac_address.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//:__subpackages__",
+    ],
+    deps = [
+        ":logging",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "test_util",
     testonly = True,
     srcs = [
@@ -569,4 +584,14 @@ cc_test(
             "//internal/platform/implementation/g3",
         ],
     }),
+)
+
+cc_test(
+    name = "mac_address_test",
+    srcs = ["mac_address_test.cc"],
+    deps = [
+        ":mac_address",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
 )

@@ -524,6 +524,7 @@ let package = Package(
         "internal/platform/bluetooth_utils_test.cc",
         "internal/platform/credential_storage_impl_test.cc",
         "internal/platform/input_stream_test.cc",
+        "internal/platform/mac_address_test.cc",
         "internal/platform/single_thread_executor_test.cc",
         "internal/platform/scheduled_executor_test.cc",
         "internal/platform/stream_reader_test.cc",

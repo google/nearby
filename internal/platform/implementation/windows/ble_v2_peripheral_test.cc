@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 
 namespace nearby {
 namespace windows {
@@ -26,36 +27,8 @@ TEST(BleV2Peripheral, Constructor) {
 
   EXPECT_TRUE(ble_peripheral);
   EXPECT_TRUE(ble_peripheral.Ok());
-  EXPECT_NE(ble_peripheral.GetUniqueId(), 0);
+  EXPECT_EQ(ble_peripheral.GetUniqueId(), 0xf1f2f3f4f5f6);
   EXPECT_EQ(ble_peripheral.GetAddress(), kAddress);
-}
-
-TEST(BleV2Peripheral, SetMacAddress) {
-  BleV2Peripheral ble_peripheral("F1:F2:F3:F4:F5:F6");
-  EXPECT_TRUE(ble_peripheral.SetAddress("00:B0:D0:63:C2:26"));
-  EXPECT_FALSE(ble_peripheral.SetAddress("00:B0:D0:6T:C2:26"));
-  EXPECT_FALSE(ble_peripheral.SetAddress("00:B0:D0:63:C2:2"));
-  EXPECT_FALSE(ble_peripheral.SetAddress("0:B0:D0:63:C2:203"));
-  EXPECT_FALSE(ble_peripheral.SetAddress("0:B0:D0:6P:C2:203"));
-}
-
-TEST(BleV2Peripheral, SetAndGetMacAddress) {
-  constexpr absl::string_view kChangedAddress = "00:B0:D0:63:C2:26";
-  BleV2Peripheral ble_peripheral("F1:F2:F3:F4:F5:F6");
-
-  EXPECT_TRUE(ble_peripheral.SetAddress(kChangedAddress));
-  EXPECT_EQ(ble_peripheral.GetAddress(), kChangedAddress);
-}
-
-TEST(BleV2Peripheral, SetAddressDoesNotChangeUniqueId) {
-  constexpr absl::string_view kChangedAddress = "00:B0:D0:63:C2:26";
-  BleV2Peripheral ble_peripheral("F1:F2:F3:F4:F5:F6");
-  BleV2Peripheral::UniqueId unique_id = ble_peripheral.GetUniqueId();
-
-  EXPECT_NE(unique_id, 0);
-  EXPECT_TRUE(ble_peripheral.SetAddress(kChangedAddress));
-  EXPECT_EQ(ble_peripheral.GetAddress(), kChangedAddress);
-  EXPECT_EQ(ble_peripheral.GetUniqueId(), unique_id);
 }
 
 TEST(BleV2Peripheral, ConstructFromBadAddress) {

@@ -251,6 +251,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/flags:platform_flags",

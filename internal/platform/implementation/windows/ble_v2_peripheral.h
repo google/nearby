@@ -19,6 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace windows {
@@ -31,21 +32,17 @@ class BleV2Peripheral : public api::ble_v2::BlePeripheral {
   explicit BleV2Peripheral(absl::string_view address);
   ~BleV2Peripheral() override = default;
 
-  // Returns the MAC address of the peripheral. The format is in
+  // Returns the MAC address of the peripheral or empty string. The format is in
   // "00:B0:D0:63:C2:26".
-  std::string GetAddress() const override { return address_; }
+  std::string GetAddress() const override;
 
-  UniqueId GetUniqueId() const override { return unique_id_; }
-  // Sets the MAC address of the peripheral. The address format must be in
-  // pattern of "00:B0:D0:63:C2:26".
-  bool SetAddress(absl::string_view address);
+  UniqueId GetUniqueId() const override { return mac_address_.address(); }
 
-  bool Ok() const { return unique_id_ != 0; }
+  bool Ok() const { return mac_address_.IsSet(); }
   explicit operator bool() const { return Ok(); }
 
  private:
-  std::string address_;
-  UniqueId unique_id_ = 0;
+  MacAddress mac_address_;
 };
 
 }  // namespace windows

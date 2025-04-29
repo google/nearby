@@ -13,51 +13,26 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/windows/ble_v2_peripheral.h"
-
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace windows {
-namespace {
-constexpr int kMacAddressLength = 17;
-}
 
 BleV2Peripheral::BleV2Peripheral(absl::string_view address) {
-  if (SetAddress(address)) {
-    unique_id_ = static_cast<UniqueId>(BluetoothUtils::ToNumber(address));
+  if (!MacAddress::FromString(address, mac_address_)) {
+    LOG(WARNING) << "Create BleV2Peripheral with invalid MAC: " << address;
   }
 }
 
-bool BleV2Peripheral::SetAddress(absl::string_view address) {
-  // The address must be in format "00:B0:D0:63:C2:26".
-  if (address.size() != kMacAddressLength) {
-    LOG(ERROR) << ": Invalid MAC address length.";
-    return false;
+std::string BleV2Peripheral::GetAddress() const {
+  if (mac_address_.IsSet()) {
+    return mac_address_.ToString();
   }
-
-  for (int i = 0; i < kMacAddressLength; ++i) {
-    if ((i % 3) == 0 || (i % 3) == 1) {
-      if ((address[i] >= '0' && address[i] <= '9') ||
-          (address[i] >= 'a' && address[i] <= 'f') ||
-          (address[i] >= 'A' && address[i] <= 'F')) {
-        continue;
-      }
-    } else {
-      if (address[i] == ':') {
-        continue;
-      }
-    }
-
-    LOG(ERROR) << ": Invalid MAC address format.";
-    return false;
-  }
-
-  address_ = std::string(address);
-  return true;
+  return "";
 }
 
 }  // namespace windows
