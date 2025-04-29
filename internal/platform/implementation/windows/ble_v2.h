@@ -25,7 +25,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/cancellation_flag.h"
@@ -81,10 +80,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       api::ble_v2::BlePeripheral& remote_peripheral,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsExtendedAdvertisementsAvailable() override;
-
-  bool GetRemotePeripheral(const std::string& mac_address,
-                           GetRemotePeripheralCallback callback) override
-      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                            GetRemotePeripheralCallback callback) override

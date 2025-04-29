@@ -599,14 +599,6 @@ class BleMedium {
   // Requests if support extended advertisement.
   virtual bool IsExtendedAdvertisementsAvailable() = 0;
 
-  // Calls `callback` and returns true if `mac_address` is a valid BLE address.
-  // Otherwise, does not call the callback and returns false.
-  //
-  // This method is not available on Apple platforms and will always return
-  // false, ignoring the callback.
-  virtual bool GetRemotePeripheral(const std::string& mac_address,
-                                   GetRemotePeripheralCallback callback) = 0;
-
   // Calls `callback` and returns true if `id` refers to a known BLE peripheral.
   // Otherwise, does not call the callback and returns false.
   virtual bool GetRemotePeripheral(BlePeripheral::UniqueId id,

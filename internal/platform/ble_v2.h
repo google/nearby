@@ -588,10 +588,6 @@ class BleV2Medium final {
 
   bool IsValid() const { return impl_ != nullptr; }
 
-  // Returns a `BleV2Peripheral` with given mac address. `mac_address` is in
-  // canonical format.
-  BleV2Peripheral GetRemotePeripheral(const std::string& mac_address);
-
   api::ble_v2::BleMedium* GetImpl() const { return impl_.get(); }
   BluetoothAdapter& GetAdapter() { return adapter_; }
   void AddAlternateUuidForService(uint16_t uuid,

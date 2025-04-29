@@ -21,6 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -296,16 +297,6 @@ BleL2capSocket BleV2Medium::ConnectOverL2cap(
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
-}
-
-BleV2Peripheral BleV2Medium::GetRemotePeripheral(
-    const std::string& mac_address) {
-  BleV2Peripheral peripheral;
-  impl_->GetRemotePeripheral(mac_address,
-                             [&](api::ble_v2::BlePeripheral& device) {
-                               peripheral = BleV2Peripheral(*this, device);
-                             });
-  return peripheral;
 }
 
 absl::optional<std::string> BleV2Peripheral::GetAddress() const {
