@@ -29,8 +29,9 @@
 #if TARGET_OS_IOS
 // The maximum number of retries for connecting to the Hotspot.
 static const UInt8 kMaxRetryCount = 3;
-// Timeout after 10s for connection attempt
-static const UInt8 kConnectionTimeoutInSeconds = 10;
+// Timeout after 18s for connection attempt. From the stability test, connection take between 8-14s
+// on iOS
+static const UInt8 kConnectionTimeoutInSeconds = 18;
 #endif  // TARGET_OS_IOS
 
 // An arbitrary timeout that should be pretty lenient.
