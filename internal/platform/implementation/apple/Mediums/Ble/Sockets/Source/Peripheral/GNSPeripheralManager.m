@@ -480,11 +480,6 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   GNSPeripheralServiceManager *peripheralServiceManager =
       [_peripheralServiceManagers objectForKey:characteristic.service.UUID];
   [peripheralServiceManager central:central didUnsubscribeFromCharacteristic:characteristic];
-
-  // Restarting the peripheral manager after a disconnect. This is a workaround for b/31752176.
-  // Update: This problem persists in iOS 10 & 11.  Discussion: https://goo.gl/fdE19G
-  [self stop];
-  [self start];
 }
 
 - (void)peripheralManager:(CBPeripheralManager *)peripheral
