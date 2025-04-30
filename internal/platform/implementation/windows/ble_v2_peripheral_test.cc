@@ -16,6 +16,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace windows {
@@ -23,7 +24,9 @@ namespace {
 
 TEST(BleV2Peripheral, Constructor) {
   constexpr absl::string_view kAddress = "F1:F2:F3:F4:F5:F6";
-  BleV2Peripheral ble_peripheral(kAddress);
+  MacAddress address;
+  ASSERT_TRUE(MacAddress::FromString(kAddress, address));
+  BleV2Peripheral ble_peripheral(address);
 
   EXPECT_TRUE(ble_peripheral);
   EXPECT_TRUE(ble_peripheral.Ok());
@@ -32,7 +35,8 @@ TEST(BleV2Peripheral, Constructor) {
 }
 
 TEST(BleV2Peripheral, ConstructFromBadAddress) {
-  BleV2Peripheral ble_peripheral("G1:F2:F3:F4:F5:F6");
+  MacAddress address;
+  BleV2Peripheral ble_peripheral(address);
 
   EXPECT_FALSE(ble_peripheral);
   EXPECT_FALSE(ble_peripheral.Ok());

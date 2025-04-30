@@ -44,8 +44,8 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 
 typedef std::basic_string<TCHAR> tstring;
 
@@ -821,25 +821,32 @@ BluetoothAdapter::GetGenericBluetoothAdapterInstanceID() const {
 }
 
 // Returns BT MAC address assigned to this adapter.
-std::string BluetoothAdapter::GetMacAddress() const {
+MacAddress BluetoothAdapter::mac_address() const {
   if (windows_bluetooth_adapter_ == nullptr) {
     LOG(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
-    return "";
+    return MacAddress();
   }
+  MacAddress mac_address;
   try {
-    return uint64_to_mac_address_string(
-        windows_bluetooth_adapter_.BluetoothAddress());
+    MacAddress::FromUint64(
+            windows_bluetooth_adapter_.BluetoothAddress(), mac_address);
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": exception:" << exception.what();
-    return "";
   } catch (const winrt::hresult_error &ex) {
     LOG(ERROR) << __func__ << ": exception:" << ex.code() << ": "
                << winrt::to_string(ex.message());
-    return "";
   } catch (...) {
     LOG(ERROR) << __func__ << ": unknown error.";
+  }
+  return mac_address;
+}
+
+std::string BluetoothAdapter::GetMacAddress() const {
+  MacAddress address = mac_address();
+  if (!address.IsSet()) {
     return "";
   }
+  return address.ToString();
 }
 
 std::string BluetoothAdapter::GetNameFromRegistry(PHKEY hKey) const {

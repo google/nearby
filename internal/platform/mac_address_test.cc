@@ -15,6 +15,7 @@
 #include "internal/platform/mac_address.h"
 
 #include "gtest/gtest.h"
+#include "absl/hash/hash_testing.h"
 
 namespace nearby {
 namespace {
@@ -62,10 +63,18 @@ TEST(MacAddressTest, IsSetTrue) {
   EXPECT_TRUE(mac_address.IsSet());
 }
 
-
 TEST(MacAddressTest, IsSetFalse) {
   MacAddress mac_address;
   EXPECT_FALSE(mac_address.IsSet());
+}
+
+TEST(MacAddressTest, Hash) {
+  MacAddress addr1;
+  EXPECT_TRUE(MacAddress::FromUint64(0x00B0D063C226, addr1));
+  EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly({
+      MacAddress(),
+      addr1,
+  }));
 }
 
 }  // namespace

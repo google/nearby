@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -27,6 +28,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -84,18 +86,33 @@ struct BleAdvertisementData {
 class BlePeripheral {
  public:
   using UniqueId = std::uint64_t;
-  virtual ~BlePeripheral() = default;
+
+  static BlePeripheral Create(absl::string_view address = "",
+                              UniqueId unique_id = 0) {
+    return BlePeripheral(address, unique_id);
+  }
+
+  ~BlePeripheral() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getAddress()
   //
   // Returns the current address.
   //
   // This will always be an empty string on Apple platforms.
-  virtual std::string GetAddress() const = 0;
+  std::string GetAddress() const {return address_; }
 
   // Returns an immutable unique identifier. The identifier must not change when
   // the BLE address is rotated.
-  virtual UniqueId GetUniqueId() const = 0;
+  UniqueId GetUniqueId() const { return unique_id_; };
+
+  bool IsEmpty() const { return address_.empty() && unique_id_ == 0; }
+
+ private:
+  BlePeripheral(absl::string_view address, UniqueId unique_id)
+      : address_(std::string(address)), unique_id_(unique_id) {}
+
+  std::string address_;
+  UniqueId unique_id_;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic
@@ -428,7 +445,7 @@ class BleL2capServerSocket {
 // for all BLE and GATT related operations.
 class BleMedium {
  public:
-  using GetRemotePeripheralCallback = absl::AnyInvocable<void(BlePeripheral&)>;
+  using GetRemotePeripheralCallback = absl::AnyInvocable<void(BlePeripheral)>;
   virtual ~BleMedium() = default;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#startAdvertising(android.bluetooth.le.AdvertiseSettings,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseCallback)
@@ -473,9 +490,9 @@ class BleMedium {
   // The peripheral is owned by platform implementation and it should outlive
   // for the whole peripheral(device) connection life cycle.
   struct ScanCallback {
-    absl::AnyInvocable<void(BlePeripheral& peripheral,
+    absl::AnyInvocable<void(BlePeripheral peripheral,
                             BleAdvertisementData advertisement_data)>
-        advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
+        advertisement_found_cb = [](BlePeripheral, BleAdvertisementData) {};
   };
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#startScan(java.util.List%3Candroid.bluetooth.le.ScanFilter%3E,%20android.bluetooth.le.ScanSettings,%20android.bluetooth.le.ScanCallback)
@@ -523,11 +540,11 @@ class BleMedium {
   struct ScanningCallback {
     absl::AnyInvocable<void(absl::Status)> start_scanning_result =
         [](absl::Status) {};
-    absl::AnyInvocable<void(BlePeripheral& peripheral,
+    absl::AnyInvocable<void(BlePeripheral peripheral,
                             BleAdvertisementData advertisement_data)>
-        advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
-    absl::AnyInvocable<void(BlePeripheral& peripheral)> advertisement_lost_cb =
-        [](BlePeripheral&) {};
+        advertisement_found_cb = [](BlePeripheral, BleAdvertisementData) {};
+    absl::AnyInvocable<void(BlePeripheral peripheral)> advertisement_lost_cb =
+        [](BlePeripheral) {};
   };
 
   // Async interface for StartScanning.

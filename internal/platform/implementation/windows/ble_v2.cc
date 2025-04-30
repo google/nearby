@@ -46,12 +46,12 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_client.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
-#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/ble_v2_server_socket.h"
 #include "internal/platform/implementation/windows/ble_v2_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
@@ -72,6 +72,7 @@ using ::nearby::api::ble_v2::BleAdvertisementData;
 using ::nearby::api::ble_v2::BleServerSocket;
 using ::nearby::api::ble_v2::BleSocket;
 using ::nearby::api::ble_v2::GattClient;
+using ::nearby::api::ble_v2::BlePeripheral;
 using ::nearby::api::ble_v2::ServerGattConnectionCallback;
 using ::nearby::api::ble_v2::TxPowerLevel;
 using ::nearby::connections::mediums::BitSetImpl;
@@ -133,7 +134,7 @@ std::string TxPowerLevelToName(TxPowerLevel tx_power_level) {
 // Use the device MAC address as the advertisement hash so that we have a unique
 // advertisement header for each device.
 BleAdvertisementHeader CreateAdvertisementHeader(
-    const std::string& mac_address,
+    MacAddress mac_address,
     const std::vector<std::string>& service_ids) {
   BloomFilter bloom_filter(
       std::make_unique<BitSetImpl<
@@ -141,13 +142,15 @@ BleAdvertisementHeader CreateAdvertisementHeader(
   for (const auto& service_id : service_ids) {
     bloom_filter.Add(service_id);
   }
+  std::string mac_address_string = mac_address.ToString();
   return BleAdvertisementHeader(
       BleAdvertisementHeader::Version::kV2,
       /*support_extended_advertisement=*/false,
       /*num_slots=*/1, ByteArray(bloom_filter),
       /*advertisement_hash=*/
       connections::Utils::Sha256Hash(
-          mac_address, BleAdvertisementHeader::kAdvertisementHashByteLength),
+          mac_address_string,
+          BleAdvertisementHeader::kAdvertisementHashByteLength),
       /*psm=*/BleAdvertisementHeader::kDefaultPsmValue);
 }
 
@@ -593,9 +596,9 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
             << ", power:" << TxPowerLevelToName(tx_power_level);
 
   try {
+    // In windows, peripheral unique id is the same as the bluetooth address.
     BluetoothLEDevice ble_device =
-        BluetoothLEDevice::FromBluetoothAddressAsync(
-            mac_address_string_to_uint64(peripheral.GetAddress()))
+        BluetoothLEDevice::FromBluetoothAddressAsync(peripheral.GetUniqueId())
             .get();
 
     return std::make_unique<BleGattClient>(ble_device);
@@ -1112,8 +1115,12 @@ void BleV2Medium::AdvertisementReceivedHandler(
   // Advertisement Scan Response packet (containing Copresence UUID 0xFEF3 in
   // 0x16 Service Data) has been received in the handler
   BluetoothLEAdvertisement advertisement = args.Advertisement();
-  std::string bluetooth_address =
-      uint64_to_mac_address_string(args.BluetoothAddress());
+  MacAddress bluetooth_address;
+  if (!MacAddress::FromUint64(args.BluetoothAddress(), bluetooth_address)) {
+    LOG(ERROR) << "Invalid MAC address: 0x"
+               << absl::StrCat(absl::Hex(args.BluetoothAddress()));
+    return;
+  }
   bool has_primary_service_data = false;
   std::vector<std::string> alt_service_ids;
 
@@ -1142,20 +1149,15 @@ void BleV2Medium::AdvertisementReceivedHandler(
               << absl::BytesToHexString(advertisement_data.AsStringView())
               << "(" << advertisement_data.size() << ")";
 
-      BleV2Peripheral* peripheral_ptr = nullptr;
-      {
-        absl::MutexLock lock(&mutex_);
-        peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-        if (peripheral_ptr == nullptr) {
-          LOG(ERROR) << "No BLE peripheral with address: " << bluetooth_address;
-          return;
-        }
+      BlePeripheral peripheral = CreatePeripheral(bluetooth_address);
+      if (peripheral.IsEmpty()) {
+        return;
       }
-      LOG(INFO) << "BLE peripheral with address: " << bluetooth_address;
+      LOG(INFO) << "BLE peripheral with address: "
+                << bluetooth_address.ToString();
 
       // Received Advertisement packet
-      LOG(INFO) << "unconsumed_buffer_length: "
-                << static_cast<int>(unconsumed_buffer_length);
+      VLOG(1) << "unconsumed_buffer_length: " << unconsumed_buffer_length;
 
       api::ble_v2::BleAdvertisementData ble_advertisement_data;
       if (unconsumed_buffer_length <= 27) {
@@ -1167,7 +1169,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
       ble_advertisement_data.service_data[service_uuid_] = advertisement_data;
 
       has_primary_service_data = true;
-      scan_callback_.advertisement_found_cb(*peripheral_ptr,
+      scan_callback_.advertisement_found_cb(std::move(peripheral),
                                             ble_advertisement_data);
     } else {
       absl::MutexLock lock(&mutex_);
@@ -1180,24 +1182,20 @@ void BleV2Medium::AdvertisementReceivedHandler(
   }
   // Only process alternate service data if there is no primary service data.
   if (!has_primary_service_data && !alt_service_ids.empty()) {
-    BleV2Peripheral* peripheral_ptr = nullptr;
-    {
-      absl::MutexLock lock(&mutex_);
-      peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-      if (peripheral_ptr == nullptr) {
-        LOG(ERROR) << "No BLE peripheral with address: " << bluetooth_address;
-        return;
-      }
+    BlePeripheral peripheral = CreatePeripheral(bluetooth_address);
+    if (peripheral.IsEmpty()) {
+      return;
     }
-    LOG(INFO) << "Found BLE peripheral for with address: " << bluetooth_address
-              << " for services: " << absl::StrJoin(alt_service_ids, ",");
+    VLOG(1) << "Found BLE peripheral for with address: "
+            << bluetooth_address.ToString()
+            << " for services: " << absl::StrJoin(alt_service_ids, ",");
     // Create fake advertisement data.
     api::ble_v2::BleAdvertisementData ble_advertisement_data;
     ble_advertisement_data.is_extended_advertisement = false;
     BleAdvertisementHeader header =
         CreateAdvertisementHeader(bluetooth_address, alt_service_ids);
     ble_advertisement_data.service_data[service_uuid_] = ByteArray(header);
-    scan_callback_.advertisement_found_cb(*peripheral_ptr,
+    scan_callback_.advertisement_found_cb(std::move(peripheral),
                                           ble_advertisement_data);
   }
 }
@@ -1261,19 +1259,18 @@ void BleV2Medium::AdvertisementFoundHandler(
                   "corresponding data, skipping";
     return;
   }
-  // Save the BleV2Peripheral.
-  std::string bluetooth_address =
-      uint64_to_mac_address_string(args.BluetoothAddress());
-  BleV2Peripheral* peripheral_ptr = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-    if (peripheral_ptr == nullptr) {
-      LOG(ERROR) << "No BLE peripheral with address: " << bluetooth_address;
-      return;
-    }
+  // Save the BlePeripheral.
+  MacAddress bluetooth_address;
+  if (!MacAddress::FromUint64(args.BluetoothAddress(), bluetooth_address)) {
+    LOG(ERROR) << "Invalid MAC address: " << args.BluetoothAddress();
+    return;
   }
-  LOG(INFO) << "BLE peripheral with address: " << bluetooth_address;
+
+  BlePeripheral peripheral = CreatePeripheral(bluetooth_address);
+  if (peripheral.IsEmpty()) {
+    return;
+  }
+  VLOG(1) << "BLE peripheral with address: " << bluetooth_address.ToString();
 
   // Invokes callbacks that matches the UUID.
   for (auto service_uuid : service_uuid_list) {
@@ -1283,7 +1280,7 @@ void BleV2Medium::AdvertisementFoundHandler(
           service_uuid_to_session_map_.end()) {
         for (auto& id_session_pair :
              service_uuid_to_session_map_[service_uuid]) {
-          id_session_pair.second.advertisement_found_cb(*peripheral_ptr,
+          id_session_pair.second.advertisement_found_cb(std::move(peripheral),
                                                         ble_advertisement_data);
         }
       }
@@ -1293,14 +1290,14 @@ void BleV2Medium::AdvertisementFoundHandler(
 
 bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
                                       GetRemotePeripheralCallback callback) {
-  BleV2Peripheral* peripheral = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    peripheral = GetOrCreatePeripheral(mac_address);
+  MacAddress bluetooth_address;
+  if (!MacAddress::FromString(mac_address, bluetooth_address)) {
+    LOG(WARNING) << __func__ << ": Invalid MAC address: " << mac_address;
+    return false;
   }
-
-  if (peripheral != nullptr && peripheral->Ok()) {
-    callback(*peripheral);
+  BlePeripheral peripheral = CreatePeripheral(bluetooth_address);
+  if (!peripheral.IsEmpty()) {
+    callback(std::move(peripheral));
     return true;
   }
   return false;
@@ -1308,17 +1305,19 @@ bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
 
 bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                                       GetRemotePeripheralCallback callback) {
-  BleV2Peripheral* peripheral = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    peripheral = GetPeripheral(id);
+  MacAddress bluetooth_address;
+  if (!MacAddress::FromUint64(id, bluetooth_address)) {
+    LOG(WARNING) << __func__ << ": Invalid MAC address: 0x"
+                 << absl::StrCat(absl::Hex(id));
+    return false;
   }
+  BlePeripheral peripheral = CreatePeripheral(bluetooth_address);
 
-  if (peripheral == nullptr) {
+  if (peripheral.IsEmpty()) {
     LOG(WARNING) << __func__ << ": No matched peripheral device.";
     return false;
   }
-  callback(*peripheral);
+  callback(std::move(peripheral));
   return true;
 }
 
@@ -1334,54 +1333,12 @@ uint64_t BleV2Medium::GenerateSessionId() {
   return kFailedGenerateSessionId;
 }
 
-BleV2Peripheral* BleV2Medium::GetOrCreatePeripheral(absl::string_view address) {
-  auto it = std::find_if(
-      peripheral_map_.begin(), peripheral_map_.end(), [&](const auto& item) {
-        return item.second.peripheral->GetAddress() == address;
-      });
-  if (it != peripheral_map_.end()) {
-    it->second.last_access_time = absl::Now();
-    return it->second.peripheral.get();
+BlePeripheral BleV2Medium::CreatePeripheral(MacAddress address) {
+  if (!address.IsSet()) {
+    LOG(WARNING) << __func__ << "empty MAC address is not allowed.";
+    return BlePeripheral::Create();
   }
-  RemoveExpiredPeripherals();
-  PeripheralInfo peripheral_info{
-      .last_access_time = absl::Now(),
-      .peripheral = std::make_unique<BleV2Peripheral>(address),
-  };
-  BleV2Peripheral* peripheral = peripheral_info.peripheral.get();
-  if (!peripheral->Ok()) {
-    LOG(WARNING) << __func__ << "Invalid MAC address: " << address;
-    return nullptr;
-  }
-  LOG(INFO) << "New BLE peripheral with address: " << address;
-
-  peripheral_map_[peripheral->GetUniqueId()] = std::move(peripheral_info);
-  return peripheral;
-}
-
-BleV2Peripheral* BleV2Medium::GetPeripheral(BleV2Peripheral::UniqueId id) {
-  auto it = peripheral_map_.find(id);
-  if (it == peripheral_map_.end()) {
-    return nullptr;
-  }
-  it->second.last_access_time = absl::Now();
-  return it->second.peripheral.get();
-}
-
-void BleV2Medium::RemoveExpiredPeripherals() {
-  absl::Time now = absl::Now();
-  if (cleanup_time_ + kMaxPeripheralCleanupFrequency < now) {
-    return;
-  }
-  cleanup_time_ = now;
-  absl::Time cut_off_time = now - kPeripheralExpiryTime;
-  for (auto it = peripheral_map_.begin(); it != peripheral_map_.end();) {
-    if (it->second.last_access_time < cut_off_time) {
-      peripheral_map_.erase(it++);
-    } else {
-      ++it;
-    }
-  }
+  return BlePeripheral::Create(address.ToString(), address.address());
 }
 
 void BleV2Medium::AddAlternateUuidForService(uint16_t uuid,

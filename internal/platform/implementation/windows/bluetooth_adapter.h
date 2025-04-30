@@ -25,10 +25,12 @@
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Bluetooth.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Radios.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace windows {
@@ -82,6 +84,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
+
+  MacAddress mac_address() const;
 
   // Returns bluetooth device name from registry
   std::string GetNameFromRegistry(PHKEY hKey) const;

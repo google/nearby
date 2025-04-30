@@ -23,17 +23,15 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
-#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 
@@ -141,11 +139,11 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
    private:
     absl::Mutex mutex_;
-    bool initialized_ ABSL_GUARDED_BY(mutex_)= false;
-    ::winrt::Windows::Devices::Bluetooth::Advertisement::
+    bool initialized_ ABSL_GUARDED_BY(mutex_) = false;
+    winrt::Windows::Devices::Bluetooth::Advertisement::
         BluetoothLEAdvertisementWatcher watcher_ ABSL_GUARDED_BY(mutex_);
-    ::winrt::event_token watcher_token_ ABSL_GUARDED_BY(mutex_);
-    ::winrt::event_token advertisement_received_token_ ABSL_GUARDED_BY(mutex_);
+    winrt::event_token watcher_token_ ABSL_GUARDED_BY(mutex_);
+    winrt::event_token advertisement_received_token_ ABSL_GUARDED_BY(mutex_);
   };
 
   bool StartBleAdvertising(
@@ -184,14 +182,9 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                           BluetoothLEAdvertisementWatcherStoppedEventArgs args);
 
   uint64_t GenerateSessionId() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  // Returns nullptr if `address` is invalid.
-  BleV2Peripheral* GetOrCreatePeripheral(absl::string_view address)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  // Returns nullptr if `id` does not match a known peripheral.
-  BleV2Peripheral* GetPeripheral(BleV2Peripheral::UniqueId id)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  // Returns nullptr if `address` does not match a known peripheral.
+  api::ble_v2::BlePeripheral CreatePeripheral(MacAddress address);
 
-  void RemoveExpiredPeripherals() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   std::unique_ptr<BleV2Medium::AdvertisementWatcher> CreateBleWatcher(
       uint16_t service_uuid);
 
@@ -210,24 +203,16 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       service_uuid_to_session_map_ ABSL_GUARDED_BY(mutex_);
 
   // WinRT objects
-  ::winrt::Windows::Devices::Bluetooth::Advertisement::
+  winrt::Windows::Devices::Bluetooth::Advertisement::
       BluetoothLEAdvertisementPublisher publisher_ ABSL_GUARDED_BY(mutex_) =
           nullptr;
 
   bool is_ble_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
   bool is_gatt_publisher_started_ ABSL_GUARDED_BY(mutex_) = false;
 
-  ::winrt::event_token publisher_token_ ABSL_GUARDED_BY(mutex_);
+  winrt::event_token publisher_token_ ABSL_GUARDED_BY(mutex_);
 
   BleGattServer* ble_gatt_server_ = nullptr;
-  // Map to protect the pointer for BlePeripheral because
-  // DiscoveredPeripheralCallback only keeps the pointer to the object
-  struct PeripheralInfo {
-    absl::Time last_access_time;
-    std::unique_ptr<BleV2Peripheral> peripheral;
-  };
-  absl::flat_hash_map<BleV2Peripheral::UniqueId, PeripheralInfo> peripheral_map_
-      ABSL_GUARDED_BY(mutex_);
   absl::Time cleanup_time_ ABSL_GUARDED_BY(mutex_) = absl::Now();
   // Map of alternative BLE service UUID16s for a given Nearby service.
   // If a device does not support BLE extended advertisements, an alternate
