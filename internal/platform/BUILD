@@ -66,6 +66,7 @@ cc_library(
         "//connections:partners",
     ],
     deps = [
+        ":mac_address",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -351,7 +352,6 @@ cc_library(
     name = "mac_address",
     srcs = ["mac_address.cc"],
     hdrs = ["mac_address.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//:__subpackages__",
     ],

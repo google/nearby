@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/uuid.h"
@@ -33,7 +34,10 @@ namespace windows {
 
 using winrt::Windows::Foundation::IInspectable;
 
+ABSL_DEPRECATED("Use MacAddress class instead.")
 std::string uint64_to_mac_address_string(uint64_t bluetoothAddress);
+
+ABSL_DEPRECATED("Use MacAddress class instead.")
 uint64_t mac_address_string_to_uint64(absl::string_view mac_address);
 
 std::string ipaddr_4bytes_to_dotdecimal_string(absl::string_view ipaddr_4bytes);

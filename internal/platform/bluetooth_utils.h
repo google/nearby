@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 
@@ -30,22 +31,27 @@ class BluetoothUtils {
   // Converts a Bluetooth MAC address from byte array to String format. Returns
   // empty if input byte array is not of correct format.
   // e.g. {-84, 55, 67, -68, -87, 40} -> "AC:37:43:BC:A9:28".
+  ABSL_DEPRECATED("Use MacAddress class instead.")
   static std::string ToString(const ByteArray& bluetooth_mac_address);
 
   // Converts a Bluetooth MAC address from String format to byte array. Returns
   // empty if input string is not of correct format.
   // e.g. "AC:37:43:BC:A9:28" -> {-84, 55, 67, -68, -87, 40}.
+  ABSL_DEPRECATED("Use MacAddress class instead.")
   static ByteArray FromString(absl::string_view bluetooth_mac_address);
 
   // Converts a MAC address from binary to canonical format.
   // Example: 0xF1F2F3F4F5F6 -> "F1:F2:F3:F4:F5:F6"
+  ABSL_DEPRECATED("Use MacAddress class instead.")
   static std::string FromNumber(std::uint64_t address);
 
   // Converts a MAC address from canonical format to binary
   // Example: "F1:F2:F3:F4:F5:F6" ->0xF1F2F3F4F5F6
+  ABSL_DEPRECATED("Use MacAddress class instead.")
   static std::uint64_t ToNumber(absl::string_view address);
 
   // Checks if a Bluetooth MAC address is zero for every byte.
+  ABSL_DEPRECATED("Use MacAddress class instead.")
   static bool IsBluetoothMacAddressUnset(
       const ByteArray& bluetooth_mac_address);
 };

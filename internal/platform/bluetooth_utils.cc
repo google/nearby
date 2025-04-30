@@ -14,88 +14,79 @@
 
 #include "internal/platform/bluetooth_utils.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <string>
 
-#include "absl/strings/ascii.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
+namespace {
+
+uint64_t ByteArrayToUint64(const ByteArray& byte_array) {
+  if (byte_array.size() != BluetoothUtils::kBluetoothMacAddressLength) {
+    return 0;
+  }
+  uint64_t result = 0;
+  for (int i = 0; i < byte_array.size(); i++) {
+    result <<= 8;
+    result |= ((static_cast<uint64_t>(byte_array.data()[i])) & 0xFF);
+  }
+  return result;
+}
+
+ByteArray Uint64AddressToByteArray(uint64_t address) {
+  ByteArray address_bytes(BluetoothUtils::kBluetoothMacAddressLength);
+  address_bytes.data()[0] = (address >> 40) & 0xFF;
+  address_bytes.data()[1] = (address >> 32) & 0xFF;
+  address_bytes.data()[2] = (address >> 24) & 0xFF;
+  address_bytes.data()[3] = (address >> 16) & 0xFF;
+  address_bytes.data()[4] = (address >> 8) & 0xFF;
+  address_bytes.data()[5] = address & 0xFF;
+  return address_bytes;
+}
+
+}  // namespace
 
 std::string BluetoothUtils::ToString(const ByteArray& bluetooth_mac_address) {
-  std::string colon_delimited_string;
-
-  if (bluetooth_mac_address.size() != kBluetoothMacAddressLength)
-    return colon_delimited_string;
-
-  if (IsBluetoothMacAddressUnset(bluetooth_mac_address))
-    return colon_delimited_string;
-
-  for (auto byte : std::string(bluetooth_mac_address)) {
-    if (!colon_delimited_string.empty())
-      absl::StrAppend(&colon_delimited_string, ":");
-    absl::StrAppend(&colon_delimited_string, absl::StrFormat("%02X", byte));
+  MacAddress mac_address;
+  if (!MacAddress::FromUint64(ByteArrayToUint64(bluetooth_mac_address),
+                              mac_address) ||
+      !mac_address.IsSet()) {
+    return "";
   }
-  return colon_delimited_string;
+  return mac_address.ToString();
 }
 
 ByteArray BluetoothUtils::FromString(absl::string_view bluetooth_mac_address) {
-  std::string bt_mac_address(bluetooth_mac_address);
-
-  bt_mac_address.erase(
-      std::remove(bt_mac_address.begin(), bt_mac_address.end(), ':'),
-      bt_mac_address.end());
-
-  if (bt_mac_address.length() != kBluetoothMacAddressLength * 2 ||
-      !std::all_of(bt_mac_address.begin(), bt_mac_address.end(),
-                   absl::ascii_isxdigit)) {
+  MacAddress mac_address;
+  if (!MacAddress::FromString(bluetooth_mac_address, mac_address) ||
+      !mac_address.IsSet()) {
     return ByteArray();
   }
-  auto bt_mac_address_string(absl::HexStringToBytes(bt_mac_address));
-  auto bt_mac_address_bytes =
-      ByteArray(bt_mac_address_string.data(), bt_mac_address_string.size());
-  if (IsBluetoothMacAddressUnset(bt_mac_address_bytes)) {
-    return ByteArray();
-  }
-  return bt_mac_address_bytes;
+  return Uint64AddressToByteArray(mac_address.address());
 }
 
 bool BluetoothUtils::IsBluetoothMacAddressUnset(
     const ByteArray& bluetooth_mac_address_bytes) {
-  for (int i = 0; i < bluetooth_mac_address_bytes.size(); i++) {
-    if (bluetooth_mac_address_bytes.data()[i] != 0) {
-      return false;
-    }
-  }
-  return true;
+  return ByteArrayToUint64(bluetooth_mac_address_bytes) == 0;
 }
 
 std::string BluetoothUtils::FromNumber(std::uint64_t address) {
-  // Gets byte `index` from `address`.
-  auto b = [&](int index) {
-    return (std::uint8_t)(address >> (56 - 8 * index));
-  };
-  return absl::StrFormat("%02X:%02X:%02X:%02X:%02X:%02X", b(2), b(3), b(4),
-                         b(5), b(6), b(7));
+  MacAddress mac_address;
+  if (!MacAddress::FromUint64(address, mac_address) || !mac_address.IsSet()) {
+    return "";
+  }
+  return mac_address.ToString();
 }
 
 std::uint64_t BluetoothUtils::ToNumber(absl::string_view address) {
-  ByteArray binary = FromString(address);
-  if (binary.size() != kBluetoothMacAddressLength) {
+  MacAddress mac_address;
+  if (!MacAddress::FromString(address, mac_address)) {
     return 0;
   }
-  std::uint64_t result = 0;
-  for (char ch : binary.AsStringView()) {
-    result <<= 8;
-    result |= static_cast<uint8_t>(ch);
-  }
-
-  return result;
+  return mac_address.address();
 }
 
 }  // namespace nearby
