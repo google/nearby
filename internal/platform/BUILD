@@ -356,7 +356,6 @@ cc_library(
         "//:__subpackages__",
     ],
     deps = [
-        ":logging",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
@@ -592,6 +591,7 @@ cc_test(
     deps = [
         ":mac_address",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/hash:hash_testing",
         "@com_google_googletest//:gtest_main",
     ],
 )

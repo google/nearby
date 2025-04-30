@@ -16,8 +16,8 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_PERIPHERAL_H_
 
 #include <string>
+#include <utility>
 
-#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/mac_address.h"
 
@@ -29,7 +29,8 @@ namespace windows {
 class BleV2Peripheral : public api::ble_v2::BlePeripheral {
  public:
   using UniqueId = api::ble_v2::BlePeripheral::UniqueId;
-  explicit BleV2Peripheral(absl::string_view address);
+  explicit BleV2Peripheral(MacAddress address)
+      : mac_address_(std::move(address)) {}
   ~BleV2Peripheral() override = default;
 
   // Returns the MAC address of the peripheral or empty string. The format is in
@@ -42,7 +43,7 @@ class BleV2Peripheral : public api::ble_v2::BlePeripheral {
   explicit operator bool() const { return Ok(); }
 
  private:
-  MacAddress mac_address_;
+  const MacAddress mac_address_;
 };
 
 }  // namespace windows

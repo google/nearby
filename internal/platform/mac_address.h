@@ -46,6 +46,15 @@ class MacAddress {
   // Returns true if the MAC address is set.
   bool IsSet() const { return address_ != 0; }
 
+  // Hash function for absl containers.
+  template <typename H>
+  friend H AbslHashValue(H h, const MacAddress& addr) {
+    return H::combine(std::move(h), addr.address_);
+  }
+
+  friend auto operator<=>(const MacAddress& lhs,
+                          const MacAddress& rhs) = default;
+
  private:
   uint64_t address_ = 0;
 };
