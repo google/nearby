@@ -538,6 +538,8 @@ enum DeviceType {
   TABLET = 2;
   LAPTOP = 3;
   CAR = 4;
+  FOLDABLE = 5;
+  XR = 6;
 }
 
 // TODO(fdi): may eventually include windows, iOS, etc.
