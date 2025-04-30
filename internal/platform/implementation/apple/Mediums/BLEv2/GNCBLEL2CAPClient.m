@@ -18,10 +18,11 @@
 #import <Foundation/Foundation.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
 
-static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPClient";
+static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAPClient";
 
 @interface GNCBLEL2CAPClient () <GNCPeripheralDelegate>
 @end
@@ -29,10 +30,11 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
 @implementation GNCBLEL2CAPClient {
   dispatch_queue_t _queue;
   id<GNCPeripheral> _peripheral;
+  GNCOpenL2CAPStreamCompletionHandler _completionHandler;
   GNCRequestDisconnectionHandler _requestDisconnectionHandler;
 
-  // The L2CAP channel that is used to send and receive data.
   CBL2CAPChannel *_l2CAPChannel;
+  GNCBLEL2CAPStream *_l2CAPStream;
 }
 
 - (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
@@ -58,8 +60,11 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
   return self;
 };
 
-- (void)openL2CAPChannelWithPSM:(uint16_t)PSM {
-  [_peripheral openL2CAPChannelWithPSM:PSM];
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM
+              completionHandler:(GNCOpenL2CAPStreamCompletionHandler)completionHandler {
+  GTMLoggerInfo(@"[NEARBY] openL2CAPChannelWithPSM = %d", PSM);
+  _completionHandler = [completionHandler copy];
+  [_peripheral openL2CAPChannel:(CBL2CAPPSM)PSM];
 }
 
 - (void)disconnect {
@@ -70,16 +75,45 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
 
 #pragma mark - GNCPeripheralDelegate
 
-- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral didOpenL2CAPChannel:(CBL2CAPChannel *)channel
-                                                                  error:(NSError *)error {
+- (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
+    didOpenL2CAPChannel:(CBL2CAPChannel *)channel
+                  error:(NSError *)error {
   dispatch_assert_queue(_queue);
-  if (error) {
-    GTMLoggerError(@"[NEARBY] Failed to open L2CAP channel: %@", error);
+  GTMLoggerDebug(
+      @"[NEARBY] didOpenL2CAPChannel, channel: %@, inputStream: %@, outputStream: %@, error: %@",
+      channel, channel.inputStream, channel.outputStream, error);
+  // TODO: b/399815436 - channel.inputStream is null when doing testing. Refactor tests in the
+  // future.
+  if (error || (channel && (!channel.inputStream || !channel.outputStream))) {
+    if (_completionHandler) {
+      _completionHandler(nil, error);
+    }
     return;
   }
-  GTMLoggerInfo(@"[NEARBY] Opened L2CAP channel: %@", channel);
+
+  // Cleanup older references.
+  if (_l2CAPStream || _l2CAPChannel) {
+    // The watch may establish a new L2CAP socket connection while the old socket is still
+    // connected if sysproxy stopped for a reason other than Bluetooth disconnection. Closing the
+    // channel here ensures the controller and the client state is reset between the two
+    // connection sessions.
+    [self closeL2CAPChannel];
+  }
+
   _l2CAPChannel = channel;
-  // TODO: b/399815436 - Implement to wrap up l2cap channel.
+  __weak __typeof__(self) weakSelf = self;
+  _l2CAPStream = [[GNCBLEL2CAPStream alloc]
+      initWithClosedBlock:^{
+        __typeof__(self) strongSelf = weakSelf;
+        // Indicates the L2CAP socket is closed. Clean up the resources used for the old
+        // connection so that a new one can be established.
+        [strongSelf closeL2CAPChannel];
+      }
+              inputStream:_l2CAPChannel.inputStream
+             outputStream:_l2CAPChannel.outputStream];
+  if (_completionHandler) {
+    _completionHandler(_l2CAPStream, nil);
+  }
 }
 
 #pragma mark - CBPeripheralDelegate
@@ -87,9 +121,24 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.googlenearby.GNCBLEL2CAPC
 - (void)peripheral:(CBPeripheral *)peripheral
     didOpenL2CAPChannel:(CBL2CAPChannel *)channel
                   error:(NSError *)error {
-  if ([self respondsToSelector:@selector(gnc_peripheral:didOpenL2CAPChannel:error:)]) {
-    [self gnc_peripheral:peripheral didOpenL2CAPChannel:channel error:error];
-  }
+  dispatch_async(_queue, ^{
+    if ([self respondsToSelector:@selector(gnc_peripheral:didOpenL2CAPChannel:error:)]) {
+      [self gnc_peripheral:peripheral didOpenL2CAPChannel:channel error:error];
+    }
+  });
+}
+
+#pragma mark Private
+
+- (void)shutDown {
+  _peripheral = nil;
+  _peripheral.peripheralDelegate = nil;
+}
+
+- (void)closeL2CAPChannel {
+  [_l2CAPStream tearDown];
+  _l2CAPStream = nil;
+  _l2CAPChannel = nil;
 }
 
 @end

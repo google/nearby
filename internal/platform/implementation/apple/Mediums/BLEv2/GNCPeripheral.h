@@ -122,7 +122,7 @@ NS_ASSUME_NONNULL_BEGIN
  *
  * @param PSM The PSM value to use for the L2CAP channel.
  */
-- (void)openL2CAPChannelWithPSM:(uint16_t)PSM;
+- (void)openL2CAPChannel:(CBL2CAPPSM)PSM;
 
 @end
 

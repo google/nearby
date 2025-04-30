@@ -28,6 +28,7 @@ objc_library(
         "GNCBLEGATTClientTest.m",
         "GNCBLEGATTServer+Testing.h",
         "GNCBLEGATTServerTest.m",
+        "GNCBLEL2CAPClient+Testing.h",
         "GNCBLEL2CAPClientTest.m",
         "GNCBLEL2CAPConnectionTest.m",
         "GNCBLEL2CAPFakeInputOutputStream.h",

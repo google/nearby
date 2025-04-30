@@ -20,8 +20,8 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
@@ -221,7 +221,9 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   });
 }
 
-- (void)openL2CAPChannelWithPSM:(uint16_t)PSM peripheral:(id<GNCPeripheral>)remotePeripheral {
+- (void)openL2CAPChannelWithPSM:(uint16_t)psm
+                     peripheral:(id<GNCPeripheral>)remotePeripheral
+              completionHandler:(nullable GNCOpenL2CAPStreamCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
     if (!_l2capClient) {
       _l2capClient =
@@ -229,7 +231,16 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
                             requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
                             }];
     }
-    [_l2capClient openL2CAPChannelWithPSM:PSM];
+    [_l2capClient openL2CAPChannelWithPSM:psm
+                        completionHandler:^void(GNCBLEL2CAPStream *_Nullable stream,
+                                                NSError *_Nullable error) {
+                          if (!completionHandler) return;
+                          if (error) {
+                            completionHandler(nil, error);
+                          } else {
+                            completionHandler(stream, nil);
+                          }
+                        }];
   });
 }
 

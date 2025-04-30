@@ -14,9 +14,15 @@
 
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
+
 @protocol GNCPeripheral;
 
 NS_ASSUME_NONNULL_BEGIN
+
+/// Completion handler for opening an L2CAP stream.
+typedef void (^GNCOpenL2CAPStreamCompletionHandler)(GNCBLEL2CAPStream *_Nullable stream,
+                                                    NSError *_Nullable error);
 
 /**
  * A block to be invoked after a call to @c disconnect, requesting that the local connection to the
@@ -49,9 +55,11 @@ typedef void (^GNCRequestDisconnectionHandler)(id<GNCPeripheral> peripheral);
  * Opens a L2CAP channel with the @c PSM.
  *
  * @param PSM The PSM to use for opening the L2CAP channel.
+ * @param completionHandler Called on a private queue with the opened L2CAP stream if successfully
+ *                          opened or an error if one has occurred.
  */
-// TODO: b/399815436 - Add CompletionHandler for this method.
-- (void)openL2CAPChannelWithPSM:(uint16_t)PSM;
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM
+              completionHandler:(GNCOpenL2CAPStreamCompletionHandler)completionHandler;
 
 /** Cancels an active or pending local connection to a peripheral. */
 - (void)disconnect;

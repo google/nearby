@@ -15,8 +15,9 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
+// #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 
 @class GNCBLEGATTServer;
 @class GNCBLEGATTClient;
@@ -217,9 +218,12 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
  *
  * @param PSM The PSM to use for opening the L2CAP channel.
  * @param remotePeripheral The peripheral to which the L2CAP channel is being opened.
+ * @param completionHandler Called on a private queue with the opened L2CAP stream if successfully
+ *                          opened or an error if one has occurred.
  */
-// TODO: b/399815436 - Add CompletionHandler for this method.
-- (void)openL2CAPChannelWithPSM:(uint16_t)PSM peripheral:(id<GNCPeripheral>)remotePeripheral;
+- (void)openL2CAPChannelWithPSM:(uint16_t)PSM
+                     peripheral:(id<GNCPeripheral>)remotePeripheral
+              completionHandler:(nullable GNCOpenL2CAPStreamCompletionHandler)completionHandler;
 
 @end
 

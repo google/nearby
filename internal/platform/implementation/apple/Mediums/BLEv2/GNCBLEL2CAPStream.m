@@ -77,7 +77,6 @@ enum { READ_BUFFER_SIZE = 409600 };
                         inputStream:(NSInputStream *)inputStream
                        outputStream:(NSOutputStream *)outputStream {
   self = [super init];
-
   if (self) {
     _streamQueue = dispatch_queue_create("com.google.nearby.GNCBLEL2CAPStream",
                                          dispatch_queue_attr_make_with_qos_class(

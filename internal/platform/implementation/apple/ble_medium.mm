@@ -491,11 +491,30 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     return nullptr;
   }
 
-  // TODO: b/399815436 - Continue to add implementation for this method when BleL2capSocket is
-  // ready.
-  [medium_ openL2CAPChannelWithPSM:psm peripheral:non_empty_peripheral->GetPeripheral()];
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block std::unique_ptr<BleL2capSocket> socket;
+  std::string service_id_str = service_id;
+  [medium_ openL2CAPChannelWithPSM:psm
+                        peripheral:non_empty_peripheral->GetPeripheral()
+                 completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
+                   if (error) {
+                     dispatch_semaphore_signal(semaphore);
+                     return;
+                   }
+                   GNCBLEL2CAPConnection *connection =
+                       [GNCBLEL2CAPConnection connectionWithStream:stream
+                                                         serviceID:@(service_id_str.c_str())
+                                                incomingConnection:NO
+                                                     callbackQueue:dispatch_get_main_queue()];
+                   socket = std::make_unique<BleL2capSocket>(connection, non_empty_peripheral);
+                   dispatch_semaphore_signal(semaphore);
+                 }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (socket == nullptr) {
+    return nullptr;
+  }
 
-  return nullptr;
+  return std::move(socket);
 }
 
 bool BleMedium::IsExtendedAdvertisementsAvailable() {

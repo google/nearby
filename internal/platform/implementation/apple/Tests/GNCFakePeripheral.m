@@ -108,6 +108,19 @@ NS_ASSUME_NONNULL_BEGIN
   }];
 }
 
+- (void)openL2CAPChannel:(CBL2CAPPSM)PSM {
+  [self delayDelegateUsingBlock:^() {
+    CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
+    if (_openL2CAPChannelError) {
+      [peripheralDelegate gnc_peripheral:self
+                     didOpenL2CAPChannel:channel
+                                   error:_openL2CAPChannelError];
+    } else {
+      [peripheralDelegate gnc_peripheral:self didOpenL2CAPChannel:channel error:nil];
+    }
+  }];
+}
+
 - (void)delayDelegateUsingBlock:(void (^)())block {
   if (_delegateDelay <= 0) {
     block();
@@ -117,18 +130,6 @@ NS_ASSUME_NONNULL_BEGIN
                      block();
                    });
   }
-}
-
-- (void)openL2CAPChannelWithPSM:(uint16_t)PSM {
-  [self delayDelegateUsingBlock:^() {
-    if (_openL2CAPChannelError) {
-      CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
-      [peripheralDelegate gnc_peripheral:self
-                     didOpenL2CAPChannel:channel
-                                   error:_openL2CAPChannelError];
-    }
-    // TODO: b/399815436 - Add testing for L2CAP channels if error is nil.
-  }];
 }
 
 @end
