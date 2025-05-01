@@ -51,8 +51,6 @@ class BleV2Medium;
 // particular BLE peripheral to connect to its GATT server.
 class BleV2Peripheral final {
  public:
-  using ImplCallback =
-      absl::AnyInvocable<void(api::ble_v2::BlePeripheral& device)>;
   BleV2Peripheral() = default;
   BleV2Peripheral(BleV2Medium& medium, api::ble_v2::BlePeripheral& impl)
       : medium_(&medium), unique_id_(impl.GetUniqueId()) {}
@@ -73,7 +71,7 @@ class BleV2Peripheral final {
   bool IsValid() const;
   explicit operator bool() const { return IsValid(); }
 
-  bool GetImpl(ImplCallback callback) const;
+  api::ble_v2::BlePeripheral* GetImpl() const;
   std::string ToReadableString() const {
     if (!IsValid()) {
       return "BleV2Peripheral { invalid }";
