@@ -46,7 +46,6 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_client.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
-#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/ble_v2_server_socket.h"
 #include "internal/platform/implementation/windows/ble_v2_socket.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
@@ -1149,7 +1148,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
               << absl::BytesToHexString(advertisement_data.AsStringView())
               << "(" << advertisement_data.size() << ")";
 
-      BleV2Peripheral* peripheral_ptr = nullptr;
+      api::ble_v2::BlePeripheral* peripheral_ptr = nullptr;
       {
         absl::MutexLock lock(&mutex_);
         peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
@@ -1186,7 +1185,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
   }
   // Only process alternate service data if there is no primary service data.
   if (!has_primary_service_data && !alt_service_ids.empty()) {
-    BleV2Peripheral* peripheral_ptr = nullptr;
+    api::ble_v2::BlePeripheral* peripheral_ptr = nullptr;
     {
       absl::MutexLock lock(&mutex_);
       peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
@@ -1267,14 +1266,14 @@ void BleV2Medium::AdvertisementFoundHandler(
                   "corresponding data, skipping";
     return;
   }
-  // Save the BleV2Peripheral.
+  // Save the BlePeripheral.
   MacAddress bluetooth_address;
   if (!MacAddress::FromUint64(args.BluetoothAddress(), bluetooth_address)) {
     LOG(ERROR) << "Invalid MAC address: " << args.BluetoothAddress();
     return;
   }
 
-  BleV2Peripheral* peripheral_ptr = nullptr;
+  api::ble_v2::BlePeripheral* peripheral_ptr = nullptr;
   {
     absl::MutexLock lock(&mutex_);
     peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
@@ -1307,13 +1306,13 @@ bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
     LOG(WARNING) << __func__ << ": Invalid MAC address: " << mac_address;
     return false;
   }
-  BleV2Peripheral* peripheral = nullptr;
+  api::ble_v2::BlePeripheral* peripheral = nullptr;
   {
     absl::MutexLock lock(&mutex_);
     peripheral = GetOrCreatePeripheral(bluetooth_address);
   }
 
-  if (peripheral != nullptr && peripheral->Ok()) {
+  if (peripheral != nullptr && peripheral->IsSet()) {
     callback(*peripheral);
     return true;
   }
@@ -1328,7 +1327,7 @@ bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                  << absl::StrCat(absl::Hex(id));
     return false;
   }
-  BleV2Peripheral* peripheral = nullptr;
+  api::ble_v2::BlePeripheral* peripheral = nullptr;
   {
     absl::MutexLock lock(&mutex_);
     peripheral = GetPeripheral(bluetooth_address);
@@ -1354,20 +1353,22 @@ uint64_t BleV2Medium::GenerateSessionId() {
   return kFailedGenerateSessionId;
 }
 
-BleV2Peripheral* BleV2Medium::GetOrCreatePeripheral(MacAddress address) {
+api::ble_v2::BlePeripheral* BleV2Medium::GetOrCreatePeripheral(
+    MacAddress address) {
   if (!address.IsSet()) {
     LOG(WARNING) << __func__ << "empty MAC address is not allowed.";
     return nullptr;
   }
   // For Windows peripheral uniqueId is the same as the address.
-  BleV2Peripheral* peripheral = GetPeripheral(address);
+  api::ble_v2::BlePeripheral* peripheral = GetPeripheral(address);
   if (peripheral != nullptr) {
     return peripheral;
   }
   RemoveExpiredPeripherals();
   PeripheralInfo peripheral_info{
-      .last_access_time = absl::Now(),
-      .peripheral = std::make_unique<BleV2Peripheral>(address),
+    .last_access_time = absl::Now(),
+    .peripheral = std::make_unique<api::ble_v2::BlePeripheral>(
+        address.address(), address),
   };
   peripheral = peripheral_info.peripheral.get();
   VLOG(1) << "New BLE peripheral with address: " << address.ToString();
@@ -1376,7 +1377,7 @@ BleV2Peripheral* BleV2Medium::GetOrCreatePeripheral(MacAddress address) {
   return peripheral;
 }
 
-BleV2Peripheral* BleV2Medium::GetPeripheral(MacAddress address) {
+api::ble_v2::BlePeripheral* BleV2Medium::GetPeripheral(MacAddress address) {
   auto it = peripheral_map_.find(address);
   if (it == peripheral_map_.end()) {
     return nullptr;

@@ -31,7 +31,6 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
@@ -132,7 +131,7 @@ class BleGattServer : public api::ble_v2::GattServer {
   absl::Mutex mutex_;
 
   BluetoothAdapter* const adapter_ = nullptr;
-  BleV2Peripheral peripheral_;
+  api::ble_v2::BlePeripheral peripheral_;
   api::ble_v2::ServerGattConnectionCallback gatt_connection_callback_{};
 
   ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::

@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
-#include "internal/platform/implementation/windows/ble_v2_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
@@ -184,10 +183,10 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   uint64_t GenerateSessionId() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   // Returns nullptr if `address` is invalid.
-  BleV2Peripheral* GetOrCreatePeripheral(MacAddress address)
+  api::ble_v2::BlePeripheral* GetOrCreatePeripheral(MacAddress address)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   // Returns nullptr if `address` does not match a known peripheral.
-  BleV2Peripheral* GetPeripheral(MacAddress address)
+  api::ble_v2::BlePeripheral* GetPeripheral(MacAddress address)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void RemoveExpiredPeripherals() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -223,7 +222,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // DiscoveredPeripheralCallback only keeps the pointer to the object
   struct PeripheralInfo {
     absl::Time last_access_time;
-    std::unique_ptr<BleV2Peripheral> peripheral;
+    std::unique_ptr<api::ble_v2::BlePeripheral> peripheral;
   };
   absl::flat_hash_map<MacAddress, PeripheralInfo> peripheral_map_
       ABSL_GUARDED_BY(mutex_);
