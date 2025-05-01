@@ -23,6 +23,8 @@
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 enum { kL2CAPPacketLength = 4 };
+static const CGFloat kRequestDataConnectionDelayInSeconds = 0.0;
+static const UInt8 kRequestDataConnectionTimeoutInSeconds = 5;
 
 static char *const kGNCBLEL2CAPConnectionQueueLabel = "com.google.nearby.GNCBLEL2CAPConnection";
 
@@ -60,6 +62,7 @@ static NSData *PrefixLengthData(NSData *data) {
 @property(nonatomic) NSUInteger expectedDataLength;
 @property(nonatomic) NSMutableData *undeliveredData;
 @property(nonatomic) BOOL verboseLoggingEnabled;
+@property(nonatomic) NSCondition *requestDataConnectionCondition;
 @end
 
 @implementation GNCBLEL2CAPConnection
@@ -80,6 +83,7 @@ static NSData *PrefixLengthData(NSData *data) {
   [connection setIncomingConnection:incomingConnection];
   [connection setUndeliveredData:[NSMutableData data]];
   [connection setExpectedDataLength:0];
+  [connection setRequestDataConnectionCondition:[[NSCondition alloc] init]];
   return connection;
 }
 
@@ -105,6 +109,31 @@ static NSData *PrefixLengthData(NSData *data) {
             completion(result);
           });
         }];
+  });
+}
+
+- (void)requestDataConnectionWithCompletion:(void (^)(BOOL))completion {
+  GTMLoggerInfo(@"[NEARBY] Sending l2cap packet request data connection");
+  // TODO b/399815436 - A bug is causing channel has written to the socket but the remote does not
+  // receive it. Add a delay to make sure the data is written to the socket. Remove the delay once
+  // the bug is fixed.
+  dispatch_time_t requestTime =
+      dispatch_time(DISPATCH_TIME_NOW, kRequestDataConnectionDelayInSeconds * NSEC_PER_SEC);
+  dispatch_after(requestTime, _selfQueue, ^(void) {
+    [_requestDataConnectionCondition lock];
+    NSData *requestDataConnectionPacket =
+        GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommandRequestDataConnection, nil);
+    [_stream sendData:PrefixLengthData(requestDataConnectionPacket)
+        completionBlock:^(BOOL result){
+
+        }];
+    dispatch_async(_callbackQueue, ^{
+      NSDate *requestDataConnectionTimeout =
+          [NSDate dateWithTimeIntervalSinceNow:kRequestDataConnectionTimeoutInSeconds];
+      BOOL result = [_requestDataConnectionCondition waitUntilDate:requestDataConnectionTimeout];
+      completion(result);
+      [_requestDataConnectionCondition unlock];
+    });
   });
 }
 
@@ -263,12 +292,15 @@ static NSData *PrefixLengthData(NSData *data) {
   }
   switch (l2capPacket.command) {
     case GNCMBLEL2CAPCommandResponseDataConnectionReady: {
-      _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
+      [_requestDataConnectionCondition lock];
       dispatch_async(_selfQueue, ^{
         [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash))
-            completionBlock:^(BOOL result){
+            completionBlock:^(BOOL result) {
+              [_requestDataConnectionCondition broadcast];
+              [_requestDataConnectionCondition unlock];
             }];
       });
+      _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
     } break;
     case GNCMBLEL2CAPCommandRequestAdvertisement:
     case GNCMBLEL2CAPCommandRequestDataConnection:

@@ -55,6 +55,7 @@
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
+static const UInt8 kRequestConnectionTimeoutInSeconds = 10;
 
 namespace nearby {
 namespace apple {
@@ -492,8 +493,10 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
   }
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  dispatch_time_t timeout =
+      dispatch_time(DISPATCH_TIME_NOW, kRequestConnectionTimeoutInSeconds * NSEC_PER_SEC);
   __block std::unique_ptr<BleL2capSocket> socket;
-  std::string service_id_str = service_id;
+  const std::string &service_id_str = service_id;
   [medium_ openL2CAPChannelWithPSM:psm
                         peripheral:non_empty_peripheral->GetPeripheral()
                  completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
@@ -506,10 +509,22 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                                                          serviceID:@(service_id_str.c_str())
                                                 incomingConnection:NO
                                                      callbackQueue:dispatch_get_main_queue()];
-                   socket = std::make_unique<BleL2capSocket>(connection, non_empty_peripheral);
-                   dispatch_semaphore_signal(semaphore);
+                   // Blocked call to wait for the packet validation result.
+                   // TODO: b/399815436 - Remove this once the packet validation is moved to the
+                   // Connections layer.
+                   [connection requestDataConnectionWithCompletion:^(BOOL result) {
+                     if (result) {
+                       socket = std::make_unique<BleL2capSocket>(connection, non_empty_peripheral);
+                     }
+                     GTMLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
+                                          : @"[NEARBY] Request data connection is not ok");
+                     dispatch_semaphore_signal(semaphore);
+                   }];
                  }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: timeout.");
+    return nullptr;
+  }
   if (socket == nullptr) {
     return nullptr;
   }

@@ -47,6 +47,14 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)sendData:(NSData *)payload completion:(void (^)(BOOL))completion;
 
+/**
+ * Requests data connection from the remote device.
+ *
+ * @param completion A block that is called when the data connection is ready. The block takes a
+ *        BOOL parameter indicating whether the data connection is ready.
+ */
+- (void)requestDataConnectionWithCompletion:(void (^)(BOOL))completion;
+
 @end
 
 NS_ASSUME_NONNULL_END
