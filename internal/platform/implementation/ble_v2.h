@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -27,10 +28,12 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/uuid.h"
 
@@ -84,6 +87,11 @@ struct BleAdvertisementData {
 class BlePeripheral {
  public:
   using UniqueId = std::uint64_t;
+
+  BlePeripheral(UniqueId unique_id, MacAddress address)
+      : unique_id_(unique_id), address_(std::move(address)) {}
+  explicit BlePeripheral(UniqueId unique_id = 0)
+      : unique_id_(unique_id) {}
   virtual ~BlePeripheral() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getAddress()
@@ -91,11 +99,22 @@ class BlePeripheral {
   // Returns the current address.
   //
   // This will always be an empty string on Apple platforms.
-  virtual std::string GetAddress() const = 0;
+  virtual std::string GetAddress() const {
+    if (address_.IsSet()) {
+      return address_.ToString();
+    }
+    return "";
+  }
 
   // Returns an immutable unique identifier. The identifier must not change when
   // the BLE address is rotated.
-  virtual UniqueId GetUniqueId() const = 0;
+  virtual UniqueId GetUniqueId() const { return unique_id_; };
+
+  bool IsSet() const { return unique_id_ != 0 || address_.IsSet(); }
+
+ private:
+  UniqueId unique_id_ = 0;
+  MacAddress address_;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic
