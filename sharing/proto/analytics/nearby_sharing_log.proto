@@ -499,6 +499,9 @@ message SharingLog {
   // EventType: DESCRIBE_ATTACHMENTS
   message DescribeAttachments {
     optional AttachmentsInfo attachments_info = 1;
+
+    // Time taken to download the attachments before sending
+    optional google.protobuf.Duration download_duration = 2;
   }
 
   // TODO(fdi): may want to add duration_from_scanning_millis later.
