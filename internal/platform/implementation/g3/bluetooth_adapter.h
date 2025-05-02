@@ -15,6 +15,7 @@
 #ifndef PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 #define PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -27,6 +28,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/single_thread_executor.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace g3 {
@@ -111,7 +113,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns BT MAC address assigned to this adapter.
-  std::string GetMacAddress() const override { return mac_address_; }
+  std::string GetMacAddress() const override { return mac_address_.ToString(); }
+  MacAddress mac_address() const { return mac_address_; }
 
   BluetoothDevice& GetDevice() { return device_; }
 
@@ -129,7 +132,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
 
   void SetMacAddress(absl::string_view mac_address) {
-    mac_address_ = std::string(mac_address);
+    MacAddress::FromString(mac_address, mac_address_);
   }
 
   std::uint64_t GetUniqueId() { return unique_id_; }
@@ -141,7 +144,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
   api::BleMedium* ble_medium_ = nullptr;
   api::ble_v2::BleMedium* ble_v2_medium_ = nullptr;
-  std::string mac_address_;
+  MacAddress mac_address_;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";
   bool enabled_ ABSL_GUARDED_BY(mutex_) = true;

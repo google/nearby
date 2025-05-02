@@ -39,6 +39,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
@@ -68,24 +69,13 @@ std::string TxPowerLevelToName(TxPowerLevel power_mode) {
 
 }  // namespace
 
-BleV2Peripheral::BleV2Peripheral(BluetoothAdapter* adapter)
-    : adapter_(*adapter) {}
-
-std::string BleV2Peripheral::GetAddress() const {
-  return adapter_.GetMacAddress();
-}
-
-api::ble_v2::BlePeripheral::UniqueId BleV2Peripheral::GetUniqueId() const {
-  return adapter_.GetUniqueId();
-}
-
-BleV2Peripheral* BleV2Socket::GetRemotePeripheral() {
+api::ble_v2::BlePeripheral* BleV2Socket::GetRemotePeripheral() {
   BleV2Socket* remote_socket = GetRemoteSocket();
   if (remote_socket == nullptr || remote_socket->adapter_ == nullptr ||
       remote_socket->adapter_->GetBleV2Medium() == nullptr) {
     return nullptr;
   }
-  return &(static_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium())
+  return &(dynamic_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium())
                ->GetPeripheral());
 }
 
@@ -158,7 +148,8 @@ Exception BleV2ServerSocket::DoClose() {
 }
 
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
-    : adapter_(static_cast<BluetoothAdapter*>(&adapter)) {
+    : adapter_(static_cast<BluetoothAdapter*>(&adapter)),
+      peripheral_(adapter_->GetUniqueId(), adapter_->mac_address()) {
   adapter_->SetBleV2Medium(this);
   is_extended_advertisements_available_ =
       MediumEnvironment::Instance().IsBleExtendedAdvertisementsAvailable();
@@ -369,14 +360,21 @@ bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
       return true;
     }
   }
-  BleV2Medium* remote_medium = static_cast<BleV2Medium*>(
+  BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(
       MediumEnvironment::Instance().FindBleV2Medium(mac_address));
   if (remote_medium == nullptr) {
     return false;
   }
-  auto id = remote_medium->GetPeripheral().GetUniqueId();
+  api::ble_v2::BlePeripheral::UniqueId id =
+      remote_medium->GetPeripheral().GetUniqueId();
+  BluetoothAdapter& adapter = remote_medium->GetAdapter();
+  MacAddress address;
+  if (!MacAddress::FromString(adapter.GetMacAddress(), address)) {
+    return false;
+  }
   remote_peripherals_[id] =
-      std::make_unique<BleV2Peripheral>(&remote_medium->GetAdapter());
+      std::make_unique<api::ble_v2::BlePeripheral>(id, address);
+  remote_peripherals_[id]->SetPlatformData(&adapter);
   callback(*remote_peripherals_[id]);
   return true;
 }
@@ -390,14 +388,22 @@ bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
     return true;
   }
 
-  BleV2Medium* remote_medium = static_cast<BleV2Medium*>(
+  BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(
       MediumEnvironment::Instance().FindBleV2Medium(id));
   if (remote_medium == nullptr) {
     NEARBY_LOGS(INFO) << "Peripheral not found, id= " << id;
     return false;
   }
+  BluetoothAdapter& adapter = remote_medium->GetAdapter();
+  MacAddress address;
+  if (!MacAddress::FromString(adapter.GetMacAddress(), address)) {
+    LOG(ERROR) << "Adapter has invalid mac address: "
+               << adapter.GetMacAddress();
+    return false;
+  }
   remote_peripherals_[id] =
-      std::make_unique<BleV2Peripheral>(&remote_medium->GetAdapter());
+      std::make_unique<api::ble_v2::BlePeripheral>(id, address);
+  remote_peripherals_[id]->SetPlatformData(&adapter);
   callback(*remote_peripherals_[id]);
   return true;
 }
@@ -405,8 +411,12 @@ bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
 BleV2Medium::GattServer::GattServer(
     BleV2Medium& medium, api::ble_v2::ServerGattConnectionCallback callback)
     : medium_(medium),
-      callback_(std::move(callback)),
-      ble_peripheral_(&medium.GetAdapter()) {
+      callback_(std::move(callback)) {
+  BluetoothAdapter& adapter = medium.GetAdapter();
+  MacAddress address;
+  MacAddress::FromString(adapter.GetMacAddress(), address);
+  ble_peripheral_ = api::ble_v2::BlePeripheral(adapter.GetUniqueId(), address);
+  ble_peripheral_.SetPlatformData(&adapter);
   MediumEnvironment::Instance().RegisterGattServer(medium_, &ble_peripheral_,
                                                    lender_.GetBorrowable());
 }
@@ -480,7 +490,7 @@ absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
 }
 
 absl::StatusOr<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
-    const BleV2Peripheral& remote_device,
+    const api::ble_v2::BlePeripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic, int offset) {
   {
     absl::MutexLock lock(&mutex_);
@@ -509,7 +519,7 @@ absl::StatusOr<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
 }
 
 absl::Status BleV2Medium::GattServer::WriteCharacteristic(
-    const BleV2Peripheral& remote_device,
+    const api::ble_v2::BlePeripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic, int offset,
     absl::string_view data) {
   if (HasCharacteristic(characteristic)) {
@@ -528,7 +538,7 @@ absl::Status BleV2Medium::GattServer::WriteCharacteristic(
 }
 
 bool BleV2Medium::GattServer::AddCharacteristicSubscription(
-    const BleV2Peripheral& remote_device,
+    const api::ble_v2::BlePeripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic,
     absl::AnyInvocable<void(absl::string_view value)> callback) {
   absl::MutexLock lock(&mutex_);
@@ -542,7 +552,7 @@ bool BleV2Medium::GattServer::AddCharacteristicSubscription(
 }
 
 bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
-    const BleV2Peripheral& remote_device,
+    const api::ble_v2::BlePeripheral& remote_device,
     const api::ble_v2::GattCharacteristic& characteristic) {
   absl::MutexLock lock(&mutex_);
   const auto it = characteristics_.find(characteristic);
@@ -585,7 +595,7 @@ BleV2Medium::GattClient::GattClient(
     api::ble_v2::BlePeripheral& peripheral,
     Borrowable<api::ble_v2::GattServer*> gatt_server,
     api::ble_v2::ClientGattConnectionCallback callback)
-    : peripheral_(static_cast<BleV2Peripheral&>(peripheral)),
+    : peripheral_(peripheral),
       gatt_server_(gatt_server),
       callback_(std::move(callback)) {
   Borrowed<api::ble_v2::GattServer*> borrowed = gatt_server_.Borrow();
@@ -794,10 +804,10 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
                     << ", peripheral=" << &GetPeripheral()
                     << ", service_id=" << service_id;
   // First, find an instance of remote medium, that exposed this peripheral.
-  auto& remote_adapter =
-      static_cast<BleV2Peripheral&>(remote_peripheral).GetAdapter();
+  BluetoothAdapter* remote_adapter =
+      static_cast<BluetoothAdapter*>(remote_peripheral.GetPlatformData());
   auto* remote_medium =
-      static_cast<BleV2Medium*>(remote_adapter.GetBleV2Medium());
+      dynamic_cast<BleV2Medium*>(remote_adapter->GetBleV2Medium());
   if (!remote_medium) {
     return nullptr;
   }

@@ -110,11 +110,19 @@ class BlePeripheral {
   // the BLE address is rotated.
   virtual UniqueId GetUniqueId() const { return unique_id_; };
 
+  // Sets platform specific data that can be retrieved by `GetPlatformData()`.
+  void SetPlatformData(void* platform_data) {
+    platform_data_ = platform_data;
+  }
+
+  void* GetPlatformData() const { return platform_data_; }
+
   bool IsSet() const { return unique_id_ != 0 || address_.IsSet(); }
 
  private:
   UniqueId unique_id_ = 0;
   MacAddress address_;
+  void* platform_data_ = nullptr;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothGattCharacteristic

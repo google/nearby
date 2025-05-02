@@ -28,7 +28,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "absl/types/optional.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
