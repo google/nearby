@@ -252,6 +252,19 @@ struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentialsDefault
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials_default_instance_;
+constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : service_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , service_type_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string){}
+struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentialsDefaultTypeInternal {
+  constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentialsDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentialsDefaultTypeInternal() {}
+  union {
+    BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials_default_instance_;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : mediums_()
@@ -275,6 +288,7 @@ constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo::BandwidthUpgradeNego
   , wifi_direct_credentials_(nullptr)
   , web_rtc_credentials_(nullptr)
   , upgrade_path_request_(nullptr)
+  , awdl_credentials_(nullptr)
   , medium_(0)
 
   , supports_disabling_encryption_(false)
@@ -7565,6 +7579,271 @@ std::string BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials::
 
 // ===================================================================
 
+class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_Internal {
+ public:
+  using HasBits = decltype(std::declval<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials>()._has_bits_);
+  static void set_has_service_name(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_service_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+}
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  service_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    service_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_service_name()) {
+    service_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_service_name(), 
+      GetArenaForAllocation());
+  }
+  service_type_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    service_type_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_service_type()) {
+    service_type_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_service_type(), 
+      GetArenaForAllocation());
+  }
+  // @@protoc_insertion_point(copy_constructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+}
+
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::SharedCtor() {
+service_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  service_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+service_type_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  service_type_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+}
+
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::~BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials() {
+  // @@protoc_insertion_point(destructor:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  service_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  service_type_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::ArenaDtor(void* object) {
+  BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials* _this = reinterpret_cast< BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials* >(object);
+  (void)_this;
+}
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      service_name_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      service_type_.ClearNonDefaultToEmpty();
+    }
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional string service_name = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_service_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string service_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          auto str = _internal_mutable_service_type();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional string service_name = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_service_name(), target);
+  }
+
+  // optional string service_type = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_service_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  return target;
+}
+
+size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional string service_name = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_service_name());
+    }
+
+    // optional string service_type = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_service_type());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials*>(
+      &from));
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::MergeFrom(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_service_name(from._internal_service_name());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _internal_set_service_type(from._internal_service_type());
+    }
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::CopyFrom(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::IsInitialized() const {
+  return true;
+}
+
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::InternalSwap(BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &service_name_, lhs_arena,
+      &other->service_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &service_type_, lhs_arena,
+      &other->service_type_, rhs_arena
+  );
+}
+
+std::string BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::GetTypeName() const {
+  return "location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials";
+}
+
+
+// ===================================================================
+
 class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::_Internal {
  public:
   using HasBits = decltype(std::declval<BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest>()._has_bits_);
@@ -7821,7 +8100,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_Internal {
  public:
   using HasBits = decltype(std::declval<BandwidthUpgradeNegotiationFrame_UpgradePathInfo>()._has_bits_);
   static void set_has_medium(HasBits* has_bits) {
-    (*has_bits)[0] |= 128u;
+    (*has_bits)[0] |= 256u;
   }
   static const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials& wifi_hotspot_credentials(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo* msg);
   static void set_has_wifi_hotspot_credentials(HasBits* has_bits) {
@@ -7847,11 +8126,15 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_Internal {
   static void set_has_web_rtc_credentials(HasBits* has_bits) {
     (*has_bits)[0] |= 32u;
   }
+  static const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials& awdl_credentials(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo* msg);
+  static void set_has_awdl_credentials(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
+  }
   static void set_has_supports_disabling_encryption(HasBits* has_bits) {
-    (*has_bits)[0] |= 256u;
+    (*has_bits)[0] |= 512u;
   }
   static void set_has_supports_client_introduction_ack(HasBits* has_bits) {
-    (*has_bits)[0] |= 512u;
+    (*has_bits)[0] |= 1024u;
   }
   static const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest& upgrade_path_request(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo* msg);
   static void set_has_upgrade_path_request(HasBits* has_bits) {
@@ -7882,6 +8165,10 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_Internal::wifi_direct_credent
 const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials&
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_Internal::web_rtc_credentials(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo* msg) {
   return *msg->web_rtc_credentials_;
+}
+const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials&
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_Internal::awdl_credentials(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo* msg) {
+  return *msg->awdl_credentials_;
 }
 const ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest&
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_Internal::upgrade_path_request(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo* msg) {
@@ -7935,6 +8222,11 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo::BandwidthUpgradeNegotiationFra
   } else {
     upgrade_path_request_ = nullptr;
   }
+  if (from._internal_has_awdl_credentials()) {
+    awdl_credentials_ = new ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials(*from.awdl_credentials_);
+  } else {
+    awdl_credentials_ = nullptr;
+  }
   ::memcpy(&medium_, &from.medium_,
     static_cast<size_t>(reinterpret_cast<char*>(&supports_client_introduction_ack_) -
     reinterpret_cast<char*>(&medium_)) + sizeof(supports_client_introduction_ack_));
@@ -7964,6 +8256,7 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::SharedDtor() {
   if (this != internal_default_instance()) delete wifi_direct_credentials_;
   if (this != internal_default_instance()) delete web_rtc_credentials_;
   if (this != internal_default_instance()) delete upgrade_path_request_;
+  if (this != internal_default_instance()) delete awdl_credentials_;
 }
 
 void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::ArenaDtor(void* object) {
@@ -7983,7 +8276,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       GOOGLE_DCHECK(wifi_hotspot_credentials_ != nullptr);
       wifi_hotspot_credentials_->Clear();
@@ -8012,12 +8305,15 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::Clear() {
       GOOGLE_DCHECK(upgrade_path_request_ != nullptr);
       upgrade_path_request_->Clear();
     }
+    if (cached_has_bits & 0x00000080u) {
+      GOOGLE_DCHECK(awdl_credentials_ != nullptr);
+      awdl_credentials_->Clear();
+    }
   }
-  medium_ = 0;
-  if (cached_has_bits & 0x00000300u) {
-    ::memset(&supports_disabling_encryption_, 0, static_cast<size_t>(
+  if (cached_has_bits & 0x00000700u) {
+    ::memset(&medium_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&supports_client_introduction_ack_) -
-        reinterpret_cast<char*>(&supports_disabling_encryption_)) + sizeof(supports_client_introduction_ack_));
+        reinterpret_cast<char*>(&medium_)) + sizeof(supports_client_introduction_ack_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -8117,6 +8413,14 @@ const char* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_InternalParse(con
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials awdl_credentials = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+          ptr = ctx->ParseMessage(_internal_mutable_awdl_credentials(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -8149,7 +8453,7 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
-  if (cached_has_bits & 0x00000080u) {
+  if (cached_has_bits & 0x00000100u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       1, this->_internal_medium(), target);
@@ -8196,7 +8500,7 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_InternalSerialize(
   }
 
   // optional bool supports_disabling_encryption = 7;
-  if (cached_has_bits & 0x00000100u) {
+  if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(7, this->_internal_supports_disabling_encryption(), target);
   }
@@ -8210,7 +8514,7 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_InternalSerialize(
   }
 
   // optional bool supports_client_introduction_ack = 9;
-  if (cached_has_bits & 0x00000200u) {
+  if (cached_has_bits & 0x00000400u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(9, this->_internal_supports_client_introduction_ack(), target);
   }
@@ -8221,6 +8525,14 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
         10, _Internal::upgrade_path_request(this), target, stream);
+  }
+
+  // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials awdl_credentials = 11;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        11, _Internal::awdl_credentials(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -8290,21 +8602,28 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo::ByteSizeLong() const {
           *upgrade_path_request_);
     }
 
-    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials awdl_credentials = 11;
     if (cached_has_bits & 0x00000080u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *awdl_credentials_);
+    }
+
+  }
+  if (cached_has_bits & 0x00000700u) {
+    // optional .location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.Medium medium = 1;
+    if (cached_has_bits & 0x00000100u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_medium());
     }
 
-  }
-  if (cached_has_bits & 0x00000300u) {
     // optional bool supports_disabling_encryption = 7;
-    if (cached_has_bits & 0x00000100u) {
+    if (cached_has_bits & 0x00000200u) {
       total_size += 1 + 1;
     }
 
     // optional bool supports_client_introduction_ack = 9;
-    if (cached_has_bits & 0x00000200u) {
+    if (cached_has_bits & 0x00000400u) {
       total_size += 1 + 1;
     }
 
@@ -8353,15 +8672,17 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo::MergeFrom(const Bandwidth
       _internal_mutable_upgrade_path_request()->::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest::MergeFrom(from._internal_upgrade_path_request());
     }
     if (cached_has_bits & 0x00000080u) {
+      _internal_mutable_awdl_credentials()->::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::MergeFrom(from._internal_awdl_credentials());
+    }
+  }
+  if (cached_has_bits & 0x00000700u) {
+    if (cached_has_bits & 0x00000100u) {
       medium_ = from.medium_;
     }
-    _has_bits_[0] |= cached_has_bits;
-  }
-  if (cached_has_bits & 0x00000300u) {
-    if (cached_has_bits & 0x00000100u) {
+    if (cached_has_bits & 0x00000200u) {
       supports_disabling_encryption_ = from.supports_disabling_encryption_;
     }
-    if (cached_has_bits & 0x00000200u) {
+    if (cached_has_bits & 0x00000400u) {
       supports_client_introduction_ack_ = from.supports_client_introduction_ack_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -14830,6 +15151,9 @@ template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNe
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials* Arena::CreateMaybeMessage< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WebRtcCredentials >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials* Arena::CreateMaybeMessage< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials >(arena);
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest* Arena::CreateMaybeMessage< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest >(arena);

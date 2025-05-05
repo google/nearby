@@ -99,6 +99,8 @@ constexpr ConnectionsLog_DiscoveryPhase::ConnectionsLog_DiscoveryPhase(
   , duration_millis_(int64_t{0})
   , client_flow_id_(int64_t{0})
   , stop_reason_(0)
+
+  , device_type_(0)
 {}
 struct ConnectionsLog_DiscoveryPhaseDefaultTypeInternal {
   constexpr ConnectionsLog_DiscoveryPhaseDefaultTypeInternal()
@@ -168,6 +170,8 @@ constexpr ConnectionsLog_AdvertisingPhase::ConnectionsLog_AdvertisingPhase(
   , duration_millis_(int64_t{0})
   , client_flow_id_(int64_t{0})
   , stop_reason_(0)
+
+  , device_type_(0)
 {}
 struct ConnectionsLog_AdvertisingPhaseDefaultTypeInternal {
   constexpr ConnectionsLog_AdvertisingPhaseDefaultTypeInternal()
@@ -212,6 +216,8 @@ constexpr ConnectionsLog_ConnectionAttempt::ConnectionsLog_ConnectionAttempt(
 
   , client_flow_id_(int64_t{0})
   , connection_mode_(0)
+
+  , device_type_(0)
 {}
 struct ConnectionsLog_ConnectionAttemptDefaultTypeInternal {
   constexpr ConnectionsLog_ConnectionAttemptDefaultTypeInternal()
@@ -222,12 +228,44 @@ struct ConnectionsLog_ConnectionAttemptDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionsLog_ConnectionAttemptDefaultTypeInternal _ConnectionsLog_ConnectionAttempt_default_instance_;
+constexpr ConnectionsLog_DeviceInfo::ConnectionsLog_DeviceInfo(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : device_model_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , country_code_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , manufacturer_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , device_platform_(0)
+{}
+struct ConnectionsLog_DeviceInfoDefaultTypeInternal {
+  constexpr ConnectionsLog_DeviceInfoDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~ConnectionsLog_DeviceInfoDefaultTypeInternal() {}
+  union {
+    ConnectionsLog_DeviceInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionsLog_DeviceInfoDefaultTypeInternal _ConnectionsLog_DeviceInfo_default_instance_;
+constexpr ConnectionsLog_DisconnectionReasonDetail::ConnectionsLog_DisconnectionReasonDetail(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : is_local_disconnection_(false)
+  , disconnection_reason_(0)
+{}
+struct ConnectionsLog_DisconnectionReasonDetailDefaultTypeInternal {
+  constexpr ConnectionsLog_DisconnectionReasonDetailDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~ConnectionsLog_DisconnectionReasonDetailDefaultTypeInternal() {}
+  union {
+    ConnectionsLog_DisconnectionReasonDetail _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionsLog_DisconnectionReasonDetailDefaultTypeInternal _ConnectionsLog_DisconnectionReasonDetail_default_instance_;
 constexpr ConnectionsLog_EstablishedConnection::ConnectionsLog_EstablishedConnection(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : sent_payload_()
   , received_payload_()
   , connection_token_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , operation_result_(nullptr)
+  , remote_device_info_(nullptr)
+  , disconnection_reason_detail_(nullptr)
   , duration_millis_(int64_t{0})
   , medium_(0)
 
@@ -237,6 +275,8 @@ constexpr ConnectionsLog_EstablishedConnection::ConnectionsLog_EstablishedConnec
   , type_(0)
 
   , safe_disconnection_result_(0)
+
+  , device_type_(0)
 {}
 struct ConnectionsLog_EstablishedConnectionDefaultTypeInternal {
   constexpr ConnectionsLog_EstablishedConnectionDefaultTypeInternal()
@@ -284,6 +324,8 @@ constexpr ConnectionsLog_BandwidthUpgradeAttempt::ConnectionsLog_BandwidthUpgrad
 
   , client_flow_id_(int64_t{0})
   , error_stage_(0)
+
+  , device_type_(0)
 {}
 struct ConnectionsLog_BandwidthUpgradeAttemptDefaultTypeInternal {
   constexpr ConnectionsLog_BandwidthUpgradeAttemptDefaultTypeInternal()
@@ -408,6 +450,217 @@ namespace location {
 namespace nearby {
 namespace analytics {
 namespace proto {
+bool ConnectionsLog_DeviceInfo_Platform_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionsLog_DeviceInfo_Platform_strings[5] = {};
+
+static const char ConnectionsLog_DeviceInfo_Platform_names[] =
+  "ANDROID"
+  "CROS"
+  "IOS"
+  "UNKNOWN"
+  "WINDOWS";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionsLog_DeviceInfo_Platform_entries[] = {
+  { {ConnectionsLog_DeviceInfo_Platform_names + 0, 7}, 1 },
+  { {ConnectionsLog_DeviceInfo_Platform_names + 7, 4}, 3 },
+  { {ConnectionsLog_DeviceInfo_Platform_names + 11, 3}, 2 },
+  { {ConnectionsLog_DeviceInfo_Platform_names + 14, 7}, 0 },
+  { {ConnectionsLog_DeviceInfo_Platform_names + 21, 7}, 4 },
+};
+
+static const int ConnectionsLog_DeviceInfo_Platform_entries_by_number[] = {
+  3, // 0 -> UNKNOWN
+  0, // 1 -> ANDROID
+  2, // 2 -> IOS
+  1, // 3 -> CROS
+  4, // 4 -> WINDOWS
+};
+
+const std::string& ConnectionsLog_DeviceInfo_Platform_Name(
+    ConnectionsLog_DeviceInfo_Platform value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ConnectionsLog_DeviceInfo_Platform_entries,
+          ConnectionsLog_DeviceInfo_Platform_entries_by_number,
+          5, ConnectionsLog_DeviceInfo_Platform_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ConnectionsLog_DeviceInfo_Platform_entries,
+      ConnectionsLog_DeviceInfo_Platform_entries_by_number,
+      5, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ConnectionsLog_DeviceInfo_Platform_strings[idx].get();
+}
+bool ConnectionsLog_DeviceInfo_Platform_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionsLog_DeviceInfo_Platform* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ConnectionsLog_DeviceInfo_Platform_entries, 5, name, &int_value);
+  if (success) {
+    *value = static_cast<ConnectionsLog_DeviceInfo_Platform>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::UNKNOWN;
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::ANDROID;
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::IOS;
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::CROS;
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::WINDOWS;
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::Platform_MIN;
+constexpr ConnectionsLog_DeviceInfo_Platform ConnectionsLog_DeviceInfo::Platform_MAX;
+constexpr int ConnectionsLog_DeviceInfo::Platform_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_strings[18] = {};
+
+static const char ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names[] =
+  "DCT_ERROR_CAPABILITY_MISMATCH"
+  "DCT_ERROR_CONTROL_MESSAGE_EXCHANGE"
+  "DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE"
+  "DCT_ERROR_MDNS_DISCOVERY_TIMEOUT"
+  "DCT_ERROR_MDNS_REGISTER_SERVICE"
+  "DCT_ERROR_REQUEST_FAILED"
+  "DCT_ERROR_RESPONSE_FAILED"
+  "DCT_ERROR_SERVICE_CANCELLED"
+  "DCT_ERROR_SUBSEQUENT_TLS_SPAKE"
+  "DCT_ERROR_UNVERIFIED_INTEGRITY"
+  "DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED"
+  "DCT_ERROR_USER_CANCELLED"
+  "DCT_ERROR_WIFI_CREDENTIAL_TRANSFER"
+  "DCT_ERROR_WIFI_DISABLED"
+  "DCT_ERROR_WIFI_DISCONNECTED"
+  "DCT_ERROR_WIFI_INTERNET_CONNECTION"
+  "SESSION_SUCCESS"
+  "UNKNOWN_DISCONNECTION_REASON";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries[] = {
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 0, 29}, 7 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 29, 34}, 6 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 63, 39}, 8 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 102, 32}, 1 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 134, 31}, 2 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 165, 24}, 4 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 189, 25}, 5 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 214, 27}, 15 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 241, 30}, 3 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 271, 30}, 16 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 301, 42}, 13 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 343, 24}, 14 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 367, 34}, 11 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 401, 23}, 9 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 424, 27}, 10 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 451, 34}, 12 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 485, 15}, 17 },
+  { {ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_names + 500, 28}, 0 },
+};
+
+static const int ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries_by_number[] = {
+  17, // 0 -> UNKNOWN_DISCONNECTION_REASON
+  3, // 1 -> DCT_ERROR_MDNS_DISCOVERY_TIMEOUT
+  4, // 2 -> DCT_ERROR_MDNS_REGISTER_SERVICE
+  8, // 3 -> DCT_ERROR_SUBSEQUENT_TLS_SPAKE
+  5, // 4 -> DCT_ERROR_REQUEST_FAILED
+  6, // 5 -> DCT_ERROR_RESPONSE_FAILED
+  1, // 6 -> DCT_ERROR_CONTROL_MESSAGE_EXCHANGE
+  0, // 7 -> DCT_ERROR_CAPABILITY_MISMATCH
+  2, // 8 -> DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE
+  13, // 9 -> DCT_ERROR_WIFI_DISABLED
+  14, // 10 -> DCT_ERROR_WIFI_DISCONNECTED
+  12, // 11 -> DCT_ERROR_WIFI_CREDENTIAL_TRANSFER
+  15, // 12 -> DCT_ERROR_WIFI_INTERNET_CONNECTION
+  10, // 13 -> DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED
+  11, // 14 -> DCT_ERROR_USER_CANCELLED
+  7, // 15 -> DCT_ERROR_SERVICE_CANCELLED
+  9, // 16 -> DCT_ERROR_UNVERIFIED_INTEGRITY
+  16, // 17 -> SESSION_SUCCESS
+};
+
+const std::string& ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_Name(
+    ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries,
+          ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries_by_number,
+          18, ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries,
+      ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries_by_number,
+      18, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_strings[idx].get();
+}
+bool ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_entries, 18, name, &int_value);
+  if (success) {
+    *value = static_cast<ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::UNKNOWN_DISCONNECTION_REASON;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_MDNS_DISCOVERY_TIMEOUT;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_MDNS_REGISTER_SERVICE;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_SUBSEQUENT_TLS_SPAKE;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_REQUEST_FAILED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_RESPONSE_FAILED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_CONTROL_MESSAGE_EXCHANGE;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_CAPABILITY_MISMATCH;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_WIFI_DISABLED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_WIFI_DISCONNECTED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_WIFI_CREDENTIAL_TRANSFER;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_WIFI_INTERNET_CONNECTION;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_USER_CANCELLED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_SERVICE_CANCELLED;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DCT_ERROR_UNVERIFIED_INTEGRITY;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::SESSION_SUCCESS;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DisconnectionReason_MIN;
+constexpr ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason ConnectionsLog_DisconnectionReasonDetail::DisconnectionReason_MAX;
+constexpr int ConnectionsLog_DisconnectionReasonDetail::DisconnectionReason_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 bool ConnectionsLog_EstablishedConnection_SafeDisconnectionResult_IsValid(int value) {
   switch (value) {
     case 0:
@@ -1889,6 +2142,9 @@ class ConnectionsLog_DiscoveryPhase::_Internal {
   static void set_has_stop_reason(HasBits* has_bits) {
     (*has_bits)[0] |= 8u;
   }
+  static void set_has_device_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadata&
@@ -1924,16 +2180,16 @@ ConnectionsLog_DiscoveryPhase::ConnectionsLog_DiscoveryPhase(const ConnectionsLo
     discovery_metadata_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&stop_reason_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(stop_reason_));
+    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase)
 }
 
 inline void ConnectionsLog_DiscoveryPhase::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&discovery_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&stop_reason_) -
-    reinterpret_cast<char*>(&discovery_metadata_)) + sizeof(stop_reason_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&discovery_metadata_)) + sizeof(device_type_));
 }
 
 ConnectionsLog_DiscoveryPhase::~ConnectionsLog_DiscoveryPhase() {
@@ -1974,10 +2230,10 @@ void ConnectionsLog_DiscoveryPhase::Clear() {
     GOOGLE_DCHECK(discovery_metadata_ != nullptr);
     discovery_metadata_->Clear();
   }
-  if (cached_has_bits & 0x0000000eu) {
+  if (cached_has_bits & 0x0000001eu) {
     ::memset(&duration_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&stop_reason_) -
-        reinterpret_cast<char*>(&duration_millis_)) + sizeof(stop_reason_));
+        reinterpret_cast<char*>(&device_type_) -
+        reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -2102,6 +2358,19 @@ const char* ConnectionsLog_DiscoveryPhase::_InternalParse(const char* ptr, ::PRO
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.DeviceType device_type = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::DeviceType_IsValid(val))) {
+            _internal_set_device_type(static_cast<::location::nearby::proto::connections::DeviceType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(10, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -2199,6 +2468,13 @@ uint8_t* ConnectionsLog_DiscoveryPhase::_InternalSerialize(
       9, this->_internal_stop_reason(), target);
   }
 
+  // optional .location.nearby.proto.connections.DeviceType device_type = 10;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      10, this->_internal_device_type(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -2254,7 +2530,7 @@ size_t ConnectionsLog_DiscoveryPhase::ByteSizeLong() const {
   }
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     // optional .location.nearby.analytics.proto.ConnectionsLog.DiscoveryMetadata discovery_metadata = 7;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -2276,6 +2552,12 @@ size_t ConnectionsLog_DiscoveryPhase::ByteSizeLong() const {
     if (cached_has_bits & 0x00000008u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_stop_reason());
+    }
+
+    // optional .location.nearby.proto.connections.DeviceType device_type = 10;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
     }
 
   }
@@ -2305,7 +2587,7 @@ void ConnectionsLog_DiscoveryPhase::MergeFrom(const ConnectionsLog_DiscoveryPhas
   uwb_ranging_.MergeFrom(from.uwb_ranging_);
   adv_dis_result_.MergeFrom(from.adv_dis_result_);
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_discovery_metadata()->::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadata::MergeFrom(from._internal_discovery_metadata());
     }
@@ -2317,6 +2599,9 @@ void ConnectionsLog_DiscoveryPhase::MergeFrom(const ConnectionsLog_DiscoveryPhas
     }
     if (cached_has_bits & 0x00000008u) {
       stop_reason_ = from.stop_reason_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      device_type_ = from.device_type_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -2344,8 +2629,8 @@ void ConnectionsLog_DiscoveryPhase::InternalSwap(ConnectionsLog_DiscoveryPhase* 
   uwb_ranging_.InternalSwap(&other->uwb_ranging_);
   adv_dis_result_.InternalSwap(&other->adv_dis_result_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_DiscoveryPhase, stop_reason_)
-      + sizeof(ConnectionsLog_DiscoveryPhase::stop_reason_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_DiscoveryPhase, device_type_)
+      + sizeof(ConnectionsLog_DiscoveryPhase::device_type_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_DiscoveryPhase, discovery_metadata_)>(
           reinterpret_cast<char*>(&discovery_metadata_),
           reinterpret_cast<char*>(&other->discovery_metadata_));
@@ -3359,6 +3644,9 @@ class ConnectionsLog_AdvertisingPhase::_Internal {
   static void set_has_stop_reason(HasBits* has_bits) {
     (*has_bits)[0] |= 8u;
   }
+  static void set_has_device_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_AdvertisingMetadata&
@@ -3390,16 +3678,16 @@ ConnectionsLog_AdvertisingPhase::ConnectionsLog_AdvertisingPhase(const Connectio
     advertising_metadata_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&stop_reason_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(stop_reason_));
+    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase)
 }
 
 inline void ConnectionsLog_AdvertisingPhase::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&advertising_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&stop_reason_) -
-    reinterpret_cast<char*>(&advertising_metadata_)) + sizeof(stop_reason_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&advertising_metadata_)) + sizeof(device_type_));
 }
 
 ConnectionsLog_AdvertisingPhase::~ConnectionsLog_AdvertisingPhase() {
@@ -3438,10 +3726,10 @@ void ConnectionsLog_AdvertisingPhase::Clear() {
     GOOGLE_DCHECK(advertising_metadata_ != nullptr);
     advertising_metadata_->Clear();
   }
-  if (cached_has_bits & 0x0000000eu) {
+  if (cached_has_bits & 0x0000001eu) {
     ::memset(&duration_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&stop_reason_) -
-        reinterpret_cast<char*>(&duration_millis_)) + sizeof(stop_reason_));
+        reinterpret_cast<char*>(&device_type_) -
+        reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -3540,6 +3828,19 @@ const char* ConnectionsLog_AdvertisingPhase::_InternalParse(const char* ptr, ::P
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.DeviceType device_type = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::DeviceType_IsValid(val))) {
+            _internal_set_device_type(static_cast<::location::nearby::proto::connections::DeviceType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(8, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -3621,6 +3922,13 @@ uint8_t* ConnectionsLog_AdvertisingPhase::_InternalSerialize(
       7, this->_internal_stop_reason(), target);
   }
 
+  // optional .location.nearby.proto.connections.DeviceType device_type = 8;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      8, this->_internal_device_type(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -3662,7 +3970,7 @@ size_t ConnectionsLog_AdvertisingPhase::ByteSizeLong() const {
   }
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     // optional .location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata advertising_metadata = 5;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -3684,6 +3992,12 @@ size_t ConnectionsLog_AdvertisingPhase::ByteSizeLong() const {
     if (cached_has_bits & 0x00000008u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_stop_reason());
+    }
+
+    // optional .location.nearby.proto.connections.DeviceType device_type = 8;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
     }
 
   }
@@ -3711,7 +4025,7 @@ void ConnectionsLog_AdvertisingPhase::MergeFrom(const ConnectionsLog_Advertising
   received_connection_request_.MergeFrom(from.received_connection_request_);
   adv_dis_result_.MergeFrom(from.adv_dis_result_);
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000000fu) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_advertising_metadata()->::location::nearby::analytics::proto::ConnectionsLog_AdvertisingMetadata::MergeFrom(from._internal_advertising_metadata());
     }
@@ -3723,6 +4037,9 @@ void ConnectionsLog_AdvertisingPhase::MergeFrom(const ConnectionsLog_Advertising
     }
     if (cached_has_bits & 0x00000008u) {
       stop_reason_ = from.stop_reason_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      device_type_ = from.device_type_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -3748,8 +4065,8 @@ void ConnectionsLog_AdvertisingPhase::InternalSwap(ConnectionsLog_AdvertisingPha
   received_connection_request_.InternalSwap(&other->received_connection_request_);
   adv_dis_result_.InternalSwap(&other->adv_dis_result_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_AdvertisingPhase, stop_reason_)
-      + sizeof(ConnectionsLog_AdvertisingPhase::stop_reason_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_AdvertisingPhase, device_type_)
+      + sizeof(ConnectionsLog_AdvertisingPhase::device_type_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_AdvertisingPhase, advertising_metadata_)>(
           reinterpret_cast<char*>(&advertising_metadata_),
           reinterpret_cast<char*>(&other->advertising_metadata_));
@@ -4121,6 +4438,9 @@ class ConnectionsLog_ConnectionAttempt::_Internal {
   static void set_has_connection_mode(HasBits* has_bits) {
     (*has_bits)[0] |= 512u;
   }
+  static void set_has_device_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttemptMetadata&
@@ -4163,8 +4483,8 @@ ConnectionsLog_ConnectionAttempt::ConnectionsLog_ConnectionAttempt(const Connect
     operation_result_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&connection_mode_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(connection_mode_));
+    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt)
 }
 
@@ -4175,8 +4495,8 @@ connection_token_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyS
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&connection_attempt_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&connection_mode_) -
-    reinterpret_cast<char*>(&connection_attempt_metadata_)) + sizeof(connection_mode_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&connection_attempt_metadata_)) + sizeof(device_type_));
 }
 
 ConnectionsLog_ConnectionAttempt::~ConnectionsLog_ConnectionAttempt() {
@@ -4228,10 +4548,10 @@ void ConnectionsLog_ConnectionAttempt::Clear() {
         reinterpret_cast<char*>(&attempt_result_) -
         reinterpret_cast<char*>(&duration_millis_)) + sizeof(attempt_result_));
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     ::memset(&client_flow_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&connection_mode_) -
-        reinterpret_cast<char*>(&client_flow_id_)) + sizeof(connection_mode_));
+        reinterpret_cast<char*>(&device_type_) -
+        reinterpret_cast<char*>(&client_flow_id_)) + sizeof(device_type_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -4352,6 +4672,19 @@ const char* ConnectionsLog_ConnectionAttempt::_InternalParse(const char* ptr, ::
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.DeviceType device_type = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::DeviceType_IsValid(val))) {
+            _internal_set_device_type(static_cast<::location::nearby::proto::connections::DeviceType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(11, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -4452,6 +4785,13 @@ uint8_t* ConnectionsLog_ConnectionAttempt::_InternalSerialize(
       10, this->_internal_connection_mode(), target);
   }
 
+  // optional .location.nearby.proto.connections.DeviceType device_type = 11;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      11, this->_internal_device_type(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -4521,7 +4861,7 @@ size_t ConnectionsLog_ConnectionAttempt::ByteSizeLong() const {
     }
 
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     // optional int64 client_flow_id = 6;
     if (cached_has_bits & 0x00000100u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_client_flow_id());
@@ -4531,6 +4871,12 @@ size_t ConnectionsLog_ConnectionAttempt::ByteSizeLong() const {
     if (cached_has_bits & 0x00000200u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_connection_mode());
+    }
+
+    // optional .location.nearby.proto.connections.DeviceType device_type = 11;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
     }
 
   }
@@ -4582,12 +4928,15 @@ void ConnectionsLog_ConnectionAttempt::MergeFrom(const ConnectionsLog_Connection
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     if (cached_has_bits & 0x00000100u) {
       client_flow_id_ = from.client_flow_id_;
     }
     if (cached_has_bits & 0x00000200u) {
       connection_mode_ = from.connection_mode_;
+    }
+    if (cached_has_bits & 0x00000400u) {
+      device_type_ = from.device_type_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -4617,8 +4966,8 @@ void ConnectionsLog_ConnectionAttempt::InternalSwap(ConnectionsLog_ConnectionAtt
       &other->connection_token_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_ConnectionAttempt, connection_mode_)
-      + sizeof(ConnectionsLog_ConnectionAttempt::connection_mode_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_ConnectionAttempt, device_type_)
+      + sizeof(ConnectionsLog_ConnectionAttempt::device_type_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_ConnectionAttempt, connection_attempt_metadata_)>(
           reinterpret_cast<char*>(&connection_attempt_metadata_),
           reinterpret_cast<char*>(&other->connection_attempt_metadata_));
@@ -4631,39 +4980,649 @@ std::string ConnectionsLog_ConnectionAttempt::GetTypeName() const {
 
 // ===================================================================
 
+class ConnectionsLog_DeviceInfo::_Internal {
+ public:
+  using HasBits = decltype(std::declval<ConnectionsLog_DeviceInfo>()._has_bits_);
+  static void set_has_device_model(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_device_platform(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_country_code(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_manufacturer(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+};
+
+ConnectionsLog_DeviceInfo::ConnectionsLog_DeviceInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+}
+ConnectionsLog_DeviceInfo::ConnectionsLog_DeviceInfo(const ConnectionsLog_DeviceInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  device_model_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    device_model_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_device_model()) {
+    device_model_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_device_model(), 
+      GetArenaForAllocation());
+  }
+  country_code_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    country_code_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_country_code()) {
+    country_code_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_country_code(), 
+      GetArenaForAllocation());
+  }
+  manufacturer_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    manufacturer_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_manufacturer()) {
+    manufacturer_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_manufacturer(), 
+      GetArenaForAllocation());
+  }
+  device_platform_ = from.device_platform_;
+  // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+}
+
+inline void ConnectionsLog_DeviceInfo::SharedCtor() {
+device_model_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  device_model_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+country_code_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  country_code_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+manufacturer_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  manufacturer_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+device_platform_ = 0;
+}
+
+ConnectionsLog_DeviceInfo::~ConnectionsLog_DeviceInfo() {
+  // @@protoc_insertion_point(destructor:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void ConnectionsLog_DeviceInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  device_model_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  country_code_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  manufacturer_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void ConnectionsLog_DeviceInfo::ArenaDtor(void* object) {
+  ConnectionsLog_DeviceInfo* _this = reinterpret_cast< ConnectionsLog_DeviceInfo* >(object);
+  (void)_this;
+}
+void ConnectionsLog_DeviceInfo::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ConnectionsLog_DeviceInfo::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void ConnectionsLog_DeviceInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    if (cached_has_bits & 0x00000001u) {
+      device_model_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      country_code_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000004u) {
+      manufacturer_.ClearNonDefaultToEmpty();
+    }
+  }
+  device_platform_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* ConnectionsLog_DeviceInfo::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional string device_model = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_device_model();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo.Platform device_platform = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo_Platform_IsValid(val))) {
+            _internal_set_device_platform(static_cast<::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo_Platform>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string country_code = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_country_code();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string manufacturer = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          auto str = _internal_mutable_manufacturer();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ConnectionsLog_DeviceInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional string device_model = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_device_model(), target);
+  }
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo.Platform device_platform = 2;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_device_platform(), target);
+  }
+
+  // optional string country_code = 3;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_country_code(), target);
+  }
+
+  // optional string manufacturer = 4;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->WriteStringMaybeAliased(
+        4, this->_internal_manufacturer(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  return target;
+}
+
+size_t ConnectionsLog_DeviceInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    // optional string device_model = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_device_model());
+    }
+
+    // optional string country_code = 3;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_country_code());
+    }
+
+    // optional string manufacturer = 4;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_manufacturer());
+    }
+
+    // optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo.Platform device_platform = 2;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_platform());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void ConnectionsLog_DeviceInfo::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ConnectionsLog_DeviceInfo*>(
+      &from));
+}
+
+void ConnectionsLog_DeviceInfo::MergeFrom(const ConnectionsLog_DeviceInfo& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_device_model(from._internal_device_model());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _internal_set_country_code(from._internal_country_code());
+    }
+    if (cached_has_bits & 0x00000004u) {
+      _internal_set_manufacturer(from._internal_manufacturer());
+    }
+    if (cached_has_bits & 0x00000008u) {
+      device_platform_ = from.device_platform_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void ConnectionsLog_DeviceInfo::CopyFrom(const ConnectionsLog_DeviceInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.analytics.proto.ConnectionsLog.DeviceInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ConnectionsLog_DeviceInfo::IsInitialized() const {
+  return true;
+}
+
+void ConnectionsLog_DeviceInfo::InternalSwap(ConnectionsLog_DeviceInfo* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &device_model_, lhs_arena,
+      &other->device_model_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &country_code_, lhs_arena,
+      &other->country_code_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &manufacturer_, lhs_arena,
+      &other->manufacturer_, rhs_arena
+  );
+  swap(device_platform_, other->device_platform_);
+}
+
+std::string ConnectionsLog_DeviceInfo::GetTypeName() const {
+  return "location.nearby.analytics.proto.ConnectionsLog.DeviceInfo";
+}
+
+
+// ===================================================================
+
+class ConnectionsLog_DisconnectionReasonDetail::_Internal {
+ public:
+  using HasBits = decltype(std::declval<ConnectionsLog_DisconnectionReasonDetail>()._has_bits_);
+  static void set_has_is_local_disconnection(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_disconnection_reason(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+ConnectionsLog_DisconnectionReasonDetail::ConnectionsLog_DisconnectionReasonDetail(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+}
+ConnectionsLog_DisconnectionReasonDetail::ConnectionsLog_DisconnectionReasonDetail(const ConnectionsLog_DisconnectionReasonDetail& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  ::memcpy(&is_local_disconnection_, &from.is_local_disconnection_,
+    static_cast<size_t>(reinterpret_cast<char*>(&disconnection_reason_) -
+    reinterpret_cast<char*>(&is_local_disconnection_)) + sizeof(disconnection_reason_));
+  // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+}
+
+inline void ConnectionsLog_DisconnectionReasonDetail::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&is_local_disconnection_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&disconnection_reason_) -
+    reinterpret_cast<char*>(&is_local_disconnection_)) + sizeof(disconnection_reason_));
+}
+
+ConnectionsLog_DisconnectionReasonDetail::~ConnectionsLog_DisconnectionReasonDetail() {
+  // @@protoc_insertion_point(destructor:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void ConnectionsLog_DisconnectionReasonDetail::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void ConnectionsLog_DisconnectionReasonDetail::ArenaDtor(void* object) {
+  ConnectionsLog_DisconnectionReasonDetail* _this = reinterpret_cast< ConnectionsLog_DisconnectionReasonDetail* >(object);
+  (void)_this;
+}
+void ConnectionsLog_DisconnectionReasonDetail::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ConnectionsLog_DisconnectionReasonDetail::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void ConnectionsLog_DisconnectionReasonDetail::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    ::memset(&is_local_disconnection_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&disconnection_reason_) -
+        reinterpret_cast<char*>(&is_local_disconnection_)) + sizeof(disconnection_reason_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* ConnectionsLog_DisconnectionReasonDetail::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional bool is_local_disconnection = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_is_local_disconnection(&has_bits);
+          is_local_disconnection_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail.DisconnectionReason disconnection_reason = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason_IsValid(val))) {
+            _internal_set_disconnection_reason(static_cast<::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail_DisconnectionReason>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ConnectionsLog_DisconnectionReasonDetail::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional bool is_local_disconnection = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(1, this->_internal_is_local_disconnection(), target);
+  }
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail.DisconnectionReason disconnection_reason = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_disconnection_reason(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  return target;
+}
+
+size_t ConnectionsLog_DisconnectionReasonDetail::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional bool is_local_disconnection = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 + 1;
+    }
+
+    // optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail.DisconnectionReason disconnection_reason = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_disconnection_reason());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void ConnectionsLog_DisconnectionReasonDetail::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ConnectionsLog_DisconnectionReasonDetail*>(
+      &from));
+}
+
+void ConnectionsLog_DisconnectionReasonDetail::MergeFrom(const ConnectionsLog_DisconnectionReasonDetail& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      is_local_disconnection_ = from.is_local_disconnection_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      disconnection_reason_ = from.disconnection_reason_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void ConnectionsLog_DisconnectionReasonDetail::CopyFrom(const ConnectionsLog_DisconnectionReasonDetail& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ConnectionsLog_DisconnectionReasonDetail::IsInitialized() const {
+  return true;
+}
+
+void ConnectionsLog_DisconnectionReasonDetail::InternalSwap(ConnectionsLog_DisconnectionReasonDetail* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_DisconnectionReasonDetail, disconnection_reason_)
+      + sizeof(ConnectionsLog_DisconnectionReasonDetail::disconnection_reason_)
+      - PROTOBUF_FIELD_OFFSET(ConnectionsLog_DisconnectionReasonDetail, is_local_disconnection_)>(
+          reinterpret_cast<char*>(&is_local_disconnection_),
+          reinterpret_cast<char*>(&other->is_local_disconnection_));
+}
+
+std::string ConnectionsLog_DisconnectionReasonDetail::GetTypeName() const {
+  return "location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail";
+}
+
+
+// ===================================================================
+
 class ConnectionsLog_EstablishedConnection::_Internal {
  public:
   using HasBits = decltype(std::declval<ConnectionsLog_EstablishedConnection>()._has_bits_);
   static void set_has_duration_millis(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
-  static void set_has_medium(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
-  }
-  static void set_has_disconnection_reason(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
-  static void set_has_client_flow_id(HasBits* has_bits) {
+  static void set_has_medium(HasBits* has_bits) {
     (*has_bits)[0] |= 32u;
+  }
+  static void set_has_disconnection_reason(HasBits* has_bits) {
+    (*has_bits)[0] |= 64u;
+  }
+  static void set_has_client_flow_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
   }
   static void set_has_connection_token(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_type(HasBits* has_bits) {
-    (*has_bits)[0] |= 64u;
+    (*has_bits)[0] |= 256u;
   }
   static void set_has_safe_disconnection_result(HasBits* has_bits) {
-    (*has_bits)[0] |= 128u;
+    (*has_bits)[0] |= 512u;
   }
   static const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& operation_result(const ConnectionsLog_EstablishedConnection* msg);
   static void set_has_operation_result(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
+  }
+  static const ::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo& remote_device_info(const ConnectionsLog_EstablishedConnection* msg);
+  static void set_has_remote_device_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static const ::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail& disconnection_reason_detail(const ConnectionsLog_EstablishedConnection* msg);
+  static void set_has_disconnection_reason_detail(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_device_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
   }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&
 ConnectionsLog_EstablishedConnection::_Internal::operation_result(const ConnectionsLog_EstablishedConnection* msg) {
   return *msg->operation_result_;
+}
+const ::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo&
+ConnectionsLog_EstablishedConnection::_Internal::remote_device_info(const ConnectionsLog_EstablishedConnection* msg) {
+  return *msg->remote_device_info_;
+}
+const ::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail&
+ConnectionsLog_EstablishedConnection::_Internal::disconnection_reason_detail(const ConnectionsLog_EstablishedConnection* msg) {
+  return *msg->disconnection_reason_detail_;
 }
 ConnectionsLog_EstablishedConnection::ConnectionsLog_EstablishedConnection(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -4695,9 +5654,19 @@ ConnectionsLog_EstablishedConnection::ConnectionsLog_EstablishedConnection(const
   } else {
     operation_result_ = nullptr;
   }
+  if (from._internal_has_remote_device_info()) {
+    remote_device_info_ = new ::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo(*from.remote_device_info_);
+  } else {
+    remote_device_info_ = nullptr;
+  }
+  if (from._internal_has_disconnection_reason_detail()) {
+    disconnection_reason_detail_ = new ::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail(*from.disconnection_reason_detail_);
+  } else {
+    disconnection_reason_detail_ = nullptr;
+  }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&safe_disconnection_result_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(safe_disconnection_result_));
+    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection)
 }
 
@@ -4708,8 +5677,8 @@ connection_token_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyS
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&operation_result_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&safe_disconnection_result_) -
-    reinterpret_cast<char*>(&operation_result_)) + sizeof(safe_disconnection_result_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&operation_result_)) + sizeof(device_type_));
 }
 
 ConnectionsLog_EstablishedConnection::~ConnectionsLog_EstablishedConnection() {
@@ -4723,6 +5692,8 @@ inline void ConnectionsLog_EstablishedConnection::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   connection_token_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete operation_result_;
+  if (this != internal_default_instance()) delete remote_device_info_;
+  if (this != internal_default_instance()) delete disconnection_reason_detail_;
 }
 
 void ConnectionsLog_EstablishedConnection::ArenaDtor(void* object) {
@@ -4744,7 +5715,7 @@ void ConnectionsLog_EstablishedConnection::Clear() {
   sent_payload_.Clear();
   received_payload_.Clear();
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x0000000fu) {
     if (cached_has_bits & 0x00000001u) {
       connection_token_.ClearNonDefaultToEmpty();
     }
@@ -4752,11 +5723,24 @@ void ConnectionsLog_EstablishedConnection::Clear() {
       GOOGLE_DCHECK(operation_result_ != nullptr);
       operation_result_->Clear();
     }
+    if (cached_has_bits & 0x00000004u) {
+      GOOGLE_DCHECK(remote_device_info_ != nullptr);
+      remote_device_info_->Clear();
+    }
+    if (cached_has_bits & 0x00000008u) {
+      GOOGLE_DCHECK(disconnection_reason_detail_ != nullptr);
+      disconnection_reason_detail_->Clear();
+    }
   }
-  if (cached_has_bits & 0x000000fcu) {
+  if (cached_has_bits & 0x000000f0u) {
     ::memset(&duration_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&safe_disconnection_result_) -
-        reinterpret_cast<char*>(&duration_millis_)) + sizeof(safe_disconnection_result_));
+        reinterpret_cast<char*>(&client_flow_id_) -
+        reinterpret_cast<char*>(&duration_millis_)) + sizeof(client_flow_id_));
+  }
+  if (cached_has_bits & 0x00000700u) {
+    ::memset(&type_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&device_type_) -
+        reinterpret_cast<char*>(&type_)) + sizeof(device_type_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -4882,6 +5866,35 @@ const char* ConnectionsLog_EstablishedConnection::_InternalParse(const char* ptr
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo remote_device_info = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+          ptr = ctx->ParseMessage(_internal_mutable_remote_device_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail disconnection_reason_detail = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
+          ptr = ctx->ParseMessage(_internal_mutable_disconnection_reason_detail(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.connections.DeviceType device_type = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 104)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::DeviceType_IsValid(val))) {
+            _internal_set_device_type(static_cast<::location::nearby::proto::connections::DeviceType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(13, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -4914,13 +5927,13 @@ uint8_t* ConnectionsLog_EstablishedConnection::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional int64 duration_millis = 1;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(1, this->_internal_duration_millis(), target);
   }
 
   // optional .location.nearby.proto.connections.Medium medium = 2;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       2, this->_internal_medium(), target);
@@ -4943,14 +5956,14 @@ uint8_t* ConnectionsLog_EstablishedConnection::_InternalSerialize(
   }
 
   // optional .location.nearby.proto.connections.DisconnectionReason disconnection_reason = 5;
-  if (cached_has_bits & 0x00000010u) {
+  if (cached_has_bits & 0x00000040u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       5, this->_internal_disconnection_reason(), target);
   }
 
   // optional int64 client_flow_id = 6;
-  if (cached_has_bits & 0x00000020u) {
+  if (cached_has_bits & 0x00000080u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(6, this->_internal_client_flow_id(), target);
   }
@@ -4962,14 +5975,14 @@ uint8_t* ConnectionsLog_EstablishedConnection::_InternalSerialize(
   }
 
   // optional .location.nearby.proto.connections.ConnectionAttemptType type = 8;
-  if (cached_has_bits & 0x00000040u) {
+  if (cached_has_bits & 0x00000100u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       8, this->_internal_type(), target);
   }
 
   // optional .location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.SafeDisconnectionResult safe_disconnection_result = 9;
-  if (cached_has_bits & 0x00000080u) {
+  if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       9, this->_internal_safe_disconnection_result(), target);
@@ -4981,6 +5994,29 @@ uint8_t* ConnectionsLog_EstablishedConnection::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
         10, _Internal::operation_result(this), target, stream);
+  }
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo remote_device_info = 11;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        11, _Internal::remote_device_info(this), target, stream);
+  }
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail disconnection_reason_detail = 12;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        12, _Internal::disconnection_reason_detail(this), target, stream);
+  }
+
+  // optional .location.nearby.proto.connections.DeviceType device_type = 13;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      13, this->_internal_device_type(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -5029,38 +6065,60 @@ size_t ConnectionsLog_EstablishedConnection::ByteSizeLong() const {
           *operation_result_);
     }
 
-    // optional int64 duration_millis = 1;
+    // optional .location.nearby.analytics.proto.ConnectionsLog.DeviceInfo remote_device_info = 11;
     if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *remote_device_info_);
+    }
+
+    // optional .location.nearby.analytics.proto.ConnectionsLog.DisconnectionReasonDetail disconnection_reason_detail = 12;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *disconnection_reason_detail_);
+    }
+
+    // optional int64 duration_millis = 1;
+    if (cached_has_bits & 0x00000010u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_duration_millis());
     }
 
     // optional .location.nearby.proto.connections.Medium medium = 2;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000020u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_medium());
     }
 
     // optional .location.nearby.proto.connections.DisconnectionReason disconnection_reason = 5;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000040u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_disconnection_reason());
     }
 
     // optional int64 client_flow_id = 6;
-    if (cached_has_bits & 0x00000020u) {
+    if (cached_has_bits & 0x00000080u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_client_flow_id());
     }
 
+  }
+  if (cached_has_bits & 0x00000700u) {
     // optional .location.nearby.proto.connections.ConnectionAttemptType type = 8;
-    if (cached_has_bits & 0x00000040u) {
+    if (cached_has_bits & 0x00000100u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
     }
 
     // optional .location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection.SafeDisconnectionResult safe_disconnection_result = 9;
-    if (cached_has_bits & 0x00000080u) {
+    if (cached_has_bits & 0x00000200u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_safe_disconnection_result());
+    }
+
+    // optional .location.nearby.proto.connections.DeviceType device_type = 13;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
     }
 
   }
@@ -5095,22 +6153,34 @@ void ConnectionsLog_EstablishedConnection::MergeFrom(const ConnectionsLog_Establ
       _internal_mutable_operation_result()->::location::nearby::analytics::proto::ConnectionsLog_OperationResult::MergeFrom(from._internal_operation_result());
     }
     if (cached_has_bits & 0x00000004u) {
-      duration_millis_ = from.duration_millis_;
+      _internal_mutable_remote_device_info()->::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo::MergeFrom(from._internal_remote_device_info());
     }
     if (cached_has_bits & 0x00000008u) {
-      medium_ = from.medium_;
+      _internal_mutable_disconnection_reason_detail()->::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail::MergeFrom(from._internal_disconnection_reason_detail());
     }
     if (cached_has_bits & 0x00000010u) {
-      disconnection_reason_ = from.disconnection_reason_;
+      duration_millis_ = from.duration_millis_;
     }
     if (cached_has_bits & 0x00000020u) {
-      client_flow_id_ = from.client_flow_id_;
+      medium_ = from.medium_;
     }
     if (cached_has_bits & 0x00000040u) {
-      type_ = from.type_;
+      disconnection_reason_ = from.disconnection_reason_;
     }
     if (cached_has_bits & 0x00000080u) {
+      client_flow_id_ = from.client_flow_id_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  if (cached_has_bits & 0x00000700u) {
+    if (cached_has_bits & 0x00000100u) {
+      type_ = from.type_;
+    }
+    if (cached_has_bits & 0x00000200u) {
       safe_disconnection_result_ = from.safe_disconnection_result_;
+    }
+    if (cached_has_bits & 0x00000400u) {
+      device_type_ = from.device_type_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -5142,8 +6212,8 @@ void ConnectionsLog_EstablishedConnection::InternalSwap(ConnectionsLog_Establish
       &other->connection_token_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_EstablishedConnection, safe_disconnection_result_)
-      + sizeof(ConnectionsLog_EstablishedConnection::safe_disconnection_result_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_EstablishedConnection, device_type_)
+      + sizeof(ConnectionsLog_EstablishedConnection::device_type_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_EstablishedConnection, operation_result_)>(
           reinterpret_cast<char*>(&operation_result_),
           reinterpret_cast<char*>(&other->operation_result_));
@@ -5634,6 +6704,9 @@ class ConnectionsLog_BandwidthUpgradeAttempt::_Internal {
   static void set_has_operation_result(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
   }
+  static void set_has_device_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 512u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&
@@ -5667,8 +6740,8 @@ ConnectionsLog_BandwidthUpgradeAttempt::ConnectionsLog_BandwidthUpgradeAttempt(c
     operation_result_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&error_stage_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(error_stage_));
+    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt)
 }
 
@@ -5679,8 +6752,8 @@ connection_token_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyS
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&operation_result_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&error_stage_) -
-    reinterpret_cast<char*>(&operation_result_)) + sizeof(error_stage_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
+    reinterpret_cast<char*>(&operation_result_)) + sizeof(device_type_));
 }
 
 ConnectionsLog_BandwidthUpgradeAttempt::~ConnectionsLog_BandwidthUpgradeAttempt() {
@@ -5727,7 +6800,11 @@ void ConnectionsLog_BandwidthUpgradeAttempt::Clear() {
         reinterpret_cast<char*>(&client_flow_id_) -
         reinterpret_cast<char*>(&duration_millis_)) + sizeof(client_flow_id_));
   }
-  error_stage_ = 0;
+  if (cached_has_bits & 0x00000300u) {
+    ::memset(&error_stage_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&device_type_) -
+        reinterpret_cast<char*>(&error_stage_)) + sizeof(device_type_));
+  }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -5839,6 +6916,19 @@ const char* ConnectionsLog_BandwidthUpgradeAttempt::_InternalParse(const char* p
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.DeviceType device_type = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::DeviceType_IsValid(val))) {
+            _internal_set_device_type(static_cast<::location::nearby::proto::connections::DeviceType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(10, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -5931,6 +7021,13 @@ uint8_t* ConnectionsLog_BandwidthUpgradeAttempt::_InternalSerialize(
         9, _Internal::operation_result(this), target, stream);
   }
 
+  // optional .location.nearby.proto.connections.DeviceType device_type = 10;
+  if (cached_has_bits & 0x00000200u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      10, this->_internal_device_type(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -5998,12 +7095,20 @@ size_t ConnectionsLog_BandwidthUpgradeAttempt::ByteSizeLong() const {
     }
 
   }
-  // optional .location.nearby.proto.connections.BandwidthUpgradeErrorStage error_stage = 6;
-  if (cached_has_bits & 0x00000100u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_error_stage());
-  }
+  if (cached_has_bits & 0x00000300u) {
+    // optional .location.nearby.proto.connections.BandwidthUpgradeErrorStage error_stage = 6;
+    if (cached_has_bits & 0x00000100u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_error_stage());
+    }
 
+    // optional .location.nearby.proto.connections.DeviceType device_type = 10;
+    if (cached_has_bits & 0x00000200u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -6052,8 +7157,14 @@ void ConnectionsLog_BandwidthUpgradeAttempt::MergeFrom(const ConnectionsLog_Band
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000100u) {
-    _internal_set_error_stage(from._internal_error_stage());
+  if (cached_has_bits & 0x00000300u) {
+    if (cached_has_bits & 0x00000100u) {
+      error_stage_ = from.error_stage_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      device_type_ = from.device_type_;
+    }
+    _has_bits_[0] |= cached_has_bits;
   }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -6081,8 +7192,8 @@ void ConnectionsLog_BandwidthUpgradeAttempt::InternalSwap(ConnectionsLog_Bandwid
       &other->connection_token_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_BandwidthUpgradeAttempt, error_stage_)
-      + sizeof(ConnectionsLog_BandwidthUpgradeAttempt::error_stage_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_BandwidthUpgradeAttempt, device_type_)
+      + sizeof(ConnectionsLog_BandwidthUpgradeAttempt::device_type_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_BandwidthUpgradeAttempt, operation_result_)>(
           reinterpret_cast<char*>(&operation_result_),
           reinterpret_cast<char*>(&other->operation_result_));
@@ -8901,6 +10012,12 @@ template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLo
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttempt* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttempt >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttempt >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_DeviceInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_DisconnectionReasonDetail >(arena);
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection >(arena);
