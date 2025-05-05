@@ -302,6 +302,12 @@ message BandwidthUpgradeNegotiationFrame {
       optional LocationHint location_hint = 2;
     }
 
+    // Accompanies Medium.AWDL.
+    message AwdlCredentials {
+      optional string service_name = 1;
+      optional string service_type = 2;
+    }
+
     message UpgradePathRequest {
       // Supported mediums on the advertiser device.
       repeated Medium mediums = 1 [packed = true];
@@ -317,6 +323,7 @@ message BandwidthUpgradeNegotiationFrame {
     optional WifiAwareCredentials wifi_aware_credentials = 5;
     optional WifiDirectCredentials wifi_direct_credentials = 6;
     optional WebRtcCredentials web_rtc_credentials = 8;
+    optional AwdlCredentials awdl_credentials = 11;
 
     // Disable Encryption for this upgrade medium to improve throughput.
     optional bool supports_disabling_encryption = 7;
