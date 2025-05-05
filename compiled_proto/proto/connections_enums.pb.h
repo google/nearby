@@ -576,11 +576,12 @@ enum OperationResultCategory : int {
   CATEGORY_NEARBY_ERROR = 6,
   CATEGORY_CONNECTIVITY_ERROR = 7,
   CATEGORY_MISCELLANEOUS = 8,
-  CATEGORY_IO_ERROR = 9
+  CATEGORY_IO_ERROR = 9,
+  CATEGORY_DCT_ERROR = 10
 };
 bool OperationResultCategory_IsValid(int value);
 constexpr OperationResultCategory OperationResultCategory_MIN = CATEGORY_UNKNOWN;
-constexpr OperationResultCategory OperationResultCategory_MAX = CATEGORY_IO_ERROR;
+constexpr OperationResultCategory OperationResultCategory_MAX = CATEGORY_DCT_ERROR;
 constexpr int OperationResultCategory_ARRAYSIZE = OperationResultCategory_MAX + 1;
 
 const std::string& OperationResultCategory_Name(OperationResultCategory value);
@@ -951,11 +952,36 @@ enum OperationResultCode : int {
   NEARBY_CONNECTIVITY_INFO_NULL_OR_WRONG = 4606,
   NEARBY_LOCAL_CLIENT_STATE_WRONG = 4607,
   NEARBY_REMOTE_EXCEPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4608,
-  NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609
+  NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609,
+  DCT_ERROR_BLE_DISABLED = 5000,
+  DCT_ERROR_BLE_ADV_FAILED = 5001,
+  DCT_ERROR_BLE_SCAN_FAILED = 5002,
+  DCT_ERROR_L2CAP_SERVER_FAILED = 5003,
+  DCT_ERROR_L2CAP_CLIENT_FAILED = 5004,
+  DCT_ERROR_MDNS_DISCOVERY_TIMEOUT = 5005,
+  DCT_ERROR_MDNS_REGISTER_SERVICE = 5006,
+  DCT_ERROR_INITIAL_TLS_SPAKE = 5007,
+  DCT_ERROR_SUBSEQUENT_TLS_SPAKE = 5008,
+  DCT_ERROR_REQUEST_FAILED = 5009,
+  DCT_ERROR_RESPONSE_FAILED = 5010,
+  DCT_ERROR_CONTROL_MESSAGE_EXCHANGE = 5011,
+  DCT_ERROR_CAPABILITY_MISMATCH = 5012,
+  DCT_ERROR_HIGH_SPEED_MEDIUM_UNAVAILABLE = 5013,
+  DCT_ERROR_WIFI_DISABLED = 5014,
+  DCT_ERROR_WIFI_DISCONNECTED = 5015,
+  DCT_ERROR_WIFI_CREDENTIAL_TRANSFER = 5016,
+  DCT_ERROR_WIFI_INTERNET_CONNECTION = 5017,
+  DCT_ERROR_UPGRADE_HIGH_SPEED_MEDIUM_FAILED = 5018,
+  DCT_ERROR_KEEPALIVE_TIMEOUT = 5019,
+  DCT_ERROR_ESTABLISHED_CONNECTION_LOST = 5020,
+  DCT_ERROR_USER_CANCELLED = 5021,
+  DCT_ERROR_SERVICE_CANCELLED = 5022,
+  DCT_ERROR_UNVERIFIED_INTEGRITY = 5023,
+  DCT_ERROR_HTTP_SERVER_CLOSED = 5024
 };
 bool OperationResultCode_IsValid(int value);
 constexpr OperationResultCode OperationResultCode_MIN = DETAIL_UNKNOWN;
-constexpr OperationResultCode OperationResultCode_MAX = NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD;
+constexpr OperationResultCode OperationResultCode_MAX = DCT_ERROR_HTTP_SERVER_CLOSED;
 constexpr int OperationResultCode_ARRAYSIZE = OperationResultCode_MAX + 1;
 
 const std::string& OperationResultCode_Name(OperationResultCode value);
@@ -1008,6 +1034,27 @@ inline const std::string& StopDiscoveringReason_Name(T enum_t_value) {
 }
 bool StopDiscoveringReason_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, StopDiscoveringReason* value);
+enum DeviceType : int {
+  UNKNOWN_TYPE = 0,
+  NEARBY_CONNECTION = 1,
+  NEARBY_PRESENCE = 2,
+  DCT = 3
+};
+bool DeviceType_IsValid(int value);
+constexpr DeviceType DeviceType_MIN = UNKNOWN_TYPE;
+constexpr DeviceType DeviceType_MAX = DCT;
+constexpr int DeviceType_ARRAYSIZE = DeviceType_MAX + 1;
+
+const std::string& DeviceType_Name(DeviceType value);
+template<typename T>
+inline const std::string& DeviceType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, DeviceType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function DeviceType_Name.");
+  return DeviceType_Name(static_cast<DeviceType>(enum_t_value));
+}
+bool DeviceType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DeviceType* value);
 // ===================================================================
 
 
@@ -1057,6 +1104,7 @@ template <> struct is_proto_enum< ::location::nearby::proto::connections::Operat
 template <> struct is_proto_enum< ::location::nearby::proto::connections::OperationResultCode> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::StopAdvertisingReason> : ::std::true_type {};
 template <> struct is_proto_enum< ::location::nearby::proto::connections::StopDiscoveringReason> : ::std::true_type {};
+template <> struct is_proto_enum< ::location::nearby::proto::connections::DeviceType> : ::std::true_type {};
 
 PROTOBUF_NAMESPACE_CLOSE
 
