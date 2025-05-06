@@ -108,7 +108,7 @@ class BlePeripheral {
 
   // Returns an immutable unique identifier. The identifier must not change when
   // the BLE address is rotated.
-  virtual UniqueId GetUniqueId() const { return unique_id_; };
+  virtual UniqueId GetUniqueId() const { return unique_id_; }
 
   // Sets platform specific data that can be retrieved by `GetPlatformData()`.
   void SetPlatformData(void* platform_data) {
