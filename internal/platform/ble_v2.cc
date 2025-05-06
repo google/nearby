@@ -21,6 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -246,17 +247,16 @@ std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
     BleV2Peripheral peripheral, TxPowerLevel tx_power_level,
     ClientGattConnectionCallback callback) {
   std::unique_ptr<api::ble_v2::GattClient> api_gatt_client;
-  api::ble_v2::BlePeripheral* device = peripheral.GetImpl();
-  if (device != nullptr) {
+  peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
     api_gatt_client = impl_->ConnectToGattServer(
-        *device, tx_power_level,
+        device, tx_power_level,
         {
             .disconnected_cb =
                 [callback = std::move(callback)]() mutable {
                   callback.disconnected_cb();
                 },
         });
-  }
+  });
 
   return std::make_unique<GattClient>(std::move(api_gatt_client));
 }
@@ -275,12 +275,10 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
                                  const BleV2Peripheral& peripheral,
                                  CancellationFlag* cancellation_flag) {
   BleV2Socket socket;
-  api::ble_v2::BlePeripheral* device = peripheral.GetImpl();
-  if (device != nullptr) {
-    socket = BleV2Socket(
-        peripheral,
-        impl_->Connect(service_id, tx_power_level, *device, cancellation_flag));
-  };
+  peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
+    socket = BleV2Socket(peripheral, impl_->Connect(service_id, tx_power_level,
+                                                    device, cancellation_flag));
+  });
   return socket;
 }
 
@@ -288,13 +286,12 @@ BleL2capSocket BleV2Medium::ConnectOverL2cap(
     const std::string& service_id, TxPowerLevel tx_power_level,
     const BleV2Peripheral& peripheral, CancellationFlag* cancellation_flag) {
   BleL2capSocket socket;
-  api::ble_v2::BlePeripheral* device = peripheral.GetImpl();
-  if (device != nullptr) {
+  peripheral.GetImpl([&](api::ble_v2::BlePeripheral& device) {
     socket = BleL2capSocket(
         peripheral,
         impl_->ConnectOverL2cap(peripheral.GetPsm(), service_id, tx_power_level,
-                                *device, cancellation_flag));
-  };
+                                device, cancellation_flag));
+  });
   return socket;
 }
 
@@ -314,27 +311,22 @@ BleV2Peripheral BleV2Medium::GetRemotePeripheral(
 
 absl::optional<std::string> BleV2Peripheral::GetAddress() const {
   absl::optional<std::string> address;
-  api::ble_v2::BlePeripheral* device = GetImpl();
-  if (device != nullptr) {
-    address = device->GetAddress();
-  };
+  GetImpl([&](api::ble_v2::BlePeripheral& device) {
+    address = device.GetAddress();
+  });
   return address;
 }
 
 bool BleV2Peripheral::IsValid() const {
-  return GetImpl() != nullptr;
+  return GetImpl([&](api::ble_v2::BlePeripheral& device) {});
 }
 
-api::ble_v2::BlePeripheral* BleV2Peripheral::GetImpl() const {
-  if (!unique_id_.has_value()) return nullptr;
-  api::ble_v2::BlePeripheral* result = nullptr;
-  if (!medium_->GetImpl()->GetRemotePeripheral(
-      unique_id_.value(), [&](api::ble_v2::BlePeripheral& device) {
-        result = &device;
-      })) {
-    return nullptr;
-  }
-  return result;
+bool BleV2Peripheral::GetImpl(
+    absl::AnyInvocable<void(api::ble_v2::BlePeripheral& device)> callback)
+    const {
+  if (!unique_id_.has_value()) return false;
+  return medium_->GetImpl()->GetRemotePeripheral(unique_id_.value(),
+                                                 std::move(callback));
 }
 
 }  // namespace nearby
