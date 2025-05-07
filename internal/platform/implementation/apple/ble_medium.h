@@ -164,12 +164,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   // This is currently always false for all Apple hardware.
   bool IsExtendedAdvertisementsAvailable() override;
 
-  // A peripheral cannot be retreived via MAC address on Apple platforms.
-  //
-  // This always returns false and does not call the callback.
-  bool GetRemotePeripheral(const std::string &mac_address,
-                           api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) override;
-
   // Returns true if `id` refers to a known BLE peripheral and calls `callback` with a reference to
   // said peripheral that is only guaranteed to be available for the duration of the callback.
   // Otherwise, does not call the callback and returns false.

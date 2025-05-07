@@ -132,6 +132,7 @@ cc_test(
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform:uuid",

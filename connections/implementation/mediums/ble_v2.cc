@@ -1382,7 +1382,7 @@ bool BleV2::StartAsyncScanningLocked(absl::string_view service_id,
               [this](api::ble_v2::BlePeripheral& peripheral,
                      BleAdvertisementData advertisement_data) {
                 AssumeHeld(mutex_);
-                BleV2Peripheral proxy(medium_, peripheral);
+                BleV2Peripheral proxy(medium_, peripheral.GetUniqueId());
                 RunOnBleThread([this, proxy = std::move(proxy),
                                 advertisement_data]() {
                   MutexLock lock(&mutex_);

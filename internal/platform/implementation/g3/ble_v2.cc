@@ -349,36 +349,6 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return is_extended_advertisements_available_;
 }
 
-bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
-                                      GetRemotePeripheralCallback callback) {
-  NEARBY_LOGS(INFO) << "GetRemotePeripheral, address= " << mac_address;
-  absl::MutexLock lock(&mutex_);
-  for (auto& item : remote_peripherals_) {
-    auto* peripheral = item.second.get();
-    if (peripheral->GetAddress() == mac_address) {
-      callback(*peripheral);
-      return true;
-    }
-  }
-  BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(
-      MediumEnvironment::Instance().FindBleV2Medium(mac_address));
-  if (remote_medium == nullptr) {
-    return false;
-  }
-  api::ble_v2::BlePeripheral::UniqueId id =
-      remote_medium->GetPeripheral().GetUniqueId();
-  BluetoothAdapter& adapter = remote_medium->GetAdapter();
-  MacAddress address;
-  if (!MacAddress::FromString(adapter.GetMacAddress(), address)) {
-    return false;
-  }
-  remote_peripherals_[id] =
-      std::make_unique<api::ble_v2::BlePeripheral>(id, address);
-  remote_peripherals_[id]->SetPlatformData(&adapter);
-  callback(*remote_peripherals_[id]);
-  return true;
-}
-
 bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                                       GetRemotePeripheralCallback callback) {
   absl::MutexLock lock(&mutex_);

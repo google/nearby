@@ -1299,26 +1299,6 @@ void BleV2Medium::AdvertisementFoundHandler(
   }
 }
 
-bool BleV2Medium::GetRemotePeripheral(const std::string& mac_address,
-                                      GetRemotePeripheralCallback callback) {
-  MacAddress bluetooth_address;
-  if (!MacAddress::FromString(mac_address, bluetooth_address)) {
-    LOG(WARNING) << __func__ << ": Invalid MAC address: " << mac_address;
-    return false;
-  }
-  api::ble_v2::BlePeripheral* peripheral = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    peripheral = GetOrCreatePeripheral(bluetooth_address);
-  }
-
-  if (peripheral != nullptr && peripheral->IsSet()) {
-    callback(*peripheral);
-    return true;
-  }
-  return false;
-}
-
 bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
                                       GetRemotePeripheralCallback callback) {
   MacAddress bluetooth_address;

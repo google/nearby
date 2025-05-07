@@ -494,11 +494,12 @@ cc_test(
         ":cancellation_flag",
         ":comm",
         ":connection_info",
+        ":mac_address",
         ":test_util",
         ":types",
+        ":uuid",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
-        "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",

@@ -143,7 +143,7 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     return;
   }
 
-  if (HandleOnLostAdvertisementLocked(peripheral, advertisement_data)) {
+  if (HandleOnLostAdvertisementLocked(advertisement_data)) {
     return;
   }
 
@@ -181,7 +181,6 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
 }
 
 bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
-    BleV2Peripheral peripheral,
     const BleAdvertisementData& advertisement_data) {
   auto service_data =
       advertisement_data.service_data.find(bleutils::kCopresenceServiceUuid);

@@ -21,7 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
-#include "absl/types/optional.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/logging.h"
@@ -78,7 +78,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                   peripherals_.insert(&peripheral);
                 }
 
-                BleV2Peripheral proxy(*this, peripheral);
+                BleV2Peripheral proxy(*this, peripheral.GetUniqueId());
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
                                                       advertisement_data);
@@ -119,7 +119,7 @@ bool BleV2Medium::StartMultipleServicesScanning(
                   peripherals_.insert(&peripheral);
                 }
 
-                BleV2Peripheral proxy(*this, peripheral);
+                BleV2Peripheral proxy(*this, peripheral.GetUniqueId());
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
                                                       advertisement_data);
@@ -300,25 +300,6 @@ BleL2capSocket BleV2Medium::ConnectOverL2cap(
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
-}
-
-BleV2Peripheral BleV2Medium::GetRemotePeripheral(
-    const std::string& mac_address) {
-  BleV2Peripheral peripheral;
-  impl_->GetRemotePeripheral(mac_address,
-                             [&](api::ble_v2::BlePeripheral& device) {
-                               peripheral = BleV2Peripheral(*this, device);
-                             });
-  return peripheral;
-}
-
-absl::optional<std::string> BleV2Peripheral::GetAddress() const {
-  absl::optional<std::string> address;
-  api::ble_v2::BlePeripheral* device = GetImpl();
-  if (device != nullptr) {
-    address = device->GetAddress();
-  };
-  return address;
 }
 
 bool BleV2Peripheral::IsValid() const {

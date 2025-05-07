@@ -268,7 +268,6 @@ class DiscoveredPeripheralTracker {
   // 2. Matches a peripheral's advertisement hash that has previously been
   // discovered.
   bool HandleOnLostAdvertisementLocked(
-      BleV2Peripheral peripheral,
       const ::nearby::api::ble_v2::BleAdvertisementData& advertisement_data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

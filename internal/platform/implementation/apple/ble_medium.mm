@@ -536,13 +536,6 @@ bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return [medium_ supportsExtendedAdvertisements];
 }
 
-bool BleMedium::GetRemotePeripheral(const std::string &mac_address,
-                                    api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) {
-  // Apple does not expose MAC address information, so we cannot retreive a peripheral via MAC
-  // address.
-  return false;
-}
-
 bool BleMedium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId unique_id,
                                     api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) {
   // If the unique_id is 0, that means it's the local/empty peripheral. We must return "true"

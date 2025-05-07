@@ -52,16 +52,15 @@ class BleV2Medium;
 class BleV2Peripheral final {
  public:
   BleV2Peripheral() = default;
-  BleV2Peripheral(BleV2Medium& medium, api::ble_v2::BlePeripheral& impl)
-      : medium_(&medium), unique_id_(impl.GetUniqueId()) {}
+  BleV2Peripheral(BleV2Medium& medium,
+                  api::ble_v2::BlePeripheral::UniqueId unique_id)
+      : medium_(&medium), unique_id_(unique_id) {}
   BleV2Peripheral(const BleV2Peripheral&) = default;
   BleV2Peripheral& operator=(const BleV2Peripheral&) = default;
   BleV2Peripheral(BleV2Peripheral&& other) = default;
 
   BleV2Peripheral& operator=(BleV2Peripheral&& other) = default;
 
-  // NOLINTNEXTLINE(google3-legacy-absl-backports)
-  absl::optional<std::string> GetAddress() const;
   ByteArray GetId() const { return id_; }
   void SetId(const ByteArray& id) { id_ = id; }
 
@@ -192,9 +191,11 @@ class BleV2ServerSocket final {
     if (socket == nullptr) {
       LOG(INFO) << "BleServerSocket Accept() failed on server socket: " << this;
     } else {
-      auto* platform_peripheral = socket->GetRemotePeripheral();
+      api::ble_v2::BlePeripheral* platform_peripheral =
+          socket->GetRemotePeripheral();
       if (platform_peripheral != nullptr) {
-        peripheral = BleV2Peripheral(*medium_, *platform_peripheral);
+        peripheral =
+            BleV2Peripheral(*medium_, platform_peripheral->GetUniqueId());
       }
     }
     return BleV2Socket(peripheral, std::move(socket));
@@ -219,7 +220,6 @@ class BleV2ServerSocket final {
 //
 // Note that some of the methods return absl::optional instead
 // of std::optional, because iOS platform is still in C++14.
-// LINT.IfChange
 class GattServer final {
  public:
   GattServer(BleV2Medium& medium,
@@ -266,7 +266,6 @@ class GattServer final {
   BleV2Medium& medium_;
   std::unique_ptr<api::ble_v2::GattServer> impl_;
 };
-// LINT.ThenChange(//depot/google3/third_party/nearby/internal/platform/implementation/ble_v2.h)
 
 // Opaque wrapper for a GattClient.
 //
@@ -427,7 +426,8 @@ class BleL2capServerSocket final {
       api::ble_v2::BlePeripheral* platform_peripheral =
           socket->GetRemotePeripheral();
       if (platform_peripheral != nullptr) {
-        peripheral = BleV2Peripheral(*medium_, *platform_peripheral);
+        peripheral =
+            BleV2Peripheral(*medium_, platform_peripheral->GetUniqueId());
       }
     }
     return BleL2capSocket(peripheral, std::move(socket));
@@ -581,10 +581,6 @@ class BleV2Medium final {
   bool IsExtendedAdvertisementsAvailable();
 
   bool IsValid() const { return impl_ != nullptr; }
-
-  // Returns a `BleV2Peripheral` with given mac address. `mac_address` is in
-  // canonical format.
-  BleV2Peripheral GetRemotePeripheral(const std::string& mac_address);
 
   api::ble_v2::BleMedium* GetImpl() const { return impl_.get(); }
   BluetoothAdapter& GetAdapter() { return adapter_; }

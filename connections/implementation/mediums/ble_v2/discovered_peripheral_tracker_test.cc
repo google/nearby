@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 
 #include <atomic>
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -44,6 +45,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
@@ -186,8 +188,15 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
   }
 
   BleV2Peripheral CreateBlePeripheral() {
-    return ble_central_->GetRemotePeripheral(
-        adapter_peripheral_->GetMacAddress());
+    MacAddress mac_address;
+    MacAddress::FromString(adapter_peripheral_->GetMacAddress(), mac_address);
+    api::ble_v2::BlePeripheral api_peripheral;
+    ble_central_->GetImpl()->GetRemotePeripheral(
+        mac_address.address(),
+        [&api_peripheral](api::ble_v2::BlePeripheral& peripheral) {
+          api_peripheral = peripheral;
+        });
+    return BleV2Peripheral(*ble_central_, api_peripheral.GetUniqueId());
   }
 
   // Simulates to see a fast advertisement.

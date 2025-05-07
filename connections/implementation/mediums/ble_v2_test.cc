@@ -113,9 +113,8 @@ TEST_P(BleV2Test, CanConnect) {
                   bool fast_advertisement) {
                 discovered_peripheral = peripheral;
                 NEARBY_LOGS(INFO)
-                    << "Discovered peripheral="
-                    << peripheral.GetAddress().value_or("")
-                    << ", fast advertisement=" << fast_advertisement;
+                    << "Discovered peripheral, fast advertisement="
+                    << fast_advertisement;
                 discovered_latch.CountDown();
               },
       });
@@ -174,9 +173,8 @@ TEST_P(BleV2Test, CanCancelConnect) {
                   bool fast_advertisement) {
                 discovered_peripheral = peripheral;
                 NEARBY_LOGS(INFO)
-                    << "Discovered peripheral="
-                    << peripheral.GetAddress().value_or("")
-                    << ", fast advertisement=" << fast_advertisement;
+                    << "Discovered peripheral, fast advertisement="
+                    << fast_advertisement;
                 discovered_latch.CountDown();
               },
       });
