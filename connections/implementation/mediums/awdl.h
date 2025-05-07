@@ -26,13 +26,13 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/multiplex/multiplex_socket.h"
 #include "internal/flags/nearby_flags.h"
+#include "internal/platform/awdl.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/awdl.h"
 
 namespace nearby {
 namespace connections {
@@ -44,6 +44,11 @@ class Awdl {
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
       const std::string& service_id, AwdlSocket socket)>;
+
+  struct AwdlCredential {
+    std::string service_name;
+    std::string service_type;
+  };
 
   Awdl() = default;
   ~Awdl();
@@ -96,23 +101,15 @@ class Awdl {
   // Blocks until connection is established, or server-side is terminated.
   // Returns socket instance. On success, AwdlSocket.IsValid() return true.
   ErrorOr<AwdlSocket> Connect(const std::string& service_id,
-                                 const NsdServiceInfo& service_info,
-                                 CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
-
-  // Establishes connection to Awdl service by ip address and port for
-  // bandwidth upgradation.
-  // Returns socket instance. On success, AwdlSocket.IsValid() return true.
-  ErrorOr<AwdlSocket> Connect(const std::string& service_id,
-                                 const std::string& ip_address, int port,
-                                 CancellationFlag* cancellation_flag)
+                              const NsdServiceInfo& service_info,
+                              CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets ip address + port for remote services on the network to identify and
   // connect to this service.
   //
   // Credential is for the currently-hosted Wifi ServerSocket (if any).
-  std::pair<std::string, int> GetCredentials(const std::string& service_id)
+  AwdlCredential GetCredentials(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
@@ -156,18 +153,6 @@ class Awdl {
 
   static constexpr int kMaxConcurrentAcceptLoops = 5;
 
-  // Establishes connection to Awdl service by ip address through
-  // MultiplexSocket.
-  ExceptionOr<AwdlSocket> ConnectWithMultiplexSocketLocked(
-      const std::string& service_id, const std::string& ip_address)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  // Creates a MultiplexSocket for outgoing connection based on connected
-  // AwdlSocket physical socket for specific service_id and ip address.
-  ExceptionOr<AwdlSocket> CreateOutgoingMultiplexSocketLocked(
-      AwdlSocket& socket, const std::string& service_id,
-      const std::string& ip_address) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
   // Same as IsAvailable(), but must be called with mutex_ held.
   bool IsAvailableLocked() const ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -205,17 +190,6 @@ class Awdl {
   // and thus require pointer stability.
   absl::flat_hash_map<std::string, AwdlServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
-
-  // Whether the multiplex feature is enabled.
-  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex) &&
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexAwdl);
-
-  // A map of IpAddress -> MultiplexSocket.
-  absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
-      multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace connections

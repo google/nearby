@@ -19,7 +19,9 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
 #include "internal/platform/blocking_queue_stream.h"
@@ -236,11 +238,6 @@ class AwdlMedium {
   // Returns a new AwdlSocket.
   // On Success, AwdlSocket::IsValid() returns true.
   AwdlSocket ConnectToService(const NsdServiceInfo& remote_service_info,
-                              CancellationFlag* cancellation_flag);
-
-  // Returns a new AwdlSocket by ip address and port.
-  // On Success, AwdlSocket::IsValid()returns true.
-  AwdlSocket ConnectToService(const std::string& ip_address, int port,
                               CancellationFlag* cancellation_flag);
 
   // Returns a new AwdlServerSocket.

@@ -21,12 +21,12 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
-#include "internal/platform/implementation/wifi_utils.h"
 
 namespace nearby {
 using location::nearby::proto::connections::Medium;
@@ -66,8 +66,8 @@ bool AwdlMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 }
 
 bool AwdlMedium::StartDiscovery(const std::string& service_id,
-                                   const std::string& service_type,
-                                   DiscoveredServiceCallback callback) {
+                                const std::string& service_type,
+                                DiscoveredServiceCallback callback) {
   {
     MutexLock lock(&mutex_);
     if (service_type_to_callback_map_.contains(service_type)) {
@@ -193,20 +193,13 @@ bool AwdlMedium::StopDiscovery(const std::string& service_type) {
 AwdlSocket AwdlMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info,
     CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(INFO) << "AwdlMedium::ConnectToService: remote_service_name="
-                    << remote_service_info.GetServiceName();
+  NEARBY_LOGS(INFO) << "AwdlMedium::ConnectToService {service_name="
+                    << remote_service_info.GetServiceName()
+                    << ", service_type=" << remote_service_info.GetServiceType()
+                    << "}";
   return AwdlSocket(
       impl_->ConnectToService(remote_service_info, cancellation_flag));
 }
 
-AwdlSocket AwdlMedium::ConnectToService(
-    const std::string& ip_address, int port,
-    CancellationFlag* cancellation_flag) {
-  NEARBY_LOGS(INFO) << "AwdlMedium::ConnectToService: ip address="
-                    << WifiUtils::GetHumanReadableIpAddress(ip_address)
-                    << ", port=" << port;
-  return AwdlSocket(
-      impl_->ConnectToService(ip_address, port, cancellation_flag));
-}
 
 }  // namespace nearby

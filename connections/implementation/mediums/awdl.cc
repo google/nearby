@@ -56,18 +56,7 @@ Awdl::~Awdl() {
   while (!advertising_info_.nsd_service_infos.empty()) {
     StopAdvertising(advertising_info_.nsd_service_infos.begin()->first);
   }
-  {
-    MutexLock lock(&mutex_);
-    if (is_multiplex_enabled_) {
-      LOG(INFO) << "Closing multiplex sockets for " << multiplex_sockets_.size()
-                << " IPs";
-      for (auto& [ip_addr, multiplex_socket] : multiplex_sockets_) {
-        LOG(INFO) << "Closing multiplex sockets for: " << ip_addr;
-        multiplex_socket->~MultiplexSocket();
-      }
-      multiplex_sockets_.clear();
-    }
-  }
+
   // All the AcceptLoopRunnable objects in here should already have gotten an
   // opportunity to shut themselves down cleanly in the calls to
   // StopAcceptingConnections() above.
@@ -274,25 +263,13 @@ ErrorOr<bool> Awdl::StartAcceptingConnections(
       server_sockets_.insert({service_id, std::move(server_socket)})
           .first->second;
 
-  // Register the callback to listen for incoming multiplex virtual socket.
-  if (is_multiplex_enabled_) {
-    MultiplexSocket::ListenForIncomingConnection(
-        service_id, Medium::AWDL,
-        [&callback](const std::string& listening_service_id,
-                    MediumSocket* virtual_socket) mutable {
-          if (callback) {
-            callback(listening_service_id,
-                     *(down_cast<AwdlSocket*>(virtual_socket)));
-          }
-        });
-  }
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections() is
   // invoked.
   accept_loops_runner_.Execute(
-      "wifi-lan-accept", [callback = std::move(callback),
-                          server_socket = std::move(owned_server_socket),
-                          service_id, this]() mutable {
+      "awdl-accept",
+      [callback = std::move(callback),
+       server_socket = std::move(owned_server_socket), service_id]() mutable {
         while (true) {
           AwdlSocket client_socket = server_socket.Accept();
           if (!client_socket.IsValid()) {
@@ -300,55 +277,7 @@ ErrorOr<bool> Awdl::StartAcceptingConnections(
             break;
           }
           LOG(INFO) << "Accepted connection for " << service_id;
-          bool callback_called = false;
-          {
-            MutexLock lock(&mutex_);
-            if (is_multiplex_enabled_) {
-              // Observed from the log that when the sender tries to connect to
-              // the receiver's server socket, the server side will somehow
-              // receive 3 connection request events(don’t know what’s happening
-              // in Windows’s lower layer code). The 2nd normally is the real
-              // one. The other two will result in a failed data receiving in
-              // Windows platform layer. To avoid creating multiplex
-              // IncomingSocket, we will check if the first read is successful
-              // or not. If not, discard it. If yes, save that packet
-              // content(the first frame length), then create the multiplex
-              // socket, then feed that content to that multiplex socket.
-              ExceptionOr<std::int32_t> read_int =
-                  Base64Utils::ReadInt(&client_socket.GetInputStream());
-              if (!read_int.ok()) {
-                LOG(WARNING)
-                    << __func__
-                    << "Failed to read. Exception:" << read_int.exception()
-                    << "Discard the connection.";
-                continue;
-              }
-              AwdlSocket client_socket_bak = client_socket;
-              auto physical_socket_ptr =
-                  std::make_shared<AwdlSocket>(client_socket_bak);
-
-              MultiplexSocket* multiplex_socket =
-                  MultiplexSocket::CreateIncomingSocket(
-                      physical_socket_ptr, service_id, read_int.result());
-              if (multiplex_socket != nullptr &&
-                  multiplex_socket->GetVirtualSocket(service_id)) {
-                multiplex_sockets_.emplace(server_socket.GetIPAddress(),
-                                           multiplex_socket);
-                MultiplexSocket::StopListeningForIncomingConnection(
-                    service_id, Medium::AWDL);
-                LOG(INFO) << "Multiplex virtaul socket created for "
-                          << server_socket.GetIPAddress();
-                if (callback) {
-                  callback(
-                      service_id,
-                      *(down_cast<AwdlSocket*>(
-                          multiplex_socket->GetVirtualSocket(service_id))));
-                  callback_called = true;
-                }
-              }
-            }
-          }
-          if (callback && !callback_called) {
+          if (callback) {
             LOG(INFO) << "Call back triggered for physical socket.";
             callback(service_id, std::move(client_socket));
           }
@@ -372,10 +301,6 @@ bool Awdl::StopAcceptingConnections(const std::string& service_id) {
     LOG(INFO) << "Can't stop accepting Awdl connections for " << service_id
               << " because it was never started.";
     return false;
-  }
-  if (is_multiplex_enabled_) {
-    MultiplexSocket::StopListeningForIncomingConnection(service_id,
-                                                        Medium::AWDL);
   }
 
   // Closing the AwdlServerSocket will kick off the suicide of the thread
@@ -437,10 +362,12 @@ ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
                       CLIENT_CANCELLATION_CANCEL_LAN_OUTGOING_CONNECTION)};
   }
 
-  ExceptionOr<AwdlSocket> virtual_socket =
-      ConnectWithMultiplexSocketLocked(service_id, service_info.GetIPAddress());
-  if (virtual_socket.ok()) {
-    return virtual_socket.result();
+  if (service_info.GetServiceName().empty() ||
+      service_info.GetServiceType().empty()) {
+    LOG(INFO) << "Can't create client Awdl socket due to invalid service "
+                 "information.";
+    return {
+        Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
   }
 
   socket = medium_.ConnectToService(service_info, cancellation_flag);
@@ -448,15 +375,6 @@ ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
     LOG(INFO) << "Failed to Connect via Awdl [service_id=" << service_id << "]";
     return {Error(
         OperationResultCode::CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE)};
-  } else {
-    ExceptionOr<AwdlSocket> virtual_socket =
-        CreateOutgoingMultiplexSocketLocked(socket, service_id,
-                                            service_info.GetIPAddress());
-    if (virtual_socket.ok()) {
-      LOG(INFO) << "Successfully connected via Multiplex Awdl [service_id="
-                << service_id << "]";
-      return virtual_socket.result();
-    }
   }
 
   LOG(INFO) << "Successfully connected via Awdl [service_id=" << service_id
@@ -464,125 +382,18 @@ ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
   return socket;
 }
 
-ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
-                                  const std::string& ip_address, int port,
-                                  CancellationFlag* cancellation_flag) {
+Awdl::AwdlCredential Awdl::GetCredentials(const std::string& service_id) {
   MutexLock lock(&mutex_);
-  // Socket to return. To allow for NRVO to work, it has to be a single object.
-  AwdlSocket socket;
-
-  if (service_id.empty()) {
-    LOG(INFO) << "Refusing to create client Awdl socket because "
-                 "service_id is empty.";
-    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  AwdlCredential credential{};
+  NsdServiceInfo* service_info = advertising_info_.GetServiceInfo(service_id);
+  if (service_info == nullptr || !service_info->IsValid() ||
+      service_info->GetServiceName().empty() ||
+      service_info->GetServiceType().empty()) {
+    return credential;
   }
-
-  if (!IsAvailableLocked()) {
-    LOG(INFO) << "Can't create client Awdl socket [service_id=" << service_id
-              << "]; Awdl isn't available.";
-    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_LAN_NOT_AVAILABLE)};
-  }
-
-  if (cancellation_flag->Cancelled()) {
-    LOG(INFO) << "Can't create client Awdl socket due to cancel.";
-    return {Error(OperationResultCode::
-                      CLIENT_CANCELLATION_CANCEL_LAN_OUTGOING_CONNECTION)};
-  }
-
-  ExceptionOr<AwdlSocket> virtual_socket =
-      ConnectWithMultiplexSocketLocked(service_id, ip_address);
-  if (virtual_socket.ok()) {
-    return virtual_socket.result();
-  }
-
-  socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
-  if (!socket.IsValid()) {
-    LOG(INFO) << "Failed to Connect via Awdl [service_id=" << service_id << "]";
-    return {Error(
-        OperationResultCode::CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE)};
-  } else {
-    ExceptionOr<AwdlSocket> virtual_socket =
-        CreateOutgoingMultiplexSocketLocked(socket, service_id, ip_address);
-    if (virtual_socket.ok()) {
-      LOG(INFO) << "Successfully connected via Multiplex Awdl [service_id="
-                << service_id << "]";
-      return virtual_socket.result();
-    }
-  }
-
-  LOG(INFO) << "Successfully connected via Awdl [service_id=" << service_id
-            << "]";
-  return socket;
-}
-
-ExceptionOr<AwdlSocket> Awdl::ConnectWithMultiplexSocketLocked(
-    const std::string& service_id, const std::string& ip_address) {
-  if (is_multiplex_enabled_) {
-    LOG(INFO) << "multiplex_sockets_ size:" << multiplex_sockets_.size();
-    auto it = multiplex_sockets_.find(ip_address);
-    if (it != multiplex_sockets_.end()) {
-      MultiplexSocket* multiplex_socket = it->second;
-      if (multiplex_socket->IsShutdown()) {
-        LOG(INFO) << "Erase multiplex_socket(already shutdown) for ip_address: "
-                  << WifiUtils::GetHumanReadableIpAddress(ip_address);
-        multiplex_socket->~MultiplexSocket();
-        multiplex_sockets_.erase(it);
-        return ExceptionOr<AwdlSocket>(Exception::kFailed);
-      }
-      if (multiplex_socket->IsEnabled()) {
-        auto* virtual_socket =
-            multiplex_socket->EstablishVirtualSocket(service_id);
-        // Should not happen.
-        auto* wlan_socket = down_cast<AwdlSocket*>(virtual_socket);
-        if (wlan_socket == nullptr) {
-          LOG(INFO) << "Failed to cast to AwdlSocket for " << service_id
-                    << " with ip_address: "
-                    << WifiUtils::GetHumanReadableIpAddress(ip_address);
-          return ExceptionOr<AwdlSocket>(Exception::kFailed);
-        }
-        return ExceptionOr<AwdlSocket>(*wlan_socket);
-      }
-    }
-  }
-  return ExceptionOr<AwdlSocket>(Exception::kFailed);
-}
-
-ExceptionOr<AwdlSocket> Awdl::CreateOutgoingMultiplexSocketLocked(
-    AwdlSocket& socket, const std::string& service_id,
-    const std::string& ip_address) {
-  if (is_multiplex_enabled_) {
-    // Create MultiplexSocket, but set it to be disabled as default. It will be
-    // enabled if both side support multiplex for WIFI_LAN
-    auto physical_socket_ptr = std::make_shared<AwdlSocket>(socket);
-    MultiplexSocket* multiplex_socket =
-        MultiplexSocket::CreateOutgoingSocket(physical_socket_ptr, service_id);
-
-    auto* virtual_socket = multiplex_socket->GetVirtualSocket(service_id);
-    // Should not happen.
-    auto* wlan_socket = down_cast<AwdlSocket*>(virtual_socket);
-    if (wlan_socket == nullptr) {
-      LOG(INFO) << "Failed to cast to AwdlSocket for " << service_id
-                << " with ip_address: "
-                << WifiUtils::GetHumanReadableIpAddress(ip_address);
-      return ExceptionOr<AwdlSocket>(Exception::kFailed);
-    }
-    LOG(INFO) << "Multiplex socket created for ip_address: "
-              << WifiUtils::GetHumanReadableIpAddress(ip_address);
-    multiplex_sockets_.emplace(ip_address, multiplex_socket);
-    return ExceptionOr<AwdlSocket>(*wlan_socket);
-  }
-  return ExceptionOr<AwdlSocket>(Exception::kFailed);
-}
-
-std::pair<std::string, int> Awdl::GetCredentials(
-    const std::string& service_id) {
-  MutexLock lock(&mutex_);
-  const auto& it = server_sockets_.find(service_id);
-  if (it == server_sockets_.end()) {
-    return std::pair<std::string, int>();
-  }
-  return std::pair<std::string, int>(it->second.GetIPAddress(),
-                                     it->second.GetPort());
+  credential.service_name = service_info->GetServiceName();
+  credential.service_type = service_info->GetServiceType();
+  return credential;
 }
 
 std::string Awdl::GenerateServiceType(const std::string& service_id) {
