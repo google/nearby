@@ -297,6 +297,26 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
   return ToBytes(std::move(frame));
 }
 
+ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
+                                  const std::string& service_type) {
+  OfflineFrame frame;
+
+  frame.set_version(OfflineFrame::V1);
+  auto* v1_frame = frame.mutable_v1();
+  v1_frame->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
+  auto* sub_frame = v1_frame->mutable_bandwidth_upgrade_negotiation();
+  sub_frame->set_event_type(
+      BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE);
+  auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
+  upgrade_path_info->set_medium(UpgradePathInfo::AWDL);
+  upgrade_path_info->set_supports_client_introduction_ack(true);
+  auto* awdl_socket = upgrade_path_info->mutable_awdl_credentials();
+  awdl_socket->set_service_name(service_name);
+  awdl_socket->set_service_type(service_type);
+
+  return ToBytes(std::move(frame));
+}
+
 ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
                                        const std::string& service_info,
                                        const std::string& password,

@@ -422,6 +422,31 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
+TEST(OfflineFramesTest, CanGenerateBwuAwdlPathAvailable) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_NEGOTIATION
+      bandwidth_upgrade_negotiation: <
+        event_type: UPGRADE_PATH_AVAILABLE
+        upgrade_path_info: <
+          medium: AWDL
+          supports_client_introduction_ack: true
+          awdl_credentials: <
+            service_name: "service_name"
+            service_type: "nearby_upgrade"
+          >
+        >
+      >
+    >)pb";
+  ByteArray bytes = ForBwuAwdlPathAvailable("service_name", "nearby_upgrade");
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
 TEST(OfflineFramesTest, CanGenerateBwuWifiAwarePathAvailable) {
   constexpr absl::string_view kExpected =
       R"pb(

@@ -19,8 +19,8 @@
 #include <string>
 #include <vector>
 
-#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -82,6 +82,8 @@ ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
                                          bool supports_disabling_encryption);
 ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
                                      std::int32_t port);
+ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
+                                  const std::string& service_type);
 ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
                                        const std::string& service_info,
                                        const std::string& password,
