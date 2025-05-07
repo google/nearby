@@ -117,7 +117,7 @@ class BlePeripheral {
 
   void* GetPlatformData() const { return platform_data_; }
 
-  bool IsSet() const { return unique_id_ != 0 || address_.IsSet(); }
+  bool IsSet() const { return GetUniqueId() != 0 || !GetAddress().empty(); }
 
  private:
   UniqueId unique_id_ = 0;
@@ -269,9 +269,6 @@ class GattClient {
 class GattServer {
  public:
   virtual ~GattServer() = default;
-
-  // Returns the local BlePeripheral.
-  virtual BlePeripheral& GetBlePeripheral() = 0;
 
   // Creates a characteristic and adds it to the GATT server under the given
   // characteristic and service UUIDs. Returns no value upon error.

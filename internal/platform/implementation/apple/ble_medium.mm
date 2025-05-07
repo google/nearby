@@ -308,8 +308,11 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
 std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
     api::ble_v2::BlePeripheral &peripheral, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
-  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
+  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not an
+  // empty @c api::ble_v2::BlePeripheral instance, so we can retreive the CBPeripheral object.
+  if (!peripheral.IsSet()) {
+    return nullptr;
+  }
   BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
   if (non_empty_peripheral == nullptr) {
     return nullptr;
@@ -431,8 +434,11 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &se
                                                            api::ble_v2::TxPowerLevel tx_power_level,
                                                            api::ble_v2::BlePeripheral &peripheral,
                                                            CancellationFlag *cancellation_flag) {
-  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
-  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
+  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not an
+  // empty @c api::ble_v2::BlePeripheral instance, so we can retreive the CBPeripheral object.
+  if (!peripheral.IsSet()) {
+    return nullptr;
+  }
   BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
   if (non_empty_peripheral == nullptr) {
     return nullptr;
@@ -484,8 +490,12 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &se
 std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BlePeripheral &peripheral, CancellationFlag *cancellation_flag) {
-  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
-  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
+  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not an
+  // empty @c api::ble_v2::BlePeripheral instance, so we can retreive the CBPeripheral object.
+  if (!peripheral.IsSet()) {
+    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is empty.");
+    return nullptr;
+  }
   BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
   if (non_empty_peripheral == nullptr) {
     GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is empty.");
@@ -548,7 +558,7 @@ bool BleMedium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId unique_
   // If the unique_id is 0, that means it's the local/empty peripheral. We must return "true"
   // otherwise the connection will be considered invalid and the application will crash.
   if (unique_id == 0) {
-    callback(*local_peripheral_);
+    callback(local_peripheral_);
     return true;
   }
 

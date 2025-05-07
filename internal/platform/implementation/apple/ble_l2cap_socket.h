@@ -119,6 +119,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleL2capInputStream> input_stream_;
   std::unique_ptr<BleL2capOutputStream> output_stream_;
+  api::ble_v2::BlePeripheral empty_peripheral_;
   api::ble_v2::BlePeripheral *peripheral_;
 };
 

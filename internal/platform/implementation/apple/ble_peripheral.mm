@@ -26,14 +26,6 @@
 namespace nearby {
 namespace apple {
 
-#pragma mark - EmptyBlePeripheral
-
-EmptyBlePeripheral::EmptyBlePeripheral() : unique_id_(0) {}
-
-std::string EmptyBlePeripheral::GetAddress() const { return ""; }
-
-api::ble_v2::BlePeripheral::UniqueId EmptyBlePeripheral::GetUniqueId() const { return unique_id_; }
-
 #pragma mark - BlePeripheral
 
 BlePeripheral::BlePeripheral(id<GNCPeripheral> peripheral)

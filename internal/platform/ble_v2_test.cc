@@ -626,7 +626,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
 
   // Start GattClient
   BleV2Peripheral ble_peripheral =
-      ble_b.GetRemotePeripheral(*gatt_server->GetBlePeripheral().GetAddress());
+      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress());
   std::unique_ptr<GattClient> gatt_client =
       ble_b.ConnectToGattServer(BleV2Peripheral(ble_peripheral), kTxPowerLevel,
                                 /*ClientGattConnectionCallback=*/{});
@@ -661,7 +661,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToStoppedGattServerFails) {
       ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
   ASSERT_NE(gatt_server, nullptr);
   BleV2Peripheral ble_peripheral =
-      ble_b.GetRemotePeripheral(*gatt_server->GetBlePeripheral().GetAddress());
+      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress());
 
   gatt_server->Stop();
   std::unique_ptr<GattClient> gatt_client =
@@ -685,7 +685,7 @@ TEST_F(BleV2MediumTest, GattClientNotifiedWhenServerDisconnects) {
   CountDownLatch disconnected_latch(1);
   // Start GattClient
   BleV2Peripheral ble_peripheral =
-      ble_b.GetRemotePeripheral(*gatt_server->GetBlePeripheral().GetAddress());
+      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress());
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BleV2Peripheral(ble_peripheral), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{.disconnected_cb = [&]() {
@@ -721,11 +721,10 @@ TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
                 callback(absl::OkStatus());
               }});
   ASSERT_NE(gatt_server, nullptr);
-  BleV2Peripheral server_ble = gatt_server->GetBlePeripheral();
 
   // Start GattClient.
   BleV2Peripheral ble_peripheral =
-      ble_b.GetRemotePeripheral(*server_ble.GetAddress());
+      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress());
   ASSERT_TRUE(ble_peripheral.IsValid());
   std::unique_ptr<GattClient> gatt_client =
       ble_b.ConnectToGattServer(BleV2Peripheral(ble_peripheral), kTxPowerLevel,
@@ -798,7 +797,6 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
       ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
 
   ASSERT_NE(gatt_server, nullptr);
-  BleV2Peripheral server_ble = gatt_server->GetBlePeripheral();
   // Add characteristic and its value.
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
   std::optional<GattCharacteristic> server_characteristic =
@@ -809,7 +807,7 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
 
   // Start GattClient
   BleV2Peripheral ble_peripheral =
-      ble_b.GetRemotePeripheral(*server_ble.GetAddress());
+      ble_b.GetRemotePeripheral(adapter_a.GetMacAddress());
   ASSERT_TRUE(ble_peripheral.IsValid());
   std::unique_ptr<GattClient> gatt_client =
       ble_b.ConnectToGattServer(BleV2Peripheral(ble_peripheral), kTxPowerLevel,
@@ -824,7 +822,7 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
       server_characteristic.value(), true,
       [](absl::string_view value) { EXPECT_EQ(value, "hello"); }));
 
-  // Sends notifiction
+  // Sends notification
   EXPECT_EQ(gatt_server->NotifyCharacteristicChanged(
                 server_characteristic.value(), false, ByteArray("hello")),
             absl::OkStatus());

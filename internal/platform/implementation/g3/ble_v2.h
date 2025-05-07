@@ -209,7 +209,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                api::ble_v2::ServerGattConnectionCallback callback);
     ~GattServer() override;
 
-    api::ble_v2::BlePeripheral& GetBlePeripheral() override {
+    api::ble_v2::BlePeripheral& GetBlePeripheralForTest() {
       return ble_peripheral_;
     }
     std::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(

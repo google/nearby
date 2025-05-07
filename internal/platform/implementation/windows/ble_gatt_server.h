@@ -70,10 +70,6 @@ class BleGattServer : public api::ble_v2::GattServer {
   void SetCloseNotifier(absl::AnyInvocable<void()> notifier)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  api::ble_v2::BlePeripheral& GetBlePeripheral() override {
-    return peripheral_;
-  }
-
  private:
   // Used to save native data related to the GATT characteristic.
   struct GattCharacteristicData {
@@ -131,7 +127,6 @@ class BleGattServer : public api::ble_v2::GattServer {
   absl::Mutex mutex_;
 
   BluetoothAdapter* const adapter_ = nullptr;
-  api::ble_v2::BlePeripheral peripheral_;
   api::ble_v2::ServerGattConnectionCallback gatt_connection_callback_{};
 
   ::winrt::Windows::Devices::Bluetooth::GenericAttributeProfile::

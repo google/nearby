@@ -127,6 +127,7 @@ class BleSocket : public api::ble_v2::BleSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleInputStream> input_stream_;
   std::unique_ptr<BleOutputStream> output_stream_;
+  api::ble_v2::BlePeripheral empty_peripheral_;
   api::ble_v2::BlePeripheral *peripheral_;
 };
 

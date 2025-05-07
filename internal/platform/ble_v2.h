@@ -257,10 +257,6 @@ class GattServer final {
   // it is not safe to call any other method.
   bool IsValid() const { return impl_ != nullptr; }
 
-  BleV2Peripheral GetBlePeripheral() {
-    return BleV2Peripheral(medium_, impl_->GetBlePeripheral());
-  }
-
   // Returns reference to platform implementation.
   // This is used to communicate with platform code, and for debugging
   // purposes.
