@@ -40,6 +40,7 @@
   nw_listener_t _listener;
   nw_listener_state_t _listenerState;
   NSError *_listenerError;
+  dispatch_queue_t _dispatchQueue;
 }
 
 - (instancetype)initWithPort:(NSInteger)port {
@@ -48,6 +49,7 @@
     _port = port;
     _condition = [[NSCondition alloc] init];
     _listenerState = nw_listener_state_invalid;
+    _dispatchQueue = dispatch_queue_create("GNCNWFrameworkServerSocket", DISPATCH_QUEUE_SERIAL);
   }
   return self;
 }
@@ -128,14 +130,14 @@
   }
 
   // Register to listen for incoming connections.
-  nw_listener_set_queue(_listener, dispatch_get_main_queue());
+  nw_listener_set_queue(_listener, _dispatchQueue);
   nw_listener_set_new_connection_handler(_listener, ^(nw_connection_t connection) {
     // Keep track of any incoming connections. We must keep a reference otherwise the connection
     // will be dropped.
     [self.pendingConnections addObject:connection];
     // Register for state changes so we can clean up any failed/canceled connections and inform
     // Nearby of any ready connections when asked.
-    nw_connection_set_queue(connection, dispatch_get_main_queue());
+    nw_connection_set_queue(connection, _dispatchQueue);
     nw_connection_set_state_changed_handler(connection,
                                             ^(nw_connection_state_t state, nw_error_t error) {
                                               [_condition lock];
@@ -203,10 +205,12 @@
     case nw_listener_state_waiting:
     case nw_listener_state_failed:
     case nw_listener_state_cancelled:
+      GTMLoggerError(@"[GNCNWFrameworkServerSocket] Listen state: %u", _listenerState);
       [self close];
       return NO;
     case nw_listener_state_ready:
       _port = nw_listener_get_port(_listener);
+      GTMLoggerInfo(@"[GNCNWFrameworkServerSocket] Listen on port: %ld", (long)_port);
       return YES;
   }
 }
@@ -214,6 +218,10 @@
 - (void)startAdvertisingServiceName:(NSString *)serviceName
                         serviceType:(NSString *)serviceType
                          txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+  GTMLoggerInfo(@"[GNCNWFrameworkServerSocket] Start advertising {serviceName:%@, "
+                @"serviceType: %@}",
+                serviceName, serviceType);
+
   nw_advertise_descriptor_t advertiseDescriptor = nw_advertise_descriptor_create_bonjour_service(
       [serviceName UTF8String], [serviceType UTF8String], /*domain=*/nil);
   nw_txt_record_t txtRecord = nw_txt_record_create_dictionary();
@@ -221,6 +229,9 @@
     NSString *recordValue = [txtRecords objectForKey:key];
     nw_txt_record_set_key(txtRecord, [key UTF8String], [recordValue UTF8String],
                           [recordValue length]);
+    GTMLoggerDebug(@"[GNCNWFrameworkServerSocket] Text record {key: "
+                   @"%@, value: %@}",
+                   key, recordValue);
   }
   nw_advertise_descriptor_set_txt_record_object(advertiseDescriptor, txtRecord);
   nw_listener_set_advertise_descriptor(_listener, advertiseDescriptor);

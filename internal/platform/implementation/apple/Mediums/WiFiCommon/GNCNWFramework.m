@@ -73,6 +73,9 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   // service type. We maintain ownership of the browser's lifetime, so we can maintain a strong
   // reference.
   NSMutableDictionary<NSString *, nw_browser_t> *_serviceBrowsers;
+
+  // The dispatch queue used for all callbacks.
+  dispatch_queue_t _dispatchQueue;
 }
 
 - (instancetype)init {
@@ -80,6 +83,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     _includePeerToPeer = NO;
     _serverSockets = [NSMapTable strongToWeakObjectsMapTable];
     _serviceBrowsers = [[NSMutableDictionary alloc] init];
+    _dispatchQueue = dispatch_queue_create("GNCNWFramework", DISPATCH_QUEUE_SERIAL);
   }
   return self;
 }
@@ -99,17 +103,19 @@ static GNCNWFramework *gInstance = nil;
   return gInstance;
 }
 
-- (BOOL) isListeningForAnyService {
+- (BOOL)isListeningForAnyService {
   return _serverSockets.count > 0;
 }
 
-- (BOOL) isDiscoveringAnyService {
+- (BOOL)isDiscoveringAnyService {
   return _serviceBrowsers.count > 0;
 }
 
 - (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
                                      includePeerToPeer:(BOOL)includePeerToPeer
                                                  error:(NSError **)error {
+  GTMLoggerInfo(@"[GNCNWFramework] Listen on port: %ld with includePeerToPeer: %@.", (long)port,
+                (includePeerToPeer ? @"true" : @"false"));
   GNCNWFrameworkServerSocket *serverSocket = [[GNCNWFrameworkServerSocket alloc] initWithPort:port];
   _includePeerToPeer = includePeerToPeer;
   BOOL success = [serverSocket startListeningWithError:error includePeerToPeer:_includePeerToPeer];
@@ -162,7 +168,7 @@ static GNCNWFramework *gInstance = nil;
   nw_browse_descriptor_set_include_txt_record(descriptor, YES);
   nw_browser_t browser = nw_browser_create(descriptor, parameters);
 
-  nw_browser_set_queue(browser, dispatch_get_main_queue());
+  nw_browser_set_queue(browser, _dispatchQueue);
 
   nw_browser_set_browse_results_changed_handler(browser, ^(nw_browse_result_t old_result,
                                                            nw_browse_result_t new_result,
@@ -284,6 +290,9 @@ static GNCNWFramework *gInstance = nil;
 - (GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
                                    serviceType:(NSString *)serviceType
                                          error:(NSError **)error {
+  GTMLoggerInfo(@"[GNCNWFramework] Connect to service {serviceName:%@, serviceType:%@, "
+                @"includePeerToPeer:%@}.",
+                serviceName, serviceType, (_includePeerToPeer ? @"true" : @"false"));
   nw_endpoint_t endpoint = nw_endpoint_create_bonjour_service([serviceName UTF8String],
                                                               [serviceType UTF8String], "local");
   return [self connectToEndpoint:endpoint includePeerToPeer:_includePeerToPeer error:error];
@@ -293,6 +302,8 @@ static GNCNWFramework *gInstance = nil;
                                    port:(NSInteger)port
                       includePeerToPeer:(BOOL)includePeerToPeer
                                   error:(NSError **)error {
+  GTMLoggerInfo(@"[GNCNWFramework] Connect to host {host:%s, port:%ld}.",
+                host.dottedRepresentation.UTF8String, (long)port);
   nw_endpoint_t endpoint =
       nw_endpoint_create_host(host.dottedRepresentation.UTF8String, @(port).stringValue.UTF8String);
   return [self connectToEndpoint:endpoint includePeerToPeer:(BOOL)includePeerToPeer error:error];
@@ -348,6 +359,7 @@ static GNCNWFramework *gInstance = nil;
     *error = blockError;
   }
 
+  GTMLoggerInfo(@"[GNCNWFramework] Connect to endpoint result %@", @(blockResult));
   switch (blockResult) {
     case nw_connection_state_invalid:
     case nw_connection_state_waiting:
