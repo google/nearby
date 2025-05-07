@@ -72,6 +72,7 @@ namespace connections {
 
 namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
+using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OsInfo;
 
 constexpr char kEndpointIdChars[] = {
@@ -959,6 +960,11 @@ std::optional<OsInfo> ClientProxy::GetRemoteOsInfo(
   return std::nullopt;
 }
 
+void ClientProxy::SetLocalOsType(
+    const location::nearby::connections::OsInfo::OsType& os_type) {
+  local_os_info_.set_type(os_type);
+}
+
 void ClientProxy::SetRemoteOsInfo(absl::string_view endpoint_id,
                                   const OsInfo& remote_os_info) {
   ConnectionPair* item = LookupConnection(endpoint_id);
@@ -1343,6 +1349,15 @@ void ClientProxy::UpdateDctDeviceName(absl::string_view device_name) {
   } else {
     dct_endpoint_id_.clear();
   }
+}
+
+std::optional<MediumRole> ClientProxy::GetMediumRole(
+    absl::string_view endpoint_id) const {
+  const ConnectionPair* item = LookupConnection(endpoint_id);
+  if (item != nullptr) {
+    return item->first.connection_options.connection_info.medium_role;
+  }
+  return std::nullopt;
 }
 
 std::optional<std::string> ClientProxy::GetEndpointIdForDct() const {

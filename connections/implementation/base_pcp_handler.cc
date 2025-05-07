@@ -107,6 +107,7 @@ using ::location::nearby::connections::ConnectionResponseFrame;
 using ::location::nearby::connections::ConnectionsDevice;
 using ::location::nearby::connections::MediumMetadata;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PresenceDevice;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::OperationResultCode;
@@ -811,6 +812,16 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
     connection_info.bssid = wifi_info.bssid;
     connection_info.ap_frequency = wifi_info.ap_frequency;
     connection_info.ip_address = wifi_info.ip_address_4_bytes;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableDynamicRoleSwitch) &&
+        client->GetLocalOsInfo().type() == OsInfo::APPLE) {
+      ::location::nearby::connections::MediumRole medium_role_info;
+      medium_role_info.set_support_awdl_publisher(true);
+      medium_role_info.set_support_awdl_subscriber(true);
+      medium_role_info.set_support_wifi_hotspot_client(true);
+      connection_info.medium_role.emplace(medium_role_info);
+    }
     NEARBY_LOGS(INFO) << "Query for WIFI information: is_supports_5_ghz="
                       << connection_info.supports_5_ghz
                       << "; bssid=" << connection_info.bssid
@@ -2021,13 +2032,43 @@ Exception BasePcpHandler::OnIncomingConnection(
   connection_info.bssid = medium_metadata.bssid();
   connection_info.ap_frequency = medium_metadata.ap_frequency();
   connection_info.ip_address = medium_metadata.ip_address();
-  NEARBY_LOGS(INFO) << connection_request.endpoint_id()
-                    << "'s WIFI information: is_supports_5_ghz="
-                    << connection_info.supports_5_ghz
-                    << "; bssid=" << connection_info.bssid
-                    << "; ap_frequency=" << connection_info.ap_frequency
-                    << "Mhz; ip_address in bytes format="
-                    << absl::BytesToHexString(connection_info.ip_address);
+  if (medium_metadata.has_medium_role()) {
+    connection_info.medium_role.emplace(medium_metadata.medium_role());
+  }
+  if (medium_metadata.has_medium_role()) {
+    NEARBY_LOGS(INFO)
+        << connection_request.endpoint_id()
+        << "'s WIFI information: is_supports_5_ghz="
+        << connection_info.supports_5_ghz << "; bssid=" << connection_info.bssid
+        << "; ap_frequency=" << connection_info.ap_frequency
+        << "Mhz; ip_address in bytes format="
+        << absl::BytesToHexString(connection_info.ip_address)
+        << "; support_wifi_direct_group_owner="
+        << medium_metadata.medium_role().support_wifi_direct_group_owner()
+        << "; support_wifi_direct_group_client="
+        << medium_metadata.medium_role().support_wifi_direct_group_client()
+        << "; support_wifi_hotspot_host="
+        << medium_metadata.medium_role().support_wifi_hotspot_host()
+        << "; support_wifi_hotspot_client="
+        << medium_metadata.medium_role().support_wifi_hotspot_client()
+        << "; support_wifi_aware_publisher="
+        << medium_metadata.medium_role().support_wifi_aware_publisher()
+        << "; support_wifi_aware_subscriber="
+        << medium_metadata.medium_role().support_wifi_aware_subscriber()
+        << "; support_awdl_publisher="
+        << medium_metadata.medium_role().support_awdl_publisher()
+        << "; support_awdl_subscriber="
+        << medium_metadata.medium_role().support_awdl_subscriber();
+  } else {
+    NEARBY_LOGS(INFO) << connection_request.endpoint_id()
+                      << "'s WIFI information: is_supports_5_ghz="
+                      << connection_info.supports_5_ghz
+                      << "; bssid=" << connection_info.bssid
+                      << "; ap_frequency=" << connection_info.ap_frequency
+                      << "Mhz; ip_address in bytes format="
+                      << absl::BytesToHexString(connection_info.ip_address)
+                      << "; has no mediumRole";
+  }
 
   // We've successfully connected to the device, and are now about to jump on to
   // the EncryptionRunner thread to start running our encryption protocol. We'll

@@ -213,6 +213,13 @@ class BwuManager : public EndpointManager::FrameProcessor {
       location::nearby::proto::connections::OperationResultCode
           operation_result_code);
 
+  bool NeedToSwitchRole(
+      ClientProxy* client, const std::string& endpoint_id, Medium medium,
+      const location::nearby::connections::MediumRole& medium_role);
+
+  virtual const location::nearby::connections::OsInfo& GetLocalOsInfo(
+      ClientProxy* client) const;
+
   bool is_single_threaded_for_testing_ = false;
 
   Config config_;
@@ -253,6 +260,11 @@ class BwuManager : public EndpointManager::FrameProcessor {
   // retry happen, then we can not find the last delay used in the alarm. Thus
   // using a different map to keep track of the delays per endpoint.
   absl::flat_hash_map<std::string, absl::Duration> retry_delays_;
+
+  // Whether the dynamic role switch feature is enabled.
+  bool is_dynamic_role_switch_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch);
 };
 
 }  // namespace connections

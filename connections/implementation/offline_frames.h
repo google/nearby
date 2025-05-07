@@ -100,6 +100,9 @@ ByteArray ForBwuWebrtcPathAvailable(
     const std::string& peer_id,
     const location::nearby::connections::LocationHint& location_hint_a);
 ByteArray ForBwuFailure(const UpgradePathInfo& info);
+ByteArray ForBwuPathRequest(
+    const std::vector<Medium>& mediums,
+    const location::nearby::connections::MediumRole& medium_role);
 ByteArray ForBwuLastWrite();
 ByteArray ForBwuSafeToClose();
 

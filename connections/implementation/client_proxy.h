@@ -285,9 +285,11 @@ class ClientProxy final {
 
   std::string Dump();
 
-  const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
+  virtual const location::nearby::connections::OsInfo& GetLocalOsInfo() const;
   std::optional<location::nearby::connections::OsInfo> GetRemoteOsInfo(
       absl::string_view endpoint_id) const;
+  void SetLocalOsType(
+      const location::nearby::connections::OsInfo::OsType& os_type);
   void SetRemoteOsInfo(
       absl::string_view endpoint_id,
       const location::nearby::connections::OsInfo& remote_os_info);
@@ -349,6 +351,9 @@ class ClientProxy final {
 
   // Updates the DCT device name before advertising.
   void UpdateDctDeviceName(absl::string_view device_name);
+
+  std::optional<location::nearby::connections::MediumRole> GetMediumRole(
+      absl::string_view endpoint_id) const;
 
   /** Bitmask for bt multiplex connection support. */
   // Note. Deprecates the first and second bit of BT_MULTIPLEX_ENABLED and

@@ -85,6 +85,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:authentication_status",
         "//internal/platform:base",
         "//internal/platform:types",

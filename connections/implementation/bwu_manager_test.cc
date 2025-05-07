@@ -46,7 +46,9 @@ using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::
     BandwidthUpgradeNegotiationFrame_UpgradePathInfo;
+using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::DisconnectionReason;
 
@@ -234,6 +236,51 @@ TEST(BwuManagerBaseTest, AllowToUpgradeMedium) {
       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 
   bwu_manager->Shutdown();
+}
+
+TEST(BwuManagerBaseTest, InitiateBwu_NeedToSwitchRole_Success) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
+  ClientProxy client;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  Mediums mediums;
+  BwuManager::Config config;
+  config.allow_upgrade_to.SetAll(false);
+  absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers;
+  auto bwu_manager = std::make_unique<BwuManager>(mediums, em, ecm,
+                                                  std::move(handlers), config);
+  client.SetLocalOsType(OsInfo::APPLE);
+  auto channel1 = std::make_unique<FakeEndpointChannel>(
+      Medium::BLUETOOTH, std::string(kServiceIdA));
+  MediumRole medium_role;
+  medium_role.set_support_wifi_hotspot_host(true);
+  client.OnConnectionInitiated(
+      std::string(kEndpointId1),
+      {.remote_endpoint_info = ByteArray("remote endpoint")},
+      {.auto_upgrade_bandwidth = false,
+       .connection_info =
+           {
+               .medium_role = {medium_role},
+           }},
+      {}, "");
+  client.OnConnectionAccepted(std::string(kEndpointId1));
+  ecm.RegisterChannelForEndpoint(&client, std::string(kEndpointId1),
+                                 std::move(channel1));
+  bwu_manager->InitiateBwuForEndpoint(&client, std::string(kEndpointId1),
+                                      Medium::WIFI_HOTSPOT);
+  EXPECT_FALSE(bwu_manager->IsUpgradeOngoing(std::string(kEndpointId1)));
+
+  ecm.UnregisterChannelForEndpoint(
+      std::string(kEndpointId1), DisconnectionReason::LOCAL_DISCONNECTION,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  bwu_manager->Shutdown();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      false);
 }
 
 class BwuManagerTestParam : public BwuManagerTest,

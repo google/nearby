@@ -39,6 +39,7 @@ using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 using Medium = ::location::nearby::proto::connections::Medium;
+using ::location::nearby::connections::MediumRole;
 using ::protobuf_matchers::EqualsProto;
 
 constexpr absl::string_view kEndpointId{"ABC"};
@@ -145,6 +146,10 @@ TEST(OfflineFramesTest, CanGenerateLegacyConnectionRequest) {
 }
 
 TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      true);
   constexpr absl::string_view kExpected =
       R"pb(
     version: V1
@@ -160,6 +165,7 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
           bssid: "FF:FF:FF:FF:FF:FF"
           ip_address: "8xqT"
           ap_frequency: 2412
+          medium_role: < support_wifi_hotspot_client: true >
         >
         mediums: MDNS
         mediums: BLUETOOTH
@@ -187,6 +193,8 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
       location::nearby::connections::CONNECTIONS_ENDPOINT);
   connections_device.set_endpoint_info("XYZ");
 
+  MediumRole medium_role;
+  medium_role.set_support_wifi_hotspot_client(true);
   ConnectionInfo connection_info{std::string(kEndpointId),
                                  ByteArray{std::string(kEndpointName)},
                                  kNonce,
@@ -197,7 +205,8 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
-                                 kKeepAliveTimeoutMillis};
+                                 kKeepAliveTimeoutMillis,
+                                 medium_role};
   ByteArray bytes =
       ForConnectionRequestConnections(connections_device, connection_info);
   auto response = FromBytes(bytes);
@@ -623,10 +632,7 @@ TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroduction) {
     version: V1
     v1: <
       type: AUTO_RECONNECT
-      auto_reconnect: <
-        event_type: CLIENT_INTRODUCTION
-        endpoint_id: "ABC"
-      >
+      auto_reconnect: < event_type: CLIENT_INTRODUCTION endpoint_id: "ABC" >
     >)pb";
   ByteArray bytes = ForAutoReconnectIntroduction(std::string(kEndpointId));
   auto response = FromBytes(bytes);
@@ -641,9 +647,7 @@ TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
     version: V1
     v1: <
       type: AUTO_RECONNECT
-      auto_reconnect: <
-        event_type: CLIENT_INTRODUCTION_ACK
-      >
+      auto_reconnect: < event_type: CLIENT_INTRODUCTION_ACK >
     >)pb";
   ByteArray bytes = ForAutoReconnectIntroductionAck();
   auto response = FromBytes(bytes);
@@ -652,6 +656,34 @@ TEST(OfflineFramesTest, CanGenerateAutoReconnectIntroductionAck) {
   EXPECT_THAT(message, EqualsProto(kExpected));
 }
 
+TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: BANDWIDTH_UPGRADE_NEGOTIATION
+      bandwidth_upgrade_negotiation: <
+        event_type: UPGRADE_PATH_REQUEST
+        upgrade_path_info: <
+          upgrade_path_request: <
+            mediums: WIFI_HOTSPOT
+            medium_meta_data: <
+              medium_role: < support_wifi_hotspot_client: true >
+            >
+          >
+        >
+      >
+    >)pb";
+  std::vector<Medium> mediums;
+  mediums.push_back(Medium::WIFI_HOTSPOT);
+  MediumRole medium_role;
+  medium_role.set_support_wifi_hotspot_client(true);
+  ByteArray bytes = ForBwuPathRequest(mediums, medium_role);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
 
 }  // namespace
 }  // namespace parser

@@ -61,7 +61,9 @@ namespace connections {
 
 namespace {
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
+using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::BandwidthUpgradeErrorStage;
 using ::location::nearby::proto::connections::BandwidthUpgradeResult;
@@ -290,6 +292,40 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
           BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
           OperationResultCode::NEARBY_GENERIC_OLD_ENDPOINT_CHANNEL_NULL);
       return;
+    }
+
+    if (is_dynamic_role_switch_enabled_ &&
+        client->GetMediumRole(endpoint_id).has_value()) {
+      MediumRole medium_role = client->GetMediumRole(endpoint_id).value();
+      if (NeedToSwitchRole(client, endpoint_id, proposed_medium, medium_role)) {
+        if (!channel
+                 ->Write(parser::ForBwuPathRequest(
+                     client->GetUpgradeMediums(endpoint_id).GetMediums(true),
+                     medium_role))
+                 .Ok()) {
+          LOG(ERROR) << "BwuManager couldn't complete the upgrade for endpoint "
+                     << endpoint_id << " to medium "
+                     << location::nearby::proto::connections::Medium_Name(
+                            proposed_medium)
+                     << " because it failed to write the "
+                        "BWU_NEGOTIATION.UPGRADE_PATH_REQUEST OfflineFrame.";
+
+          client->GetAnalyticsRecorder().OnBandwidthUpgradeError(
+              endpoint_id, BandwidthUpgradeResult::RESULT_IO_ERROR,
+              BandwidthUpgradeErrorStage::NETWORK_AVAILABLE,
+              OperationResultCode::
+                  CONNECTIVITY_GENERIC_WRITING_CHANNEL_IO_ERROR);
+          return;
+        }
+        NEARBY_LOGS(INFO)
+            << "BwuManager successfully wrote the "
+               "BANDWIDTH_UPGRADE_NEGOTIATION.UPGRADE_PATH_REQUEST "
+               "OfflineFrame while upgrading endpoint "
+            << endpoint_id << " to medium "
+            << location::nearby::proto::connections::Medium_Name(
+                   proposed_medium);
+        return;
+      }
     }
 
     std::string service_id = channel->GetServiceId();
@@ -755,7 +791,20 @@ void BwuManager::ProcessBwuPathAvailableEvent(
     return;
   }
 
+  bool abort_bwu = false;
   if (client->IsIncomingConnection(endpoint_id)) {
+    if (!is_dynamic_role_switch_enabled_) {
+      abort_bwu = true;
+    } else {
+      auto medium_role = client->GetMediumRole(endpoint_id);
+      if (medium_role.has_value() &&
+          !NeedToSwitchRole(client, endpoint_id, upgrade_medium,
+                            medium_role.value())) {
+        abort_bwu = true;
+      }
+    }
+  }
+  if (abort_bwu) {
     NEARBY_LOGS(INFO)
         << "ProcessBandwidthUpgradePathAvailableEvent ignored by Advertiser";
     return;
@@ -919,7 +968,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
   }
 
   bool enable_ble_v2 = NearbyFlags::GetInstance().GetBoolFlag(
-    config_package_nearby::nearby_connections_feature::kEnableBleV2);
+      config_package_nearby::nearby_connections_feature::kEnableBleV2);
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableStopBLEScanningOnWifiUpgrade)) {
@@ -1559,6 +1608,25 @@ void BwuManager::AttemptToRecordBandwidthUpgradeErrorForUnknownEndpoint(
                     << BandwidthUpgradeErrorStage_Name(error_stage)
                     << ", but we don't know which endpoint was trying to "
                        "connect to us, so skipping analytics for his error.";
+}
+
+bool BwuManager::NeedToSwitchRole(
+    ClientProxy* client, const std::string& endpoint_id, Medium medium,
+    const location::nearby::connections::MediumRole& medium_role) {
+  if (GetLocalOsInfo(client).type() == OsInfo::APPLE) {
+    switch (medium) {
+      case Medium::WIFI_HOTSPOT:
+        return medium_role.support_wifi_hotspot_host();
+      default:
+        break;
+    }
+  }
+  return false;
+}
+
+const location::nearby::connections::OsInfo& BwuManager::GetLocalOsInfo(
+    ClientProxy* client) const {
+  return client->GetLocalOsInfo();
 }
 
 absl::Duration BwuManager::CalculateNextRetryDelay(

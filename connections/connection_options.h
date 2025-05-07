@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/options_base.h"
 #include "internal/platform/byte_array.h"
 #include "proto/connections_enums.pb.h"
@@ -34,6 +35,7 @@ struct ConnectionInfo {
   std::vector<location::nearby::proto::connections::Medium> supported_mediums;
   std::int32_t keep_alive_interval_millis;
   std::int32_t keep_alive_timeout_millis;
+  std::optional<location::nearby::connections::MediumRole> medium_role;
 };
 
 // Connection Options: used for both Advertising and Discovery.
