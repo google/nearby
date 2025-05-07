@@ -209,9 +209,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                api::ble_v2::ServerGattConnectionCallback callback);
     ~GattServer() override;
 
-    api::ble_v2::BlePeripheral& GetBlePeripheral() override {
-      return ble_peripheral_;
-    }
     std::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
         const Uuid& service_uuid, const Uuid& characteristic_uuid,
         api::ble_v2::GattCharacteristic::Permission permission,

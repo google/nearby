@@ -36,12 +36,6 @@ class GattServer : public api::ble_v2::GattServer {
   explicit GattServer(GNCBLEGATTServer *gatt_server_);
   ~GattServer() override = default;
 
-  // Returns an empty BlePeripheral object.
-  //
-  // Use of this method should be avoided and its only purpose seems to be a check that the GATT
-  // server is valid.
-  api::ble_v2::BlePeripheral &GetBlePeripheral() override;
-
   // Creates a characteristic and adds it to the GATT server under the given characteristic and
   // service UUIDs.
   //
