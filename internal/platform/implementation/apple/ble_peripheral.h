@@ -31,29 +31,6 @@
 namespace nearby {
 namespace apple {
 
-// An empty peripheral.
-//
-// Apple APIs do not expose a peripheral's MAC address and does not provide a
-// way to directly connect to a given MAC address. Instead a connection can only
-// be made using a CoreBluetooth peripheral object. Many times a CoreBluetooth
-// peripheral is not available, namely, when the remote device is a central. For
-// these cases, an EmptyBlePeripheral should be used.
-class EmptyBlePeripheral : public api::ble_v2::BlePeripheral {
- public:
-  EmptyBlePeripheral();
-  ~EmptyBlePeripheral() override = default;
-
-  // Returns an empty string.
-  std::string GetAddress() const override;
-
-  // Returns an immutable unique identifier. The identifier does not change when
-  // the peripheral's address is rotated.
-  api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override;
-
- private:
-  api::ble_v2::BlePeripheral::UniqueId unique_id_;
-};
-
 // A wrapper of a CoreBluetooth peripheral object. This can be used to uniquely
 // identify a peripheral and connect to its GATT server.
 //
@@ -62,6 +39,9 @@ class EmptyBlePeripheral : public api::ble_v2::BlePeripheral {
 // used instead.
 class BlePeripheral : public api::ble_v2::BlePeripheral {
  public:
+  // Returns a reference to a default BlePeripheral.
+  static api::ble_v2::BlePeripheral& DefaultBlePeripheral();
+
   explicit BlePeripheral(id<GNCPeripheral> peripheral);
   ~BlePeripheral() override = default;
 

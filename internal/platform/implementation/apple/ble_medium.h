@@ -183,10 +183,9 @@ class BleMedium : public api::ble_v2::BleMedium {
   GNCBLEMedium *medium_;
 
   absl::Mutex peripherals_mutex_;
-  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, std::unique_ptr<BlePeripheral>>
+  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId,
+                      std::unique_ptr<BlePeripheral>>
       peripherals_ ABSL_GUARDED_BY(peripherals_mutex_);
-
-  std::unique_ptr<EmptyBlePeripheral> local_peripheral_;
 
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;

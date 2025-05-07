@@ -547,8 +547,8 @@ bool BleMedium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId unique_
                                     api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) {
   // If the unique_id is 0, that means it's the local/empty peripheral. We must return "true"
   // otherwise the connection will be considered invalid and the application will crash.
-  if (unique_id == 0) {
-    callback(*local_peripheral_);
+  if (unique_id == BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {
+    callback(BlePeripheral::DefaultBlePeripheral());
     return true;
   }
 

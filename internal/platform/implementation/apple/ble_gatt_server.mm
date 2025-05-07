@@ -97,7 +97,7 @@ void GattServer::Stop() {
 
 // TODO(b/290385712): Implement.
 api::ble_v2::BlePeripheral &GattServer::GetBlePeripheral() {
-  return peripheral_;
+  return BlePeripheral::DefaultBlePeripheral();
 }
 
 }  // namespace apple

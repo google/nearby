@@ -168,7 +168,7 @@ Exception BleL2capOutputStream::Close() {
 #pragma mark - BleL2capSocket
 
 BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection)
-    : BleL2capSocket(connection, new EmptyBlePeripheral()) {}
+    : BleL2capSocket(connection, &BlePeripheral::DefaultBlePeripheral()) {}
 
 BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection,
                                api::ble_v2::BlePeripheral *peripheral)
