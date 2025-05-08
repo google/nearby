@@ -45,19 +45,11 @@ class BlePeripheral : public api::ble_v2::BlePeripheral {
   explicit BlePeripheral(id<GNCPeripheral> peripheral);
   ~BlePeripheral() override = default;
 
-  // Returns an empty string.
-  std::string GetAddress() const override;
-
-  // Returns an immutable unique identifier. The identifier does not change when
-  // the peripheral's address is rotated.
-  api::ble_v2::BlePeripheral::UniqueId GetUniqueId() const override;
-
   // Returns the CoreBluetooth peripheral object.
   id<GNCPeripheral> GetPeripheral() const;
 
  private:
   id<GNCPeripheral> peripheral_;
-  api::ble_v2::BlePeripheral::UniqueId unique_id_;
 };
 
 }  // namespace apple
