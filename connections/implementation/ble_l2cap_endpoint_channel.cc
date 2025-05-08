@@ -32,15 +32,14 @@ namespace {
 constexpr int kDefaultBleL2capMaxTransmitPacketSize = 1024;  // 1024 bytes
 
 OutputStream* GetOutputStreamOrNull(BleL2capSocket& socket) {
-  if (socket.GetRemotePeripheral().IsValid()) {
+  if (socket.IsValid()) {
     return &socket.GetOutputStream();
   }
-  LOG(WARNING) << "GetOutputStreamOrNull: socket is not valid";
   return nullptr;
 }
 
 InputStream* GetInputStreamOrNull(BleL2capSocket& socket) {
-  if (socket.GetRemotePeripheral().IsValid()) {
+  if (socket.IsValid()) {
     return &socket.GetInputStream();
   }
   return nullptr;

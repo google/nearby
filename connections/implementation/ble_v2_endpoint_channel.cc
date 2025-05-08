@@ -17,8 +17,12 @@
 #include <string>
 #include <utility>
 
+#include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/ble_v2.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace connections {
@@ -26,14 +30,14 @@ namespace connections {
 namespace {
 
 OutputStream* GetOutputStreamOrNull(BleV2Socket& socket) {
-  if (socket.GetRemotePeripheral().IsValid()) {
+  if (socket.IsValid()) {
     return &socket.GetOutputStream();
   }
   return nullptr;
 }
 
 InputStream* GetInputStreamOrNull(BleV2Socket& socket) {
-  if (socket.GetRemotePeripheral().IsValid()) {
+  if (socket.IsValid()) {
     return &socket.GetInputStream();
   }
   return nullptr;
@@ -61,9 +65,8 @@ int BleV2EndpointChannel::GetMaxTransmitPacketSize() const {
 void BleV2EndpointChannel::CloseImpl() {
   Exception status = ble_socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOGS(WARNING)
-        << "Failed to close underlying socket for BleEndpointChannel "
-        << GetName() << ": exception=" << status.value;
+    LOG(WARNING) << "Failed to close underlying socket for BleEndpointChannel "
+                 << GetName() << ": exception=" << status.value;
   }
 }
 

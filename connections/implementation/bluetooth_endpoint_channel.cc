@@ -15,9 +15,13 @@
 #include "connections/implementation/bluetooth_endpoint_channel.h"
 
 #include <string>
+#include <utility>
 
+#include "connections/implementation/base_endpoint_channel.h"
 #include "internal/platform/bluetooth_classic.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/output_stream.h"
 
 namespace nearby {
 namespace connections {
@@ -25,12 +29,16 @@ namespace connections {
 namespace {
 
 OutputStream* GetOutputStreamOrNull(BluetoothSocket& socket) {
-  if (socket.GetRemoteDevice().IsValid()) return &socket.GetOutputStream();
+  if (socket.IsValid()) {
+    return &socket.GetOutputStream();
+  }
   return nullptr;
 }
 
 InputStream* GetInputStreamOrNull(BluetoothSocket& socket) {
-  if (socket.GetRemoteDevice().IsValid()) return &socket.GetInputStream();
+  if (socket.IsValid()) {
+    return &socket.GetInputStream();
+  }
   return nullptr;
 }
 
@@ -56,15 +64,15 @@ int BluetoothEndpointChannel::GetMaxTransmitPacketSize() const {
 void BluetoothEndpointChannel::CloseImpl() {
   auto status = bluetooth_socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOGS(INFO)
+    LOG(WARNING)
         << "Failed to close underlying socket for BluetoothEndpointChannel "
         << GetName() << ": exception=" << status.value;
   }
 }
 
 bool BluetoothEndpointChannel::EnableMultiplexSocket() {
-  NEARBY_LOGS(INFO) << "BluetoothEndpointChannel MultiplexSocket will be "
-                       "enabled if the Bluetooth MultiplexSocket is valid";
+  LOG(INFO) << "BluetoothEndpointChannel MultiplexSocket will be "
+               "enabled if the Bluetooth MultiplexSocket is valid";
   bluetooth_socket_.EnableMultiplexSocket();
   return true;
 }
