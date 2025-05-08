@@ -375,9 +375,8 @@ class BleSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
 
-  // Returns valid BlePeripheral pointer if there is a connection, and
-  // nullptr otherwise.
-  virtual BlePeripheral* GetRemotePeripheral() = 0;
+  // Returns BlePeripheral::UniqueId that is connected to this socket.
+  virtual BlePeripheral::UniqueId GetRemotePeripheralId() = 0;
 };
 
 // A BLE GATT server socket for listening incoming GATT socket.
@@ -452,7 +451,6 @@ class BleL2capServerSocket {
 // for all BLE and GATT related operations.
 class BleMedium {
  public:
-  using GetRemotePeripheralCallback = absl::AnyInvocable<void(BlePeripheral&)>;
   virtual ~BleMedium() = default;
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser.html#startAdvertising(android.bluetooth.le.AdvertiseSettings,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseData,%20android.bluetooth.le.AdvertiseCallback)
@@ -497,9 +495,10 @@ class BleMedium {
   // The peripheral is owned by platform implementation and it should outlive
   // for the whole peripheral(device) connection life cycle.
   struct ScanCallback {
-    absl::AnyInvocable<void(BlePeripheral& peripheral,
+    absl::AnyInvocable<void(BlePeripheral::UniqueId peripheral_id,
                             BleAdvertisementData advertisement_data)>
-        advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
+        advertisement_found_cb =
+            [](BlePeripheral::UniqueId, BleAdvertisementData) {};
   };
 
   // https://developer.android.com/reference/android/bluetooth/le/BluetoothLeScanner.html#startScan(java.util.List%3Candroid.bluetooth.le.ScanFilter%3E,%20android.bluetooth.le.ScanSettings,%20android.bluetooth.le.ScanCallback)
@@ -547,11 +546,12 @@ class BleMedium {
   struct ScanningCallback {
     absl::AnyInvocable<void(absl::Status)> start_scanning_result =
         [](absl::Status) {};
-    absl::AnyInvocable<void(BlePeripheral& peripheral,
+    absl::AnyInvocable<void(BlePeripheral::UniqueId peripheral_id,
                             BleAdvertisementData advertisement_data)>
-        advertisement_found_cb = [](BlePeripheral&, BleAdvertisementData) {};
-    absl::AnyInvocable<void(BlePeripheral& peripheral)> advertisement_lost_cb =
-        [](BlePeripheral&) {};
+        advertisement_found_cb =
+            [](BlePeripheral::UniqueId, BleAdvertisementData) {};
+    absl::AnyInvocable<void(BlePeripheral::UniqueId peripheral_id)>
+        advertisement_lost_cb = [](BlePeripheral::UniqueId) {};
   };
 
   // Async interface for StartScanning.
@@ -624,11 +624,6 @@ class BleMedium {
 
   // Requests if support extended advertisement.
   virtual bool IsExtendedAdvertisementsAvailable() = 0;
-
-  // Calls `callback` and returns true if `id` refers to a known BLE peripheral.
-  // Otherwise, does not call the callback and returns false.
-  virtual bool GetRemotePeripheral(BlePeripheral::UniqueId id,
-                                   GetRemotePeripheralCallback callback) = 0;
 
   virtual void AddAlternateUuidForService(uint16_t uuid,
                                           const std::string& service_id) {}
