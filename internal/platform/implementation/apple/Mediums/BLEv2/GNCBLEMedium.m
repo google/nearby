@@ -17,6 +17,7 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
@@ -283,11 +284,10 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   if (!localName) {
     return @{};
   }
-#if defined(NC_IOS_SDK)
-  NSData *data = [[NSData alloc] initWithBase85EncodedString:localName];
-#else
-  NSData *data = [[NSData alloc] initWithWebSafeBase64EncodedString:localName];
-#endif  // defined(NC_IOS_SDK)
+
+  NSData *data = GNCFeatureFlags.dctEnabled
+                     ? [[NSData alloc] initWithBase85EncodedString:localName]
+                     : [[NSData alloc] initWithWebSafeBase64EncodedString:localName];
 
   // A Nearby Apple advertisement should only have a single service, so simply grab the first one if
   // it exists.

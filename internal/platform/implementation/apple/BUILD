@@ -118,6 +118,7 @@ objc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Mediums",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Central",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Peripheral",

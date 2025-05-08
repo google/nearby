@@ -23,6 +23,7 @@
 
 #include "internal/platform/implementation/ble_v2.h"
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 #import "GoogleToolboxForMac/GTMLogger.h"
@@ -128,15 +129,15 @@ bool GattClient::SetCharacteristicSubscription(
 }
 
 void GattClient::Disconnect() {
-// There seems to be an issue between some iOS<>Android device pairs where the Android device will
-// not connect to the iOS device if the iOS device disconnects and then attempts to reconnect.
-// Because of this, we no-op here instead of calling `[gatt_client_ disconnect]`.
-// See: b/375176623
-#if defined(NC_IOS_SDK)
-  // Avoid to impact GTV functionality, put the disconnect for NC iOS SDK only, so thatGATT client
-  // can reconnect to the GATT server.
-  [gatt_client_ disconnect];
-#endif
+  // There seems to be an issue between some iOS<>Android device pairs where the Android device will
+  // not connect to the iOS device if the iOS device disconnects and then attempts to reconnect.
+  // Because of this, we no-op here instead of calling `[gatt_client_ disconnect]`.
+  // See: b/375176623
+  if (GNCFeatureFlags.dctEnabled) {
+    // Avoid to impact GTV functionality, put the disconnect for NC iOS SDK only, so thatGATT client
+    // can reconnect to the GATT server.
+    [gatt_client_ disconnect];
+  }
 }
 
 }  // namespace apple

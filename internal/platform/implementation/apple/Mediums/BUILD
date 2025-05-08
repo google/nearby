@@ -79,6 +79,7 @@ objc_library(
     deps = [
         "//internal/encoding:base85",
         "//internal/platform/implementation/apple:Shared",
+        "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
         "//proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",

@@ -17,6 +17,7 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
@@ -204,11 +205,8 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     // data is unavailable.
     CBUUID *serviceUUID = [serviceData.allKeys objectAtIndex:0];
     NSData *value = [serviceData objectForKey:serviceUUID];
-#if defined(NC_IOS_SDK)
-    NSString *encoded = [value base85EncodedString];
-#else
-    NSString *encoded = [value webSafeBase64EncodedString];
-#endif  // defined(NC_IOS_SDK)
+    NSString *encoded = GNCFeatureFlags.dctEnabled ? [value base85EncodedString]
+                                                   : [value webSafeBase64EncodedString];
 
     // 23 bytes is the standard length which we used in the NC protocol with PSM. The BLE v2
     // advertisement header is default with psm value included so the length is always 23 bytes.
