@@ -32,6 +32,11 @@ P2pPointToPointPcpHandler::P2pPointToPointPcpHandler(
 std::vector<location::nearby::proto::connections::Medium>
 P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<location::nearby::proto::connections::Medium> mediums;
+#if defined(NC_IOS_SDK)
+  if (mediums_->GetAwdl().IsAvailable()) {
+    mediums.push_back(location::nearby::proto::connections::AWDL);
+  }
+#endif  // defined(NC_IOS_SDK)
   if (mediums_->GetWifiLan().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }

@@ -26,6 +26,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/connection_attempt_metadata_params.h"
+#include "connections/implementation/awdl_bwu_handler.h"
 #include "connections/implementation/bluetooth_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -107,6 +108,9 @@ BwuManager::BwuManager(
     config_.allow_upgrade_to.wifi_direct = true;
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
+#if defined(NC_IOS_SDK)
+    config_.allow_upgrade_to.awdl = true;
+#endif  // defined(NC_IOS_SDK)
   }
   if (!handlers.empty()) {
     handlers_ = std::move(handlers);
@@ -126,6 +130,13 @@ BwuManager::~BwuManager() {
 
 void BwuManager::InitBwuHandlers() {
   // Register the supported concrete BwuMedium implementations.
+  if (config_.allow_upgrade_to.awdl) {
+    handlers_.emplace(
+        Medium::AWDL,
+        std::make_unique<AwdlBwuHandler>(
+            *mediums_,
+            absl::bind_front(&BwuManager::OnIncomingConnection, this)));
+  }
   if (config_.allow_upgrade_to.wifi_hotspot) {
     handlers_.emplace(
         Medium::WIFI_HOTSPOT,
@@ -1474,6 +1485,9 @@ std::vector<Medium> BwuManager::StripOutUnavailableMediums(
     bool available = false;
     if (GetHandlerForMedium(m)) {
       switch (m) {
+        case Medium::AWDL:
+          available = mediums_->GetAwdl().IsAvailable();
+          break;
         case Medium::WIFI_LAN:
           available = mediums_->GetWifiLan().IsAvailable();
           break;

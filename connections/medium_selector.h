@@ -72,6 +72,10 @@ struct BooleanMediumSelector {
   std::vector<Medium> GetMediums(bool value) const {
     std::vector<Medium> mediums;
     // Mediums are sorted in order of decreasing preference.
+    // AWDL works on Apple devices only for now. Put it at the top of WIFI_LAN
+    // because it is the most preferred medium for Apple devices and no impact
+    // to other medium connections.
+    if (awdl == value) mediums.push_back(Medium::AWDL);
     if (wifi_lan == value) mediums.push_back(Medium::WIFI_LAN);
     if (wifi_direct == value) mediums.push_back(Medium::WIFI_DIRECT);
     if (wifi_hotspot == value) mediums.push_back(Medium::WIFI_HOTSPOT);
@@ -86,7 +90,6 @@ struct BooleanMediumSelector {
     }
     if (bluetooth == value) mediums.push_back(Medium::BLUETOOTH);
     if (ble == value) mediums.push_back(Medium::BLE);
-    if (awdl == value) mediums.push_back(Medium::AWDL);
     return mediums;
   }
 };

@@ -227,6 +227,12 @@ NC_INSTANCE NcCreateService() {
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableAwdl,
       true);
+
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableStopBLEScanningOnWifiUpgrade,
+      true);
+
 #endif
 
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
@@ -484,6 +490,8 @@ void NcRequestConnection(
       GetCppConnectionRequestInfo(instance, *connection_request_info, context);
 
   ::nearby::connections::ConnectionOptions cpp_connection_options;
+  cpp_connection_options.allowed.awdl =
+      connection_options->common_options.allowed_mediums[NC_MEDIUM_AWDL];
   cpp_connection_options.allowed.ble =
       connection_options->common_options.allowed_mediums[NC_MEDIUM_BLE];
   cpp_connection_options.allowed.bluetooth =
@@ -492,6 +500,9 @@ void NcRequestConnection(
       connection_options->common_options.allowed_mediums[NC_MEDIUM_WEB_RTC];
   cpp_connection_options.allowed.wifi_lan =
       connection_options->common_options.allowed_mediums[NC_MEDIUM_WIFI_LAN];
+  cpp_connection_options.allowed.wifi_hotspot =
+      connection_options->common_options
+          .allowed_mediums[NC_MEDIUM_WIFI_HOTSPOT];
   cpp_connection_options.auto_upgrade_bandwidth =
       connection_options->auto_upgrade_bandwidth;
   cpp_connection_options.enforce_topology_constraints =

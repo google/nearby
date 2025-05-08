@@ -1072,12 +1072,13 @@ void P2pClusterPcpHandler::AwdlServiceDiscoveredHandler(
         }
 
         // Report the discovered endpoint to the client.
-        LOG(INFO) << "Found NsdServiceInfo " << service_info.GetServiceName()
-                  << " (with endpoint_id="
-                  << wifi_lan_service_info.GetEndpointId()
-                  << "and endpoint_info="
+        LOG(INFO) << "Found NsdServiceInfo "
+                  << "with (service_name:" << service_info.GetServiceName()
+                  << ", service_type:" << service_info.GetServiceType()
+                  << ", endpoint_id:" << wifi_lan_service_info.GetEndpointId()
+                  << ", endpoint_info:"
                   << absl::BytesToHexString(
-                         wifi_lan_service_info.GetEndpointInfo().data())
+                         wifi_lan_service_info.GetEndpointInfo().AsStringView())
                   << ").";
         StopEndpointLostByMediumAlarm(wifi_lan_service_info.GetEndpointId(),
                                       AWDL);

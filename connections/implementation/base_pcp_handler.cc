@@ -438,6 +438,7 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
   mediumSelector.wifi_lan = intersection.contains(Medium::WIFI_LAN);
   mediumSelector.wifi_hotspot = intersection.contains(Medium::WIFI_HOTSPOT);
   mediumSelector.wifi_direct = intersection.contains(Medium::WIFI_DIRECT);
+  mediumSelector.awdl = intersection.contains(Medium::AWDL);
   return mediumSelector;
 }
 
