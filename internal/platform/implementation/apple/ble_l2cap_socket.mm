@@ -168,13 +168,13 @@ Exception BleL2capOutputStream::Close() {
 #pragma mark - BleL2capSocket
 
 BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection)
-    : BleL2capSocket(connection, &BlePeripheral::DefaultBlePeripheral()) {}
+    : BleL2capSocket(connection, BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {}
 
 BleL2capSocket::BleL2capSocket(GNCBLEL2CAPConnection *connection,
-                               api::ble_v2::BlePeripheral *peripheral)
+                               api::ble_v2::BlePeripheral::UniqueId peripheral_id)
     : input_stream_(std::make_unique<BleL2capInputStream>(connection)),
       output_stream_(std::make_unique<BleL2capOutputStream>(connection)),
-      peripheral_(peripheral) {}
+      peripheral_id_(peripheral_id) {}
 
 BleL2capSocket::~BleL2capSocket() {
   absl::MutexLock lock(&mutex_);

@@ -483,22 +483,24 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &se
 
 std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral &peripheral, CancellationFlag *cancellation_flag) {
-  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
-  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
-  BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
-  if (non_empty_peripheral == nullptr) {
-    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is empty.");
-    return nullptr;
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
+  BlePeripheral *peripheral = nullptr;
+  {
+    absl::MutexLock lock(&peripherals_mutex_);
+    const auto& it = peripherals_.find(peripheral_id);
+    if (it == peripherals_.end()) {
+      GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is not found.");
+      return nullptr;
+    }
+    peripheral = it->second.get();
   }
-
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   dispatch_time_t timeout =
       dispatch_time(DISPATCH_TIME_NOW, kRequestConnectionTimeoutInSeconds * NSEC_PER_SEC);
   __block std::unique_ptr<BleL2capSocket> socket;
   const std::string &service_id_str = service_id;
   [medium_ openL2CAPChannelWithPSM:psm
-                        peripheral:non_empty_peripheral->GetPeripheral()
+                        peripheral:peripheral->GetPeripheral()
                  completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
                    if (error) {
                      dispatch_semaphore_signal(semaphore);
@@ -514,7 +516,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                    // Connections layer.
                    [connection requestDataConnectionWithCompletion:^(BOOL result) {
                      if (result) {
-                       socket = std::make_unique<BleL2capSocket>(connection, non_empty_peripheral);
+                       socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
                      }
                      GTMLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
                                           : @"[NEARBY] Request data connection is not ok");

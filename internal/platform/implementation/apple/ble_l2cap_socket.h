@@ -84,7 +84,8 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
 
   // The peripheral used to create the socket must outlive the socket or undefined behavior will
   // occur.
-  BleL2capSocket(GNCBLEL2CAPConnection* connection, api::ble_v2::BlePeripheral *peripheral);
+  BleL2capSocket(GNCBLEL2CAPConnection *connection,
+                 api::ble_v2::BlePeripheral::UniqueId peripheral_id);
   ~BleL2capSocket() override;
 
   // Returns the InputStream of the BleL2capSocket.
@@ -108,7 +109,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  api::ble_v2::BlePeripheral *GetRemotePeripheral() override { return peripheral_; }
+  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override { return peripheral_id_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -119,7 +120,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleL2capInputStream> input_stream_;
   std::unique_ptr<BleL2capOutputStream> output_stream_;
-  api::ble_v2::BlePeripheral *peripheral_;
+  api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
 };
 
 }  // namespace apple

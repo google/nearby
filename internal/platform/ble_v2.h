@@ -423,12 +423,8 @@ class BleL2capServerSocket final {
       LOG(INFO) << "BleL2capServerSocket Accept() failed on server socket: "
                 << this;
     } else {
-      api::ble_v2::BlePeripheral* platform_peripheral =
-          socket->GetRemotePeripheral();
-      if (platform_peripheral != nullptr) {
-        peripheral =
-            BleV2Peripheral(*medium_, platform_peripheral->GetUniqueId());
-      }
+      peripheral =
+          BleV2Peripheral(*medium_, socket->GetRemotePeripheralId());
     }
     return BleL2capSocket(peripheral, std::move(socket));
   }

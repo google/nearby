@@ -157,7 +157,8 @@ class BleMedium : public api::ble_v2::BleMedium {
   // On success, returns a new BleL2capSocket. On error, returns nullptr.
   std::unique_ptr<api::ble_v2::BleL2capSocket> ConnectOverL2cap(
       int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral &peripheral, CancellationFlag *cancellation_flag) override;
+      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+      CancellationFlag *cancellation_flag) override;
 
   // Returns whether the hardware supports BOTH advertising extensions and extended scans.
   //

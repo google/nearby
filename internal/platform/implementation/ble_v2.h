@@ -424,7 +424,7 @@ class BleL2capSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  virtual BlePeripheral* GetRemotePeripheral() = 0;
+  virtual BlePeripheral::UniqueId GetRemotePeripheralId() = 0;
 };
 
 // A BLE L2CAP server socket for listening incoming L2CAP socket.
@@ -616,7 +616,8 @@ class BleMedium {
   // Platform implementation should override this method if it supports L2CAP.
   virtual std::unique_ptr<BleL2capSocket> ConnectOverL2cap(
       int psm, const std::string& service_id, TxPowerLevel tx_power_level,
-      BlePeripheral& peripheral, CancellationFlag* cancellation_flag) {
+      BlePeripheral::UniqueId peripheral_id,
+      CancellationFlag* cancellation_flag) {
     return nullptr;
   }
 

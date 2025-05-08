@@ -293,7 +293,7 @@ BleL2capSocket BleV2Medium::ConnectOverL2cap(
     socket = BleL2capSocket(
         peripheral,
         impl_->ConnectOverL2cap(peripheral.GetPsm(), service_id, tx_power_level,
-                                *device, cancellation_flag));
+                                device->GetUniqueId(), cancellation_flag));
   };
   return socket;
 }
