@@ -95,13 +95,15 @@ constexpr auto kEnableStopBLEScanningOnWifiUpgrade =
 // When true, enable multiplexing in NC for AWDL.
 constexpr auto kEnableMultiplexAwdl =
     flags::Flag<bool>(kConfigPackage, "45690761", false);
-
 // Enable/Disable AWDL in Nearby connections SDK.
 constexpr auto kEnableAwdl =
     flags::Flag<bool>(kConfigPackage, "45690762", false);
 // When true, enable dynamic role switch in NC.
 constexpr auto kEnableDynamicRoleSwitch =
     flags::Flag<bool>(kConfigPackage, "45696452", false);
+// Enable/Disable DCT advertising/scanning specification.
+constexpr auto kEnableDct =
+    flags::Flag<bool>(kConfigPackage, "45697202", false);
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
