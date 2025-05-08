@@ -164,7 +164,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       api::ble_v2::ServerGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
-      api::ble_v2::BlePeripheral& peripheral,
+      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
       api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -226,20 +226,20 @@ class BleV2Medium : public api::ble_v2::BleMedium {
         const std::vector<Uuid>& characteristic_uuids);
 
     absl::StatusOr<ByteArray> ReadCharacteristic(
-        const api::ble_v2::BlePeripheral& remote_device,
+        api::ble_v2::BlePeripheral::UniqueId remote_device_id,
         const api::ble_v2::GattCharacteristic& characteristic, int offset);
 
     absl::Status WriteCharacteristic(
-        const api::ble_v2::BlePeripheral& remote_device,
+        api::ble_v2::BlePeripheral::UniqueId remote_device_id,
         const api::ble_v2::GattCharacteristic& characteristic, int offset,
         absl::string_view data);
 
     bool AddCharacteristicSubscription(
-        const api::ble_v2::BlePeripheral& remote_device,
+        api::ble_v2::BlePeripheral::UniqueId remote_device_id,
         const api::ble_v2::GattCharacteristic& characteristic,
         absl::AnyInvocable<void(absl::string_view value)>);
     bool RemoveCharacteristicSubscription(
-        const api::ble_v2::BlePeripheral& remote_device,
+        api::ble_v2::BlePeripheral::UniqueId remote_device_id,
         const api::ble_v2::GattCharacteristic& characteristic);
 
     bool HasCharacteristic(
@@ -249,7 +249,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     void Disconnect(GattClient* client);
 
    private:
-    using SubscriberKey = std::pair<const api::ble_v2::BlePeripheral*,
+    using SubscriberKey = std::pair<const api::ble_v2::BlePeripheral::UniqueId,
                                     api::ble_v2::GattCharacteristic>;
     using SubscriberCallback =
         absl::AnyInvocable<void(absl::string_view value)>;
@@ -270,7 +270,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   // A concrete implementation for GattClient.
   class GattClient : public api::ble_v2::GattClient {
    public:
-    GattClient(api::ble_v2::BlePeripheral& peripheral,
+    GattClient(api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                Borrowable<api::ble_v2::GattServer*> gatt_server,
                api::ble_v2::ClientGattConnectionCallback callback);
     ~GattClient() override;
@@ -305,7 +305,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     // disconnected/*false*/, the instance needs to be created again to bring
     // it alive.
     std::atomic_bool is_connection_alive_ = true;
-    api::ble_v2::BlePeripheral& peripheral_;
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
     Borrowable<api::ble_v2::GattServer*> gatt_server_;
     api::ble_v2::ClientGattConnectionCallback callback_;
   };

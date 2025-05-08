@@ -306,20 +306,24 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
 }
 
 std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral &peripheral, api::ble_v2::TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
-  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
-  BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
-  if (non_empty_peripheral == nullptr) {
-    return nullptr;
+  BlePeripheral *peripheral = nullptr;
+  {
+    absl::MutexLock lock(&peripherals_mutex_);
+    const auto& it = peripherals_.find(peripheral_id);
+    if (it == peripherals_.end()) {
+      GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+      return nullptr;
+    }
+    peripheral = it->second.get();
   }
 
   __block api::ble_v2::ClientGattConnectionCallback blockCallback = std::move(callback);
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block GNCBLEGATTClient *blockClient = nil;
-  [medium_ connectToGATTServerForPeripheral:non_empty_peripheral->GetPeripheral()
+  [medium_ connectToGATTServerForPeripheral:peripheral->GetPeripheral()
       disconnectionHandler:^(void) {
         blockCallback.disconnected_cb();
       }

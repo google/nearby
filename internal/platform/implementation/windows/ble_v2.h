@@ -68,7 +68,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       api::ble_v2::ServerGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
-      api::ble_v2::BlePeripheral& peripheral,
+      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
       api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);

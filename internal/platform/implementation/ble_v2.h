@@ -340,14 +340,14 @@ struct ServerGattConnectionCallback {
   // `GattServer::UpdateCharacteristic()`, then reading from the characteristic
   // yields that static value. The read callback is not called.
   // Otherwise, the gatt server calls the read callback to get the value.
-  absl::AnyInvocable<void(const BlePeripheral& remote_device,
+  absl::AnyInvocable<void(const BlePeripheral::UniqueId remote_device_id,
                           const GattCharacteristic& characteristic, int offset,
                           ReadValueCallback callback)>
       on_characteristic_read_cb;
 
   // Called when a gatt client is writing to the characteristic.
   // Must call `callback` with the write result.
-  absl::AnyInvocable<void(const BlePeripheral& remote_device,
+  absl::AnyInvocable<void(const BlePeripheral::UniqueId remote_device_id,
                           const GattCharacteristic& characteristic, int offset,
                           absl::string_view data, WriteValueCallback callback)>
       on_characteristic_write_cb;
@@ -581,7 +581,7 @@ class BleMedium {
   //   LOW:
   //     - Connection interval = ~100ms - 125ms
   virtual std::unique_ptr<GattClient> ConnectToGattServer(
-      BlePeripheral& peripheral, TxPowerLevel tx_power_level,
+      BlePeripheral::UniqueId peripheral_id, TxPowerLevel tx_power_level,
       ClientGattConnectionCallback callback) = 0;
 
   // Opens a BLE server socket based on service ID.

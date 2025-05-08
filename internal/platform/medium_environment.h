@@ -388,7 +388,7 @@ class MediumEnvironment {
   void UnregisterGattServer(api::ble_v2::BleMedium& medium);
 
   Borrowable<api::ble_v2::GattServer*> GetGattServer(
-      api::ble_v2::BlePeripheral& peripheral);
+      api::ble_v2::BlePeripheral::UniqueId peripheral_id);
 
   // Configures the BluetoothPairingContext for remote BluetoothDevice.
   void ConfigBluetoothPairingContext(api::BluetoothDevice* device,

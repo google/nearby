@@ -63,7 +63,6 @@ constexpr absl::string_view kAdvertisementHeaderString = "\x0x\x0y\x0z";
 constexpr TxPowerLevel kTxPowerLevel(TxPowerLevel::kHigh);
 constexpr absl::string_view kServiceIDA{
     "com.google.location.nearby.apps.test.a"};
-constexpr absl::string_view kId = "AB12";
 
 class BleV2MediumTest : public ::testing::TestWithParam<FeatureFlags> {
  protected:
@@ -713,7 +712,7 @@ TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
   std::unique_ptr<GattServer> gatt_server =
       ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{
           .on_characteristic_write_cb =
-              [&](const api::ble_v2::BlePeripheral& remote_device,
+              [&](const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
                   const api::ble_v2::GattCharacteristic& characteristic,
                   int offset, absl::string_view data,
                   BleV2Medium::ServerGattConnectionCallback::WriteValueCallback

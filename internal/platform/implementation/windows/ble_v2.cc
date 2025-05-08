@@ -587,17 +587,18 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
 }
 
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral& peripheral, TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+    TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   absl::MutexLock lock(&mutex_);
-  LOG(INFO) << "ConnectToGattServer is called, address: "
-            << peripheral.GetAddress()
+  LOG(INFO) << "ConnectToGattServer is called with peripheral id: "
+            << peripheral_id
             << ", power:" << TxPowerLevelToName(tx_power_level);
 
   try {
     // In windows, peripheral unique id is the same as the bluetooth address.
     BluetoothLEDevice ble_device =
-        BluetoothLEDevice::FromBluetoothAddressAsync(peripheral.GetUniqueId())
+        BluetoothLEDevice::FromBluetoothAddressAsync(peripheral_id)
             .get();
 
     return std::make_unique<BleGattClient>(ble_device);

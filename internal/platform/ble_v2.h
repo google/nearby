@@ -70,6 +70,10 @@ class BleV2Peripheral final {
   bool IsValid() const;
   explicit operator bool() const { return IsValid(); }
 
+  std::optional<api::ble_v2::BlePeripheral::UniqueId> GetUniqueId() const {
+    return unique_id_;
+  }
+
   api::ble_v2::BlePeripheral* GetImpl() const;
   std::string ToReadableString() const {
     if (!IsValid()) {
@@ -222,9 +226,8 @@ class BleV2ServerSocket final {
 // of std::optional, because iOS platform is still in C++14.
 class GattServer final {
  public:
-  GattServer(BleV2Medium& medium,
-             std::unique_ptr<api::ble_v2::GattServer> gatt_server)
-      : medium_(medium), impl_(std::move(gatt_server)) {}
+  explicit GattServer(std::unique_ptr<api::ble_v2::GattServer> gatt_server)
+      : impl_(std::move(gatt_server)) {}
   ~GattServer() { Stop(); }
 
   // NOLINTNEXTLINE(google3-legacy-absl-backports)
@@ -263,7 +266,6 @@ class GattServer final {
   api::ble_v2::GattServer* GetImpl() { return impl_.get(); }
 
  private:
-  BleV2Medium& medium_;
   std::unique_ptr<api::ble_v2::GattServer> impl_;
 };
 
@@ -479,11 +481,11 @@ class BleV2Medium final {
     absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
         characteristic_unsubscription_cb =
             nearby::DefaultCallback<const GattCharacteristic&>();
-    absl::AnyInvocable<void(const BlePeripheral& remote_device,
+    absl::AnyInvocable<void(const BlePeripheral::UniqueId remote_device_id,
                             const GattCharacteristic& characteristic,
                             int offset, ReadValueCallback callback)>
         on_characteristic_read_cb;
-    absl::AnyInvocable<void(const BlePeripheral& remote_device,
+    absl::AnyInvocable<void(const BlePeripheral::UniqueId remote_device_id,
                             const GattCharacteristic& characteristic,
                             int offset, absl::string_view data,
                             WriteValueCallback callback)>

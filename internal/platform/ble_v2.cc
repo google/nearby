@@ -15,6 +15,7 @@
 #include "internal/platform/ble_v2.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -62,7 +63,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
-    NEARBY_LOGS(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
     return false;
   }
   bool success = impl_->StartScanning(
@@ -73,8 +74,8 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                      BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
                 if (!peripherals_.contains(&peripheral)) {
-                  NEARBY_LOGS(INFO) << "Peripheral impl=" << &peripheral
-                                    << " does not exist; add it to the map.";
+                  LOG(INFO) << "Peripheral impl=" << &peripheral
+                            << " does not exist; add it to the map.";
                   peripherals_.insert(&peripheral);
                 }
 
@@ -93,7 +94,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
     // prevent the stale data in cache.
     peripherals_.clear();
     scanning_enabled_ = true;
-    NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
   }
   return success;
 }
@@ -103,7 +104,7 @@ bool BleV2Medium::StartMultipleServicesScanning(
     api::ble_v2::TxPowerLevel tx_power_level, ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
-    NEARBY_LOGS(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
     return false;
   }
   bool success = impl_->StartMultipleServicesScanning(
@@ -114,8 +115,8 @@ bool BleV2Medium::StartMultipleServicesScanning(
                      BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
                 if (!peripherals_.contains(&peripheral)) {
-                  NEARBY_LOGS(INFO) << "Peripheral impl=" << &peripheral
-                                    << " does not exist; add it to the map.";
+                  LOG(INFO) << "Peripheral impl=" << &peripheral
+                            << " does not exist; add it to the map.";
                   peripherals_.insert(&peripheral);
                 }
 
@@ -129,7 +130,7 @@ bool BleV2Medium::StartMultipleServicesScanning(
     scan_callback_ = std::move(callback);
     peripherals_.clear();
     scanning_enabled_ = true;
-    NEARBY_LOGS(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
   }
   return success;
 }
@@ -144,7 +145,7 @@ bool BleV2Medium::StopScanning() {
   scanning_enabled_ = false;
   peripherals_.clear();
   scan_callback_ = {};
-  NEARBY_LOGS(INFO) << "Ble Scanning disabled: impl=" << GetImpl();
+  LOG(INFO) << "Ble Scanning disabled: impl=" << GetImpl();
   return impl_->StopScanning();
 }
 bool BleV2Medium::PauseMediumScanning() {
@@ -152,8 +153,7 @@ bool BleV2Medium::PauseMediumScanning() {
   if (!scanning_enabled_) {
     return true;
   }
-  NEARBY_LOGS(INFO) << "Pause Medium level BLE_V2 Scanning: impl="
-                    << GetImpl();
+  LOG(INFO) << "Pause Medium level BLE_V2 Scanning: impl=" << GetImpl();
   return impl_->PauseMediumScanning();
 }
 
@@ -166,7 +166,7 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession>
 BleV2Medium::StartScanning(const Uuid& service_uuid,
                            api::ble_v2::TxPowerLevel tx_power_level,
                            api::ble_v2::BleMedium::ScanningCallback callback) {
-  NEARBY_LOGS(INFO) << "platform mutex: " << &mutex_;
+  LOG(INFO) << "platform mutex: " << &mutex_;
   return impl_->StartScanning(
       service_uuid, tx_power_level,
       api::ble_v2::BleMedium::ScanningCallback{
@@ -209,14 +209,15 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
                     .characteristic_unsubscription_cb(characteristic);
               },
           .on_characteristic_read_cb =
-              [this](const api::ble_v2::BlePeripheral& remote_device,
-                     const GattCharacteristic& characteristic, int offset,
-                     ReadValueCallback callback) {
+              [this](
+                  const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+                  const GattCharacteristic& characteristic, int offset,
+                  ReadValueCallback callback) {
                 MutexLock lock(&mutex_);
                 if (server_gatt_connection_callback_
                         .on_characteristic_read_cb) {
                   server_gatt_connection_callback_.on_characteristic_read_cb(
-                      remote_device, characteristic, offset,
+                      remote_device_id, characteristic, offset,
                       std::move(callback));
                 } else {
                   callback(absl::FailedPreconditionError(
@@ -224,14 +225,15 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
                 }
               },
           .on_characteristic_write_cb =
-              [this](const api::ble_v2::BlePeripheral& remote_device,
-                     const GattCharacteristic& characteristic, int offset,
-                     absl::string_view data, WriteValueCallback callback) {
+              [this](
+                  const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+                  const GattCharacteristic& characteristic, int offset,
+                  absl::string_view data, WriteValueCallback callback) {
                 MutexLock lock(&mutex_);
                 if (server_gatt_connection_callback_
                         .on_characteristic_write_cb) {
                   server_gatt_connection_callback_.on_characteristic_write_cb(
-                      remote_device, characteristic, offset, data,
+                      remote_device_id, characteristic, offset, data,
                       std::move(callback));
                 } else {
                   callback(absl::FailedPreconditionError(
@@ -239,26 +241,26 @@ std::unique_ptr<GattServer> BleV2Medium::StartGattServer(
                 }
               },
       });
-  return std::make_unique<GattServer>(*this, std::move(api_gatt_server));
+  return std::make_unique<GattServer>(std::move(api_gatt_server));
 }
 
 std::unique_ptr<GattClient> BleV2Medium::ConnectToGattServer(
     BleV2Peripheral peripheral, TxPowerLevel tx_power_level,
     ClientGattConnectionCallback callback) {
-  std::unique_ptr<api::ble_v2::GattClient> api_gatt_client;
-  api::ble_v2::BlePeripheral* device = peripheral.GetImpl();
-  if (device != nullptr) {
-    api_gatt_client = impl_->ConnectToGattServer(
-        *device, tx_power_level,
-        {
-            .disconnected_cb =
-                [callback = std::move(callback)]() mutable {
-                  callback.disconnected_cb();
-                },
-        });
+  std::optional<api::ble_v2::BlePeripheral::UniqueId> id =
+      peripheral.GetUniqueId();
+  if (!id.has_value()) {
+    LOG(ERROR) << "Failed to connect to GattServer, invalid peripheral";
+    return nullptr;
   }
-
-  return std::make_unique<GattClient>(std::move(api_gatt_client));
+  return std::make_unique<GattClient>(impl_->ConnectToGattServer(
+      *id, tx_power_level,
+      {
+          .disconnected_cb =
+              [callback = std::move(callback)]() mutable {
+                callback.disconnected_cb();
+              },
+      }));
 }
 
 BleV2ServerSocket BleV2Medium::OpenServerSocket(const std::string& service_id) {
@@ -302,17 +304,14 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
 }
 
-bool BleV2Peripheral::IsValid() const {
-  return GetImpl() != nullptr;
-}
+bool BleV2Peripheral::IsValid() const { return GetImpl() != nullptr; }
 
 api::ble_v2::BlePeripheral* BleV2Peripheral::GetImpl() const {
   if (!unique_id_.has_value()) return nullptr;
   api::ble_v2::BlePeripheral* result = nullptr;
   if (!medium_->GetImpl()->GetRemotePeripheral(
-      unique_id_.value(), [&](api::ble_v2::BlePeripheral& device) {
-        result = &device;
-      })) {
+          unique_id_.value(),
+          [&](api::ble_v2::BlePeripheral& device) { result = &device; })) {
     return nullptr;
   }
   return result;
