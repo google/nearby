@@ -90,6 +90,8 @@ bool IsFeatureUseStableEndpointIdEnabled() {
 ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
     : client_id_(Prng().NextInt64()) {
   NEARBY_LOGS(INFO) << "ClientProxy ctor event_logger=" << event_logger;
+  is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
+      config_package_nearby::nearby_connections_feature::kEnableDct);
   analytics_recorder_ =
       std::make_unique<analytics::AnalyticsRecorder>(event_logger);
   error_code_recorder_ = std::make_unique<ErrorCodeRecorder>(
@@ -1317,17 +1319,7 @@ void ClientProxy::SetWebRtcNonCellular(bool webrtc_non_cellular) {
       webrtc_non_cellular_ = webrtc_non_cellular;
 }
 
-bool ClientProxy::IsDctEnabled() const {
-  if (api::ImplementationPlatform::GetCurrentOS() != api::OSName::kApple) {
-    return false;
-  }
-
-#if defined(NC_IOS_SDK)
-  return true;
-#else
-  return false;
-#endif
-}
+bool ClientProxy::IsDctEnabled() const { return is_dct_enabled_; }
 
 uint8_t ClientProxy::GetDctDedup() const { return dct_dedup_; }
 

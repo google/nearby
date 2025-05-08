@@ -108,9 +108,10 @@ BwuManager::BwuManager(
     config_.allow_upgrade_to.wifi_direct = true;
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
-#if defined(NC_IOS_SDK)
-    config_.allow_upgrade_to.awdl = true;
-#endif  // defined(NC_IOS_SDK)
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::kEnableDct)) {
+      config_.allow_upgrade_to.awdl = true;
+    }
   }
   if (!handlers.empty()) {
     handlers_ = std::move(handlers);

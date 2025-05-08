@@ -546,6 +546,8 @@ class ClientProxy final {
   std::int32_t local_safe_to_disconnect_version_;
   // Allowed to use WebRTC over non-cellular networks.
   bool webrtc_non_cellular_ = false;
+  // Whether DCT is enabled.
+  bool is_dct_enabled_ = false;
 };
 
 }  // namespace connections
