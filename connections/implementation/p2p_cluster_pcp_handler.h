@@ -302,6 +302,10 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   ErrorOr<location::nearby::proto::connections::Medium> StartAwdlDiscovery(
       ClientProxy* client, const std::string& service_id);
 
+  void RunServiceDiscovered(ClientProxy* client, NsdServiceInfo service_info,
+                            const std::string& service_id);
+  void RunServiceLost(ClientProxy* client, NsdServiceInfo service_info,
+                      const std::string& service_id);
   // WifiLan
   bool IsRecognizedWifiServiceEndpoint(
       const std::string& service_id,
