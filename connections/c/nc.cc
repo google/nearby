@@ -225,6 +225,10 @@ NC_INSTANCE NcCreateService() {
 #if defined(NC_IOS_SDK)
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableBleV2,
+      true);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableDct,
       true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
