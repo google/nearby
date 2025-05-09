@@ -569,11 +569,19 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
+                  if (channel == nullptr || channel->IsClosed()) {
+                    NEARBY_LOGS(ERROR)
+                        << "channel is null or closed";
+                    return;
+                  }
+                  Medium channel_medium = channel != nullptr
+                                              ? channel->GetMedium()
+                                              : Medium::UNKNOWN_MEDIUM;
                   NEARBY_LOGS(ERROR)
                       << "Encryption failed for endpoint_id=" << endpoint_id
                       << " on medium="
                       << location::nearby::proto::connections::Medium_Name(
-                             channel->GetMedium());
+                             channel_medium);
                   OnEncryptionFailureRunnable(endpoint_id, channel);
                 });
           },
@@ -606,11 +614,13 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
+                  Medium channel_medium =
+                      channel ? channel->GetMedium() : Medium::UNKNOWN_MEDIUM;
                   NEARBY_LOGS(ERROR)
                       << "Encryption failed for endpoint_id=" << endpoint_id
                       << " on medium="
                       << location::nearby::proto::connections::Medium_Name(
-                             channel->GetMedium());
+                             channel_medium);
                   OnEncryptionFailureRunnable(endpoint_id, channel);
                 });
           },
@@ -766,13 +776,19 @@ void BasePcpHandler::RegisterDeviceAfterEncryptionSuccess(
 
 void BasePcpHandler::OnEncryptionFailureRunnable(
     const std::string& endpoint_id, EndpointChannel* endpoint_channel) {
+  NEARBY_LOGS(INFO) << "OnEncryptionFailureRunnable called: endpoint_id="
+                    << endpoint_id;
+  NEARBY_LOGS(INFO) << "OnEncryptionFailureRunnable 1";
   auto it = pending_connections_.find(endpoint_id);
+  NEARBY_LOGS(INFO) << "OnEncryptionFailureRunnable 2";
   if (it == pending_connections_.end()) {
+    NEARBY_LOGS(INFO) << "OnEncryptionFailureRunnable 3";
     NEARBY_LOGS(INFO)
         << "Connection not found on UKEY negotination complete; endpoint_id="
         << endpoint_id;
     return;
   }
+  NEARBY_LOGS(INFO) << "OnEncryptionFailureRunnable 4";
 
   BasePcpHandler::PendingConnectionInfo& pending_connection_info = it->second;
   // We had a bug here, caused by a race with EncryptionRunner. We now verify
@@ -782,6 +798,10 @@ void BasePcpHandler::OnEncryptionFailureRunnable(
   // middle of EncryptionRunner would trigger onEncryptionFailed, and, since
   // the map had already updated with the winning EndpointChannel, we closed
   // it too by accident.
+  if (endpoint_channel == nullptr) {
+    NEARBY_LOGS(INFO) << "EndpointChannel is null.";
+    return;
+  }
   if (*endpoint_channel != *pending_connection_info.channel) {
     NEARBY_LOGS(INFO) << "Not destroying channel [mismatch]: passed="
                       << endpoint_channel->GetName() << "; expected="
@@ -2096,6 +2116,7 @@ Exception BasePcpHandler::OnIncomingConnection(
                                      std::move(pending_connection_info))
                             .first->second.channel.get();
 
+  NEARBY_LOGS(INFO) << "encryption_runner_.StartServer called.";
   // Next, we'll set up encryption.
   encryption_runner_.StartServer(client, connection_request.endpoint_id(),
                                  owned_channel, GetResultListener());
@@ -2546,6 +2567,14 @@ bool BasePcpHandler::Cancelled(ClientProxy* client,
     return false;
   }
 
+  NEARBY_LOGS(INFO) << "Checking if endpoint_id=" << endpoint_id
+                    << " is cancelled";
+  if (client->GetCancellationFlag(endpoint_id) == nullptr) {
+    NEARBY_LOGS(INFO) << "Endpoint_id=" << endpoint_id
+                      << " is not cancelled because it is not found in the "
+                         "cancellation flag map";
+    return false;
+  }
   return client->GetCancellationFlag(endpoint_id)->Cancelled();
 }
 
