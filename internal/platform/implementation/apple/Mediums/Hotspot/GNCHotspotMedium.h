@@ -44,6 +44,13 @@
 - (void) disconnectToWifiNetworkWithSSID:(nonnull NSString *)ssid;
 
 /**
+ * Gets the current Wifi SSID.
+ *
+ * @return The current Wifi SSID, or nil if not connected to a Wifi network.
+ */
+- (NSString *)getCurrentWifiSSID;
+
+/**
  * Connects to an IP address and port.
  *
  * @param host The IPv4 address to connect to.

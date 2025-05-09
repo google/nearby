@@ -14,6 +14,7 @@
 
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
 
+#import <CoreLocation/CoreLocation.h>
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 #if TARGET_OS_IOS
@@ -59,6 +60,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
              if ([error.domain isEqualToString:NEHotspotConfigurationErrorDomain] &&
                  error.code == NEHotspotConfigurationErrorAlreadyAssociated) {
                GTMLoggerInfo(@"Already connected to %@", ssid);
+               connected = YES;
              } else {
                GTMLoggerError(@"Failed to connect: %@ (%@)", ssid, error.localizedDescription);
              }
@@ -72,7 +74,16 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
       GTMLoggerError(@"Connecting to %@ timeout in %d seconds", ssid, kConnectionTimeoutInSeconds);
     }
     if (connected) {
-      break;
+      NSString * currentSSID = [self getCurrentWifiSSID];
+      if ([currentSSID isEqualToString:ssid]) {
+        GTMLoggerDebug(@"Connected to %@ successfully", ssid);
+        break;
+      } else {
+        GTMLoggerError(@"Connected to wrong SSID: %@", currentSSID);
+        connected = NO;
+      }
+    } else {
+        [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
     }
   }
   return connected;
@@ -130,7 +141,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
   nw_connection_set_state_changed_handler(
       connection, ^(nw_connection_state_t state, nw_error_t error) {
-        GTMLoggerInfo(@"connectToEndpoint state changed to: %d", state);
+        GTMLoggerDebug(@"connectToEndpoint state changed to: %d", state);
 
         // Ignore the preparing state and waiting state, because it is not a final state.
         if ((state != nw_connection_state_preparing) && (state != nw_connection_state_waiting)) {
@@ -175,5 +186,54 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
       return [[GNCHotspotSocket alloc] initWithConnection:connection];
   }
 }
+
+- (NSString *)getCurrentWifiSSID {
+#if TARGET_OS_IOS
+  // Request permission
+  CLLocationManager *locationManager = [[CLLocationManager alloc] init];
+  [locationManager requestWhenInUseAuthorization];
+  GTMLoggerDebug(@"Request Location permission");
+  dispatch_semaphore_t semaphore_internal = dispatch_semaphore_create(0);
+  __block NSString *networkSSID = nil;
+
+  // Delay 1 seconds to ensure that we got the permission
+  dispatch_after(
+      dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (@available(iOS 14.0, *)) {
+          [NEHotspotNetwork
+              fetchCurrentWithCompletionHandler:^(NEHotspotNetwork *_Nullable network) {
+                if (network) {
+                  networkSSID = network.SSID;
+                  GTMLoggerDebug(@"iOS 14+ Current Wi-Fi SSID: %@", networkSSID);
+                } else {
+                  GTMLoggerError(@"Failed to get current Wifi SSID");
+                }
+                dispatch_semaphore_signal(semaphore_internal);
+              }];
+        } else {
+          NSArray<NSString *> *interfaces = CFBridgingRelease(CNCopySupportedInterfaces());
+          for (NSString *interface in interfaces) {
+            id info =
+                CFBridgingRelease(CNCopyCurrentNetworkInfo((__bridge CFStringRef)(interface)));
+            networkSSID = [info valueForKey:@"SSID"];
+            GTMLoggerDebug(@"Current Wi-Fi SSID: %@", networkSSID);
+          }
+          dispatch_semaphore_signal(semaphore_internal);
+        }
+      });
+  dispatch_time_t timeout =
+      dispatch_time(DISPATCH_TIME_NOW, kConnectionToHostTimeoutInSeconds * NSEC_PER_SEC);
+  if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
+    GTMLoggerError(@"Getting current Wifi SSID timeout in %d seconds",
+                   kConnectionToHostTimeoutInSeconds);
+  }
+
+  return networkSSID;
+#else
+  GTMLoggerError(@"Not implemented for macOS");
+  return nil;
+#endif  // TARGET_OS_IOS
+}
+
 
 @end
