@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/network/url.h"
 #include "sharing/common/nearby_share_enums.h"
 
@@ -29,16 +30,17 @@ namespace sharing {
 struct ShareTarget {
  public:
   ShareTarget();
-  ShareTarget(
-      std::string device_name, ::nearby::network::Url image_url,
-      ShareTargetType type,
-      bool is_incoming, std::optional<std::string> full_name, bool is_known,
-      std::optional<std::string> device_id, bool for_self_share);
   ShareTarget(const ShareTarget&);
   ShareTarget(ShareTarget&&);
   ShareTarget& operator=(const ShareTarget&);
   ShareTarget& operator=(ShareTarget&&);
   ~ShareTarget();
+
+  static ShareTarget CreateShareTargetForTest(
+      std::string device_name, ::nearby::network::Url image_url,
+      ShareTargetType type, bool is_incoming, absl::string_view endpoint_id,
+      std::optional<std::string> full_name, bool is_known,
+      std::optional<std::string> device_id, bool for_self_share);
 
   std::string ToString() const;
 
@@ -61,6 +63,8 @@ struct ShareTarget {
   uint8_t vendor_id = 0;
   // True if the share target is not ready for receiving.
   bool receive_disabled = false;
+  // The most recent endpoint id associated with this share target.
+  std::string endpoint_id;
 };
 
 }  // namespace sharing
