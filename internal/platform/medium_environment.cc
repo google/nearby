@@ -325,10 +325,10 @@ void MediumEnvironment::OnBleV2PeripheralStateChanged(
   for (auto& element : context.scan_callback_map) {
     if (element.first.first == service_id) {
       if (enabled) {
-        element.second.advertisement_found_cb(peripheral,
+        element.second.advertisement_found_cb(peripheral.GetUniqueId(),
                                               ble_advertisement_data);
       } else {
-        element.second.advertisement_lost_cb(peripheral);
+        element.second.advertisement_lost_cb(peripheral.GetUniqueId());
       }
     }
   }

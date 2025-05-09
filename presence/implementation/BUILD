@@ -116,6 +116,7 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        ":internal",
         "//devtools/rust:rust_okay_here",
         "//internal/crypto",
         "//internal/crypto_cros",
@@ -431,6 +432,7 @@ cc_test(
         ":internal_test",
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",

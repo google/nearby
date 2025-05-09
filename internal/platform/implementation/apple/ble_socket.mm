@@ -180,12 +180,13 @@ Exception BleOutputStream::Close() {
 BleSocket::BleSocket(id<GNCMConnection> connection)
     : input_stream_(new BleInputStream()),
       output_stream_(new BleOutputStream(connection)),
-      peripheral_(&(BlePeripheral::DefaultBlePeripheral())) {}
+      peripheral_id_(BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {}
 
-BleSocket::BleSocket(id<GNCMConnection> connection, api::ble_v2::BlePeripheral *peripheral)
+BleSocket::BleSocket(id<GNCMConnection> connection,
+                     api::ble_v2::BlePeripheral::UniqueId peripheral_id)
     : input_stream_(new BleInputStream()),
       output_stream_(new BleOutputStream(connection)),
-      peripheral_(peripheral) {}
+      peripheral_id_(peripheral_id) {}
 
 BleSocket::~BleSocket() {
   absl::MutexLock lock(&mutex_);
