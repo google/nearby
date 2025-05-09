@@ -375,9 +375,8 @@ class BleSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
 
-  // Returns valid BlePeripheral pointer if there is a connection, and
-  // nullptr otherwise.
-  virtual BlePeripheral* GetRemotePeripheral() = 0;
+  // Returns BlePeripheral::UniqueId that is connected to this socket.
+  virtual BlePeripheral::UniqueId GetRemotePeripheralId() = 0;
 };
 
 // A BLE GATT server socket for listening incoming GATT socket.

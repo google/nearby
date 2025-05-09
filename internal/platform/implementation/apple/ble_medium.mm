@@ -471,8 +471,8 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
                                               serviceID:@(service_id.c_str())
                                     expectedIntroPacket:NO
                                           callbackQueue:dispatch_get_main_queue()];
-                               socket =
-                                   std::make_unique<BleSocket>(connection, peripheral);
+                               socket = std::make_unique<BleSocket>(connection,
+                                                                    peripheral->GetUniqueId());
                                connection.connectionHandlers =
                                    socket->GetInputStream().GetConnectionHandlers();
                                dispatch_semaphore_signal(semaphore);
