@@ -431,19 +431,22 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
 }
 // TODO(b/290385712): Add support for @c cancellation_flag.
 // TODO(b/293336684): Old Weave code that need to be deleted once shared Weave is complete.
-std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &service_id,
-                                                           api::ble_v2::TxPowerLevel tx_power_level,
-                                                           api::ble_v2::BlePeripheral &peripheral,
-                                                           CancellationFlag *cancellation_flag) {
-  // Check that the @c api::ble_v2::BlePeripheral is a @c nearby::apple::BlePeripheral and not a
-  // @c nearby::apple::EmptyBlePeripheral instance, so we can retreive the CBPeripheral object.
-  BlePeripheral *non_empty_peripheral = dynamic_cast<BlePeripheral *>(&peripheral);
-  if (non_empty_peripheral == nullptr) {
-    return nullptr;
+std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
+    const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
+  BlePeripheral *peripheral = nullptr;
+  {
+    absl::MutexLock lock(&peripherals_mutex_);
+    const auto& it = peripherals_.find(peripheral_id);
+    if (it == peripherals_.end()) {
+      GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+      return nullptr;
+    }
+    peripheral = it->second.get();
   }
 
   GNSCentralPeerManager *updatedCentralPeerManager = [socketCentralManager_
-      retrieveCentralPeerWithIdentifier:non_empty_peripheral->GetPeripheral().identifier];
+      retrieveCentralPeerWithIdentifier:peripheral->GetPeripheral().identifier];
   if (!updatedCentralPeerManager) {
     return nullptr;
   }
@@ -469,7 +472,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(const std::string &se
                                     expectedIntroPacket:NO
                                           callbackQueue:dispatch_get_main_queue()];
                                socket =
-                                   std::make_unique<BleSocket>(connection, non_empty_peripheral);
+                                   std::make_unique<BleSocket>(connection, peripheral);
                                connection.connectionHandlers =
                                    socket->GetInputStream().GetConnectionHandlers();
                                dispatch_semaphore_signal(semaphore);

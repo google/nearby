@@ -276,14 +276,14 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
                                  TxPowerLevel tx_power_level,
                                  const BleV2Peripheral& peripheral,
                                  CancellationFlag* cancellation_flag) {
-  BleV2Socket socket;
-  api::ble_v2::BlePeripheral* device = peripheral.GetImpl();
-  if (device != nullptr) {
-    socket = BleV2Socket(
-        peripheral,
-        impl_->Connect(service_id, tx_power_level, *device, cancellation_flag));
-  };
-  return socket;
+  std::optional<api::ble_v2::BlePeripheral::UniqueId> id =
+      peripheral.GetUniqueId();
+  if (!id.has_value()) {
+    LOG(ERROR) << "Failed to connect, invalid peripheral";
+    return {};
+  }
+  return BleV2Socket(peripheral, impl_->Connect(service_id, tx_power_level, *id,
+                                                cancellation_flag));
 }
 
 BleL2capSocket BleV2Medium::ConnectOverL2cap(

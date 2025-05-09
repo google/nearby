@@ -660,7 +660,7 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string& service_id, TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral& remote_peripheral,
+    api::ble_v2::BlePeripheral::UniqueId remote_peripheral_id,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << __func__ << ": Connect to service_id=" << service_id;
 
@@ -680,7 +680,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
   nearby::CancellationFlagListener cancellation_flag_listener(
       cancellation_flag, [socket = ble_socket.get()]() { socket->Close(); });
 
-  if (!ble_socket->Connect(&remote_peripheral)) {
+  if (!ble_socket->Connect()) {
     LOG(INFO) << __func__
               << ": BLE socket connection failed. service_id=" << service_id;
     return nullptr;

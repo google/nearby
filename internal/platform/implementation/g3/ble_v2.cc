@@ -760,25 +760,23 @@ BleV2Medium::OpenL2capServerSocket(const std::string& service_id) {
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string& service_id, TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral& remote_peripheral,
+    api::ble_v2::BlePeripheral::UniqueId remote_peripheral_id,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 Ble Connect [self]: medium=" << this
             << ", adapter=" << &GetAdapter()
             << ", peripheral=" << &GetPeripheral()
             << ", service_id=" << service_id;
   // First, find an instance of remote medium, that exposed this peripheral.
-  BluetoothAdapter* remote_adapter =
-      static_cast<BluetoothAdapter*>(remote_peripheral.GetPlatformData());
-  auto* remote_medium =
-      dynamic_cast<BleV2Medium*>(remote_adapter->GetBleV2Medium());
-  if (!remote_medium) {
+  BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(
+      MediumEnvironment::Instance().FindBleV2Medium(remote_peripheral_id));
+  if (remote_medium == nullptr) {
+    LOG(INFO) << "Peripheral not found, id= " << remote_peripheral_id;
     return nullptr;
   }
 
   BleV2ServerSocket* remote_server_socket = nullptr;
   LOG(INFO) << "G3 Ble Connect [peer]: medium=" << remote_medium
-            << ", adapter=" << &remote_adapter
-            << ", peripheral=" << &remote_peripheral
+            << ", peripheral=" << &remote_peripheral_id
             << ", service_id=" << service_id;
   // Then, find our server socket context in this medium.
   {

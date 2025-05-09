@@ -76,7 +76,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::BleSocket> Connect(
       const std::string& service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral& remote_peripheral,
+      api::ble_v2::BlePeripheral::UniqueId remote_peripheral_id,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsExtendedAdvertisementsAvailable() override;
 

@@ -15,10 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_SOCKET_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_BLE_V2_SOCKET_H_
 
-#include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <utility>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -40,9 +37,11 @@ class BleV2Socket : public api::ble_v2::BleSocket {
 
   Exception Close() override;
 
-  api::ble_v2::BlePeripheral* GetRemotePeripheral() override;
+  api::ble_v2::BlePeripheral* GetRemotePeripheral() override {
+    return nullptr;
+  };
 
-  bool Connect(api::ble_v2::BlePeripheral* ble_peripheral);
+  bool Connect();
 
  private:
   class BleInputStream : public InputStream {
@@ -63,7 +62,6 @@ class BleV2Socket : public api::ble_v2::BleSocket {
 
   BleInputStream input_stream_{};
   BleOutputStream output_stream_{};
-  api::ble_v2::BlePeripheral* ble_peripheral_ = nullptr;
 };
 
 }  // namespace windows

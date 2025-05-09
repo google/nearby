@@ -607,7 +607,8 @@ class BleMedium {
   // On error, returns nullptr.
   virtual std::unique_ptr<BleSocket> Connect(
       const std::string& service_id, TxPowerLevel tx_power_level,
-      BlePeripheral& peripheral, CancellationFlag* cancellation_flag) = 0;
+      BlePeripheral::UniqueId peripheral_id,
+      CancellationFlag* cancellation_flag) = 0;
 
   // Connects to a BLE peripheral over L2CAP.
   //

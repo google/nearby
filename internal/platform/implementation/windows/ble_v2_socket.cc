@@ -14,17 +14,10 @@
 
 #include "internal/platform/implementation/windows/ble_v2_socket.h"
 
-#include <cstddef>
 #include <cstdint>
-#include <memory>
 
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/output_stream.h"
@@ -38,14 +31,9 @@ OutputStream& BleV2Socket::GetOutputStream() { return output_stream_; }
 
 Exception BleV2Socket::Close() { return {Exception::kSuccess}; }
 
-api::ble_v2::BlePeripheral* BleV2Socket::GetRemotePeripheral() {
-  return ble_peripheral_;
-}
-
-bool BleV2Socket::Connect(api::ble_v2::BlePeripheral* ble_peripheral) {
+bool BleV2Socket::Connect() {
   // TODO(b/271031645): implement BLE socket using weave
-  VLOG(1) << __func__
-          << ": Connect to BLE peripheral=" << ble_peripheral->GetAddress();
+  VLOG(1) << __func__ << ": Connect to BLE peripheral";
   return false;
 }
 
