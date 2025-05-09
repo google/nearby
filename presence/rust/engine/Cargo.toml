@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = [
+    "presence_core",
+    "presence_cpp_ffi",
+]
