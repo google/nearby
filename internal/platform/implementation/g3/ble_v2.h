@@ -69,9 +69,7 @@ class BleV2Socket : public api::ble_v2::BleSocket, public SocketBase {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override { return SocketBase::Close(); }
 
-  // Returns valid BlePeripheral pointer if there is a connection, and
-  // nullptr otherwise.
-  api::ble_v2::BlePeripheral* GetRemotePeripheral() override
+  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
