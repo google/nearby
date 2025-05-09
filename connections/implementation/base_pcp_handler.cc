@@ -137,12 +137,16 @@ void BasePcpHandler::Shutdown() {
   NEARBY_LOGS(INFO) << "BasePcpHandler(" << strategy_.GetName()
                     << ") is bringing down executors.";
 
+  NEARBY_LOGS(INFO) << "encryption_runner_.Shutdown()";
   encryption_runner_.Shutdown();
 
   // Stop discovery of Bluetooth Classic.
+  NEARBY_LOGS(INFO) << "mediums_->GetBluetoothClassic().StopAllDiscovery()";
   mediums_->GetBluetoothClassic().StopAllDiscovery();
 
+  NEARBY_LOGS(INFO) << "serial_executor_.Shutdown()";
   serial_executor_.Shutdown();
+  NEARBY_LOGS(INFO) << "alarm_executor_.Shutdown()";
   alarm_executor_.Shutdown();
   NEARBY_LOGS(INFO) << "BasePcpHandler(" << strategy_.GetName()
                     << ") has shut down.";
@@ -569,6 +573,14 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListener() {
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
+                  if (channel == nullptr) {
+                    NEARBY_LOGS(INFO) << "Channel is nullptr.";
+                    return;
+                  }
+                  if (channel->IsClosed()) {
+                    NEARBY_LOGS(INFO) << "Channel is closed.";
+                    return;
+                  }
                   NEARBY_LOGS(ERROR)
                       << "Encryption failed for endpoint_id=" << endpoint_id
                       << " on medium="
@@ -606,6 +618,14 @@ EncryptionRunner::ResultListener BasePcpHandler::GetResultListenerV3(
             RunOnPcpHandlerThread(
                 "encryption-failure",
                 [this, endpoint_id, channel]() RUN_ON_PCP_HANDLER_THREAD() {
+                  if (channel == nullptr) {
+                    NEARBY_LOGS(INFO) << "Channel is nullptr.";
+                    return;
+                  }
+                  if (channel->IsClosed()) {
+                    NEARBY_LOGS(INFO) << "Channel is closed.";
+                    return;
+                  }
                   NEARBY_LOGS(ERROR)
                       << "Encryption failed for endpoint_id=" << endpoint_id
                       << " on medium="
@@ -1413,6 +1433,7 @@ void BasePcpHandler::ProcessPreConnectionInitiationFailure(
     Future<Status>* result) {
   if (channel != nullptr) {
     channel->Close();
+    channel = nullptr;
   }
 
   if (result != nullptr) {
@@ -2124,14 +2145,14 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
     // both.
     if (pending_connection_info.nonce > incoming_nonce) {
       // Our connection won! Clean up their connection.
-      endpoint_channel->Close();
-
       NEARBY_LOGS(INFO) << "In onIncomingConnection("
                         << location::nearby::proto::connections::Medium_Name(
                                endpoint_channel->GetMedium())
                         << ") for client=" << client->GetClientId()
                         << ", cleaned up the collision with endpoint "
                         << endpoint_id << " by closing their channel.";
+      endpoint_channel->Close();
+      endpoint_channel = nullptr;
       return true;
     } else if (pending_connection_info.nonce < incoming_nonce) {
       // Aw, we lost. Clean up our connection, and then we'll let their
@@ -2147,9 +2168,6 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
     } else {
       // Oh. Huh. We both lost. Well, that's awkward. We'll clean up both and
       // just force the devices to retry.
-      endpoint_channel->Close();
-      ProcessTieBreakLoss(client, endpoint_id, &pending_connection_info);
-
       NEARBY_LOGS(INFO)
           << "In onIncomingConnection("
           << location::nearby::proto::connections::Medium_Name(
@@ -2158,6 +2176,9 @@ bool BasePcpHandler::BreakTie(ClientProxy* client,
           << ", cleaned up the collision with endpoint " << endpoint_id
           << " by closing both channels. Our nonces were identical, so we "
              "couldn't decide which channel to use.";
+      ProcessTieBreakLoss(client, endpoint_id, &pending_connection_info);
+      endpoint_channel->Close();
+      endpoint_channel = nullptr;
       return true;
     }
   }
@@ -2436,7 +2457,10 @@ ExceptionOr<OfflineFrame> BasePcpHandler::ReadConnectionRequestFrame(
   CancelableAlarm timeout_alarm(
       absl::StrCat("PcpHandler(", this->GetStrategy().GetName(),
                    ")::ReadConnectionRequestFrame"),
-      [endpoint_channel]() { endpoint_channel->Close(); },
+      [endpoint_channel]() mutable {
+        endpoint_channel->Close();
+        endpoint_channel = nullptr;
+      },
       kConnectionRequestReadTimeout, &alarm_executor_);
   // Do a blocking read to try and find the ConnectionRequestFrame
   ExceptionOr<ByteArray> wrapped_bytes = endpoint_channel->Read();
@@ -2546,6 +2570,13 @@ bool BasePcpHandler::Cancelled(ClientProxy* client,
     return false;
   }
 
+  if (client == nullptr ||
+      client->GetCancellationFlag(endpoint_id) == nullptr) {
+    NEARBY_LOGS(INFO) << "Cancellation flag is null for endpoint_id="
+                      << endpoint_id;
+    return false;
+  }
+
   return client->GetCancellationFlag(endpoint_id)->Cancelled();
 }
 
@@ -2566,6 +2597,7 @@ BasePcpHandler::PendingConnectionInfo::~PendingConnectionInfo() {
   if (channel != nullptr) {
     channel->Close(
         location::nearby::proto::connections::DisconnectionReason::SHUTDOWN);
+    channel = nullptr;
   }
 
   // Destroy crypto context now; for some reason, crypto context destructor

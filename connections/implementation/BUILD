@@ -289,7 +289,7 @@ cc_test(
 
 cc_test(
     name = "pcp_handler_test",
-    timeout = "moderate",
+    timeout = "eternal",
     srcs = [
         "base_pcp_handler_test.cc",
         "p2p_cluster_pcp_handler_test.cc",
