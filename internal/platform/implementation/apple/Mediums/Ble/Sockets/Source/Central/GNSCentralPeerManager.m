@@ -25,7 +25,7 @@
 #import "GoogleToolboxForMac/GTMLogger.h"
 
 static const NSTimeInterval kMaxConnectionConfirmWaitTimeInSeconds = 2;
-static const NSTimeInterval kPeripheralFailedToConnectTimeout = 5.0;
+static const NSTimeInterval kPeripheralFailedToConnectTimeout = 10.0;
 static const NSTimeInterval kChracteristicWriteTimeoutInSeconds = 0.5;
 
 // The Weave BLE protocol has only one valid version.
