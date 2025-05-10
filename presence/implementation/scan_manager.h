@@ -81,10 +81,12 @@ class ScanManager {
     AdvertisementFilter advertisement_filter;
     std::unique_ptr<ScanningSession> scanning_session;
   };
-  void NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
-                      absl::string_view remote_address)
+  void NotifyFoundBle(
+      ScanSessionId id, BleAdvertisementData data,
+      nearby::api::ble_v2::BlePeripheral::UniqueId peripheral_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
-  void NotifyLostBle(ScanSessionId id, absl::string_view remote_address)
+  void NotifyLostBle(ScanSessionId id,
+                     nearby::api::ble_v2::BlePeripheral::UniqueId peripheral_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void FetchCredentials(ScanSessionId id, const ScanRequest& scan_request)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
@@ -98,8 +100,8 @@ class ScanManager {
   CredentialManager* credential_manager_;
   absl::flat_hash_map<ScanSessionId, ScanSessionState> scan_sessions_
       ABSL_GUARDED_BY(*executor_);
-  absl::flat_hash_map<std::string, std::string>
-      device_address_to_endpoint_id_map_
+  absl::flat_hash_map<nearby::api::ble_v2::BlePeripheral::UniqueId, std::string>
+      device_unique_id_to_endpoint_id_map_
       ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
 };
