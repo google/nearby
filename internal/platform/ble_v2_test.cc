@@ -464,7 +464,7 @@ TEST_F(BleV2MediumTest, StartThenStopAsyncScanning) {
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
               .advertisement_found_cb =
-                  [&](api::ble_v2::BlePeripheral& peripheral,
+                  [&](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
                 found_latch_a.CountDown();
               },
@@ -490,7 +490,7 @@ TEST_F(BleV2MediumTest, CanStartMultipleAsyncScanning) {
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
               .advertisement_found_cb =
-                  [&](api::ble_v2::BlePeripheral& peripheral,
+                  [&](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
                 found_latch_a.CountDown();
               },
@@ -500,7 +500,7 @@ TEST_F(BleV2MediumTest, CanStartMultipleAsyncScanning) {
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
               .advertisement_found_cb =
-                  [&](api::ble_v2::BlePeripheral& peripheral,
+                  [&](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
                 found_latch_b.CountDown();
               },
@@ -533,7 +533,7 @@ TEST_F(BleV2MediumTest, CanStartAsyncScanningAndAdvertising) {
           service_uuid, kTxPowerLevel,
           api::ble_v2::BleMedium::ScanningCallback{
               .advertisement_found_cb =
-                  [&](api::ble_v2::BlePeripheral& peripheral,
+                  [&](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                       BleAdvertisementData advertisement_data) -> void {
                 found_latch.CountDown();
               },
