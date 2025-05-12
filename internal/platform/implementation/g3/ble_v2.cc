@@ -250,11 +250,12 @@ bool BleV2Medium::StartMultipleServicesScanning(
   for (const auto& service_uuid : service_uuids) {
     auto internal_session_id = Prng().NextUint32();
     ScanCallback multiple_scan_callback = {
-        .advertisement_found_cb = [this](
-                                      api::ble_v2::BlePeripheral& peripheral,
-                                      BleAdvertisementData advertisement_data) {
-          scan_callback_.advertisement_found_cb(peripheral, advertisement_data);
-        }};
+        .advertisement_found_cb =
+            [this](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+                   BleAdvertisementData advertisement_data) {
+              scan_callback_.advertisement_found_cb(peripheral_id,
+                                                    advertisement_data);
+            }};
 
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
         /*enabled=*/true, service_uuid, internal_session_id,
@@ -346,35 +347,6 @@ std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return is_extended_advertisements_available_;
-}
-
-bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
-                                      GetRemotePeripheralCallback callback) {
-  absl::MutexLock lock(&mutex_);
-  auto it = remote_peripherals_.find(id);
-  if (it != remote_peripherals_.end()) {
-    callback(*it->second);
-    return true;
-  }
-
-  BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(
-      MediumEnvironment::Instance().FindBleV2Medium(id));
-  if (remote_medium == nullptr) {
-    LOG(INFO) << "Peripheral not found, id= " << id;
-    return false;
-  }
-  BluetoothAdapter& adapter = remote_medium->GetAdapter();
-  MacAddress address;
-  if (!MacAddress::FromString(adapter.GetMacAddress(), address)) {
-    LOG(ERROR) << "Adapter has invalid mac address: "
-               << adapter.GetMacAddress();
-    return false;
-  }
-  remote_peripherals_[id] =
-      std::make_unique<api::ble_v2::BlePeripheral>(id, address);
-  remote_peripherals_[id]->SetPlatformData(&adapter);
-  callback(*remote_peripherals_[id]);
-  return true;
 }
 
 BleV2Medium::GattServer::GattServer(

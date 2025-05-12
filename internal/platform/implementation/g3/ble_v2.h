@@ -192,9 +192,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   api::ble_v2::BlePeripheral& GetPeripheral() { return peripheral_; }
 
-  bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
-                           GetRemotePeripheralCallback callback) override;
-
  private:
   class GattClient;
   // A concrete implementation for GattServer.

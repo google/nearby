@@ -24,6 +24,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -65,24 +66,21 @@ ScanSessionId ScanManager::StartScan(ScanRequest scan_request,
                   start_scan_client(ble_status);
                 },
             .advertisement_found_cb =
-                [this, id](BlePeripheral& peripheral,
+                [this, id](BlePeripheral::UniqueId peripheral_id,
                            BleAdvertisementData data) {
                   RunOnServiceControllerThread(
                       "notify-found-ble",
-                      [this, id, data = std::move(data),
-                       address = peripheral.GetAddress()]()
+                      [this, id, data = std::move(data), peripheral_id]()
                           ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                            NotifyFoundBle(id, data, address);
+                            NotifyFoundBle(id, data, peripheral_id);
                           });
                 },
             .advertisement_lost_cb =
-                [this, id](BlePeripheral& peripheral) {
+                [this, id](BlePeripheral::UniqueId peripheral_id) {
                   RunOnServiceControllerThread(
                       "notify-lost-ble",
-                      [this, id, address = peripheral.GetAddress()]()
-                          ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_) {
-                            NotifyLostBle(id, address);
-                          });
+                      [this, id, peripheral_id]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(
+                          *executor_) { NotifyLostBle(id, peripheral_id); });
                 }};
         FetchCredentials(id, scan_request);
         scan_sessions_.insert(
@@ -115,7 +113,7 @@ void ScanManager::StopScan(ScanSessionId id) {
 }
 
 void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
-                                 absl::string_view remote_address) {
+                                 BlePeripheral::UniqueId peripheral_id) {
   auto it = scan_sessions_.find(id);
   if (it == scan_sessions_.end()) {
     return;
@@ -130,12 +128,13 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
     return;
   }
 
+  std::string remote_address = absl::StrCat(absl::Hex(peripheral_id));
   if (it->second.advertisement_filter.MatchesScanFilter(*advert)) {
     internal::DeviceIdentityMetaData device_identity_metadata;
     device_identity_metadata.set_bluetooth_mac_address(
-        std::string(remote_address));
+        remote_address);
 
-    if (!device_address_to_endpoint_id_map_.contains(remote_address)) {
+    if (!device_unique_id_to_endpoint_id_map_.contains(peripheral_id)) {
       PresenceDevice device(DeviceMotion(), device_identity_metadata,
                             advert->identity_type);
       // Ok if the advertisement is for trusted/private identity.
@@ -150,13 +149,13 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
         }
       }
 
-      device_address_to_endpoint_id_map_.emplace(remote_address,
+      device_unique_id_to_endpoint_id_map_.emplace(peripheral_id,
                                                  device.GetEndpointId());
 
       it->second.callback.on_discovered_cb(std::move(device));
     } else {
       PresenceDevice device(
-          device_address_to_endpoint_id_map_.at(remote_address));
+        device_unique_id_to_endpoint_id_map_.at(peripheral_id));
       device.SetDeviceIdentityMetaData(device_identity_metadata);
       // Ok if the advertisement is for trusted/private identity.
       if (advert->public_credential.ok()) {
@@ -176,21 +175,22 @@ void ScanManager::NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
 }
 
 void ScanManager::NotifyLostBle(ScanSessionId id,
-                                absl::string_view remote_address) {
+                                BlePeripheral::UniqueId peripheral_id) {
   auto it = scan_sessions_.find(id);
   if (it == scan_sessions_.end()) {
     return;
   }
 
-  if (device_address_to_endpoint_id_map_.contains(remote_address)) {
+  std::string remote_address = absl::StrCat(absl::Hex(peripheral_id));
+  if (device_unique_id_to_endpoint_id_map_.contains(peripheral_id)) {
     internal::DeviceIdentityMetaData device_identity_metadata;
     device_identity_metadata.set_bluetooth_mac_address(
         std::string(remote_address));
     PresenceDevice device(
-        device_address_to_endpoint_id_map_.at(remote_address));
+      device_unique_id_to_endpoint_id_map_.at(peripheral_id));
     device.SetDeviceIdentityMetaData(device_identity_metadata);
 
-    device_address_to_endpoint_id_map_.erase(remote_address);
+    device_unique_id_to_endpoint_id_map_.erase(peripheral_id);
 
     it->second.callback.on_lost_cb(std::move(device));
   }

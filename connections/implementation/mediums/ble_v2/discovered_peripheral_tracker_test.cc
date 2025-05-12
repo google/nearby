@@ -190,13 +190,7 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
   BleV2Peripheral CreateBlePeripheral() {
     MacAddress mac_address;
     MacAddress::FromString(adapter_peripheral_->GetMacAddress(), mac_address);
-    api::ble_v2::BlePeripheral api_peripheral;
-    ble_central_->GetImpl()->GetRemotePeripheral(
-        mac_address.address(),
-        [&api_peripheral](api::ble_v2::BlePeripheral& peripheral) {
-          api_peripheral = peripheral;
-        });
-    return BleV2Peripheral(*ble_central_, api_peripheral.GetUniqueId());
+    return BleV2Peripheral(*ble_central_, mac_address.address());
   }
 
   // Simulates to see a fast advertisement.

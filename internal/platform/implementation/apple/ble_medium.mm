@@ -139,10 +139,10 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
     peripherals_[unique_id] = std::move(ble_peripheral);
   }
   if (scanning_cb_.advertisement_found_cb) {
-    scanning_cb_.advertisement_found_cb(*peripherals_[unique_id], data);
+    scanning_cb_.advertisement_found_cb(unique_id, data);
   }
   if (scan_cb_.advertisement_found_cb) {
-    scan_cb_.advertisement_found_cb(*peripherals_[unique_id], data);
+    scan_cb_.advertisement_found_cb(unique_id, data);
   }
 }
 
@@ -471,8 +471,8 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
                                               serviceID:@(service_id.c_str())
                                     expectedIntroPacket:NO
                                           callbackQueue:dispatch_get_main_queue()];
-                               socket = std::make_unique<BleSocket>(connection,
-                                                                    peripheral->GetUniqueId());
+                               socket =
+                                   std::make_unique<BleSocket>(connection, peripheral_id);
                                connection.connectionHandlers =
                                    socket->GetInputStream().GetConnectionHandlers();
                                dispatch_semaphore_signal(semaphore);
@@ -543,32 +543,6 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
 
 bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return [medium_ supportsExtendedAdvertisements];
-}
-
-bool BleMedium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId unique_id,
-                                    api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) {
-  // If the unique_id is 0, that means it's the local/empty peripheral. We must return "true"
-  // otherwise the connection will be considered invalid and the application will crash.
-  if (unique_id == BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {
-    callback(BlePeripheral::DefaultBlePeripheral());
-    return true;
-  }
-
-  BlePeripheral *peripheral;
-  {
-    absl::MutexLock lock(&peripherals_mutex_);
-    auto it = peripherals_.find(unique_id);
-    if (it == peripherals_.end()) {
-      return false;
-    }
-    peripheral = it->second.get();
-    if (peripheral == nullptr) {
-      return false;
-    }
-  }
-  // We need to unlock before calling the callback, otherwise we will deadlock.
-  callback(*peripheral);
-  return true;
 }
 
 }  // namespace apple

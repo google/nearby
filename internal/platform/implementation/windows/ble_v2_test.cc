@@ -130,7 +130,7 @@ TEST(BleV2Medium, DISABLED_StartScanning) {
   api::ble_v2::BleMedium::ScanCallback callback;
   callback.advertisement_found_cb =
       [&scan_response_received, &scan_response_notification](
-          api::ble_v2::BlePeripheral& peripheral,
+          api::ble_v2::BlePeripheral::UniqueId peripheral_id,
           const api::ble_v2::BleAdvertisementData& advertisement_data) {
         scan_response_received = true;
         scan_response_notification.Notify();
@@ -151,7 +151,7 @@ TEST(BleV2Medium, DISABLED_StopScanning) {
 
   api::ble_v2::BleMedium::ScanCallback callback;
   callback.advertisement_found_cb =
-      [](api::ble_v2::BlePeripheral& peripheral,
+      [](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
          const api::ble_v2::BleAdvertisementData& advertisement_data) {};
 
   EXPECT_TRUE(blev2_medium.StartScanning(
@@ -171,7 +171,7 @@ TEST(BleV2Medium, DISABLED_StartThenStopScanning) {
   api::ble_v2::BleMedium::ScanningCallback callback;
   callback.advertisement_found_cb =
       [&scan_response_received, &scan_response_notification](
-          api::ble_v2::BlePeripheral& peripheral,
+          api::ble_v2::BlePeripheral::UniqueId peripheral_id,
           const api::ble_v2::BleAdvertisementData& advertisement_data) {
         scan_response_received = true;
         scan_response_notification.Notify();

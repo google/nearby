@@ -63,23 +63,17 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
-    LOG(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning already enabled";
     return false;
   }
   bool success = impl_->StartScanning(
       service_uuid, tx_power_level,
       api::ble_v2::BleMedium::ScanCallback{
           .advertisement_found_cb =
-              [this](api::ble_v2::BlePeripheral& peripheral,
+              [this](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                      BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
-                if (!peripherals_.contains(&peripheral)) {
-                  LOG(INFO) << "Peripheral impl=" << &peripheral
-                            << " does not exist; add it to the map.";
-                  peripherals_.insert(&peripheral);
-                }
-
-                BleV2Peripheral proxy(*this, peripheral.GetUniqueId());
+                BleV2Peripheral proxy(*this, peripheral_id);
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
                                                       advertisement_data);
@@ -87,14 +81,8 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
       });
   if (success) {
     scan_callback_ = std::move(callback);
-    // Clear the `peripherals_` after succeeded in StartScanning and before the
-    // advertisement_found callback has been reached. This prevents deleting the
-    // existing `peripherals_` if the scanning is not started successfully. If
-    // scanning is started successfully, we need to clear `peripherals_` to
-    // prevent the stale data in cache.
-    peripherals_.clear();
     scanning_enabled_ = true;
-    LOG(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning enabled";
   }
   return success;
 }
@@ -104,23 +92,17 @@ bool BleV2Medium::StartMultipleServicesScanning(
     api::ble_v2::TxPowerLevel tx_power_level, ScanCallback callback) {
   MutexLock lock(&mutex_);
   if (scanning_enabled_) {
-    LOG(INFO) << "Ble Scanning already enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning already enabled";
     return false;
   }
   bool success = impl_->StartMultipleServicesScanning(
       service_uuids, tx_power_level,
       api::ble_v2::BleMedium::ScanCallback{
           .advertisement_found_cb =
-              [this](api::ble_v2::BlePeripheral& peripheral,
+              [this](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                      BleAdvertisementData advertisement_data) {
                 MutexLock lock(&mutex_);
-                if (!peripherals_.contains(&peripheral)) {
-                  LOG(INFO) << "Peripheral impl=" << &peripheral
-                            << " does not exist; add it to the map.";
-                  peripherals_.insert(&peripheral);
-                }
-
-                BleV2Peripheral proxy(*this, peripheral.GetUniqueId());
+                BleV2Peripheral proxy(*this, peripheral_id);
                 if (!scanning_enabled_) return;
                 scan_callback_.advertisement_found_cb(std::move(proxy),
                                                       advertisement_data);
@@ -128,9 +110,8 @@ bool BleV2Medium::StartMultipleServicesScanning(
       });
   if (success) {
     scan_callback_ = std::move(callback);
-    peripherals_.clear();
     scanning_enabled_ = true;
-    LOG(INFO) << "Ble Scanning enabled; impl=" << GetImpl();
+    LOG(INFO) << "Ble Scanning enabled";
   }
   return success;
 }
@@ -143,9 +124,8 @@ bool BleV2Medium::StopScanning() {
     return true;
   }
   scanning_enabled_ = false;
-  peripherals_.clear();
   scan_callback_ = {};
-  LOG(INFO) << "Ble Scanning disabled: impl=" << GetImpl();
+  LOG(INFO) << "Ble Scanning disabled";
   return impl_->StopScanning();
 }
 bool BleV2Medium::PauseMediumScanning() {
@@ -153,7 +133,7 @@ bool BleV2Medium::PauseMediumScanning() {
   if (!scanning_enabled_) {
     return true;
   }
-  LOG(INFO) << "Pause Medium level BLE_V2 Scanning: impl=" << GetImpl();
+  LOG(INFO) << "Pause Medium level BLE_V2 Scanning";
   return impl_->PauseMediumScanning();
 }
 
@@ -289,32 +269,22 @@ BleV2Socket BleV2Medium::Connect(const std::string& service_id,
 BleL2capSocket BleV2Medium::ConnectOverL2cap(
     const std::string& service_id, TxPowerLevel tx_power_level,
     const BleV2Peripheral& peripheral, CancellationFlag* cancellation_flag) {
-  BleL2capSocket socket;
-  api::ble_v2::BlePeripheral* device = peripheral.GetImpl();
-  if (device != nullptr) {
-    socket = BleL2capSocket(
-        peripheral,
-        impl_->ConnectOverL2cap(peripheral.GetPsm(), service_id, tx_power_level,
-                                device->GetUniqueId(), cancellation_flag));
-  };
-  return socket;
+  std::optional<api::ble_v2::BlePeripheral::UniqueId> id =
+      peripheral.GetUniqueId();
+  if (!id.has_value()) {
+    LOG(ERROR) << "Failed to connect over L2cap, invalid peripheral";
+    return {};
+  }
+  return BleL2capSocket(
+      peripheral,
+      impl_->ConnectOverL2cap(peripheral.GetPsm(), service_id, tx_power_level,
+                              *id, cancellation_flag));
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
   return IsValid() && impl_->IsExtendedAdvertisementsAvailable();
 }
 
-bool BleV2Peripheral::IsValid() const { return GetImpl() != nullptr; }
-
-api::ble_v2::BlePeripheral* BleV2Peripheral::GetImpl() const {
-  if (!unique_id_.has_value()) return nullptr;
-  api::ble_v2::BlePeripheral* result = nullptr;
-  if (!medium_->GetImpl()->GetRemotePeripheral(
-          unique_id_.value(),
-          [&](api::ble_v2::BlePeripheral& device) { result = &device; })) {
-    return nullptr;
-  }
-  return result;
-}
+bool BleV2Peripheral::IsValid() const { return unique_id_.has_value(); }
 
 }  // namespace nearby

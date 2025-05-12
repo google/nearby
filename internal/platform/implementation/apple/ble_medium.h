@@ -165,12 +165,6 @@ class BleMedium : public api::ble_v2::BleMedium {
   // This is currently always false for all Apple hardware.
   bool IsExtendedAdvertisementsAvailable() override;
 
-  // Returns true if `id` refers to a known BLE peripheral and calls `callback` with a reference to
-  // said peripheral that is only guaranteed to be available for the duration of the callback.
-  // Otherwise, does not call the callback and returns false.
-  bool GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
-                           api::ble_v2::BleMedium::GetRemotePeripheralCallback callback) override;
-
  private:
   void HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                 NSDictionary<CBUUID *, NSData *> *serviceData);

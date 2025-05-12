@@ -24,6 +24,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
 #include "absl/types/variant.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -31,6 +32,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/proto/credential.proto.h"
@@ -196,7 +198,10 @@ TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
   Ble ble2(server_adapter);
   std::unique_ptr<AdvertisingSession> advertising_session =
       StartAdvertisingOn(ble2);
-  std::string address = server_adapter.GetMacAddress();
+  MacAddress mac_address;
+  EXPECT_TRUE(
+      MacAddress::FromString(server_adapter.GetMacAddress(), mac_address));
+  std::string address = absl::StrCat(absl::Hex(mac_address.address()));
   ScanCallback callback = {
       .start_scan_cb =
           [this](absl::Status status) {

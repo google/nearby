@@ -143,7 +143,7 @@ TEST_P(BleTest, AdvertiseAndScan) {
   std::unique_ptr<ScanningSession> scanning_session = client.StartScanning(
       scan_request,
       ScanningCallback{.advertisement_found_cb =
-                           [&](BlePeripheral& peripheral,
+                           [&](BlePeripheral::UniqueId peripheral_id,
                                BleAdvertisementData advertisement_data) {
                              advertisements.push_back(advertisement_data);
                              scan_latch.CountDown();

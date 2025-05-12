@@ -68,7 +68,6 @@ class BleV2Peripheral final {
   void SetPsm(int psm) { psm_ = psm; }
 
   bool IsValid() const;
-  explicit operator bool() const { return IsValid(); }
 
   std::optional<api::ble_v2::BlePeripheral::UniqueId> GetUniqueId() const {
     return unique_id_;
@@ -587,8 +586,6 @@ class BleV2Medium final {
   std::unique_ptr<api::ble_v2::BleMedium> impl_;
   BluetoothAdapter& adapter_;
   ServerGattConnectionCallback server_gatt_connection_callback_
-      ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_set<api::ble_v2::BlePeripheral*> peripherals_
       ABSL_GUARDED_BY(mutex_);
   ScanCallback scan_callback_ ABSL_GUARDED_BY(mutex_);
   bool scanning_enabled_ ABSL_GUARDED_BY(mutex_) = false;

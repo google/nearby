@@ -1173,7 +1173,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
       ble_advertisement_data.service_data[service_uuid_] = advertisement_data;
 
       has_primary_service_data = true;
-      scan_callback_.advertisement_found_cb(*peripheral_ptr,
+      scan_callback_.advertisement_found_cb(peripheral_ptr->GetUniqueId(),
                                             ble_advertisement_data);
     } else {
       absl::MutexLock lock(&mutex_);
@@ -1203,7 +1203,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
     BleAdvertisementHeader header =
         CreateAdvertisementHeader(bluetooth_address, alt_service_ids);
     ble_advertisement_data.service_data[service_uuid_] = ByteArray(header);
-    scan_callback_.advertisement_found_cb(*peripheral_ptr,
+    scan_callback_.advertisement_found_cb(peripheral_ptr->GetUniqueId(),
                                           ble_advertisement_data);
   }
 }
@@ -1292,34 +1292,12 @@ void BleV2Medium::AdvertisementFoundHandler(
           service_uuid_to_session_map_.end()) {
         for (auto& id_session_pair :
              service_uuid_to_session_map_[service_uuid]) {
-          id_session_pair.second.advertisement_found_cb(*peripheral_ptr,
-                                                        ble_advertisement_data);
+          id_session_pair.second.advertisement_found_cb(
+              peripheral_ptr->GetUniqueId(), ble_advertisement_data);
         }
       }
     }
   }
-}
-
-bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
-                                      GetRemotePeripheralCallback callback) {
-  MacAddress bluetooth_address;
-  if (!MacAddress::FromUint64(id, bluetooth_address)) {
-    LOG(WARNING) << __func__ << ": Invalid MAC address: 0x"
-                 << absl::StrCat(absl::Hex(id));
-    return false;
-  }
-  api::ble_v2::BlePeripheral* peripheral = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    peripheral = GetPeripheral(bluetooth_address);
-  }
-
-  if (peripheral == nullptr) {
-    LOG(WARNING) << __func__ << ": No matched peripheral device.";
-    return false;
-  }
-  callback(*peripheral);
-  return true;
 }
 
 uint64_t BleV2Medium::GenerateSessionId() {
