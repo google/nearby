@@ -306,6 +306,8 @@ message BandwidthUpgradeNegotiationFrame {
     message AwdlCredentials {
       optional string service_name = 1;
       optional string service_type = 2;
+      optional string password = 3
+          /* type = ST_ACCOUNT_CREDENTIAL */;
     }
 
     message UpgradePathRequest {
