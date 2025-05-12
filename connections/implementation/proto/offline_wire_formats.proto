@@ -343,6 +343,7 @@ message BandwidthUpgradeNegotiationFrame {
   message ClientIntroduction {
     optional string endpoint_id = 1;
     optional bool supports_disabling_encryption = 2;
+    optional string last_endpoint_id = 3;
   }
 
   // Accompanies CLIENT_INTRODUCTION_ACK events.
