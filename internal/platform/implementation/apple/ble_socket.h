@@ -94,7 +94,7 @@ class BleSocket : public api::ble_v2::BleSocket {
 
   // The peripheral used to create the socket must outlive the socket or undefined behavior will
   // occur.
-  BleSocket(id<GNCMConnection> connection, api::ble_v2::BlePeripheral *peripheral);
+  BleSocket(id<GNCMConnection> connection, api::ble_v2::BlePeripheral::UniqueId peripheral_id);
   ~BleSocket() override;
 
   // Returns the InputStream of the BleSocket.
@@ -116,7 +116,7 @@ class BleSocket : public api::ble_v2::BleSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  api::ble_v2::BlePeripheral *GetRemotePeripheral() override { return peripheral_; }
+  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override { return peripheral_id_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -127,7 +127,7 @@ class BleSocket : public api::ble_v2::BleSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleInputStream> input_stream_;
   std::unique_ptr<BleOutputStream> output_stream_;
-  api::ble_v2::BlePeripheral *peripheral_;
+  api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
 };
 
 }  // namespace apple

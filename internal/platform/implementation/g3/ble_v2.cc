@@ -68,14 +68,14 @@ std::string TxPowerLevelToName(TxPowerLevel power_mode) {
 
 }  // namespace
 
-api::ble_v2::BlePeripheral* BleV2Socket::GetRemotePeripheral() {
+api::ble_v2::BlePeripheral::UniqueId BleV2Socket::GetRemotePeripheralId() {
   BleV2Socket* remote_socket = GetRemoteSocket();
   if (remote_socket == nullptr || remote_socket->adapter_ == nullptr ||
       remote_socket->adapter_->GetBleV2Medium() == nullptr) {
-    return nullptr;
+    return 0LL;
   }
-  return &(dynamic_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium())
-               ->GetPeripheral());
+  return dynamic_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium())
+               ->GetPeripheral().GetUniqueId();
 }
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {

@@ -195,12 +195,7 @@ class BleV2ServerSocket final {
     if (socket == nullptr) {
       LOG(INFO) << "BleServerSocket Accept() failed on server socket: " << this;
     } else {
-      api::ble_v2::BlePeripheral* platform_peripheral =
-          socket->GetRemotePeripheral();
-      if (platform_peripheral != nullptr) {
-        peripheral =
-            BleV2Peripheral(*medium_, platform_peripheral->GetUniqueId());
-      }
+      peripheral = BleV2Peripheral(*medium_, socket->GetRemotePeripheralId());
     }
     return BleV2Socket(peripheral, std::move(socket));
   }

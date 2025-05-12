@@ -37,8 +37,8 @@ class BleV2Socket : public api::ble_v2::BleSocket {
 
   Exception Close() override;
 
-  api::ble_v2::BlePeripheral* GetRemotePeripheral() override {
-    return nullptr;
+  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override {
+    return 0LL;
   };
 
   bool Connect();
