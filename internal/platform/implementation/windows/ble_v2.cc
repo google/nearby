@@ -161,11 +161,6 @@ static constexpr uint64_t kFailedGenerateSessionId = 0;
 constexpr absl::Duration kMediumTimeout = Milliseconds(500);
 constexpr absl::Duration kMediumCheckInterval = Milliseconds(50);
 
-// Remove lost/unused peripherals after a timeout.
-constexpr absl::Duration kPeripheralExpiryTime = Minutes(15);
-// Prevent too frequent cleanup tasks.
-constexpr absl::Duration kMaxPeripheralCleanupFrequency = Minutes(3);
-
 // Service Data - 16-bit UUID.  From Bluetooth Assigned Numbers Section 2.3.
 constexpr uint8_t kUuid16ServiceDataType = 0x16;
 }  // namespace
@@ -1147,21 +1142,9 @@ void BleV2Medium::AdvertisementReceivedHandler(
               << " Advertisement discovered. "
                  "0x16 Service data: advertisement bytes= 0x"
               << absl::BytesToHexString(advertisement_data.AsStringView())
-              << "(" << advertisement_data.size() << ")";
-
-      api::ble_v2::BlePeripheral* peripheral_ptr = nullptr;
-      {
-        absl::MutexLock lock(&mutex_);
-        peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-        if (peripheral_ptr == nullptr) {
-          return;
-        }
-      }
-      LOG(INFO) << "BLE peripheral with address: "
-                << bluetooth_address.ToString();
-
-      // Received Advertisement packet
-      VLOG(1) << "unconsumed_buffer_length: " << unconsumed_buffer_length;
+              << "(" << advertisement_data.size() << ")"
+              << " peripheral address: " << bluetooth_address.ToString()
+              << " unconsumed_buffer_length: " << unconsumed_buffer_length;
 
       api::ble_v2::BleAdvertisementData ble_advertisement_data;
       if (unconsumed_buffer_length <= 27) {
@@ -1173,7 +1156,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
       ble_advertisement_data.service_data[service_uuid_] = advertisement_data;
 
       has_primary_service_data = true;
-      scan_callback_.advertisement_found_cb(peripheral_ptr->GetUniqueId(),
+      scan_callback_.advertisement_found_cb(bluetooth_address.address(),
                                             ble_advertisement_data);
     } else {
       absl::MutexLock lock(&mutex_);
@@ -1186,14 +1169,6 @@ void BleV2Medium::AdvertisementReceivedHandler(
   }
   // Only process alternate service data if there is no primary service data.
   if (!has_primary_service_data && !alt_service_ids.empty()) {
-    api::ble_v2::BlePeripheral* peripheral_ptr = nullptr;
-    {
-      absl::MutexLock lock(&mutex_);
-      peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-      if (peripheral_ptr == nullptr) {
-        return;
-      }
-    }
     VLOG(1) << "Found BLE peripheral for with address: "
             << bluetooth_address.ToString()
             << " for services: " << absl::StrJoin(alt_service_ids, ",");
@@ -1203,7 +1178,7 @@ void BleV2Medium::AdvertisementReceivedHandler(
     BleAdvertisementHeader header =
         CreateAdvertisementHeader(bluetooth_address, alt_service_ids);
     ble_advertisement_data.service_data[service_uuid_] = ByteArray(header);
-    scan_callback_.advertisement_found_cb(peripheral_ptr->GetUniqueId(),
+    scan_callback_.advertisement_found_cb(bluetooth_address.address(),
                                           ble_advertisement_data);
   }
 }
@@ -1274,14 +1249,6 @@ void BleV2Medium::AdvertisementFoundHandler(
     return;
   }
 
-  api::ble_v2::BlePeripheral* peripheral_ptr = nullptr;
-  {
-    absl::MutexLock lock(&mutex_);
-    peripheral_ptr = GetOrCreatePeripheral(bluetooth_address);
-    if (peripheral_ptr == nullptr) {
-      return;
-    }
-  }
   VLOG(1) << "BLE peripheral with address: " << bluetooth_address.ToString();
 
   // Invokes callbacks that matches the UUID.
@@ -1293,7 +1260,7 @@ void BleV2Medium::AdvertisementFoundHandler(
         for (auto& id_session_pair :
              service_uuid_to_session_map_[service_uuid]) {
           id_session_pair.second.advertisement_found_cb(
-              peripheral_ptr->GetUniqueId(), ble_advertisement_data);
+              bluetooth_address.address(), ble_advertisement_data);
         }
       }
     }
@@ -1310,55 +1277,6 @@ uint64_t BleV2Medium::GenerateSessionId() {
     return session_id;
   }
   return kFailedGenerateSessionId;
-}
-
-api::ble_v2::BlePeripheral* BleV2Medium::GetOrCreatePeripheral(
-    MacAddress address) {
-  if (!address.IsSet()) {
-    LOG(WARNING) << __func__ << "empty MAC address is not allowed.";
-    return nullptr;
-  }
-  // For Windows peripheral uniqueId is the same as the address.
-  api::ble_v2::BlePeripheral* peripheral = GetPeripheral(address);
-  if (peripheral != nullptr) {
-    return peripheral;
-  }
-  RemoveExpiredPeripherals();
-  PeripheralInfo peripheral_info{
-    .last_access_time = absl::Now(),
-    .peripheral = std::make_unique<api::ble_v2::BlePeripheral>(
-        address.address(), address),
-  };
-  peripheral = peripheral_info.peripheral.get();
-  VLOG(1) << "New BLE peripheral with address: " << address.ToString();
-
-  peripheral_map_[address] = std::move(peripheral_info);
-  return peripheral;
-}
-
-api::ble_v2::BlePeripheral* BleV2Medium::GetPeripheral(MacAddress address) {
-  auto it = peripheral_map_.find(address);
-  if (it == peripheral_map_.end()) {
-    return nullptr;
-  }
-  it->second.last_access_time = absl::Now();
-  return it->second.peripheral.get();
-}
-
-void BleV2Medium::RemoveExpiredPeripherals() {
-  absl::Time now = absl::Now();
-  if (cleanup_time_ + kMaxPeripheralCleanupFrequency < now) {
-    return;
-  }
-  cleanup_time_ = now;
-  absl::Time cut_off_time = now - kPeripheralExpiryTime;
-  for (auto it = peripheral_map_.begin(); it != peripheral_map_.end();) {
-    if (it->second.last_access_time < cut_off_time) {
-      peripheral_map_.erase(it++);
-    } else {
-      ++it;
-    }
-  }
 }
 
 void BleV2Medium::AddAlternateUuidForService(uint16_t uuid,

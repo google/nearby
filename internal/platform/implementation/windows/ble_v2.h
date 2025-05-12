@@ -24,8 +24,6 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
@@ -174,14 +172,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
                           BluetoothLEAdvertisementWatcherStoppedEventArgs args);
 
   uint64_t GenerateSessionId() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  // Returns nullptr if `address` is invalid.
-  api::ble_v2::BlePeripheral* GetOrCreatePeripheral(MacAddress address)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  // Returns nullptr if `address` does not match a known peripheral.
-  api::ble_v2::BlePeripheral* GetPeripheral(MacAddress address)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  void RemoveExpiredPeripherals() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   std::unique_ptr<BleV2Medium::AdvertisementWatcher> CreateBleWatcher(
       uint16_t service_uuid);
 
@@ -210,15 +201,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   winrt::event_token publisher_token_ ABSL_GUARDED_BY(mutex_);
 
   BleGattServer* ble_gatt_server_ = nullptr;
-  // Map to protect the pointer for BlePeripheral because
-  // DiscoveredPeripheralCallback only keeps the pointer to the object
-  struct PeripheralInfo {
-    absl::Time last_access_time;
-    std::unique_ptr<api::ble_v2::BlePeripheral> peripheral;
-  };
-  absl::flat_hash_map<MacAddress, PeripheralInfo> peripheral_map_
-      ABSL_GUARDED_BY(mutex_);
-  absl::Time cleanup_time_ ABSL_GUARDED_BY(mutex_) = absl::Now();
   // Map of alternative BLE service UUID16s for a given Nearby service.
   // If a device does not support BLE extended advertisements, an alternate
   // service UUID16 may be used to trigger a GATT connection to retrieve GATT
