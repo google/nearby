@@ -47,6 +47,7 @@ objc_library(
         "GNCFakePeripheralManager.m",
         "GNCIPAddressTest.mm",
         "GNCMultiThreadExecutorTest.mm",
+        "GNCNWParametersTest.m",
         "GNCPlatformTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",

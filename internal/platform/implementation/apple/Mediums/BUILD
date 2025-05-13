@@ -49,6 +49,7 @@ objc_library(
         "WiFiCommon/GNCNWFrameworkServerSocket.m",
         "WiFiCommon/GNCNWFrameworkServerSocket+Internal.h",
         "WiFiCommon/GNCNWFrameworkSocket.m",
+        "WiFiCommon/GNCNWParameters.m",
     ],
     hdrs = [
         "BLEv2/GNCBLEError.h",
@@ -75,6 +76,7 @@ objc_library(
         "WiFiCommon/GNCNWFrameworkError.h",
         "WiFiCommon/GNCNWFrameworkServerSocket.h",
         "WiFiCommon/GNCNWFrameworkSocket.h",
+        "WiFiCommon/GNCNWParameters.h",
     ],
     deps = [
         "//internal/encoding:base85",
@@ -88,6 +90,7 @@ objc_library(
         "//third_party/apple_frameworks:Network",
         "//third_party/apple_frameworks:NetworkExtension",
         "//third_party/apple_frameworks:ObjectiveC",
+        "//third_party/apple_frameworks:Security",
         "//third_party/apple_frameworks:SystemConfiguration",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
