@@ -57,6 +57,8 @@ enum class ShareTargetType {
   kCar = 4,
   // A foldable.
   kFoldable = 5,
+  // An XR device.
+  kXR = 6,
 };
 // LINT.ThenChange(
 //  //depot/google3/location/nearby/cpp/sharing/clients/proto/share_target.proto:ShareTarget.ShareTargetType,
