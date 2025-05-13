@@ -415,11 +415,13 @@ enum DeviceType : int {
   PHONE = 1,
   TABLET = 2,
   LAPTOP = 3,
-  CAR = 4
+  CAR = 4,
+  FOLDABLE = 5,
+  XR = 6
 };
 bool DeviceType_IsValid(int value);
 constexpr DeviceType DeviceType_MIN = UNKNOWN_DEVICE_TYPE;
-constexpr DeviceType DeviceType_MAX = CAR;
+constexpr DeviceType DeviceType_MAX = XR;
 constexpr int DeviceType_ARRAYSIZE = DeviceType_MAX + 1;
 
 const std::string& DeviceType_Name(DeviceType value);

@@ -4225,6 +4225,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials final :
   enum : int {
     kServiceNameFieldNumber = 1,
     kServiceTypeFieldNumber = 2,
+    kPasswordFieldNumber = 3,
   };
   // optional string service_name = 1;
   bool has_service_name() const;
@@ -4262,6 +4263,24 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials final :
   std::string* _internal_mutable_service_type();
   public:
 
+  // optional string password = 3;
+  bool has_password() const;
+  private:
+  bool _internal_has_password() const;
+  public:
+  void clear_password();
+  const std::string& password() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_password(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_password();
+  PROTOBUF_NODISCARD std::string* release_password();
+  void set_allocated_password(std::string* password);
+  private:
+  const std::string& _internal_password() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_password(const std::string& value);
+  std::string* _internal_mutable_password();
+  public:
+
   // @@protoc_insertion_point(class_scope:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials)
  private:
   class _Internal;
@@ -4273,6 +4292,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials final :
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr service_name_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr service_type_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr password_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
 // -------------------------------------------------------------------
@@ -5089,6 +5109,7 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction final :
 
   enum : int {
     kEndpointIdFieldNumber = 1,
+    kLastEndpointIdFieldNumber = 3,
     kSupportsDisablingEncryptionFieldNumber = 2,
   };
   // optional string endpoint_id = 1;
@@ -5107,6 +5128,24 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction final :
   const std::string& _internal_endpoint_id() const;
   inline PROTOBUF_ALWAYS_INLINE void _internal_set_endpoint_id(const std::string& value);
   std::string* _internal_mutable_endpoint_id();
+  public:
+
+  // optional string last_endpoint_id = 3;
+  bool has_last_endpoint_id() const;
+  private:
+  bool _internal_has_last_endpoint_id() const;
+  public:
+  void clear_last_endpoint_id();
+  const std::string& last_endpoint_id() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_last_endpoint_id(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_last_endpoint_id();
+  PROTOBUF_NODISCARD std::string* release_last_endpoint_id();
+  void set_allocated_last_endpoint_id(std::string* last_endpoint_id);
+  private:
+  const std::string& _internal_last_endpoint_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_last_endpoint_id(const std::string& value);
+  std::string* _internal_mutable_last_endpoint_id();
   public:
 
   // optional bool supports_disabling_encryption = 2;
@@ -5132,6 +5171,7 @@ class BandwidthUpgradeNegotiationFrame_ClientIntroduction final :
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr endpoint_id_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr last_endpoint_id_;
   bool supports_disabling_encryption_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
 };
@@ -13992,6 +14032,75 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::se
   // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials.service_type)
 }
 
+// optional string password = 3;
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_internal_has_password() const {
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::has_password() const {
+  return _internal_has_password();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::clear_password() {
+  password_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::password() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials.password)
+  return _internal_password();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::set_password(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000004u;
+ password_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials.password)
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::mutable_password() {
+  std::string* _s = _internal_mutable_password();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials.password)
+  return _s;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_internal_password() const {
+  return password_.Get();
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_internal_set_password(const std::string& value) {
+  _has_bits_[0] |= 0x00000004u;
+  password_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::_internal_mutable_password() {
+  _has_bits_[0] |= 0x00000004u;
+  return password_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::release_password() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials.password)
+  if (!_internal_has_password()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000004u;
+  auto* p = password_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (password_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_AwdlCredentials::set_allocated_password(std::string* password) {
+  if (password != nullptr) {
+    _has_bits_[0] |= 0x00000004u;
+  } else {
+    _has_bits_[0] &= ~0x00000004u;
+  }
+  password_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), password,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (password_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    password_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.AwdlCredentials.password)
+}
+
 // -------------------------------------------------------------------
 
 // BandwidthUpgradeNegotiationFrame_UpgradePathInfo_UpgradePathRequest
@@ -15047,7 +15156,7 @@ inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::set_allocated_e
 
 // optional bool supports_disabling_encryption = 2;
 inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_has_supports_disabling_encryption() const {
-  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  bool value = (_has_bits_[0] & 0x00000004u) != 0;
   return value;
 }
 inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::has_supports_disabling_encryption() const {
@@ -15055,7 +15164,7 @@ inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::has_supports_di
 }
 inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::clear_supports_disabling_encryption() {
   supports_disabling_encryption_ = false;
-  _has_bits_[0] &= ~0x00000002u;
+  _has_bits_[0] &= ~0x00000004u;
 }
 inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_supports_disabling_encryption() const {
   return supports_disabling_encryption_;
@@ -15065,12 +15174,81 @@ inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::supports_disabl
   return _internal_supports_disabling_encryption();
 }
 inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_set_supports_disabling_encryption(bool value) {
-  _has_bits_[0] |= 0x00000002u;
+  _has_bits_[0] |= 0x00000004u;
   supports_disabling_encryption_ = value;
 }
 inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::set_supports_disabling_encryption(bool value) {
   _internal_set_supports_disabling_encryption(value);
   // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction.supports_disabling_encryption)
+}
+
+// optional string last_endpoint_id = 3;
+inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_has_last_endpoint_id() const {
+  bool value = (_has_bits_[0] & 0x00000002u) != 0;
+  return value;
+}
+inline bool BandwidthUpgradeNegotiationFrame_ClientIntroduction::has_last_endpoint_id() const {
+  return _internal_has_last_endpoint_id();
+}
+inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::clear_last_endpoint_id() {
+  last_endpoint_id_.ClearToEmpty();
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_ClientIntroduction::last_endpoint_id() const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction.last_endpoint_id)
+  return _internal_last_endpoint_id();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void BandwidthUpgradeNegotiationFrame_ClientIntroduction::set_last_endpoint_id(ArgT0&& arg0, ArgT... args) {
+ _has_bits_[0] |= 0x00000002u;
+ last_endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction.last_endpoint_id)
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_ClientIntroduction::mutable_last_endpoint_id() {
+  std::string* _s = _internal_mutable_last_endpoint_id();
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction.last_endpoint_id)
+  return _s;
+}
+inline const std::string& BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_last_endpoint_id() const {
+  return last_endpoint_id_.Get();
+}
+inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_set_last_endpoint_id(const std::string& value) {
+  _has_bits_[0] |= 0x00000002u;
+  last_endpoint_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_ClientIntroduction::_internal_mutable_last_endpoint_id() {
+  _has_bits_[0] |= 0x00000002u;
+  return last_endpoint_id_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArenaForAllocation());
+}
+inline std::string* BandwidthUpgradeNegotiationFrame_ClientIntroduction::release_last_endpoint_id() {
+  // @@protoc_insertion_point(field_release:location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction.last_endpoint_id)
+  if (!_internal_has_last_endpoint_id()) {
+    return nullptr;
+  }
+  _has_bits_[0] &= ~0x00000002u;
+  auto* p = last_endpoint_id_.ReleaseNonDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (last_endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    last_endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  return p;
+}
+inline void BandwidthUpgradeNegotiationFrame_ClientIntroduction::set_allocated_last_endpoint_id(std::string* last_endpoint_id) {
+  if (last_endpoint_id != nullptr) {
+    _has_bits_[0] |= 0x00000002u;
+  } else {
+    _has_bits_[0] &= ~0x00000002u;
+  }
+  last_endpoint_id_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), last_endpoint_id,
+      GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (last_endpoint_id_.IsDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited())) {
+    last_endpoint_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:location.nearby.connections.BandwidthUpgradeNegotiationFrame.ClientIntroduction.last_endpoint_id)
 }
 
 // -------------------------------------------------------------------
