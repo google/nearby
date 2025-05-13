@@ -116,7 +116,6 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        ":internal",
         "//devtools/rust:rust_okay_here",
         "//internal/crypto",
         "//internal/crypto_cros",
