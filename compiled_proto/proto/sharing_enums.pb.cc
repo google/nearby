@@ -1168,35 +1168,43 @@ bool DeviceType_IsValid(int value) {
     case 2:
     case 3:
     case 4:
+    case 5:
+    case 6:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DeviceType_strings[5] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DeviceType_strings[7] = {};
 
 static const char DeviceType_names[] =
   "CAR"
+  "FOLDABLE"
   "LAPTOP"
   "PHONE"
   "TABLET"
-  "UNKNOWN_DEVICE_TYPE";
+  "UNKNOWN_DEVICE_TYPE"
+  "XR";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DeviceType_entries[] = {
   { {DeviceType_names + 0, 3}, 4 },
-  { {DeviceType_names + 3, 6}, 3 },
-  { {DeviceType_names + 9, 5}, 1 },
-  { {DeviceType_names + 14, 6}, 2 },
-  { {DeviceType_names + 20, 19}, 0 },
+  { {DeviceType_names + 3, 8}, 5 },
+  { {DeviceType_names + 11, 6}, 3 },
+  { {DeviceType_names + 17, 5}, 1 },
+  { {DeviceType_names + 22, 6}, 2 },
+  { {DeviceType_names + 28, 19}, 0 },
+  { {DeviceType_names + 47, 2}, 6 },
 };
 
 static const int DeviceType_entries_by_number[] = {
-  4, // 0 -> UNKNOWN_DEVICE_TYPE
-  2, // 1 -> PHONE
-  3, // 2 -> TABLET
-  1, // 3 -> LAPTOP
+  5, // 0 -> UNKNOWN_DEVICE_TYPE
+  3, // 1 -> PHONE
+  4, // 2 -> TABLET
+  2, // 3 -> LAPTOP
   0, // 4 -> CAR
+  1, // 5 -> FOLDABLE
+  6, // 6 -> XR
 };
 
 const std::string& DeviceType_Name(
@@ -1205,12 +1213,12 @@ const std::string& DeviceType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           DeviceType_entries,
           DeviceType_entries_by_number,
-          5, DeviceType_strings);
+          7, DeviceType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       DeviceType_entries,
       DeviceType_entries_by_number,
-      5, value);
+      7, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      DeviceType_strings[idx].get();
 }
@@ -1218,7 +1226,7 @@ bool DeviceType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DeviceType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      DeviceType_entries, 5, name, &int_value);
+      DeviceType_entries, 7, name, &int_value);
   if (success) {
     *value = static_cast<DeviceType>(int_value);
   }
