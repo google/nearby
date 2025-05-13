@@ -24,8 +24,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/uuid.h"
 
-#import "internal/platform/implementation/apple/ble_peripheral.h"
-
 @class GNCBLEGATTServer;
 
 namespace nearby {

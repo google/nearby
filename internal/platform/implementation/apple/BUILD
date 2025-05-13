@@ -95,8 +95,6 @@ objc_library(
         "ble_l2cap_socket.mm",
         "ble_medium.h",
         "ble_medium.mm",
-        "ble_peripheral.h",
-        "ble_peripheral.mm",
         "ble_server_socket.h",
         "ble_server_socket.mm",
         "ble_socket.h",

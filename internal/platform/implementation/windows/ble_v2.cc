@@ -582,7 +582,7 @@ std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
 }
 
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+    api::ble_v2::PeripheralId peripheral_id,
     TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   absl::MutexLock lock(&mutex_);
@@ -655,7 +655,7 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string& service_id, TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral::UniqueId remote_peripheral_id,
+    api::ble_v2::PeripheralId remote_peripheral_id,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << __func__ << ": Connect to service_id=" << service_id;
 

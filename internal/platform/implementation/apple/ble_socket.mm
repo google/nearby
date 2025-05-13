@@ -17,7 +17,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleConnection.h"
-#import "internal/platform/implementation/apple/ble_peripheral.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 #import "internal/platform/implementation/apple/utils.h"
 
@@ -180,10 +179,9 @@ Exception BleOutputStream::Close() {
 BleSocket::BleSocket(id<GNCMConnection> connection)
     : input_stream_(new BleInputStream()),
       output_stream_(new BleOutputStream(connection)),
-      peripheral_id_(BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {}
+      peripheral_id_(0xffffffffffffffff) {}
 
-BleSocket::BleSocket(id<GNCMConnection> connection,
-                     api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+BleSocket::BleSocket(id<GNCMConnection> connection, api::ble_v2::PeripheralId peripheral_id)
     : input_stream_(new BleInputStream()),
       output_stream_(new BleOutputStream(connection)),
       peripheral_id_(peripheral_id) {}

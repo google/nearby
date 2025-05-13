@@ -11,12 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#import <Foundation/Foundation.h>
 
 #include <memory>
 
 #include "internal/platform/implementation/ble_v2.h"
-
-#import "internal/platform/implementation/apple/ble_peripheral.h"
 
 @class GNCMConnectionHandlers;
 @class GNCBLEL2CAPConnection;
@@ -84,8 +83,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
 
   // The peripheral used to create the socket must outlive the socket or undefined behavior will
   // occur.
-  BleL2capSocket(GNCBLEL2CAPConnection *connection,
-                 api::ble_v2::BlePeripheral::UniqueId peripheral_id);
+  BleL2capSocket(GNCBLEL2CAPConnection *connection, api::ble_v2::PeripheralId peripheral_id);
   ~BleL2capSocket() override;
 
   // Returns the InputStream of the BleL2capSocket.
@@ -109,7 +107,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override { return peripheral_id_; }
+  api::ble_v2::PeripheralId GetRemotePeripheralId() override { return peripheral_id_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -120,7 +118,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleL2capInputStream> input_stream_;
   std::unique_ptr<BleL2capOutputStream> output_stream_;
-  api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
+  api::ble_v2::PeripheralId peripheral_id_;
 };
 
 }  // namespace apple

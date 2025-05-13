@@ -27,8 +27,6 @@
 
 #include "internal/platform/implementation/ble_v2.h"
 
-#import "internal/platform/implementation/apple/ble_peripheral.h"
-
 @class GNCMConnectionHandlers;
 @protocol GNCMConnection;
 
@@ -94,7 +92,7 @@ class BleSocket : public api::ble_v2::BleSocket {
 
   // The peripheral used to create the socket must outlive the socket or undefined behavior will
   // occur.
-  BleSocket(id<GNCMConnection> connection, api::ble_v2::BlePeripheral::UniqueId peripheral_id);
+  BleSocket(id<GNCMConnection> connection, api::ble_v2::PeripheralId peripheral_id);
   ~BleSocket() override;
 
   // Returns the InputStream of the BleSocket.
@@ -116,7 +114,7 @@ class BleSocket : public api::ble_v2::BleSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override { return peripheral_id_; }
+  api::ble_v2::PeripheralId GetRemotePeripheralId() override { return peripheral_id_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -127,7 +125,7 @@ class BleSocket : public api::ble_v2::BleSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleInputStream> input_stream_;
   std::unique_ptr<BleOutputStream> output_stream_;
-  api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
+  api::ble_v2::PeripheralId peripheral_id_;
 };
 
 }  // namespace apple

@@ -66,7 +66,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       api::ble_v2::ServerGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+      api::ble_v2::PeripheralId peripheral_id,
       api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::ClientGattConnectionCallback callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -74,7 +74,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
       const std::string& service_id) override ABSL_LOCKS_EXCLUDED(mutex_);
   std::unique_ptr<api::ble_v2::BleSocket> Connect(
       const std::string& service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral::UniqueId remote_peripheral_id,
+      api::ble_v2::PeripheralId remote_peripheral_id,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
   bool IsExtendedAdvertisementsAvailable() override;
 

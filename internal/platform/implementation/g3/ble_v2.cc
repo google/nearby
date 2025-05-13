@@ -68,7 +68,7 @@ std::string TxPowerLevelToName(TxPowerLevel power_mode) {
 
 }  // namespace
 
-api::ble_v2::BlePeripheral::UniqueId BleV2Socket::GetRemotePeripheralId() {
+api::ble_v2::PeripheralId BleV2Socket::GetRemotePeripheralId() {
   BleV2Socket* remote_socket = GetRemoteSocket();
   if (remote_socket == nullptr || remote_socket->adapter_ == nullptr ||
       remote_socket->adapter_->GetBleV2Medium() == nullptr) {
@@ -251,7 +251,7 @@ bool BleV2Medium::StartMultipleServicesScanning(
     auto internal_session_id = Prng().NextUint32();
     ScanCallback multiple_scan_callback = {
         .advertisement_found_cb =
-            [this](api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+            [this](api::ble_v2::PeripheralId peripheral_id,
                    BleAdvertisementData advertisement_data) {
               scan_callback_.advertisement_found_cb(peripheral_id,
                                                     advertisement_data);
@@ -332,7 +332,7 @@ bool BleV2Medium::IsStopped(Borrowable<api::ble_v2::GattServer*> server) {
 }
 
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+    api::ble_v2::PeripheralId peripheral_id,
     TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
   Borrowable<api::ble_v2::GattServer*> server =
@@ -428,7 +428,7 @@ absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
 }
 
 absl::StatusOr<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
-    const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+    const api::ble_v2::PeripheralId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic, int offset) {
   {
     absl::MutexLock lock(&mutex_);
@@ -457,7 +457,7 @@ absl::StatusOr<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
 }
 
 absl::Status BleV2Medium::GattServer::WriteCharacteristic(
-    const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+    const api::ble_v2::PeripheralId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic, int offset,
     absl::string_view data) {
   if (HasCharacteristic(characteristic)) {
@@ -477,7 +477,7 @@ absl::Status BleV2Medium::GattServer::WriteCharacteristic(
 }
 
 bool BleV2Medium::GattServer::AddCharacteristicSubscription(
-    const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+    const api::ble_v2::PeripheralId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic,
     absl::AnyInvocable<void(absl::string_view value)> callback) {
   absl::MutexLock lock(&mutex_);
@@ -491,7 +491,7 @@ bool BleV2Medium::GattServer::AddCharacteristicSubscription(
 }
 
 bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
-    const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+    const api::ble_v2::PeripheralId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic) {
   absl::MutexLock lock(&mutex_);
   const auto it = characteristics_.find(characteristic);
@@ -531,7 +531,7 @@ void BleV2Medium::GattServer::Stop() {
 }
 
 BleV2Medium::GattClient::GattClient(
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+    api::ble_v2::PeripheralId peripheral_id,
     Borrowable<api::ble_v2::GattServer*> gatt_server,
     api::ble_v2::ClientGattConnectionCallback callback)
     : peripheral_id_(peripheral_id),
@@ -732,7 +732,7 @@ BleV2Medium::OpenL2capServerSocket(const std::string& service_id) {
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string& service_id, TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral::UniqueId remote_peripheral_id,
+    api::ble_v2::PeripheralId remote_peripheral_id,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 Ble Connect [self]: medium=" << this
             << ", adapter=" << &GetAdapter()

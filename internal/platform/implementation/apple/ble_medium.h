@@ -19,6 +19,7 @@
 // This comment alone should be enough to trick the IDE in to believing this is actually some sort
 // of Objective-C file. See: cs/google3/devtools/search/lang/recognize_language_classifiers_data
 
+#import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
 #include <memory>
@@ -37,6 +38,7 @@
 @class GNSCentralManager;
 @class GNSPeripheralManager;
 @class GNSPeripheralServiceManager;
+@protocol GNCPeripheral;
 
 namespace nearby {
 namespace apple {
@@ -118,7 +120,7 @@ class BleMedium : public api::ble_v2::BleMedium {
   // The peripheral must outlive the GATT client or undefined behavior will occur. The peripheral
   // should not be modified by this method.
   std::unique_ptr<api::ble_v2::GattClient> ConnectToGattServer(
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id, api::ble_v2::TxPowerLevel tx_power_level,
+      api::ble_v2::PeripheralId peripheral_id, api::ble_v2::TxPowerLevel tx_power_level,
       api::ble_v2::ClientGattConnectionCallback callback) override;
 
   // Opens a BLE server socket based on service ID.
@@ -143,7 +145,7 @@ class BleMedium : public api::ble_v2::BleMedium {
   // On success, returns a new BleSocket. On error, returns nullptr.
   std::unique_ptr<api::ble_v2::BleSocket> Connect(
       const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+      api::ble_v2::PeripheralId peripheral_id,
       CancellationFlag *cancellation_flag) override;
 
   // TODO(b/290385712): cancellation_flag support is not yet implemented.
@@ -156,7 +158,7 @@ class BleMedium : public api::ble_v2::BleMedium {
   // On success, returns a new BleL2capSocket. On error, returns nullptr.
   std::unique_ptr<api::ble_v2::BleL2capSocket> ConnectOverL2cap(
       int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+      api::ble_v2::PeripheralId peripheral_id,
       CancellationFlag *cancellation_flag) override;
 
   // Returns whether the hardware supports BOTH advertising extensions and extended scans.
@@ -171,15 +173,13 @@ class BleMedium : public api::ble_v2::BleMedium {
     PeripheralsMap() = default;
     ~PeripheralsMap() = default;
 
-    api::ble_v2::BlePeripheral::UniqueId Add(id<GNCPeripheral> peripheral)
-        ABSL_LOCKS_EXCLUDED(mutex_);
-    id<GNCPeripheral> Get(api::ble_v2::BlePeripheral::UniqueId peripheral_id)
-        ABSL_LOCKS_EXCLUDED(mutex_);
+    api::ble_v2::PeripheralId Add(id<GNCPeripheral> peripheral) ABSL_LOCKS_EXCLUDED(mutex_);
+    id<GNCPeripheral> Get(api::ble_v2::PeripheralId peripheral_id) ABSL_LOCKS_EXCLUDED(mutex_);
     void Clear() ABSL_LOCKS_EXCLUDED(mutex_);
 
    private:
     absl::Mutex mutex_;
-    absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, id<GNCPeripheral>> peripherals_
+    absl::flat_hash_map<api::ble_v2::PeripheralId, id<GNCPeripheral>> peripherals_
         ABSL_GUARDED_BY(mutex_);
   };
 
