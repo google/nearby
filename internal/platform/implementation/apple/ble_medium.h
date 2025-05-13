@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
 
-#import "internal/platform/implementation/apple/ble_peripheral.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
 
@@ -166,15 +165,30 @@ class BleMedium : public api::ble_v2::BleMedium {
   bool IsExtendedAdvertisementsAvailable() override;
 
  private:
+  // A map for maintaining the set of currently known peripherals.
+  class PeripheralsMap {
+   public:
+    PeripheralsMap() = default;
+    ~PeripheralsMap() = default;
+
+    api::ble_v2::BlePeripheral::UniqueId Add(id<GNCPeripheral> peripheral)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+    id<GNCPeripheral> Get(api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+        ABSL_LOCKS_EXCLUDED(mutex_);
+    void Clear() ABSL_LOCKS_EXCLUDED(mutex_);
+
+   private:
+    absl::Mutex mutex_;
+    absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, id<GNCPeripheral>> peripherals_
+        ABSL_GUARDED_BY(mutex_);
+  };
+
   void HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                 NSDictionary<CBUUID *, NSData *> *serviceData);
 
   GNCBLEMedium *medium_;
 
-  absl::Mutex peripherals_mutex_;
-  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId,
-                      std::unique_ptr<BlePeripheral>>
-      peripherals_ ABSL_GUARDED_BY(peripherals_mutex_);
+  PeripheralsMap peripherals_;
 
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;

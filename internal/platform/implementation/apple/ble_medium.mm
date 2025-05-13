@@ -47,7 +47,6 @@
 #import "internal/platform/implementation/apple/ble_gatt_server.h"
 #import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
 #import "internal/platform/implementation/apple/ble_l2cap_socket.h"
-#import "internal/platform/implementation/apple/ble_peripheral.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
 #import "internal/platform/implementation/apple/ble_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
@@ -124,20 +123,13 @@ bool BleMedium::StopAdvertising() {
 
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                          NSDictionary<CBUUID *, NSData *> *serviceData) {
-  absl::MutexLock lock(&peripherals_mutex_);
-
   api::ble_v2::BleAdvertisementData data;
   for (CBUUID *key in serviceData.allKeys) {
     data.service_data[CPPUUIDFromObjC(key)] = ByteArrayFromNSData(serviceData[key]);
   }
 
   // Add the peripheral to the map if we haven't discovered it yet.
-  auto ble_peripheral = std::make_unique<BlePeripheral>(peripheral);
-  auto unique_id = ble_peripheral->GetUniqueId();
-  auto it = peripherals_.find(unique_id);
-  if (it == peripherals_.end()) {
-    peripherals_[unique_id] = std::move(ble_peripheral);
-  }
+  api::ble_v2::BlePeripheral::UniqueId unique_id = peripherals_.Add(peripheral);
   if (scanning_cb_.advertisement_found_cb) {
     scanning_cb_.advertisement_found_cb(unique_id, data);
   }
@@ -149,14 +141,13 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
 std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BleMedium::ScanningCallback callback) {
-  absl::MutexLock lock(&peripherals_mutex_);
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   scanning_cb_ = std::move(callback);
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
-  peripherals_.clear();
+  peripherals_.Clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -181,14 +172,13 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
 
 bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
                               api::ble_v2::BleMedium::ScanCallback callback) {
-  absl::MutexLock lock(&peripherals_mutex_);
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   scan_cb_ = std::move(callback);
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
-  peripherals_.clear();
+  peripherals_.Clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -214,8 +204,6 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
 bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_uuids,
                                               api::ble_v2::TxPowerLevel tx_power_level,
                                               api::ble_v2::BleMedium::ScanCallback callback) {
-  absl::MutexLock lock(&peripherals_mutex_);
-
   if (service_uuids.empty()) {
     GTMLoggerError(@"No service UUIDs provided");
     return false;
@@ -231,7 +219,7 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
-  peripherals_.clear();
+  peripherals_.Clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
@@ -308,22 +296,17 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
 std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  BlePeripheral *peripheral = nullptr;
-  {
-    absl::MutexLock lock(&peripherals_mutex_);
-    const auto& it = peripherals_.find(peripheral_id);
-    if (it == peripherals_.end()) {
-      GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
-      return nullptr;
-    }
-    peripheral = it->second.get();
+  id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
+  if (!peripheral) {
+    GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+    return nullptr;
   }
 
   __block api::ble_v2::ClientGattConnectionCallback blockCallback = std::move(callback);
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block GNCBLEGATTClient *blockClient = nil;
-  [medium_ connectToGATTServerForPeripheral:peripheral->GetPeripheral()
+  [medium_ connectToGATTServerForPeripheral:peripheral
       disconnectionHandler:^(void) {
         blockCallback.disconnected_cb();
       }
@@ -434,19 +417,14 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
 std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
     const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
-  BlePeripheral *peripheral = nullptr;
-  {
-    absl::MutexLock lock(&peripherals_mutex_);
-    const auto& it = peripherals_.find(peripheral_id);
-    if (it == peripherals_.end()) {
-      GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
-      return nullptr;
-    }
-    peripheral = it->second.get();
+  id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
+  if (!peripheral) {
+    GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+    return nullptr;
   }
 
   GNSCentralPeerManager *updatedCentralPeerManager = [socketCentralManager_
-      retrieveCentralPeerWithIdentifier:peripheral->GetPeripheral().identifier];
+      retrieveCentralPeerWithIdentifier:peripheral.identifier];
   if (!updatedCentralPeerManager) {
     return nullptr;
   }
@@ -491,15 +469,10 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
 std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
-  BlePeripheral *peripheral = nullptr;
-  {
-    absl::MutexLock lock(&peripherals_mutex_);
-    const auto& it = peripherals_.find(peripheral_id);
-    if (it == peripherals_.end()) {
-      GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is not found.");
-      return nullptr;
-    }
-    peripheral = it->second.get();
+  id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
+  if (!peripheral) {
+    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is not found.");
+    return nullptr;
   }
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   dispatch_time_t timeout =
@@ -507,7 +480,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
   __block std::unique_ptr<BleL2capSocket> socket;
   const std::string &service_id_str = service_id;
   [medium_ openL2CAPChannelWithPSM:psm
-                        peripheral:peripheral->GetPeripheral()
+                        peripheral:peripheral
                  completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
                    if (error) {
                      dispatch_semaphore_signal(semaphore);
@@ -543,6 +516,27 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
 
 bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return [medium_ supportsExtendedAdvertisements];
+}
+
+api::ble_v2::BlePeripheral::UniqueId BleMedium::PeripheralsMap::Add(id<GNCPeripheral> peripheral) {
+  absl::MutexLock lock(&mutex_);
+  api::ble_v2::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
+  peripherals_.insert({peripheral_id, peripheral});
+  return peripheral_id;
+}
+
+id<GNCPeripheral> BleMedium::PeripheralsMap::Get(api::ble_v2::BlePeripheral::UniqueId peripheral_id) {
+  absl::MutexLock lock(&mutex_);
+  auto peripheral_it = peripherals_.find(peripheral_id);
+  if (peripheral_it == peripherals_.end()) {
+    return nil;
+  }
+  return peripheral_it->second;
+}
+
+void BleMedium::PeripheralsMap::Clear() {
+  absl::MutexLock lock(&mutex_);
+  peripherals_.clear();
 }
 
 }  // namespace apple
