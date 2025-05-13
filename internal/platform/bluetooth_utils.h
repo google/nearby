@@ -31,13 +31,17 @@ class BluetoothUtils {
   // Converts a Bluetooth MAC address from byte array to String format. Returns
   // empty if input byte array is not of correct format.
   // e.g. {-84, 55, 67, -68, -87, 40} -> "AC:37:43:BC:A9:28".
+#ifndef NEARBY_CHROMIUM
   ABSL_DEPRECATED("Use MacAddress class instead.")
+#endif
   static std::string ToString(const ByteArray& bluetooth_mac_address);
 
   // Converts a Bluetooth MAC address from String format to byte array. Returns
   // empty if input string is not of correct format.
   // e.g. "AC:37:43:BC:A9:28" -> {-84, 55, 67, -68, -87, 40}.
+#ifndef NEARBY_CHROMIUM
   ABSL_DEPRECATED("Use MacAddress class instead.")
+#endif
   static ByteArray FromString(absl::string_view bluetooth_mac_address);
 
   // Converts a MAC address from binary to canonical format.
