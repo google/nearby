@@ -14,6 +14,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class GNCIPv4Address;
 @class GNCNWFrameworkSocket;
 
@@ -22,14 +24,14 @@
 /**
  * @remark init is not an available initializer.
  */
-- (nonnull instancetype)init NS_UNAVAILABLE;
+- (instancetype)init NS_UNAVAILABLE;
 
 /**
  * Creates a server socket for a given port.
  *
  * @param port The port of the server socket.
  */
-- (nonnull instancetype)initWithPort:(NSInteger)port NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithPort:(NSInteger)port NS_DESIGNATED_INITIALIZER;
 
 /**
  * The IPv4 address of the physical network interface.
@@ -62,3 +64,5 @@
 - (void)close;
 
 @end
+
+NS_ASSUME_NONNULL_END

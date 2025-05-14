@@ -14,6 +14,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class GNCIPv4Address;
 @class GNCNWFrameworkServerSocket;
 @class GNCNWFrameworkSocket;
@@ -56,6 +58,31 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
                                                           error:(NSError **_Nullable)error;
 
 /**
+ * Listens for incoming connections with PSK based TLS on a given port.
+ *
+ * This function will always be called before a call to
+ * startAdvertisingServiceName:serviceType:error:, but may also be called on its own without a call
+ * to start advertising the service. This function will also be called during upgrade attempts on
+ * the advertising side.
+ *
+ * This function should block execution until ready for incoming connections.
+ *
+ * @param port The port on which the listener can accept connections. Should be a number between 1
+ *             and 65536 to open a server socket on that exact port. Zero can be used to listen on
+ *             a random port.
+ * @param PSKIdentity The PSK identity of the service.
+ * @param PSKSharedSecret The PSK shared secret of the service.
+ * @param includePeerToPeer Whether to include peer-to-peer services.
+ * @param[out] error Error that will be populated on failure.
+ * @return Returns a server socket or nil if an error has occured.
+ */
+- (nullable GNCNWFrameworkServerSocket *)listenForServiceWithPSKIdentity:(NSData *)PSKIdentity
+                                                         PSKSharedSecret:(NSData *)PSKSharedSecret
+                                                                    port:(NSInteger)port
+                                                       includePeerToPeer:(BOOL)includePeerToPeer
+                                                                   error:(NSError **_Nullable)error;
+
+/**
  * Creates a Bonjour service that advertises the listener on the local network.
  *
  * @param port The port of the listener to advertise.
@@ -64,9 +91,9 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param txtRecords The TXT record to advertise with the service.
  */
 - (void)startAdvertisingPort:(NSInteger)port
-                 serviceName:(nonnull NSString *)serviceName
-                 serviceType:(nonnull NSString *)serviceType
-                  txtRecords:(nonnull NSDictionary<NSString *, NSString *> *)txtRecords;
+                 serviceName:(NSString *)serviceName
+                 serviceType:(NSString *)serviceType
+                  txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords;
 
 /**
  * Removes the Bonjour service advertisement.
@@ -85,7 +112,7 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when discovery has successfully started.
  */
-- (BOOL)startDiscoveryForServiceType:(nonnull NSString *)serviceType
+- (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
                  serviceFoundHandler:(ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(ServiceUpdateHandler)serviceLostHandler
                    includePeerToPeer:(BOOL)includePeerToPeer
@@ -96,7 +123,7 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  *
  * @param serviceType The Bonjour type of the service.
  */
-- (void)stopDiscoveryForServiceType:(nonnull NSString *)serviceType;
+- (void)stopDiscoveryForServiceType:(NSString *)serviceType;
 
 /**
  * Connects to a Bonjour service.
@@ -106,8 +133,24 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
-- (nullable GNCNWFrameworkSocket *)connectToServiceName:(nonnull NSString *)serviceName
-                                            serviceType:(nonnull NSString *)serviceType
+- (nullable GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
+                                            serviceType:(NSString *)serviceType
+                                                  error:(NSError **_Nullable)error;
+
+/**
+ * Connects to a Bonjour service with PSK based TLS.
+ *
+ * @param serviceName The Bonjour name of the service.
+ * @param serviceType The Bonjour type of the service.
+ * @param PSKIdentity The PSK identity of the service.
+ * @param PSKSharedSecret The PSK shared secret of the service.
+ * @param[out] error Error that will be populated on failure.
+ * @return Returns a connected socket or nil if an error has occured.
+ */
+- (nullable GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
+                                            serviceType:(NSString *)serviceType
+                                            PSKIdentity:(NSData *)PSKIdentity
+                                        PSKSharedSecret:(NSData *)PSKSharedSecret
                                                   error:(NSError **_Nullable)error;
 
 /**
@@ -119,7 +162,7 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
-- (nullable GNCNWFrameworkSocket *)connectToHost:(nonnull GNCIPv4Address *)host
+- (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                             port:(NSInteger)port
                                includePeerToPeer:(BOOL)includePeerToPeer
                                            error:(NSError **_Nullable)error;
@@ -134,3 +177,5 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  */
 - (BOOL)isDiscoveringAnyService;
 @end
+
+NS_ASSUME_NONNULL_END

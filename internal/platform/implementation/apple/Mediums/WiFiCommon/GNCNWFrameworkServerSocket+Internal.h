@@ -16,6 +16,8 @@
 
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface GNCNWFrameworkServerSocket (Internal)
 
 /**
@@ -28,7 +30,25 @@
  * @param[out] error Error that will be populated on failure.
  * @return Returns YES when listening has successfully started.
  */
-- (BOOL)startListeningWithError:(NSError **_Nullable)error includePeerToPeer:(BOOL)peerToPeer;
+- (BOOL)startListeningWithError:(NSError **_Nullable)error
+              includePeerToPeer:(BOOL)includePeerToPeer;
+
+/**
+ * Starts listening for inbound connections with a PSK identity and shared secret.
+ *
+ * Blocks execution until listening has started or failed.
+ *
+ * @param PSKIdentity The PSK identity to use for the connection.
+ * @param PSKSharedSecret The PSK shared secret to use for the connection.
+ * @param includePeerToPeer Indicates if the server should be configured for peer-to-peer
+ * connections.
+ * @param[out] error Error that will be populated on failure.
+ * @return Returns YES when listening has successfully started.
+ */
+- (BOOL)startListeningWithPSKIdentity:(NSData *)PSKIdentify
+                      PSKSharedSecret:(NSData *)PSKSharedSecret
+                    includePeerToPeer:(BOOL)includePeerToPeer
+                                error:(NSError **_Nullable)error;
 
 /**
  * Creates a Bonjour service that advertises the listener on the local network.
@@ -37,9 +57,9 @@
  * @param serviceType The Bonjour type of the service.
  * @param txtRecords The TXT record to advertise with the service.
  */
-- (void)startAdvertisingServiceName:(nonnull NSString *)serviceName
-                        serviceType:(nonnull NSString *)serviceType
-                         txtRecords:(nonnull NSDictionary<NSString *, NSString *> *)txtRecords;
+- (void)startAdvertisingServiceName:(NSString *)serviceName
+                        serviceType:(NSString *)serviceType
+                         txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords;
 
 /**
  * Removes the Bonjour service advertisement.
@@ -47,3 +67,5 @@
 - (void)stopAdvertising;
 
 @end
+
+NS_ASSUME_NONNULL_END
