@@ -24,4 +24,10 @@
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableDct);
 }
 
++ (BOOL)gattClientDisconnectionEnabled {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableGattClientDisconnection);
+}
+
 @end

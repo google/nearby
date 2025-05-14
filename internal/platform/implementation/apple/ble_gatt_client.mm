@@ -133,9 +133,8 @@ void GattClient::Disconnect() {
   // not connect to the iOS device if the iOS device disconnects and then attempts to reconnect.
   // Because of this, we no-op here instead of calling `[gatt_client_ disconnect]`.
   // See: b/375176623
-  if (GNCFeatureFlags.dctEnabled) {
-    // Avoid to impact GTV functionality, put the disconnect for NC iOS SDK only, so thatGATT client
-    // can reconnect to the GATT server.
+  if (GNCFeatureFlags.gattClientDisconnectionEnabled) {
+    // Avoid to impact GTV functionality, so that GATT client can reconnect to the GATT server.
     [gatt_client_ disconnect];
   }
 }

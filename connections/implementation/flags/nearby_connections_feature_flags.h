@@ -104,6 +104,9 @@ constexpr auto kEnableDynamicRoleSwitch =
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
+// Enable/Disable GATT client disconnection.
+constexpr auto kEnableGattClientDisconnection =
+    flags::Flag<bool>(kConfigPackage, "45698964", false);
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
