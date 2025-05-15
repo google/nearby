@@ -244,37 +244,14 @@ api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
 }
 
 api::ble_v2::BleMedium* MediumEnvironment::FindBleV2Medium(
-    absl::string_view address) {
-  api::ble_v2::BleMedium* device = nullptr;
-  CountDownLatch latch(1);
-  LOG(INFO) << "FindBleV2Medium " << address;
-  RunOnMediumEnvironmentThread([&]() {
-    for (auto& item : ble_v2_mediums_) {
-      auto* medium = item.first;
-      auto* peripheral = item.second.ble_peripheral;
-      if (peripheral != nullptr && peripheral->GetAddress() == address) {
-        device = medium;
-        break;
-      }
-    }
-    latch.CountDown();
-  });
-  latch.Await();
-  if (device == nullptr) {
-    LOG(INFO) << "FindBleV2Medium, not found: " << address;
-  }
-  return device;
-}
-
-api::ble_v2::BleMedium* MediumEnvironment::FindBleV2Medium(uint64_t id) {
+    api::ble_v2::BlePeripheral::UniqueId id) {
   api::ble_v2::BleMedium* device = nullptr;
   CountDownLatch latch(1);
   LOG(INFO) << "FindBleV2Medium " << id;
   RunOnMediumEnvironmentThread([&]() {
     for (auto& item : ble_v2_mediums_) {
       auto* medium = item.first;
-      auto* peripheral = item.second.ble_peripheral;
-      if (peripheral != nullptr && peripheral->GetUniqueId() == id) {
+      if (item.second.ble_peripheral_id == id) {
         device = medium;
         break;
       }
@@ -313,22 +290,22 @@ void MediumEnvironment::OnBlePeripheralStateChanged(
 void MediumEnvironment::OnBleV2PeripheralStateChanged(
     bool enabled, BleV2MediumContext& context, const Uuid& service_id,
     const api::ble_v2::BleAdvertisementData& ble_advertisement_data,
-    api::ble_v2::BlePeripheral& peripheral) {
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id) {
   if (!enabled_) return;
-  LOG(INFO) << "OnBleServiceStateChanged [peripheral impl=" << &peripheral
+  LOG(INFO) << "OnBleServiceStateChanged [peripheral id=" << peripheral_id
             << "]; medium_context=" << &context
             << "; notify=" << enable_notifications_.load();
   if (!enable_notifications_) return;
-  LOG(INFO) << "[Run] OnBleServiceStateChanged [peripheral impl=" << &peripheral
+  LOG(INFO) << "[Run] OnBleServiceStateChanged [peripheral id=" << peripheral_id
             << "]; context=" << &context << "; notify=" << enabled;
 
   for (auto& element : context.scan_callback_map) {
     if (element.first.first == service_id) {
       if (enabled) {
-        element.second.advertisement_found_cb(peripheral.GetUniqueId(),
+        element.second.advertisement_found_cb(peripheral_id,
                                               ble_advertisement_data);
       } else {
-        element.second.advertisement_lost_cb(peripheral.GetUniqueId());
+        element.second.advertisement_lost_cb(peripheral_id);
       }
     }
   }
@@ -643,21 +620,22 @@ void MediumEnvironment::CallBleAcceptedConnectionCallback(
 }
 
 void MediumEnvironment::RegisterBleV2Medium(
-    api::ble_v2::BleMedium& medium, api::ble_v2::BlePeripheral* peripheral) {
+    api::ble_v2::BleMedium& medium,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium, peripheral]() {
+  RunOnMediumEnvironmentThread([this, &medium, peripheral_id]() {
     ble_v2_mediums_.insert(
-        {&medium, BleV2MediumContext{.ble_peripheral = peripheral}});
+        {&medium, BleV2MediumContext{.ble_peripheral_id = peripheral_id}});
     LOG(INFO) << "Registered: BLE V2 medium:" << &medium;
   });
 }
 
 void MediumEnvironment::UpdateBleV2MediumForAdvertising(
     bool enabled, api::ble_v2::BleMedium& medium,
-    api::ble_v2::BlePeripheral& peripheral,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
     const api::ble_v2::BleAdvertisementData& advertisement_data) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium, &peripheral,
+  RunOnMediumEnvironmentThread([this, &medium, peripheral_id,
                                 advertisement_data = advertisement_data,
                                 enabled]() {
     auto it = ble_v2_mediums_.find(&medium);
@@ -667,13 +645,13 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
       return;
     }
     auto& context = it->second;
-    context.ble_peripheral = &peripheral;
+    context.ble_peripheral_id = peripheral_id;
     context.advertising = enabled;
     context.advertisement_data = advertisement_data;
 
     LOG(INFO) << "UpdateBleV2MediumForAdvertising: this=" << this
               << ", medium=" << &medium << ", medium_context=" << &context
-              << ", peripheral=" << &peripheral << ", enabled=" << enabled;
+              << ", peripheral id=" << peripheral_id << ", enabled=" << enabled;
 
     for (auto& medium_info : ble_v2_mediums_) {
       const api::ble_v2::BleMedium* remote_medium = medium_info.first;
@@ -703,11 +681,11 @@ void MediumEnvironment::UpdateBleV2MediumForAdvertising(
                   << remote_medium
                   << ", remote_medium_context=" << &remote_context
                   << ", remote_context.peripheral="
-                  << remote_context.ble_peripheral
+                  << remote_context.ble_peripheral_id
                   << ". Ready to call OnBleV2PeripheralStateChanged.";
         OnBleV2PeripheralStateChanged(
             enabled, remote_context, remote_scanning_service_uuid,
-            context.advertisement_data, *context.ble_peripheral);
+            context.advertisement_data, context.ble_peripheral_id);
       }
     }
   });
@@ -761,7 +739,7 @@ void MediumEnvironment::UpdateBleV2MediumForScanning(
                     << ". Ready to call OnBleV2PeripheralStateChanged.";
           OnBleV2PeripheralStateChanged(enabled, context, scanning_service_uuid,
                                         remote_context.advertisement_data,
-                                        *remote_context.ble_peripheral);
+                                        remote_context.ble_peripheral_id);
         }
       }
     } else {
@@ -1289,10 +1267,11 @@ std::optional<FakeClock*> MediumEnvironment::GetSimulatedClock() {
 }
 
 void MediumEnvironment::RegisterGattServer(
-    api::ble_v2::BleMedium& medium, api::ble_v2::BlePeripheral* peripheral,
+    api::ble_v2::BleMedium& medium,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
     Borrowable<api::ble_v2::GattServer*> gatt_server) {
   if (!enabled_) return;
-  RunOnMediumEnvironmentThread([this, &medium, peripheral, gatt_server]() {
+  RunOnMediumEnvironmentThread([this, &medium, peripheral_id, gatt_server]() {
     auto it = ble_v2_mediums_.find(&medium);
     if (it == ble_v2_mediums_.end()) {
       LOG(WARNING) << "Register GattServer failed. There is no medium"
@@ -1303,8 +1282,8 @@ void MediumEnvironment::RegisterGattServer(
     CHECK_EQ(context.gatt_server, nullptr);
     context.gatt_server =
         std::make_unique<Borrowable<api::ble_v2::GattServer*>>(gatt_server);
-    context.ble_peripheral = peripheral;
-    LOG(INFO) << "Registered: GattServer for " << peripheral->GetAddress()
+    context.ble_peripheral_id = peripheral_id;
+    LOG(INFO) << "Registered: GattServer for peripheral id:" << peripheral_id
               << " on medium:" << &medium;
   });
 }
@@ -1322,11 +1301,11 @@ void MediumEnvironment::UnregisterGattServer(api::ble_v2::BleMedium& medium) {
       return;
     }
     auto& context = it->second;
-    LOG(INFO) << "Unregistered GattServer for "
-              << context.ble_peripheral->GetAddress()
+    LOG(INFO) << "Unregistered GattServer for peripheral id:"
+              << context.ble_peripheral_id
               << " on medium:" << &medium;
     context.gatt_server = nullptr;
-    context.ble_peripheral = nullptr;
+    context.ble_peripheral_id = 0LL;
     latch.CountDown();
   });
   latch.Await();
@@ -1340,10 +1319,8 @@ Borrowable<api::ble_v2::GattServer*> MediumEnvironment::GetGattServer(
   RunOnMediumEnvironmentThread([&]() {
     for (const auto& medium_info : ble_v2_mediums_) {
       const BleV2MediumContext& remote_context = medium_info.second;
-      const api::ble_v2::BlePeripheral* ble_peripheral =
-          remote_context.ble_peripheral;
-      if (remote_context.gatt_server != nullptr && ble_peripheral != nullptr &&
-          (ble_peripheral->GetUniqueId() == peripheral_id)) {
+      if (remote_context.gatt_server != nullptr &&
+          remote_context.ble_peripheral_id == peripheral_id) {
         if (remote_context.gatt_server == nullptr) {
           break;
         }

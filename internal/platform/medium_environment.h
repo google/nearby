@@ -26,7 +26,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "absl/types/optional.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/implementation/awdl.h"
@@ -163,9 +162,6 @@ class MediumEnvironment {
   // Returns a Bluetooth Device object matching given mac address to nullptr.
   api::BluetoothDevice* FindBluetoothDevice(const std::string& mac_address);
 
-  api::ble_v2::BlePeripheral* FindBleV2Peripheral(
-      absl::string_view mac_address);
-
   const EnvironmentConfig& GetEnvironmentConfig();
 #ifndef NO_WEBRTC
   // Registers |message_callback| to receive messages sent to device with id
@@ -242,13 +238,13 @@ class MediumEnvironment {
   // The registered `medium` must refer to a valid instance that outlives this
   // object.
   void RegisterBleV2Medium(api::ble_v2::BleMedium& medium,
-                           api::ble_v2::BlePeripheral* peripheral);
+                           api::ble_v2::BlePeripheral::UniqueId peripheral_id);
 
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.
   void UpdateBleV2MediumForAdvertising(
       bool enabled, api::ble_v2::BleMedium& medium,
-      api::ble_v2::BlePeripheral& peripheral,
+      api::ble_v2::BlePeripheral::UniqueId peripheral_id,
       const api::ble_v2::BleAdvertisementData& advertisement_data);
 
   // Updates discovery callback info to allow for dispatch of discovery events.
@@ -379,11 +375,11 @@ class MediumEnvironment {
 
   std::optional<FakeClock*> GetSimulatedClock();
 
-  api::ble_v2::BleMedium* FindBleV2Medium(absl::string_view address);
-  api::ble_v2::BleMedium* FindBleV2Medium(uint64_t id);
+  api::ble_v2::BleMedium* FindBleV2Medium(
+      api::ble_v2::BlePeripheral::UniqueId id);
 
   void RegisterGattServer(api::ble_v2::BleMedium& medium,
-                          api::ble_v2::BlePeripheral* peripheral,
+                          api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                           Borrowable<api::ble_v2::GattServer*> gatt_server);
   void UnregisterGattServer(api::ble_v2::BleMedium& medium);
 
@@ -447,7 +443,7 @@ class MediumEnvironment {
     absl::flat_hash_map<std::pair<Uuid, std::uint32_t>, BleScanCallback>
         scan_callback_map;
     // using the same ble peripheral for different advertisement.
-    api::ble_v2::BlePeripheral* ble_peripheral;
+    api::ble_v2::BlePeripheral::UniqueId ble_peripheral_id;
     api::ble_v2::BleAdvertisementData advertisement_data;
     bool advertising = false;
     bool scanning = false;
@@ -518,7 +514,7 @@ class MediumEnvironment {
   void OnBleV2PeripheralStateChanged(
       bool enabled, BleV2MediumContext& context, const Uuid& service_id,
       const api::ble_v2::BleAdvertisementData& ble_advertisement_data,
-      api::ble_v2::BlePeripheral& peripheral);
+      api::ble_v2::BlePeripheral::UniqueId peripheral_id);
 
   void OnWifiLanServiceStateChanged(WifiLanMediumContext& info,
                                     const NsdServiceInfo& service_info,

@@ -715,7 +715,7 @@ TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
               [&](const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
                   const api::ble_v2::GattCharacteristic& characteristic,
                   int offset, absl::string_view data,
-                  BleV2Medium::ServerGattConnectionCallback::WriteValueCallback
+                  api::ble_v2::ServerGattConnectionCallback::WriteValueCallback
                       callback) {
                 written_data = data;
                 callback(absl::OkStatus());

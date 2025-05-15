@@ -190,8 +190,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   BluetoothAdapter& GetAdapter() { return *adapter_; }
 
-  api::ble_v2::BlePeripheral& GetPeripheral() { return peripheral_; }
-
  private:
   class GattClient;
   // A concrete implementation for GattServer.
@@ -251,7 +249,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
     absl::Mutex mutex_;
     BleV2Medium& medium_;
     api::ble_v2::ServerGattConnectionCallback callback_;
-    api::ble_v2::BlePeripheral ble_peripheral_;
     absl::flat_hash_map<api::ble_v2::GattCharacteristic,
                         absl::StatusOr<ByteArray>>
         characteristics_ ABSL_GUARDED_BY(mutex_);
@@ -308,10 +305,6 @@ class BleV2Medium : public api::ble_v2::BleMedium {
   bool IsStopped(Borrowable<api::ble_v2::GattServer*> server);
   absl::Mutex mutex_;
   BluetoothAdapter* adapter_;  // Our device adapter; read-only.
-  api::ble_v2::BlePeripheral peripheral_;
-  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId,
-                      std::unique_ptr<api::ble_v2::BlePeripheral>>
-      remote_peripherals_ ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_map<std::string, BleV2ServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>

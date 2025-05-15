@@ -38,7 +38,6 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
@@ -74,8 +73,12 @@ api::ble_v2::BlePeripheral::UniqueId BleV2Socket::GetRemotePeripheralId() {
       remote_socket->adapter_->GetBleV2Medium() == nullptr) {
     return 0LL;
   }
-  return dynamic_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium())
-               ->GetPeripheral().GetUniqueId();
+  BleV2Medium* medium =
+      dynamic_cast<BleV2Medium*>(remote_socket->adapter_->GetBleV2Medium());
+  if (medium == nullptr) {
+    return 0LL;
+  }
+  return medium->GetAdapter().GetUniqueId();
 }
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {
@@ -146,13 +149,14 @@ Exception BleV2ServerSocket::DoClose() {
 }
 
 BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
-    : adapter_(static_cast<BluetoothAdapter*>(&adapter)),
-      peripheral_(adapter_->GetUniqueId(), adapter_->mac_address()) {
+    : adapter_(dynamic_cast<BluetoothAdapter*>(&adapter)) {
+  CHECK(adapter_);
   adapter_->SetBleV2Medium(this);
   is_extended_advertisements_available_ =
       MediumEnvironment::Instance().IsBleExtendedAdvertisementsAvailable();
 
-  MediumEnvironment::Instance().RegisterBleV2Medium(*this, &peripheral_);
+  MediumEnvironment::Instance().RegisterBleV2Medium(*this,
+                                                    adapter_->GetUniqueId());
 }
 
 BleV2Medium::~BleV2Medium() {
@@ -179,7 +183,7 @@ bool BleV2Medium::StartAdvertising(
 
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, GetPeripheral(), advertising_data);
+      /*enabled=*/true, *this, adapter_->GetUniqueId(), advertising_data);
   return true;
 }
 
@@ -189,7 +193,7 @@ bool BleV2Medium::StopAdvertising() {
 
   BleAdvertisementData empty_advertisement_data = {};
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/false, *this, /*mutable=*/GetPeripheral(),
+      /*enabled=*/false, *this, adapter_->GetUniqueId(),
       empty_advertisement_data);
   return true;
 }
@@ -217,7 +221,7 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
   }
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, GetPeripheral(), advertising_data);
+      /*enabled=*/true, *this, adapter_->GetUniqueId(), advertising_data);
   return std::make_unique<AdvertisingSession>(
       AdvertisingSession{.stop_advertising = [this] {
         return StopAdvertising()
@@ -353,12 +357,8 @@ BleV2Medium::GattServer::GattServer(
     BleV2Medium& medium, api::ble_v2::ServerGattConnectionCallback callback)
     : medium_(medium), callback_(std::move(callback)) {
   BluetoothAdapter& adapter = medium.GetAdapter();
-  MacAddress address;
-  MacAddress::FromString(adapter.GetMacAddress(), address);
-  ble_peripheral_ = api::ble_v2::BlePeripheral(adapter.GetUniqueId(), address);
-  ble_peripheral_.SetPlatformData(&adapter);
-  MediumEnvironment::Instance().RegisterGattServer(medium_, &ble_peripheral_,
-                                                   lender_.GetBorrowable());
+  MediumEnvironment::Instance().RegisterGattServer(
+      medium_, adapter.GetUniqueId(), lender_.GetBorrowable());
 }
 
 BleV2Medium::GattServer::~GattServer() {
@@ -736,7 +736,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 Ble Connect [self]: medium=" << this
             << ", adapter=" << &GetAdapter()
-            << ", peripheral=" << &GetPeripheral()
+            << ", peripheral id=" << adapter_->GetUniqueId()
             << ", service_id=" << service_id;
   // First, find an instance of remote medium, that exposed this peripheral.
   BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(

@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
@@ -462,27 +461,24 @@ class BleV2Medium final {
   };
 
   struct ServerGattConnectionCallback {
-    using BlePeripheral = api::ble_v2::BlePeripheral;
-    using GattCharacteristic = api::ble_v2::GattCharacteristic;
-    using ReadValueCallback =
-        api::ble_v2::ServerGattConnectionCallback::ReadValueCallback;
-    using WriteValueCallback =
-        api::ble_v2::ServerGattConnectionCallback::WriteValueCallback;
-
-    absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
+    absl::AnyInvocable<void(
+        const api::ble_v2::GattCharacteristic& characteristic)>
         characteristic_subscription_cb =
-            nearby::DefaultCallback<const GattCharacteristic&>();
-    absl::AnyInvocable<void(const GattCharacteristic& characteristic)>
+            nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
+    absl::AnyInvocable<void(
+        const api::ble_v2::GattCharacteristic& characteristic)>
         characteristic_unsubscription_cb =
-            nearby::DefaultCallback<const GattCharacteristic&>();
-    absl::AnyInvocable<void(const BlePeripheral::UniqueId remote_device_id,
-                            const GattCharacteristic& characteristic,
-                            int offset, ReadValueCallback callback)>
+            nearby::DefaultCallback<const api::ble_v2::GattCharacteristic&>();
+    absl::AnyInvocable<void(
+        const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+        const api::ble_v2::GattCharacteristic& characteristic, int offset,
+        api::ble_v2::ServerGattConnectionCallback::ReadValueCallback callback)>
         on_characteristic_read_cb;
-    absl::AnyInvocable<void(const BlePeripheral::UniqueId remote_device_id,
-                            const GattCharacteristic& characteristic,
-                            int offset, absl::string_view data,
-                            WriteValueCallback callback)>
+    absl::AnyInvocable<void(
+        const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
+        const api::ble_v2::GattCharacteristic& characteristic, int offset,
+        absl::string_view data,
+        api::ble_v2::ServerGattConnectionCallback::WriteValueCallback callback)>
         on_characteristic_write_cb;
   };
   // TODO(b/231318879): Remove this wrapper callback and use impl callback if
