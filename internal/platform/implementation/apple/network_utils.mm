@@ -114,6 +114,32 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
   return nil;
 }
 
+GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
+                                       const NsdServiceInfo& remote_service_info,
+                                       const api::PskInfo& psk_info,
+                                       CancellationFlag* cancellation_flag) {
+  NSError* error = nil;
+  NSString* serviceName = @(remote_service_info.GetServiceName().c_str());
+  NSString* serviceType = @(remote_service_info.GetServiceType().c_str());
+  NSData* pskIdentity = [NSData dataWithBytes:psk_info.identity.data()
+                                       length:psk_info.identity.size()];
+  NSData* pskPassword = [NSData dataWithBytes:psk_info.password.data()
+                                       length:psk_info.password.size()];
+  GNCNWFrameworkSocket* socket = [medium connectToServiceName:serviceName
+                                                  serviceType:serviceType
+                                                  PSKIdentity:pskIdentity
+                                              PSKSharedSecret:pskPassword
+                                                        error:&error];
+  if (socket) {
+    return socket;
+  }
+  if (error != nil) {
+    GTMLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
+                   error);
+  }
+  return nil;
+}
+
 GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string& ip_address,
                                        int port, bool include_peer_to_peer,
                                        CancellationFlag* cancellation_flag) {
@@ -147,6 +173,32 @@ GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
   GNCNWFrameworkServerSocket* serverSocket = [medium listenForServiceOnPort:port
                                                           includePeerToPeer:include_peer_to_peer
                                                                       error:&error];
+  if (serverSocket != nil) {
+    return serverSocket;
+  }
+  if (error != nil) {
+    GTMLoggerError(@"Error listening for service: %@", error);
+  }
+  return nil;
+}
+
+GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::PskInfo& psk_info,
+                                             int port, bool include_peer_to_peer) {
+  if (medium.isListeningForAnyService) {
+    GTMLoggerError(@"Error already listening for service");
+    return nil;
+  }
+  NSError* error = nil;
+  NSData* pskIdentity = [NSData dataWithBytes:psk_info.identity.data()
+                                       length:psk_info.identity.size()];
+  NSData* pskPassword = [NSData dataWithBytes:psk_info.password.data()
+                                       length:psk_info.password.size()];
+  GNCNWFrameworkServerSocket* serverSocket =
+      [medium listenForServiceWithPSKIdentity:pskIdentity
+                              PSKSharedSecret:pskPassword
+                                         port:port
+                            includePeerToPeer:include_peer_to_peer
+                                        error:&error];
   if (serverSocket != nil) {
     return serverSocket;
   }

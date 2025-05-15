@@ -156,6 +156,7 @@ objc_library(
     deps = [
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Mediums",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
         "@com_google_absl//absl/functional:any_invocable",

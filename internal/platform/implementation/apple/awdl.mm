@@ -122,8 +122,7 @@ Exception AwdlServerSocket::Close() {
 
 #pragma mark - AwdlMedium
 
-AwdlMedium::AwdlMedium(bool include_peer_to_peer)
-    : medium_([GNCNWFramework sharedInstance]) {}
+AwdlMedium::AwdlMedium(bool include_peer_to_peer) : medium_([GNCNWFramework sharedInstance]) {}
 
 bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);
@@ -134,7 +133,7 @@ bool AwdlMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 }
 
 bool AwdlMedium::StartDiscovery(const std::string& service_type,
-                                   DiscoveredServiceCallback callback) {
+                                DiscoveredServiceCallback callback) {
   service_callback_ = std::move(callback);
   network_utils::NetworkDiscoveredServiceCallback network_callback = {
       .network_service_discovered_cb =
@@ -146,7 +145,7 @@ bool AwdlMedium::StartDiscovery(const std::string& service_type,
             service_callback_.service_lost_cb(service_info);
           }};
   return network_utils::StartDiscovery(medium_, service_type, std::move(network_callback),
-                                  /*include_peer_to_peer=*/true);
+                                       /*include_peer_to_peer=*/true);
 }
 
 bool AwdlMedium::StopDiscovery(const std::string& service_type) {
@@ -164,9 +163,10 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
 }
 
 std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
-    const std::string& ip_address, int port, CancellationFlag* cancellation_flag) {
-  GNCNWFrameworkSocket* socket = network_utils::ConnectToService(
-      medium_, ip_address, port, /*include_peer_to_peer=*/true, cancellation_flag);
+    const NsdServiceInfo& remote_service_info, const api::PskInfo& psk_info,
+    CancellationFlag* cancellation_flag) {
+  GNCNWFrameworkSocket* socket =
+      network_utils::ConnectToService(medium_, remote_service_info, psk_info, cancellation_flag);
   if (socket != nil) {
     return std::make_unique<AwdlSocket>(socket);
   }
@@ -176,6 +176,16 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
 std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(int port) {
   GNCNWFrameworkServerSocket* serverSocket =
       network_utils::ListenForService(medium_, port, /*include_peer_to_peer=*/true);
+  if (serverSocket != nil) {
+    return std::make_unique<AwdlServerSocket>(serverSocket);
+  }
+  return nil;
+}
+
+std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(const api::PskInfo& psk_info,
+                                                                    int port) {
+  GNCNWFrameworkServerSocket* serverSocket =
+      network_utils::ListenForService(medium_, psk_info, port, /*include_peer_to_peer=*/true);
   if (serverSocket != nil) {
     return std::make_unique<AwdlServerSocket>(serverSocket);
   }

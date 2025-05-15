@@ -19,6 +19,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -27,6 +28,7 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/awdl.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
@@ -34,8 +36,7 @@
 namespace nearby {
 namespace g3 {
 
-std::string AwdlServerSocket::GetName(const std::string& ip_address,
-                                         int port) {
+std::string AwdlServerSocket::GetName(const std::string& ip_address, int port) {
   std::string dot_delimited_string;
   if (!ip_address.empty()) {
     for (auto byte : ip_address) {
@@ -70,8 +71,7 @@ bool AwdlServerSocket::Connect(AwdlSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    NEARBY_LOGS(ERROR)
-        << "Failed to connect to Awdl server socket: already connected";
+    LOG(ERROR) << "Failed to connect to Awdl server socket: already connected";
     return true;  // already connected.
   }
   // add client socket to the pending list
@@ -84,8 +84,7 @@ bool AwdlServerSocket::Connect(AwdlSocket& socket) {
   return true;
 }
 
-void AwdlServerSocket::SetCloseNotifier(
-    absl::AnyInvocable<void()> notifier) {
+void AwdlServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
   absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }
@@ -129,23 +128,22 @@ AwdlMedium::~AwdlMedium() {
 
 bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   std::string service_type = nsd_service_info.GetServiceType();
-  NEARBY_LOGS(INFO) << "G3 Awdl StartAdvertising: nsd_service_info="
-                    << &nsd_service_info
-                    << ", service_name=" << nsd_service_info.GetServiceName()
-                    << ", service_type=" << service_type;
+  LOG(INFO) << "G3 AWDL StartAdvertising: nsd_service_info="
+            << &nsd_service_info
+            << ", service_name=" << nsd_service_info.GetServiceName()
+            << ", service_type=" << service_type;
   {
     absl::MutexLock lock(&mutex_);
     if (advertising_info_.Existed(service_type)) {
-      NEARBY_LOGS(INFO)
-          << "G3 Awdl StartAdvertising: Can't start advertising because "
-             "service_type="
-          << service_type << ", has started already.";
+      LOG(INFO) << "G3 AWDL StartAdvertising: Can't start advertising because "
+                   "service_type="
+                << service_type << ", has started already.";
       return false;
     }
   }
   auto& env = MediumEnvironment::Instance();
   env.UpdateAwdlMediumForAdvertising(*this, nsd_service_info,
-                                        /*enabled=*/true);
+                                     /*enabled=*/true);
   {
     absl::MutexLock lock(&mutex_);
     advertising_info_.Add(service_type);
@@ -155,44 +153,40 @@ bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
 
 bool AwdlMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
   std::string service_type = nsd_service_info.GetServiceType();
-  NEARBY_LOGS(INFO) << "G3 Awdl StopAdvertising: nsd_service_info="
-                    << &nsd_service_info
-                    << ", service_name=" << nsd_service_info.GetServiceName()
-                    << ", service_type=" << service_type;
+  LOG(INFO) << "G3 AWDL StopAdvertising: nsd_service_info=" << &nsd_service_info
+            << ", service_name=" << nsd_service_info.GetServiceName()
+            << ", service_type=" << service_type;
   {
     absl::MutexLock lock(&mutex_);
     if (!advertising_info_.Existed(service_type)) {
-      NEARBY_LOGS(INFO)
-          << "G3 Awdl StopAdvertising: Can't stop advertising because "
-             "we never started advertising for service_type="
-          << service_type;
+      LOG(INFO) << "G3 AWDL StopAdvertising: Can't stop advertising because "
+                   "we never started advertising for service_type="
+                << service_type;
       return false;
     }
     advertising_info_.Remove(service_type);
   }
   auto& env = MediumEnvironment::Instance();
   env.UpdateAwdlMediumForAdvertising(*this, nsd_service_info,
-                                        /*enabled=*/false);
+                                     /*enabled=*/false);
   return true;
 }
 
 bool AwdlMedium::StartDiscovery(const std::string& service_type,
-                                   DiscoveredServiceCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Awdl StartDiscovery: service_type="
-                    << service_type;
+                                DiscoveredServiceCallback callback) {
+  LOG(INFO) << "G3 AWDL StartDiscovery: service_type=" << service_type;
   {
     absl::MutexLock lock(&mutex_);
     if (discovering_info_.Existed(service_type)) {
-      NEARBY_LOGS(INFO)
-          << "G3 Awdl StartDiscovery: Can't start discovery because "
-             "service_type="
-          << service_type << " has started already.";
+      LOG(INFO) << "G3 AWDL StartDiscovery: Can't start discovery because "
+                   "service_type="
+                << service_type << " has started already.";
       return false;
     }
   }
   auto& env = MediumEnvironment::Instance();
   env.UpdateAwdlMediumForDiscovery(*this, std::move(callback), service_type,
-                                      true);
+                                   true);
   {
     absl::MutexLock lock(&mutex_);
     discovering_info_.Add(service_type);
@@ -201,14 +195,12 @@ bool AwdlMedium::StartDiscovery(const std::string& service_type,
 }
 
 bool AwdlMedium::StopDiscovery(const std::string& service_type) {
-  NEARBY_LOGS(INFO) << "G3 Awdl StopDiscovery: service_type="
-                    << service_type;
+  LOG(INFO) << "G3 AWDL StopDiscovery: service_type=" << service_type;
   {
     absl::MutexLock lock(&mutex_);
     if (!discovering_info_.Existed(service_type)) {
-      NEARBY_LOGS(INFO)
-          << "G3 Awdl StopDiscovery: Can't stop discovering because we "
-             "never started discovering.";
+      LOG(INFO) << "G3 AWDL StopDiscovery: Can't stop discovering because we "
+                   "never started discovering.";
       return false;
     }
     discovering_info_.Remove(service_type);
@@ -222,8 +214,8 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info,
     CancellationFlag* cancellation_flag) {
   std::string service_type = remote_service_info.GetServiceType();
-  NEARBY_LOGS(INFO) << "G3 Awdl ConnectToService [self]: medium=" << this
-                    << ", service_type=" << service_type;
+  LOG(INFO) << "G3 AWDL ConnectToService [self]: medium=" << this
+            << ", service_type=" << service_type;
   return ConnectToService(remote_service_info.GetIPAddress(),
                           remote_service_info.GetPort(), cancellation_flag);
 }
@@ -232,8 +224,8 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
   std::string socket_name = AwdlServerSocket::GetName(ip_address, port);
-  NEARBY_LOGS(INFO) << "G3 Awdl ConnectToService [self]: medium=" << this
-                    << ", ip address + port=" << socket_name;
+  LOG(INFO) << "G3 AWDL ConnectToService [self]: medium=" << this
+            << ", ip address + port=" << socket_name;
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium =
@@ -243,9 +235,8 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
   }
 
   AwdlServerSocket* server_socket = nullptr;
-  NEARBY_LOGS(INFO) << "G3 Awdl ConnectToService [peer]: medium="
-                    << remote_medium
-                    << ", remote ip address + port=" << socket_name;
+  LOG(INFO) << "G3 AWDL ConnectToService [peer]: medium=" << remote_medium
+            << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&remote_medium->mutex_);
@@ -253,21 +244,20 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
-      NEARBY_LOGS(ERROR)
-          << "G3 Awdl Failed to find Awdl Server socket: socket_name="
-          << socket_name;
+      LOG(ERROR) << "G3 AWDL Failed to find Awdl Server socket: socket_name="
+                 << socket_name;
       return {};
     }
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(ERROR) << "G3 Awdl Connect: Has been cancelled: socket_name="
-                       << socket_name;
+    LOG(ERROR) << "G3 AWDL Connect: Has been cancelled: socket_name="
+               << socket_name;
     return {};
   }
 
   CancellationFlagListener listener(cancellation_flag, [&server_socket]() {
-    NEARBY_LOGS(INFO) << "G3 Awdl Cancel Connect.";
+    LOG(INFO) << "G3 AWDL Cancel Connect.";
     if (server_socket != nullptr) {
       server_socket->Close();
     }
@@ -276,18 +266,26 @@ std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
   auto socket = std::make_unique<AwdlSocket>();
   // Finally, Request to connect to this socket.
   if (!server_socket->Connect(*socket)) {
-    NEARBY_LOGS(ERROR) << "G3 Awdl Failed to connect to existing Awdl "
-                          "Server socket: name="
-                       << socket_name;
+    LOG(ERROR) << "G3 AWDL Failed to connect to existing Awdl "
+                  "Server socket: name="
+               << socket_name;
     return {};
   }
-  NEARBY_LOGS(INFO) << "G3 Awdl ConnectToService: connected: socket="
-                    << socket.get();
+  LOG(INFO) << "G3 AWDL ConnectToService: connected: socket=" << socket.get();
   return socket;
 }
 
-std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(
-    int port) {
+std::unique_ptr<api::AwdlSocket> AwdlMedium::ConnectToService(
+    const NsdServiceInfo& remote_service_info, const api::PskInfo& psk_info,
+    CancellationFlag* cancellation_flag) {
+  std::string service_type = remote_service_info.GetServiceType();
+  LOG(INFO) << "G3 AWDL ConnectToService [self]: medium=" << this
+            << ", service_type=" << service_type;
+  return ConnectToService(remote_service_info.GetIPAddress(),
+                          remote_service_info.GetPort(), cancellation_flag);
+}
+
+std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(int port) {
   auto& env = MediumEnvironment::Instance();
   auto server_socket = std::make_unique<AwdlServerSocket>();
   server_socket->SetIPAddress(env.GetFakeIPAddress());
@@ -298,11 +296,16 @@ std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(
     absl::MutexLock lock(&mutex_);
     server_sockets_.erase(socket_name);
   });
-  NEARBY_LOGS(INFO) << "G3 Awdl Adding server socket: medium=" << this
-                    << ", socket_name=" << socket_name;
+  LOG(INFO) << "G3 AWDL Adding server socket: medium=" << this
+            << ", socket_name=" << socket_name;
   absl::MutexLock lock(&mutex_);
   server_sockets_.insert({socket_name, server_socket.get()});
   return server_socket;
+}
+
+std::unique_ptr<api::AwdlServerSocket> AwdlMedium::ListenForService(
+    const api::PskInfo& psk_info, int port) {
+  return ListenForService(port);
 }
 
 }  // namespace g3

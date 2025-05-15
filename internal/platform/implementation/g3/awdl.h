@@ -15,17 +15,22 @@
 #ifndef PLATFORM_IMPL_G3_AWDL_H_
 #define PLATFORM_IMPL_G3_AWDL_H_
 
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
-#include "internal/platform/implementation/g3/socket_base.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/awdl.h"
+#include "internal/platform/implementation/g3/socket_base.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
@@ -186,11 +191,11 @@ class AwdlMedium : public api::AwdlMedium {
       const NsdServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Connects to a Awdl service by ip address and port.
+  // Connects to a AWDL service using PSK-based TLS.
   // On success, returns a new AwdlSocket.
   // On error, returns nullptr.
   std::unique_ptr<api::AwdlSocket> ConnectToService(
-      const std::string& ip_address, int port,
+      const NsdServiceInfo& remote_service_info, const api::PskInfo& psk_info,
       CancellationFlag* cancellation_flag) override ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Listens for incoming connection.
@@ -203,8 +208,20 @@ class AwdlMedium : public api::AwdlMedium {
   std::unique_ptr<api::AwdlServerSocket> ListenForService(int port) override
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Listens for incoming connection using PSK-based TLS.
+  //
+  // psk_info - The PSK info to use for TLS.
+  // port - A port number.
+  //         0 : use a random port.
+  //   1~65536 : open a server socket on that exact port.
+  // On success, returns a new AwdlServerSocket.
+  // On error, returns nullptr.
+  std::unique_ptr<api::AwdlServerSocket> ListenForService(
+      const api::PskInfo& psk_info, int port) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Returns the port range as a pair of min and max port.
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
+  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
       override {
     return std::make_pair(49152, 65535);
   }
@@ -240,6 +257,10 @@ class AwdlMedium : public api::AwdlMedium {
 
     absl::flat_hash_set<std::string> service_types;
   };
+
+  std::unique_ptr<api::AwdlSocket> ConnectToService(
+      const std::string& ip_address, int port,
+      CancellationFlag* cancellation_flag);
 
   absl::Mutex mutex_;
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);

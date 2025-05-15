@@ -24,6 +24,7 @@
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
@@ -136,11 +137,11 @@ class AwdlMedium {
       const NsdServiceInfo& remote_service_info,
       CancellationFlag* cancellation_flag) = 0;
 
-  // Connects to a AWDL service by ip address and port.
+  // Connects to a AWDL service using PSK-based TLS.
   // On success, returns a new AwdlSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<AwdlSocket> ConnectToService(
-      const std::string& ip_address, int port,
+      const NsdServiceInfo& remote_service_info, const PskInfo& psk_info,
       CancellationFlag* cancellation_flag) = 0;
 
   // Listens for incoming connection.
@@ -151,6 +152,17 @@ class AwdlMedium {
   // On success, returns a new AwdlServerSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<AwdlServerSocket> ListenForService(int port) = 0;
+
+  // Listens for incoming connection using PSK-based TLS.
+  //
+  // psk_info - The PSK info to use for TLS.
+  // port - A port number.
+  //         0 : use a random port.
+  //   1~65536 : open a server socket on that exact port.
+  // On success, returns a new AwdlServerSocket.
+  // On error, returns nullptr.
+  virtual std::unique_ptr<AwdlServerSocket> ListenForService(
+      const PskInfo& psk_info, int port) = 0;
 
   // Returns the port range as a pair of min and max port.
   virtual std::optional<std::pair<std::int32_t, std::int32_t>>

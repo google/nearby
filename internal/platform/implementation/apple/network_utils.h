@@ -18,6 +18,7 @@
 #include <functional>
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
 
@@ -48,6 +49,17 @@ struct NetworkDiscoveredServiceCallback {
  */
 GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
                                              bool include_peer_to_peer);
+
+/**
+ * Starts listening for incoming connections using PSK based TLS on the specified port.
+ * @param medium The NW framework to use.
+ * @param psk_info The PSK info to use for listening.
+ * @param port The port to listen on.
+ * @param include_peer_to_peer Whether to include peer-to-peer connections.
+ * @return A pointer to the server socket.
+ */
+GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::PskInfo& psk_info,
+                                             int port, bool include_peer_to_peer);
 
 /**
  *  Starts advertising a service with the specified service info.
@@ -110,6 +122,20 @@ bool StopDiscovery(GNCNWFramework* medium, const std::string& service_type);
  */
 GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
                                        const NsdServiceInfo& remote_service_info,
+                                       CancellationFlag* cancellation_flag);
+
+/**
+ * Connects to the specified service using PSK based TLS.
+ *
+ * @param medium The NW framework to use.
+ * @param remote_service_info The service info to connect to.
+ * @param psk_info The PSK info to use for connection.
+ * @param cancellation_flag The cancellation flag to use.
+ * @return A pointer to the socket.
+ */
+GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
+                                       const NsdServiceInfo& remote_service_info,
+                                       const api::PskInfo& psk_info,
                                        CancellationFlag* cancellation_flag);
 
 /**

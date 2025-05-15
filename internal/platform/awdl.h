@@ -30,6 +30,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
@@ -240,10 +241,23 @@ class AwdlMedium {
   AwdlSocket ConnectToService(const NsdServiceInfo& remote_service_info,
                               CancellationFlag* cancellation_flag);
 
+  // Returns a new AwdlSocket.
+  // On Success, AwdlSocket::IsValid() returns true.
+  AwdlSocket ConnectToService(const NsdServiceInfo& remote_service_info,
+                              const api::PskInfo& psk_info,
+                              CancellationFlag* cancellation_flag);
+
   // Returns a new AwdlServerSocket.
   // On Success, AwdlServerSocket::IsValid() returns true.
   AwdlServerSocket ListenForService(int port = 0) {
     return AwdlServerSocket(impl_->ListenForService(port));
+  }
+
+  // Returns a new AwdlServerSocket.
+  // On Success, AwdlServerSocket::IsValid() returns true.
+  AwdlServerSocket ListenForService(const api::PskInfo& psk_info,
+                                    int port = 0) {
+    return AwdlServerSocket(impl_->ListenForService(psk_info, port));
   }
 
   // Returns the port range as a pair of min and max port.
