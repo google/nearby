@@ -229,12 +229,16 @@ NC_INSTANCE NcCreateService() {
       true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableDct,
+      false);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableDynamicRoleSwitch,
-      true);
+      false);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableBleL2cap,
-      true);
+      false);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableGattClientDisconnection,
@@ -243,7 +247,6 @@ NC_INSTANCE NcCreateService() {
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableAwdl,
       true);
-
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableStopBLEScanningOnWifiUpgrade,
