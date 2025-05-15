@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -30,6 +31,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -217,74 +219,22 @@ bool Awdl::IsDiscoveringLocked(const std::string& service_id) {
 ErrorOr<bool> Awdl::StartAcceptingConnections(
     const std::string& service_id, AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
+  return InternalStartAcceptingConnections(service_id, std::nullopt,
+                                           std::move(callback));
+}
 
-  if (service_id.empty()) {
-    LOG(INFO) << "Refusing to start accepting Awdl connections; "
-                 "service_id is empty.";
-    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+ErrorOr<bool> Awdl::StartAcceptingConnections(
+    const std::string& service_id, const api::PskInfo& psk_info,
+    AcceptedConnectionCallback callback) {
+  MutexLock lock(&mutex_);
+  ErrorOr<bool> result = InternalStartAcceptingConnections(service_id, psk_info,
+                                                           std::move(callback));
+
+  if (result.has_value() && result.value()) {
+    listening_info_.Add(service_id, psk_info);
   }
 
-  if (!IsAvailableLocked()) {
-    LOG(INFO) << "Can't start accepting Awdl connections [service_id="
-              << service_id << "]; Awdl not available.";
-    return {Error(
-        OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
-  }
-
-  if (IsAcceptingConnectionsLocked(service_id)) {
-    LOG(INFO) << "Refusing to start accepting Awdl connections [service="
-              << service_id
-              << "]; Awdl server is already in-progress with the same name.";
-    return {Error(OperationResultCode::
-                      CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
-  }
-
-  auto port_range = medium_.GetDynamicPortRange();
-  // Generate an exact port here on server socket; if platform doesn't provide
-  // range of port then assign 0 to let platform decide it.
-  int port = 0;
-  if (port_range.has_value() &&
-      (port_range->first > 0 && port_range->first <= 65535 &&
-       port_range->second > 0 && port_range->second <= 65535 &&
-       port_range->first <= port_range->second)) {
-    port = GeneratePort(service_id, port_range.value());
-  }
-  AwdlServerSocket server_socket = medium_.ListenForService(port);
-  if (!server_socket.IsValid()) {
-    LOG(INFO) << "Failed to start accepting Awdl connections for service_id="
-              << service_id;
-    return {Error(OperationResultCode::
-                      CLIENT_CANCELLATION_WIFI_LAN_SERVER_SOCKET_CREATION)};
-  }
-
-  // Mark the fact that there's an in-progress Awdl server accepting
-  // connections.
-  auto owned_server_socket =
-      server_sockets_.insert({service_id, std::move(server_socket)})
-          .first->second;
-
-  // Start the accept loop on a dedicated thread - this stays alive and
-  // listening for new incoming connections until StopAcceptingConnections() is
-  // invoked.
-  accept_loops_runner_.Execute(
-      "awdl-accept",
-      [callback = std::move(callback),
-       server_socket = std::move(owned_server_socket), service_id]() mutable {
-        while (true) {
-          AwdlSocket client_socket = server_socket.Accept();
-          if (!client_socket.IsValid()) {
-            server_socket.Close();
-            break;
-          }
-          LOG(INFO) << "Accepted connection for " << service_id;
-          if (callback) {
-            LOG(INFO) << "Call back triggered for physical socket.";
-            callback(service_id, std::move(client_socket));
-          }
-        }
-      });
-
-  return {true};
+  return result;
 }
 
 bool Awdl::StopAcceptingConnections(const std::string& service_id) {
@@ -302,6 +252,8 @@ bool Awdl::StopAcceptingConnections(const std::string& service_id) {
               << " because it was never started.";
     return false;
   }
+
+  listening_info_.Remove(service_id);
 
   // Closing the AwdlServerSocket will kick off the suicide of the thread
   // in accept_loops_thread_pool_ that blocks on AwdlServerSocket.accept().
@@ -341,6 +293,142 @@ ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
                                   const NsdServiceInfo& service_info,
                                   CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
+  return InternalConnect(service_id, service_info, std::nullopt,
+                         cancellation_flag);
+}
+
+ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
+                                  const NsdServiceInfo& service_info,
+                                  const api::PskInfo& psk_info,
+                                  CancellationFlag* cancellation_flag) {
+  MutexLock lock(&mutex_);
+  return InternalConnect(service_id, service_info, psk_info, cancellation_flag);
+}
+
+Awdl::AwdlCredential Awdl::GetCredentials(const std::string& service_id) {
+  MutexLock lock(&mutex_);
+  AwdlCredential credential{};
+  NsdServiceInfo* service_info = advertising_info_.GetServiceInfo(service_id);
+  if (service_info == nullptr || !service_info->IsValid() ||
+      service_info->GetServiceName().empty() ||
+      service_info->GetServiceType().empty()) {
+    return credential;
+  }
+  credential.service_name = service_info->GetServiceName();
+  credential.service_type = service_info->GetServiceType();
+
+  api::PskInfo* psk_info = listening_info_.GetPskInfo(service_id);
+  if (psk_info == nullptr) {
+    return credential;
+  }
+  credential.password = psk_info->password;
+  return credential;
+}
+
+std::string Awdl::GenerateServiceType(const std::string& service_id) {
+  std::string service_id_hash_string;
+
+  const ByteArray service_id_hash = Utils::Sha256Hash(
+      service_id, NsdServiceInfo::kTypeFromServiceIdHashLength);
+  for (auto byte : std::string(service_id_hash)) {
+    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
+  }
+
+  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
+                         service_id_hash_string);
+}
+
+int Awdl::GeneratePort(const std::string& service_id,
+                       std::pair<std::int32_t, std::int32_t> port_range) {
+  const std::string service_id_hash =
+      std::string(Utils::Sha256Hash(service_id, 4));
+
+  std::uint32_t uint_of_service_id_hash =
+      service_id_hash[0] << 24 | service_id_hash[1] << 16 |
+      service_id_hash[2] << 8 | service_id_hash[3];
+
+  return port_range.first +
+         (uint_of_service_id_hash % (port_range.second - port_range.first));
+}
+
+ErrorOr<bool> Awdl::InternalStartAcceptingConnections(
+    const std::string& service_id, const std::optional<api::PskInfo>& psk_info,
+    AcceptedConnectionCallback callback) {
+  if (service_id.empty()) {
+    LOG(INFO) << "Refusing to start accepting Awdl connections; "
+                 "service_id is empty.";
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't start accepting Awdl connections [service_id="
+              << service_id << "]; Awdl not available.";
+    return {Error(
+        OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
+  }
+
+  if (IsAcceptingConnectionsLocked(service_id)) {
+    LOG(INFO) << "Refusing to start accepting Awdl connections [service="
+              << service_id
+              << "]; Awdl server is already in-progress with the same name.";
+    return {Error(OperationResultCode::
+                      CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
+  }
+
+  auto port_range = medium_.GetDynamicPortRange();
+  // Generate an exact port here on server socket; if platform doesn't provide
+  // range of port then assign 0 to let platform decide it.
+  int port = 0;
+  if (port_range.has_value() &&
+      (port_range->first > 0 && port_range->first <= 65535 &&
+       port_range->second > 0 && port_range->second <= 65535 &&
+       port_range->first <= port_range->second)) {
+    port = GeneratePort(service_id, port_range.value());
+  }
+  AwdlServerSocket server_socket =
+      psk_info.has_value() ? medium_.ListenForService(*psk_info, port)
+                           : medium_.ListenForService(port);
+  if (!server_socket.IsValid()) {
+    LOG(INFO) << "Failed to start accepting Awdl connections for service_id="
+              << service_id;
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_WIFI_LAN_SERVER_SOCKET_CREATION)};
+  }
+
+  // Mark the fact that there's an in-progress Awdl server accepting
+  // connections.
+  auto owned_server_socket =
+      server_sockets_.insert({service_id, std::move(server_socket)})
+          .first->second;
+
+  // Start the accept loop on a dedicated thread - this stays alive and
+  // listening for new incoming connections until StopAcceptingConnections() is
+  // invoked.
+  accept_loops_runner_.Execute(
+      "awdl-accept",
+      [callback = std::move(callback),
+       server_socket = std::move(owned_server_socket), service_id]() mutable {
+        while (true) {
+          AwdlSocket client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            server_socket.Close();
+            break;
+          }
+          LOG(INFO) << "Accepted connection for " << service_id;
+          if (callback) {
+            LOG(INFO) << "Call back triggered for physical socket.";
+            callback(service_id, std::move(client_socket));
+          }
+        }
+      });
+
+  return {true};
+}
+
+ErrorOr<AwdlSocket> Awdl::InternalConnect(
+    const std::string& service_id, const NsdServiceInfo& service_info,
+    const std::optional<api::PskInfo>& psk_info,
+    CancellationFlag* cancellation_flag) {
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   AwdlSocket socket;
 
@@ -370,7 +458,10 @@ ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
         Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
   }
 
-  socket = medium_.ConnectToService(service_info, cancellation_flag);
+  socket =
+      psk_info.has_value()
+          ? medium_.ConnectToService(service_info, *psk_info, cancellation_flag)
+          : medium_.ConnectToService(service_info, cancellation_flag);
   if (!socket.IsValid()) {
     LOG(INFO) << "Failed to Connect via Awdl [service_id=" << service_id << "]";
     return {Error(
@@ -380,46 +471,6 @@ ErrorOr<AwdlSocket> Awdl::Connect(const std::string& service_id,
   LOG(INFO) << "Successfully connected via Awdl [service_id=" << service_id
             << "]";
   return socket;
-}
-
-Awdl::AwdlCredential Awdl::GetCredentials(const std::string& service_id) {
-  MutexLock lock(&mutex_);
-  AwdlCredential credential{};
-  NsdServiceInfo* service_info = advertising_info_.GetServiceInfo(service_id);
-  if (service_info == nullptr || !service_info->IsValid() ||
-      service_info->GetServiceName().empty() ||
-      service_info->GetServiceType().empty()) {
-    return credential;
-  }
-  credential.service_name = service_info->GetServiceName();
-  credential.service_type = service_info->GetServiceType();
-  return credential;
-}
-
-std::string Awdl::GenerateServiceType(const std::string& service_id) {
-  std::string service_id_hash_string;
-
-  const ByteArray service_id_hash = Utils::Sha256Hash(
-      service_id, NsdServiceInfo::kTypeFromServiceIdHashLength);
-  for (auto byte : std::string(service_id_hash)) {
-    absl::StrAppend(&service_id_hash_string, absl::StrFormat("%02X", byte));
-  }
-
-  return absl::StrFormat(NsdServiceInfo::kNsdTypeFormat,
-                         service_id_hash_string);
-}
-
-int Awdl::GeneratePort(const std::string& service_id,
-                       std::pair<std::int32_t, std::int32_t> port_range) {
-  const std::string service_id_hash =
-      std::string(Utils::Sha256Hash(service_id, 4));
-
-  std::uint32_t uint_of_service_id_hash =
-      service_id_hash[0] << 24 | service_id_hash[1] << 16 |
-      service_id_hash[2] << 8 | service_id_hash[3];
-
-  return port_range.first +
-         (uint_of_service_id_hash % (port_range.second - port_range.first));
 }
 
 }  // namespace connections

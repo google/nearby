@@ -21,6 +21,7 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/awdl_endpoint_channel.h"
 #include "connections/implementation/base_bwu_handler.h"
@@ -35,6 +36,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
 
@@ -46,6 +48,8 @@ using ::location::nearby::proto::connections::OperationResultCode;
 
 constexpr absl::Duration kAwdlDiscoveryTimeout = absl::Seconds(5);
 constexpr int kServiceNameLength = 8;
+constexpr int kPasswordLength = 16;
+constexpr absl::string_view kPskIdentity = "AwdlUpgradeMedium";
 }  // namespace
 
 AwdlBwuHandler::AwdlBwuHandler(
@@ -68,7 +72,8 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
   const UpgradePathInfo::AwdlCredentials& awdl_credentials =
       upgrade_path_info.awdl_credentials();
   if (!awdl_credentials.has_service_name() ||
-      !awdl_credentials.has_service_type()) {
+      !awdl_credentials.has_service_type() ||
+      !awdl_credentials.has_password()) {
     LOG(ERROR) << "Failed to upgrade AWDL due to invalid credentials.";
     return {
         Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
@@ -76,15 +81,22 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
 
   std::string service_name = awdl_credentials.service_name();
   std::string service_type = awdl_credentials.service_type();
+  std::string password = awdl_credentials.password();
 
   LOG(INFO) << "Attempting to connect to "
             << "AWDL (service_name:" << service_name
-            << ", service_type:" << service_type << ") for endpoint "
-            << endpoint_id;
+            << ", service_type:" << service_type
+            << ", has password:" << (password.empty() ? "false" : "true")
+            << ") for endpoint " << endpoint_id;
 
   NsdServiceInfo nsd_service_info{};
   nsd_service_info.SetServiceName(service_name);
   nsd_service_info.SetServiceType(service_type);
+
+  api::PskInfo psk_info = {
+      .identity = std::string(kPskIdentity),
+      .password = password,
+  };
 
   LOG(INFO) << "Start to discover the AWDL service "
                "(service_name:"
@@ -134,7 +146,7 @@ AwdlBwuHandler::CreateUpgradedEndpointChannel(
             << ") for endpoint " << endpoint_id;
 
   ErrorOr<AwdlSocket> socket_result =
-      awdl_medium_.Connect(upgrade_service_id, nsd_service_info,
+      awdl_medium_.Connect(upgrade_service_id, nsd_service_info, psk_info,
                            client->GetCancellationFlag(endpoint_id));
   if (socket_result.has_error()) {
     LOG(ERROR) << "Failed to connect to the AWDL service (service_name:"
@@ -174,8 +186,12 @@ ByteArray AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     ClientProxy* client, const std::string& upgrade_service_id,
     const std::string& endpoint_id) {
   if (!awdl_medium_.IsAcceptingConnections(upgrade_service_id)) {
+    api::PskInfo psk_info = {
+        .identity = std::string(kPskIdentity),
+        .password = GeneratePassword(),
+    };
     if (!awdl_medium_.StartAcceptingConnections(
-            upgrade_service_id,
+            upgrade_service_id, psk_info,
             absl::bind_front(&AwdlBwuHandler::OnIncomingAwdlConnection, this,
                              client))) {
       LOG(ERROR) << "Failed to initiate the AWDL upgrade for "
@@ -211,11 +227,13 @@ ByteArray AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
       awdl_medium_.GetCredentials(upgrade_service_id);
   std::string service_name = credential.service_name;
   std::string service_type = credential.service_type;
+  std::string password = credential.password;
 
   LOG(INFO) << "Retrieved AWDL credentials. service_name: " << service_name
-            << " and service_type: " << service_type;
+            << " and service_type: " << service_type
+            << " and has password: " << (password.empty() ? "false" : "true");
 
-  return parser::ForBwuAwdlPathAvailable(service_name, service_type);
+  return parser::ForBwuAwdlPathAvailable(service_name, service_type, password);
 }
 
 void AwdlBwuHandler::HandleRevertInitiatorStateForService(
@@ -264,6 +282,15 @@ std::string AwdlBwuHandler::GenerateServiceName() {
     absl::StrAppend(&service_name_string, absl::StrFormat("%02X", byte));
   }
   return service_name_string;
+}
+
+std::string AwdlBwuHandler::GeneratePassword() {
+  std::string password_string;
+  ByteArray ramdon_bytes = Utils::GenerateRandomBytes(kPasswordLength);
+  for (auto byte : std::string(ramdon_bytes)) {
+    absl::StrAppend(&password_string, absl::StrFormat("%02X", byte));
+  }
+  return password_string;
 }
 
 }  // namespace connections

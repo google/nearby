@@ -79,6 +79,7 @@ class AwdlBwuHandler : public BaseBwuHandler {
 
   std::string GenerateServiceType(const std::string& service_id);
   std::string GenerateServiceName();
+  std::string GeneratePassword();
 
   Mediums& mediums_;
   Awdl& awdl_medium_{mediums_.GetAwdl()};

@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_AWDL_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -30,6 +31,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
@@ -48,6 +50,7 @@ class Awdl {
   struct AwdlCredential {
     std::string service_name;
     std::string service_type;
+    std::string password;
   };
 
   Awdl() = default;
@@ -89,6 +92,13 @@ class Awdl {
                                           AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Starts a worker thread, creates a PSK-based Awdl socket, associates it with
+  // a service id.
+  ErrorOr<bool> StartAcceptingConnections(const std::string& service_id,
+                                          const api::PskInfo& psk_info,
+                                          AcceptedConnectionCallback callback)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
   // Closes socket corresponding to a service id.
   bool StopAcceptingConnections(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
@@ -102,6 +112,17 @@ class Awdl {
   // Returns socket instance. On success, AwdlSocket.IsValid() return true.
   ErrorOr<AwdlSocket> Connect(const std::string& service_id,
                               const NsdServiceInfo& service_info,
+                              CancellationFlag* cancellation_flag)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Establishes connection to PSK-based Awdl service that was might be started
+  // on another service with StartAcceptingConnections() using the same
+  // service_id. Blocks until connection is established, or server-side is
+  // terminated. Returns socket instance. On success, AwdlSocket.IsValid()
+  // return true.
+  ErrorOr<AwdlSocket> Connect(const std::string& service_id,
+                              const NsdServiceInfo& service_info,
+                              const api::PskInfo& psk_info,
                               CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -135,6 +156,28 @@ class Awdl {
     }
 
     absl::flat_hash_map<std::string, NsdServiceInfo> nsd_service_infos;
+  };
+
+  struct ListeningInfo {
+    bool IsEmpty() const { return psk_infos.empty(); }
+    void Clear() { psk_infos.clear(); }
+    void Add(const std::string& service_id, const api::PskInfo& psk_info) {
+      psk_infos.insert({service_id, psk_info});
+    }
+    void Remove(const std::string& service_id) { psk_infos.erase(service_id); }
+    bool Existed(const std::string& service_id) const {
+      return psk_infos.contains(service_id);
+    }
+
+    api::PskInfo* GetPskInfo(const std::string& service_id) {
+      const auto& it = psk_infos.find(service_id);
+      if (it == psk_infos.end()) {
+        return nullptr;
+      }
+      return &it->second;
+    }
+
+    absl::flat_hash_map<std::string, api::PskInfo> psk_infos;
   };
 
   struct DiscoveringInfo {
@@ -175,10 +218,26 @@ class Awdl {
   int GeneratePort(const std::string& service_id,
                    std::pair<std::int32_t, std::int32_t> port_range);
 
+  // Internal version of StartAcceptingConnections that is called by the
+  // public methods.
+  ErrorOr<bool> InternalStartAcceptingConnections(
+      const std::string& service_id,
+      const std::optional<api::PskInfo>& psk_info,
+      AcceptedConnectionCallback callback)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Internal version of Connect that is called by the public methods.
+  ErrorOr<AwdlSocket> InternalConnect(
+      const std::string& service_id, const NsdServiceInfo& service_info,
+      const std::optional<api::PskInfo>& psk_info,
+      CancellationFlag* cancellation_flag)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   mutable Mutex mutex_;
   AwdlMedium medium_ ABSL_GUARDED_BY(mutex_);
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
+  ListeningInfo listening_info_ ABSL_GUARDED_BY(mutex_);
 
   // A thread pool dedicated to running all the accept loops from
   // StartAcceptingConnections().

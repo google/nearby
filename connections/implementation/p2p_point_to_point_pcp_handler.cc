@@ -33,7 +33,7 @@ std::vector<location::nearby::proto::connections::Medium>
 P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   std::vector<location::nearby::proto::connections::Medium> mediums;
   if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableDct)) {
+          config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
     if (mediums_->GetAwdl().IsAvailable()) {
       mediums.push_back(location::nearby::proto::connections::AWDL);
     }

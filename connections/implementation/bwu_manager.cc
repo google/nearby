@@ -109,7 +109,7 @@ BwuManager::BwuManager(
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
     if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableDct)) {
+            config_package_nearby::nearby_connections_feature::kEnableAwdl)) {
       config_.allow_upgrade_to.awdl = true;
     }
   }
