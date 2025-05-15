@@ -44,10 +44,5 @@ cc_library(
 cc_library(
     name = "compatible_u8_string",
     hdrs = ["compatible_u8_string.h"],
-    visibility = [
-        "//location/nearby/apps/better_together:__subpackages__",
-        "//location/nearby/cpp/sharing/clients/dart:__subpackages__",
-        "//location/nearby/sharing/sdk:__subpackages__",
-        "//sharing:__subpackages__",
-    ],
+    visibility = ["//visibility:public"],
 )
