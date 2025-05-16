@@ -189,6 +189,17 @@ class BleMedium : public api::ble_v2::BleMedium {
   GNCBLEMedium *medium_;
 
   PeripheralsMap peripherals_;
+  struct BlockAdvertisementPacket {
+    bool block;
+    NSDate *last_timestamp;
+    nearby::ByteArray last_service_data;
+  };
+  // A map for maintaining the set of advertisement packets that should be blocked or not.
+  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, BlockAdvertisementPacket>
+      block_advertisement_packets_;
+  // The timestamp of the last time to start blocking advertisement packet process. We reset ths
+  // procedure every 10 minutes to avoid stale peripherals that are not advertising any more.
+  NSDate *last_block_advertisement_packet_timestamp_{nil};
 
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;

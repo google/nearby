@@ -55,6 +55,8 @@
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 static const UInt8 kRequestConnectionTimeoutInSeconds = 10;
+static NSTimeInterval const kThresholdInterval = 2; // 2 seconds
+static NSTimeInterval const kResetBlockAdvertisementPacketInterval = 600; // 10 minutes
 
 namespace nearby {
 namespace apple {
@@ -124,17 +126,64 @@ bool BleMedium::StopAdvertising() {
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                          NSDictionary<CBUUID *, NSData *> *serviceData) {
   api::ble_v2::BleAdvertisementData data;
+  NSDate *currentTimestamp = [NSDate date];
+  nearby::ByteArray *service_data_ptr = nullptr;
+
   for (CBUUID *key in serviceData.allKeys) {
     data.service_data[CPPUUIDFromObjC(key)] = ByteArrayFromNSData(serviceData[key]);
+    service_data_ptr = &data.service_data[CPPUUIDFromObjC(key)];
   }
-
+  if (service_data_ptr == nullptr) {
+    GTMLoggerInfo(@"The service data for peripheral is empty: %@", peripheral);
+    return;
+  }
   // Add the peripheral to the map if we haven't discovered it yet.
   api::ble_v2::BlePeripheral::UniqueId unique_id = peripherals_.Add(peripheral);
+  if (block_advertisement_packets_.find(unique_id) == block_advertisement_packets_.end()) {
+    block_advertisement_packets_[unique_id].block = false;
+  }
+
+  if (block_advertisement_packets_[unique_id].last_timestamp != nil) {
+    // If time pass more than 2 seconds or received different service data for same peripheral, we
+    // will unblock the advertisement packet.
+    NSTimeInterval interval = [currentTimestamp
+        timeIntervalSinceDate:block_advertisement_packets_[unique_id].last_timestamp];
+    if ((interval > kThresholdInterval) ||
+        (block_advertisement_packets_[unique_id].last_service_data != *service_data_ptr)) {
+      block_advertisement_packets_[unique_id].block = false;
+      block_advertisement_packets_[unique_id].last_timestamp = currentTimestamp;
+    }
+  } else {
+    // If there is no last timestamp, reset the block of block_advertising_packets_ to false.
+    block_advertisement_packets_[unique_id].block = false;
+    block_advertisement_packets_[unique_id].last_timestamp = currentTimestamp;
+  }
+
+  if (block_advertisement_packets_[unique_id].block) {
+    // If the advertisement packet is blocked, skip to pass the packet to upper layer.
+    return;
+  }
+
+  GTMLoggerInfo(@"Pass the advertisement packet to upper layer for unique_id: %llu, %@, data: %s",
+                unique_id, peripheral, service_data_ptr->data());
+  block_advertisement_packets_[unique_id].last_service_data = *service_data_ptr;
   if (scanning_cb_.advertisement_found_cb) {
     scanning_cb_.advertisement_found_cb(unique_id, data);
   }
   if (scan_cb_.advertisement_found_cb) {
     scan_cb_.advertisement_found_cb(unique_id, data);
+  }
+  block_advertisement_packets_[unique_id].block = true;
+
+  // Reset the block advertisement packet map every 10 minutes.
+  if (last_block_advertisement_packet_timestamp_) {
+    if ([currentTimestamp timeIntervalSinceDate:last_block_advertisement_packet_timestamp_] >
+        kResetBlockAdvertisementPacketInterval) {
+      block_advertisement_packets_.clear();
+      last_block_advertisement_packet_timestamp_ = currentTimestamp;
+    }
+  } else {
+    last_block_advertisement_packet_timestamp_ = currentTimestamp;
   }
 }
 
@@ -148,6 +197,7 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
   peripherals_.Clear();
+  block_advertisement_packets_.clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -220,6 +270,7 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
   peripherals_.Clear();
+  block_advertisement_packets_.clear();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
