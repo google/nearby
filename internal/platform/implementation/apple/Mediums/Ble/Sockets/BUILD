@@ -47,6 +47,9 @@ objc_library(
     ]) + [
         "Source/GNSPeripheral.h",
     ],
+    copts = [
+        "-Wno-enum-compare",  # TODO(b/418286948): Remove this when the error is fixed.
+    ],
     deps = [
         ":Shared",
         "//third_party/apple_frameworks:CoreBluetooth",
