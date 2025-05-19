@@ -14,10 +14,6 @@ A peer-to-peer networking API that allows apps to easily discover, connect to, a
 
 An extension to Nearby Connections that features an extensible identity model for authentication and restricted visibility, resource management for system health, and proximity detection through sensor fusion.
 
-### [Nearby for Embedded Systems](embedded/)
-
-A lightweight implementation of Fast Pair intended for embedded systems.
-
 ## Contributing
 
 We encourage you to contribute to Nearby! Please check out the [Contributing to Nearby guide](CONTRIBUTING.md) for guidelines about how to proceed.
