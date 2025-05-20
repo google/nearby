@@ -185,7 +185,7 @@ void NearbyShareSettings::RestoreFallbackVisibility() {
 std::string NearbyShareSettings::GetCustomSavePath() const {
   return preference_manager_.GetString(
       prefs::kNearbySharingCustomSavePath,
-      GetCompatibleU8String(device_info_.GetDownloadPath().u8string()));
+      device_info_.GetDownloadPath().ToString());
 }
 
 bool NearbyShareSettings::IsDisabledByPolicy() const { return false; }

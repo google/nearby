@@ -57,6 +57,8 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base",
+        "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/network:types",
         "//internal/platform:comm",
         "//internal/platform:types",
@@ -92,6 +94,8 @@ cc_test(
     shard_count = 8,
     deps = [
         ":test",
+        "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/network:types",
         "//internal/network:url",
         "//internal/platform:types",

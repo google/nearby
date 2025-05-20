@@ -112,6 +112,7 @@ cc_library(
         "//sharing:__subpackages__",
     ],
     deps = [
+        "//internal/base:file_path",
         "//internal/crypto_cros",
         "//internal/platform:base",
         "//internal/platform/implementation/shared:crypto",  # Non-chromium impl

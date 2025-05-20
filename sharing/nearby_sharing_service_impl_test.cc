@@ -45,6 +45,8 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/analytics/mock_event_logger.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/implementation/signin_attempt.h"
 #include "internal/test/fake_account_manager.h"
@@ -58,7 +60,6 @@
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/test_util.h"
-#include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/constants.h"
@@ -127,6 +128,12 @@ using ::testing::UnorderedElementsAre;
 // Used to wait for absl::Notification to finish.
 constexpr absl::Duration kWaitTimeout = absl::Milliseconds(500);
 constexpr absl::Duration kTaskWaitTimeout = absl::Seconds(2);
+
+FilePath GetTempDir() {
+  std::optional<FilePath> temp_dir = nearby::sharing::GetTemporaryDirectory();
+  EXPECT_TRUE(temp_dir.has_value());
+  return temp_dir.value();
+}
 
 class MockTransferUpdateCallback : public TransferUpdateCallback {
  public:
@@ -1234,8 +1241,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void SetDiskSpace(size_t size) {
-    fake_device_info_.SetAvailableDiskSpaceInBytes(
-        std::filesystem::temp_directory_path(), size);
+    fake_device_info_.SetAvailableDiskSpaceInBytes(GetTempDir(), size);
   }
 
   void ResetDiskSpace() { fake_device_info_.ResetDiskSpace(); }
@@ -2669,7 +2675,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
   SetDiskSpace(kFreeDiskSpace);
   preference_manager().SetString(
       prefs::kNearbySharingCustomSavePath,
-      GetCompatibleU8String(fake_device_info_.GetDownloadPath().u8string()));
+      fake_device_info_.GetDownloadPath().ToString());
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
 

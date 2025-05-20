@@ -36,6 +36,8 @@ cc_library(
     visibility = ["//visibility:private"],
     deps = [
         ":preferences_repository",
+        "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/platform:base",
         "//internal/platform:test_util",
         "//internal/platform:types",

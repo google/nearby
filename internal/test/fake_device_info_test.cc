@@ -14,16 +14,22 @@
 
 #include "internal/test/fake_device_info.h"
 
-#include <array>
-#include <filesystem>
 #include <functional>
 #include <optional>
 
 #include "gtest/gtest.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 namespace {
+
+FilePath GetTempDir() {
+  std::optional<FilePath> temp_dir = nearby::sharing::GetTemporaryDirectory();
+  EXPECT_TRUE(temp_dir.has_value());
+  return temp_dir.value();
+}
 
 TEST(FakeDeviceInfo, DeviceName) {
   FakeDeviceInfo device_info;
@@ -45,36 +51,33 @@ TEST(FakeDeviceInfo, OsType) {
 
 TEST(FakeDeviceInfo, GetDownloadPath) {
   FakeDeviceInfo device_info;
+  EXPECT_EQ(device_info.GetDownloadPath(), GetTempDir());
+  device_info.SetDownloadPath(GetTempDir().append(FilePath("test")));
   EXPECT_EQ(device_info.GetDownloadPath(),
-            std::filesystem::temp_directory_path());
-  device_info.SetDownloadPath(std::filesystem::temp_directory_path() / "test");
-  EXPECT_EQ(device_info.GetDownloadPath(),
-            std::filesystem::temp_directory_path() / "test");
+            GetTempDir().append(FilePath("test")));
 }
 
 TEST(FakeDeviceInfo, GetAppDataPath) {
   FakeDeviceInfo device_info;
+  EXPECT_EQ(device_info.GetAppDataPath(), GetTempDir());
+  device_info.SetAppDataPath(GetTempDir().append(FilePath("test")));
   EXPECT_EQ(device_info.GetAppDataPath(),
-            std::filesystem::temp_directory_path());
-  device_info.SetAppDataPath(std::filesystem::temp_directory_path() / "test");
-  EXPECT_EQ(device_info.GetAppDataPath(),
-            std::filesystem::temp_directory_path() / "test");
+            GetTempDir().append(FilePath("test")));
 }
 
 TEST(FakeDeviceInfo, GetTemporaryPath) {
   FakeDeviceInfo device_info;
+  EXPECT_EQ(device_info.GetTemporaryPath(), GetTempDir());
+  device_info.SetTemporaryPath(GetTempDir().append(FilePath("test")));
   EXPECT_EQ(device_info.GetTemporaryPath(),
-            std::filesystem::temp_directory_path());
-  device_info.SetTemporaryPath(std::filesystem::temp_directory_path() / "test");
-  EXPECT_EQ(device_info.GetTemporaryPath(),
-            std::filesystem::temp_directory_path() / "test");
+            GetTempDir().append(FilePath("test")));
 }
 
 TEST(FakeDeviceInfo, GetAvailableDiskSpaceInBytes) {
   FakeDeviceInfo device_info;
-  device_info.SetDownloadPath("download");
-  device_info.SetAppDataPath("appdata");
-  device_info.SetTemporaryPath("temp");
+  device_info.SetDownloadPath(FilePath("download"));
+  device_info.SetAppDataPath(FilePath("appdata"));
+  device_info.SetTemporaryPath(FilePath("temp"));
 
   device_info.SetAvailableDiskSpaceInBytes(device_info.GetDownloadPath(), 10);
   device_info.SetAvailableDiskSpaceInBytes(device_info.GetAppDataPath(), 100);

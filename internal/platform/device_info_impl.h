@@ -16,13 +16,13 @@
 #define PLATFORM_PUBLIC_DEVICE_INFO_IMPL_H_
 
 #include <cstddef>
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/platform.h"
@@ -38,13 +38,13 @@ class DeviceInfoImpl : public DeviceInfo {
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::filesystem::path GetDownloadPath() const override;
-  std::filesystem::path GetAppDataPath() const override;
-  std::filesystem::path GetTemporaryPath() const override;
-  std::filesystem::path GetLogPath() const override;
+  FilePath GetDownloadPath() const override;
+  FilePath GetAppDataPath() const override;
+  FilePath GetTemporaryPath() const override;
+  FilePath GetLogPath() const override;
 
   std::optional<size_t> GetAvailableDiskSpaceInBytes(
-      const std::filesystem::path& path) const override;
+      const FilePath& path) const override;
 
   bool IsScreenLocked() const override;
   void RegisterScreenLockedListener(

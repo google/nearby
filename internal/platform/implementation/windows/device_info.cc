@@ -18,7 +18,6 @@
 #include <windows.h>
 #include <wtsapi32.h>
 
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -26,6 +25,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/base/files.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
@@ -51,8 +51,8 @@ using IVectorView = winrt::Windows::Foundation::Collections::IVectorView<T>;
 template <typename T>
 using IAsyncOperation = winrt::Windows::Foundation::IAsyncOperation<T>;
 
-constexpr char logs_relative_path[] = "Google\\Nearby\\Sharing\\Logs";
-constexpr char crash_dumps_relative_path[] =
+constexpr absl::string_view kLogsRelativePath = "Google\\Nearby\\Sharing\\Logs";
+constexpr absl::string_view kCrashDumpsRelativePath =
     "Google\\Nearby\\Sharing\\CrashDumps";
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
@@ -88,65 +88,64 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kWindows;
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetDownloadPath() const {
+std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
   PWSTR path;
   HRESULT result =
       SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_DEFAULT, nullptr, &path);
   if (result == S_OK) {
     std::wstring download_path{path};
     CoTaskMemFree(path);
-    return std::filesystem::path(download_path);
+    return FilePath(std::wstring_view(download_path));
   }
 
   CoTaskMemFree(path);
   return std::nullopt;
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetLocalAppDataPath() const {
+std::optional<FilePath> DeviceInfo::GetLocalAppDataPath() const {
   PWSTR path;
   HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
                                         /*hToken=*/nullptr, &path);
   if (result == S_OK) {
     std::wstring local_appdata_path{path};
     CoTaskMemFree(path);
-    return std::filesystem::path(local_appdata_path);
+    return FilePath(std::wstring_view(local_appdata_path));
   }
 
   CoTaskMemFree(path);
   return std::nullopt;
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetCommonAppDataPath() const {
+std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const {
   PWSTR path;
   HRESULT result = SHGetKnownFolderPath(FOLDERID_ProgramData, KF_FLAG_DEFAULT,
                                         /*hToken=*/nullptr, &path);
   if (result == S_OK) {
     std::wstring common_app_data_path{path};
     CoTaskMemFree(path);
-    return std::filesystem::path(common_app_data_path);
+    return FilePath(std::wstring_view(common_app_data_path));
   }
 
   CoTaskMemFree(path);
   return std::nullopt;
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetTemporaryPath() const {
+std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
   return nearby::sharing::GetTemporaryDirectory();
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetLogPath() const {
-  auto prefix_path = GetLocalAppDataPath();
+std::optional<FilePath> DeviceInfo::GetLogPath() const {
+  std::optional<FilePath> prefix_path = GetLocalAppDataPath();
   if (prefix_path.has_value()) {
-    return std::filesystem::path(prefix_path.value() / logs_relative_path);
+    return prefix_path.value().append(FilePath(kLogsRelativePath));
   }
   return std::nullopt;
 }
 
-std::optional<std::filesystem::path> DeviceInfo::GetCrashDumpPath() const {
-  auto prefix_path = GetLocalAppDataPath();
+std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
+  std::optional<FilePath> prefix_path = GetLocalAppDataPath();
   if (prefix_path.has_value()) {
-    return std::filesystem::path(prefix_path.value() /
-                                 crash_dumps_relative_path);
+    return prefix_path.value().append(FilePath(kCrashDumpsRelativePath));
   }
   return std::nullopt;
 }

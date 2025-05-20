@@ -15,12 +15,12 @@
 #ifndef PLATFORM_IMPL_APPLE_DEVICE_INFO_H_
 #define PLATFORM_IMPL_APPLE_DEVICE_INFO_H_
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
@@ -34,17 +34,17 @@ class DeviceInfo : public api::DeviceInfo {
 
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::optional<std::filesystem::path> GetDownloadPath() const override;
+  std::optional<FilePath> GetDownloadPath() const override;
 
-  std::optional<std::filesystem::path> GetLocalAppDataPath() const override;
+  std::optional<FilePath> GetLocalAppDataPath() const override;
 
-  std::optional<std::filesystem::path> GetCommonAppDataPath() const override;
+  std::optional<FilePath> GetCommonAppDataPath() const override;
 
-  std::optional<std::filesystem::path> GetTemporaryPath() const override;
+  std::optional<FilePath> GetTemporaryPath() const override;
 
-  std::optional<std::filesystem::path> GetLogPath() const override;
+  std::optional<FilePath> GetLogPath() const override;
 
-  std::optional<std::filesystem::path> GetCrashDumpPath() const override;
+  std::optional<FilePath> GetCrashDumpPath() const override;
 
   bool IsScreenLocked() const override;
 

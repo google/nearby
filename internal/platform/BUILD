@@ -272,6 +272,7 @@ cc_library(
         ":base",
         ":util",
         "//connections/implementation/flags:connections_flags",
+        "//internal/base:file_path",
         "//internal/base:files",
         "//internal/crypto_cros",
         "//internal/flags:nearby_flags",

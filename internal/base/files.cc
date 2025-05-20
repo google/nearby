@@ -19,6 +19,7 @@
 #include <optional>
 #include <system_error>  // NOLINT(build/c++11)
 
+#include "internal/base/file_path.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::sharing {
@@ -62,20 +63,20 @@ bool RemoveFile(const std::filesystem::path& path) {
   return std::filesystem::remove(path, error_code);
 }
 
-std::optional<std::filesystem::path> GetTemporaryDirectory() {
+std::optional<FilePath> GetTemporaryDirectory() {
   std::error_code error_code;
   std::filesystem::path temp_dir =
       std::filesystem::temp_directory_path(error_code);
   if (temp_dir.empty()) {
     return std::nullopt;
   }
-  return temp_dir;
+  return FilePath::FromPath(temp_dir);
 }
 
-std::filesystem::path CurrentDirectory() {
+FilePath CurrentDirectory() {
   // temp_directory_path() returns empty path on error.
   std::error_code error_code;
-  return std::filesystem::current_path(error_code);
+  return FilePath::FromPath(std::filesystem::current_path(error_code));
 }
 
 bool Rename(const std::filesystem::path& old_path,

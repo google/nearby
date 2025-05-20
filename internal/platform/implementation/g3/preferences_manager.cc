@@ -14,18 +14,23 @@
 
 #include "internal/platform/implementation/g3/preferences_manager.h"
 
-#include <filesystem>  // NOLINT(build/c++17)
+#include <cstdint>
 #include <memory>
-#include <optional>
 #include <ostream>
 #include <string>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/platform/implementation/g3/device_info.h"
+#include "internal/base/file_path.h"
+#include "internal/platform/device_info_impl.h"
 #include "internal/platform/implementation/g3/preferences_repository.h"
+#include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -36,16 +41,12 @@ using json = ::nlohmann::json;
 
 PreferencesManager::PreferencesManager(absl::string_view file_path)
     : api::PreferencesManager(file_path) {
-  auto device_info = std::make_unique<g3::DeviceInfo>();
-  std::optional<std::filesystem::path> path =
-      device_info->GetLocalAppDataPath();
-  if (!path.has_value()) {
-    path = std::filesystem::temp_directory_path();
-  }
+  auto device_info = std::make_unique<DeviceInfoImpl>();
+  FilePath path = device_info->GetAppDataPath();
 
-  std::filesystem::path full_path = *path / std::string(file_path);
+  path.append(FilePath(file_path));
   preferences_repository_ =
-      std::make_unique<PreferencesRepository>(full_path.string());
+      std::make_unique<PreferencesRepository>(path.ToString());
   value_ = preferences_repository_->LoadPreferences();
 }
 

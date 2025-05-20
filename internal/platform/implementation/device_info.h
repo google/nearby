@@ -15,12 +15,12 @@
 #ifndef PLATFORM_API_DEVICE_INFO_H_
 #define PLATFORM_API_DEVICE_INFO_H_
 
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 
 namespace nearby {
 namespace api {
@@ -46,12 +46,12 @@ class DeviceInfo {
   virtual OsType GetOsType() const = 0;
 
   // Gets known paths of current user.
-  virtual std::optional<std::filesystem::path> GetDownloadPath() const = 0;
-  virtual std::optional<std::filesystem::path> GetLocalAppDataPath() const = 0;
-  virtual std::optional<std::filesystem::path> GetCommonAppDataPath() const = 0;
-  virtual std::optional<std::filesystem::path> GetTemporaryPath() const = 0;
-  virtual std::optional<std::filesystem::path> GetLogPath() const = 0;
-  virtual std::optional<std::filesystem::path> GetCrashDumpPath() const = 0;
+  virtual std::optional<FilePath> GetDownloadPath() const = 0;
+  virtual std::optional<FilePath> GetLocalAppDataPath() const = 0;
+  virtual std::optional<FilePath> GetCommonAppDataPath() const = 0;
+  virtual std::optional<FilePath> GetTemporaryPath() const = 0;
+  virtual std::optional<FilePath> GetLogPath() const = 0;
+  virtual std::optional<FilePath> GetCrashDumpPath() const = 0;
 
   // Monitor screen status
   virtual bool IsScreenLocked() const = 0;

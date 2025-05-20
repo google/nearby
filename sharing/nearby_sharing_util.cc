@@ -26,6 +26,7 @@
 #include "absl/hash/hash.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/advertisement.h"
@@ -140,7 +141,7 @@ std::string GetDeviceId(
 bool IsOutOfStorage(DeviceInfo& device_info, std::filesystem::path file_path,
                     int64_t storage_required) {
   std::optional<size_t> available_storage =
-      device_info.GetAvailableDiskSpaceInBytes(file_path);
+      device_info.GetAvailableDiskSpaceInBytes(FilePath::FromPath(file_path));
 
   if (!available_storage.has_value()) {
     return false;

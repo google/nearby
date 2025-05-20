@@ -19,6 +19,8 @@
 #include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
 
+#include "internal/base/file_path.h"
+
 // This file contains exception safe wrappers to access common std::filesystem
 // functions.
 namespace nearby::sharing {
@@ -37,10 +39,10 @@ bool DirectoryExists(const std::filesystem::path& path);
 bool RemoveFile(const std::filesystem::path& path);
 
 // Returns path to a temporary directory if available.
-std::optional<std::filesystem::path> GetTemporaryDirectory();
+std::optional<FilePath> GetTemporaryDirectory();
 
 // Returns path to the current directory.  On failure returns an empty path.
-std::filesystem::path CurrentDirectory();
+FilePath CurrentDirectory();
 
 // Renames the file at old_path to new_path.
 // Returns true on success.

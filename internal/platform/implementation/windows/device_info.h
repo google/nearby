@@ -15,7 +15,6 @@
 #ifndef PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 #define PLATFORM_IMPL_WINDOWS_DEVICE_INFO_H_
 
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -23,6 +22,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/windows/session_manager.h"
 
@@ -37,12 +37,12 @@ class DeviceInfo : public api::DeviceInfo {
   api::DeviceInfo::DeviceType GetDeviceType() const override;
   api::DeviceInfo::OsType GetOsType() const override;
 
-  std::optional<std::filesystem::path> GetDownloadPath() const override;
-  std::optional<std::filesystem::path> GetLocalAppDataPath() const override;
-  std::optional<std::filesystem::path> GetCommonAppDataPath() const override;
-  std::optional<std::filesystem::path> GetTemporaryPath() const override;
-  std::optional<std::filesystem::path> GetLogPath() const override;
-  std::optional<std::filesystem::path> GetCrashDumpPath() const override;
+  std::optional<FilePath> GetDownloadPath() const override;
+  std::optional<FilePath> GetLocalAppDataPath() const override;
+  std::optional<FilePath> GetCommonAppDataPath() const override;
+  std::optional<FilePath> GetTemporaryPath() const override;
+  std::optional<FilePath> GetLogPath() const override;
+  std::optional<FilePath> GetCrashDumpPath() const override;
 
   bool IsScreenLocked() const override;
   void RegisterScreenLockedListener(

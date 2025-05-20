@@ -47,6 +47,7 @@ cc_library(
     deps = [
         ":comm",
         "//internal/base:bluetooth_address",
+        "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
@@ -244,6 +245,7 @@ cc_library(
         "//connections/implementation/mediums/ble_v2:ble_advertisement_header",
         "//connections/implementation/mediums/ble_v2:bloom_filter",
         "//internal/account",
+        "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",

@@ -316,6 +316,7 @@ cc_library(
         "//internal/analytics:event_logger",
         "//internal/base",
         "//internal/base:bluetooth_address",
+        "//internal/base:file_path",
         "//internal/flags:nearby_flags",
         "//internal/network:url",
         "//internal/platform:base",
@@ -509,6 +510,8 @@ cc_test(
         ":incoming_frame_reader",
         ":nearby_connection_impl",
         ":test_support",
+        "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//sharing/proto:wire_format_cc_proto",
@@ -564,6 +567,8 @@ cc_test(
         ":types",
         "//base:casts",
         "//internal/analytics:mock_event_logger",
+        "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation:signin_attempt",
         "//internal/platform/implementation/g3",  # fixdeps: keep
@@ -573,7 +578,6 @@ cc_test(
         "//sharing/certificates",
         "//sharing/certificates:test_support",
         "//sharing/common",
-        "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/contacts",
         "//sharing/contacts:test_support",
@@ -599,7 +603,6 @@ cc_test(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:protobuf_lite",
     ],
 )
 

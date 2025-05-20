@@ -15,7 +15,6 @@
 #include "internal/platform/implementation/windows/preferences_manager.h"
 
 #include <cstdint>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <memory>
 #include <optional>
 #include <ostream>
@@ -30,6 +29,7 @@
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include "internal/base/files.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/windows/preferences_repository.h"
@@ -43,7 +43,7 @@ using json = ::nlohmann::json;
 
 PreferencesManager::PreferencesManager(absl::string_view file_path)
     : api::PreferencesManager(file_path) {
-  std::optional<std::filesystem::path> path =
+  std::optional<FilePath> path =
       nearby::api::ImplementationPlatform::CreateDeviceInfo()
           ->GetLocalAppDataPath();
   if (!path.has_value()) {
@@ -51,9 +51,9 @@ PreferencesManager::PreferencesManager(absl::string_view file_path)
         nearby::sharing::CurrentDirectory());
   }
 
-  std::filesystem::path full_path = *path / std::string(file_path);
+  path->append(FilePath(file_path));
   preferences_repository_ =
-      std::make_unique<PreferencesRepository>(full_path.string());
+      std::make_unique<PreferencesRepository>(path->ToString());
   value_ = preferences_repository_->LoadPreferences();
 }
 

@@ -16,7 +16,6 @@
 #define PLATFORM_IMPL_G3_DEVICE_INFO_H_
 
 #include <cstdlib>
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -24,6 +23,8 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
@@ -43,33 +44,35 @@ class DeviceInfo : public api::DeviceInfo {
     return api::DeviceInfo::OsType::kChromeOs;
   }
 
-  std::optional<std::filesystem::path> GetDownloadPath() const override {
-    return std::filesystem::temp_directory_path();
+  std::optional<FilePath> GetDownloadPath() const override {
+    return nearby::sharing::GetTemporaryDirectory();
   }
 
-  std::optional<std::filesystem::path> GetLocalAppDataPath() const override {
+  std::optional<FilePath> GetLocalAppDataPath() const override {
     const char* home_dir = getenv("HOME");
     if (home_dir == nullptr) {
-      return std::filesystem::temp_directory_path();
+      return nearby::sharing::GetTemporaryDirectory();
     }
     // Yhis matches the .NET LocalAppData directory on Linux.
-    return std::filesystem::path(home_dir).append(".local").append("share");
+    return FilePath(home_dir)
+        .append(FilePath(".local"))
+        .append(FilePath("share"));
   }
 
-  std::optional<std::filesystem::path> GetCommonAppDataPath() const override {
-    return std::filesystem::temp_directory_path();
+  std::optional<FilePath> GetCommonAppDataPath() const override {
+    return nearby::sharing::GetTemporaryDirectory();
   }
 
-  std::optional<std::filesystem::path> GetTemporaryPath() const override {
-    return std::filesystem::temp_directory_path();
+  std::optional<FilePath> GetTemporaryPath() const override {
+    return nearby::sharing::GetTemporaryDirectory();
   }
 
-  std::optional<std::filesystem::path> GetLogPath() const override {
-    return std::filesystem::temp_directory_path();
+  std::optional<FilePath> GetLogPath() const override {
+    return nearby::sharing::GetTemporaryDirectory();
   }
 
-  std::optional<std::filesystem::path> GetCrashDumpPath() const override {
-    return std::filesystem::temp_directory_path();
+  std::optional<FilePath> GetCrashDumpPath() const override {
+    return nearby::sharing::GetTemporaryDirectory();
   }
 
   bool IsScreenLocked() const override { return false; }

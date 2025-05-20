@@ -44,6 +44,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/base/bluetooth_address.h"
+#include "internal/base/file_path.h"
 #include "internal/base/observer_list.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/network/url.h"
@@ -246,13 +247,12 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   CHECK(analytics_recorder);
 
   is_shutting_down_ = std::make_unique<bool>(false);
-  std::filesystem::path path = device_info_.GetAppDataPath();
+  FilePath full_database_path =
+      device_info_.GetAppDataPath().append(FilePath(kProfileRelativePath));
 
-  std::filesystem::path full_database_path =
-      path / std::string(kProfileRelativePath);
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
-      contact_manager_.get(), full_database_path.string(),
+      contact_manager_.get(), full_database_path.ToString(),
       nearby_share_client_factory_.get()),
 
   certificate_manager_->AddObserver(this);

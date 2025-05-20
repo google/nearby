@@ -67,6 +67,7 @@ objc_library(
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:Network",
         "@nlohmann_json//:json",
+        "//internal/base:file_path",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
