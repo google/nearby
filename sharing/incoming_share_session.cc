@@ -27,6 +27,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -397,17 +398,16 @@ bool IncomingShareSession::FinalizePayloads() {
   return true;
 }
 
-std::vector<std::filesystem::path> IncomingShareSession::GetPayloadFilePaths()
+std::vector<FilePath> IncomingShareSession::GetPayloadFilePaths()
     const {
-  std::vector<std::filesystem::path> file_paths;
+  std::vector<FilePath> file_paths;
   const AttachmentContainer& container = attachment_container();
   const absl::flat_hash_map<int64_t, int64_t>& attachment_paylod_map =
       attachment_payload_map();
   for (const auto& file : container.GetFileAttachments()) {
     if (!file.file_path().has_value()) continue;
-    auto file_path = *file.file_path();
-    VLOG(1) << __func__
-            << ": file_path=" << GetCompatibleU8String(file_path.u8string());
+    FilePath file_path = FilePath::FromPath(*file.file_path());
+    VLOG(1) << __func__ << ": file_path=" << file_path.ToString();
     if (attachment_paylod_map.find(file.id()) == attachment_paylod_map.end()) {
       continue;
     }

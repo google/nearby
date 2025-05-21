@@ -218,6 +218,7 @@ cc_library(
         ":transfer_metadata",
         ":types",
         ":worker_queue",
+        "//internal/base:file_path",
         "//internal/base:files",
         "//internal/platform:types",
         "//proto:sharing_enums_cc_proto",
@@ -636,6 +637,7 @@ cc_test(
     srcs = ["nearby_file_handler_test.cc"],
     deps = [
         ":share_session",
+        "//internal/base:file_path",
         "//internal/base:files",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//sharing/internal/api:mock_sharing_platform",
@@ -767,6 +769,7 @@ cc_test(
         ":transfer_metadata_matchers",
         ":types",
         "//internal/analytics:mock_event_logger",
+        "//internal/base:file_path",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//sharing/analytics",
@@ -846,6 +849,7 @@ cc_test(
         ":transfer_metadata_matchers",
         ":types",
         "//internal/analytics:mock_event_logger",
+        "//internal/base:file_path",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//proto:sharing_enums_cc_proto",

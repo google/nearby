@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/internal/api/sharing_platform.h"
 
@@ -49,13 +50,13 @@ class NearbyFileHandler {
   void OpenFiles(std::vector<std::filesystem::path> file_paths,
                  OpenFilesCallback callback);
 
-  void DeleteFilesFromDisk(std::vector<std::filesystem::path> file_paths,
+  void DeleteFilesFromDisk(std::vector<FilePath> file_paths,
                            DeleteFilesFromDiskCallback callback);
 
   // On platforms where it is supported, tag the transferred files as
   // originating from an untrusted source.
   void UpdateFilesOriginMetadata(
-      std::vector<std::filesystem::path> file_paths,
+      std::vector<FilePath> file_paths,
       absl::AnyInvocable<void(bool success)> callback);
 
  private:

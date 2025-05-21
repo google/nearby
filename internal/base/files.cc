@@ -63,6 +63,14 @@ bool RemoveFile(const std::filesystem::path& path) {
   return std::filesystem::remove(path, error_code);
 }
 
+bool RemoveDirectory(const FilePath& path) {
+  if (!DirectoryExists(path.GetPath())) {
+    return false;
+  }
+  std::error_code error_code;
+  return std::filesystem::remove_all(path.GetPath(), error_code) != -1;
+}
+
 std::optional<FilePath> GetTemporaryDirectory() {
   std::error_code error_code;
   std::filesystem::path temp_dir =

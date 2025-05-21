@@ -38,6 +38,8 @@ bool DirectoryExists(const std::filesystem::path& path);
 // Returns false if path does not exist, is not a file or cannot be removed.
 bool RemoveFile(const std::filesystem::path& path);
 
+bool RemoveDirectory(const FilePath& path);
+
 // Returns path to a temporary directory if available.
 std::optional<FilePath> GetTemporaryDirectory();
 

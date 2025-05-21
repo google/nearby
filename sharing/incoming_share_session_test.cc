@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <limits>
 #include <memory>
 #include <optional>
@@ -32,6 +31,7 @@
 #include "absl/time/time.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
+#include "internal/base/file_path.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
@@ -88,9 +88,9 @@ using ::testing::UnorderedElementsAre;
 constexpr absl::string_view kEndpointId = "ABCD";
 
 std::unique_ptr<Payload> CreateFilePayload(int64_t payload_id,
-                                           std::filesystem::path file_path) {
+                                           FilePath file_path) {
   auto file_payload =
-      std::make_unique<Payload>(InputFile(std::move(file_path)));
+      std::make_unique<Payload>(InputFile(file_path.GetPath()));
   file_payload->id = payload_id;
   return file_payload;
 }
@@ -367,7 +367,7 @@ TEST_F(IncomingShareSessionTest,
   // Set text payload for file attachment.
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateTextPayload(payload_id1_, "text1"));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -467,7 +467,7 @@ TEST_F(IncomingShareSessionTest,
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
   // No payload for file2.
@@ -569,10 +569,10 @@ TEST_F(IncomingShareSessionTest,
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -669,10 +669,10 @@ TEST_F(IncomingShareSessionTest,
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -778,12 +778,12 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   introduction_frame.mutable_file_metadata()->Add(std::move(file2));
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   int64_t payload_id1 = introduction_frame.file_metadata(0).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id1, CreateFilePayload(payload_id1, file1_path));
 
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   int64_t payload_id2 = introduction_frame.file_metadata(1).payload_id();
   connections_manager_.SetIncomingPayload(
       payload_id2, CreateFilePayload(payload_id2, file2_path));
@@ -815,8 +815,7 @@ TEST_F(IncomingShareSessionTest, GetPayloadFilePaths) {
   EXPECT_THAT(metadata.has_value(), IsTrue());
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kComplete));
 
-  std::vector<std::filesystem::path> file_paths =
-      session_.GetPayloadFilePaths();
+  std::vector<FilePath> file_paths = session_.GetPayloadFilePaths();
 
   EXPECT_THAT(file_paths, UnorderedElementsAre(file1_path, file2_path));
 }
@@ -827,10 +826,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -888,10 +887,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kComplete));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(file1_path));
+      Eq(file1_path.GetPath()));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(file2_path));
+      Eq(file2_path.GetPath()));
   EXPECT_THAT(
       session_.attachment_container().GetTextAttachments()[0].text_body(),
       Eq(text_content1));
@@ -925,10 +924,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -970,10 +969,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kCancelled));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(file1_path));
+      Eq(file1_path.GetPath()));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(file2_path));
+      Eq(file2_path.GetPath()));
   EXPECT_THAT(
       connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
       IsTrue());
@@ -983,10 +982,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateFailed) {
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -1020,10 +1019,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateInProgress) {
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
-  std::filesystem::path file2_path = "/usr/tmp/file2";
+  FilePath file2_path{"/usr/tmp/file2"};
   connections_manager_.SetIncomingPayload(
       payload_id2_, CreateFilePayload(payload_id2_, file2_path));
   std::string text_content1 = "text1";
@@ -1125,7 +1124,7 @@ TEST_F(IncomingShareSessionTest, ReadyForTransferTimeoutCancelled) {
   session_.OnConnected(&connection_);
   EXPECT_THAT(session_.ProcessIntroduction(introduction_frame_),
               Eq(std::nullopt));
-  std::filesystem::path file1_path = "/usr/tmp/file1";
+  FilePath file1_path{"/usr/tmp/file1"};
   connections_manager_.SetIncomingPayload(
       payload_id1_, CreateFilePayload(payload_id1_, file1_path));
   EXPECT_CALL(

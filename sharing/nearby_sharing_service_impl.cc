@@ -3128,16 +3128,15 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
     const IncomingShareSession& session) {
   LOG(INFO) << __func__ << ": Cleaning up payloads due to transfer failure";
   nearby_connections_manager_->ClearIncomingPayloads();
-  std::vector<std::filesystem::path> files_for_deletion;
+  std::vector<FilePath> files_for_deletion;
   auto file_paths_to_delete =
       nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
   for (auto it = file_paths_to_delete.begin(); it != file_paths_to_delete.end();
        ++it) {
     VLOG(1) << __func__ << ": Has unknown file path to delete.";
-    files_for_deletion.push_back(*it);
+    files_for_deletion.push_back(FilePath::FromPath(*it));
   }
-  std::vector<std::filesystem::path> payload_file_path =
-      session.GetPayloadFilePaths();
+  std::vector<FilePath> payload_file_path = session.GetPayloadFilePaths();
   files_for_deletion.insert(files_for_deletion.end(), payload_file_path.begin(),
                             payload_file_path.end());
   file_handler_.DeleteFilesFromDisk(std::move(files_for_deletion), []() {});

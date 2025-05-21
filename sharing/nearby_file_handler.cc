@@ -26,6 +26,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/task_runner_impl.h"
 #include "sharing/common/compatible_u8_string.h"
@@ -73,29 +74,28 @@ void NearbyFileHandler::OpenFiles(std::vector<std::filesystem::path> file_paths,
 }
 
 void NearbyFileHandler::DeleteFilesFromDisk(
-    std::vector<std::filesystem::path> file_paths,
-    DeleteFilesFromDiskCallback callback) {
+    std::vector<FilePath> file_paths, DeleteFilesFromDiskCallback callback) {
   sequenced_task_runner_->PostTask([callback = std::move(callback),
                                     file_paths = std::move(file_paths)]() {
     // wait 1 second to make the file being released from another process.
     absl::SleepFor(absl::Seconds(1));
     for (const auto& file_path : file_paths) {
-      if (!std::filesystem::exists(file_path)) {
+      if (!FileExists(file_path.GetPath())) {
         continue;
       }
-      if (RemoveFile(file_path)) {
-        VLOG(1) << __func__ << ": Removed partial file. File="
-                << GetCompatibleU8String(file_path.u8string());
+      if (RemoveFile(file_path.GetPath())) {
+        VLOG(1) << __func__
+                << ": Removed partial file. File=" << file_path.ToString();
       } else {
         // Try once more after 3 seconds.
         absl::SleepFor(absl::Seconds(3));
-        if (RemoveFile(file_path)) {
+        if (RemoveFile(file_path.GetPath())) {
           VLOG(1) << __func__
                   << ": Removed partial file after additional delay. File="
-                  << GetCompatibleU8String(file_path.u8string());
+                  << file_path.ToString();
         } else {
-          LOG(ERROR) << __func__ << "Can't remove file: "
-                     << GetCompatibleU8String(file_path.u8string());
+          LOG(ERROR) << __func__
+                     << "Can't remove file: " << file_path.ToString();
         }
       }
     }
@@ -104,7 +104,7 @@ void NearbyFileHandler::DeleteFilesFromDisk(
 }
 
 void NearbyFileHandler::UpdateFilesOriginMetadata(
-    std::vector<std::filesystem::path> file_paths,
+    std::vector<FilePath> file_paths,
     absl::AnyInvocable<void(bool success)> callback) {
   sequenced_task_runner_->PostTask(
       [this, callback = std::move(callback),

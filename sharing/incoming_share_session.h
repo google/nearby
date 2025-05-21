@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_SESSION_H_
 #define THIRD_PARTY_NEARBY_SHARING_INCOMING_SHARE_SESSION_H_
 
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
 #include <optional>
@@ -23,6 +22,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -87,7 +87,7 @@ class IncomingShareSession : public ShareSession {
       absl::AnyInvocable<void()> payload_transfer_updates_callback);
 
   // Returns the file paths of all file payloads.
-  std::vector<std::filesystem::path> GetPayloadFilePaths() const;
+  std::vector<FilePath> GetPayloadFilePaths() const;
 
   // Upgrade bandwidth if it is needed.
   // Returns true if bandwidth upgrade was requested.
