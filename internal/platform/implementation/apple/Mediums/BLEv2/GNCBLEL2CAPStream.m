@@ -173,6 +173,8 @@ enum { READ_BUFFER_SIZE = 409600 };
       case NSStreamEventHasSpaceAvailable:
       case NSStreamEventNone:
       default:
+        GTMLoggerInfo(@"[NEARBY] Received event %@ for stream %@",
+                      [[self class] stringFromStreamEventCode:eventCode], stream);
         break;
     }
     return;
@@ -183,7 +185,6 @@ enum { READ_BUFFER_SIZE = 409600 };
       case NSStreamEventHasSpaceAvailable: {
         @synchronized(_writeBufferArray) {
           if (!_writeBufferArray.count) {
-            GTMLoggerInfo(@"[NEARBY] No data to write in buffer, setting flag");
             _writeBufferReadyForData = YES;
             return;
           }
@@ -197,6 +198,8 @@ enum { READ_BUFFER_SIZE = 409600 };
       case NSStreamEventEndEncountered:
       case NSStreamEventNone:
       default:
+        GTMLoggerInfo(@"[NEARBY] Received event %@ for stream %@",
+                      [[self class] stringFromStreamEventCode:eventCode], stream);
         break;
     }
     return;
@@ -303,7 +306,6 @@ enum { READ_BUFFER_SIZE = 409600 };
 /// Receives data from device and invokes |_receivedDataBlock|.
 - (void)receiveStreamData {
   dispatch_assert_queue_debug(_streamQueue);
-
   uint8_t readBuffer[READ_BUFFER_SIZE];
   NSInteger bytesRead = [self.inputStream read:readBuffer maxLength:READ_BUFFER_SIZE];
 

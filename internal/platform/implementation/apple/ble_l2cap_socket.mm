@@ -83,8 +83,6 @@ ExceptionOr<ByteArray> BleL2capInputStream::Read(std::int64_t size) {
   [condition_ unlock];
 
   if (dataToReturn) {
-    GTMLoggerInfo(@"[NEARBY] BleL2capInputStream: Received data of size: %lu",
-                  (unsigned long)dataToReturn.length);
     return ExceptionOr<ByteArray>{ByteArray((const char *)dataToReturn.bytes, dataToReturn.length)};
   } else {
     return ExceptionOr<ByteArray>{Exception::kIo};
@@ -108,9 +106,6 @@ BleL2capOutputStream::~BleL2capOutputStream() {
 
 Exception BleL2capOutputStream::Write(const ByteArray &data) {
   [condition_ lock];
-  GTMLoggerInfo(@"[NEARBY] BleL2capOutputStream: Sending data of size: %lu",
-                NSDataFromByteArray(data).length);
-
   if (!connection_) {
     [condition_ unlock];
     return {Exception::kIo};

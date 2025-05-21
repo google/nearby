@@ -243,8 +243,6 @@ static NSData *PrefixLengthData(NSData *data) {
   }
   NSUInteger realDataLength = data.length - kL2CAPPacketLength;
   if (realDataLength < _expectedDataLength) {
-    GTMLoggerError(@"[NEARBY] Insufficient data. Expected: %lu, Actual: %lu", _expectedDataLength,
-                   realDataLength);
     return nil;
   } else if (realDataLength == _expectedDataLength) {
     return [data subdataWithRange:NSMakeRange(kL2CAPPacketLength, realDataLength)];
@@ -252,8 +250,6 @@ static NSData *PrefixLengthData(NSData *data) {
     // This is a case where the data length is larger than the expected length.
     // The first |_expectedDataLength| bytes are copied and used as the actual data. The
     // remaining bytes will be stored in _undeliveredData for future use.
-    GTMLoggerInfo(@"[NEARBY] Data length mismatch. Expected: %lu, Actual: %lu", _expectedDataLength,
-                  realDataLength);
     return [data subdataWithRange:NSMakeRange(kL2CAPPacketLength, _expectedDataLength)];
   }
 }
