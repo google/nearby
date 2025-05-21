@@ -55,11 +55,30 @@
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 static const UInt8 kRequestConnectionTimeoutInSeconds = 10;
-static NSTimeInterval const kThresholdInterval = 2; // 2 seconds
-static NSTimeInterval const kResetBlockAdvertisementPacketInterval = 600; // 10 minutes
+static NSTimeInterval const kThresholdInterval = 2;                                // 2 seconds
+static NSTimeInterval const kAdvertisementPacketsMapExpirationTimeInterval = 600;  // 10 minutes
 
 namespace nearby {
 namespace apple {
+namespace {
+
+NSString *ConvertDataToHexString(NSData *data) {
+  NSUInteger dataLength = data.length;
+  if (dataLength == 0) {
+    return @"0x";
+  }
+
+  const unsigned char *dataBuffer = (const unsigned char *)data.bytes;
+  NSMutableString *hexString = [NSMutableString stringWithCapacity:dataLength * 2];
+
+  for (NSUInteger i = 0; i < dataLength; ++i) {
+    [hexString appendFormat:@"%02lx", (unsigned long)dataBuffer[i]];
+  }
+
+  return [NSString stringWithFormat:@"0x%@", hexString];
+}
+
+}  // namespace
 
 BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {}
 
@@ -126,64 +145,38 @@ bool BleMedium::StopAdvertising() {
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                          NSDictionary<CBUUID *, NSData *> *serviceData) {
   api::ble_v2::BleAdvertisementData data;
-  NSDate *currentTimestamp = [NSDate date];
-  nearby::ByteArray *service_data_ptr = nullptr;
+  NSDate *now = [NSDate date];
+
+  if ([now timeIntervalSinceDate:GetLastTimestampToCleanExpiredAdvertisementPackets()] >
+      kAdvertisementPacketsMapExpirationTimeInterval) {
+    ClearAdvertisementPacketsMap();
+  }
+
+  api::ble_v2::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
+
+  if (!ShouldReportAdvertisement(now, peripheral_id, serviceData)) {
+    return;
+  }
 
   for (CBUUID *key in serviceData.allKeys) {
     data.service_data[CPPUUIDFromObjC(key)] = ByteArrayFromNSData(serviceData[key]);
-    service_data_ptr = &data.service_data[CPPUUIDFromObjC(key)];
   }
-  if (service_data_ptr == nullptr) {
-    GTMLoggerInfo(@"The service data for peripheral is empty: %@", peripheral);
-    return;
-  }
+
   // Add the peripheral to the map if we haven't discovered it yet.
   api::ble_v2::BlePeripheral::UniqueId unique_id = peripherals_.Add(peripheral);
-  if (block_advertisement_packets_.find(unique_id) == block_advertisement_packets_.end()) {
-    block_advertisement_packets_[unique_id].block = false;
+  AddAdvertisementPacketInfo(unique_id, serviceData);
+
+  for (NSData *service_data in serviceData.allValues) {
+    GTMLoggerDebug(@"Reporting the advertisement packet to upper layer for unique_id: %llu, %@, "
+                   @"advertisement_data: %@.",
+                   unique_id, peripheral, ConvertDataToHexString(service_data));
   }
 
-  if (block_advertisement_packets_[unique_id].last_timestamp != nil) {
-    // If time pass more than 2 seconds or received different service data for same peripheral, we
-    // will unblock the advertisement packet.
-    NSTimeInterval interval = [currentTimestamp
-        timeIntervalSinceDate:block_advertisement_packets_[unique_id].last_timestamp];
-    if ((interval > kThresholdInterval) ||
-        (block_advertisement_packets_[unique_id].last_service_data != *service_data_ptr)) {
-      block_advertisement_packets_[unique_id].block = false;
-      block_advertisement_packets_[unique_id].last_timestamp = currentTimestamp;
-    }
-  } else {
-    // If there is no last timestamp, reset the block of block_advertising_packets_ to false.
-    block_advertisement_packets_[unique_id].block = false;
-    block_advertisement_packets_[unique_id].last_timestamp = currentTimestamp;
-  }
-
-  if (block_advertisement_packets_[unique_id].block) {
-    // If the advertisement packet is blocked, skip to pass the packet to upper layer.
-    return;
-  }
-
-  GTMLoggerInfo(@"Pass the advertisement packet to upper layer for unique_id: %llu, %@, data: %s",
-                unique_id, peripheral, service_data_ptr->data());
-  block_advertisement_packets_[unique_id].last_service_data = *service_data_ptr;
   if (scanning_cb_.advertisement_found_cb) {
     scanning_cb_.advertisement_found_cb(unique_id, data);
   }
   if (scan_cb_.advertisement_found_cb) {
     scan_cb_.advertisement_found_cb(unique_id, data);
-  }
-  block_advertisement_packets_[unique_id].block = true;
-
-  // Reset the block advertisement packet map every 10 minutes.
-  if (last_block_advertisement_packet_timestamp_) {
-    if ([currentTimestamp timeIntervalSinceDate:last_block_advertisement_packet_timestamp_] >
-        kResetBlockAdvertisementPacketInterval) {
-      block_advertisement_packets_.clear();
-      last_block_advertisement_packet_timestamp_ = currentTimestamp;
-    }
-  } else {
-    last_block_advertisement_packet_timestamp_ = currentTimestamp;
   }
 }
 
@@ -197,7 +190,7 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
   peripherals_.Clear();
-  block_advertisement_packets_.clear();
+  ClearAdvertisementPacketsMap();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -229,6 +222,7 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
   peripherals_.Clear();
+  ClearAdvertisementPacketsMap();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
@@ -270,7 +264,7 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
   // discovered in that scan session.
   peripherals_.Clear();
-  block_advertisement_packets_.clear();
+  ClearAdvertisementPacketsMap();
 
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
@@ -474,8 +468,8 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
     return nullptr;
   }
 
-  GNSCentralPeerManager *updatedCentralPeerManager = [socketCentralManager_
-      retrieveCentralPeerWithIdentifier:peripheral.identifier];
+  GNSCentralPeerManager *updatedCentralPeerManager =
+      [socketCentralManager_ retrieveCentralPeerWithIdentifier:peripheral.identifier];
   if (!updatedCentralPeerManager) {
     return nullptr;
   }
@@ -500,8 +494,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
                                               serviceID:@(service_id.c_str())
                                     expectedIntroPacket:NO
                                           callbackQueue:dispatch_get_main_queue()];
-                               socket =
-                                   std::make_unique<BleSocket>(connection, peripheral_id);
+                               socket = std::make_unique<BleSocket>(connection, peripheral_id);
                                connection.connectionHandlers =
                                    socket->GetInputStream().GetConnectionHandlers();
                                dispatch_semaphore_signal(semaphore);
@@ -569,6 +562,69 @@ bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return [medium_ supportsExtendedAdvertisements];
 }
 
+void BleMedium::ClearAdvertisementPacketsMap() {
+  absl::MutexLock lock(&advertisement_packets_mutex_);
+  advertisement_packets_map_.clear();
+  last_timestamp_to_clean_expired_advertisement_packets_ = [NSDate date];
+}
+
+NSDate *BleMedium::GetLastTimestampToCleanExpiredAdvertisementPackets() {
+  absl::MutexLock lock(&advertisement_packets_mutex_);
+  return last_timestamp_to_clean_expired_advertisement_packets_;
+}
+
+void BleMedium::CleanUpExpiredAdvertisementPackets(NSDate *now) {
+  absl::MutexLock lock(&advertisement_packets_mutex_);
+  for (auto it = advertisement_packets_map_.begin(); it != advertisement_packets_map_.end();) {
+    if ([now timeIntervalSinceDate:it->second.last_timestamp] >
+        kAdvertisementPacketsMapExpirationTimeInterval) {
+      advertisement_packets_map_.erase(it++);
+    } else {
+      ++it;
+    }
+  }
+  last_timestamp_to_clean_expired_advertisement_packets_ = now;
+}
+
+bool BleMedium::ShouldReportAdvertisement(NSDate *now,
+                                          api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+                                          NSDictionary<CBUUID *, NSData *> *service_data) {
+  absl::MutexLock lock(&advertisement_packets_mutex_);
+  if (service_data == nil || service_data.count == 0) {
+    return false;
+  }
+
+  auto it = advertisement_packets_map_.find(peripheral_id);
+  if (it == advertisement_packets_map_.end()) {
+    advertisement_packets_map_[peripheral_id] = {now, service_data};
+    return true;
+  }
+
+  if ([now timeIntervalSinceDate:it->second.last_timestamp] < kThresholdInterval &&
+          it -> second.last_service_data.count == service_data.count) {
+    bool is_same_advertisement = true;
+    for (CBUUID *service_uuid in service_data.allKeys) {
+      if (![service_data[service_uuid] isEqualToData:it->second.last_service_data[service_uuid]]) {
+        is_same_advertisement = false;
+        break;
+      }
+    }
+    if (is_same_advertisement) {
+      return false;
+    }
+  }
+
+  it->second.last_timestamp = now;
+  it->second.last_service_data = service_data;
+  return true;
+}
+
+void BleMedium::AddAdvertisementPacketInfo(api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+                                           NSDictionary<CBUUID *, NSData *> *service_data) {
+  absl::MutexLock lock(&advertisement_packets_mutex_);
+  advertisement_packets_map_[peripheral_id] = {[NSDate date], service_data};
+}
+
 api::ble_v2::BlePeripheral::UniqueId BleMedium::PeripheralsMap::Add(id<GNCPeripheral> peripheral) {
   absl::MutexLock lock(&mutex_);
   api::ble_v2::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
@@ -576,7 +632,8 @@ api::ble_v2::BlePeripheral::UniqueId BleMedium::PeripheralsMap::Add(id<GNCPeriph
   return peripheral_id;
 }
 
-id<GNCPeripheral> BleMedium::PeripheralsMap::Get(api::ble_v2::BlePeripheral::UniqueId peripheral_id) {
+id<GNCPeripheral> BleMedium::PeripheralsMap::Get(
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id) {
   absl::MutexLock lock(&mutex_);
   auto peripheral_it = peripherals_.find(peripheral_id);
   if (peripheral_it == peripherals_.end()) {

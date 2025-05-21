@@ -185,21 +185,30 @@ class BleMedium : public api::ble_v2::BleMedium {
 
   void HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                 NSDictionary<CBUUID *, NSData *> *serviceData);
+  void ClearAdvertisementPacketsMap();
+  void CleanUpExpiredAdvertisementPackets(NSDate *now);
+  bool ShouldReportAdvertisement(NSDate *now, api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+                                 NSDictionary<CBUUID *, NSData *> *service_data);
+  void AddAdvertisementPacketInfo(api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+                                  NSDictionary<CBUUID *, NSData *> *service_data);
+  NSDate *GetLastTimestampToCleanExpiredAdvertisementPackets();
 
   GNCBLEMedium *medium_;
 
   PeripheralsMap peripherals_;
-  struct BlockAdvertisementPacket {
-    bool block;
+  struct AdvertisementPacketInfo {
     NSDate *last_timestamp;
-    nearby::ByteArray last_service_data;
+    NSDictionary<CBUUID *, NSData *> *last_service_data;
   };
-  // A map for maintaining the set of advertisement packets that should be blocked or not.
-  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, BlockAdvertisementPacket>
-      block_advertisement_packets_;
-  // The timestamp of the last time to start blocking advertisement packet process. We reset ths
-  // procedure every 10 minutes to avoid stale peripherals that are not advertising any more.
-  NSDate *last_block_advertisement_packet_timestamp_{nil};
+
+  absl::Mutex advertisement_packets_mutex_;
+  // A map for maintaining the set of advertisement packets that should be tracked.
+  absl::flat_hash_map<api::ble_v2::BlePeripheral::UniqueId, AdvertisementPacketInfo>
+      advertisement_packets_map_ ABSL_GUARDED_BY(advertisement_packets_mutex_);
+  // The timestamp of the last time to clean up expired advertisement packets. This is used to
+  // prevent the map from growing indefinitely.
+  NSDate *last_timestamp_to_clean_expired_advertisement_packets_
+      ABSL_GUARDED_BY(advertisement_packets_mutex_) = {nil};
 
   GNSPeripheralServiceManager *socketPeripheralServiceManager_;
   GNSPeripheralManager *socketPeripheralManager_;
