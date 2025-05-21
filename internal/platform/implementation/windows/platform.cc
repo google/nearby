@@ -35,6 +35,8 @@
 
 #include "absl/base/attributes.h"
 #include "absl/status/statusor.h"
+#undef StrCat  // Remove the Windows macro definition
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/atomic_boolean.h"
@@ -88,7 +90,7 @@ namespace api {
 
 namespace {
 
-constexpr char kNCRelativePath[] = "Google\\Nearby\\Connections";
+constexpr char kNCRelativePath[] = "Google/Nearby/Connections";
 
 std::string GetApplicationName(DWORD pid) {
   HANDLE handle =
@@ -148,35 +150,19 @@ std::string ImplementationPlatform::GetAppDataPath(
     const std::string& file_name) {
   PWSTR basePath;
 
-  // Retrieves the full path of a known folder identified by the folder's
-  // KNOWNFOLDERID.
-  // https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-  SHGetKnownFolderPath(
-      FOLDERID_LocalAppData,  //  rfid: A reference to the KNOWNFOLDERID that
-                              //  identifies the folder.
-      0,           // dwFlags: Flags that specify special retrieval options.
-      nullptr,     // hToken: An access token that represents a particular user.
-      &basePath);  // ppszPath: When this method returns, contains the address
-                   // of a pointer to a null-terminated Unicode string that
-                   // specifies the path of the known folder. The calling
-                   // process is responsible for freeing this resource once it
-                   // is no longer needed by calling CoTaskMemFree, whether
-                   // SHGetKnownFolderPath succeeds or not.
-  size_t bufferSize;
-  wcstombs_s(&bufferSize, nullptr, 0, basePath, 0);
-  std::string fullpathUTF8(bufferSize - 1, '\0');
-  wcstombs_s(&bufferSize, fullpathUTF8.data(), bufferSize, basePath, _TRUNCATE);
+  HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
+                                        nullptr, &basePath);
+  if (result != S_OK) {
+    return file_name;
+  }
+
+  std::wstring app_data_path{basePath};
   CoTaskMemFree(basePath);
-
-  // Check if our folder exists
-  std::replace(fullpathUTF8.begin(), fullpathUTF8.end(), '\\', '/');
-
-  std::stringstream path("");
-
-  path << fullpathUTF8.c_str() << "/" << kNCRelativePath << "/"
-       << file_name.data();
-
-  return path.str();
+  std::string app_data_path_utf8 =
+      windows::string_utils::WideStringToString(app_data_path);
+  std::replace(app_data_path_utf8.begin(), app_data_path_utf8.end(), '\\', '/');
+  return absl::StrCat(app_data_path_utf8, "/", kNCRelativePath, "/",
+                        file_name);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
