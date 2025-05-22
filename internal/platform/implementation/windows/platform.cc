@@ -28,9 +28,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <memory>
-#include <sstream>
 #include <string>
 
 #include "absl/base/attributes.h"
@@ -39,6 +37,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/files.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
@@ -218,14 +217,13 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
     const std::string& file_path) {
-  std::filesystem::path path = std::filesystem::u8path(file_path);
-  std::filesystem::path folder_path = path.parent_path();
+  FilePath path{file_path};
+  FilePath folder_path = path.GetParentPath();
   // Verifies that a path is a valid directory.
-  if (!sharing::DirectoryExists(folder_path)) {
-    if (!sharing::CreateDirectories(folder_path)) {
+  if (!sharing::DirectoryExists(folder_path.GetPath())) {
+    if (!sharing::CreateDirectories(folder_path.GetPath())) {
       LOG(ERROR) << "Failed to create directory: "
-                 << windows::string_utils::WideStringToString(
-                        folder_path.wstring());
+                 << folder_path.ToString();
       return nullptr;
     }
   }

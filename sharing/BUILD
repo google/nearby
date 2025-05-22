@@ -671,10 +671,10 @@ cc_test(
     srcs = ["nearby_sharing_settings_test.cc"],
     deps = [
         ":nearby_sharing_service",
+        "//internal/base:files",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//sharing/common",
-        "//sharing/common:compatible_u8_string",
         "//sharing/common:enum",
         "//sharing/internal/test:nearby_test",
         "//sharing/local_device_data:test_support",
