@@ -55,8 +55,15 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 
   // The active GATT server, or @nil if one hasn't been started yet.
   GNCBLEGATTServer *_server;
+
+  // The active L2CAP server, or @nil if one hasn't been started yet.
   GNCBLEL2CAPServer *_l2capServer;
+
+  // The active L2CAP client, or @nil if one hasn't been started yet.
   GNCBLEL2CAPClient *_l2capClient;
+
+  // The PSM number of the remote peripheral's L2CAP server.
+  uint16_t _l2capPSM;
 
   // The services that is being actively scanned for.
   NSMutableArray<CBUUID *> *_scanningServiceUUIDs;
@@ -68,11 +75,18 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   // A peripheral to connection completion handler map. Used to track connection attempts. When a
   // connection attempt has succeeded or failed, the completion handler is called and removed from
   // the map.
-  NSMutableDictionary<NSUUID *, GNCGATTConnectionCompletionHandler> *_connectionCompletionHandlers;
+  NSMutableDictionary<NSUUID *, GNCGATTConnectionCompletionHandler>
+      *_gattConnectionCompletionHandlers;
 
   // A peripheral to disconnection handler map. Used to track when a peripheral becomes
-  // disconnected. Once disconnected, the completion handler is called and removed from the map.
-  NSMutableDictionary<NSUUID *, GNCGATTDisconnectionHandler> *_disconnectionHandlers;
+  // disconnected. Once disconnected, the disconnection handler is called and removed from the map.
+  NSMutableDictionary<NSUUID *, GNCGATTDisconnectionHandler> *_gattDisconnectionHandlers;
+
+  // A peripheral to L2CAP stream completion handler map. Used to track L2CAP stream attempts. When
+  // a L2CAP stream attempt has succeeded or failed, the completion handler is called and removed
+  // from the map.
+  NSMutableDictionary<NSUUID *, GNCOpenL2CAPStreamCompletionHandler>
+      *_l2capStreamCompletionHandlers;
 }
 
 - (instancetype)init {
@@ -93,9 +107,11 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
     _queue = queue ?: dispatch_get_main_queue();
     _centralManager = centralManager;
     _centralManager.centralDelegate = self;
-    _connectionCompletionHandlers = [NSMutableDictionary dictionary];
-    _disconnectionHandlers = [NSMutableDictionary dictionary];
+    _gattConnectionCompletionHandlers = [NSMutableDictionary dictionary];
+    _gattDisconnectionHandlers = [NSMutableDictionary dictionary];
     _scanningServiceUUIDs = [NSMutableArray array];
+    _l2capStreamCompletionHandlers = [NSMutableDictionary dictionary];
+    _l2capPSM = 0;
   }
   return self;
 }
@@ -199,8 +215,9 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
                        completionHandler:
                            (nullable GNCGATTConnectionCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
-    _disconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
-    _connectionCompletionHandlers[remotePeripheral.identifier] = completionHandler;
+    _gattDisconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
+    _gattConnectionCompletionHandlers[remotePeripheral.identifier] = completionHandler;
+    _l2capPSM = 0;
     [_centralManager connectPeripheral:remotePeripheral options:@{}];
   });
 }
@@ -232,17 +249,20 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
                             requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
                             }];
     }
-    [_l2capClient openL2CAPChannelWithPSM:psm
-                        completionHandler:^void(GNCBLEL2CAPStream *_Nullable stream,
-                                                NSError *_Nullable error) {
-                          if (!completionHandler) return;
-                          if (error) {
-                            completionHandler(nil, error);
-                          } else {
-                            completionHandler(stream, nil);
-                          }
-                        }];
+    _l2capStreamCompletionHandlers[remotePeripheral.identifier] = completionHandler;
+    _l2capPSM = psm;
+    // There is a Core Bluetooth problem: Either -didConnectPeripheral or
+    // -didFailToConnectPeripheral should be called at this point, but sometimes neither is
+    // called.
+    // TODO: b/419127415 - Investigate the root cause of this problem.
+    [_centralManager connectPeripheral:remotePeripheral options:@{}];
   });
+}
+
+// This is private and should only be used for tests. The provided L2CAP client must call
+// delegate methods on the main queue.
+- (void)setL2CAPClient:(GNCBLEL2CAPClient *)l2capClient {
+  _l2capClient = l2capClient;
 }
 
 #pragma mark - Internal
@@ -300,6 +320,35 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   return @{};
 }
 
+- (void)internalOpenL2CAPChannel:(id<GNCPeripheral>)remotePeripheral {
+  dispatch_assert_queue(_queue);
+
+  __weak __typeof__(self) weakSelf = self;
+  GNCOpenL2CAPStreamCompletionHandler handler =
+      _l2capStreamCompletionHandlers[remotePeripheral.identifier];
+  _l2capStreamCompletionHandlers[remotePeripheral.identifier] = nil;
+
+  if (!handler) {
+    return;
+  }
+
+  [_l2capClient
+      openL2CAPChannelWithPSM:_l2capPSM
+            completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+              __typeof__(self) strongSelf = weakSelf;
+              if (!strongSelf) {
+                return;
+              }
+              dispatch_async(strongSelf->_queue, ^{
+                if (error) {
+                  handler(nil, error);
+                } else {
+                  handler(stream, nil);
+                }
+              });
+            }];
+}
+
 #pragma mark - GNCCentralManagerDelegate
 
 - (void)gnc_centralManagerDidUpdateState:(id<GNCCentralManager>)central {
@@ -320,8 +369,13 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 - (void)gnc_centralManager:(id<GNCCentralManager>)central
       didConnectPeripheral:(id<GNCPeripheral>)peripheral {
   dispatch_assert_queue(_queue);
-  GNCGATTConnectionCompletionHandler handler = _connectionCompletionHandlers[peripheral.identifier];
-  _connectionCompletionHandlers[peripheral.identifier] = nil;
+  if (_l2capPSM > 0) {
+    [self internalOpenL2CAPChannel:peripheral];
+    return;
+  }
+  GNCGATTConnectionCompletionHandler handler =
+      _gattConnectionCompletionHandlers[peripheral.identifier];
+  _gattConnectionCompletionHandlers[peripheral.identifier] = nil;
   if (handler) {
     GNCBLEGATTClient *client =
         [[GNCBLEGATTClient alloc] initWithPeripheral:peripheral
@@ -338,8 +392,9 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
     didFailToConnectPeripheral:(id<GNCPeripheral>)peripheral
                          error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
-  GNCGATTConnectionCompletionHandler handler = _connectionCompletionHandlers[peripheral.identifier];
-  _connectionCompletionHandlers[peripheral.identifier] = nil;
+  GNCGATTConnectionCompletionHandler handler =
+      _gattConnectionCompletionHandlers[peripheral.identifier];
+  _gattConnectionCompletionHandlers[peripheral.identifier] = nil;
   if (handler) {
     handler(nil, error);
   }
@@ -349,8 +404,8 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
     didDisconnectPeripheral:(id<GNCPeripheral>)peripheral
                       error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
-  GNCGATTDisconnectionHandler handler = _disconnectionHandlers[peripheral.identifier];
-  _disconnectionHandlers[peripheral.identifier] = nil;
+  GNCGATTDisconnectionHandler handler = _gattDisconnectionHandlers[peripheral.identifier];
+  _gattDisconnectionHandlers[peripheral.identifier] = nil;
   if (handler) {
     handler();
   }

@@ -21,6 +21,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Tests/GNCBLEL2CAPClient+Testing.h"
 #import "internal/platform/implementation/apple/Tests/GNCBLEMedium+Testing.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakeCentralManager.h"
 #import "internal/platform/implementation/apple/Tests/GNCFakePeripheral.h"
@@ -302,6 +303,28 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 
   [self waitForExpectations:@[ psmPublishedexpectation ] timeout:0.1];
   [self waitForExpectations:@[ channelOpenedexpectation ] timeout:0.5];
+}
+
+- (void)testSuccessfulOpenL2CAPChannel {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
+  XCTestExpectation *expectation =
+      [[XCTestExpectation alloc] initWithDescription:@"Open L2CAP channel."];
+
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  GNCBLEL2CAPClient *l2capClient =
+      [[GNCBLEL2CAPClient alloc] initWithPeripheral:fakePeripheral
+                                              queue:nil
+                        requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral) {
+                        }];
+  [medium setL2CAPClient:l2capClient];
+  [medium openL2CAPChannelWithPSM:123
+                       peripheral:fakePeripheral
+                completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
+                  [expectation fulfill];
+                }];
+
+  [self waitForExpectations:@[ expectation ] timeout:3];
 }
 
 #pragma mark - Connect
