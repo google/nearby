@@ -15,13 +15,13 @@
 #include "sharing/attachment_container.h"
 
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <optional>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/base/file_path.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/attachment_compare.h"  // IWYU pragma: keep
 #include "sharing/file_attachment.h"
@@ -62,8 +62,7 @@ class AttachmentContainerTest : public ::testing::Test {
             nearby::sharing::service::proto::WifiCredentialsMetadata::WPA_PSK,
             "somepassword", true, /*batch_id=*/99707L,
             AttachmentSourceType::ATTACHMENT_SOURCE_PASTE) {
-    file1_.set_file_path(
-        std::filesystem::u8path("/usr/local/tmp/someFileName.jpg"));
+    file1_.set_file_path(FilePath{"/usr/local/tmp/someFileName.jpg"});
   }
 
   TextAttachment text1_;

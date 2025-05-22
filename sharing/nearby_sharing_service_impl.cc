@@ -20,7 +20,6 @@
 #include <array>
 #include <cstdlib>
 #include <ctime>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <ios>
 #include <memory>
@@ -761,7 +760,7 @@ void NearbySharingServiceImpl::SendAttachments(
         }
         for (const FileAttachment& attachment :
              attachment_container->GetFileAttachments()) {
-          if (!attachment.file_path() || attachment.file_path()->empty()) {
+          if (!attachment.file_path() || attachment.file_path()->IsEmpty()) {
             LOG(WARNING) << __func__ << ": Got file attachment without path";
             std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
             return;
@@ -2830,8 +2829,7 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
       session->session_id(), session->share_target(),
       /*referrer_package=*/std::nullopt, session->os_type());
 
-  if (IsOutOfStorage(device_info_,
-                     std::filesystem::u8path(settings_->GetCustomSavePath()),
+  if (IsOutOfStorage(device_info_, FilePath{settings_->GetCustomSavePath()},
                      session->attachment_container().GetStorageSize())) {
     Fail(*session, TransferMetadata::Status::kNotEnoughSpace);
     LOG(WARNING) << __func__
@@ -3134,7 +3132,7 @@ void NearbySharingServiceImpl::RemoveIncomingPayloads(
   for (auto it = file_paths_to_delete.begin(); it != file_paths_to_delete.end();
        ++it) {
     VLOG(1) << __func__ << ": Has unknown file path to delete.";
-    files_for_deletion.push_back(FilePath::FromPath(*it));
+    files_for_deletion.push_back(*it);
   }
   std::vector<FilePath> payload_file_path = session.GetPayloadFilePaths();
   files_for_deletion.insert(files_for_deletion.end(), payload_file_path.begin(),

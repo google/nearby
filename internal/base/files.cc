@@ -14,6 +14,7 @@
 
 #include "internal/base/files.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
@@ -128,6 +129,16 @@ bool CopyFileSafely(const std::filesystem::path& old_path,
     return false;
   }
   return true;
+}
+
+std::optional<size_t> GetAvailableDiskSpaceInBytes(const FilePath& path) {
+  std::error_code error_code;
+  std::filesystem::space_info space_info =
+      std::filesystem::space(path.GetPath(), error_code);
+  if (error_code.value() == 0) {
+    return space_info.available;
+  }
+  return std::nullopt;
 }
 
 }  // namespace nearby::sharing

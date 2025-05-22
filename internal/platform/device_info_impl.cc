@@ -15,7 +15,6 @@
 #include "internal/platform/device_info_impl.h"
 
 #include <cstddef>
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <optional>
 #include <string>
@@ -78,13 +77,7 @@ FilePath DeviceInfoImpl::GetLogPath() const {
 
 std::optional<size_t> DeviceInfoImpl::GetAvailableDiskSpaceInBytes(
     const FilePath& path) const {
-  std::error_code error_code;
-  std::filesystem::space_info space_info =
-      std::filesystem::space(path.GetPath(), error_code);
-  if (error_code.value() == 0) {
-    return space_info.available;
-  }
-  return std::nullopt;
+  return nearby::sharing::GetAvailableDiskSpaceInBytes(path);
 }
 
 bool DeviceInfoImpl::IsScreenLocked() const {

@@ -69,6 +69,27 @@ TEST(FilePathTest, FromUnicodeLinuxToWideString) {
   EXPECT_EQ(path.ToWideString(), L"/usr/local/home/奥巴马/Documents");
 }
 
+TEST(FilePathTest, IsEmptySuccess) {
+  FilePath path;
+  EXPECT_TRUE(path.IsEmpty());
+  FilePath path2("/usr/local/home/奥巴马/Documents/test.pdf");
+  EXPECT_FALSE(path2.IsEmpty());
+}
+
+TEST(FilePathTest, GetExtensionEmpty) {
+  FilePath path("/usr/local/home/test/Documents/test.");
+  EXPECT_EQ(path.GetExtension().ToString(), ".");
+}
+
+TEST(FilePathTest, GetExtensionSuccess) {
+  FilePath path("/usr/local/home/test/Documents/test.奥巴马");
+  EXPECT_EQ(path.GetExtension().ToString(), ".奥巴马");
+}
+TEST(FilePathTest, GetFileNameSuccess) {
+  FilePath path("/usr/local/home/test/奥巴马.pdf");
+  EXPECT_EQ(path.GetFileName().ToString(), "奥巴马.pdf");
+}
+
 TEST(FilePathTest, AppendSuccess) {
   FilePath path("/usr/local/home/奥巴马/Documents");
   FilePath sub_path("贝拉克/temp");

@@ -36,9 +36,21 @@ std::wstring FilePath::ToWideString() const {
   return path_.wstring();
 }
 
+bool FilePath::IsEmpty() const {
+  return path_.empty();
+}
+
 FilePath& FilePath::append(const FilePath& subpath) {
   path_ /= subpath.path_;
   return *this;
+}
+
+FilePath FilePath::GetFileName() const {
+  return FromPath(path_.filename());
+}
+
+FilePath FilePath::GetExtension() const {
+  return FromPath(path_.extension());
 }
 
 FilePath FilePath::GetParentPath() const {

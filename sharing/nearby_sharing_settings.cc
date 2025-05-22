@@ -15,7 +15,6 @@
 #include "sharing/nearby_sharing_settings.h"
 
 #include <cstdint>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>
 #include <ostream>
@@ -30,7 +29,6 @@
 #include "internal/platform/device_info.h"
 #include "proto/sharing_enums.pb.h"
 #include "sharing/analytics/analytics_recorder.h"
-#include "sharing/common/compatible_u8_string.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"

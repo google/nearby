@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>
 #include <vector>
@@ -36,7 +35,7 @@ class NearbyFileHandler {
  public:
   struct FileInfo {
     uint64_t size;
-    std::filesystem::path file_path;
+    FilePath file_path;
   };
 
   using OpenFilesCallback = std::function<void(std::vector<FileInfo>)>;
@@ -47,8 +46,7 @@ class NearbyFileHandler {
 
   // Open the files given in |file_paths| and return the opened files sizes via
   // |callback|. If any file fails to open, return an empty list.
-  void OpenFiles(std::vector<std::filesystem::path> file_paths,
-                 OpenFilesCallback callback);
+  void OpenFiles(std::vector<FilePath> file_paths, OpenFilesCallback callback);
 
   void DeleteFilesFromDisk(std::vector<FilePath> file_paths,
                            DeleteFilesFromDiskCallback callback);

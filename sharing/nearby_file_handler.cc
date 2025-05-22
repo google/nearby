@@ -15,7 +15,6 @@
 #include "sharing/nearby_file_handler.h"
 
 #include <stdint.h>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>
 #include <optional>
@@ -29,7 +28,6 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/task_runner_impl.h"
-#include "sharing/common/compatible_u8_string.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/logging.h"
 
@@ -41,13 +39,13 @@ using ::nearby::sharing::api::SharingPlatform;
 
 // Called on the FileTaskRunner to actually open the files passed.
 std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
-    absl::Span<const std::filesystem::path> file_paths) {
+    absl::Span<const FilePath> file_paths) {
   std::vector<NearbyFileHandler::FileInfo> files;
   for (const auto& file_path : file_paths) {
-    std::optional<uintmax_t> size = GetFileSize(file_path);
+    std::optional<uintmax_t> size = GetFileSize(file_path.GetPath());
     if (!size.has_value()) {
-      LOG(ERROR) << __func__ << ": Failed to open file. File="
-                 << GetCompatibleU8String(file_path.u8string());
+      LOG(ERROR) << __func__
+                 << ": Failed to open file. File=" << file_path.ToString();
       return {};
     }
     files.push_back({*size, file_path});
@@ -64,7 +62,7 @@ NearbyFileHandler::NearbyFileHandler(SharingPlatform& platform)
 
 NearbyFileHandler::~NearbyFileHandler() = default;
 
-void NearbyFileHandler::OpenFiles(std::vector<std::filesystem::path> file_paths,
+void NearbyFileHandler::OpenFiles(std::vector<FilePath> file_paths,
                                   OpenFilesCallback callback) {
   sequenced_task_runner_->PostTask(
       [callback = std::move(callback), file_paths = std::move(file_paths)]() {

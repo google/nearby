@@ -15,7 +15,6 @@
 #include "sharing/incoming_share_session.h"
 
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <limits>
 #include <memory>
@@ -32,7 +31,6 @@
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
-#include "sharing/common/compatible_u8_string.h"
 #include "sharing/constants.h"
 #include "sharing/file_attachment.h"
 #include "sharing/internal/public/logging.h"
@@ -307,9 +305,8 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
       continue;
     }
 
-    auto file_path = incoming_payload->content.file_payload.file.path;
-    VLOG(1) << __func__ << ": Updated file_path="
-            << GetCompatibleU8String(file_path.u8string());
+    FilePath file_path = incoming_payload->content.file_payload.file.path;
+    VLOG(1) << __func__ << ": Updated file_path=" << file_path.ToString();
     file.set_file_path(file_path);
   }
   return result;
@@ -406,7 +403,7 @@ std::vector<FilePath> IncomingShareSession::GetPayloadFilePaths()
       attachment_payload_map();
   for (const auto& file : container.GetFileAttachments()) {
     if (!file.file_path().has_value()) continue;
-    FilePath file_path = FilePath::FromPath(*file.file_path());
+    FilePath file_path = *file.file_path();
     VLOG(1) << __func__ << ": file_path=" << file_path.ToString();
     if (attachment_paylod_map.find(file.id()) == attachment_paylod_map.end()) {
       continue;

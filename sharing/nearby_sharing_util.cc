@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
 #include <string>
 #include <vector>
@@ -138,10 +137,10 @@ std::string GetDeviceId(
   return std::string(endpoint_id);
 }
 
-bool IsOutOfStorage(DeviceInfo& device_info, std::filesystem::path file_path,
+bool IsOutOfStorage(DeviceInfo& device_info, FilePath file_path,
                     int64_t storage_required) {
   std::optional<size_t> available_storage =
-      device_info.GetAvailableDiskSpaceInBytes(FilePath::FromPath(file_path));
+      device_info.GetAvailableDiskSpaceInBytes(file_path);
 
   if (!available_storage.has_value()) {
     return false;

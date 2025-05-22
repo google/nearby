@@ -16,7 +16,6 @@
 
 #include <atomic>
 #include <cstdio>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -32,8 +31,8 @@ namespace sharing {
 namespace {
 using ::nearby::sharing::api::MockSharingPlatform;
 
-bool CreateFile(std::filesystem::path file_path) {
-  std::FILE* file = std::fopen(file_path.c_str(), "w+");
+bool CreateFile(FilePath& file_path) {
+  std::FILE* file = std::fopen(file_path.GetPath().c_str(), "w+");
   if (file == nullptr) {
     return false;
   }
@@ -46,8 +45,8 @@ TEST(NearbyFileHandler, OpenFiles) {
   NearbyFileHandler nearby_file_handler(mock_platform);
   absl::Notification notification;
   std::vector<NearbyFileHandler::FileInfo> result;
-  std::filesystem::path test_file =
-      std::filesystem::temp_directory_path() / "nearby_nfh_test_abc.jpg";
+  FilePath test_file =
+      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
 
   ASSERT_TRUE(CreateFile(test_file));
   nearby_file_handler.OpenFiles(
@@ -59,7 +58,7 @@ TEST(NearbyFileHandler, OpenFiles) {
 
   notification.WaitForNotificationWithTimeout(absl::Seconds(1));
   EXPECT_EQ(result.size(), 1);
-  ASSERT_TRUE(RemoveFile(test_file));
+  ASSERT_TRUE(RemoveFile(test_file.GetPath()));
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
@@ -67,7 +66,7 @@ TEST(NearbyFileHandler, DeleteAFileFromDisk) {
   NearbyFileHandler nearby_file_handler(mock_platform);
   FilePath test_file =
       GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
-  ASSERT_TRUE(CreateFile(test_file.GetPath()));
+  ASSERT_TRUE(CreateFile(test_file));
   std::vector<FilePath> file_paths;
   file_paths.push_back(test_file);
   nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
@@ -104,7 +103,7 @@ TEST(NearbyFileHandler, TestCallback) {
   NearbyFileHandler nearby_file_handler(mock_platform);
   FilePath test_file =
       GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
-  ASSERT_TRUE(CreateFile(test_file.GetPath()));
+  ASSERT_TRUE(CreateFile(test_file));
   std::vector<FilePath> file_paths;
   file_paths.push_back(test_file);
   nearby_file_handler.DeleteFilesFromDisk(

@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <limits>
 #include <optional>
@@ -28,9 +27,9 @@
 #include "absl/random/random.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/interop/authentication_status.h"
-#include "sharing/common/compatible_u8_string.h"
 
 namespace nearby {
 namespace sharing {
@@ -358,11 +357,10 @@ enum class DistanceInfo {
 
 struct InputFile {
   InputFile() = default;
-  explicit InputFile(std::string path) {
-    this->path = std::filesystem::u8path(path);
-  }
+  explicit InputFile(absl::string_view file_path)
+      : path(file_path) {}
 
-  std::filesystem::path path;
+  FilePath path;
 };
 
 // A simple payload containing raw bytes.
@@ -412,10 +410,10 @@ struct Payload {
 
   explicit Payload(InputFile file,
                    absl::string_view parent_folder = absl::string_view()) {
-    id = std::hash<std::string>()(GetCompatibleU8String(file.path.u8string()));
+    id = std::hash<std::string>()(file.path.ToString());
 
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = GetFileSize(file.path);
+    std::optional<uintmax_t> size = GetFileSize(file.path.GetPath());
     if (size.has_value()) {
       content.file_payload.size = *size;
     }
@@ -433,7 +431,7 @@ struct Payload {
           absl::string_view parent_folder = absl::string_view())
       : id(id) {
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = GetFileSize(file.path);
+    std::optional<uintmax_t> size = GetFileSize(file.path.GetPath());
     if (size.has_value()) {
       content.file_payload.size = *size;
     }

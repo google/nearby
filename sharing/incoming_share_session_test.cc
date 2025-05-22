@@ -90,7 +90,7 @@ constexpr absl::string_view kEndpointId = "ABCD";
 std::unique_ptr<Payload> CreateFilePayload(int64_t payload_id,
                                            FilePath file_path) {
   auto file_payload =
-      std::make_unique<Payload>(InputFile(file_path.GetPath()));
+      std::make_unique<Payload>(InputFile(file_path.ToString()));
   file_payload->id = payload_id;
   return file_payload;
 }
@@ -887,10 +887,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCompleteWithSuccess) {
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kComplete));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(file1_path.GetPath()));
+      Eq(file1_path));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(file2_path.GetPath()));
+      Eq(file2_path));
   EXPECT_THAT(
       session_.attachment_container().GetTextAttachments()[0].text_body(),
       Eq(text_content1));
@@ -969,10 +969,10 @@ TEST_F(IncomingShareSessionTest, PayloadTransferUpdateCancelled) {
   EXPECT_THAT(*metadata, HasStatus(TransferMetadata::Status::kCancelled));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[0].file_path(),
-      Eq(file1_path.GetPath()));
+      Eq(file1_path));
   EXPECT_THAT(
       session_.attachment_container().GetFileAttachments()[1].file_path(),
-      Eq(file2_path.GetPath()));
+      Eq(file2_path));
   EXPECT_THAT(
       connections_manager_.connection_endpoint_info(kEndpointId).has_value(),
       IsTrue());

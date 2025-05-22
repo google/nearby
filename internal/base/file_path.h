@@ -48,8 +48,18 @@ class FilePath {
   // Returns the path as a unicode string.
   std::wstring ToWideString() const;
 
+  // Returns true if the path is empty.
+  bool IsEmpty() const;
+
   // Appends the given `subpath` to this path using a path separator..
   FilePath& append(const FilePath& subpath);
+
+  // Returns the last component of this path.
+  FilePath GetFileName() const;
+
+  // Returns the extension of the last component of this path.
+  // The return extension includes the "." prefix.
+  FilePath GetExtension() const;
 
   // Returns the path of the parent directory of this path.
   FilePath GetParentPath() const;
@@ -58,6 +68,12 @@ class FilePath {
   std::filesystem::path GetPath() const { return path_; }
 
   friend auto operator<=>(const FilePath& lhs, const FilePath& rhs) = default;
+
+  // Hash function for absl containers.
+  template <typename H>
+  friend H AbslHashValue(H h, const FilePath& path) {
+    return H::combine(std::move(h), path.path_);
+  }
 
  private:
   std::filesystem::path path_;

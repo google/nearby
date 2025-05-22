@@ -16,12 +16,12 @@
 #define THIRD_PARTY_NEARBY_SHARING_FILE_ATTACHMENT_H_
 
 #include <cstdint>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #if defined(_WIN32)
 #if defined(PLATFORM_UNKNOWN)
 #define UNDEF_PLATFORM_UNKNOWN
@@ -49,7 +49,7 @@ class FileAttachment : public Attachment {
   using Type = nearby::sharing::service::proto::FileMetadata::Type;
 
   explicit FileAttachment(
-      std::filesystem::path file_path, absl::string_view mime_type = "",
+      FilePath file_path, absl::string_view mime_type = "",
       std::string parent_folder = "", int32_t batch_id = 0,
       location::nearby::proto::sharing::AttachmentSourceType source_type =
           location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
@@ -68,7 +68,7 @@ class FileAttachment : public Attachment {
   absl::string_view mime_type() const { return mime_type_; }
   absl::string_view parent_folder() const { return parent_folder_; }
   Type type() const { return type_; }
-  const std::optional<std::filesystem::path>& file_path() const {
+  const std::optional<FilePath>& file_path() const {
     return file_path_;
   }
 
@@ -76,7 +76,7 @@ class FileAttachment : public Attachment {
   absl::string_view GetDescription() const override;
   ShareType GetShareType() const override;
 
-  void set_file_path(std::optional<std::filesystem::path> path) {
+  void set_file_path(std::optional<FilePath> path) {
     file_path_ = std::move(path);
   }
 
@@ -85,7 +85,7 @@ class FileAttachment : public Attachment {
   std::string file_name_;
   std::string mime_type_;
   Type type_;
-  std::optional<std::filesystem::path> file_path_;
+  std::optional<FilePath> file_path_;
   std::string parent_folder_;
 };
 

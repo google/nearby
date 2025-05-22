@@ -20,7 +20,6 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <limits>
 #include <memory>
@@ -270,9 +269,9 @@ constexpr absl::Duration kCertificateDownloadDuringDiscoveryPeriod =
     absl::Seconds(10);
 
 std::unique_ptr<Payload> GetFilePayload(int64_t payload_id) {
-  std::filesystem::path path =
-      std::filesystem::temp_directory_path() / absl::StrCat(payload_id);
-  InputFile input_file{path};
+  FilePath path =
+      GetTemporaryDirectory()->append(FilePath(absl::StrCat(payload_id)));
+  InputFile input_file{path.ToString()};
   return std::make_unique<Payload>(input_file);
 }
 
@@ -374,7 +373,7 @@ std::unique_ptr<AttachmentContainer> CreateTextAttachments(
 }
 
 std::unique_ptr<AttachmentContainer> CreateFileAttachments(
-    std::vector<std::filesystem::path> file_paths) {
+    std::vector<FilePath> file_paths) {
   auto attachment_container = std::make_unique<AttachmentContainer>();
   for (auto& file_path : file_paths) {
     attachment_container->AddFileAttachment(
@@ -1188,7 +1187,7 @@ class NearbySharingServiceImplTest : public testing::Test {
         fake_nearby_connections_manager_->GetRegisteredPayloadStatusListener(
             kFilePayloadId);
 
-    std::filesystem::path file_path;
+    FilePath file_path;
     absl::Notification success_notification;
     EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
         .WillOnce(testing::Invoke([&](const ShareTarget& share_target,
@@ -1231,7 +1230,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
     // Remove test file.
-    std::filesystem::remove(file_path);
+    RemoveFile(file_path.GetPath());
   }
 
   void FlushTesting() {
@@ -1259,10 +1258,10 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   FakeAccountManager& account_manager() { return fake_account_manager_; }
 
-  std::filesystem::path CreateTestFile(absl::string_view name,
+  FilePath CreateTestFile(absl::string_view name,
                                        const std::vector<uint8_t>& content) {
-    std::filesystem::path path = std::filesystem::temp_directory_path() / name;
-    std::FILE* file = std::fopen(path.string().c_str(), "w+");
+    FilePath path = GetTemporaryDirectory()->append(FilePath(name));
+    std::FILE* file = std::fopen(path.GetPath().c_str(), "w+");
     std::fwrite(content.data(), 1, content.size(), file);
     std::fclose(file);
     return path;
@@ -3470,7 +3469,7 @@ TEST_F(NearbySharingServiceImplTest, SendFileWithEmptyPath) {
       DiscoverShareTarget(transfer_callback, discovery_callback);
   ScopedSendSurface s(service_.get(), &transfer_callback);
 
-  EXPECT_EQ(SendAttachments(target_id, CreateFileAttachments({""})),
+  EXPECT_EQ(SendAttachments(target_id, CreateFileAttachments({FilePath{""}})),
             NearbySharingServiceImpl::StatusCodes::kInvalidArgument);
 }
 
@@ -3482,7 +3481,7 @@ TEST_P(NearbySharingServiceImplSendFailureTest, SendFilesRemoteFailure) {
   ScopedSendSurface s(service_.get(), &transfer_callback);
 
   std::vector<uint8_t> test_data = {'T', 'e', 's', 't'};
-  std::filesystem::path path = CreateTestFile("text.txt", test_data);
+  FilePath path = CreateTestFile("text.txt", test_data);
 
   absl::Notification notification;
   ExpectTransferUpdates(transfer_callback, target_id,
@@ -3631,7 +3630,7 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
 
   std::vector<uint8_t> test_data = {'T', 'e', 's', 't'};
   std::string file_name = "test.txt";
-  std::filesystem::path path = CreateTestFile(file_name, test_data);
+  FilePath path = CreateTestFile(file_name, test_data);
 
   absl::Notification introduction_notification;
   ExpectTransferUpdates(transfer_callback, target_id,
@@ -3673,8 +3672,8 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
   // Expect the file payload to be sent in the end.
   PayloadInfo info = GetWrittenPayload();
   ASSERT_TRUE(info.payload->content.is_file());
-  std::filesystem::path file = info.payload->content.file_payload.file.path;
-  ASSERT_TRUE(std::filesystem::exists(file));
+  FilePath file = info.payload->content.file_payload.file.path;
+  ASSERT_TRUE(FileExists(file.GetPath()));
 }
 
 TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {
@@ -5028,14 +5027,15 @@ TEST_F(NearbySharingServiceImplTest, NoAdvertisingWhenHidden) {
 
 TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test1.txt");
+      FilePath{"test1.txt"});
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test2.txt");
+      FilePath{"test2.txt"});
   auto unknown_file_paths_to_delete =
       fake_nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);
-  EXPECT_THAT(unknown_file_paths_to_delete,
-              UnorderedElementsAre("test1.txt", "test2.txt"));
+  EXPECT_THAT(
+      unknown_file_paths_to_delete,
+      UnorderedElementsAre(FilePath("test1.txt"), FilePath("test2.txt")));
   nearby::analytics::MockEventLogger mock_event_logger;
   analytics::AnalyticsRecorder analytics_recorder{/*vendor_id=*/0,
                                                   &mock_event_logger};
@@ -5054,9 +5054,9 @@ TEST_F(NearbySharingServiceImplTest, RemoveIncomingPayloads) {
 
   // Test GetAndClearUnknownFilePathsToDelete
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test1.txt");
+      FilePath{"test1.txt"});
   fake_nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test2.txt");
+      FilePath{"test2.txt"});
   unknown_file_paths_to_delete =
       fake_nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
   EXPECT_EQ(unknown_file_paths_to_delete.size(), 2);

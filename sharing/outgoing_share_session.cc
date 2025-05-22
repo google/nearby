@@ -16,7 +16,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
 #include <optional>
@@ -28,6 +27,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -160,8 +160,8 @@ void OutgoingShareSession::OnConnectionDisconnected() {
   }
 }
 
-std::vector<std::filesystem::path> OutgoingShareSession::GetFilePaths() const {
-  std::vector<std::filesystem::path> file_paths;
+std::vector<FilePath> OutgoingShareSession::GetFilePaths() const {
+  std::vector<FilePath> file_paths;
   file_paths.reserve(attachment_container().GetFileAttachments().size());
   for (const FileAttachment& file_attachment :
        attachment_container().GetFileAttachments()) {

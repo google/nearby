@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
@@ -64,6 +65,11 @@ bool CreateHardLink(const std::filesystem::path& target,
 // Returns true on success.
 bool CopyFileSafely(const std::filesystem::path& old_path,
                     const std::filesystem::path& new_path);
+
+// Returns the available disk space in bytes for the given path.
+// Returns nullopt if the path does not exist or if the space cannot be
+// determined.
+std::optional<size_t> GetAvailableDiskSpaceInBytes(const FilePath& path);
 
 }  // namespace nearby::sharing
 

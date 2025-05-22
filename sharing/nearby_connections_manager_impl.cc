@@ -16,7 +16,6 @@
 
 #include <stdint.h>
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>
 #include <optional>
@@ -28,10 +27,10 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/bind_front.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/mutex_lock.h"
@@ -825,7 +824,7 @@ void NearbyConnectionsManagerImpl::DeleteUnknownFilePayloadAndCancel(
 
 void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
     PayloadStatus status, PayloadContent::Type type,
-    const std::filesystem::path& path) {
+    const FilePath& path) {
   // Unknown payload comes as kInProgress and kCanceled status with kFile type
   // from NearbyConnections. Delete it.
   if ((status == PayloadStatus::kCanceled ||
@@ -977,13 +976,13 @@ void NearbyConnectionsManagerImpl::SetCustomSavePath(
       });
 }
 
-absl::flat_hash_set<std::filesystem::path>
+absl::flat_hash_set<FilePath>
 NearbyConnectionsManagerImpl::GetUnknownFilePathsToDelete() {
   MutexLock lock(&mutex_);
   return file_paths_to_delete_;
 }
 
-absl::flat_hash_set<std::filesystem::path>
+absl::flat_hash_set<FilePath>
 NearbyConnectionsManagerImpl::GetAndClearUnknownFilePathsToDelete() {
   MutexLock lock(&mutex_);
   auto file_paths_to_delete = std::move(file_paths_to_delete_);
@@ -991,20 +990,19 @@ NearbyConnectionsManagerImpl::GetAndClearUnknownFilePathsToDelete() {
   return file_paths_to_delete;
 }
 
-absl::flat_hash_set<std::filesystem::path>
+absl::flat_hash_set<FilePath>
 NearbyConnectionsManagerImpl::GetUnknownFilePathsToDeleteForTesting() {
   return GetUnknownFilePathsToDelete();
 }
 
 void NearbyConnectionsManagerImpl::AddUnknownFilePathsToDeleteForTesting(
-    std::filesystem::path file_path) {
+    FilePath file_path) {
   MutexLock lock(&mutex_);
   file_paths_to_delete_.insert(file_path);
 }
 
 void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDeleteForTesting(
-    PayloadStatus status, PayloadContent::Type type,
-    const std::filesystem::path& path) {
+    PayloadStatus status, PayloadContent::Type type, const FilePath& path) {
   ProcessUnknownFilePathsToDelete(status, type, path);
 }
 

@@ -16,7 +16,6 @@
 #define THIRD_PARTY_NEARBY_SHARING_OUTGOING_SHARE_SESSION_H_
 
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <functional>
 #include <memory>
 #include <optional>
@@ -27,6 +26,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -84,7 +84,7 @@ class OutgoingShareSession : public ShareSession {
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
-  std::vector<std::filesystem::path> GetFilePaths() const;
+  std::vector<FilePath> GetFilePaths() const;
 
   void CreateTextPayloads();
   void CreateWifiCredentialsPayloads();

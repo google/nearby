@@ -17,7 +17,6 @@
 #include <stdint.h>
 
 #include <cstdio>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <functional>
 #include <memory>
 #include <optional>
@@ -35,6 +34,8 @@
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
@@ -86,8 +87,8 @@ constexpr uint8_t kBluetoothMacAddress[] = {0x00, 0x00, 0xe6, 0x88, 0x64, 0x13};
 constexpr char kInvalidBluetoothMacAddress[] = {0x07, 0x07, 0x07};
 constexpr absl::Duration kSynchronizationTimeOut = absl::Milliseconds(200);
 
-void InitializeTemporaryFile(std::filesystem::path& file) {
-  std::FILE* output_fp = std::fopen(file.string().c_str(), "wb+");
+void InitializeTemporaryFile(FilePath& file) {
+  std::FILE* output_fp = std::fopen(file.GetPath().c_str(), "wb+");
   ASSERT_NE(output_fp, nullptr);
   EXPECT_EQ(std::fwrite(kPayload, 1, sizeof(kPayload), output_fp),
             sizeof(kPayload));
@@ -387,8 +388,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
     const std::vector<uint8_t> expected_payload(std::begin(kPayload),
                                                 std::end(kPayload));
 
-    std::filesystem::path file(std::filesystem::temp_directory_path() /
-                               "file.jpg");
+    FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
     InitializeTemporaryFile(file);
 
     absl::Notification notification;
@@ -405,7 +405,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
           FilePayload file_payload = std::move(payload->content.file_payload);
           std::vector<uint8_t> payload_bytes(file_payload.size);
           std::FILE* payload_fp =
-              std::fopen(file_payload.file.path.string().c_str(), "rb");
+              std::fopen(file_payload.file.path.GetPath().c_str(), "rb");
           ASSERT_NE(payload_fp, nullptr);
           EXPECT_EQ(std::fread(payload_bytes.data(), 1, file_payload.size,
                                payload_fp),
@@ -419,7 +419,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
 
     // Manually setup payload id, because the tested id is not generated from
     // file name.
-    auto payload = std::make_unique<Payload>(InputFile(file));
+    auto payload = std::make_unique<Payload>(InputFile(file.ToString()));
     payload->id = payload_id;
 
     nearby_connections_manager_->Send(kRemoteEndpointId, std::move(payload),
@@ -1403,18 +1403,16 @@ TEST_F(NearbyConnectionsManagerImplTest,
   nearby_connections_manager_->RegisterPayloadStatusListener(
       kPayloadId3, payload_listener->GetWeakPtr());
 
-  std::filesystem::path file1(std::filesystem::temp_directory_path() /
-                              "file1.jpg");
-  std::filesystem::path file2(std::filesystem::temp_directory_path() /
-                              "file2.jpg");
+  FilePath file1 = GetTemporaryDirectory()->append(FilePath("file1.jpg"));
+  FilePath file2 = GetTemporaryDirectory()->append(FilePath("file2.jpg"));
 
   InitializeTemporaryFile(file1);
   InitializeTemporaryFile(file2);
 
-  payload_listener_remote.payload_cb(kRemoteEndpointId,
-                                     Payload(kPayloadId, InputFile(file1)));
-  payload_listener_remote.payload_cb(kRemoteEndpointId,
-                                     Payload(kPayloadId2, InputFile(file2)));
+  payload_listener_remote.payload_cb(
+      kRemoteEndpointId, Payload(kPayloadId, InputFile(file1.ToString())));
+  payload_listener_remote.payload_cb(
+      kRemoteEndpointId, Payload(kPayloadId2, InputFile(file2.ToString())));
 
   const std::vector<uint8_t> byte_payload(std::begin(kBytePayload),
                                           std::end(kBytePayload));
@@ -1521,12 +1519,11 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
   const std::vector<uint8_t> expected_payload(std::begin(kPayload),
                                               std::end(kPayload));
 
-  std::filesystem::path file(std::filesystem::temp_directory_path() /
-                             "file.jpg");
+  FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
   InitializeTemporaryFile(file);
 
-  payload_listener_remote.payload_cb(kRemoteEndpointId,
-                                     Payload(kPayloadId, InputFile(file)));
+  payload_listener_remote.payload_cb(
+      kRemoteEndpointId, Payload(kPayloadId, InputFile(file.ToString())));
 
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_)).WillOnce([&]() {
@@ -1546,7 +1543,7 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
   ASSERT_TRUE(payload->content.is_file());
   std::vector<uint8_t> payload_bytes(payload->content.file_payload.size);
   std::FILE* payload_fp = std::fopen(
-      payload->content.file_payload.file.path.string().c_str(), "rb");
+      payload->content.file_payload.file.path.GetPath().c_str(), "rb");
   ASSERT_NE(payload_fp, nullptr);
   EXPECT_EQ(std::fread(payload_bytes.data(), 1,
                        payload->content.file_payload.size, payload_fp),
@@ -1572,12 +1569,11 @@ TEST_F(NearbyConnectionsManagerImplTest, ClearIncomingPayloads) {
   nearby_connections_manager_->RegisterPayloadStatusListener(
       kPayloadId, payload_listener->GetWeakPtr());
 
-  std::filesystem::path file(std::filesystem::temp_directory_path() /
-                             "file.jpg");
+  FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
   InitializeTemporaryFile(file);
 
-  payload_listener_remote.payload_cb(kRemoteEndpointId,
-                                     Payload(kPayloadId, InputFile(file)));
+  payload_listener_remote.payload_cb(
+      kRemoteEndpointId, Payload(kPayloadId, InputFile(file.ToString())));
 
   absl::Notification payload_notification;
   EXPECT_CALL(*payload_listener, OnStatusUpdate(::testing::_)).WillOnce([&]() {
@@ -1804,13 +1800,13 @@ TEST_F(NearbyConnectionsManagerImplTest,
 
 TEST_F(NearbyConnectionsManagerImplTest, UnknownFilePathsToDelete) {
   nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test1.txt");
+      FilePath("test1.txt"));
   nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test2.txt");
+      FilePath("test2.txt"));
   auto unknown_file_paths =
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test3.txt");
+      FilePath("test3.txt"));
 
   // Test if we get copy of container.
   EXPECT_NE(unknown_file_paths.size(), 3);
@@ -1821,7 +1817,8 @@ TEST_F(NearbyConnectionsManagerImplTest, UnknownFilePathsToDelete) {
   unknown_file_paths =
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_THAT(unknown_file_paths,
-              UnorderedElementsAre("test1.txt", "test2.txt", "test3.txt"));
+              UnorderedElementsAre(FilePath("test1.txt"), FilePath("test2.txt"),
+                                   FilePath("test3.txt")));
   nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
   EXPECT_TRUE(
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting()
@@ -1829,9 +1826,9 @@ TEST_F(NearbyConnectionsManagerImplTest, UnknownFilePathsToDelete) {
 
   // Test GetAndClearUnknownFilePathsToDelete
   nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test1.txt");
+      FilePath("test1.txt"));
   nearby_connections_manager_->AddUnknownFilePathsToDeleteForTesting(
-      "test2.txt");
+      FilePath("test2.txt"));
   unknown_file_paths =
       nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
   EXPECT_EQ(unknown_file_paths.size(), 2);
@@ -1851,16 +1848,15 @@ TEST_F(NearbyConnectionsManagerImplTest,
   ASSERT_TRUE(OnIncomingConnection(connection_listener_remote,
                                    incoming_connection_listener,
                                    payload_listener_remote) != nullptr);
-  std::filesystem::path file(std::filesystem::temp_directory_path() /
-                             "file.jpg");
-  payload_listener_remote.payload_cb(kRemoteEndpointId,
-                                     Payload(kPayloadId, InputFile(file)));
+  FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
+  payload_listener_remote.payload_cb(
+      kRemoteEndpointId, Payload(kPayloadId, InputFile(file.ToString())));
 
   nearby_connections_manager_->OnPayloadTransferUpdateForTesting(
       kRemoteEndpointId,
       PayloadTransferUpdate(kPayloadId, PayloadStatus::kCanceled, kTotalSize,
                             /*bytes_transferred=*/kTotalSize));
-  absl::flat_hash_set<std::filesystem::path> unknown_file_paths =
+  absl::flat_hash_set<FilePath> unknown_file_paths =
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_EQ(unknown_file_paths.size(), 1);
   nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();
@@ -1885,10 +1881,9 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
   ASSERT_TRUE(OnIncomingConnection(connection_listener_remote,
                                    incoming_connection_listener,
                                    payload_listener_remote) != nullptr);
-  std::filesystem::path file(std::filesystem::temp_directory_path() /
-                             "file.jpg");
-  payload_listener_remote.payload_cb(kRemoteEndpointId,
-                                     Payload(kPayloadId, InputFile(file)));
+  FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
+  payload_listener_remote.payload_cb(
+      kRemoteEndpointId, Payload(kPayloadId, InputFile(file.ToString())));
 
   // Flag is on. Add unknown file paths with kCanceled to the list.
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -1896,13 +1891,12 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
           kDeleteUnexpectedReceivedFileFix,
       true);
   nearby_connections_manager_->ClearIncomingPayloads();
-  Payload payload(kPayloadId, InputFile(file));
+  Payload payload(kPayloadId, InputFile(file.ToString()));
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
                                                            payload);
 
-  std::filesystem::path file2(std::filesystem::temp_directory_path() /
-                              "file2.jpg");
-  Payload payload2(kPayloadId, InputFile(file2));
+  FilePath file2 = GetTemporaryDirectory()->append(FilePath("file2.jpg"));
+  Payload payload2(kPayloadId, InputFile(file2.ToString()));
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
                                                            payload2);
   auto unknown_file_paths =
@@ -1914,9 +1908,8 @@ TEST_F(NearbyConnectionsManagerImplTest, OnPayloadReceivedForUnknownFile) {
       std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
   nearby_connections_manager_->RegisterPayloadStatusListener(
       kPayloadId, payload_listener->GetWeakPtr());
-  std::filesystem::path file3(std::filesystem::temp_directory_path() /
-                              "file3.jpg");
-  Payload payload3(kPayloadId, InputFile(file3));
+  FilePath file3 = GetTemporaryDirectory()->append(FilePath("file3.jpg"));
+  Payload payload3(kPayloadId, InputFile(file3.ToString()));
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
                                                            payload3);
   unknown_file_paths =
@@ -1946,10 +1939,9 @@ TEST_F(NearbyConnectionsManagerImplTest,
   nearby_connections_manager_->RegisterPayloadStatusListener(
       kPayloadId, payload_listener->GetWeakPtr());
 
-  std::filesystem::path file(std::filesystem::temp_directory_path() /
-                             "file.jpg");
+  FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
 
-  Payload payload(kPayloadId, InputFile(file));
+  Payload payload(kPayloadId, InputFile(file.ToString()));
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
                                                            payload);
 
@@ -1978,9 +1970,8 @@ TEST_F(NearbyConnectionsManagerImplTest,
         payload_notification.Notify();
       });
 
-  std::filesystem::path file2(std::filesystem::temp_directory_path() /
-                              "file2.jpg");
-  Payload payload2(kPayloadId, InputFile(file2));
+  FilePath file2 = GetTemporaryDirectory()->append(FilePath("file2.jpg"));
+  Payload payload2(kPayloadId, InputFile(file2.ToString()));
   nearby_connections_manager_->OnPayloadReceivedForTesting(kRemoteEndpointId,
                                                            payload2);
   unknown_file_paths =
@@ -1994,11 +1985,10 @@ TEST_F(NearbyConnectionsManagerImplTest,
 }
 
 TEST_F(NearbyConnectionsManagerImplTest, ProcessUnknownFilePathsToDelete) {
-  std::filesystem::path file(std::filesystem::temp_directory_path() /
-                             "file.jpg");
+  FilePath file = GetTemporaryDirectory()->append(FilePath("file.jpg"));
   nearby_connections_manager_->ProcessUnknownFilePathsToDeleteForTesting(
       PayloadStatus::kCanceled, PayloadContent::Type::kFile, file);
-  absl::flat_hash_set<std::filesystem::path> unknown_file_paths =
+  absl::flat_hash_set<FilePath> unknown_file_paths =
       nearby_connections_manager_->GetUnknownFilePathsToDeleteForTesting();
   EXPECT_EQ(unknown_file_paths.size(), 1);
   nearby_connections_manager_->GetAndClearUnknownFilePathsToDelete();

@@ -16,7 +16,6 @@
 #define THIRD_PARTY_NEARBY_SHARING_NEARBY_SHARING_UTIL_H_
 
 #include <cstdint>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
 #include <string>
 #include <vector>
@@ -24,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/device_info.h"
 #include "proto/sharing_enums.pb.h"
+#include "internal/base/file_path.h"
 #include "sharing/advertisement.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/common/nearby_share_enums.h"
@@ -36,8 +36,8 @@ namespace nearby::sharing {
 // device_info - Nearby Share DeviceInfo
 // file_path   - The path is to store sharing contents.
 // storage_required - required storage space.
-bool IsOutOfStorage(nearby::DeviceInfo& device_info,
-                    std::filesystem::path file_path, int64_t storage_required);
+bool IsOutOfStorage(nearby::DeviceInfo& device_info, FilePath file_path,
+                    int64_t storage_required);
 
 // Decodes certificate to find MAC address encoded in it.
 std::optional<std::vector<uint8_t>> GetBluetoothMacAddressFromCertificate(

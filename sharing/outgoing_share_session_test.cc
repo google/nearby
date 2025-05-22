@@ -28,6 +28,7 @@
 #include "absl/time/time.h"
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
+#include "internal/base/file_path.h"
 #include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
@@ -95,13 +96,14 @@ class OutgoingShareSessionTest : public ::testing::Test {
                "A bit of text body", "Some text title", "text/html"),
         text2_(nearby::sharing::service::proto::TextMetadata::ADDRESS,
                "A bit of text body 2", "Some text title 2", "text/plain"),
-        file1_("/usr/local/tmp/someFileName.jpg", "/usr/local/parent"),
-        file2_("/usr/local/tmp/someFileName2.jpg", "/usr/local/parent2"),
+        file1_(FilePath("/usr/local/tmp/someFileName.jpg"), /*mime_type=*/"",
+               /*parent_folder=*/"/usr/local/parent"),
+        file2_(FilePath("/usr/local/tmp/someFileName2.jpg"), /*mime_type=*/"",
+               /*parent_folder=*/"/usr/local/parent2"),
         wifi1_(
             "GoogleGuest",
             nearby::sharing::service::proto::WifiCredentialsMetadata::WPA_PSK,
-            "somepassword", /*is_hidden=*/true) {
-  }
+            "somepassword", /*is_hidden=*/true) {}
 
   std::unique_ptr<AttachmentContainer> CreateDefaultAttachmentContainer() {
     return std::make_unique<AttachmentContainer>(
