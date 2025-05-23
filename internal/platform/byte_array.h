@@ -89,7 +89,7 @@ class ByteArray {
     }
 
     uint64_t result = 0;
-    for (int i = 0; i < data_.size(); i++) {
+    for (size_t i = 0; i < data_.size(); i++) {
       result <<= 8;
       result |= ((static_cast<uint64_t>(data()[i])) & 0xFF);
     }
