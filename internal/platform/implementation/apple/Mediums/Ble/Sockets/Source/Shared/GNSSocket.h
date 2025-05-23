@@ -26,7 +26,7 @@ typedef void (^GNSProgressHandler)(float progress);
  * (when used with GNSPeripheralServiceManager) or when the socket is created (when used with
  * GNSCentralPeer).
  */
-@protocol GNSSocketDelegate<NSObject>
+@protocol GNSSocketDelegate <NSObject>
 
 /**
  * Called when the socket is ready to send or receive data.
@@ -69,16 +69,16 @@ typedef void (^GNSProgressHandler)(float progress);
  *
  *  * To receive data:
  * - (void)socket:(GNSSocket *)socket didReceiveData:(NSData *)data {
- *   NSLog(@"Data received from central %@", data);
+ *   GTMLoggerInfo(@"Data received from central %@", data);
  *   ...
  * }
  *
  *  * To send data:
  * GNSErrorHandler completionHandler = ^(NSError *error) {
  *   if (error) {
- *     NSLog(@"Failed to send data")
+ *     GTMLoggerInfo(@"Failed to send data")
  *   } else {
- *     NSLog(@"data has been sent");
+ *     GTMLoggerInfo(@"data has been sent");
  *   }
  * }
  * [socket sendData:dataToSend
@@ -89,10 +89,10 @@ typedef void (^GNSProgressHandler)(float progress);
  *
  *  * Once the socket is disconnected (by -[GNSSocket disconnect] or by the peer):
  * - (void)socket:(GNSSocket *)socket didDisconnectWithError:(NSError *)error {
- *   NSLog(@"Socket disconnected, by peer");
+ *   GTMLoggerInfo(@"Socket disconnected, by peer");
  *   ...
  * }
-*/
+ */
 @interface GNSSocket : NSObject
 
 /**

@@ -70,7 +70,7 @@ NS_ASSUME_NONNULL_BEGIN
  * [centralPeer socketWithPairingCharacteristic:shouldAddPairingCharacteristics
  *                                   completion:^(GNSSocket *mySocket, NSError *error) {
  *                                    if (error) {
- *                                      NSLog(@"Error to get the socket %@", error);
+ *                                      GTMLoggerInfo(@"Error to get the socket %@", error);
  *                                      return;
  *                                    }
  *                                    mySocket.delegate = mySocketDelegate;
