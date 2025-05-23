@@ -166,11 +166,13 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
   api::ble_v2::BlePeripheral::UniqueId unique_id = peripherals_.Add(peripheral);
   AddAdvertisementPacketInfo(unique_id, serviceData);
 
+#if DEBUG
   for (NSData *service_data in serviceData.allValues) {
     GTMLoggerDebug(@"Reporting the advertisement packet to upper layer for unique_id: %llu, %@, "
                    @"advertisement_data: %@.",
                    unique_id, peripheral, ConvertDataToHexString(service_data));
   }
+#endif
 
   if (scanning_cb_.advertisement_found_cb) {
     scanning_cb_.advertisement_found_cb(unique_id, data);
