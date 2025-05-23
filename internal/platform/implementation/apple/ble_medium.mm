@@ -524,11 +524,13 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
   dispatch_time_t timeout =
       dispatch_time(DISPATCH_TIME_NOW, kRequestConnectionTimeoutInSeconds * NSEC_PER_SEC);
   __block std::unique_ptr<BleL2capSocket> socket;
+  __block NSError *openError = nil;
   const std::string &service_id_str = service_id;
   [medium_ openL2CAPChannelWithPSM:psm
                         peripheral:peripheral
                  completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
                    if (error) {
+                     openError = error;
                      dispatch_semaphore_signal(semaphore);
                      return;
                    }
@@ -538,7 +540,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                                                 incomingConnection:NO
                                                      callbackQueue:dispatch_get_main_queue()];
                    // Blocked call to wait for the packet validation result.
-                   // TODO: b/399815436 - Remove this once the packet validation is moved to the
+                   // TODO: b/419654808 - Remove this once the packet validation is moved to the
                    // Connections layer.
                    [connection requestDataConnectionWithCompletion:^(BOOL result) {
                      if (result) {
@@ -554,6 +556,9 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     return nullptr;
   }
   if (socket == nullptr) {
+    if (openError != nil) {
+      GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP:%@.", openError);
+    }
     return nullptr;
   }
 

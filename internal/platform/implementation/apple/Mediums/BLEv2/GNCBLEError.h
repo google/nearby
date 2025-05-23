@@ -28,4 +28,5 @@ typedef NS_ERROR_ENUM(GNCBLEErrorDomain, GNCBLEError){
     GNCBLEErrorAlreadyReadingCharacteristic,
     GNCBLEErrorAlreadyScanning,
     GNCBLEErrorL2CAPListeningOnQueueNil,
+    GNCBLEErrorBlePerperipheralConnectionTimeout,
 };
