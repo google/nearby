@@ -18,9 +18,12 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <cstdint>
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
 namespace nearby {
@@ -76,6 +79,22 @@ class ByteArray {
     memcpy(data() + offset, from.data() + source_offset,
            std::min(size() - offset, from.size() - source_offset));
     return true;
+  }
+
+  // Returns the value of the ByteArray as a uint64_t. If the ByteArray is
+  // not exactly 6 bytes, returns an error status instead.
+  absl::StatusOr<uint64_t> Read6BytesAsUint64() const {
+    if (data_.size() != 6) {
+      return absl::FailedPreconditionError("ByteArray must be 6 bytes.");
+    }
+
+    uint64_t result = 0;
+    for (int i = 0; i < data_.size(); i++) {
+      result <<= 8;
+      result |= ((static_cast<uint64_t>(data()[i])) & 0xFF);
+    }
+
+    return result;
   }
 
   char* data() { return &data_[0]; }

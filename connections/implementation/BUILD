@@ -40,6 +40,7 @@ cc_library(
     deps = [
         ":types",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:util",
         "@com_google_absl//absl/status",
@@ -176,6 +177,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:connection_info",
         "//internal/platform:error_code_recorder",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:util",
         "//internal/platform/implementation:comm",
@@ -335,6 +337,7 @@ cc_test(
         ":internal",
         ":types",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
@@ -551,6 +554,7 @@ cc_test(
         ":internal",
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
