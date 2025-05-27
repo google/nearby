@@ -206,19 +206,19 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
 
     absl::StatusOr<uint64_t> bluetooth_mac_address_bytes_uint64 =
         bluetooth_mac_address_bytes->Read6BytesAsUint64();
-    if (!bluetooth_mac_address_bytes_uint64.ok()) {
-      return absl::InvalidArgumentError(
-          "Cannot deserialize BleAdvertisement: bluetooth_mac_address.");
-    }
-
     MacAddress mac_address;
-    if (!MacAddress::FromUint64(bluetooth_mac_address_bytes_uint64.value(),
-                                mac_address) ||
-        !mac_address.IsSet()) {
-      return absl::InvalidArgumentError(
-          "Cannot convert BleAdvertisement: bluetooth_mac_address.");
+    // TODO(b/420331699): Returning an empty string for the MAC address when
+    // there's an invalid ByteArray is problematic, determine where an invalid
+    // ByteArray is being passed in upstream so we can modify this to not use
+    // an empty string.
+    if (bluetooth_mac_address_bytes_uint64.ok() &&
+        MacAddress::FromUint64(bluetooth_mac_address_bytes_uint64.value(),
+                               mac_address) &&
+        mac_address.IsSet()) {
+      bluetooth_mac_address = mac_address.ToString();
+    } else {
+      bluetooth_mac_address = "";
     }
-    bluetooth_mac_address = mac_address.ToString();
   }
 
   // The next 1 byte is supposed to be the length of the uwb_address. If the
