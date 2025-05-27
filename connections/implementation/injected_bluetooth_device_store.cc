@@ -14,13 +14,11 @@
 
 #include "connections/implementation/injected_bluetooth_device_store.h"
 
-#include <cstdint>
 #include <string>
 
-#include "absl/status/statusor.h"
 #include "connections/implementation/bluetooth_device_name.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/mac_address.h"
+#include "internal/platform/bluetooth_utils.h"
 
 namespace nearby {
 namespace connections {
@@ -56,19 +54,12 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
     const ByteArray& remote_bluetooth_mac_address,
     const std::string& endpoint_id, const ByteArray& endpoint_info,
     const ByteArray& service_id_hash, Pcp pcp) {
-  // Valid MAC address is required.
-  absl::StatusOr<uint64_t> bluetooth_mac_address_bytes_uint64 =
-      remote_bluetooth_mac_address.Read6BytesAsUint64();
-  if (!bluetooth_mac_address_bytes_uint64.ok()) {
-    return BluetoothDevice(/*device=*/nullptr);
-  }
+  std::string remote_bluetooth_mac_address_str =
+      BluetoothUtils::ToString(remote_bluetooth_mac_address);
 
-  MacAddress remote_mac_address;
-  if (!MacAddress::FromUint64(bluetooth_mac_address_bytes_uint64.value(),
-                              remote_mac_address)
-      || !remote_mac_address.IsSet()) {
+  // Valid MAC address is required.
+  if (remote_bluetooth_mac_address_str.empty())
     return BluetoothDevice(/*device=*/nullptr);
-  }
 
   // Non-empty endpoint info is required.
   if (endpoint_info.Empty()) return BluetoothDevice(/*device=*/nullptr);
@@ -84,7 +75,7 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
   if (!name.IsValid()) return BluetoothDevice(/*device=*/nullptr);
 
   auto injected_device = std::make_unique<InjectedBluetoothDevice>(
-      static_cast<std::string>(name), remote_mac_address.ToString());
+      static_cast<std::string>(name), remote_bluetooth_mac_address_str);
   BluetoothDevice device_to_return(injected_device.get());
 
   // Store underlying device to ensure that it is kept alive for future use.
