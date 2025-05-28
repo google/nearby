@@ -18,11 +18,10 @@ package nearby.sharing.analytics.proto;
 
 import "google/protobuf/duration.proto";
 
+// "privacy/pattributes/annotations/proto_field.proto";
 // import "storage/datapol/annotations/proto/semantic_annotations.proto";
 // import "storage/googlesql/public/proto/type_annotation.proto";
 import "proto/sharing_enums.proto";
-
-// "wireless/android/privacy/annotations/proto/collection_basis_annotations.proto";
 
 option optimize_for = LITE_RUNTIME;
 option java_package = "nearby.sharing.analytics.proto";
@@ -34,9 +33,10 @@ option objc_class_prefix = "GNCP";
 // Next Tag: 83
 // LINT.IfChange
 message SharingLog {
-  /* collection_basis = {
-    use_cases: UC_SERVICE_OR_API_MEASURING_USER_ENGAGEMENT
-  } */
+  /* justification = {
+      collection_basis: CB_CHECKBOX
+      purposes: [ INFRASTRUCTURE_METRICS, BUSINESS_ANALYSIS ]
+    } */
 
   reserved 71;  // Deprecated TransferUIEvent.
 
