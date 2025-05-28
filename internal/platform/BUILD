@@ -28,6 +28,7 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/log:globals",
+        "@com_google_absl//absl/log:log_sink_registry",
     ],
 )
 
