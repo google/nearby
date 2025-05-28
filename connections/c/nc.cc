@@ -49,6 +49,9 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/logging.h"
+#if TARGET_OS_IOS
+#include "internal/platform/implementation/apple/nearby_logger_writer.h"
+#endif  // TARGET_OS_IOS
 
 namespace nearby::connections {
 class Core;
@@ -221,6 +224,12 @@ NcContext* GetContext(NC_INSTANCE instance) {
 
 NC_INSTANCE NcCreateService() {
   NcContext nc_context;
+#if TARGET_OS_IOS
+#if DEBUG
+  absl::SetGlobalVLogLevel(1);
+#endif  // DEBUG
+  ::nearby::apple::EnableNearbyLoggerWriter();
+#endif  // TARGET_OS_IOS
 
 #if defined(NC_IOS_SDK)
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(

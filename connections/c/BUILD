@@ -52,7 +52,12 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
-    ],
+    ] + select({
+        "@platforms//os:platform_ios": [
+            "//internal/platform/implementation/apple:logger_writer",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 # iOS only.
