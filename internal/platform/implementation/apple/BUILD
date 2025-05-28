@@ -164,6 +164,22 @@ objc_library(
     ],
 )
 
+objc_library(
+    name = "logger_writer",
+    srcs = [
+        "nearby_logger_writer.mm",
+    ],
+    hdrs = [
+        "nearby_logger_writer.h",
+    ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        "//internal/platform:logging",
+        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
+    ],
+)
+
 cc_library(
     name = "Platform_cc",
     srcs = [
