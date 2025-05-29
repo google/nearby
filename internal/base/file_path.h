@@ -77,6 +77,8 @@ class FilePath {
 
  private:
   std::filesystem::path path_;
+
+  friend class Files;
 };
 
 }  // namespace nearby

@@ -413,7 +413,7 @@ struct Payload {
     id = std::hash<std::string>()(file.path.ToString());
 
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = GetFileSize(file.path.GetPath());
+    std::optional<uintmax_t> size = Files::GetFileSize(file.path);
     if (size.has_value()) {
       content.file_payload.size = *size;
     }
@@ -431,7 +431,7 @@ struct Payload {
           absl::string_view parent_folder = absl::string_view())
       : id(id) {
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = GetFileSize(file.path.GetPath());
+    std::optional<uintmax_t> size = Files::GetFileSize(file.path);
     if (size.has_value()) {
       content.file_payload.size = *size;
     }

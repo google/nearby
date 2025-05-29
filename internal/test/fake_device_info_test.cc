@@ -15,7 +15,6 @@
 #include "internal/test/fake_device_info.h"
 
 #include <functional>
-#include <optional>
 
 #include "gtest/gtest.h"
 #include "internal/base/file_path.h"
@@ -24,12 +23,6 @@
 
 namespace nearby {
 namespace {
-
-FilePath GetTempDir() {
-  std::optional<FilePath> temp_dir = nearby::sharing::GetTemporaryDirectory();
-  EXPECT_TRUE(temp_dir.has_value());
-  return temp_dir.value();
-}
 
 TEST(FakeDeviceInfo, DeviceName) {
   FakeDeviceInfo device_info;
@@ -51,26 +44,29 @@ TEST(FakeDeviceInfo, OsType) {
 
 TEST(FakeDeviceInfo, GetDownloadPath) {
   FakeDeviceInfo device_info;
-  EXPECT_EQ(device_info.GetDownloadPath(), GetTempDir());
-  device_info.SetDownloadPath(GetTempDir().append(FilePath("test")));
+  EXPECT_EQ(device_info.GetDownloadPath(), Files::GetTemporaryDirectory());
+  device_info.SetDownloadPath(
+      Files::GetTemporaryDirectory().append(FilePath("test")));
   EXPECT_EQ(device_info.GetDownloadPath(),
-            GetTempDir().append(FilePath("test")));
+            Files::GetTemporaryDirectory().append(FilePath("test")));
 }
 
 TEST(FakeDeviceInfo, GetAppDataPath) {
   FakeDeviceInfo device_info;
-  EXPECT_EQ(device_info.GetAppDataPath(), GetTempDir());
-  device_info.SetAppDataPath(GetTempDir().append(FilePath("test")));
+  EXPECT_EQ(device_info.GetAppDataPath(), Files::GetTemporaryDirectory());
+  device_info.SetAppDataPath(
+      Files::GetTemporaryDirectory().append(FilePath("test")));
   EXPECT_EQ(device_info.GetAppDataPath(),
-            GetTempDir().append(FilePath("test")));
+            Files::GetTemporaryDirectory().append(FilePath("test")));
 }
 
 TEST(FakeDeviceInfo, GetTemporaryPath) {
   FakeDeviceInfo device_info;
-  EXPECT_EQ(device_info.GetTemporaryPath(), GetTempDir());
-  device_info.SetTemporaryPath(GetTempDir().append(FilePath("test")));
+  EXPECT_EQ(device_info.GetTemporaryPath(), Files::GetTemporaryDirectory());
+  device_info.SetTemporaryPath(
+      Files::GetTemporaryDirectory().append(FilePath("test")));
   EXPECT_EQ(device_info.GetTemporaryPath(),
-            GetTempDir().append(FilePath("test")));
+            Files::GetTemporaryDirectory().append(FilePath("test")));
 }
 
 TEST(FakeDeviceInfo, GetAvailableDiskSpaceInBytes) {

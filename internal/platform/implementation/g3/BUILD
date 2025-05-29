@@ -160,6 +160,7 @@ cc_library(
         ":comm",
         ":crypto",  # build_cleaner: keep
         ":types",
+        "//internal/base:file_path",
         "//internal/base:files",
         "//internal/platform:base",
         "//internal/platform:logging",

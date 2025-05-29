@@ -18,16 +18,16 @@
 #include <functional>
 #include <optional>
 #include <string>
+
 #include "absl/strings/string_view.h"
-#include "internal/base/files.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 
 namespace nearby {
 
 std::string DeviceInfoImpl::GetOsDeviceName() const {
-  std::optional<std::string> device_name =
-      device_info_impl_->GetOsDeviceName();
+  std::optional<std::string> device_name = device_info_impl_->GetOsDeviceName();
   if (device_name.has_value()) {
     return *device_name;
   }
@@ -48,8 +48,7 @@ FilePath DeviceInfoImpl::GetDownloadPath() const {
   if (path.has_value()) {
     return *path;
   }
-  return nearby::sharing::GetTemporaryDirectory().value_or(
-      nearby::sharing::CurrentDirectory());
+  return Files::GetTemporaryDirectory();
 }
 
 FilePath DeviceInfoImpl::GetAppDataPath() const {
@@ -57,8 +56,7 @@ FilePath DeviceInfoImpl::GetAppDataPath() const {
   if (path.has_value()) {
     return *path;
   }
-  return nearby::sharing::GetTemporaryDirectory().value_or(
-      nearby::sharing::CurrentDirectory());
+  return Files::GetTemporaryDirectory();
 }
 
 FilePath DeviceInfoImpl::GetTemporaryPath() const {
@@ -66,8 +64,7 @@ FilePath DeviceInfoImpl::GetTemporaryPath() const {
   if (path.has_value()) {
     return *path;
   }
-  return nearby::sharing::GetTemporaryDirectory().value_or(
-      nearby::sharing::CurrentDirectory());
+  return Files::GetTemporaryDirectory();
 }
 
 FilePath DeviceInfoImpl::GetLogPath() const {
@@ -77,7 +74,7 @@ FilePath DeviceInfoImpl::GetLogPath() const {
 
 std::optional<size_t> DeviceInfoImpl::GetAvailableDiskSpaceInBytes(
     const FilePath& path) const {
-  return nearby::sharing::GetAvailableDiskSpaceInBytes(path);
+  return Files::GetAvailableDiskSpaceInBytes(path);
 }
 
 bool DeviceInfoImpl::IsScreenLocked() const {

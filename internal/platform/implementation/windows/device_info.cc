@@ -33,8 +33,7 @@
 #include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.System.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 using IInspectable = winrt::Windows::Foundation::IInspectable;
 using KnownUserProperties = winrt::Windows::System::KnownUserProperties;
@@ -131,7 +130,7 @@ std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const {
 }
 
 std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
-  return nearby::sharing::GetTemporaryDirectory();
+  return Files::GetTemporaryDirectory();
 }
 
 std::optional<FilePath> DeviceInfo::GetLogPath() const {
@@ -186,5 +185,4 @@ bool DeviceInfo::AllowSleep() {
   return session_manager_.AllowSleep();
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

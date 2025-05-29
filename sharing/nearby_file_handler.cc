@@ -42,7 +42,7 @@ std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
     absl::Span<const FilePath> file_paths) {
   std::vector<NearbyFileHandler::FileInfo> files;
   for (const auto& file_path : file_paths) {
-    std::optional<uintmax_t> size = GetFileSize(file_path.GetPath());
+    std::optional<uintmax_t> size = Files::GetFileSize(file_path);
     if (!size.has_value()) {
       LOG(ERROR) << __func__
                  << ": Failed to open file. File=" << file_path.ToString();
@@ -78,16 +78,16 @@ void NearbyFileHandler::DeleteFilesFromDisk(
     // wait 1 second to make the file being released from another process.
     absl::SleepFor(absl::Seconds(1));
     for (const auto& file_path : file_paths) {
-      if (!FileExists(file_path.GetPath())) {
+      if (!Files::FileExists(file_path)) {
         continue;
       }
-      if (RemoveFile(file_path.GetPath())) {
+      if (Files::RemoveFile(file_path)) {
         VLOG(1) << __func__
                 << ": Removed partial file. File=" << file_path.ToString();
       } else {
         // Try once more after 3 seconds.
         absl::SleepFor(absl::Seconds(3));
-        if (RemoveFile(file_path.GetPath())) {
+        if (Files::RemoveFile(file_path)) {
           VLOG(1) << __func__
                   << ": Removed partial file after additional delay. File="
                   << file_path.ToString();

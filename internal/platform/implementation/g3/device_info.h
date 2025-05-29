@@ -45,13 +45,13 @@ class DeviceInfo : public api::DeviceInfo {
   }
 
   std::optional<FilePath> GetDownloadPath() const override {
-    return nearby::sharing::GetTemporaryDirectory();
+    return Files::GetTemporaryDirectory();
   }
 
   std::optional<FilePath> GetLocalAppDataPath() const override {
     const char* home_dir = getenv("HOME");
     if (home_dir == nullptr) {
-      return nearby::sharing::GetTemporaryDirectory();
+      return Files::GetTemporaryDirectory();
     }
     // Yhis matches the .NET LocalAppData directory on Linux.
     return FilePath(home_dir)
@@ -60,19 +60,19 @@ class DeviceInfo : public api::DeviceInfo {
   }
 
   std::optional<FilePath> GetCommonAppDataPath() const override {
-    return nearby::sharing::GetTemporaryDirectory();
+    return Files::GetTemporaryDirectory();
   }
 
   std::optional<FilePath> GetTemporaryPath() const override {
-    return nearby::sharing::GetTemporaryDirectory();
+    return Files::GetTemporaryDirectory();
   }
 
   std::optional<FilePath> GetLogPath() const override {
-    return nearby::sharing::GetTemporaryDirectory();
+    return Files::GetTemporaryDirectory();
   }
 
   std::optional<FilePath> GetCrashDumpPath() const override {
-    return nearby::sharing::GetTemporaryDirectory();
+    return Files::GetTemporaryDirectory();
   }
 
   bool IsScreenLocked() const override { return false; }

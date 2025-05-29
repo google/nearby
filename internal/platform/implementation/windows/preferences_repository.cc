@@ -70,8 +70,7 @@ bool PreferencesRepository::SavePreferences(json preferences) {
   absl::MutexLock lock(&mutex_);
   try {
     FilePath path{path_};
-    if (!nearby::sharing::FileExists(path.GetPath()) &&
-        !nearby::sharing::CreateDirectories(path.GetPath())) {
+    if (!Files::FileExists(path) && !Files::CreateDirectories(path)) {
       LOG(ERROR) << "Failed to create preferences path.";
       return false;
     }
@@ -82,10 +81,9 @@ bool PreferencesRepository::SavePreferences(json preferences) {
     full_name_backup.append(FilePath(kPreferencesBackupFileName));
 
     // Create a backup without moving the bytes on disk
-    if (nearby::sharing::FileExists(full_name.GetPath())) {
+    if (Files::FileExists(full_name)) {
       LOG(INFO) << "Making backup of preferences file.";
-      if (!nearby::sharing::Rename(full_name.GetPath(),
-                                   full_name_backup.GetPath())) {
+      if (!Files::Rename(full_name, full_name_backup)) {
         LOG(ERROR) << "Failed to rename preferences backup file.";
       }
     }
@@ -119,8 +117,7 @@ std::optional<json> PreferencesRepository::AttemptLoad() {
   FilePath path{path_};
   FilePath full_name = path;
   full_name.append(FilePath(kPreferencesFileName));
-  if (!nearby::sharing::DirectoryExists(path.GetPath()) ||
-      !nearby::sharing::FileExists(full_name.GetPath())) {
+  if (!Files::DirectoryExists(path) || !Files::FileExists(full_name)) {
     return std::nullopt;
   }
 
@@ -155,13 +152,12 @@ std::optional<json> PreferencesRepository::RestoreFromBackup() {
   FilePath full_name_backup = path;
   full_name_backup.append(FilePath(kPreferencesBackupFileName));
 
-  if (!nearby::sharing::FileExists(full_name_backup.GetPath())) {
+  if (!Files::FileExists(full_name_backup)) {
     LOG(WARNING) << "Backup requested but no backup preferences file found.";
     return std::nullopt;
   }
 
-  if (!nearby::sharing::Rename(full_name_backup.GetPath(),
-                               full_name.GetPath())) {
+  if (!Files::Rename(full_name_backup, full_name)) {
     LOG(ERROR) << "Failed to rename preferences backup file.";
   }
 

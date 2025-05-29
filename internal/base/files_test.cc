@@ -21,28 +21,31 @@
 #include <optional>
 
 #include "gtest/gtest.h"
+#include "internal/base/file_path.h"
 
-namespace nearby::sharing {
+namespace nearby {
 namespace {
 
 TEST(FilesTest, CreateHardLinkSuccess) {
-  std::filesystem::path temp_dir = testing::TempDir();
-  std::filesystem::path target = temp_dir / "target";
-  RemoveFile(target);
-  std::ofstream ofstream(target, std::ios::app);
+  FilePath temp_dir{testing::TempDir()};
+  FilePath target = temp_dir;
+  target.append(FilePath("target"));
+  Files::RemoveFile(target);
+  std::ofstream ofstream(target.GetPath(), std::ios::app);
   ASSERT_EQ(ofstream.rdstate(), std::ios_base::goodbit);
   ofstream << "Hello world";
   ofstream.flush();
-  std::optional<uintmax_t> size = GetFileSize(target);
+  std::optional<uintmax_t> size = Files::GetFileSize(target);
   ASSERT_TRUE(size.has_value());
   EXPECT_EQ(size.value(), 11);
-  std::filesystem::path link_path = temp_dir / "link_path";
-  EXPECT_TRUE(CreateHardLink(target, link_path));
-  EXPECT_TRUE(FileExists(link_path));
-  EXPECT_EQ(GetFileSize(link_path), 11);
-  RemoveFile(link_path);
-  RemoveFile(target);
+  FilePath link_path = temp_dir;
+  link_path.append(FilePath("link_path"));
+  EXPECT_TRUE(Files::CreateHardLink(target, link_path));
+  EXPECT_TRUE(Files::FileExists(link_path));
+  EXPECT_EQ(Files::GetFileSize(link_path), 11);
+  Files::RemoveFile(link_path);
+  Files::RemoveFile(target);
 }
 
 }  // namespace
-}  // namespace nearby::sharing
+}  // namespace nearby

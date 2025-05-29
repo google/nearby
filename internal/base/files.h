@@ -17,60 +17,66 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <optional>
 
 #include "internal/base/file_path.h"
 
-// This file contains exception safe wrappers to access common std::filesystem
-// functions.
-namespace nearby::sharing {
+namespace nearby {
 
-// Returns true if path exists and is not a directory.
-bool FileExists(const std::filesystem::path& path);
+// Utility functions for file operations..
+class Files {
+ public:
+  // Returns true if path exists and is not a directory.
+  static bool FileExists(const FilePath& path);
 
-// Returns the size of the file at path, or nullopt if not found or not a file.
-std::optional<uintmax_t> GetFileSize(const std::filesystem::path& path);
+  // Returns the size of the file at path, or nullopt if not found or not a
+  // file.
+  static std::optional<uintmax_t> GetFileSize(const FilePath& path);
 
-// Returns true if path exists and is a directory.
-bool DirectoryExists(const std::filesystem::path& path);
+  // Returns true if path exists and is a directory.
+  static bool DirectoryExists(const FilePath& path);
 
-// Removes the file at path and returns true.
-// Returns false if path does not exist, is not a file or cannot be removed.
-bool RemoveFile(const std::filesystem::path& path);
+  // Removes the file at path and returns true.
+  // Returns false if path does not exist, is not a file or cannot be removed.
+  static bool RemoveFile(const FilePath& path);
 
-bool RemoveDirectory(const FilePath& path);
+  // Recursively removes the directory at path and returns true.
+  // Returns false if path does not exist, is not a directory or cannot be
+  // removed.
+  static bool RemoveDirectory(const FilePath& path);
 
-// Returns path to a temporary directory if available.
-std::optional<FilePath> GetTemporaryDirectory();
+  // Returns path to a temporary directory if available.
+  // If system defined temporary directory is not available, returns the current
+  // directory.
+  static FilePath GetTemporaryDirectory();
 
-// Returns path to the current directory.  On failure returns an empty path.
-FilePath CurrentDirectory();
+  // Returns path to the current directory.  On failure returns an empty path.
+  static FilePath CurrentDirectory();
 
-// Renames the file at old_path to new_path.
-// Returns true on success.
-bool Rename(const std::filesystem::path& old_path,
-            const std::filesystem::path& new_path);
+  // Renames the file at old_path to new_path.
+  // Returns true on success.
+  static bool Rename(const FilePath& old_path, const FilePath& new_path);
 
-// Creates all directory leading to path.
-// Returns true on success.
-bool CreateDirectories(const std::filesystem::path& path);
+  // Creates all directory leading to path.
+  // Returns true on success.
+  static bool CreateDirectories(const FilePath& path);
 
-// Creates a hard link to target at link_path.
-// Returns true on success.
-bool CreateHardLink(const std::filesystem::path& target,
-                    const std::filesystem::path& link_path);
+  // Creates a hard link to target at link_path.
+  // Returns true on success.
+  static bool CreateHardLink(const FilePath& target, const FilePath& link_path);
 
-// Copies the file at old_path to new_path.
-// Returns true on success.
-bool CopyFileSafely(const std::filesystem::path& old_path,
-                    const std::filesystem::path& new_path);
+  // Copies the file at old_path to new_path.
+  // Returns true on success.
+  static bool CopyFileSafely(const FilePath& old_path,
+                             const FilePath& new_path);
 
-// Returns the available disk space in bytes for the given path.
-// Returns nullopt if the path does not exist or if the space cannot be
-// determined.
-std::optional<size_t> GetAvailableDiskSpaceInBytes(const FilePath& path);
+  // Returns the available disk space in bytes for the given path.
+  // Returns nullopt if the path does not exist or if the space cannot be
+  // determined.
+  static std::optional<size_t> GetAvailableDiskSpaceInBytes(
+      const FilePath& path);
+};
 
-}  // namespace nearby::sharing
+}  // namespace nearby
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_BASE_FILES_H_

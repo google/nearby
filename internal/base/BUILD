@@ -120,6 +120,7 @@ cc_test(
         "files_test.cc",
     ],
     deps = [
+        ":file_path",
         ":files",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",

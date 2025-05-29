@@ -128,12 +128,6 @@ using ::testing::UnorderedElementsAre;
 constexpr absl::Duration kWaitTimeout = absl::Milliseconds(500);
 constexpr absl::Duration kTaskWaitTimeout = absl::Seconds(2);
 
-FilePath GetTempDir() {
-  std::optional<FilePath> temp_dir = nearby::sharing::GetTemporaryDirectory();
-  EXPECT_TRUE(temp_dir.has_value());
-  return temp_dir.value();
-}
-
 class MockTransferUpdateCallback : public TransferUpdateCallback {
  public:
   ~MockTransferUpdateCallback() override = default;
@@ -270,7 +264,7 @@ constexpr absl::Duration kCertificateDownloadDuringDiscoveryPeriod =
 
 std::unique_ptr<Payload> GetFilePayload(int64_t payload_id) {
   FilePath path =
-      GetTemporaryDirectory()->append(FilePath(absl::StrCat(payload_id)));
+      Files::GetTemporaryDirectory().append(FilePath(absl::StrCat(payload_id)));
   InputFile input_file{path.ToString()};
   return std::make_unique<Payload>(input_file);
 }
@@ -1230,7 +1224,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     EXPECT_FALSE(fake_nearby_connections_manager_->has_incoming_payloads());
 
     // Remove test file.
-    RemoveFile(file_path.GetPath());
+    Files::RemoveFile(file_path);
   }
 
   void FlushTesting() {
@@ -1240,7 +1234,8 @@ class NearbySharingServiceImplTest : public testing::Test {
   }
 
   void SetDiskSpace(size_t size) {
-    fake_device_info_.SetAvailableDiskSpaceInBytes(GetTempDir(), size);
+    fake_device_info_.SetAvailableDiskSpaceInBytes(
+        Files::GetTemporaryDirectory(), size);
   }
 
   void ResetDiskSpace() { fake_device_info_.ResetDiskSpace(); }
@@ -1260,7 +1255,7 @@ class NearbySharingServiceImplTest : public testing::Test {
 
   FilePath CreateTestFile(absl::string_view name,
                                        const std::vector<uint8_t>& content) {
-    FilePath path = GetTemporaryDirectory()->append(FilePath(name));
+    FilePath path = Files::GetTemporaryDirectory().append(FilePath(name));
     std::FILE* file = std::fopen(path.GetPath().c_str(), "w+");
     std::fwrite(content.data(), 1, content.size(), file);
     std::fclose(file);
@@ -3673,7 +3668,7 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
   PayloadInfo info = GetWrittenPayload();
   ASSERT_TRUE(info.payload->content.is_file());
   FilePath file = info.payload->content.file_payload.file.path;
-  ASSERT_TRUE(FileExists(file.GetPath()));
+  ASSERT_TRUE(Files::FileExists(file));
 }
 
 TEST_F(NearbySharingServiceImplTest, SendWifiCredentialsSuccess) {

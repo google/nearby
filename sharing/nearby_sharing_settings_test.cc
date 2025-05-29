@@ -169,7 +169,7 @@ class NearbyShareSettingsTest : public ::testing::Test {
 
 TEST_F(NearbyShareSettingsTest, GetAndSetCustomSavePath) {
   absl::Notification notification;
-  std::string save_path = GetTemporaryDirectory()->ToString();
+  std::string save_path = Files::GetTemporaryDirectory().ToString();
   settings()->SetCustomSavePathAsync(save_path,
                                      [&]() { notification.Notify(); });
   Flush();

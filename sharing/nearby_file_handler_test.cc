@@ -45,8 +45,8 @@ TEST(NearbyFileHandler, OpenFiles) {
   NearbyFileHandler nearby_file_handler(mock_platform);
   absl::Notification notification;
   std::vector<NearbyFileHandler::FileInfo> result;
-  FilePath test_file =
-      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
+  FilePath test_file = Files::GetTemporaryDirectory().append(
+      FilePath("nearby_nfh_test_abc.jpg"));
 
   ASSERT_TRUE(CreateFile(test_file));
   nearby_file_handler.OpenFiles(
@@ -58,61 +58,61 @@ TEST(NearbyFileHandler, OpenFiles) {
 
   notification.WaitForNotificationWithTimeout(absl::Seconds(1));
   EXPECT_EQ(result.size(), 1);
-  ASSERT_TRUE(RemoveFile(test_file.GetPath()));
+  ASSERT_TRUE(Files::RemoveFile(test_file));
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
   MockSharingPlatform mock_platform;
   NearbyFileHandler nearby_file_handler(mock_platform);
-  FilePath test_file =
-      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
+  FilePath test_file = Files::GetTemporaryDirectory().append(
+      FilePath("nearby_nfh_test_abc.jpg"));
   ASSERT_TRUE(CreateFile(test_file));
   std::vector<FilePath> file_paths;
   file_paths.push_back(test_file);
   nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
-  ASSERT_TRUE(FileExists(test_file.GetPath()));
+  ASSERT_TRUE(Files::FileExists(test_file));
   absl::SleepFor(absl::Seconds(2));
-  ASSERT_FALSE(FileExists(test_file.GetPath()));
+  ASSERT_FALSE(Files::FileExists(test_file));
 }
 
 TEST(NearbyFileHandler, DeleteMultipleFilesFromDisk) {
   MockSharingPlatform mock_platform;
   NearbyFileHandler nearby_file_handler(mock_platform);
-  FilePath test_file =
-      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
-  FilePath test_file2 =
-      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_def.jpg"));
-  FilePath test_file3 =
-      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_ghi.jpg"));
+  FilePath test_file = Files::GetTemporaryDirectory().append(
+      FilePath("nearby_nfh_test_abc.jpg"));
+  FilePath test_file2 = Files::GetTemporaryDirectory().append(
+      FilePath("nearby_nfh_test_def.jpg"));
+  FilePath test_file3 = Files::GetTemporaryDirectory().append(
+      FilePath("nearby_nfh_test_ghi.jpg"));
   std::vector<FilePath> file_paths;
   file_paths = {test_file, test_file2, test_file3};
   // Check it doesn't throw an exception.
   nearby_file_handler.DeleteFilesFromDisk(file_paths, []() {});
-  ASSERT_FALSE(FileExists(test_file.GetPath()));
-  ASSERT_FALSE(FileExists(test_file2.GetPath()));
-  ASSERT_FALSE(FileExists(test_file3.GetPath()));
+  ASSERT_FALSE(Files::FileExists(test_file));
+  ASSERT_FALSE(Files::FileExists(test_file2));
+  ASSERT_FALSE(Files::FileExists(test_file3));
   absl::SleepFor(absl::Seconds(2));
-  ASSERT_FALSE(FileExists(test_file.GetPath()));
-  ASSERT_FALSE(FileExists(test_file2.GetPath()));
-  ASSERT_FALSE(FileExists(test_file3.GetPath()));
+  ASSERT_FALSE(Files::FileExists(test_file));
+  ASSERT_FALSE(Files::FileExists(test_file2));
+  ASSERT_FALSE(Files::FileExists(test_file3));
 }
 
 TEST(NearbyFileHandler, TestCallback) {
   MockSharingPlatform mock_platform;
   std::atomic_bool received_callback = false;
   NearbyFileHandler nearby_file_handler(mock_platform);
-  FilePath test_file =
-      GetTemporaryDirectory()->append(FilePath("nearby_nfh_test_abc.jpg"));
+  FilePath test_file = Files::GetTemporaryDirectory().append(
+      FilePath("nearby_nfh_test_abc.jpg"));
   ASSERT_TRUE(CreateFile(test_file));
   std::vector<FilePath> file_paths;
   file_paths.push_back(test_file);
   nearby_file_handler.DeleteFilesFromDisk(
       file_paths, [&received_callback]() { received_callback = true; });
   ASSERT_FALSE(received_callback);
-  ASSERT_TRUE(FileExists(test_file.GetPath()));
+  ASSERT_TRUE(Files::FileExists(test_file));
   absl::SleepFor(absl::Seconds(2));
   ASSERT_TRUE(received_callback);
-  ASSERT_FALSE(FileExists(test_file.GetPath()));
+  ASSERT_FALSE(Files::FileExists(test_file));
 }
 
 }  // namespace

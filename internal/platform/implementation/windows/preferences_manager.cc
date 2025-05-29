@@ -35,8 +35,7 @@
 #include "internal/platform/implementation/windows/preferences_repository.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 using json = ::nlohmann::json;
 }  // namespace
@@ -47,8 +46,7 @@ PreferencesManager::PreferencesManager(absl::string_view file_path)
       nearby::api::ImplementationPlatform::CreateDeviceInfo()
           ->GetLocalAppDataPath();
   if (!path.has_value()) {
-    path = nearby::sharing::GetTemporaryDirectory().value_or(
-        nearby::sharing::CurrentDirectory());
+    path = Files::GetTemporaryDirectory();
   }
 
   path->append(FilePath(file_path));
@@ -287,5 +285,4 @@ std::vector<T> PreferencesManager::GetArrayValue(
   return result;
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

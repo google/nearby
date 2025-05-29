@@ -220,8 +220,8 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
   FilePath path{file_path};
   FilePath folder_path = path.GetParentPath();
   // Verifies that a path is a valid directory.
-  if (!sharing::DirectoryExists(folder_path.GetPath())) {
-    if (!sharing::CreateDirectories(folder_path.GetPath())) {
+  if (!Files::DirectoryExists(folder_path)) {
+    if (!Files::CreateDirectories(folder_path)) {
       LOG(ERROR) << "Failed to create directory: "
                  << folder_path.ToString();
       return nullptr;

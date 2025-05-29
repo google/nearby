@@ -123,12 +123,9 @@ class FakeDeviceInfo : public DeviceInfo {
   api::DeviceInfo::DeviceType device_type_ =
       api::DeviceInfo::DeviceType::kLaptop;
   api::DeviceInfo::OsType os_type_ = api::DeviceInfo::OsType::kWindows;
-  FilePath download_path_ = nearby::sharing::GetTemporaryDirectory().value_or(
-      nearby::sharing::CurrentDirectory());
-  FilePath app_data_path_ = nearby::sharing::GetTemporaryDirectory().value_or(
-      nearby::sharing::CurrentDirectory());
-  FilePath temp_path_ = nearby::sharing::GetTemporaryDirectory().value_or(
-      nearby::sharing::CurrentDirectory());
+  FilePath download_path_ = Files::GetTemporaryDirectory();
+  FilePath app_data_path_ = Files::GetTemporaryDirectory();
+  FilePath temp_path_ = Files::GetTemporaryDirectory();
   absl::flat_hash_map<std::wstring, size_t> available_space_map_;
   absl::flat_hash_map<std::string,
                       std::function<void(api::DeviceInfo::ScreenStatus)>>
