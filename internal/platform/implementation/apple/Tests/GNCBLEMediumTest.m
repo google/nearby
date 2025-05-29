@@ -313,10 +313,9 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
 
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
   GNCBLEL2CAPClient *l2capClient =
-      [[GNCBLEL2CAPClient alloc] initWithPeripheral:fakePeripheral
-                                              queue:nil
-                        requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral) {
-                        }];
+      [[GNCBLEL2CAPClient alloc] initWithQueue:nil
+                   requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
+                   }];
   [medium setL2CAPClient:l2capClient];
   [medium openL2CAPChannelWithPSM:123
                        peripheral:fakePeripheral

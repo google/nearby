@@ -42,23 +42,24 @@ typedef void (^GNCRequestDisconnectionHandler)(id<GNCPeripheral> peripheral);
 - (instancetype)init NS_UNAVAILABLE;
 
 /**
- * Initializes the L2CAP client with a specified peripheral.
+ * Initializes the L2CAP client with a specified request disconnection handler.
  *
- * @param peripheral The peripheral instance.
  * @param requestDisconnectionHandler Called on a private queue with @c peripheral when the
  *                                    connection to the peripheral should be cancelled.
  */
-- (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
-       requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
+- (instancetype)initWithRequestDisconnectionHandler:
+    (GNCRequestDisconnectionHandler)requestDisconnectionHandler;
 
 /**
  * Opens a L2CAP channel with the @c PSM.
  *
  * @param PSM The PSM to use for opening the L2CAP channel.
+ * @param peripheral The peripheral instance.
  * @param completionHandler Called on a private queue with the opened L2CAP stream if successfully
  *                          opened or an error if one has occurred.
  */
 - (void)openL2CAPChannelWithPSM:(uint16_t)PSM
+                     peripheral:(id<GNCPeripheral>)peripheral
               completionHandler:(GNCOpenL2CAPStreamCompletionHandler)completionHandler;
 
 /** Cancels an active or pending local connection to a peripheral. */

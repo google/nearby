@@ -277,10 +277,12 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
       return;
     }
     if (!strongSelf->_l2capClient) {
-      strongSelf->_l2capClient =
-          [[GNCBLEL2CAPClient alloc] initWithPeripheral:remotePeripheral
-                            requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
-                            }];
+      strongSelf->_l2capClient = [[GNCBLEL2CAPClient alloc]
+          initWithRequestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral) {
+            dispatch_async(_queue, ^{
+              [_centralManager cancelPeripheralConnection:remotePeripheral];
+            });
+          }];
     }
     strongSelf->_l2capStreamCompletionHandlers[remotePeripheral.identifier] = completionHandler;
     strongSelf->_l2capPSM = psm;
@@ -412,6 +414,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 
   [_l2capClient
       openL2CAPChannelWithPSM:_l2capPSM
+                   peripheral:remotePeripheral
             completionHandler:^(GNCBLEL2CAPStream *_Nullable stream, NSError *_Nullable error) {
               __typeof__(self) strongSelf = weakSelf;
               if (!strongSelf) {

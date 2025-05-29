@@ -36,12 +36,11 @@
   [super setUp];
   self.fakePeripheral = [[GNCFakePeripheral alloc] init];
   self.l2capClient =
-      [[GNCBLEL2CAPClient alloc] initWithPeripheral:self.fakePeripheral
-                                              queue:nil
-                        requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral) {
-                          XCTAssertNotNil(peripheral);
-                          [self.requestDisconnectionHandlerExpectation fulfill];
-                        }];
+      [[GNCBLEL2CAPClient alloc] initWithQueue:nil
+                   requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral) {
+                     XCTAssertNotNil(peripheral);
+                     [self.requestDisconnectionHandlerExpectation fulfill];
+                   }];
 }
 
 - (void)tearDown {
@@ -56,6 +55,7 @@
   uint16_t psm = 123;
 
   [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
                           completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
                             XCTAssertNil(error, @"Error should be nil");
                             [expectation fulfill];
@@ -72,6 +72,7 @@
   self.fakePeripheral.openL2CAPChannelError = expectedError;
 
   [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
                           completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
                             XCTAssertNotNil(error, @"Error should not be nil");
                             XCTAssertEqualObjects(error, expectedError);
@@ -84,6 +85,12 @@
 - (void)testDisconnect {
   self.requestDisconnectionHandlerExpectation =
       [self expectationWithDescription:@"Request disconnection handler should be called"];
+  uint16_t psm = 123;
+
+  [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
+                          completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error){
+                          }];
 
   [self.l2capClient disconnect];
 
