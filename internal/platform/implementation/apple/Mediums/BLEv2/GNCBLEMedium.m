@@ -27,10 +27,13 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
+#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 static char *const kBLEMediumQueueLabel = "com.nearby.GNCBLEMedium";
+// TODO: b/762454867 - Make this a flag.
+static const NSTimeInterval kPeripheralConnectTimeout = 10.0;  // 10 seconds timeout
 
 static NSError *AlreadyScanningError() {
   return [NSError errorWithDomain:GNCBLEErrorDomain code:GNCBLEErrorAlreadyScanning userInfo:nil];
@@ -87,6 +90,9 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   // from the map.
   NSMutableDictionary<NSUUID *, GNCOpenL2CAPStreamCompletionHandler>
       *_l2capStreamCompletionHandlers;
+
+  // The block to call when the BLE connection times out.
+  dispatch_block_t _connectionTimeoutBlock;
 }
 
 - (instancetype)init {
@@ -114,6 +120,10 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
     _l2capPSM = 0;
   }
   return self;
+}
+
+- (void)dealloc {
+  [self cancelConnectionTimeout];
 }
 
 - (BOOL)supportsExtendedAdvertisements {
@@ -214,11 +224,28 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
                     disconnectionHandler:(nullable GNCGATTDisconnectionHandler)disconnectionHandler
                        completionHandler:
                            (nullable GNCGATTConnectionCompletionHandler)completionHandler {
+  __weak __typeof__(self) weakSelf = self;
   dispatch_async(_queue, ^{
-    _gattDisconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
-    _gattConnectionCompletionHandlers[remotePeripheral.identifier] = completionHandler;
-    _l2capPSM = 0;
-    [_centralManager connectPeripheral:remotePeripheral options:@{}];
+    __strong __typeof__(self) strongSelf = weakSelf;
+    if (!strongSelf) {
+      GTMLoggerDebug(@"GNCBLEMedium instance no longer exists when connect to gatt server.");
+      return;
+    }
+    strongSelf->_gattDisconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
+    strongSelf->_gattConnectionCompletionHandlers[remotePeripheral.identifier] = completionHandler;
+    strongSelf->_l2capPSM = 0;
+    if (GNCFeatureFlags.bleL2capEnabled) {
+      [strongSelf connectToPeripheral:remotePeripheral
+          withTimeout:kPeripheralConnectTimeout
+          options:@{}
+          timeoutCallback:^(NSError *error) {
+            if (completionHandler) {
+              completionHandler(nil, error);
+            }
+          }];
+    } else {
+      [_centralManager connectPeripheral:remotePeripheral options:@{}];
+    }
   });
 }
 
@@ -242,20 +269,33 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 - (void)openL2CAPChannelWithPSM:(uint16_t)psm
                      peripheral:(id<GNCPeripheral>)remotePeripheral
               completionHandler:(nullable GNCOpenL2CAPStreamCompletionHandler)completionHandler {
+  __weak __typeof__(self) weakSelf = self;
   dispatch_async(_queue, ^{
-    if (!_l2capClient) {
-      _l2capClient =
+    __strong __typeof__(self) strongSelf = weakSelf;
+    if (!strongSelf) {
+      GTMLoggerDebug(@"GNCBLEMedium instance no longer exists when open L2CAP channel.");
+      return;
+    }
+    if (!strongSelf->_l2capClient) {
+      strongSelf->_l2capClient =
           [[GNCBLEL2CAPClient alloc] initWithPeripheral:remotePeripheral
                             requestDisconnectionHandler:^(id<GNCPeripheral> _Nonnull peripheral){
                             }];
     }
-    _l2capStreamCompletionHandlers[remotePeripheral.identifier] = completionHandler;
-    _l2capPSM = psm;
+    strongSelf->_l2capStreamCompletionHandlers[remotePeripheral.identifier] = completionHandler;
+    strongSelf->_l2capPSM = psm;
     // There is a Core Bluetooth problem: Either -didConnectPeripheral or
     // -didFailToConnectPeripheral should be called at this point, but sometimes neither is
     // called.
     // TODO: b/419127415 - Investigate the root cause of this problem.
-    [_centralManager connectPeripheral:remotePeripheral options:@{}];
+    [strongSelf connectToPeripheral:remotePeripheral
+        withTimeout:kPeripheralConnectTimeout
+        options:@{}
+        timeoutCallback:^(NSError *error) {
+          if (completionHandler) {
+            completionHandler(nil, error);
+          }
+        }];
   });
 }
 
@@ -320,6 +360,44 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   return @{};
 }
 
+- (void)connectToPeripheral:(id<GNCPeripheral>)peripheral
+                withTimeout:(NSTimeInterval)timeout
+                    options:(nullable NSDictionary<NSString *, id> *)options
+            timeoutCallback:(void (^)(NSError *))callback {
+  dispatch_assert_queue(_queue);
+  [self cancelConnectionTimeout];
+  __weak __typeof__(self) weakSelf = self;
+  _connectionTimeoutBlock = dispatch_block_create(0, ^{
+    __strong __typeof__(self) strongSelf = weakSelf;
+    if (!strongSelf) {
+      return;
+    }
+    strongSelf->_connectionTimeoutBlock = nil;
+
+    // Perform timeout actions
+    if (callback) {
+      callback([NSError errorWithDomain:GNCBLEErrorDomain
+                                   code:GNCBLEErrorBlePerperipheralConnectionTimeout
+                               userInfo:nil]);
+    }
+  });
+
+  if (_connectionTimeoutBlock) {
+    dispatch_time_t delay = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC));
+    dispatch_after(delay, _queue, _connectionTimeoutBlock);
+  }
+
+  [_centralManager connectPeripheral:peripheral options:options];
+}
+
+- (void)cancelConnectionTimeout {
+  dispatch_assert_queue(_queue);
+  if (_connectionTimeoutBlock) {
+    dispatch_block_cancel(_connectionTimeoutBlock);
+    _connectionTimeoutBlock = nil;
+  }
+}
+
 - (void)internalOpenL2CAPChannel:(id<GNCPeripheral>)remotePeripheral {
   dispatch_assert_queue(_queue);
 
@@ -369,6 +447,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 - (void)gnc_centralManager:(id<GNCCentralManager>)central
       didConnectPeripheral:(id<GNCPeripheral>)peripheral {
   dispatch_assert_queue(_queue);
+  [self cancelConnectionTimeout];
   if (_l2capPSM > 0) {
     [self internalOpenL2CAPChannel:peripheral];
     return;
@@ -392,6 +471,16 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
     didFailToConnectPeripheral:(id<GNCPeripheral>)peripheral
                          error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
+  [self cancelConnectionTimeout];
+  if (_l2capPSM > 0) {
+    GNCOpenL2CAPStreamCompletionHandler l2capStreamCompletionhandler =
+        _l2capStreamCompletionHandlers[peripheral.identifier];
+    _l2capStreamCompletionHandlers[peripheral.identifier] = nil;
+    if (l2capStreamCompletionhandler) {
+      l2capStreamCompletionhandler(nil, error);
+    }
+    return;
+  }
   GNCGATTConnectionCompletionHandler handler =
       _gattConnectionCompletionHandlers[peripheral.identifier];
   _gattConnectionCompletionHandlers[peripheral.identifier] = nil;

@@ -23,4 +23,7 @@
 /** Checks whether GATT client disconnection is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL gattClientDisconnectionEnabled;
 
+/** Checks whether BLE L2CAP is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class, readonly) BOOL bleL2capEnabled;
+
 @end

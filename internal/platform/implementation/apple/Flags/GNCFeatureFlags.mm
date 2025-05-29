@@ -30,4 +30,10 @@
           kEnableGattClientDisconnection);
 }
 
++ (BOOL)bleL2capEnabled {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableBleL2cap);
+}
+
 @end
