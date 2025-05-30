@@ -248,7 +248,7 @@ NC_INSTANCE NcCreateService() {
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableBleL2cap,
-      false);
+      true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableGattClientDisconnection,
