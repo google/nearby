@@ -40,9 +40,3 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [],
 )
-
-cc_library(
-    name = "compatible_u8_string",
-    hdrs = ["compatible_u8_string.h"],
-    visibility = ["//visibility:public"],
-)
