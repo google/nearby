@@ -12,24 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_APPLE_NEARBY_LOGGER_WRITER_H_
-#define PLATFORM_IMPL_APPLE_NEARBY_LOGGER_WRITER_H_
+#ifndef PLATFORM_IMPL_APPLE_OS_LOG_SINK_H_
+#define PLATFORM_IMPL_APPLE_OS_LOG_SINK_H_
 
-#include <string>
+#include <os/log.h>
+
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace apple {
 
-// NearbyLoggerWriter will handle GTM logs as ABSL logs.
-// The SDK developer can setup ABSL log listener to receive all logs from Nearby
-// connections.
-void EnableNearbyLoggerWriter();
+// OsLogSink is a LogSink that sends logs to the OS log.
+class OsLogSink : public absl::LogSink {
+ public:
+  explicit OsLogSink(const std::string& subsystem);
+  ~OsLogSink() override = default;
 
-// Enables the OS log output as the given subsystem. The method should be called
-// once during the application lifetime.
-void EnableOsLog(const std::string& subsystem);
+  // Sends the log entry to the OS log.
+  void Send(const absl::LogEntry& entry) override;
+
+ private:
+  os_log_t log_;
+};
 
 }  // namespace apple
 }  // namespace nearby
 
-#endif  // PLATFORM_IMPL_APPLE_NEARBY_LOGGER_WRITER_H_
+#endif  // PLATFORM_IMPL_APPLE_OS_LOG_SINK_H_

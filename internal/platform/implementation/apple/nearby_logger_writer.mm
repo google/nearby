@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <string>
 
+#include "internal/platform/implementation/apple/os_log_sink.h"
 #include "internal/platform/logging.h"
 
 #import "GoogleToolboxForMac/GTMLogger.h"
@@ -162,6 +163,14 @@ NS_ASSUME_NONNULL_END
 
 namespace nearby {
 namespace apple {
+namespace {
+
+OsLogSink *GetOsLogSink(const std::string &subsystem) {
+  static OsLogSink *sink = new OsLogSink(subsystem);
+  return sink;
+}
+
+}  // namespace
 
 void EnableNearbyLoggerWriter() {
   NSMutableArray<NearbyLogMessage *> *tupleArray = [[NSMutableArray alloc] init];
@@ -170,6 +179,8 @@ void EnableNearbyLoggerWriter() {
                         formatter:[[NearbyLoggerFormatter alloc] initWithMessages:tupleArray]
                            filter:nil];
 }
+
+void EnableOsLog(const std::string &subsystem) { absl::AddLogSink(GetOsLogSink(subsystem)); }
 
 }  // namespace apple
 }  // namespace nearby

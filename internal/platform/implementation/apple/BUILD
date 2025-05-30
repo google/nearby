@@ -165,6 +165,22 @@ objc_library(
 )
 
 objc_library(
+    name = "os_log_sink",
+    srcs = [
+        "os_log_sink.mm",
+    ],
+    hdrs = [
+        "os_log_sink.h",
+    ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        "//internal/platform:logging",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+objc_library(
     name = "logger_writer",
     srcs = [
         "nearby_logger_writer.mm",
@@ -175,6 +191,7 @@ objc_library(
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
+        ":os_log_sink",
         "//internal/platform:logging",
         "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],

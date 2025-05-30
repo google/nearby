@@ -229,6 +229,7 @@ NC_INSTANCE NcCreateService() {
   absl::SetGlobalVLogLevel(1);
 #endif  // DEBUG
   ::nearby::apple::EnableNearbyLoggerWriter();
+  ::nearby::apple::EnableOsLog("com.google.nearby.connections");
 #endif  // TARGET_OS_IOS
 
 #if defined(NC_IOS_SDK)
