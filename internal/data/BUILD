@@ -23,6 +23,14 @@ package(default_visibility = [
 
 cc_library(
     name = "data_manager",
+    srcs = select({
+        "@platforms//os:windows": [
+            "env_windows.cc",
+            "env_windows.h",
+        ],
+        "//conditions:default": [
+        ],
+    }),
     hdrs = [
         "data_set.h",
         "leveldb_data_set.h",
@@ -37,7 +45,13 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_protobuf//:protobuf_lite",
-    ],
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows:string_utils",
+        ],
+        "//conditions:default": [
+        ],
+    }),
 )
 
 proto_library(
