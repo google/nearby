@@ -423,7 +423,14 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockPSMPublishedError = nil;
   auto l2cap_server_socket = std::make_unique<BleL2capServerSocket>();
-  __block auto l2cap_server_socket_ptr = l2cap_server_socket.get();
+  l2cap_server_socket->SetCloseNotifier([this]() {
+    absl::MutexLock lock(&l2cap_server_socket_mutex_);
+    l2cap_server_socket_ptr_ = nullptr;
+  });
+  {
+    absl::MutexLock lock(&l2cap_server_socket_mutex_);
+    l2cap_server_socket_ptr_ = l2cap_server_socket.get();
+  }
   std::string service_id_str = service_id;
   [medium_
       openL2CAPServerWithPSMPublishedCompletionHandler:^(uint16_t PSM, NSError *_Nullable error) {
@@ -432,7 +439,12 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
           dispatch_semaphore_signal(semaphore);
           return;
         }
-        l2cap_server_socket_ptr->SetPSM(PSM);
+        {
+          absl::MutexLock lock(&l2cap_server_socket_mutex_);
+          if (l2cap_server_socket_ptr_) {
+            l2cap_server_socket_ptr_->SetPSM(PSM);
+          }
+        }
         dispatch_semaphore_signal(semaphore);
       }
       channelOpenedCompletionHandler:^(GNCBLEL2CAPStream *_Nullable stream,
@@ -447,8 +459,11 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
                                      incomingConnection:YES
                                           callbackQueue:dispatch_get_main_queue()];
         auto socket = std::make_unique<BleL2capSocket>(connection);
-        if (l2cap_server_socket_ptr) {
-          l2cap_server_socket_ptr->AddPendingSocket(std::move(socket));
+        {
+          absl::MutexLock lock(&l2cap_server_socket_mutex_);
+          if (l2cap_server_socket_ptr_) {
+            l2cap_server_socket_ptr_->AddPendingSocket(std::move(socket));
+          }
         }
       }
       peripheralManager:nil];

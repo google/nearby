@@ -30,7 +30,7 @@ class BleL2capServerSocket : public api::ble_v2::BleL2capServerSocket {
 
   // Gets PSM value has been published by the server.
   int GetPSM() const override;
-  
+
   // Sets PSM value has been published by the server.
   void SetPSM(int psm);
 
@@ -51,6 +51,12 @@ class BleL2capServerSocket : public api::ble_v2::BleL2capServerSocket {
 
   // Adds a pending socket to the server socket.
   bool AddPendingSocket(std::unique_ptr<BleL2capSocket> socket);
+
+  // Called by the server side of a connection before accessing the server
+  // socket pointer at the callback of l2cap channel creation, to track validity
+  // of a pointer to this server socket.
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier)
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   Exception DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
