@@ -27,7 +27,6 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/base/file_path.h"
 #include "internal/platform/device_info_impl.h"
 #include "internal/platform/implementation/g3/preferences_repository.h"
 #include "internal/platform/implementation/preferences_manager.h"
@@ -39,14 +38,9 @@ namespace {
 using json = ::nlohmann::json;
 }  // namespace
 
-PreferencesManager::PreferencesManager(absl::string_view file_path)
-    : api::PreferencesManager(file_path) {
+PreferencesManager::PreferencesManager() {
   auto device_info = std::make_unique<DeviceInfoImpl>();
-  FilePath path = device_info->GetAppDataPath();
-
-  path.append(FilePath(file_path));
-  preferences_repository_ =
-      std::make_unique<PreferencesRepository>(path.ToString());
+  preferences_repository_ = std::make_unique<PreferencesRepository>();
   value_ = preferences_repository_->LoadPreferences();
 }
 

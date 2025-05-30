@@ -323,7 +323,7 @@ std::unique_ptr<DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
 
 std::unique_ptr<nearby::api::PreferencesManager>
 ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
-  return std::make_unique<windows::PreferencesManager>(path);
+  return std::make_unique<windows::PreferencesManager>(FilePath{path});
 }
 
 }  // namespace api

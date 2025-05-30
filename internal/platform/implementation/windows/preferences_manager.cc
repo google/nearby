@@ -31,7 +31,6 @@
 #include "internal/base/files.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/platform.h"
-#include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/windows/preferences_repository.h"
 #include "internal/platform/logging.h"
 
@@ -40,8 +39,7 @@ namespace {
 using json = ::nlohmann::json;
 }  // namespace
 
-PreferencesManager::PreferencesManager(absl::string_view file_path)
-    : api::PreferencesManager(file_path) {
+PreferencesManager::PreferencesManager(FilePath file_path) {
   std::optional<FilePath> path =
       nearby::api::ImplementationPlatform::CreateDeviceInfo()
           ->GetLocalAppDataPath();
@@ -49,7 +47,7 @@ PreferencesManager::PreferencesManager(absl::string_view file_path)
     path = Files::GetTemporaryDirectory();
   }
 
-  path->append(FilePath(file_path));
+  path->append(file_path);
   preferences_repository_ =
       std::make_unique<PreferencesRepository>(path->ToString());
   value_ = preferences_repository_->LoadPreferences();

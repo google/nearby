@@ -14,23 +14,19 @@
 
 #include "internal/platform/implementation/g3/preferences_repository.h"
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <string>
 
 #include "gtest/gtest.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 
-namespace nearby {
-namespace platform {
-namespace g3 {
+namespace nearby::g3 {
 namespace {
 using json = ::nlohmann::json;
 }  // namespace
 
 TEST(Preferences, TestSaveAndGetPreferences) {
-  PreferencesRepository preferences_repository{
-      std::filesystem::temp_directory_path().string()};
+  PreferencesRepository preferences_repository;
   std::string string_key = "string_value";
   std::string string_value = "hello world";
   std::string int_key = "int_value";
@@ -44,8 +40,7 @@ TEST(Preferences, TestSaveAndGetPreferences) {
 }
 
 TEST(Preferences, TestMultipleSaveAndGetPreferences) {
-  PreferencesRepository preferences_repository{
-      std::filesystem::temp_directory_path().string()};
+  PreferencesRepository preferences_repository;
   std::string string_key = "string_value";
   std::string string_value = "hello world";
   std::string string_new_value = "again";
@@ -63,6 +58,4 @@ TEST(Preferences, TestMultipleSaveAndGetPreferences) {
   EXPECT_EQ(result[int_key].get<int>(), 456);
 }
 
-}  // namespace g3
-}  // namespace platform
-}  // namespace nearby
+}  // namespace nearby::g3

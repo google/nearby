@@ -40,7 +40,7 @@ namespace g3 {
 // change by the observer.
 class PreferencesManager : public api::PreferencesManager {
  public:
-  explicit PreferencesManager(absl::string_view path);
+  PreferencesManager();
 
   // Sets values
 

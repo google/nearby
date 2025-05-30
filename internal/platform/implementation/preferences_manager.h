@@ -36,7 +36,7 @@ namespace api {
 // repository, we use json as the parser for now.
 class PreferencesManager {
  public:
-  explicit PreferencesManager(absl::string_view path) {}
+  PreferencesManager() = default;
   virtual ~PreferencesManager() = default;
 
   // Sets values

@@ -16,11 +16,8 @@
 
 #include <stdint.h>
 
-#include <filesystem>  // NOLINT(build/c++17)
-#include <ios>
 #include <memory>
 #include <random>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,8 +26,11 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/str_cat.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/data/data_set.h"
 #include "internal/data/leveldb_data_set_test.proto.h"
 
@@ -40,25 +40,24 @@ namespace {
 using ::testing::SizeIs;
 
 // Generate a unique directory under temp directory for leveldb storage
-std::filesystem::path GenerateLeveldbPath() {
-  auto temp_directory_path = std::filesystem::temp_directory_path();
+FilePath GenerateLeveldbPath() {
+  FilePath temp_directory_path = Files::GetTemporaryDirectory();
   std::random_device dev;
   std::mt19937 prng(dev());
   std::uniform_int_distribution<uint64_t> rand(0);
-  std::filesystem::path path;
+  FilePath path;
   do {
-    std::stringstream leveldb_directory;
-    leveldb_directory << std::hex << "nearby_db_" << rand(prng);
-    path = temp_directory_path / leveldb_directory.str();
-  } while (std::filesystem::exists(path));
+    path = temp_directory_path;
+    path.append(FilePath(absl::StrCat("nearby_db_", absl::Hex(rand(prng)))));
+  } while (Files::FileExists(path));
   return path;
 }
 
 // Helper functions to synchronize LeveldbDataSet function calls for testing
 template <typename T>
 std::unique_ptr<LeveldbDataSet<T>> CreateDataSet(
-    const std::filesystem::path& path) {
-  return std::make_unique<LeveldbDataSet<T>>(path.string());
+    const FilePath& path) {
+  return std::make_unique<LeveldbDataSet<T>>(path.ToString());
 }
 
 template <typename T>
@@ -129,13 +128,13 @@ absl::flat_hash_map<std::string, T> LoadEntriesWithKeysAndWait(
 
 template <typename T>
 void WipeCleanAndWait(std::unique_ptr<LeveldbDataSet<T>>& dataset,
-                      std::filesystem::path path) {
+                      FilePath path) {
   absl::Notification notification;
   dataset->Destroy([&notification](bool) { notification.Notify(); });
   notification.WaitForNotificationWithTimeout(absl::Seconds(5));
   // Call the destructor before removing leveldb storage directory
   dataset.reset();
-  std::filesystem::remove_all(path);
+  Files::RemoveDirectory(path);
 }
 
 DiceRoll GenerateDiceRoll(int value) {
@@ -153,7 +152,7 @@ DiceRoll GenerateDiceRoll(int value) {
 }
 
 TEST(LeveldbDataSet, UpdateEntriesDiceRoll) {
-  std::filesystem::path path = GenerateLeveldbPath();
+  FilePath path = GenerateLeveldbPath();
   std::unique_ptr<LeveldbDataSet<DiceRoll>> diceroll_set =
       CreateDataSet<DiceRoll>(path);
 
@@ -175,7 +174,7 @@ TEST(LeveldbDataSet, UpdateEntriesDiceRoll) {
 }
 
 TEST(LeveldbDataSet, LoadEntriesDiceRoll) {
-  std::filesystem::path path = GenerateLeveldbPath();
+  FilePath path = GenerateLeveldbPath();
   std::unique_ptr<LeveldbDataSet<DiceRoll>> diceroll_set =
       CreateDataSet<DiceRoll>(path);
 
@@ -210,7 +209,7 @@ TEST(LeveldbDataSet, LoadEntriesDiceRoll) {
 }
 
 TEST(LeveldbDataSet, LoadEntrysDiceRoll) {
-  std::filesystem::path path = GenerateLeveldbPath();
+  FilePath path = GenerateLeveldbPath();
   std::unique_ptr<LeveldbDataSet<DiceRoll>> diceroll_set =
       CreateDataSet<DiceRoll>(path);
 
@@ -240,7 +239,7 @@ TEST(LeveldbDataSet, LoadEntrysDiceRoll) {
 }
 
 TEST(LeveldbDataSet, RemoveEntriesDiceRoll) {
-  std::filesystem::path path = GenerateLeveldbPath();
+  FilePath path = GenerateLeveldbPath();
   std::unique_ptr<LeveldbDataSet<DiceRoll>> diceroll_set =
       CreateDataSet<DiceRoll>(path);
 

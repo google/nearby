@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/windows/preferences_repository.h"
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
 #include <optional>
 
@@ -22,6 +21,7 @@
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/platform.h"
 
@@ -48,8 +48,8 @@ TEST(PreferencesRepository, RecoverFromBadPreferences) {
   FilePath full_path = app_data_path->append(FilePath(kPreferencesPath));
   FilePath full_name = app_data_path->append(FilePath(kPreferencesFileName));
 
-  if (std::filesystem::exists(full_name.GetPath())) {
-    std::filesystem::remove(full_name.GetPath());
+  if (Files::FileExists(full_name)) {
+    Files::RemoveFile(full_name);
   }
 
   std::ofstream pref_file(full_name.GetPath());
@@ -67,8 +67,8 @@ TEST(PreferencesRepository, SaveAndLoadPreferences) {
   FilePath full_path = app_data_path->append(FilePath(kPreferencesPath));
   FilePath full_name = app_data_path->append(FilePath(kPreferencesFileName));
 
-  if (std::filesystem::exists(full_name.GetPath())) {
-    std::filesystem::remove(full_name.GetPath());
+  if (Files::FileExists(full_name)) {
+    Files::RemoveFile(full_name);
   }
 
   PreferencesRepository preferences_repository{full_path.ToString()};
@@ -80,7 +80,7 @@ TEST(PreferencesRepository, SaveAndLoadPreferences) {
   EXPECT_EQ(result.size(), 2);
   EXPECT_EQ(result["key1"], "value1");
   EXPECT_EQ(result["key2"], "value2");
-  std::filesystem::remove(full_name.GetPath());
+  Files::RemoveFile(full_name);
 }
 
 TEST(PreferencesRepository, LoadFromBackup) {
@@ -92,12 +92,12 @@ TEST(PreferencesRepository, LoadFromBackup) {
   FilePath full_name_backup = full_path;
   full_name_backup.append(FilePath(kPreferencesBackupFileName));
 
-  if (std::filesystem::exists(full_name.GetPath())) {
-    std::filesystem::remove(full_name.GetPath());
+  if (Files::FileExists(full_name)) {
+    Files::RemoveFile(full_name);
   }
 
-  if (std::filesystem::exists(full_name_backup.GetPath())) {
-    std::filesystem::remove(full_name_backup.GetPath());
+  if (Files::FileExists(full_name_backup)) {
+    Files::RemoveFile(full_name_backup);
   }
 
   PreferencesRepository preferences_repository{full_path.ToString()};
@@ -116,8 +116,8 @@ TEST(PreferencesRepository, LoadFromBackup) {
   EXPECT_TRUE(result.has_value());
   EXPECT_EQ(result.value()["key1"], "value1");
   EXPECT_EQ(result.value()["key2"], "value2");
-  std::filesystem::remove(full_name.GetPath());
-  EXPECT_FALSE(std::filesystem::exists(full_name_backup.GetPath()));
+  Files::RemoveFile(full_name);
+  EXPECT_FALSE(Files::FileExists(full_name_backup));
 }
 
 TEST(PreferencesRepository, RecoverFromCorruption) {
@@ -129,12 +129,12 @@ TEST(PreferencesRepository, RecoverFromCorruption) {
   FilePath full_name_backup = full_path;
   full_name_backup.append(FilePath(kPreferencesBackupFileName));
 
-  if (std::filesystem::exists(full_name.GetPath())) {
-    std::filesystem::remove(full_name.GetPath());
+  if (Files::FileExists(full_name)) {
+    Files::RemoveFile(full_name);
   }
 
-  if (std::filesystem::exists(full_name_backup.GetPath())) {
-    std::filesystem::remove(full_name_backup.GetPath());
+  if (Files::FileExists(full_name_backup)) {
+    Files::RemoveFile(full_name_backup);
   }
 
   PreferencesRepository preferences_repository{full_path.ToString()};
@@ -153,8 +153,8 @@ TEST(PreferencesRepository, RecoverFromCorruption) {
   std::optional<json> result = preferences_repository.LoadPreferences();
   EXPECT_EQ(result.value()["key1"], "value1");
   EXPECT_EQ(result.value()["key2"], "value2");
-  std::filesystem::remove(full_name.GetPath());
-  EXPECT_FALSE(std::filesystem::exists(full_name_backup.GetPath()));
+  Files::RemoveFile(full_name);
+  EXPECT_FALSE(Files::FileExists(full_name_backup));
 }
 
 }  // namespace

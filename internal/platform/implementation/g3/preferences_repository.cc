@@ -14,12 +14,13 @@
 
 #include "internal/platform/implementation/g3/preferences_repository.h"
 
-#include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
 
 #include "absl/synchronization/mutex.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 
 namespace nearby {
 namespace g3 {
@@ -35,13 +36,13 @@ json PreferencesRepository::LoadPreferences() {
     // settings.json is used for testing, but we should look at having
     // an implementation override for G3 in PreferencesManager to override
     // the path for testing.
-    std::filesystem::path path =
-        std::filesystem::temp_directory_path() / "settings.json";
-    if (!std::filesystem::exists(path)) {
+    FilePath path =
+        Files::GetTemporaryDirectory().append(FilePath("settings.json"));
+    if (!Files::FileExists(path)) {
       return value_;
     }
 
-    std::ifstream preferences_file(path.c_str());
+    std::ifstream preferences_file(path.GetPath());
     if (!preferences_file.good()) {
       return value_;
     }

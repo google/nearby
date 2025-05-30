@@ -28,6 +28,7 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/windows/preferences_repository.h"
 
@@ -40,7 +41,8 @@ namespace windows {
 // change by the observer.
 class PreferencesManager : public api::PreferencesManager {
  public:
-  explicit PreferencesManager(absl::string_view path);
+  // `path` is relative to the user's local app data directory.
+  explicit PreferencesManager(nearby::FilePath path);
 
   // Sets values
 

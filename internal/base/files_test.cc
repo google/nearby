@@ -15,7 +15,6 @@
 #include "internal/base/files.h"
 
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <fstream>
 #include <ios>
 #include <optional>

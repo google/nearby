@@ -15,20 +15,16 @@
 #ifndef PLATFORM_IMPLEMENTATION_G3_PREFERENCES_REPOSITORY_H_
 #define PLATFORM_IMPLEMENTATION_G3_PREFERENCES_REPOSITORY_H_
 
-#include <string>
-
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 
-namespace nearby {
-namespace g3 {
+namespace nearby::g3 {
 
 class PreferencesRepository {
  public:
-  explicit PreferencesRepository(absl::string_view path) : path_(path) {}
+  PreferencesRepository() = default;
 
   nlohmann::json LoadPreferences() ABSL_LOCKS_EXCLUDED(&mutex_);
   bool SavePreferences(nlohmann::json preferences) ABSL_LOCKS_EXCLUDED(&mutex_);
@@ -38,10 +34,8 @@ class PreferencesRepository {
   // preferences storage
   nlohmann::json value_ = nlohmann::json::object();
   absl::Mutex mutex_;
-  const std::string path_;
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::g3
 
 #endif  // PLATFORM_IMPLEMENTATION_G3_PREFERENCES_REPOSITORY_H_

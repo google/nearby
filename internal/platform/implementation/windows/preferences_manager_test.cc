@@ -16,10 +16,7 @@
 
 #include <stdint.h>
 
-#include <codecvt>
-#include <filesystem>  // NOLINT(build/c++17)
 #include <fstream>
-#include <locale>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -31,40 +28,45 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 using json = ::nlohmann::json;
-constexpr absl::Duration kTimeOut = absl::Milliseconds(200);
-constexpr char kPreferencesFilePath[] = "Google/Nearby/Sharing";
+constexpr absl::string_view kPreferencesFilePath = "Google/Nearby/Sharing";
 }  // namespace
 
 TEST(PreferencesManager, CorruptedConfigFile) {
-  std::filesystem::path settingsPath = std::filesystem::temp_directory_path();
-  std::ofstream output_stream{settingsPath / "preferences.json"};
+  FilePath settingsPath = Files::GetTemporaryDirectory();
+  FilePath preferencesPath = settingsPath;
+  preferencesPath.append(FilePath("preferences.json"));
+  std::ofstream output_stream{preferencesPath.GetPath()};
   output_stream << "CORRUPTED" << std::endl;
 
-  LOG(INFO) << "Loading preferences from: " << settingsPath.string();
-  EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
+  LOG(INFO) << "Loading preferences from: " << settingsPath.ToString();
+  EXPECT_EQ(PreferencesManager(settingsPath).GetInteger("data", 100),
             100);
 }
 
 TEST(PreferencesManager, ValidConfigFile) {
-  std::filesystem::path settingsPath = std::filesystem::temp_directory_path();
-  std::ofstream output_stream{settingsPath / "preferences.json"};
+  FilePath settingsPath = Files::GetTemporaryDirectory();
+  FilePath preferencesPath = settingsPath;
+  preferencesPath.append(FilePath("preferences.json"));
+  std::ofstream output_stream{preferencesPath.GetPath()};
   output_stream << "{\"data\":8, \"name\": \"Valid\"}" << std::endl;
   output_stream.close();
 
-  LOG(INFO) << "Loading preferences from: " << settingsPath.string();
-  EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
+  LOG(INFO) << "Loading preferences from: " << settingsPath.ToString();
+  EXPECT_EQ(PreferencesManager(settingsPath).GetInteger("data", 100),
             8);
 }
 
 TEST(PreferencesManager, SetAndGetBoolean) {
   std::string bool_key = "bool_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   EXPECT_TRUE(pm.GetBoolean(bool_key, true));
   pm.SetBoolean(bool_key, true);
   EXPECT_TRUE(pm.GetBoolean(bool_key, false));
@@ -72,7 +74,7 @@ TEST(PreferencesManager, SetAndGetBoolean) {
 
 TEST(PreferencesManager, SetAndGetInt) {
   std::string int_key = "int_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   EXPECT_EQ(pm.GetInteger(int_key, 1234), 1234);
   pm.SetInteger(int_key, 6789);
   EXPECT_EQ(pm.GetInteger(int_key, 0), 6789);
@@ -80,7 +82,7 @@ TEST(PreferencesManager, SetAndGetInt) {
 
 TEST(PreferencesManager, SetAndGetInt64) {
   std::string int64_key = "int64_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   EXPECT_EQ(pm.GetInt64(int64_key, 1234), 1234);
   pm.SetInt64(int64_key, 56789);
   EXPECT_EQ(pm.GetInt64(int64_key, 0), 56789);
@@ -88,7 +90,7 @@ TEST(PreferencesManager, SetAndGetInt64) {
 
 TEST(PreferencesManager, SetAndGetString) {
   std::string string_key = "string_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   EXPECT_EQ(pm.GetString(string_key, "abcd"), "abcd");
   pm.SetString(string_key, "this is a test string");
   EXPECT_EQ(pm.GetString(string_key, ""), "this is a test string");
@@ -96,7 +98,7 @@ TEST(PreferencesManager, SetAndGetString) {
 
 TEST(PreferencesManager, SetAndGetTime) {
   std::string time_key = "time_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   absl::Time time = absl::Now();
   EXPECT_EQ(pm.GetTime(time_key, time), time);
   pm.SetTime(time_key, time);
@@ -106,7 +108,7 @@ TEST(PreferencesManager, SetAndGetTime) {
 
 TEST(PreferencesManager, MultipleSetAndGetString) {
   std::string string1_key = "string1_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   pm.SetString(string1_key, "this is first string");
   pm.SetString(string1_key, "this is second string");
   EXPECT_EQ(pm.GetString(string1_key, ""), "this is second string");
@@ -114,7 +116,7 @@ TEST(PreferencesManager, MultipleSetAndGetString) {
 
 TEST(PreferencesManager, SetAndGetValue) {
   std::string value_key = "value_key";
-  PreferencesManager pm(kPreferencesFilePath);
+  PreferencesManager pm(FilePath{kPreferencesFilePath});
   json value = {{"key1", "value1"}, {"key2", "value2"}};
   EXPECT_TRUE(pm.Get(value_key, json()).empty());
   pm.Set(value_key, value);
@@ -126,7 +128,7 @@ TEST(PreferencesManager, SetAndGetValue) {
 
 TEST(PreferencesManager, SetAndGetBooleanArray) {
   std::string bool_array_key = "bool_array_key";
-  auto pm = PreferencesManager(kPreferencesFilePath);
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
   auto default_result =
       pm.GetBooleanArray(bool_array_key, absl::Span<const bool>({true}));
   EXPECT_EQ(default_result[0], true);
@@ -140,7 +142,7 @@ TEST(PreferencesManager, SetAndGetBooleanArray) {
 
 TEST(PreferencesManager, SetAndGetIntArray) {
   std::string int_array_key = "int_array_key";
-  auto pm = PreferencesManager(kPreferencesFilePath);
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
   auto result = pm.GetIntegerArray(int_array_key, std::vector<int>{5, 6});
   EXPECT_EQ(result[1], 6);
   pm.SetIntegerArray(int_array_key, std::vector<int>{1, 7, 4, 10, 12});
@@ -150,7 +152,7 @@ TEST(PreferencesManager, SetAndGetIntArray) {
 
 TEST(PreferencesManager, SetAndGetInt64Array) {
   std::string int64_array_key = "int64_array_key";
-  auto pm = PreferencesManager(kPreferencesFilePath);
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
   auto result = pm.GetInt64Array(int64_array_key, std::vector<int64_t>{99});
   EXPECT_EQ(result[0], 99);
   pm.SetInt64Array(int64_array_key, std::vector<int64_t>{16, 7, 64, 100, 12});
@@ -161,7 +163,7 @@ TEST(PreferencesManager, SetAndGetInt64Array) {
 
 TEST(PreferencesManager, SetAndGetStringArray) {
   std::string string_array_key = "string_array_key";
-  auto pm = PreferencesManager(kPreferencesFilePath);
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
   auto result = pm.GetStringArray(string_array_key,
                                   std::vector<std::string>{"value", "morning"});
   EXPECT_EQ(result[1], "morning");
@@ -175,7 +177,7 @@ TEST(PreferencesManager, SetAndGetStringArray) {
 
 TEST(PreferencesManager, RemoveKey) {
   std::string string_key = "string_key";
-  auto pm = PreferencesManager(kPreferencesFilePath);
+  auto pm = PreferencesManager(FilePath{kPreferencesFilePath});
   pm.SetString(string_key, "remove key");
   pm.Remove(string_key);
   auto result = pm.GetString(string_key, "default key");

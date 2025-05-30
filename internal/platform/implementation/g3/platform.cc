@@ -16,7 +16,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>  // NOLINT
 #include <memory>
 #include <string>
 
@@ -269,7 +268,7 @@ ImplementationPlatform::CreateDeviceInfo() {
 
 std::unique_ptr<nearby::api::PreferencesManager>
 ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
-  return std::make_unique<g3::PreferencesManager>(path);
+  return std::make_unique<g3::PreferencesManager>();
 }
 
 }  // namespace api

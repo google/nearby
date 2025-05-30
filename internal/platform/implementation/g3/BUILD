@@ -183,6 +183,8 @@ cc_library(
     srcs = ["preferences_repository.cc"],
     hdrs = ["preferences_repository.h"],
     deps = [
+        "//internal/base:file_path",
+        "//internal/base:files",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
