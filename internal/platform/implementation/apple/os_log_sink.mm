@@ -50,7 +50,7 @@ void OsLogSink::Send(const absl::LogEntry& entry) {
   std::string message = absl::StrCat("[", entry.source_basename(), ":", entry.source_line(), "] ",
                                      entry.text_message());
 
-  os_log_with_type(log_, type, "%s", message.c_str());
+  os_log_with_type(log_, type, "%{public}s", message.c_str());
 }
 
 }  // namespace apple
