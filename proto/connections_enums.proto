@@ -96,7 +96,8 @@ enum Medium {
 //     //depot/google3/java/com/google/android/gmscore/integ/client/nearby/src/com/google/android/gms/nearby/connection/Medium.java,
 //     //depot/google3/java/com/google/android/gms/nearby/internal/connection/api.proto,
 //     //depot/google3/third_party/nearby/connections/implementation/proto/offline_wire_formats.proto,
-//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
+//     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto,
+//     //depot/google3/third_party/nearby/connections/c/nc_types.h
 // )
 
 // The medium technologies used during the sharing.
