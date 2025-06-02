@@ -424,6 +424,7 @@ let package = Package(
         "internal/platform/flags/BUILD",
         "internal/platform/implementation/shared/BUILD",
         "internal/platform/implementation/apple/Flags/BUILD",
+        "internal/platform/implementation/apple/Log/BUILD",
         "internal/platform/implementation/apple/Mediums/BUILD",
         "internal/platform/implementation/apple/Mediums/Ble/Sockets/BUILD",
         "internal/platform/implementation/apple/Tests/BUILD",
