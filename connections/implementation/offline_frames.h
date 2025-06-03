@@ -84,7 +84,8 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
                                      std::int32_t port);
 ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
                                   const std::string& service_type,
-                                  const std::string& password);
+                                  const std::string& password,
+                                  bool supports_disabling_encryption);
 ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
                                        const std::string& service_info,
                                        const std::string& password,

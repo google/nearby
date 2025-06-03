@@ -307,7 +307,8 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
 
 ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
                                   const std::string& service_type,
-                                  const std::string& password) {
+                                  const std::string& password,
+                                  bool supports_disabling_encryption) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -319,6 +320,8 @@ ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
   auto* upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_medium(UpgradePathInfo::AWDL);
   upgrade_path_info->set_supports_client_introduction_ack(true);
+  upgrade_path_info->set_supports_disabling_encryption(
+      supports_disabling_encryption);
   auto* awdl_socket = upgrade_path_info->mutable_awdl_credentials();
   awdl_socket->set_service_name(service_name);
   awdl_socket->set_service_type(service_type);

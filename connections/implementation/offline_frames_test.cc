@@ -447,11 +447,12 @@ TEST(OfflineFramesTest, CanGenerateBwuAwdlPathAvailable) {
             service_type: "nearby_upgrade"
             password: "password"
           >
+          supports_disabling_encryption: true
         >
       >
     >)pb";
-  ByteArray bytes =
-      ForBwuAwdlPathAvailable("service_name", "nearby_upgrade", "password");
+  ByteArray bytes = ForBwuAwdlPathAvailable("service_name", "nearby_upgrade",
+                                            "password", true);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

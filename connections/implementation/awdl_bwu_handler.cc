@@ -233,7 +233,11 @@ ByteArray AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
             << " and service_type: " << service_type
             << " and has password: " << (password.empty() ? "false" : "true");
 
-  return parser::ForBwuAwdlPathAvailable(service_name, service_type, password);
+  // The AWDL upgraded medium is running under TLS, so we don't need to
+  // encryption for it again.
+  return parser::ForBwuAwdlPathAvailable(
+      service_name, service_type, password,
+      /*supports_disabling_encryption=*/true);
 }
 
 void AwdlBwuHandler::HandleRevertInitiatorStateForService(
