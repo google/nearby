@@ -18,7 +18,7 @@
 
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCStrategy+Internal.h"
 #import "connections/swift/NearbyCoreAdapter/Sources/GNCSupportedMediums+CppConversions.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 using ::nearby::connections::AdvertisingOptions;
 using ::nearby::connections::CppStrategyFromGNCStrategy;
@@ -35,7 +35,7 @@ using ::nearby::connections::CppStrategyFromGNCStrategy;
   advertising_options.low_power = self.lowPower;
   advertising_options.enforce_topology_constraints = self.enforceTopologyConstraints;
   if (self.enforceTopologyConstraints) {
-    GTMLoggerError(@"WARNING: Creating ConnectionOptions with enforceTopologyConstraints = true. "
+    GNCLoggerError(@"WARNING: Creating ConnectionOptions with enforceTopologyConstraints = true. "
                     "Make sure you know what you're doing!");
   }
 

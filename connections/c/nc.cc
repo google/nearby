@@ -50,7 +50,7 @@
 #include "internal/platform/file.h"
 #include "internal/platform/logging.h"
 #if TARGET_OS_IOS
-#include "internal/platform/implementation/apple/nearby_logger_writer.h"
+#include "internal/platform/implementation/apple/nearby_logger.h"
 #endif  // TARGET_OS_IOS
 
 namespace nearby::connections {
@@ -225,10 +225,7 @@ NcContext* GetContext(NC_INSTANCE instance) {
 NC_INSTANCE NcCreateService() {
   NcContext nc_context;
 #if TARGET_OS_IOS
-#if DEBUG
-  absl::SetGlobalVLogLevel(1);
-#endif  // DEBUG
-  ::nearby::apple::EnableNearbyLoggerWriter();
+  absl::SetGlobalVLogLevel(1);  // OS_LOG_TYPE_DEBUG
   ::nearby::apple::EnableOsLog("com.google.nearby.connections");
 #endif  // TARGET_OS_IOS
 

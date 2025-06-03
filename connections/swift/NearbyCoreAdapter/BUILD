@@ -37,8 +37,8 @@ objc_library(
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:Foundation",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
 

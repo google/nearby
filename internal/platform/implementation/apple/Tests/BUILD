@@ -70,27 +70,11 @@ objc_library(
     ],
 )
 
-objc_library(
-    name = "LoggerWriterTestslib",
-    testonly = True,
-    srcs = [
-        "nearby_logger_writer_test.mm",
-    ],
-    deps = [
-        "//internal/platform:logging",
-        "//internal/platform/implementation/apple:logger_writer",
-        "//third_party/apple_frameworks:Foundation",
-        "//third_party/apple_frameworks:XCTest",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
-    ],
-)
-
 ios_unit_test(
     name = "PlatformTests",
     minimum_os_version = IOS_MINIMUM_OS,
     runner = IOS_LATEST_TEST_RUNNER,
     deps = [
-        ":LoggerWriterTestslib",
         ":PlatformTestslib",
     ],
 )

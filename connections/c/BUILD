@@ -54,7 +54,7 @@ cc_library(
         "@com_google_absl//absl/types:span",
     ] + select({
         "@platforms//os:platform_ios": [
-            "//internal/platform/implementation/apple:logger_writer",
+            "//internal/platform/implementation/apple:nearby_logger",
         ],
         "//conditions:default": [],
     }),
