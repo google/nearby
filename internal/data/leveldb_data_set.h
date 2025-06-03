@@ -29,6 +29,9 @@
 #include "third_party/leveldb/include/slice.h"
 #include "third_party/leveldb/include/status.h"
 #include "internal/data/data_set.h"
+#if defined(_WIN32)
+#include "location/nearby/apps/better_together/windows/common/leveldb_env_windows.h"
+#endif  // defined(_WIN32)
 #include "internal/platform/logging.h"
 #include "google/protobuf/message_lite.h"
 
@@ -80,7 +83,9 @@ void LeveldbDataSet<T, isMessageLite>::Initialize(
     absl::AnyInvocable<void(InitStatus) &&> callback) {
   leveldb::Options options;
   options.create_if_missing = true;
-
+#if defined(_WIN32)
+  options.env = nearby::windows::WindowsEnv::Default();
+#endif  // defined(_WIN32)
   leveldb::DB* db;
   leveldb::Status status = leveldb::DB::Open(options, path_, &db);
   db_ = std::unique_ptr<leveldb::DB>(db);

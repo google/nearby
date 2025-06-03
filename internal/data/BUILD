@@ -37,7 +37,13 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_protobuf//:protobuf_lite",
-    ],
+    ] + select({
+        "@platforms//os:windows": [
+            "//location/nearby/apps/better_together/windows/common:leveldb_env_windows",
+        ],
+        "//conditions:default": [
+        ],
+    }),
 )
 
 proto_library(
