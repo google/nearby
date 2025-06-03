@@ -17,6 +17,7 @@
 
 #include <filesystem>  // NOLINT
 #include <string>
+#include <utility>
 
 #include "absl/strings/string_view.h"
 
@@ -32,10 +33,6 @@ class FilePath {
   FilePath(FilePath&&) = default;
   FilePath& operator=(FilePath&&) = default;
 
-  // TODO: b/418255947 - Remove after migration is complete.
-  static FilePath FromPath(std::filesystem::path path) {
-    return FilePath(path.wstring());
-  }
   // Creates a FilePath from a UTF-8 encoded string.
   // The `path` must be a valid UTF-8 sequence, otherwise the behavior is
   // undefined.
@@ -76,6 +73,12 @@ class FilePath {
   }
 
  private:
+  static FilePath FromPath(std::filesystem::path path) {
+    FilePath result;
+    result.path_ = std::move(path);
+    return result;
+  }
+
   std::filesystem::path path_;
 
   friend class Files;
