@@ -14,10 +14,10 @@
 
 #import "internal/platform/implementation/apple/ble_l2cap_socket.h"
 
-#include "internal/platform/implementation/ble_v2.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPConnection.h"
 #import "internal/platform/implementation/apple/utils.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
+#include "internal/platform/implementation/ble_v2.h"
 
 namespace nearby {
 namespace apple {
@@ -151,7 +151,7 @@ Exception BleL2capOutputStream::Flush() {
 }
 
 Exception BleL2capOutputStream::Close() {
-  GTMLoggerInfo(@"[NEARBY] BleL2capOutputStream Closing");
+  GNCLoggerInfo(@"[NEARBY] BleL2capOutputStream Closing");
   // Unblock pending write operation.
   [condition_ lock];
   connection_ = nil;
@@ -188,7 +188,7 @@ Exception BleL2capSocket::Close() {
 }
 
 void BleL2capSocket::DoClose() {
-  GTMLoggerInfo(@"[NEARBY] BleL2capSocket DoClose");
+  GNCLoggerInfo(@"[NEARBY] BleL2capSocket DoClose");
   if (!closed_) {
     input_stream_->Close();
     output_stream_->Close();

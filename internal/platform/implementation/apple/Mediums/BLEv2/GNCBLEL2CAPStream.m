@@ -14,7 +14,7 @@
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 enum { READ_BUFFER_SIZE = 409600 };
 
@@ -101,13 +101,13 @@ enum { READ_BUFFER_SIZE = 409600 };
 
 - (void)tearDown {
   dispatch_async(_streamQueue, ^{
-    GTMLoggerDebug(@"[NEARBY] Closing inputStream %@ by tearDown", self.inputStream);
+    GNCLoggerDebug(@"[NEARBY] Closing inputStream %@ by tearDown", self.inputStream);
     [self.inputStream close];
     self.inputStream.delegate = nil;
     self.inputStream = nil;
 
     @synchronized(self->_writeBufferArray) {
-      GTMLoggerDebug(@"[NEARBY] Closing outputStream %@ by tearDown", self.outputStream);
+      GNCLoggerDebug(@"[NEARBY] Closing outputStream %@ by tearDown", self.outputStream);
       [self.outputStream close];
       self.outputStream.delegate = nil;
       self.outputStream = nil;
@@ -126,7 +126,7 @@ enum { READ_BUFFER_SIZE = 409600 };
   NSStream *inputStream = _inputStream;
   NSStream *outputStream = _outputStream;
   dispatch_async(_streamQueue, ^{
-    GTMLoggerDebug(@"[NEARBY] Closing streams inputStream %@ outputStream %@ by deallocation",
+    GNCLoggerDebug(@"[NEARBY] Closing streams inputStream %@ outputStream %@ by deallocation",
                    inputStream, outputStream);
     [inputStream close];
     inputStream.delegate = nil;
@@ -138,7 +138,7 @@ enum { READ_BUFFER_SIZE = 409600 };
 
 - (void)sendData:(NSData *)data completionBlock:(void (^)(BOOL))completionBlock {
   if (!data || data.length == 0) {
-    GTMLoggerError(@"[NEARBY] Sending data cannot be nil or empty");
+    GNCLoggerError(@"[NEARBY] Sending data cannot be nil or empty");
   }
 
   GNCBLEL2CAPStreamWriteOperation *write =
@@ -157,7 +157,7 @@ enum { READ_BUFFER_SIZE = 409600 };
 
 - (void)stream:(NSStream *)stream handleEvent:(NSStreamEvent)eventCode {
   if (_verboseLoggingEnabled) {
-    GTMLoggerDebug(@"[NEARBY] Stream event %@ for stream %@",
+    GNCLoggerDebug(@"[NEARBY] Stream event %@ for stream %@",
                    [[self class] stringFromStreamEventCode:eventCode], stream);
   }
   if ([stream isEqual:self.inputStream]) {
@@ -173,7 +173,7 @@ enum { READ_BUFFER_SIZE = 409600 };
       case NSStreamEventHasSpaceAvailable:
       case NSStreamEventNone:
       default:
-        GTMLoggerInfo(@"[NEARBY] Received event %@ for stream %@",
+        GNCLoggerInfo(@"[NEARBY] Received event %@ for stream %@",
                       [[self class] stringFromStreamEventCode:eventCode], stream);
         break;
     }
@@ -198,7 +198,7 @@ enum { READ_BUFFER_SIZE = 409600 };
       case NSStreamEventEndEncountered:
       case NSStreamEventNone:
       default:
-        GTMLoggerInfo(@"[NEARBY] Received event %@ for stream %@",
+        GNCLoggerInfo(@"[NEARBY] Received event %@ for stream %@",
                       [[self class] stringFromStreamEventCode:eventCode], stream);
         break;
     }
@@ -235,21 +235,21 @@ enum { READ_BUFFER_SIZE = 409600 };
   self.outputStream = outputStream;
 
   if (inputStream.delegate) {
-    GTMLoggerError(@"[NEARBY] Should not have a delegate.");
+    GNCLoggerError(@"[NEARBY] Should not have a delegate.");
     return;
   }
   if (outputStream.delegate) {
-    GTMLoggerError(@"[NEARBY] Should not have a delegate.");
+    GNCLoggerError(@"[NEARBY] Should not have a delegate.");
     return;
   }
 
   inputStream.delegate = self;
   outputStream.delegate = self;
 
-  GTMLoggerDebug(@"[NEARBY] streams inputStream %@ outputStream %@", inputStream, outputStream);
+  GNCLoggerDebug(@"[NEARBY] streams inputStream %@ outputStream %@", inputStream, outputStream);
 
   if (!_streamQueue) {
-    GTMLoggerError(@"[NEARBY] Stream queue must be initialized.");
+    GNCLoggerError(@"[NEARBY] Stream queue must be initialized.");
     return;
   }
 
@@ -266,7 +266,7 @@ enum { READ_BUFFER_SIZE = 409600 };
 /// Must be called after synchronizing on |_writeBufferArray|.
 - (void)sendWriteBufferData {
   if (!_writeBufferArray.count) {
-    GTMLoggerError(@"[NEARBY] sendWriteBufferData should not be called with empty buffer");
+    GNCLoggerError(@"[NEARBY] sendWriteBufferData should not be called with empty buffer");
     return;
   }
 
@@ -275,18 +275,18 @@ enum { READ_BUFFER_SIZE = 409600 };
       [self.outputStream write:(const uint8_t *)_writeBufferArray.firstObject.remainingData.bytes
                      maxLength:totalBytesToWrite];
   if (result < 0) {
-    GTMLoggerError(@"[NEARBY] Stream write error %@", self.outputStream.streamError);
+    GNCLoggerError(@"[NEARBY] Stream write error %@", self.outputStream.streamError);
     return;
   }
 
   if (result < 0) {
-    GTMLoggerError(@"[NEARBY] Write result should not be negative.");
+    GNCLoggerError(@"[NEARBY] Write result should not be negative.");
     return;
   }
   NSUInteger totalBytesWritten = (NSUInteger)result;
 
   if (_verboseLoggingEnabled) {
-    GTMLoggerInfo(@"[NEARBY] Wrote %@/%@ bytes to stream", @(totalBytesWritten),
+    GNCLoggerInfo(@"[NEARBY] Wrote %@/%@ bytes to stream", @(totalBytesWritten),
                   @(totalBytesToWrite));
   }
 
@@ -297,7 +297,7 @@ enum { READ_BUFFER_SIZE = 409600 };
   } else {
     [_writeBufferArray.firstObject consumeBytes:totalBytesWritten];
     if (_writeBufferArray.firstObject.remainingData.length == 0) {
-      GTMLoggerError(@"[NEARBY] Remaining data cannot be empty.");
+      GNCLoggerError(@"[NEARBY] Remaining data cannot be empty.");
       return;
     }
   }
@@ -314,16 +314,16 @@ enum { READ_BUFFER_SIZE = 409600 };
     [data appendBytes:readBuffer length:(NSUInteger)bytesRead];
 
     if (_verboseLoggingEnabled) {
-      GTMLoggerDebug(@"[NEARBY] Stream data from device of length %@", @(data.length));
+      GNCLoggerDebug(@"[NEARBY] Stream data from device of length %@", @(data.length));
     }
 
     dispatch_async(_receivedDataQueue, ^{
       [_delegate stream:self didReceiveData:data];
     });
   } else if (bytesRead < 0) {
-    GTMLoggerError(@"[NEARBY] Stream read error: %@", self.inputStream.streamError);
+    GNCLoggerError(@"[NEARBY] Stream read error: %@", self.inputStream.streamError);
   } else if (bytesRead == 0) {
-    GTMLoggerDebug(@"[NEARBY] End of stream reached. Disconnecting");
+    GNCLoggerDebug(@"[NEARBY] End of stream reached. Disconnecting");
     // This indicates the L2CAP socket is closed. Notifying the owner so that it can tear down this
     // stream and update its own state.
     [_delegate stream:self didDisconnectWithError:nil];

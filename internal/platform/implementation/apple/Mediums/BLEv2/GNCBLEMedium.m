@@ -18,6 +18,7 @@
 #import <Foundation/Foundation.h>
 
 #import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
@@ -27,7 +28,6 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -228,7 +228,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   dispatch_async(_queue, ^{
     __strong __typeof__(self) strongSelf = weakSelf;
     if (!strongSelf) {
-      GTMLoggerDebug(@"GNCBLEMedium instance no longer exists when connect to gatt server.");
+      GNCLoggerDebug(@"GNCBLEMedium instance no longer exists when connect to gatt server.");
       return;
     }
     strongSelf->_gattDisconnectionHandlers[remotePeripheral.identifier] = disconnectionHandler;
@@ -273,7 +273,7 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   dispatch_async(_queue, ^{
     __strong __typeof__(self) strongSelf = weakSelf;
     if (!strongSelf) {
-      GTMLoggerDebug(@"GNCBLEMedium instance no longer exists when open L2CAP channel.");
+      GNCLoggerDebug(@"GNCBLEMedium instance no longer exists when open L2CAP channel.");
       return;
     }
     if (!strongSelf->_l2capClient) {

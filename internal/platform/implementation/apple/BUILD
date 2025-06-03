@@ -74,7 +74,7 @@ objc_library(
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple/Mediums",
         "//internal/platform/implementation/shared:file",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",
@@ -120,12 +120,12 @@ objc_library(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Flags",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Central",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Peripheral",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/strings",
@@ -158,8 +158,8 @@ objc_library(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )

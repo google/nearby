@@ -13,13 +13,13 @@
 // limitations under the License.
 
 #import "internal/platform/implementation/apple/Mediums/GNCLeaks.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 void GNCVerifyDealloc(id object, NSTimeInterval timeInterval) {
 #if DEBUG
   __weak id weakObj = object;
   NSCAssert(weakObj != nil, @"Pointer to %@ is already nil", weakObj);
-  GTMLoggerInfo(@"Verifying deallocation of %@", NSStringFromClass([weakObj class]));
+  GNCLoggerInfo(@"Verifying deallocation of %@", NSStringFromClass([weakObj class]));
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeInterval * NSEC_PER_SEC)),
                  dispatch_get_main_queue(), ^{
                    NSCAssert(weakObj == nil, @"%@ not deallocated.", weakObj);

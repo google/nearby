@@ -18,18 +18,18 @@
 #import <Network/Network.h>
 #import <Security/SecProtocolOptions.h>
 
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 BOOL GNCConfigureTLSOptions(sec_protocol_options_t options, NSData *PSK, NSData *identity) {
   if (!options) {
-    GTMLoggerError(@"[GNCNWParameters] Invalid parameter of options.");
+    GNCLoggerError(@"[GNCNWParameters] Invalid parameter of options.");
     return NO;
   }
 
   if (PSK.length == 0 || identity.length == 0) {
-    GTMLoggerError(@"[GNCNWParameters] Invalid parameter of psk or identity.");
+    GNCLoggerError(@"[GNCNWParameters] Invalid parameter of psk or identity.");
     return NO;
   }
 
@@ -49,7 +49,7 @@ BOOL GNCConfigureTLSOptions(sec_protocol_options_t options, NSData *PSK, NSData 
       [identity bytes], [identity length], nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 
   if (!psk_secret_dispatch_data || !psk_identity_dispatch_data) {
-    GTMLoggerError(@"[GNCNWParameters] Failed to create dispatch_data_t for PSK.");
+    GNCLoggerError(@"[GNCNWParameters] Failed to create dispatch_data_t for PSK.");
     return NO;
   }
 
@@ -57,7 +57,7 @@ BOOL GNCConfigureTLSOptions(sec_protocol_options_t options, NSData *PSK, NSData 
   sec_protocol_options_add_pre_shared_key(options, psk_secret_dispatch_data,
                                           psk_identity_dispatch_data);
 
-  GTMLoggerInfo(@"[GNCNWParameters] Successfully configured TLS options.");
+  GNCLoggerInfo(@"[GNCNWParameters] Successfully configured TLS options.");
   return YES;
 }
 
@@ -81,7 +81,7 @@ nw_parameters_t _Nullable GNCBuildTLSParameters(NSData *PSK, NSData *identity,
       },
       /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
   if (!TLSWasConfigured) {
-    GTMLoggerError(@"[GNCNWParameters] Failed to configure TLS options.");
+    GNCLoggerError(@"[GNCNWParameters] Failed to configure TLS options.");
     return nil;
   }
 

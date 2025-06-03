@@ -14,9 +14,9 @@
 
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralManager+Private.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralServiceManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket+Private.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
@@ -134,7 +134,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
 - (void)start {
   if (_started) {
-    GTMLoggerInfo(@"Peripheral manager already started.");
+    GNCLoggerInfo(@"Peripheral manager already started.");
     return;
   }
   NSMutableDictionary<NSString *, id> *options =
@@ -146,7 +146,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   }
 #endif
   _cbPeripheralManager = [self cbPeripheralManagerWithDelegate:self queue:_queue options:options];
-  GTMLoggerInfo(@"Peripheral manager started.");
+  GNCLoggerInfo(@"Peripheral manager started.");
   _started = YES;
   // From Apple documentation |-[GNSPeripheralManager peripheralManagerDidUpdateState:]| will be
   // called no matter the current bluetooth state. Also, if the CBPeripheralManager is being
@@ -158,10 +158,10 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
 - (void)stop {
   if (!_started) {
-    GTMLoggerInfo(@"Peripheral manager already stopped.");
+    GNCLoggerInfo(@"Peripheral manager already stopped.");
     return;
   }
-  GTMLoggerInfo(@"Peripheral manager stopped.");
+  GNCLoggerInfo(@"Peripheral manager stopped.");
   _started = NO;
   [self removeAllBleServicesAndStopAdvertising];
   _cbPeripheralManager.delegate = nil;
@@ -190,17 +190,17 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     // http://b/28875581 Adding new service when Bluetooth is powered off may be the reason for
     // the Bluetooth Daemon crash loop. Avoid adding any BLE services here and wait for the next
     // state change of the |_cbPeripheralManager|.
-    GTMLoggerError(@"Bluetooth Daemon crash loop detected crashing. Avoid adding BLE services.");
+    GNCLoggerError(@"Bluetooth Daemon crash loop detected crashing. Avoid adding BLE services.");
     return;
   }
 
 #if TARGET_OS_IPHONE
   if (_backgroundTaskId == UIBackgroundTaskInvalid) {
-    GTMLoggerInfo(@"Start background task to add BLE services and start advertising.");
+    GNCLoggerInfo(@"Start background task to add BLE services and start advertising.");
     _backgroundTaskId = [[UIApplication sharedApplication]
         beginBackgroundTaskWithName:@"Add BLE services and start advertising"
                   expirationHandler:^{
-                    GTMLoggerError(@"Application was suspended before add BLE services and start "
+                    GNCLoggerError(@"Application was suspended before add BLE services and start "
                                    @"advertising finished.");
                     [[UIApplication sharedApplication] endBackgroundTask:_backgroundTaskId];
                     _backgroundTaskId = UIBackgroundTaskInvalid;
@@ -238,15 +238,15 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
   CBManagerState cbState = _cbPeripheralManager.state;
   if ((cbState != CBManagerStatePoweredOn) && (cbState != CBManagerStatePoweredOff)) {
-    GTMLoggerInfo(@"Do not start advertising on state %@", CBManagerStateString(cbState));
+    GNCLoggerInfo(@"Do not start advertising on state %@", CBManagerStateString(cbState));
     return;
   }
   if (_advertisementInProgressData) {
-    GTMLoggerInfo(@"Another start advertising operation is in progress.");
+    GNCLoggerInfo(@"Another start advertising operation is in progress.");
     return;
   }
   if (!_cbPeripheralManager.isAdvertising) {
-    GTMLoggerInfo(@"Reset the advertiment data as the peripheral is not advertising.");
+    GNCLoggerInfo(@"Reset the advertiment data as the peripheral is not advertising.");
     _advertisementData = nil;
   }
 
@@ -263,7 +263,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     }
   }
   if (!allServicesAdded) {
-    GTMLoggerInfo(@"Do not start advertising as not all bluetooth services are added.");
+    GNCLoggerInfo(@"Do not start advertising as not all bluetooth services are added.");
     return;
   }
   NSMutableDictionary<NSString *, id> *advertisementData = [NSMutableDictionary dictionary];
@@ -272,7 +272,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     advertisementData[CBAdvertisementDataLocalNameKey] = _advertisedName;
   }
   if ([advertisementData isEqual:_advertisementData]) {
-    GTMLoggerInfo(
+    GNCLoggerInfo(
         @"Finished adding BLE services and starting advertising (advertisement data = %@).",
         _advertisementData);
 #if TARGET_OS_IPHONE
@@ -282,7 +282,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     return;
   }
 
-  GTMLoggerInfo(@"Start advertising: %@", advertisementData);
+  GNCLoggerInfo(@"Start advertising: %@", advertisementData);
   _advertisementInProgressData = [advertisementData copy];
 }
 
@@ -296,27 +296,27 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     if (handler()) return;
     handlerQueue = [NSMutableArray array];
     _handlerQueuePerSocketIdentifier[socketIdentifier] = handlerQueue;
-    GTMLoggerInfo(@"Queueing value for socket: %@", socketIdentifier);
+    GNCLoggerInfo(@"Queueing value for socket: %@", socketIdentifier);
   }
   [handlerQueue addObject:[handler copy]];
 }
 
 - (void)processUpdateValueBlocks {
-  GTMLoggerInfo(@"About to send values for sockets: %@", _handlerQueuePerSocketIdentifier.allKeys);
+  GNCLoggerInfo(@"About to send values for sockets: %@", _handlerQueuePerSocketIdentifier.allKeys);
   for (NSUUID *socketIdentifier in _handlerQueuePerSocketIdentifier.allKeys) {
     NSMutableArray<GNSUpdateValueHandler> *handlerQueue =
         _handlerQueuePerSocketIdentifier[socketIdentifier];
-    GTMLoggerInfo(@"%lu queued values to send.", (unsigned long)handlerQueue.count);
+    GNCLoggerInfo(@"%lu queued values to send.", (unsigned long)handlerQueue.count);
     while (handlerQueue.count > 0) {
       GNSUpdateValueHandler handler = handlerQueue[0];
       if (!handler()) {
-        GTMLoggerInfo(@"Value failed to be send, still in the queue to try later.");
+        GNCLoggerInfo(@"Value failed to be send, still in the queue to try later.");
         break;
       }
-      GTMLoggerInfo(@"Value sent successfully.");
+      GNCLoggerInfo(@"Value sent successfully.");
       [handlerQueue removeObjectAtIndex:0];
       if (handlerQueue.count == 0) {
-        GTMLoggerInfo(@"Removing pending value queue for socket: %@", socketIdentifier);
+        GNCLoggerInfo(@"Removing pending value queue for socket: %@", socketIdentifier);
         [_handlerQueuePerSocketIdentifier removeObjectForKey:socketIdentifier];
       }
     }
@@ -376,7 +376,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
          willRestoreState:(NSDictionary<NSString *, id> *)dict {
 #if TARGET_OS_IPHONE
   // Restored API only supported on iOS.
-  GTMLoggerInfo(@"Restore bluetooth services");
+  GNCLoggerInfo(@"Restore bluetooth services");
   _advertisementData = dict[CBPeripheralManagerRestoredStateAdvertisementDataKey];
   for (CBMutableService *service in dict[CBPeripheralManagerRestoredStateServicesKey]) {
     GNSPeripheralServiceManager *serviceManager =
@@ -384,7 +384,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     if (serviceManager) {
       [serviceManager restoredCBService:service];
     } else {
-      GTMLoggerError(@"restoreFromCBService %@", service);
+      GNCLoggerError(@"restoreFromCBService %@", service);
     }
   }
 #endif
@@ -392,7 +392,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 
 - (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheralManager {
   NSAssert(peripheralManager == _cbPeripheralManager, @"Wrong peripheral manager.");
-  GTMLoggerInfo(@"Peripheral manager state updated: %@",
+  GNCLoggerInfo(@"Peripheral manager state updated: %@",
                 CBManagerStateString(_cbPeripheralManager.state));
   switch (_cbPeripheralManager.state) {
     case CBManagerStatePoweredOn:
@@ -439,7 +439,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   _advertisementData = _advertisementInProgressData;
   _advertisementInProgressData = nil;
   if (error) {
-    GTMLoggerError(@"Start advertisment failed with error %@. Will retry to start advertising on "
+    GNCLoggerError(@"Start advertisment failed with error %@. Will retry to start advertising on "
                     "the next BLE state change notification. ",
                    error);
     _advertisementData = nil;
@@ -447,7 +447,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   }
 
   NSAssert(peripheral.isAdvertising, @"Peripheral should be advertising.");
-  GTMLoggerInfo(@"Peripheral did start advertising %@", _advertisementData);
+  GNCLoggerInfo(@"Peripheral did start advertising %@", _advertisementData);
 
   // Once an advertisment operation is over, check if the advertised data is up-to-date.
   [self updateAdvertisedServices];
@@ -459,7 +459,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   GNSPeripheralServiceManager *peripheralServiceManager =
       [_peripheralServiceManagers objectForKey:service.UUID];
   if (!peripheralServiceManager) {
-    GTMLoggerError(@"Unknown service %@ with %@", service, self);
+    GNCLoggerError(@"Unknown service %@ with %@", service, self);
     return;
   }
   [peripheralServiceManager didAddCBServiceWithError:error];
@@ -532,7 +532,7 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 }
 
 - (void)peripheralManagerIsReadyToUpdateSubscribers:(CBPeripheralManager *)peripheral {
-  GTMLoggerInfo(@"Ready to update subscribers.");
+  GNCLoggerInfo(@"Ready to update subscribers.");
   [self processUpdateValueBlocks];
 }
 

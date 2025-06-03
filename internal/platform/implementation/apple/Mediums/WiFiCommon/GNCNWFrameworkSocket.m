@@ -17,7 +17,7 @@
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 @interface GNCNWFrameworkSocket ()
 

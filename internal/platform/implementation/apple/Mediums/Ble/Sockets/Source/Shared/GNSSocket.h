@@ -69,16 +69,16 @@ typedef void (^GNSProgressHandler)(float progress);
  *
  *  * To receive data:
  * - (void)socket:(GNSSocket *)socket didReceiveData:(NSData *)data {
- *   GTMLoggerInfo(@"Data received from central %@", data);
+ *   GNCLoggerInfo(@"Data received from central %@", data);
  *   ...
  * }
  *
  *  * To send data:
  * GNSErrorHandler completionHandler = ^(NSError *error) {
  *   if (error) {
- *     GTMLoggerInfo(@"Failed to send data")
+ *     GNCLoggerInfo(@"Failed to send data")
  *   } else {
- *     GTMLoggerInfo(@"data has been sent");
+ *     GNCLoggerInfo(@"data has been sent");
  *   }
  * }
  * [socket sendData:dataToSend
@@ -89,7 +89,7 @@ typedef void (^GNSProgressHandler)(float progress);
  *
  *  * Once the socket is disconnected (by -[GNSSocket disconnect] or by the peer):
  * - (void)socket:(GNSSocket *)socket didDisconnectWithError:(NSError *)error {
- *   GTMLoggerInfo(@"Socket disconnected, by peer");
+ *   GNCLoggerInfo(@"Socket disconnected, by peer");
  *   ...
  * }
  */

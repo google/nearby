@@ -82,6 +82,7 @@ objc_library(
         "//internal/encoding:base85",
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple/Flags",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
         "//proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",
@@ -92,6 +93,5 @@ objc_library(
         "//third_party/apple_frameworks:ObjectiveC",
         "//third_party/apple_frameworks:Security",
         "//third_party/apple_frameworks:SystemConfiguration",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )

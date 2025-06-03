@@ -34,9 +34,9 @@ objc_library(
     ],
     deps = [
         ":Shared",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
 
@@ -55,11 +55,11 @@ objc_library(
     ],
     deps = [
         ":Shared",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:CoreFoundation",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:QuartzCore",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",
@@ -79,11 +79,11 @@ objc_library(
         "Source/GNSShared.h",
     ],
     deps = [
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:CoreFoundation",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:QuartzCore",
-        "//third_party/objective_c/google_toolbox_for_mac:GTM_Logger",
     ],
 )
 

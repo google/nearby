@@ -18,12 +18,12 @@
 #import <Foundation/Foundation.h>
 
 #import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheralManager.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCBase85.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/NSData+GNCWebSafeBase64.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -316,7 +316,7 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
                                            error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
   if (error) {
-    GTMLoggerError(@"Failed to start advertising: %@", error);
+    GNCLoggerError(@"Failed to start advertising: %@", error);
   }
 }
 
@@ -325,7 +325,7 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
                         error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
   if (error) {
-    GTMLoggerError(@"Failed to add service %@: %@", service, error);
+    GNCLoggerError(@"Failed to add service %@: %@", service, error);
   }
 }
 

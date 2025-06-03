@@ -15,9 +15,9 @@
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager+Private.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -71,10 +71,10 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
   if (self) {
     _socketServiceUUID = socketServiceUUID;
     _queue = queue;
-    _cbCentralManager = [[self class]
-        centralManagerWithDelegate:self
-                             queue:queue
-                           options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
+    _cbCentralManager =
+        [[self class] centralManagerWithDelegate:self
+                                           queue:queue
+                                         options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
     _centralPeerManagers = [NSMapTable strongToWeakObjectsMapTable];
   }
   return self;
@@ -134,7 +134,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
 - (void)retrievePeripheralWithIdentifier:(NSUUID *)identifier
                        advertisementData:(nonnull NSDictionary<NSString *, id> *)advertisementData {
   NSArray<CBPeripheral *> *peripherals =
-      [_cbCentralManager retrievePeripheralsWithIdentifiers:@[identifier]];
+      [_cbCentralManager retrievePeripheralsWithIdentifiers:@[ identifier ]];
   if (peripherals.count > 0) {
     [self centralManager:_cbCentralManager
         didDiscoverPeripheral:peripherals[0]
@@ -152,8 +152,8 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
   NSAssert(identifier, @"Should have an identifier, self: %@", self);
   GNSCentralPeerManager *peerManager = [_centralPeerManagers objectForKey:identifier];
   if (peerManager) {
-    GTMLoggerAssert(@"Previous GNSCentralPeerManager still alive, self: %@, peer manager: %@", self,
-                    peerManager);
+    GNCLoggerFatal(@"Previous GNSCentralPeerManager still alive, self: %@, peer manager: %@", self,
+                   peerManager);
     return nil;
   }
   NSArray<CBPeripheral *> *peripherals =
@@ -165,7 +165,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
       return peerManager;
     }
   }
-  GTMLoggerError(@"CBPeripheral not found, self: %@, identifier %@, peripherals %@", self,
+  GNCLoggerError(@"CBPeripheral not found, self: %@, identifier %@, peripherals %@", self,
                  identifier, peripherals);
   return nil;
 }
@@ -200,7 +200,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
   // The drawback is the same CBPeripheral is discovered several times per second.
   NSDictionary<NSString *, id> *options = @{CBCentralManagerScanOptionAllowDuplicatesKey : @YES};
   if (_advertisedName) {
-    GTMLoggerInfo(@"Start scanning for all peripherals. Filter peripherals with advertised "
+    GNCLoggerInfo(@"Start scanning for all peripherals. Filter peripherals with advertised "
                    "service UUID %@ or advertised name %@.",
                   [_socketServiceUUID UUIDString], _advertisedName);
     [_cbCentralManager scanForPeripheralsWithServices:nil options:options];
@@ -211,7 +211,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
     // Not logging this case to avoid spamming the logs.
     [_cbCentralManager scanForPeripheralsWithServices:_advertisedServiceUUIDs options:options];
   } else {
-    GTMLoggerInfo(@"Start scanning for all peripherals.");
+    GNCLoggerInfo(@"Start scanning for all peripherals.");
     [_cbCentralManager scanForPeripheralsWithServices:nil options:options];
   }
 }
@@ -235,20 +235,20 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
 
 - (void)connectPeripheralForPeer:(GNSCentralPeerManager *)peer
                          options:(nullable NSDictionary<NSString *, id> *)options {
-  GTMLoggerInfo(@"Connect peer %@ options %@", peer, options);
+  GNCLoggerInfo(@"Connect peer %@ options %@", peer, options);
   [_cbCentralManager connectPeripheral:peer.cbPeripheral options:options];
 }
 
 - (void)cancelPeripheralConnectionForPeer:(GNSCentralPeerManager *)peer {
-  GTMLoggerInfo(@"Cancel peer connection %@", peer);
+  GNCLoggerInfo(@"Cancel peer connection %@", peer);
   [_cbCentralManager cancelPeripheralConnection:peer.cbPeripheral];
 }
 
 - (void)centralPeerManagerDidDisconnect:(GNSCentralPeerManager *)peer {
-  GTMLoggerInfo(@"Central manager removing central peer manager, central manager: %@, peer %@",
+  GNCLoggerInfo(@"Central manager removing central peer manager, central manager: %@, peer %@",
                 self, peer);
   if (peer.cbPeripheral.state != CBPeripheralStateDisconnected) {
-    GTMLoggerInfo(@"Unexpected peripheral state %@", peer.cbPeripheral);
+    GNCLoggerInfo(@"Unexpected peripheral state %@", peer.cbPeripheral);
   }
 }
 
@@ -257,21 +257,22 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
 }
 
 - (GNSCentralPeerManager *)createCentralPeerManagerWithPeripheral:(CBPeripheral *)peripheral {
-  return [[GNSCentralPeerManager alloc]
-      initWithPeripheral:peripheral centralManager:self queue:_queue];
+  return [[GNSCentralPeerManager alloc] initWithPeripheral:peripheral
+                                            centralManager:self
+                                                     queue:_queue];
 }
 
 - (GNSCentralPeerManager *)centralPeerForPeripheral:(CBPeripheral *)peripheral {
   NSParameterAssert(peripheral);
   GNSCentralPeerManager *peerManager = [_centralPeerManagers objectForKey:peripheral.identifier];
   if (!peerManager) {
-    GTMLoggerDebug(@"No peer manager found for peripheral %@", peripheral);
+    GNCLoggerDebug(@"No peer manager found for peripheral %@", peripheral);
     return nil;
   }
   if (peerManager.cbPeripheral != peripheral) {
     // There is a peer manager with a different peripheral object than |peripheral|, but with the
     // same identifier. Something really wrong happened in CoreBluetooth here.
-    GTMLoggerError(@"Peer Manager %@ has a different peripheral than %@ [CentralManager = %@]",
+    GNCLoggerError(@"Peer Manager %@ has a different peripheral than %@ [CentralManager = %@]",
                    peerManager, peripheral, self);
     return nil;
   }
@@ -282,7 +283,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
   NSAssert(central == _cbCentralManager, @"Wrong peripheral manager.");
-  GTMLoggerInfo(@"CoreBluetooth state: %@",
+  GNCLoggerInfo(@"CoreBluetooth state: %@",
                 CentralManagerStateString([self cbCentralManagerState]));
   switch (central.state) {
     case CBCentralManagerStatePoweredOn: {
@@ -319,7 +320,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
     NSUUID *identifier = peripheral.identifier;
     GNSCentralPeerManager *peerManager = [_centralPeerManagers objectForKey:identifier];
     if (!peerManager) {
-      GTMLoggerInfo(@"Discovered peer peripheral %@", peripheral);
+      GNCLoggerInfo(@"Discovered peer peripheral %@", peripheral);
       peerManager = [self createCentralPeerManagerWithPeripheral:peripheral];
       [_centralPeerManagers setObject:peerManager forKey:identifier];
       [_delegate centralManager:self
@@ -331,10 +332,10 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
 
 - (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral {
   NSAssert(central == _cbCentralManager, @"Unexpected central manager");
-  GTMLoggerInfo(@"Connected to %@", peripheral);
+  GNCLoggerInfo(@"Connected to %@", peripheral);
   GNSCentralPeerManager *peerManager = [self centralPeerForPeripheral:peripheral];
   if (!peerManager) {
-    GTMLoggerError(
+    GNCLoggerError(
         @"No peer manager found for connected peripheral %@. Cancel peripheral connection",
         peripheral);
     [_cbCentralManager cancelPeripheralConnection:peripheral];
@@ -347,7 +348,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
     didFailToConnectPeripheral:(CBPeripheral *)peripheral
                          error:(nullable NSError *)error {
   NSAssert(central == _cbCentralManager, @"Unexpected central manager");
-  GTMLoggerInfo(@"Fail to connect to %@, error %@", peripheral, error);
+  GNCLoggerInfo(@"Fail to connect to %@, error %@", peripheral, error);
   [self peripheralDisconnected:peripheral withError:error];
 }
 
@@ -355,7 +356,7 @@ static NSString *CentralManagerStateString(CBCentralManagerState state) {
     didDisconnectPeripheral:(CBPeripheral *)peripheral
                       error:(nullable NSError *)error {
   NSAssert(central == _cbCentralManager, @"Unexpected central manager");
-  GTMLoggerInfo(@"Did disconnect %@, error %@", peripheral, error);
+  GNCLoggerInfo(@"Did disconnect %@, error %@", peripheral, error);
   [self peripheralDisconnected:peripheral withError:error];
 }
 

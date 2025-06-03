@@ -22,12 +22,12 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -140,7 +140,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)startAdvertisingServiceName:(NSString *)serviceName
                         serviceType:(NSString *)serviceType
                          txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
-  GTMLoggerInfo(@"[GNCNWFrameworkServerSocket] Start advertising {serviceName:%@, "
+  GNCLoggerInfo(@"[GNCNWFrameworkServerSocket] Start advertising {serviceName:%@, "
                 @"serviceType: %@}",
                 serviceName, serviceType);
 
@@ -152,11 +152,11 @@ NS_ASSUME_NONNULL_BEGIN
     NSData *encodedRecord = [recordValue dataUsingEncoding:NSUTF8StringEncoding];
     if (!nw_txt_record_set_key(txtRecord, [key UTF8String], encodedRecord.bytes,
                                encodedRecord.length)) {
-      GTMLoggerError(@"[GNCNWFrameworkServerSocket] Failed to set text record key: %@, value: %@",
+      GNCLoggerError(@"[GNCNWFrameworkServerSocket] Failed to set text record key: %@, value: %@",
                      key, recordValue);
       continue;
     }
-    GTMLoggerDebug(@"[GNCNWFrameworkServerSocket] Text record {key: "
+    GNCLoggerDebug(@"[GNCNWFrameworkServerSocket] Text record {key: "
                    @"%@, value: %@}",
                    key, recordValue);
   }
@@ -216,7 +216,7 @@ NS_ASSUME_NONNULL_BEGIN
           : GNCBuildTLSParameters(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentify,
                                   /*includePeerToPeer=*/includePeerToPeer);
   if (!parameters) {
-    GTMLoggerError(@"[GNCNWFrameworkServerSocket] Failed to create NW parameters.");
+    GNCLoggerError(@"[GNCNWFrameworkServerSocket] Failed to create NW parameters.");
     return NO;
   }
 
@@ -305,12 +305,12 @@ NS_ASSUME_NONNULL_BEGIN
     case nw_listener_state_waiting:
     case nw_listener_state_failed:
     case nw_listener_state_cancelled:
-      GTMLoggerError(@"[GNCNWFrameworkServerSocket] Listen state: %u", _listenerState);
+      GNCLoggerError(@"[GNCNWFrameworkServerSocket] Listen state: %u", _listenerState);
       [self close];
       return NO;
     case nw_listener_state_ready:
       _port = nw_listener_get_port(_listener);
-      GTMLoggerInfo(@"[GNCNWFrameworkServerSocket] Listen on port: %ld", (long)_port);
+      GNCLoggerInfo(@"[GNCNWFrameworkServerSocket] Listen on port: %ld", (long)_port);
       return YES;
   }
 }

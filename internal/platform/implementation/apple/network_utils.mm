@@ -16,10 +16,10 @@
 #include "internal/platform/nsd_service_info.h"
 
 #include "internal/platform/cancellation_flag.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
 namespace apple {
@@ -51,7 +51,7 @@ bool StopAdvertising(GNCNWFramework* medium, const NsdServiceInfo& nsd_service_i
 bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
                     NetworkDiscoveredServiceCallback callback, bool include_peer_to_peer) {
   if (medium.isDiscoveringAnyService) {
-    GTMLoggerError(@"Error already discovering for service");
+    GNCLoggerError(@"Error already discovering for service");
     return false;
   }
   __block NSString* serviceType = @(service_type.c_str());
@@ -84,7 +84,7 @@ bool StartDiscovery(GNCNWFramework* medium, const std::string& service_type,
       includePeerToPeer:include_peer_to_peer
       error:&error];
   if (error != nil) {
-    GTMLoggerError(@"Error starting discovery for service type<%@>: %@", serviceType, error);
+    GNCLoggerError(@"Error starting discovery for service type<%@>: %@", serviceType, error);
   }
   return result;
 }
@@ -108,7 +108,7 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
     return socket;
   }
   if (error != nil) {
-    GTMLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
+    GNCLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
                    error);
   }
   return nil;
@@ -134,7 +134,7 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
     return socket;
   }
   if (error != nil) {
-    GTMLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
+    GNCLoggerError(@"Error connecting to service name<%@> type<%@>: %@", serviceName, serviceType,
                    error);
   }
   return nil;
@@ -145,7 +145,7 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string
                                        CancellationFlag* cancellation_flag) {
   NSError* error = nil;
   if (ip_address.size() != 4) {
-    GTMLoggerError(@"Error IP address must be 4 bytes, but is %lu bytes", ip_address.size());
+    GNCLoggerError(@"Error IP address must be 4 bytes, but is %lu bytes", ip_address.size());
     return nil;
   }
   NSData* hostData = [NSData dataWithBytes:ip_address.data() length:ip_address.size()];
@@ -158,7 +158,7 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string
     return socket;
   }
   if (error != nil) {
-    GTMLoggerError(@"Error connecting to %@:%d: %@", host, port, error);
+    GNCLoggerError(@"Error connecting to %@:%d: %@", host, port, error);
   }
   return nil;
 }
@@ -166,7 +166,7 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string
 GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
                                              bool include_peer_to_peer) {
   if (medium.isListeningForAnyService) {
-    GTMLoggerError(@"Error already listening for service");
+    GNCLoggerError(@"Error already listening for service");
     return nil;
   }
   NSError* error = nil;
@@ -177,7 +177,7 @@ GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
     return serverSocket;
   }
   if (error != nil) {
-    GTMLoggerError(@"Error listening for service: %@", error);
+    GNCLoggerError(@"Error listening for service: %@", error);
   }
   return nil;
 }
@@ -185,7 +185,7 @@ GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, int port,
 GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::PskInfo& psk_info,
                                              int port, bool include_peer_to_peer) {
   if (medium.isListeningForAnyService) {
-    GTMLoggerError(@"Error already listening for service");
+    GNCLoggerError(@"Error already listening for service");
     return nil;
   }
   NSError* error = nil;
@@ -203,7 +203,7 @@ GNCNWFrameworkServerSocket* ListenForService(GNCNWFramework* medium, const api::
     return serverSocket;
   }
   if (error != nil) {
-    GTMLoggerError(@"Error listening for service: %@", error);
+    GNCLoggerError(@"Error listening for service: %@", error);
   }
   return nil;
 }

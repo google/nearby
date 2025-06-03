@@ -14,12 +14,12 @@
 
 #import <XCTest/XCTest.h>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Peripheral/GNSPeripheralManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Peripheral/GNSPeripheralServiceManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSSocket+Private.h"
 #import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSUtils.h"
 #import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSWeavePacket.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
 @interface GNSPeripheralServiceManagerTest : XCTestCase {
@@ -518,7 +518,7 @@
     XCTAssertNotNil(packet);
     XCTAssertTrue([packet isKindOfClass:[GNSWeaveDataPacket class]]);
     GNSWeaveDataPacket *dataPacket = (GNSWeaveDataPacket *)packet;
-    GTMLoggerInfo(@"packetCounter = %d", dataPacket.packetCounter);
+    GNCLoggerInfo(@"packetCounter = %d", dataPacket.packetCounter);
     XCTAssertEqual(dataPacket.packetCounter, sendPacketCounter);
     sendPacketCounter = (sendPacketCounter + 1) % kGNSMaxPacketCounterValue;
     if (i == 0) {

@@ -19,12 +19,12 @@
 #include <string>
 #include <utility>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "internal/platform/implementation/apple/network_utils.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
 namespace apple {
@@ -37,7 +37,7 @@ ExceptionOr<ByteArray> WifiLanInputStream::Read(std::int64_t size) {
   NSError* error = nil;
   NSData* data = [socket_ readMaxLength:size error:&error];
   if (data == nil) {
-    GTMLoggerError(@"Error reading socket: %@", error);
+    GNCLoggerError(@"Error reading socket: %@", error);
     return {Exception::kIo};
   }
   return ExceptionOr<ByteArray>{ByteArray((const char*)data.bytes, data.length)};
@@ -57,7 +57,7 @@ Exception WifiLanOutputStream::Write(const ByteArray& data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {
-    GTMLoggerError(@"Error writing socket: %@", error);
+    GNCLoggerError(@"Error writing socket: %@", error);
     return {Exception::kIo};
   }
   return {Exception::kSuccess};
@@ -110,7 +110,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
     return std::make_unique<WifiLanSocket>(socket);
   }
   if (error != nil) {
-    GTMLoggerError(@"Error accepting socket: %@", error);
+    GNCLoggerError(@"Error accepting socket: %@", error);
   }
   return nil;
 }

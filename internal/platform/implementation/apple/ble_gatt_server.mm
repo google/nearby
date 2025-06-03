@@ -19,10 +19,10 @@
 
 #include "internal/platform/implementation/ble_v2.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 #import "internal/platform/implementation/apple/utils.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 namespace nearby {
 namespace apple {
@@ -49,7 +49,7 @@ std::optional<api::ble_v2::GattCharacteristic> GattServer::CreateCharacteristic(
                                                     NSError *error) {
                                   [condition lock];
                                   if (error != nil) {
-                                    GTMLoggerError(@"Error creating characteristic: %@", error);
+                                    GNCLoggerError(@"Error creating characteristic: %@", error);
                                   }
                                   blockCharacteristic = characteristic;
                                   [condition signal];
@@ -73,7 +73,7 @@ bool GattServer::UpdateCharacteristic(const api::ble_v2::GattCharacteristic &cha
                    completionHandler:^(NSError *error) {
                      [condition lock];
                      if (error != nil) {
-                       GTMLoggerError(@"Error updating characteristic: %@", error);
+                       GNCLoggerError(@"Error updating characteristic: %@", error);
                      }
                      blockError = error;
                      [condition signal];
@@ -91,9 +91,7 @@ absl::Status GattServer::NotifyCharacteristicChanged(
   return absl::UnimplementedError("");
 }
 
-void GattServer::Stop() {
-  [gatt_server_ stop];
-}
+void GattServer::Stop() { [gatt_server_ stop]; }
 
 }  // namespace apple
 }  // namespace nearby

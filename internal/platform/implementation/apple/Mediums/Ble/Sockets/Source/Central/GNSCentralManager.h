@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 @class GNSCentralManager;
 @class GNSCentralPeerManager;
 
-@protocol GNSCentralManagerDelegate<NSObject>
+@protocol GNSCentralManagerDelegate <NSObject>
 
 /**
  * Called while scanning when a new peer is found.
@@ -70,7 +70,7 @@ NS_ASSUME_NONNULL_BEGIN
  * [centralPeer socketWithPairingCharacteristic:shouldAddPairingCharacteristics
  *                                   completion:^(GNSSocket *mySocket, NSError *error) {
  *                                    if (error) {
- *                                      GTMLoggerInfo(@"Error to get the socket %@", error);
+ *                                      GNCLoggerInfo(@"Error to get the socket %@", error);
  *                                      return;
  *                                    }
  *                                    mySocket.delegate = mySocketDelegate;

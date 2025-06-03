@@ -14,11 +14,11 @@
 
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralServiceManager+Private.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Peripheral/GNSPeripheralManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket+Private.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSWeavePacket.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 // The Weave BLE protocol has only one valid version.
 static const UInt16 kWeaveVersionSupported = 1;
@@ -36,7 +36,7 @@ static NSString *GetBluetoothServiceStateDescription(GNSBluetoothServiceState st
   return @"";
 }
 
-@interface GNSPeripheralServiceManager ()<GNSWeavePacketHandler> {
+@interface GNSPeripheralServiceManager () <GNSWeavePacketHandler> {
   GNSPeripheralManager *_peripheralManager;
   BOOL _addPairingCharacteristic;
   CBMutableService *_cbService;
@@ -145,22 +145,22 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   } else {
     _cbService.characteristics = @[ _weaveIncomingChar, _weaveOutgoingChar ];
   }
-  GTMLoggerInfo(@"Will add BLE service: %@", _cbService);
+  GNCLoggerInfo(@"Will add BLE service: %@", _cbService);
 }
 
 - (void)didAddCBServiceWithError:(NSError *)error {
   if (_cbServiceState == GNSBluetoothServiceStateNotAdded) {
     // Ignored as the service was probably removed while the add CBService operation was in
     // progress.
-    GTMLoggerError(@"Ignore adding BLE service %@ result (error = %@) %@", _cbService, error, self);
+    GNCLoggerError(@"Ignore adding BLE service %@ result (error = %@) %@", _cbService, error, self);
     return;
   }
 
   if (error) {
-    GTMLoggerError(@"Failed adding BLE service %@ (error = %@) %@", _cbService, error, self);
+    GNCLoggerError(@"Failed adding BLE service %@ (error = %@) %@", _cbService, error, self);
     [self didRemoveCBService];
   } else {
-    GTMLoggerInfo(@"Finished adding BLE service %@", _cbService);
+    GNCLoggerInfo(@"Finished adding BLE service %@", _cbService);
     _cbServiceState = GNSBluetoothServiceStateAdded;
   }
   if (_bleServiceAddedCompletion) {
@@ -178,7 +178,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)restoredCBService:(CBMutableService *)service {
   if (![service.UUID isEqual:_serviceUUID]) {
-    GTMLoggerError(@"Cannot restore from bluetooth service %@.", service);
+    GNCLoggerError(@"Cannot restore from bluetooth service %@.", service);
     return;
   }
   for (CBMutableCharacteristic *characteristic in service.characteristics) {
@@ -200,7 +200,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   NSAssert(_pairingChar || !_addPairingCharacteristic, @"Pairing characteristic missing");
   _cbService = service;
   _cbServiceState = GNSBluetoothServiceStateAdded;
-  GTMLoggerInfo(@"Service restored: %@", _cbService);
+  GNCLoggerInfo(@"Service restored: %@", _cbService);
 }
 
 - (void)setAdvertising:(BOOL)advertising {
@@ -284,12 +284,14 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   }
   // Only send the error if no error packet was previously received.
   if (errorCode != GNSErrorWeaveErrorPacketReceived) {
-    GTMLoggerInfo(@"Sending error packet for socket: %@", socket);
+    GNCLoggerInfo(@"Sending error packet for socket: %@", socket);
     GNSWeaveErrorPacket *errorPacket =
         [[GNSWeaveErrorPacket alloc] initWithPacketCounter:socket.sendPacketCounter];
-    [self sendPacket:errorPacket toSocket:socket completion:^{
-      GTMLoggerInfo(@"Error packet sent to socket: %@", socket);
-    }];
+    [self sendPacket:errorPacket
+            toSocket:socket
+          completion:^{
+            GNCLoggerInfo(@"Error packet sent to socket: %@", socket);
+          }];
   }
   NSError *error = GNSErrorWithCode(errorCode);
   [self removeSocket:socket withError:error];
@@ -297,7 +299,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)processWeaveWriteRequest:(CBATTRequest *)request {
   if (![request.characteristic.UUID isEqual:_weaveIncomingChar.UUID]) {
-    GTMLoggerError(@"Cannot process %@ on characteristic %@ (%@)", request,
+    GNCLoggerError(@"Cannot process %@ on characteristic %@ (%@)", request,
                    request.characteristic.UUID,
                    GNSCharacteristicName(request.characteristic.UUID.UUIDString));
     return;
@@ -308,25 +310,26 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   NSUInteger truncatedSize =
       MIN(socket ? socket.packetSize : kGNSMinSupportedPacketSize, request.value.length);
   if (truncatedSize != request.value.length) {
-    GTMLoggerInfo(@"Packet with %ld bytes truncated to %ld.", (long)request.value.length,
+    GNCLoggerInfo(@"Packet with %ld bytes truncated to %ld.", (long)request.value.length,
                   (long)truncatedSize);
   }
   NSData *packetData = [request.value subdataWithRange:NSMakeRange(0, truncatedSize)];
   NSError *parsingError = nil;
   GNSWeavePacket *packet = [GNSWeavePacket parseData:packetData error:&parsingError];
   if (!packet) {
-    GTMLoggerError(@"Error parsing weave packet (error = %@).", parsingError);
+    GNCLoggerError(@"Error parsing weave packet (error = %@).", parsingError);
     [self handleWeaveError:GNSErrorParsingWeavePacket socket:socket];
     return;
   }
   if (!socket && ![packet isKindOfClass:[GNSWeaveConnectionRequestPacket class]]) {
-    GTMLoggerInfo(@"Non-request weave packet received when no socket exists -- ignoring");
+    GNCLoggerInfo(@"Non-request weave packet received when no socket exists -- ignoring");
     return;
   }
-  UInt8 expectedCounter = [packet isKindOfClass:[GNSWeaveConnectionRequestPacket class]] ?
-      0 : socket.receivePacketCounter;
+  UInt8 expectedCounter = [packet isKindOfClass:[GNSWeaveConnectionRequestPacket class]]
+                              ? 0
+                              : socket.receivePacketCounter;
   if (packet.packetCounter != expectedCounter) {
-    GTMLoggerError(@"Wrong packet counter, [received %d, expected %d].", packet.packetCounter,
+    GNCLoggerError(@"Wrong packet counter, [received %d, expected %d].", packet.packetCounter,
                    expectedCounter);
     [self handleWeaveError:GNSErrorWrongWeavePacketCounter socket:socket];
     return;
@@ -344,12 +347,12 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)processWriteRequest:(CBATTRequest *)request {
   if (![request.characteristic.UUID isEqual:_weaveIncomingChar.UUID]) {
-    GTMLoggerError(@"Cannot process %@ on characteristic %@ (%@)", request,
+    GNCLoggerError(@"Cannot process %@ on characteristic %@ (%@)", request,
                    request.characteristic.UUID,
                    GNSCharacteristicName(request.characteristic.UUID.UUIDString));
     return;
   }
-  GTMLoggerInfo(@"Write request on Weave characteristic.");
+  GNCLoggerInfo(@"Write request on Weave characteristic.");
   [self processWeaveWriteRequest:request];
 }
 
@@ -368,9 +371,9 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 }
 
 - (void)sendData:(NSData *)data
-        toSocket:(GNSSocket *)socket
-  checkConnected:(BOOL)checkConnected
-      completion:(void (^)(void))completion {
+          toSocket:(GNSSocket *)socket
+    checkConnected:(BOOL)checkConnected
+        completion:(void (^)(void))completion {
   __weak __typeof__(self) weakSelf = self;
   [_peripheralManager
       updateOutgoingCharOnSocket:socket
@@ -382,11 +385,13 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
                        }
                        if (![strongSelf.peripheralManager updateOutgoingCharacteristic:data
                                                                               onSocket:socket]) {
-                         GTMLoggerInfo(@"Failed to update characteristic value; reschedule");
+                         GNCLoggerInfo(@"Failed to update characteristic value; reschedule");
                          return NO;
                        }
                        if (completion) {
-                         dispatch_async(_queue, ^{ completion(); });
+                         dispatch_async(_queue, ^{
+                           completion();
+                         });
                        }
                        return YES;
                      }];
@@ -398,9 +403,9 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)removeSocket:(GNSSocket *)socket withError:(NSError *)error {
   if (error) {
-    GTMLoggerInfo(@"Socket disconnected with error, socket: %@, error: %@", socket, error);
+    GNCLoggerInfo(@"Socket disconnected with error, socket: %@, error: %@", socket, error);
   } else {
-    GTMLoggerInfo(@"Socket disconnected %@", socket);
+    GNCLoggerInfo(@"Socket disconnected %@", socket);
   }
   [_sockets removeObjectForKey:socket.peerIdentifier];
   [socket didDisconnectWithError:error];
@@ -424,7 +429,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   if (socket && [characteristic.UUID isEqual:_weaveOutgoingChar.UUID]) {
     // Disconnect signal is optional. If the central unsubscribe to _outgoingChar, the socket
     // is disconnected.
-    GTMLoggerInfo(@"%@ unsubscribe to outgoing characteristic", central);
+    GNCLoggerInfo(@"%@ unsubscribe to outgoing characteristic", central);
     [self removeSocket:socket withError:nil];
   }
 }
@@ -436,17 +441,22 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 }
 
 - (void)sendData:(NSData *)data socket:(GNSSocket *)socket completion:(GNSErrorHandler)completion {
-  GTMLoggerInfo(@"Updating value in characteristic");
-  [_peripheralManager updateOutgoingCharOnSocket:socket withHandler:^{
-    BOOL wasSent = [_peripheralManager updateOutgoingCharacteristic:data onSocket:socket];
-    if (wasSent) {
-      GTMLoggerInfo(@"Successfully updated value in characteristic");
-      dispatch_async(_queue, ^{ completion(nil); });
-    } else {
-      GTMLoggerInfo(@"Failed to update characteristic value; reschedule");
-    }
-    return wasSent;
-  }];
+  GNCLoggerInfo(@"Updating value in characteristic");
+  [_peripheralManager
+      updateOutgoingCharOnSocket:socket
+                     withHandler:^{
+                       BOOL wasSent = [_peripheralManager updateOutgoingCharacteristic:data
+                                                                              onSocket:socket];
+                       if (wasSent) {
+                         GNCLoggerInfo(@"Successfully updated value in characteristic");
+                         dispatch_async(_queue, ^{
+                           completion(nil);
+                         });
+                       } else {
+                         GNCLoggerInfo(@"Failed to update characteristic value; reschedule");
+                       }
+                       return wasSent;
+                     }];
 }
 
 - (NSUUID *)socketServiceIdentifier:(GNSSocket *)socket {
@@ -466,7 +476,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
           toSocket:socket
         completion:^{
           if (weakSelf) {
-            GTMLoggerInfo(@"Error packet sent (to force the central to disconnect).");
+            GNCLoggerInfo(@"Error packet sent (to force the central to disconnect).");
             [weakSelf removeSocket:socket withError:nil];
           }
         }];
@@ -482,7 +492,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
   if (socket) {
-    GTMLoggerInfo(@"Receiving a connection request from an already connected socket %@.", socket);
+    GNCLoggerInfo(@"Receiving a connection request from an already connected socket %@.", socket);
     // The peripheral considers the previous socket as being disconnected.
     NSError *error = GNSErrorWithCode(GNSErrorNewInviteToConnectReceived);
     [self removeSocket:socket withError:error];
@@ -492,7 +502,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
                                 centralPeer:((CBATTRequest *)request).central
                                       queue:_queue];
   if (packet.maxVersion < kWeaveVersionSupported || packet.minVersion > kWeaveVersionSupported) {
-    GTMLoggerError(@"Unsupported Weave version range: [%d, %d].", packet.minVersion,
+    GNCLoggerError(@"Unsupported Weave version range: [%d, %d].", packet.minVersion,
                    packet.maxVersion);
     [self handleWeaveError:GNSErrorUnsupportedWeaveProtocolVersion socket:socket];
     return;
@@ -506,18 +516,20 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
     _sockets[socket.peerIdentifier] = socket;
 
     dispatch_async(_queue, ^{
-      GTMLoggerInfo(@"Sending connection confirm packet.");
+      GNCLoggerInfo(@"Sending connection confirm packet.");
       GNSWeaveConnectionConfirmPacket *confirm =
           [[GNSWeaveConnectionConfirmPacket alloc] initWithVersion:kWeaveVersionSupported
                                                         packetSize:socket.packetSize
                                                               data:nil];
       __weak __typeof__(self) weakSelf = self;
-      [self sendPacket:confirm toSocket:socket completion:^{
-        if (weakSelf) {
-          GTMLoggerInfo(@"Connection confirm packet sent.");
-          [weakSelf socketReady:socket];
-        }
-      }];
+      [self sendPacket:confirm
+              toSocket:socket
+            completion:^{
+              if (weakSelf) {
+                GNCLoggerInfo(@"Connection confirm packet sent.");
+                [weakSelf socketReady:socket];
+              }
+            }];
     });
   }
 }
@@ -526,14 +538,14 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
                               context:(id)request {
   NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
-  GTMLoggerError(@"Unexpected connection confirm packet received.");
+  GNCLoggerError(@"Unexpected connection confirm packet received.");
   [self handleWeaveError:GNSErrorUnexpectedWeaveControlPacket socket:socket];
 }
 
 - (void)handleErrorPacket:(GNSWeaveErrorPacket *)packet context:(id)request {
   NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
-  GTMLoggerInfo(@"Error packet received.");
+  GNCLoggerInfo(@"Error packet received.");
   [self handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:socket];
 }
 
@@ -541,7 +553,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
   if (packet.isFirstPacket && socket.waitingForIncomingData) {
-    GTMLoggerError(@"There is already a receive operation in progress");
+    GNCLoggerError(@"There is already a receive operation in progress");
     [self handleWeaveError:GNSErrorWeaveDataTransferInProgress socket:socket];
     return;
   }

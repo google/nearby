@@ -21,7 +21,7 @@
 
 #include "internal/encoding/base85.h"
 
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 @implementation NSData (GNCBase85)
 

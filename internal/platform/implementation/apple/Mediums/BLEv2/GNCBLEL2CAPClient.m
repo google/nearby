@@ -17,10 +17,10 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAPClient";
 
@@ -59,7 +59,7 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
 - (void)openL2CAPChannelWithPSM:(uint16_t)PSM
                      peripheral:(id<GNCPeripheral>)peripheral
               completionHandler:(GNCOpenL2CAPStreamCompletionHandler)completionHandler {
-  GTMLoggerInfo(@"[NEARBY] openL2CAPChannelWithPSM = %d", PSM);
+  GNCLoggerInfo(@"[NEARBY] openL2CAPChannelWithPSM = %d", PSM);
   _peripheral = peripheral;
   _peripheral.peripheralDelegate = self;
   _completionHandler = [completionHandler copy];
@@ -81,7 +81,7 @@ static char *const kGNCBLEL2CAPClientQueueLabel = "com.google.nearby.GNCBLEL2CAP
     didOpenL2CAPChannel:(CBL2CAPChannel *)channel
                   error:(NSError *)error {
   dispatch_assert_queue(_queue);
-  GTMLoggerDebug(
+  GNCLoggerDebug(
       @"[NEARBY] didOpenL2CAPChannel, channel: %@, inputStream: %@, outputStream: %@, error: %@",
       channel, channel.inputStream, channel.outputStream, error);
   // TODO: b/399815436 - channel.inputStream is null when doing testing. Refactor tests in the

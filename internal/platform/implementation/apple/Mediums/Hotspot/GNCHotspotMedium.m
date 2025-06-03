@@ -22,10 +22,10 @@
 #endif  // TARGET_OS_IOS
 #import <SystemConfiguration/CaptiveNetwork.h>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 #if TARGET_OS_IOS
 // The maximum number of retries for connecting to the Hotspot.
@@ -59,36 +59,36 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
            if (error) {
              if ([error.domain isEqualToString:NEHotspotConfigurationErrorDomain] &&
                  error.code == NEHotspotConfigurationErrorAlreadyAssociated) {
-               GTMLoggerInfo(@"Already connected to %@", ssid);
+               GNCLoggerInfo(@"Already connected to %@", ssid);
                connected = YES;
              } else {
-               GTMLoggerError(@"Failed to connect: %@ (%@)", ssid, error.localizedDescription);
+               GNCLoggerError(@"Failed to connect: %@ (%@)", ssid, error.localizedDescription);
              }
            } else {
-             GTMLoggerInfo(@"Successfully connected to %@", ssid);
+             GNCLoggerInfo(@"Successfully connected to %@", ssid);
              connected = YES;
            }
            dispatch_semaphore_signal(semaphore_internal);
          }];
     if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
-      GTMLoggerError(@"Connecting to %@ timeout in %d seconds", ssid, kConnectionTimeoutInSeconds);
+      GNCLoggerError(@"Connecting to %@ timeout in %d seconds", ssid, kConnectionTimeoutInSeconds);
     }
     if (connected) {
-      NSString * currentSSID = [self getCurrentWifiSSID];
+      NSString *currentSSID = [self getCurrentWifiSSID];
       if ([currentSSID isEqualToString:ssid]) {
-        GTMLoggerDebug(@"Connected to %@ successfully", ssid);
+        GNCLoggerDebug(@"Connected to %@ successfully", ssid);
         break;
       } else {
-        GTMLoggerError(@"Connected to wrong SSID: %@", currentSSID);
+        GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
         connected = NO;
       }
     } else {
-        [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
+      [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
     }
   }
   return connected;
 #else
-  GTMLoggerError(@"Not implemented for macOS");
+  GNCLoggerError(@"Not implemented for macOS");
   return NO;
 #endif  // TARGET_OS_IOS
 }
@@ -97,7 +97,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 #if TARGET_OS_IOS
   [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
 #else
-  GTMLoggerError(@"Not implemented for macOS");
+  GNCLoggerError(@"Not implemented for macOS");
 #endif  // TARGET_OS_IOS
 }
 
@@ -111,7 +111,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
                                    code:GNCNWFrameworkErrorUnknown
                                userInfo:nil];
     }
-    GTMLoggerError(@"Invalid host address");
+    GNCLoggerError(@"Invalid host address");
     return nil;
   }
 
@@ -123,7 +123,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 - (GNCHotspotSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
                       includePeerToPeer:(BOOL)includePeerToPeer
                                   error:(NSError **)error {
-  GTMLoggerInfo(@"connectToEndpoint: %@ includePeerToPeer: %d", endpoint.debugDescription,
+  GNCLoggerInfo(@"connectToEndpoint: %@ includePeerToPeer: %d", endpoint.debugDescription,
                 includePeerToPeer);
 
   dispatch_semaphore_t semaphore_internal = dispatch_semaphore_create(0);
@@ -141,13 +141,13 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
   nw_connection_set_state_changed_handler(
       connection, ^(nw_connection_state_t state, nw_error_t error) {
-        GTMLoggerDebug(@"connectToEndpoint state changed to: %d", state);
+        GNCLoggerDebug(@"connectToEndpoint state changed to: %d", state);
 
         // Ignore the preparing state and waiting state, because it is not a final state.
         if ((state != nw_connection_state_preparing) && (state != nw_connection_state_waiting)) {
           blockResult = state;
           if (error != nil) {
-            GTMLoggerError(@"connectToEndpoint Error: %@", error.debugDescription);
+            GNCLoggerError(@"connectToEndpoint Error: %@", error.debugDescription);
             blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
           }
           dispatch_semaphore_signal(semaphore_internal);
@@ -158,7 +158,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   dispatch_time_t timeout =
       dispatch_time(DISPATCH_TIME_NOW, kConnectionToHostTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
-    GTMLoggerError(@"Connecting to %@ timeout in %d seconds", endpoint.debugDescription,
+    GNCLoggerError(@"Connecting to %@ timeout in %d seconds", endpoint.debugDescription,
                    kConnectionToHostTimeoutInSeconds);
     nw_connection_set_state_changed_handler(connection, nil);  // Prevent callback issues
     nw_connection_cancel(connection);
@@ -180,7 +180,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     case nw_connection_state_preparing:
     case nw_connection_state_failed:
     case nw_connection_state_cancelled:
-      GTMLoggerError(@"connectToEndpoint failed with result: %d", blockResult);
+      GNCLoggerError(@"connectToEndpoint failed with result: %d", blockResult);
       return nil;
     case nw_connection_state_ready:
       return [[GNCHotspotSocket alloc] initWithConnection:connection];
@@ -192,7 +192,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   // Request permission
   CLLocationManager *locationManager = [[CLLocationManager alloc] init];
   [locationManager requestWhenInUseAuthorization];
-  GTMLoggerDebug(@"Request Location permission");
+  GNCLoggerDebug(@"Request Location permission");
   dispatch_semaphore_t semaphore_internal = dispatch_semaphore_create(0);
   __block NSString *networkSSID = nil;
 
@@ -204,9 +204,9 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
               fetchCurrentWithCompletionHandler:^(NEHotspotNetwork *_Nullable network) {
                 if (network) {
                   networkSSID = network.SSID;
-                  GTMLoggerDebug(@"iOS 14+ Current Wi-Fi SSID: %@", networkSSID);
+                  GNCLoggerDebug(@"iOS 14+ Current Wi-Fi SSID: %@", networkSSID);
                 } else {
-                  GTMLoggerError(@"Failed to get current Wifi SSID");
+                  GNCLoggerError(@"Failed to get current Wifi SSID");
                 }
                 dispatch_semaphore_signal(semaphore_internal);
               }];
@@ -216,7 +216,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
             id info =
                 CFBridgingRelease(CNCopyCurrentNetworkInfo((__bridge CFStringRef)(interface)));
             networkSSID = [info valueForKey:@"SSID"];
-            GTMLoggerDebug(@"Current Wi-Fi SSID: %@", networkSSID);
+            GNCLoggerDebug(@"Current Wi-Fi SSID: %@", networkSSID);
           }
           dispatch_semaphore_signal(semaphore_internal);
         }
@@ -224,16 +224,15 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   dispatch_time_t timeout =
       dispatch_time(DISPATCH_TIME_NOW, kConnectionToHostTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
-    GTMLoggerError(@"Getting current Wifi SSID timeout in %d seconds",
+    GNCLoggerError(@"Getting current Wifi SSID timeout in %d seconds",
                    kConnectionToHostTimeoutInSeconds);
   }
 
   return networkSSID;
 #else
-  GTMLoggerError(@"Not implemented for macOS");
+  GNCLoggerError(@"Not implemented for macOS");
   return nil;
 #endif  // TARGET_OS_IOS
 }
-
 
 @end

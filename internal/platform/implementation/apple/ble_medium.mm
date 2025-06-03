@@ -36,6 +36,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 // TODO(b/293336684): Old Weave imports that need to be deleted once shared Weave is complete.
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleUtils.h"
@@ -51,7 +52,6 @@
 #import "internal/platform/implementation/apple/ble_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
 #import "internal/platform/implementation/apple/utils.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 static const UInt8 kRequestConnectionTimeoutInSeconds = 12;
@@ -117,7 +117,7 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
   [medium_ startAdvertisingData:serviceData
               completionHandler:^(NSError *error) {
                 if (error != nil) {
-                  GTMLoggerError(@"Failed to start advertising: %@", error);
+                  GNCLoggerError(@"Failed to start advertising: %@", error);
                 }
                 blockError = error;
                 dispatch_semaphore_signal(semaphore);
@@ -133,7 +133,7 @@ bool BleMedium::StopAdvertising() {
   __block NSError *blockError = nil;
   [medium_ stopAdvertisingWithCompletionHandler:^(NSError *error) {
     if (error != nil) {
-      GTMLoggerError(@"Failed to stop advertising: %@", error);
+      GNCLoggerError(@"Failed to stop advertising: %@", error);
     }
     blockError = error;
     dispatch_semaphore_signal(semaphore);
@@ -168,7 +168,7 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
 
 #if DEBUG
   for (NSData *service_data in serviceData.allValues) {
-    GTMLoggerDebug(@"Reporting the advertisement packet to upper layer for unique_id: %llu, %@, "
+    GNCLoggerDebug(@"Reporting the advertisement packet to upper layer for unique_id: %llu, %@, "
                    @"advertisement_data: %@.",
                    unique_id, peripheral, ConvertDataToHexString(service_data));
   }
@@ -238,7 +238,7 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
       }
       completionHandler:^(NSError *error) {
         if (error != nil) {
-          GTMLoggerError(@"Failed to start scanning: %@", error);
+          GNCLoggerError(@"Failed to start scanning: %@", error);
         }
         blockError = error;
         dispatch_semaphore_signal(semaphore);
@@ -251,7 +251,7 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
                                               api::ble_v2::TxPowerLevel tx_power_level,
                                               api::ble_v2::BleMedium::ScanCallback callback) {
   if (service_uuids.empty()) {
-    GTMLoggerError(@"No service UUIDs provided");
+    GNCLoggerError(@"No service UUIDs provided");
     return false;
   }
 
@@ -280,7 +280,7 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
       }
       completionHandler:^(NSError *error) {
         if (error != nil) {
-          GTMLoggerError(@"Failed to start scanning for multiple services: %@", error);
+          GNCLoggerError(@"Failed to start scanning for multiple services: %@", error);
           blockError = error;
         }
         dispatch_semaphore_signal(semaphore);
@@ -296,7 +296,7 @@ bool BleMedium::StopScanning() {
   __block NSError *blockError = nil;
   [medium_ stopScanningWithCompletionHandler:^(NSError *error) {
     if (error != nil) {
-      GTMLoggerError(@"Failed to stop scanning: %@", error);
+      GNCLoggerError(@"Failed to stop scanning: %@", error);
     }
     blockError = error;
     dispatch_semaphore_signal(semaphore);
@@ -312,7 +312,7 @@ bool BleMedium::ResumeMediumScanning() {
   __block NSError *blockError = nil;
   [medium_ resumeMediumScanning:^(NSError *error) {
     if (error != nil) {
-      GTMLoggerError(@"Failed to start scanning for multiple services: %@", error);
+      GNCLoggerError(@"Failed to start scanning for multiple services: %@", error);
       blockError = error;
     }
     dispatch_semaphore_signal(semaphore);
@@ -328,7 +328,7 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
   __block GNCBLEGATTServer *blockServer = nil;
   [medium_ startGATTServerWithCompletionHandler:^(GNCBLEGATTServer *server, NSError *error) {
     if (error != nil) {
-      GTMLoggerError(@"Error starting GATT server: %@", error);
+      GNCLoggerError(@"Error starting GATT server: %@", error);
     }
     blockServer = server;
     dispatch_semaphore_signal(semaphore);
@@ -345,7 +345,7 @@ std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
     api::ble_v2::ClientGattConnectionCallback callback) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
-    GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+    GNCLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
     return nullptr;
   }
 
@@ -359,7 +359,7 @@ std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
       }
       completionHandler:^(GNCBLEGATTClient *client, NSError *error) {
         if (error != nil) {
-          GTMLoggerError(@"Error connecting to GATT server: %@", error);
+          GNCLoggerError(@"Error connecting to GATT server: %@", error);
         }
         blockClient = client;
         dispatch_semaphore_signal(semaphore);
@@ -405,7 +405,7 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
   [socketPeripheralManager_ addPeripheralServiceManager:socketPeripheralServiceManager_
                               bleServiceAddedCompletion:^(NSError *error) {
                                 if (error != nil) {
-                                  GTMLoggerError(@"Failed to add Weave service: %@", error);
+                                  GNCLoggerError(@"Failed to add Weave service: %@", error);
                                 }
                                 blockError = error;
                                 dispatch_semaphore_signal(semaphore);
@@ -450,7 +450,7 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
       channelOpenedCompletionHandler:^(GNCBLEL2CAPStream *_Nullable stream,
                                        NSError *_Nullable error) {
         if (error != nil) {
-          GTMLoggerError(@"Error opening L2CAP channel in L2CAP server: %@", error);
+          GNCLoggerError(@"Error opening L2CAP channel in L2CAP server: %@", error);
           return;
         }
         GNCBLEL2CAPConnection *connection =
@@ -481,7 +481,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
-    GTMLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+    GNCLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
     return nullptr;
   }
 
@@ -532,7 +532,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
-    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is not found.");
+    GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is not found.");
     return nullptr;
   }
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
@@ -561,18 +561,18 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                      if (result) {
                        socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
                      }
-                     GTMLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
+                     GNCLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
                                           : @"[NEARBY] Request data connection is not ok");
                      dispatch_semaphore_signal(semaphore);
                    }];
                  }];
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
-    GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP: timeout.");
+    GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP: timeout.");
     return nullptr;
   }
   if (socket == nullptr) {
     if (openError != nil) {
-      GTMLoggerError(@"[NEARBY] Failed to connect over L2CAP:%@.", openError);
+      GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP:%@.", openError);
     }
     return nullptr;
   }

@@ -15,14 +15,14 @@
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
-#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket+Private.h"
-#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSUtils.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSUtils+Private.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSWeavePacket.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 static const NSTimeInterval kMaxConnectionConfirmWaitTimeInSeconds = 2;
 static const NSTimeInterval kPeripheralFailedToConnectTimeout = 10.0;
@@ -85,7 +85,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   return [NSString stringWithFormat:@"CBPeripheralState Unknown (%ld)", (long)state];
 }
 
-@interface GNSCentralPeerManager ()<GNSWeavePacketHandler>
+@interface GNSCentralPeerManager () <GNSWeavePacketHandler>
 @property(nonatomic) GNSCentralPeerManagerState state;
 @property(nonatomic) GNSCentralManager *centralManager;
 @property(nonatomic) dispatch_queue_t queue;
@@ -139,7 +139,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
     _queue = queue;
     _socketMaximumUpdateValueLength = gGNSCentralPeerManagerMaximumUpdateValue;
     _state = GNSCentralPeerManagerStateNotConnected;
-    GTMLoggerInfo(@"Peripheral %@", _cbPeripheral);
+    GNCLoggerInfo(@"Peripheral %@", _cbPeripheral);
   }
   return self;
 }
@@ -152,7 +152,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 }
 
 - (void)dealloc {
-  GTMLoggerDebug(@"Dealloc CentralPeerManager with _cbPeripheral %@", _cbPeripheral);
+  GNCLoggerDebug(@"Dealloc CentralPeerManager with _cbPeripheral %@", _cbPeripheral);
   _cbPeripheral.delegate = nil;
   if (_cbPeripheral.state != CBPeripheralStateDisconnected) {
     [_centralManager cancelPeripheralConnectionForPeer:self];
@@ -169,9 +169,9 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 - (void)socketWithPairingCharacteristic:(BOOL)shouldAddPairingCharacteristics
                              completion:(GNSCentralSocketCompletion)completion {
-  GTMLoggerInfo(@"Request socket %@", self);
+  GNCLoggerInfo(@"Request socket %@", self);
   if (_state != GNSCentralPeerManagerStateNotConnected) {
-    GTMLoggerInfo(@"There is a pending socket request");
+    GNCLoggerInfo(@"There is a pending socket request");
     if (completion) {
       dispatch_async(_queue, ^{
         completion(nil, GNSErrorWithCode(GNSErrorOperationInProgress));
@@ -186,10 +186,10 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 - (void)cancelPendingSocket {
   if (_discoveringServiceSocketCompletion == nil) {
-    GTMLoggerInfo(@"No pending socket, current socket: %@", _socket);
+    GNCLoggerInfo(@"No pending socket, current socket: %@", _socket);
     return;
   }
-  GTMLoggerInfo(@"Cancelling pending socket");
+  GNCLoggerInfo(@"Cancelling pending socket");
   NSError *cancelPendingSocketRequested = GNSErrorWithCode(GNSErrorCancelPendingSocketRequested);
   [self disconnectingWithError:cancelPendingSocketRequested];
 }
@@ -210,7 +210,9 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   NSAssert(completion, @"Completion cannot be nil");
   if (![self isBLEConnected]) {
     NSAssert(!_readRSSIValueCompletions, @"Should not have pending RSSI completions.");
-    dispatch_async(_queue, ^{ completion(nil, GNSErrorWithCode(GNSErrorNoConnection)); });
+    dispatch_async(_queue, ^{
+      completion(nil, GNSErrorWithCode(GNSErrorNoConnection));
+    });
     return;
   }
   if (!_readRSSIValueCompletions) {
@@ -231,7 +233,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 #pragma mark - Private
 
 - (void)bleConnect {
-  GTMLoggerInfo(@"BLE connection started.");
+  GNCLoggerInfo(@"BLE connection started.");
   _startConnectionTime = [NSDate date];
 
   _state = GNSCentralPeerManagerStateBleConnecting;
@@ -249,37 +251,39 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
     // -didFailToConnectPeripheral should be called at this point, but sometimes neither is called.
     // In this case, report a timeout error.
     __weak __typeof__(self) weakSelf = self;
-    dispatch_after(
-      dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kPeripheralFailedToConnectTimeout * NSEC_PER_SEC)),
-      _queue, ^{
-        __typeof__(self) strongSelf = weakSelf;
-        if (!strongSelf) return;
-        if (strongSelf.state == GNSCentralPeerManagerStateBleConnecting) {
-          GTMLoggerInfo(@"Timed out trying to connect to peripheral: %@", strongSelf.cbPeripheral);
-          [strongSelf.centralManager cancelPeripheralConnectionForPeer:self];
-          [strongSelf bleDisconnectedWithError:GNSErrorWithCode(GNSErrorConnectionTimedOut)];
-        }
-      });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                 (int64_t)(kPeripheralFailedToConnectTimeout * NSEC_PER_SEC)),
+                   _queue, ^{
+                     __typeof__(self) strongSelf = weakSelf;
+                     if (!strongSelf) return;
+                     if (strongSelf.state == GNSCentralPeerManagerStateBleConnecting) {
+                       GNCLoggerInfo(@"Timed out trying to connect to peripheral: %@",
+                                     strongSelf.cbPeripheral);
+                       [strongSelf.centralManager cancelPeripheralConnectionForPeer:self];
+                       [strongSelf
+                           bleDisconnectedWithError:GNSErrorWithCode(GNSErrorConnectionTimedOut)];
+                     }
+                   });
   }
 }
 
 - (void)bleConnected {
   if (_cbPeripheral.state != CBPeripheralStateConnected) {
-    GTMLoggerInfo(@"Unexpected peripheral state: %ld", (long)_cbPeripheral.state);
+    GNCLoggerInfo(@"Unexpected peripheral state: %ld", (long)_cbPeripheral.state);
   }
-  GTMLoggerInfo(@"BLE connected. Elapsed time: %f",
+  GNCLoggerInfo(@"BLE connected. Elapsed time: %f",
                 [[NSDate date] timeIntervalSinceDate:_startConnectionTime]);
   if (_state != GNSCentralPeerManagerStateBleConnecting) {
-    GTMLoggerInfo(@"Should not be connected with %@ when in %@ state", _cbPeripheral,
+    GNCLoggerInfo(@"Should not be connected with %@ when in %@ state", _cbPeripheral,
                   StateDescription(_state));
     return;
   }
-  GTMLoggerInfo(@"BLE connected, peripheral: %@", _cbPeripheral);
+  GNCLoggerInfo(@"BLE connected, peripheral: %@", _cbPeripheral);
   [self discoverService];
 }
 
 - (void)bleDisconnectedWithError:(NSError *)error {
-  GTMLoggerInfo(@"BLE disconnected, peripheral: %@", _cbPeripheral);
+  GNCLoggerInfo(@"BLE disconnected, peripheral: %@", _cbPeripheral);
   if (_state == GNSCentralPeerManagerStateNotConnected) {
     return;
   } else {
@@ -301,9 +305,9 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 - (void)disconnectingWithError:(NSError *)error {
   if (error) {
-    GTMLoggerInfo(@"Disconnected with error: %@, peripheral: %@", error, _cbPeripheral);
+    GNCLoggerInfo(@"Disconnected with error: %@, peripheral: %@", error, _cbPeripheral);
   } else {
-    GTMLoggerInfo(@"Disconnected from peripheral: %@", _cbPeripheral);
+    GNCLoggerInfo(@"Disconnected from peripheral: %@", _cbPeripheral);
   }
   [_connectionConfirmTimer invalidate];
   _connectionConfirmTimer = nil;
@@ -323,9 +327,9 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 }
 
 - (void)bleDisconnected {
-  GTMLoggerInfo(@"BLE Disconnected %@", _cbPeripheral);
+  GNCLoggerInfo(@"BLE Disconnected %@", _cbPeripheral);
   if (_cbPeripheral.state != CBPeripheralStateDisconnected) {
-    GTMLoggerInfo(@"Unexpected peripheral state: %ld", (long)_cbPeripheral.state);
+    GNCLoggerInfo(@"Unexpected peripheral state: %ld", (long)_cbPeripheral.state);
   }
   NSAssert(_cbPeripheral.delegate == self, @"Self = %@ should be the delegate of %@", self,
            _cbPeripheral);
@@ -346,7 +350,9 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
     }
     GNSCentralSocketCompletion completion = _discoveringServiceSocketCompletion;
     _discoveringServiceSocketCompletion = nil;
-    dispatch_async(_queue, ^{ completion(nil, _disconnectedError); });
+    dispatch_async(_queue, ^{
+      completion(nil, _disconnectedError);
+    });
   } else if (currentSocket) {
     [currentSocket didDisconnectWithError:_disconnectedError];
   }
@@ -355,14 +361,14 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 - (void)discoverService {
   _state = GNSCentralPeerManagerStateDiscoveringService;
   CBUUID *serviceUUID = _centralManager.socketServiceUUID;
-  GTMLoggerInfo(@"Discover service %@ on peripheral: %@", serviceUUID, _cbPeripheral);
+  GNCLoggerInfo(@"Discover service %@ on peripheral: %@", serviceUUID, _cbPeripheral);
   NSArray<CBUUID *> *servicesToDiscover = @[ serviceUUID ];
   [_cbPeripheral discoverServices:servicesToDiscover];
 }
 
 - (void)discoverCharacteristics {
   if (_cbPeripheral.services.count == 0) return;
-  GTMLoggerInfo(@"Discover characteristics, peer manager %@", self);
+  GNCLoggerInfo(@"Discover characteristics, peer manager %@", self);
   NSMutableArray<CBUUID *> *characteristics = [NSMutableArray
       arrayWithObjects:[CBUUID UUIDWithString:kGNSWeaveToPeripheralCharUUIDString],
                        [CBUUID UUIDWithString:kGNSWeaveFromPeripheralCharUUIDString], nil];
@@ -421,7 +427,9 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   NSArray<GNSReadRRSIValueCompletion> *completions = _readRSSIValueCompletions;
   _readRSSIValueCompletions = nil;
   for (GNSReadRRSIValueCompletion completion in completions) {
-    dispatch_async(_queue, ^{ completion(rssiValue, error); });
+    dispatch_async(_queue, ^{
+      completion(rssiValue, error);
+    });
   }
 }
 
@@ -443,7 +451,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 - (void)timeOutConnectionForTimer:(NSTimer *)timer {
   NSAssert(_state == GNSCentralPeerManagerStateSocketCommunication,
            @"Timer (%@) fired on the wrong state. [self = %@]", _connectionConfirmTimer, self);
-  GTMLoggerInfo(@"Timing out %@ socket connection [self = %@].", _socket, self);
+  GNCLoggerInfo(@"Timing out %@ socket connection [self = %@].", _socket, self);
   _connectionConfirmTimer = nil;
   NSError *error = GNSErrorWithCode(GNSErrorConnectionTimedOut);
   [self disconnectingWithError:error];
@@ -453,21 +461,23 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   if (_dataWriteCompletion) {
     GNSErrorHandler dataWriteCompletion = _dataWriteCompletion;  // tail call for reentrancy
     _dataWriteCompletion = nil;
-    dispatch_async(_queue, ^{ dataWriteCompletion(error); });
+    dispatch_async(_queue, ^{
+      dataWriteCompletion(error);
+    });
   }
 }
 
 #pragma mark - CBPeripheralDelegate
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error {
-  GTMLoggerInfo(@"BLE services discovered. Elapsed time: %f",
+  GNCLoggerInfo(@"BLE services discovered. Elapsed time: %f",
                 [[NSDate date] timeIntervalSinceDate:_startConnectionTime]);
   if (_state != GNSCentralPeerManagerStateDiscoveringService) {
-    GTMLoggerInfo(@"Ignoring services discovered from %@ when in %@ state", _cbPeripheral,
+    GNCLoggerInfo(@"Ignoring services discovered from %@ when in %@ state", _cbPeripheral,
                   StateDescription(_state));
     return;
   }
-  GTMLoggerInfo(@"Service discovered for %@, error: %@", self, error);
+  GNCLoggerInfo(@"Service discovered for %@, error: %@", self, error);
   if (error) {
     [self disconnectingWithError:error];
     return;
@@ -483,17 +493,17 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 - (void)peripheral:(CBPeripheral *)peripheral
     didDiscoverCharacteristicsForService:(CBService *)service
                                    error:(NSError *)error {
-  GTMLoggerInfo(@"BLE characteristics discovered. Elapsed time: %f",
+  GNCLoggerInfo(@"BLE characteristics discovered. Elapsed time: %f",
                 [[NSDate date] timeIntervalSinceDate:_startConnectionTime]);
   if (_state != GNSCentralPeerManagerStateDiscoveringCharacteristic) {
-    GTMLoggerInfo(@"Ignoring characteristics discovered from %@ when in %@ state", _cbPeripheral,
+    GNCLoggerInfo(@"Ignoring characteristics discovered from %@ when in %@ state", _cbPeripheral,
                   StateDescription(_state));
     return;
   }
-  GTMLoggerInfo(@"Characteristics discovered for service: %@, error: %@", service, error);
+  GNCLoggerInfo(@"Characteristics discovered for service: %@, error: %@", service, error);
   CBService *serviceBeingChecked = _cbPeripheral.services[_indexOfServiceToCheck];
-  NSAssert([service.UUID isEqual:serviceBeingChecked.UUID], @"Unknown service %@ %@",
-           service, serviceBeingChecked.UUID);
+  NSAssert([service.UUID isEqual:serviceBeingChecked.UUID], @"Unknown service %@ %@", service,
+           serviceBeingChecked.UUID);
   if (error) {
     [self disconnectingWithError:error];
     return;
@@ -531,7 +541,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
     didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
                               error:(NSError *)error {
   if (_state != GNSCentralPeerManagerStateSocketCommunication) {
-    GTMLoggerInfo(@"Ignoring data received from %@ when in %@ state", _cbPeripheral,
+    GNCLoggerInfo(@"Ignoring data received from %@ when in %@ state", _cbPeripheral,
                   StateDescription(_state));
     return;
   }
@@ -539,7 +549,10 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   if ([characteristic.UUID isEqual:_pairingChar.UUID]) {
     GNSPairingCompletion completion = _pairingCompletion;
     _pairingCompletion = nil;
-    if (completion) dispatch_async(_queue, ^{ completion(error == nil, error); });
+    if (completion)
+      dispatch_async(_queue, ^{
+        completion(error == nil, error);
+      });
     return;
   }
   NSAssert(characteristic == _incomingChar, @"Should read only from the incoming characteristic.");
@@ -549,19 +562,19 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   // |socket.packetSize| for the rest.
   NSUInteger truncatedSize = MIN(_socket.packetSize, charValue.length);
   if (truncatedSize != charValue.length) {
-    GTMLoggerInfo(@"Packet with %ld bytes trucanted to %ld", (long)charValue.length,
+    GNCLoggerInfo(@"Packet with %ld bytes trucanted to %ld", (long)charValue.length,
                   (long)truncatedSize);
   }
   NSData *packetData = [charValue subdataWithRange:NSMakeRange(0, truncatedSize)];
   NSError *parsingError = nil;
   GNSWeavePacket *packet = [GNSWeavePacket parseData:packetData error:&parsingError];
   if (!packet) {
-    GTMLoggerError(@"Error parsing Weave packet (error = %@).", parsingError);
+    GNCLoggerError(@"Error parsing Weave packet (error = %@).", parsingError);
     [self handleWeaveError:GNSErrorParsingWeavePacket socket:_socket];
     return;
   }
   if (packet.packetCounter != _socket.receivePacketCounter) {
-    GTMLoggerError(@"Wrong packet counter, [received %d, expected %d].", packet.packetCounter,
+    GNCLoggerError(@"Wrong packet counter, [received %d, expected %d].", packet.packetCounter,
                    _socket.receivePacketCounter);
     [self handleWeaveError:GNSErrorWrongWeavePacketCounter socket:_socket];
     return;
@@ -575,10 +588,10 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
                              error:(NSError *)error {
   // Note: Avoid using |characteristic.value| here as it seems it is always nil.
   if (error) {
-    GTMLoggerInfo(@"Characteristic write failed with error: %@", error);
+    GNCLoggerInfo(@"Characteristic write failed with error: %@", error);
     [self disconnectingWithError:error];
   } else {
-    GTMLoggerInfo(@"Characteristic write succeeded");
+    GNCLoggerInfo(@"Characteristic write succeeded");
   }
   [self callDataWriteCompletionWithError:error];
 }
@@ -586,7 +599,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 // This method sends |packet| fitting a single characteristic write to |socket|. All packets sent by
 // this class (not the socket) must use this method.
 - (void)sendPacket:(GNSWeavePacket *)packet {
-  GTMLoggerInfo(@"Writing value to characteristic (internal)");
+  GNCLoggerInfo(@"Writing value to characteristic (internal)");
   NSAssert(packet.packetCounter == _socket.sendPacketCounter, @"Wrong packet counter.");
   [_cbPeripheral writeValue:[packet serialize]
           forCharacteristic:_outgoingChar
@@ -597,14 +610,14 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 - (void)peripheral:(CBPeripheral *)peripheral
     didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic
                                           error:(NSError *)error {
-  GTMLoggerInfo(@"BLE characteristic notifications started. Elapsed time: %f",
+  GNCLoggerInfo(@"BLE characteristic notifications started. Elapsed time: %f",
                 [[NSDate date] timeIntervalSinceDate:_startConnectionTime]);
   if (_state != GNSCentralPeerManagerStateSettingNotifications) {
-    GTMLoggerInfo(@"Ignoring notification status change for %@ when in %@ state", _cbPeripheral,
+    GNCLoggerInfo(@"Ignoring notification status change for %@ when in %@ state", _cbPeripheral,
                   StateDescription(_state));
     return;
   }
-  GTMLoggerInfo(@"Characteristic notification update: %@, error: %@", characteristic, error);
+  GNCLoggerInfo(@"Characteristic notification update: %@, error: %@", characteristic, error);
   if (error) {
     [self disconnectingWithError:error];
     return;
@@ -612,18 +625,21 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   NSAssert([characteristic.UUID isEqual:_incomingChar.UUID], @"Wrong characteristic");
   NSAssert(_state == GNSCentralPeerManagerStateSettingNotifications, @"Wrong state");
   _state = GNSCentralPeerManagerStateSocketCommunication;
-  GTMLoggerInfo(@"Socket ready %@", self);
-  GNSSocket *socket =
-      [[GNSSocket alloc] initWithOwner:self peripheralPeer:_cbPeripheral queue:_queue];
+  GNCLoggerInfo(@"Socket ready %@", self);
+  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:self
+                                        peripheralPeer:_cbPeripheral
+                                                 queue:_queue];
   GNSCentralSocketCompletion completion = _discoveringServiceSocketCompletion;
   _discoveringServiceSocketCompletion = nil;
   _socket = socket;
-  dispatch_async(_queue, ^{ completion(socket, nil); });
+  dispatch_async(_queue, ^{
+    completion(socket, nil);
+  });
   if (!_socket) {
     [self disconnectingWithError:nil];
     return;
   }
-  GTMLoggerInfo(@"Sending connection request packet.");
+  GNCLoggerInfo(@"Sending connection request packet.");
   // On iOS/OS X the central (client) doesn't have access to the negotiated BLE connection MTU. So,
   // according to the Weave BLE protocol specs, it should send 0. The peripheral will then choose
   // the appropriated value for the packet size and send it back on the connection confirm packet.
@@ -643,7 +659,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 - (void)peripheral:(CBPeripheral *)peripheral didReadRSSI:(NSNumber *)RSSI error:(NSError *)error {
   if (error) {
-    GTMLoggerError(@"Error to read RSSI %@", error);
+    GNCLoggerError(@"Error to read RSSI %@", error);
   }
   [self callRSSICompletionWithRSSIValue:RSSI error:error];
 }
@@ -655,11 +671,11 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 }
 
 - (void)sendData:(NSData *)data socket:(GNSSocket *)socket completion:(GNSErrorHandler)completion {
-  GTMLoggerInfo(@"Writing value to characteristic");
+  GNCLoggerInfo(@"Writing value to characteristic");
   if (_dataWriteCompletion != nil) {
     // This shouldn't happen because writes should be serialized by the socket code. But log it
     // in case there's a bug that causes it to happen.
-    GTMLoggerInfo(@"Previous characteristic data write didn't complete");
+    GNCLoggerInfo(@"Previous characteristic data write didn't complete");
   }
 
   // Sometimes -didWriteValueForCharacteristic: isn't called, leaving the write operation hanging.
@@ -668,7 +684,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   dispatch_block_t dataWriteTimeoutBlock = dispatch_block_create(0, ^{
     __typeof__(self) strongSelf = weakSelf;
     if (!strongSelf || !socket.isConnected) return;
-    GTMLoggerInfo(@"Characteristic data write timed out");
+    GNCLoggerInfo(@"Characteristic data write timed out");
     [strongSelf callDataWriteCompletionWithError:GNSErrorWithCode(GNSErrorConnectionTimedOut)];
   });
   _dataWriteCompletion = ^(NSError *error) {
@@ -678,8 +694,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   };
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
                                (int64_t)(kChracteristicWriteTimeoutInSeconds * NSEC_PER_SEC)),
-                 _queue,
-                 dataWriteTimeoutBlock);
+                 _queue, dataWriteTimeoutBlock);
 
   [_cbPeripheral writeValue:data
           forCharacteristic:_outgoingChar
@@ -695,7 +710,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
       _state == GNSCentralPeerManagerStateBleDisconnecting) {
     return;
   }
-  GTMLoggerInfo(@"Disconnect socket %@", socket);
+  GNCLoggerInfo(@"Disconnect socket %@", socket);
   [self disconnectingWithError:nil];
 }
 
@@ -714,7 +729,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 - (void)handleConnectionRequestPacket:(GNSWeaveConnectionRequestPacket *)packet
                               context:(id)context {
-  GTMLoggerError(@"Unexpected connection request packet received.");
+  GNCLoggerError(@"Unexpected connection request packet received.");
   [self handleWeaveError:GNSErrorUnexpectedWeaveControlPacket socket:_socket];
 }
 
@@ -748,13 +763,13 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 }
 
 - (void)handleErrorPacket:(GNSWeaveErrorPacket *)packet context:(id)context {
-  GTMLoggerInfo(@"Error packet received.");
+  GNCLoggerInfo(@"Error packet received.");
   [self handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:_socket];
 }
 
 - (void)handleDataPacket:(GNSWeaveDataPacket *)packet context:(id)context {
   if (packet.isFirstPacket && _socket.waitingForIncomingData) {
-    GTMLoggerError(@"There is already a receive operation in progress");
+    GNCLoggerError(@"There is already a receive operation in progress");
     [self handleWeaveError:GNSErrorWeaveDataTransferInProgress socket:_socket];
     return;
   }

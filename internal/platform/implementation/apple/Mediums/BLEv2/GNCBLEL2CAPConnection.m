@@ -16,11 +16,11 @@
 
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleUtils.h"
 #import "internal/platform/implementation/apple/Mediums/GNCLeaks.h"
 #import "internal/platform/implementation/apple/Mediums/GNCMConnection.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 enum { kL2CAPPacketLength = 4 };
 static const CGFloat kRequestDataConnectionDelayInSeconds = 0.0;
@@ -101,7 +101,7 @@ static NSData *PrefixLengthData(NSData *data) {
     // Prefix the service ID hash.
     packet = PrefixLengthData(PrefixDataWithServiceIDHash(_serviceIDHash, data));
     if (_verboseLoggingEnabled) {
-      GTMLoggerDebug(@"[NEARBY] GNCBLEL2CAPConnection data to be sent: %@", [packet description]);
+      GNCLoggerDebug(@"[NEARBY] GNCBLEL2CAPConnection data to be sent: %@", [packet description]);
     }
     [_stream sendData:packet
         completionBlock:^(BOOL result) {
@@ -113,7 +113,7 @@ static NSData *PrefixLengthData(NSData *data) {
 }
 
 - (void)requestDataConnectionWithCompletion:(void (^)(BOOL))completion {
-  GTMLoggerInfo(@"[NEARBY] Sending l2cap packet request data connection");
+  GNCLoggerInfo(@"[NEARBY] Sending l2cap packet request data connection");
   // TODO b/399815436 - A bug is causing channel has written to the socket but the remote does not
   // receive it. Add a delay to make sure the data is written to the socket. Remove the delay once
   // the bug is fixed.
@@ -141,7 +141,7 @@ static NSData *PrefixLengthData(NSData *data) {
 
 - (void)stream:(GNCBLEL2CAPStream *)stream didReceiveData:(NSData *)data {
   if (_verboseLoggingEnabled) {
-    GTMLoggerDebug(@"[NEARBY] BLEL2CAPConnection didReceiveData, data: %@, length: %lu",
+    GNCLoggerDebug(@"[NEARBY] BLEL2CAPConnection didReceiveData, data: %@, length: %lu",
                    [data debugDescription], data.length);
   }
   if (!data.length) {
@@ -214,7 +214,7 @@ static NSData *PrefixLengthData(NSData *data) {
   // Extract the service ID prefix from each data packet and validate it.
   NSUInteger prefixLength = _serviceIDHash.length;
   if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
-    GTMLoggerError(@"[NEARBY]: Received wrong data packet and discarded");
+    GNCLoggerError(@"[NEARBY]: Received wrong data packet and discarded");
     return bytesProcessed;
   }
 
@@ -234,7 +234,7 @@ static NSData *PrefixLengthData(NSData *data) {
   // Store the expected data length if it is not set yet.
   if (!_expectedDataLength) {
     if (data.length < kL2CAPPacketLength) {
-      GTMLoggerError(@"[NEARBY] Data length mismatch. Expected: > %d, Actual: %lu",
+      GNCLoggerError(@"[NEARBY] Data length mismatch. Expected: > %d, Actual: %lu",
                      kL2CAPPacketLength, data.length);
       return nil;
     }
@@ -314,9 +314,9 @@ static NSData *PrefixLengthData(NSData *data) {
   NSData *serviceIDHash = GNCMParseBLEFramesIntroductionPacket(data);
   if ([serviceIDHash isEqual:_serviceIDHash]) {
     _handledReceivedBLEIntroPacket = YES;
-    GTMLoggerInfo(@"[NEARBY]: Received BLE intro packet and handled.");
+    GNCLoggerInfo(@"[NEARBY]: Received BLE intro packet and handled.");
   } else {
-    GTMLoggerInfo(@"[NEARBY]: Received wrong BLE intro packet and discarded.");
+    GNCLoggerInfo(@"[NEARBY]: Received wrong BLE intro packet and discarded.");
   }
 }
 

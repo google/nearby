@@ -14,11 +14,11 @@
 
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleConnection.h"
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleUtils.h"
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
 #import "internal/platform/implementation/apple/Mediums/GNCLeaks.h"
 #import "internal/platform/implementation/apple/Mediums/GNCMConnection.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -86,7 +86,7 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark GNSSocketDelegate
 
 - (void)socketDidConnect:(GNSSocket *)socket {
-  GTMLoggerError(@"Unexpected -socketDidConnect: call; should've already happened");
+  GNCLoggerError(@"Unexpected -socketDidConnect: call; should've already happened");
 }
 
 - (void)socket:(GNSSocket *)socket didDisconnectWithError:(NSError *)error {
@@ -113,21 +113,21 @@ NS_ASSUME_NONNULL_BEGIN
         _serviceIDHash = serviceIDHash;
         _receivedIntroPacket = YES;
       } else {
-        GTMLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+        GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
       }
     } else {
       NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
       if ([data isEqual:introData]) {
         _receivedIntroPacket = YES;
       } else {
-        GTMLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+        GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
       }
     }
     return;
   }
 
   if (![[data subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
-    GTMLoggerInfo(@"[NEARBY] Input stream: Received wrong data packet and discarded");
+    GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong data packet and discarded");
     return;
   }
   packet = [NSMutableData

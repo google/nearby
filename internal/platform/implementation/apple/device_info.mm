@@ -28,7 +28,7 @@
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
 
-#import "GoogleToolboxForMac/GTMLogger.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
 namespace nearby {
 namespace apple {
@@ -88,7 +88,7 @@ std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
                                           create:YES
                                            error:&error];
   if (!downloadsURL) {
-    GTMLoggerError(@"Failed to get download path: %@", error);
+    GNCLoggerError(@"Failed to get download path: %@", error);
     return std::nullopt;
   }
 
@@ -105,16 +105,14 @@ std::optional<FilePath> DeviceInfo::GetLocalAppDataPath() const {
                                                    create:YES
                                                     error:&error];
   if (!applicationSupportURL) {
-    GTMLoggerError(@"Failed to get application support path: %@", error);
+    GNCLoggerError(@"Failed to get application support path: %@", error);
     return std::nullopt;
   }
 
   return FilePath(absl::string_view([applicationSupportURL.path cString]));
 }
 
-std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const {
-  return GetLocalAppDataPath();
-}
+std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const { return GetLocalAppDataPath(); }
 
 std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
   return FilePath(absl::string_view([NSTemporaryDirectory() cString]));
@@ -130,7 +128,7 @@ std::optional<FilePath> DeviceInfo::GetLogPath() const {
                                                    create:YES
                                                     error:&error];
   if (!applicationSupportURL) {
-    GTMLoggerError(@"Failed to get application support path: %@", error);
+    GNCLoggerError(@"Failed to get application support path: %@", error);
     return std::nullopt;
   }
 
@@ -152,7 +150,7 @@ std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
                                                    create:YES
                                                     error:&error];
   if (!applicationSupportURL) {
-    GTMLoggerError(@"Failed to get application support path: %@", error);
+    GNCLoggerError(@"Failed to get application support path: %@", error);
     return std::nullopt;
   }
 

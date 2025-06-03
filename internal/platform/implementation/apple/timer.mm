@@ -16,8 +16,8 @@
 
 #include <utility>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/implementation/timer.h"
-#import "GoogleToolboxForMac/GTMLogger.h"
 
 // The leeway parameter is a hint from the application as to the amount of time, in nanoseconds, up
 // to which the system can defer the timer to align with other system activity for improved system
@@ -33,12 +33,12 @@ Timer::~Timer() { Stop(); }
 
 bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback) {
   if (delay < 0 || interval < 0) {
-    GTMLoggerError(@"Delay and interval must be positive or zero.");
+    GNCLoggerError(@"Delay and interval must be positive or zero.");
     return false;
   }
 
   if (timer_ != nil) {
-    GTMLoggerError(@"Timer has already started.");
+    GNCLoggerError(@"Timer has already started.");
     return false;
   }
 
