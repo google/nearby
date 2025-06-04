@@ -226,7 +226,11 @@ void LeveldbDataSet<T, isMessageLite>::Destroy(
     absl::AnyInvocable<void(bool) &&> callback) {
   LOG(INFO) << "Destroy is called.";
   db_.reset();
-  leveldb::DestroyDB(path_, leveldb::Options());
+  leveldb::Options options;
+#if defined(_WIN32)
+  options.env = nearby::windows::WindowsEnv::Default();
+#endif  // defined(_WIN32)
+  leveldb::DestroyDB(path_, options);
   std::move(callback)(true);
 }
 
