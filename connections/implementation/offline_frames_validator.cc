@@ -15,12 +15,15 @@
 #include "connections/implementation/offline_frames_validator.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <regex>  //NOLINT
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 
@@ -142,19 +145,9 @@ bool CheckForIllegalCharacters(std::string toBeValidated,
     return false;
   }
 
-  CHECK_GT(illegalPatternsSize, 0);
-
-  size_t found = 0;
   for (int index = 0; index < illegalPatternsSize; index++) {
-    found = toBeValidated.find(std::string(illegalPatterns[index]));
-
-    if (found != std::string::npos) {
-      // TODO(jfcarroll): Find a way to issue a log statement here.
-      // Currently, this breaks the fuzzer, as a logging dep is not
-      // included for it in the BUILD file.
-      // NEARBY_LOGS(ERROR) << "In path " << toBeValidated
-      //                   << " found illegal character/pattern "
-      //                   << illegalPatterns[index];
+    if (toBeValidated.find(std::string(illegalPatterns[index])) !=
+        std::string::npos) {
       return true;
     }
   }
@@ -179,24 +172,24 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
     return {Exception::kInvalidProtocolBuffer};
   }
   if (frame.payload_header().has_type() &&
-        frame.payload_header().type() ==
-            location::nearby::connections::PayloadTransferFrame::
-                PayloadHeader::FILE) {
-    if (frame.payload_header()
-            .has_file_name()) {
-      if (CheckForIllegalCharacters(frame.payload_header()
-                                        .file_name(),
+      frame.payload_header().type() ==
+          location::nearby::connections::PayloadTransferFrame::PayloadHeader::
+              FILE) {
+    if (frame.payload_header().has_file_name()) {
+      if (CheckForIllegalCharacters(frame.payload_header().file_name(),
                                     kIllegalFileNamePatterns,
                                     kIllegalFileNamePatternsSize)) {
+        LOG(ERROR) << "File name " << frame.payload_header().file_name()
+                   << " has illegal characters";
         return {Exception::kIllegalCharacters};
       }
     }
-    if (frame.payload_header()
-            .has_parent_folder()) {
-      if (CheckForIllegalCharacters(frame.payload_header()
-                                        .parent_folder(),
+    if (frame.payload_header().has_parent_folder()) {
+      if (CheckForIllegalCharacters(frame.payload_header().parent_folder(),
                                     kIllegalParentFolderPatterns,
                                     kIllegalParentFolderPatternsSize)) {
+        LOG(ERROR) << "Parent folder " << frame.payload_header().parent_folder()
+                   << " has illegal characters";
         return {Exception::kIllegalCharacters};
       }
     }
