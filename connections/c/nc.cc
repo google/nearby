@@ -53,6 +53,10 @@
 #include "internal/platform/implementation/apple/nearby_logger.h"
 #endif  // TARGET_OS_IOS
 
+#ifndef _WIN32
+#include "connections/dart/shared_buffer_stream.h"
+#endif
+
 namespace nearby::connections {
 class Core;
 class ServiceController;
@@ -682,7 +686,22 @@ void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
     cpp_payload =
         ::nearby::connections::Payload(payload->id, std::move(input_file));
   } else if (payload->type == NC_PAYLOAD_TYPE_STREAM) {
-    // TODO(guogang): support stream later.
+#ifdef _WIN32
+    // Original code for Windows
+    result_callback(NC_STATUS_ERROR, context);
+    return;
+#else
+    SharedBufferStream* shared_buffer_stream =
+        reinterpret_cast<SharedBufferStream*>(payload->content.stream.stream);
+
+    if (shared_buffer_stream == nullptr) {
+      result_callback(NC_STATUS_ERROR, context);
+      return;
+    }
+    cpp_payload = ::nearby::connections::Payload(
+        std::unique_ptr<nearby::InputStream>(shared_buffer_stream));
+    LOG(INFO) << "NcSendPayload, cpp_payload created for stream";
+#endif
   }
 
   nc_context->core->SendPayload(

@@ -57,7 +57,11 @@ cc_library(
             "//internal/platform/implementation/apple:nearby_logger",
         ],
         "//conditions:default": [],
+    }) + select({
+        "@platforms//os:windows": [],  # Exclude shared_buffer_stream for Windows
+        "//conditions:default": ["//connections/dart:shared_buffer_stream"],  # Include shared_buffer_stream for non-Windows
     }),
+    alwayslink = 1,
 )
 
 # iOS only.

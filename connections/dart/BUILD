@@ -75,6 +75,44 @@ objc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/synchronization",
-    ],
+    ] + select({
+        "@platforms//os:windows": [],  # Exclude shared_buffer_manager and shared_buffer_stream for Windows
+        "//conditions:default": [
+            ":shared_buffer_manager",
+            ":shared_buffer_stream",
+        ],  # Include shared_buffer_manager and shared_buffer_stream for non-Windows
+    }),
     alwayslink = 1,
+)
+
+# C++ interface for shared buffer manager
+cc_library(
+    name = "shared_buffer_manager",
+    hdrs = ["shared_buffer_manager.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [],  # No dependencies for the interface
+)
+
+cc_library(
+    name = "shared_buffer_stream",
+    srcs = [
+        "shared_buffer_stream.cc",
+    ],
+    hdrs = [
+        "shared_buffer_stream.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        # Add dependency here if shared_buffer_stream depends on other library.
+        ":shared_buffer_manager",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/status",
+        "//third_party/dart_lang/v2:dart_api_dl",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+    ] + select({
+        "@platforms//os:windows": [],  # Exclude thread/fiber for Windows
+        "//conditions:default": ["@com_google_nisaba//nisaba/port:thread_pool/fiber"],  # Use thread::Fiber on all other platforms
+    }),
 )

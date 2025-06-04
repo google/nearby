@@ -37,6 +37,15 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 
+#ifndef _WIN32
+#include "absl/base/const_init.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
+#include "connections/dart/shared_buffer_manager.h"
+#include "connections/dart/shared_buffer_stream.h"
+#endif
+
 using nearby::connections::dart::NearbyConnectionsClientState;
 using NearbyConnectionsApi = nearby::connections::dart::
     NearbyConnectionsClientState::NearbyConnectionsApi;
@@ -754,15 +763,64 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
 
   kClientState->PushNearbyConnectionsApiPort(NearbyConnectionsApi::kSendPayload,
                                              result_cb);
-  std::vector<int> endpoint_ids = {endpoint_id};
+  std::vector<int> endpoint_ids;  // = {endpoint_id};
+  endpoint_ids.push_back(endpoint_id);
 
   NEARBY_LOGS(INFO) << "Payload type: " << payload_dart.type;
   switch (payload_dart.type) {
     case PAYLOAD_TYPE_UNKNOWN:
-    case PAYLOAD_TYPE_STREAM:
       NEARBY_LOGS(INFO) << "Payload type not supported yet";
       PostResult(result_cb, NC_STATUS_PAYLOADUNKNOWN);
       break;
+
+    case PAYLOAD_TYPE_STREAM: {
+#ifdef _WIN32
+      NEARBY_LOGS(INFO) << "Payload type not supported yet";
+      PostResult(result_cb, NC_STATUS_PAYLOADUNKNOWN);
+#else
+      // NEARBY_LOGS(INFO) << "Goven222, Stream type";
+      // absl::MutexLock lock(&g_sharedBuffersMutex);  // Acquire the mutex
+      // Get the sharedBuffer using the payload_dart.id
+      auto it = g_sharedBuffers.find(payload_dart.id);
+      if (it == g_sharedBuffers.end()) {
+        NEARBY_LOGS(ERROR) << "Shared buffer not found for payload_id: "
+                           << payload_dart.id;
+        PostResult(result_cb, NC_STATUS_ERROR);
+        return;
+      }
+      SharedBuffer *sharedBuffer = it->second->sharedBuffer.get();
+
+      // 1. Create a SharedBufferStream using new
+      SharedBufferStream *shared_buffer_stream = new SharedBufferStream(
+          sharedBuffer, GetSharedBufferManager(), instance);
+
+      // 2. Create NC_STREAM_PAYLOAD
+      NC_STREAM_PAYLOAD stream_payload{};
+      stream_payload.stream =
+          reinterpret_cast<NC_INSTANCE>(shared_buffer_stream);
+
+      // 3. Create NC_PAYLOAD using placement new.
+      NC_PAYLOAD payload{};
+      payload.id = GeneratePayloadId();
+      payload.type = NC_PAYLOAD_TYPE_STREAM;
+      payload.direction = NC_PAYLOAD_DIRECTION_INCOMING;
+      payload.content.stream = stream_payload;
+
+      NEARBY_LOGS(INFO) << "Goven222, Stream type, total stream size: "
+                        << payload_dart.data.size;
+      const int *endpoint_ids_ptr = endpoint_ids.data();
+      NcSendPayload(
+          instance, endpoint_ids.size(), endpoint_ids_ptr, &payload,
+          [](NC_STATUS status, void *context) {
+            ResultCB(kClientState->PopNearbyConnectionsApiPort(
+                         NearbyConnectionsApi::kSendPayload),
+                     status);
+          },
+          nullptr);
+#endif
+      // //////////////
+      break;
+    }
     case PAYLOAD_TYPE_BYTE: {
       NC_PAYLOAD payload{};
       payload.id = GeneratePayloadId();
@@ -810,3 +868,133 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
       break;
   }
 }
+
+#ifndef _WIN32
+// Definition of g_sharedBuffers and g_sharedBuffersMutex
+absl::flat_hash_map<int, std::unique_ptr<SharedBufferMapEntry>> g_sharedBuffers;
+// ABSL_CONST_INIT absl::Mutex g_sharedBuffersMutex(absl::kConstInit);
+
+// Function to initialize the shared buffer for a payload
+int InitSharedBufferForPayloadDart(int64_t payload_id,
+                                   Dart_Port payload_listener_port) {
+  LOG(INFO) << "InitSharedBufferForPayloadDart,  payload_id: " << payload_id
+            << ", port: " << payload_listener_port;
+
+  // absl::MutexLock lock(&g_sharedBuffersMutex);
+  if (g_sharedBuffers.find(payload_id) != g_sharedBuffers.end()) {
+    LOG(INFO) << "Shared buffer already initialized for payload_id: "
+              << payload_id;
+    return -1;
+  }
+  auto sharedBuffer = std::make_unique<SharedBuffer>();
+
+  // Acquire the mutex before initializing the members.
+  absl::MutexLock lock(&sharedBuffer->mutex);
+  sharedBuffer->buffer = new uint8_t[g_shared_buffer_size];
+  sharedBuffer->bufferSize = g_shared_buffer_size;
+  sharedBuffer->writePosition = 0;
+  sharedBuffer->readPosition = 0;
+  sharedBuffer->isForeRunner = true;
+  sharedBuffer->dataAvailable = false;
+  sharedBuffer->stopRequested = false;
+  sharedBuffer->payload_listener_port = payload_listener_port;
+  sharedBuffer->payload_id = payload_id;
+  // Create a new entry in the map.
+  auto entry = std::make_unique<SharedBufferMapEntry>();
+  entry->sharedBuffer = std::move(sharedBuffer);
+  // Release the raw pointer and assign it to the map
+  g_sharedBuffers[payload_id] = std::move(entry);
+
+  return 0;
+}
+
+// Function to stop reading from a shared buffer
+void StopWritingToSharedBufferDart(int64_t payload_id) {
+  LOG(INFO) << "Goven222 nc_adapter_dart, StopWritingToSharedBufferDart";
+
+  auto it = g_sharedBuffers.find(payload_id);
+  if (it == g_sharedBuffers.end()) {
+    LOG(INFO) << "Shared buffer not found for payload_id: " << payload_id;
+    return;
+  }
+  LOG(INFO) << "StopWritingToSharedBufferDart sharedBuffer found";
+
+  auto &entry = it->second;
+  {
+    absl::MutexLock lock(&entry->mutex);
+    absl::MutexLock lockSharedBuffer(&entry->sharedBuffer->mutex);
+    entry->sharedBuffer->stopRequested = true;
+    entry->sharedBuffer->condition.Signal();
+  }
+  LOG(INFO) << "StopWritingToSharedBufferDart sharedBuffer stopRequested";
+}
+
+bool WriteDataToSharedBufferDart(int64_t payload_id, const uint8_t *data,
+                                 size_t size) {
+  LOG(INFO)
+      << "Goven222 nc_adapter_dart, WriteDataToSharedBufferDart, payload_id: "
+      << payload_id << ", size: " << size;
+  auto it = g_sharedBuffers.find(payload_id);
+  if (it == g_sharedBuffers.end()) {
+    LOG(INFO) << "Shared buffer not found for payload_id: " << payload_id;
+    return false;
+  }
+  auto &entry = it->second;
+  absl::MutexLock lock(&entry->mutex);
+  SharedBuffer *sharedBuffer = entry->sharedBuffer.get();
+  absl::MutexLock lockSharedBuffer(
+      &sharedBuffer->mutex);  // Acquire the mutex of the shared buffer
+
+  memcpy(sharedBuffer->buffer + sharedBuffer->writePosition, data, size);
+  sharedBuffer->writePosition += size;
+  sharedBuffer->dataAvailable = true;
+  sharedBuffer->condition.Signal();
+
+  if (!sharedBuffer->isForeRunner) {
+    while (sharedBuffer->dataAvailable && !sharedBuffer->stopRequested &&
+           !sharedBuffer->stopWriting) {
+      LOG(INFO) << "Goven222 nc_adapter_dart, Write Wait...Wait...Wait....";
+      sharedBuffer->condition.Wait(&sharedBuffer->mutex);
+    }
+  }
+
+  LOG(INFO) << "Goven222 nc_adapter_dart, Leave Write Wait...Wait...Wait....";
+  sharedBuffer->isForeRunner = false;
+
+  return true;
+}
+
+void EraseSharedBuffer(int bufferId) {
+  auto it = g_sharedBuffers.find(bufferId);
+  if (it == g_sharedBuffers.end()) {
+    return;
+  }
+  auto &entry = it->second;
+  {
+    absl::MutexLock lock(&entry->mutex);
+    // Destroy the object while holding the mutex
+    g_sharedBuffers.erase(it);
+  }
+}
+
+class SharedBufferManagerImpl : public SharedBufferManager {
+ public:
+  void EraseSharedBuffer(int bufferId) override {
+    ::EraseSharedBuffer(bufferId);
+  }
+};
+
+// Global SharedBufferManager instance
+static absl::NoDestructor<SharedBufferManagerImpl> g_shared_buffer_manager;
+
+// Function to get the global SharedBufferManager instance
+SharedBufferManager *GetSharedBufferManager() {
+  return g_shared_buffer_manager.get();
+}
+
+int GetSharedBufferSizeDart() {
+  LOG(INFO) << "GetSharedBufferSizeDart. " << g_shared_buffer_size;
+
+  return g_shared_buffer_size;
+}
+#endif
