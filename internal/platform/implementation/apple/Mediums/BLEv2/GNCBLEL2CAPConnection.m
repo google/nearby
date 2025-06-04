@@ -193,28 +193,27 @@ static NSData *PrefixLengthData(NSData *data) {
   }
   bytesProcessed = realData.length + kL2CAPPacketLength;
 
-  // Validate the L2CAP packet.
   // TODO: b/399815436 - Refactor the validation logic to connections layer.
-  if (_incomingConnection) {
-    if (!_handledIncomingConnectionL2CAPPacket) {
-      [self handleIncomingConnectionL2CAPPacketFromData:realData];
-      return bytesProcessed;
-    }
-    if (!_handledReceivedBLEIntroPacket) {
-      [self handleBLEIntroPacketFromData:realData];
-      return bytesProcessed;
-    }
-  } else {
-    if (!_handledOutgoingConnectionL2CAPPacket) {
-      [self handleOutgoingConnectionL2CAPPacketFromData:realData];
-      return bytesProcessed;
-    }
+  if ([self handleL2CAPPacketFromData:realData]) {
+    return bytesProcessed;
+  }
+
+  // TODO: b/399815436 - All BLE control packets should be handled here and not passed to
+  // upper layer. Need to refine the flow after refactoring.
+  if (_incomingConnection && !_handledReceivedBLEIntroPacket) {
+    [self handleBLEIntroPacketFromData:realData];
+    return bytesProcessed;
+  }
+
+  if (realData.length < _serviceIDHash.length) {
+    GNCLoggerError(@"[NEARBY] Data length mismatch. Expected size: > %lu,, Data: %@",
+                   _serviceIDHash.length, realData);
+    return bytesProcessed;
   }
 
   // Extract the service ID prefix from each data packet and validate it.
   NSUInteger prefixLength = _serviceIDHash.length;
   if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
-    GNCLoggerError(@"[NEARBY]: Received wrong data packet and discarded");
     return bytesProcessed;
   }
 
@@ -254,40 +253,22 @@ static NSData *PrefixLengthData(NSData *data) {
   }
 }
 
-- (void)handleIncomingConnectionL2CAPPacketFromData:(NSData *)data {
+- (bool)handleL2CAPPacketFromData:(NSData *)data {
   GNCMBLEL2CAPPacket *l2capPacket = GNCMParseBLEL2CAPPacket(data);
   if (!l2capPacket) {
-    return;
+    return NO;
   }
-  switch (l2capPacket.command) {
-    case GNCMBLEL2CAPCommandRequestDataConnection: {
-      dispatch_async(_selfQueue, ^{
-        [_stream sendData:PrefixLengthData(GNCMGenerateBLEL2CAPPacket(
-                              GNCMBLEL2CAPCommandResponseDataConnectionReady, nil))
-            completionBlock:^(BOOL result){
-            }];
-      });
-      _handledReceivedL2CAPRequestDataConnectionPacket = YES;
-    } break;
-    case GNCMBLEL2CAPCommandRequestAdvertisement:
-    case GNCMBLEL2CAPCommandRequestAdvertisementFinish:
-    case GNCMBLEL2CAPCommandResponseAdvertisement:
-    case GNCMBLEL2CAPCommandResponseServiceIdNotFound:
-    case GNCMBLEL2CAPCommandResponseDataConnectionReady:
-    case GNCMBLEL2CAPCommandResponseDataConnectionFailure:
-    default:
-      break;  // fall through
-  }
-  _handledIncomingConnectionL2CAPPacket = _handledReceivedL2CAPRequestDataConnectionPacket;
-}
 
-- (void)handleOutgoingConnectionL2CAPPacketFromData:(NSData *)data {
-  GNCMBLEL2CAPPacket *l2capPacket = GNCMParseBLEL2CAPPacket(data);
-  if (!l2capPacket) {
-    return;
-  }
+  GNCLoggerInfo(@"[NEARBY]: Received L2CAP packet with command: %lu", l2capPacket.command);
+
   switch (l2capPacket.command) {
     case GNCMBLEL2CAPCommandResponseDataConnectionReady: {
+      if (_incomingConnection || _handledOutgoingConnectionL2CAPPacket) {
+        GNCLoggerError(@"[NEARBY]: Ignore L2CAP response data connection ready packet. "
+                       @"incomingConnection: %d, handledOutgoingConnectionL2CAPPacket: %d",
+                       _incomingConnection, _handledOutgoingConnectionL2CAPPacket);
+        break;
+      }
       [_requestDataConnectionCondition lock];
       dispatch_async(_selfQueue, ^{
         [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash))
@@ -297,9 +278,37 @@ static NSData *PrefixLengthData(NSData *data) {
             }];
       });
       _handledReceivedL2CAPResponseDataConnectionReadyPacket = YES;
+      _handledOutgoingConnectionL2CAPPacket =
+          _handledReceivedL2CAPResponseDataConnectionReadyPacket;
+
     } break;
-    case GNCMBLEL2CAPCommandRequestAdvertisement:
-    case GNCMBLEL2CAPCommandRequestDataConnection:
+    case GNCMBLEL2CAPCommandRequestDataConnection: {
+      if (!_incomingConnection || _handledIncomingConnectionL2CAPPacket) {
+        GNCLoggerError(@"[NEARBY]: Ignore L2CAP request data connection packet. "
+                       @"incomingConnection: %d, handledIncomingConnectionL2CAPPacket: %d",
+                       _incomingConnection, _handledIncomingConnectionL2CAPPacket);
+        break;
+      }
+      dispatch_async(_selfQueue, ^{
+        [_stream sendData:PrefixLengthData(GNCMGenerateBLEL2CAPPacket(
+                              GNCMBLEL2CAPCommandResponseDataConnectionReady, nil))
+            completionBlock:^(BOOL result){
+            }];
+      });
+      _handledReceivedL2CAPRequestDataConnectionPacket = YES;
+      _handledIncomingConnectionL2CAPPacket = _handledReceivedL2CAPRequestDataConnectionPacket;
+    } break;
+    case GNCMBLEL2CAPCommandRequestAdvertisement: {
+      // Return an empty advertisement response to fail the request immediately.
+      // TODO b/399815436 : Consider returning the real advertisement data in the future after
+      // refactoring the flow to mediums layer if we want to support it.
+      dispatch_async(_selfQueue, ^{
+        [_stream sendData:PrefixLengthData(GNCMGenerateBLEL2CAPPacket(
+                              GNCMBLEL2CAPCommandResponseAdvertisement, nil))
+            completionBlock:^(BOOL result){
+            }];
+      });
+    } break;
     case GNCMBLEL2CAPCommandRequestAdvertisementFinish:
     case GNCMBLEL2CAPCommandResponseAdvertisement:
     case GNCMBLEL2CAPCommandResponseServiceIdNotFound:
@@ -307,7 +316,7 @@ static NSData *PrefixLengthData(NSData *data) {
     default:
       break;  // fall through
   }
-  _handledOutgoingConnectionL2CAPPacket = _handledReceivedL2CAPResponseDataConnectionReadyPacket;
+  return YES;
 }
 
 - (void)handleBLEIntroPacketFromData:(NSData *)data {
