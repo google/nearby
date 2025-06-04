@@ -24,16 +24,19 @@ windows.cc_windows_dll(
     srcs = [
         "nc_adapter_dart.cc",
         "nearby_connections_client_state.cc",
+        "shared_buffer_stream.cc",
     ],
     hdrs = [
         "nc_adapter_dart.h",
         "nc_adapter_def.h",
         "nc_adapter_types.h",
         "nearby_connections_client_state.h",
+        "shared_buffer_stream.h",
     ],
     copts = ["-DNC_DART_DLL"],
     tags = ["windows-dll"],
     deps = [
+        ":shared_buffer_manager",
         "//connections/c:nc_types",
         "//connections/c:nc_windows",
         "//internal/platform:types",
@@ -53,14 +56,17 @@ objc_library(
     srcs = [
         "nc_adapter_dart.cc",
         "nearby_connections_client_state.cc",
+        "shared_buffer_stream.cc",
     ],
     hdrs = [
         "nc_adapter_dart.h",
         "nc_adapter_def.h",
         "nc_adapter_types.h",
         "nearby_connections_client_state.h",
+        "shared_buffer_stream.h",
     ],
     deps = [
+        ":shared_buffer_manager",
         "//connections/c:nc",
         "//connections/c:nc_types",
         "//connections/implementation/flags:connections_flags",
@@ -77,4 +83,31 @@ objc_library(
         "@com_google_absl//absl/synchronization",
     ],
     alwayslink = 1,
+)
+
+# C++ interface for shared buffer manager
+cc_library(
+    name = "shared_buffer_manager",
+    hdrs = ["shared_buffer_manager.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    deps = [],  # No dependencies for the interface
+)
+
+cc_library(
+    name = "shared_buffer_stream",
+    srcs = [
+        "shared_buffer_stream.cc",
+    ],
+    hdrs = [
+        "shared_buffer_stream.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        # Add dependency here if shared_buffer_stream depends on other library.
+        ":shared_buffer_manager",
+        "@com_google_absl//absl/synchronization",
+        "//internal/platform:base",
+        "//internal/platform:logging",
+    ],
 )
