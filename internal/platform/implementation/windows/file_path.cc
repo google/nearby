@@ -57,6 +57,8 @@ constexpr std::wstring_view kForbiddenPathNames[] = {
     L"COM5", L"COM6", L"COM7", L"COM8", L"COM9", L"LPT1", L"LPT2", L"LPT3",
     L"LPT4", L"LPT5", L"LPT6", L"LPT7", L"LPT8", L"LPT9"};
 
+constexpr char kIllegalFileCharacters[] = {':', '*', '?', '\"', '<', '>', '|'};
+
 std::wstring FilePath::GetCustomSavePath(std::wstring parent_folder,
                                          std::wstring file_name) {
   std::wstring path;
@@ -256,8 +258,6 @@ void FilePath::SanitizePath(std::wstring& path) {
   path = MutateForbiddenPathElements(path);
   ReplaceInvalidCharacters(path);
 }
-
-char kIllegalFileCharacters[] = {'?', '*', '\'', '<', '>', '|', ':'};
 
 void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
   auto it = path.begin();
