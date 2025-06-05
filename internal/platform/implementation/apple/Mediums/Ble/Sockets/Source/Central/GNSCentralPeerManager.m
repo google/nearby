@@ -237,7 +237,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   _startConnectionTime = [NSDate date];
 
   _state = GNSCentralPeerManagerStateBleConnecting;
-  if (_centralManager.cbCentralManagerState == CBCentralManagerStatePoweredOn) {
+  if (_centralManager.cbManagerState == CBManagerStatePoweredOn) {
     NSDictionary<NSString *, id> *options = @{
       CBConnectPeripheralOptionNotifyOnDisconnectionKey : @YES,
 #if TARGET_OS_IPHONE
@@ -296,8 +296,8 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   }
 }
 
-- (void)cbCentralManagerStateDidUpdate {
-  if (_centralManager.cbCentralManagerState == CBCentralManagerStatePoweredOn &&
+- (void)cbManagerStateDidUpdate {
+  if (_centralManager.cbManagerState == CBManagerStatePoweredOn &&
       _state == GNSCentralPeerManagerStateBleConnecting) {
     [self bleConnect];
   }
