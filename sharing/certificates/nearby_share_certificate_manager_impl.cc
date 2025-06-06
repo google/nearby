@@ -38,6 +38,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "proto/identity/v1/resources.pb.h"
 #include "proto/identity/v1/rpcs.pb.h"
@@ -186,7 +187,7 @@ std::unique_ptr<NearbyShareCertificateManager>
 NearbyShareCertificateManagerImpl::Factory::Create(
     Context* context, SharingPlatform& sharing_platform,
     NearbyShareLocalDeviceDataManager* local_device_data_manager,
-    NearbyShareContactManager* contact_manager, absl::string_view profile_path,
+    NearbyShareContactManager* contact_manager, const FilePath& profile_path,
     nearby::sharing::api::SharingRpcClientFactory* client_factory) {
   DCHECK(context);
 
@@ -196,11 +197,12 @@ NearbyShareCertificateManagerImpl::Factory::Create(
                                          client_factory);
   }
 
+  FilePath database_path = profile_path;
+  database_path.append(FilePath(kPublicCertificateDatabaseName));
   return absl::WrapUnique(new NearbyShareCertificateManagerImpl(
       context, sharing_platform.GetPreferenceManager(),
       sharing_platform.GetAccountManager(),
-      sharing_platform.CreatePublicCertificateDatabase(
-          absl::StrCat(profile_path, "/", kPublicCertificateDatabaseName)),
+      sharing_platform.CreatePublicCertificateDatabase(database_path),
       local_device_data_manager, contact_manager, client_factory));
 }
 

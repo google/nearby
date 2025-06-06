@@ -82,7 +82,7 @@ class SharingPlatform {
   virtual TaskRunner& GetDefaultTaskRunner() = 0;
   virtual nearby::DeviceInfo& GetDeviceInfo() = 0;
   virtual std::unique_ptr<PublicCertificateDatabase>
-  CreatePublicCertificateDatabase(absl::string_view database_path) = 0;
+  CreatePublicCertificateDatabase(const FilePath& database_path) = 0;
 
   virtual std::unique_ptr<SharingRpcClientFactory>
   CreateSharingRpcClientFactory(

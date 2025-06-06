@@ -40,6 +40,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/base",
+        "//internal/base:file_path",
         "//internal/crypto_cros",
         "//internal/flags:nearby_flags",
         "//internal/platform:types",
@@ -92,6 +93,7 @@ cc_library(
     deps = [
         ":certificates",
         "//internal/base:bluetooth_address",
+        "//internal/base:file_path",
         "//internal/crypto_cros",
         "//sharing/common:enum",
         "//sharing/contacts",

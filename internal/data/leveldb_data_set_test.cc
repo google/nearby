@@ -57,7 +57,7 @@ FilePath GenerateLeveldbPath() {
 template <typename T>
 std::unique_ptr<LeveldbDataSet<T>> CreateDataSet(
     const FilePath& path) {
-  return std::make_unique<LeveldbDataSet<T>>(path.ToString());
+  return std::make_unique<LeveldbDataSet<T>>(path);
 }
 
 template <typename T>

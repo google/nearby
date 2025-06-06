@@ -87,8 +87,8 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(TaskRunner&, GetDefaultTaskRunner, (), (override));
   MOCK_METHOD(nearby::DeviceInfo&, GetDeviceInfo, (), (override));
   MOCK_METHOD(std::unique_ptr<PublicCertificateDatabase>,
-              CreatePublicCertificateDatabase,
-              (absl::string_view database_path), (override));
+              CreatePublicCertificateDatabase, (const FilePath& database_path),
+              (override));
   MOCK_METHOD(
       std::unique_ptr<SharingRpcClientFactory>, CreateSharingRpcClientFactory,
       (Clock * clock,

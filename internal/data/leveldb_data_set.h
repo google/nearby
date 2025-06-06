@@ -28,6 +28,7 @@
 #include "third_party/leveldb/include/options.h"
 #include "third_party/leveldb/include/slice.h"
 #include "third_party/leveldb/include/status.h"
+#include "internal/base/file_path.h"
 #include "internal/data/data_set.h"
 #if defined(_WIN32)
 #include "location/nearby/apps/better_together/windows/common/leveldb_env_windows.h"
@@ -46,7 +47,13 @@ class LeveldbDataSet : public DataSet<T> {
  public:
   using KeyEntryVector = std::vector<std::pair<std::string, T>>;
 
-  explicit LeveldbDataSet(absl::string_view path) : path_(path) {}
+  explicit LeveldbDataSet(const FilePath& db_dir) : path_(db_dir.ToString()) {
+#if defined(_WIN32)
+    // In Windows use the Unicode compatible environment.
+    db_options_.env = nearby::windows::WindowsEnv::Default();
+#endif  // defined(_WIN32)
+    db_options_.create_if_missing = true;
+  }
   ~LeveldbDataSet() override = default;
 
   void Initialize(absl::AnyInvocable<void(InitStatus) &&> callback) override;
@@ -72,6 +79,7 @@ class LeveldbDataSet : public DataSet<T> {
 
  private:
   std::string path_;
+  leveldb::Options db_options_;
   std::unique_ptr<leveldb::DB> db_ = nullptr;
   InitStatus status_ = InitStatus::kNotInitialized;
 };
@@ -81,13 +89,8 @@ template <typename T,
               isMessageLite>
 void LeveldbDataSet<T, isMessageLite>::Initialize(
     absl::AnyInvocable<void(InitStatus) &&> callback) {
-  leveldb::Options options;
-  options.create_if_missing = true;
-#if defined(_WIN32)
-  options.env = nearby::windows::WindowsEnv::Default();
-#endif  // defined(_WIN32)
   leveldb::DB* db;
-  leveldb::Status status = leveldb::DB::Open(options, path_, &db);
+  leveldb::Status status = leveldb::DB::Open(db_options_, path_, &db);
   db_ = std::unique_ptr<leveldb::DB>(db);
 
   if (status.ok()) {
@@ -226,11 +229,7 @@ void LeveldbDataSet<T, isMessageLite>::Destroy(
     absl::AnyInvocable<void(bool) &&> callback) {
   LOG(INFO) << "Destroy is called.";
   db_.reset();
-  leveldb::Options options;
-#if defined(_WIN32)
-  options.env = nearby::windows::WindowsEnv::Default();
-#endif  // defined(_WIN32)
-  leveldb::DestroyDB(path_, options);
+  leveldb::DestroyDB(path_, db_options_);
   std::move(callback)(true);
 }
 

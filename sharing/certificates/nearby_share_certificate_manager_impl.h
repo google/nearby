@@ -24,8 +24,8 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
@@ -68,7 +68,7 @@ class NearbyShareCertificateManagerImpl
         nearby::sharing::api::SharingPlatform& sharing_platform,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
         NearbyShareContactManager* contact_manager,
-        absl::string_view profile_path,
+        const FilePath& profile_path,
         nearby::sharing::api::SharingRpcClientFactory* client_factory);
     static void SetFactoryForTesting(Factory* test_factory);
 
@@ -78,7 +78,7 @@ class NearbyShareCertificateManagerImpl
         Context* context,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
         NearbyShareContactManager* contact_manager,
-        absl::string_view profile_path,
+        const FilePath& profile_path,
         nearby::sharing::api::SharingRpcClientFactory* client_factory) = 0;
 
    private:

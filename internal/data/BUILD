@@ -28,6 +28,7 @@ cc_library(
         "leveldb_data_set.h",
     ],
     deps = [
+        "//internal/base:file_path",
         "//internal/platform:types",
         "//third_party/leveldb:db",
         "//third_party/leveldb:table",

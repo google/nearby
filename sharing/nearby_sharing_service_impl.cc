@@ -246,13 +246,12 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   CHECK(analytics_recorder);
 
   is_shutting_down_ = std::make_unique<bool>(false);
-  FilePath full_database_path =
+  FilePath profile_path =
       device_info_.GetAppDataPath().append(FilePath(kProfileRelativePath));
 
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
-      contact_manager_.get(), full_database_path.ToString(),
-      nearby_share_client_factory_.get()),
+      contact_manager_.get(), profile_path, nearby_share_client_factory_.get()),
 
   certificate_manager_->AddObserver(this);
   context_->GetConnectivityManager()->RegisterConnectionListener(

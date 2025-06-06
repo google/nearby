@@ -147,8 +147,8 @@ class NearbyShareCertificateManagerImplTest
     local_device_data_manager_->SetUsingIdentityRpc(use_identity_rpc);
     cert_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
         &fake_context_, mock_sharing_platform_,
-        local_device_data_manager_.get(), contact_manager_.get(), std::string(),
-        &client_factory_);
+        local_device_data_manager_.get(), contact_manager_.get(),
+        /*profile_path=*/{}, &client_factory_);
     cert_manager_->AddObserver(this);
 
     cert_store_ = cert_store_factory_.instances().back();
