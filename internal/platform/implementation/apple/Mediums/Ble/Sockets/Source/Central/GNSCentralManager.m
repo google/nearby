@@ -170,6 +170,10 @@ static NSString *CBManagerStateString(CBManagerState state) {
   return nil;
 }
 
+- (CBManagerState)cbManagerState {
+  return _cbCentralManager.state;
+}
+
 - (NSString *)description {
   return [NSString stringWithFormat:@"<%@: %p, socket service UUID: %@, advertised name: %@, "
                                     @"scanning: %@, central scan started: %@, bluetooth state %@, "
