@@ -24,7 +24,7 @@
 #include <sstream>
 #include <string>
 
-#include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 
 namespace nearby {
 namespace api {
@@ -78,7 +78,7 @@ class SystemInfo {
   virtual std::list<DriverInfo> GetBluetoothDriverInfos() = 0;
   virtual std::list<DriverInfo> GetNetworkDriverInfos() = 0;
 
-  virtual void GetBatteryUsageReport(absl::string_view save_path) = 0;
+  virtual void GetBatteryUsageReport(const FilePath& save_path) = 0;
 
   // Outputs all system information to a readable string.
   std::string Dump() {

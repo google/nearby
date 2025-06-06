@@ -20,7 +20,7 @@
 #include <string>
 
 #include "gmock/gmock.h"
-#include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "sharing/internal/api/system_info.h"
 
 namespace nearby::sharing::api {
@@ -57,7 +57,7 @@ class MockSystemInfo : public nearby::api::SystemInfo {
   MOCK_METHOD(std::list<DriverInfo>, GetBluetoothDriverInfos, (), (override));
   MOCK_METHOD(std::list<DriverInfo>, GetNetworkDriverInfos, (), (override));
 
-  MOCK_METHOD(void, GetBatteryUsageReport, (absl::string_view save_path),
+  MOCK_METHOD(void, GetBatteryUsageReport, (const FilePath& save_path),
               (override));
 };
 
