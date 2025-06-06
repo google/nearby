@@ -16,20 +16,19 @@
 #define PLATFORM_IMPLEMENTATION_WINDOWS_PREFERENCES_REPOSITORY_H_
 
 #include <optional>
-#include <string>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
 
 namespace nearby {
 namespace windows {
 
 class PreferencesRepository {
  public:
-  explicit PreferencesRepository(absl::string_view path) : path_(path) {}
+  explicit PreferencesRepository(const FilePath& path) : path_(path) {}
 
   nlohmann::json LoadPreferences() ABSL_LOCKS_EXCLUDED(&mutex_);
   bool SavePreferences(nlohmann::json preferences) ABSL_LOCKS_EXCLUDED(&mutex_);
@@ -39,7 +38,7 @@ class PreferencesRepository {
 
  private:
   absl::Mutex mutex_;
-  const std::string path_;
+  const FilePath path_;
 };
 
 }  // namespace windows

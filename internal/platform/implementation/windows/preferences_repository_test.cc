@@ -36,7 +36,8 @@ constexpr char kPreferencesBackupFileName[] = "preferences_bak.json";
 constexpr char kPreferencesPath[] = "Google/Nearby/Sharing";
 
 TEST(PreferencesRepository, LoadWithBadPath) {
-  PreferencesRepository preferences_repository{"c:\\users\\a\\b\\c\\d\\e\\f"};
+  PreferencesRepository preferences_repository{
+      FilePath{"c:\\users\\a\\b\\c\\d\\e\\f"}};
   json result = preferences_repository.LoadPreferences();
   EXPECT_TRUE(result.empty());
 }
@@ -56,7 +57,7 @@ TEST(PreferencesRepository, RecoverFromBadPreferences) {
   pref_file << "\"Bad top level object\"";
   pref_file.close();
 
-  PreferencesRepository preferences_repository{full_path.ToString()};
+  PreferencesRepository preferences_repository{full_path};
   EXPECT_EQ(preferences_repository.LoadPreferences(), json::object());
 }
 
@@ -71,7 +72,7 @@ TEST(PreferencesRepository, SaveAndLoadPreferences) {
     Files::RemoveFile(full_name);
   }
 
-  PreferencesRepository preferences_repository{full_path.ToString()};
+  PreferencesRepository preferences_repository{full_path};
   json data;
   data["key1"] = "value1";
   data["key2"] = "value2";
@@ -100,7 +101,7 @@ TEST(PreferencesRepository, LoadFromBackup) {
     Files::RemoveFile(full_name_backup);
   }
 
-  PreferencesRepository preferences_repository{full_path.ToString()};
+  PreferencesRepository preferences_repository{full_path};
   json data;
   data["key1"] = "value1";
   data["key2"] = "value2";
@@ -137,7 +138,7 @@ TEST(PreferencesRepository, RecoverFromCorruption) {
     Files::RemoveFile(full_name_backup);
   }
 
-  PreferencesRepository preferences_repository{full_path.ToString()};
+  PreferencesRepository preferences_repository{full_path};
   json data;
   data["key1"] = "value1";
   data["key2"] = "value2";

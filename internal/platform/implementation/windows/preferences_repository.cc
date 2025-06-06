@@ -69,15 +69,14 @@ json PreferencesRepository::LoadPreferences() {
 bool PreferencesRepository::SavePreferences(json preferences) {
   absl::MutexLock lock(&mutex_);
   try {
-    FilePath path{path_};
-    if (!Files::FileExists(path) && !Files::CreateDirectories(path)) {
+    if (!Files::FileExists(path_) && !Files::CreateDirectories(path_)) {
       LOG(ERROR) << "Failed to create preferences path.";
       return false;
     }
 
-    FilePath full_name = path;
+    FilePath full_name = path_;
     full_name.append(FilePath(kPreferencesFileName));
-    FilePath full_name_backup = path;
+    FilePath full_name_backup = path_;
     full_name_backup.append(FilePath(kPreferencesBackupFileName));
 
     // Create a backup without moving the bytes on disk
@@ -114,10 +113,9 @@ bool PreferencesRepository::SavePreferences(json preferences) {
 }
 
 std::optional<json> PreferencesRepository::AttemptLoad() {
-  FilePath path{path_};
-  FilePath full_name = path;
+  FilePath full_name = path_;
   full_name.append(FilePath(kPreferencesFileName));
-  if (!Files::DirectoryExists(path) || !Files::FileExists(full_name)) {
+  if (!Files::DirectoryExists(path_) || !Files::FileExists(full_name)) {
     return std::nullopt;
   }
 
@@ -146,10 +144,9 @@ std::optional<json> PreferencesRepository::AttemptLoad() {
 }
 
 std::optional<json> PreferencesRepository::RestoreFromBackup() {
-  FilePath path{path_};
-  FilePath full_name = path;
+  FilePath full_name = path_;
   full_name.append(FilePath(kPreferencesFileName));
-  FilePath full_name_backup = path;
+  FilePath full_name_backup = path_;
   full_name_backup.append(FilePath(kPreferencesBackupFileName));
 
   if (!Files::FileExists(full_name_backup)) {

@@ -48,8 +48,7 @@ PreferencesManager::PreferencesManager(FilePath file_path) {
   }
 
   path->append(file_path);
-  preferences_repository_ =
-      std::make_unique<PreferencesRepository>(path->ToString());
+  preferences_repository_ = std::make_unique<PreferencesRepository>(*path);
   value_ = preferences_repository_->LoadPreferences();
 }
 
