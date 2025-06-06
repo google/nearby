@@ -1741,7 +1741,21 @@ void NearbySharingServiceImpl::FinishEndpointDiscoveryEvent() {
   }
 }
 
-void NearbySharingServiceImpl::OnShareTargetDiscovered(
+void NearbySharingServiceImpl::LogShareTargetDiscovered(
+    const ShareTarget& share_target) {
+  analytics_recorder_.NewDiscoverShareTarget(
+    share_target, scanning_session_id_,
+    absl::ToInt64Milliseconds(context_->GetClock()->Now() -
+                              scanning_start_timestamp_),
+    /*flow_id=*/1, /*referrer_package=*/std::nullopt,
+    share_foreground_send_surface_start_timestamp_ == absl::InfinitePast()
+        ? -1
+        : absl::ToInt64Milliseconds(
+              context_->GetClock()->Now() -
+              share_foreground_send_surface_start_timestamp_));
+}
+
+void NearbySharingServiceImpl::NotifyShareTargetDiscovered(
     const ShareTarget& share_target) {
   for (auto& entry : foreground_send_surface_map_) {
     entry.second.OnShareTargetDiscovered(share_target);
@@ -1751,7 +1765,7 @@ void NearbySharingServiceImpl::OnShareTargetDiscovered(
   }
 }
 
-void NearbySharingServiceImpl::OnShareTargetUpdated(
+void NearbySharingServiceImpl::NotifyShareTargetUpdated(
     const ShareTarget& share_target) {
   for (auto& entry : foreground_send_surface_map_) {
     entry.second.OnShareTargetUpdated(share_target);
@@ -1761,7 +1775,7 @@ void NearbySharingServiceImpl::OnShareTargetUpdated(
   }
 }
 
-void NearbySharingServiceImpl::OnShareTargetLost(
+void NearbySharingServiceImpl::NotifyShareTargetLost(
     const ShareTarget& share_target) {
   for (auto& entry : foreground_send_surface_map_) {
     entry.second.OnShareTargetLost(share_target);
@@ -1801,6 +1815,7 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     FinishEndpointDiscoveryEvent();
     return;
   }
+  LogShareTargetDiscovered(*share_target);
   if (FindDuplicateInOutgoingShareTargets(endpoint_id, *share_target)) {
     DeduplicateInOutgoingShareTarget(*share_target, endpoint_id,
                                      std::move(certificate));
@@ -1826,27 +1841,15 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
                "containing a valid share target with id: "
             << share_target->id;
 
-  // Log analytics event of discovering share target.
-  analytics_recorder_.NewDiscoverShareTarget(
-      *share_target, scanning_session_id_,
-      absl::ToInt64Milliseconds(context_->GetClock()->Now() -
-                                scanning_start_timestamp_),
-      /*flow_id=*/1, /*referrer_package=*/std::nullopt,
-      share_foreground_send_surface_start_timestamp_ == absl::InfinitePast()
-          ? -1
-          : absl::ToInt64Milliseconds(
-                context_->GetClock()->Now() -
-                share_foreground_send_surface_start_timestamp_));
-
   // Notifies the user that we discovered a device.
   VLOG(1) << __func__ << ": There are "
           << (foreground_send_surface_map_.size() +
               background_send_surface_map_.size())
           << " discovery callbacks be called.";
 
-  OnShareTargetDiscovered(*share_target);
+  NotifyShareTargetDiscovered(*share_target);
 
-  VLOG(1) << __func__ << ": Reported OnShareTargetDiscovered: share_target: "
+  VLOG(1) << __func__ << ": NotifyShareTargetDiscovered: share_target: "
           << share_target->ToString() << " endpoint_id=" << endpoint_id
           << " to all send surfaces.";
 
@@ -2384,10 +2387,10 @@ void NearbySharingServiceImpl::RemoveOutgoingShareTargetAndReportLost(
   if (!share_target_opt.has_value()) {
     return;
   }
-  OnShareTargetLost(*share_target_opt);
+  NotifyShareTargetLost(*share_target_opt);
 
   VLOG(1) << __func__
-          << ": Reported OnShareTargetLost for EndpointId: " << endpoint_id
+          << ": NotifyShareTargetLost for EndpointId: " << endpoint_id
           << " share target: " << share_target_opt->ToString();
 }
 
@@ -3181,10 +3184,10 @@ void NearbySharingServiceImpl::DeduplicateInOutgoingShareTarget(
   session_it->second.UpdateSessionForDedup(share_target, std::move(certificate),
                                            endpoint_id);
 
-  OnShareTargetUpdated(share_target);
+  NotifyShareTargetUpdated(share_target);
 
   LOG(INFO) << __func__
-            << ": [Dedupped] Reported OnShareTargetUpdated to all surfaces "
+            << ": [Dedupped] NotifyShareTargetUpdated to all surfaces "
                "for share_target: "
             << share_target.ToString();
 }
@@ -3193,10 +3196,10 @@ void NearbySharingServiceImpl::DeDuplicateInDiscoveryCache(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   CreateOutgoingShareSession(share_target, endpoint_id, std::move(certificate));
-  OnShareTargetUpdated(share_target);
+  NotifyShareTargetUpdated(share_target);
 
   LOG(INFO) << __func__
-            << ": [Dedupped] Reported OnShareTargetUpdated to all surfaces "
+            << ": [Dedupped] Reported NotifyShareTargetUpdated to all surfaces "
                "for share_target: "
             << share_target.ToString();
 }
@@ -3236,8 +3239,8 @@ bool NearbySharingServiceImpl::FindDuplicateInDiscoveryCache(
 bool NearbySharingServiceImpl::FindDuplicateInOutgoingShareTargets(
     absl::string_view endpoint_id, ShareTarget& share_target) {
   // If the duplicate is found, share_target.id needs to be updated to the old
-  // "discovered" share_target_id so OnShareTargetUpdated matches a target that
-  // was discovered before.
+  // "discovered" share_target_id so NotifyShareTargetUpdated matches a target
+  // that was discovered before.
 
   auto it = outgoing_share_target_map_.find(endpoint_id);
   if (it != outgoing_share_target_map_.end()) {
@@ -3331,16 +3334,16 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
                   << ", share_target.id=" << share_target.id
                   << ") from discovery_cache after " << expiry_ms << "ms";
 
-        OnShareTargetLost(share_target);
+        NotifyShareTargetLost(share_target);
 
         VLOG(1) << "discovery_cache entry: " << endpoint_id << " timeout after "
                 << expiry_ms << "ms"
-                << ": [Dedupped] Reported OnShareTargetLost to all surfaces "
-                   "for share_target: "
+                << ": [Dedupped] NotifyShareTargetLost to all surfaces for "
+                << "share_target: "
                 << share_target.ToString();
       });
   // Send ShareTarget update to set receive disabled to true.
-  OnShareTargetUpdated(cache_entry.share_target);
+  NotifyShareTargetUpdated(cache_entry.share_target);
   auto [it, inserted] =
       discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
   LOG(INFO) << "[Dedupped] added to discovery_cache: " << endpoint_id << " by "

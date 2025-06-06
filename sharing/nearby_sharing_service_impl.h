@@ -462,9 +462,12 @@ class NearbySharingServiceImpl
                                       TransferMetadata metadata, bool success);
 
   // Notify all registered send surfaces of share target state changes.
-  void OnShareTargetDiscovered(const ShareTarget& share_target);
-  void OnShareTargetUpdated(const ShareTarget& share_target);
-  void OnShareTargetLost(const ShareTarget& share_target);
+  void NotifyShareTargetDiscovered(const ShareTarget& share_target);
+  void NotifyShareTargetUpdated(const ShareTarget& share_target);
+  void NotifyShareTargetLost(const ShareTarget& share_target);
+
+  // Log analytics event of discovering share target.
+  void LogShareTargetDiscovered(const ShareTarget& share_target);
 
   // Used to run nearby sharing service APIs.
   std::unique_ptr<TaskRunner> service_thread_;
