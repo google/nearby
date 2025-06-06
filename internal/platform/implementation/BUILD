@@ -215,6 +215,27 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "platform_impl",
+    testonly = True,
+    visibility = [
+        "//:__subpackages__",
+        "//connections/implementation:__subpackages__",
+        "//location/nearby/analytics/cpp:__subpackages__",
+        "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
+        "//location/nearby/cpp/sharing:__subpackages__",
+    ],
+    deps = [
+    ] + select({
+        "@platforms//os:windows": [
+            "//internal/platform/implementation/windows",
+        ],
+        "//conditions:default": [
+            "//internal/platform/implementation/g3",
+        ],
+    }),
+)
+
 cc_test(
     name = "wifi_utils_test",
     size = "small",
