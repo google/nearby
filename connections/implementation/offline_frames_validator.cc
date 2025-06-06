@@ -175,15 +175,6 @@ Exception EnsureValidPayloadTransferFrame(const PayloadTransferFrame& frame) {
       frame.payload_header().type() ==
           location::nearby::connections::PayloadTransferFrame::PayloadHeader::
               FILE) {
-    if (frame.payload_header().has_file_name()) {
-      if (CheckForIllegalCharacters(frame.payload_header().file_name(),
-                                    kIllegalFileNamePatterns,
-                                    kIllegalFileNamePatternsSize)) {
-        LOG(ERROR) << "File name " << frame.payload_header().file_name()
-                   << " has illegal characters";
-        return {Exception::kIllegalCharacters};
-      }
-    }
     if (frame.payload_header().has_parent_folder()) {
       if (CheckForIllegalCharacters(frame.payload_header().parent_folder(),
                                     kIllegalParentFolderPatterns,
