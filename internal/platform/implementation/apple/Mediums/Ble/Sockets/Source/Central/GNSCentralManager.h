@@ -99,7 +99,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * BLE state based on -[CBCentralManager state].
  */
-@property(nonatomic, readonly) CBManagerState cbManagerState;
+@property(nonatomic, readonly) CBCentralManagerState cbCentralManagerState;
 
 - (instancetype)init NS_UNAVAILABLE;
 

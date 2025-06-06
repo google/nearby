@@ -21,22 +21,22 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-static NSString *CBManagerStateString(CBManagerState state) {
+static NSString *CentralManagerStateString(CBCentralManagerState state) {
   switch (state) {
-    case CBManagerStateUnknown:
-      return @"CBManagerStateUnknown";
-    case CBManagerStateResetting:
-      return @"CBManagerStateResetting";
-    case CBManagerStateUnsupported:
-      return @"CBManagerStateUnsupported";
-    case CBManagerStateUnauthorized:
-      return @"CBManagerStateUnauthorized";
-    case CBManagerStatePoweredOff:
-      return @"CBManagerStatePoweredOff";
-    case CBManagerStatePoweredOn:
-      return @"CBManagerStatePoweredOn";
+    case CBCentralManagerStateUnknown:
+      return @"CBCentralManagerStateUnknown";
+    case CBCentralManagerStateResetting:
+      return @"CBCentralManagerStateResetting";
+    case CBCentralManagerStateUnsupported:
+      return @"CBCentralManagerStateUnsupported";
+    case CBCentralManagerStateUnauthorized:
+      return @"CBCentralManagerStateUnauthorized";
+    case CBCentralManagerStatePoweredOff:
+      return @"CBCentralManagerStatePoweredOff";
+    case CBCentralManagerStatePoweredOn:
+      return @"CBCentralManagerStatePoweredOn";
   }
-  return [NSString stringWithFormat:@"CBManagerState Unknown(%ld)", (long)state];
+  return [NSString stringWithFormat:@"CBCentralManagerState Unknown(%ld)", (long)state];
 }
 
 @interface GNSCentralManager () {
@@ -97,7 +97,7 @@ static NSString *CBManagerStateString(CBManagerState state) {
   _advertisedServiceUUID = advertisedServiceUUID;
   _advertisedName = advertisedName;
   _scanning = YES;
-  if (_cbCentralManager.state == CBManagerStatePoweredOn) {
+  if (_cbCentralManager.state == CBCentralManagerStatePoweredOn) {
     [self startCBScan];
   }
 }
@@ -109,7 +109,7 @@ static NSString *CBManagerStateString(CBManagerState state) {
   }
   [self startNoScanModeWithAdvertisedServiceUUIDs:_advertisedServiceUUIDs];
   _scanning = YES;
-  if (_cbCentralManager.state == CBManagerStatePoweredOn) {
+  if (_cbCentralManager.state == CBCentralManagerStatePoweredOn) {
     [self startCBScan];
   }
 }
@@ -170,6 +170,12 @@ static NSString *CBManagerStateString(CBManagerState state) {
   return nil;
 }
 
+- (CBCentralManagerState)cbCentralManagerState {
+  // Cast to avoid some warnings in XCode 8. When Xcode 8 is the default
+  // swap CBCentralManagerState for CBManagerState.
+  return (CBCentralManagerState)_cbCentralManager.state;
+}
+
 - (NSString *)description {
   return [NSString stringWithFormat:@"<%@: %p, socket service UUID: %@, advertised name: %@, "
                                     @"scanning: %@, central scan started: %@, bluetooth state %@, "
@@ -177,7 +183,7 @@ static NSString *CBManagerStateString(CBManagerState state) {
                                     NSStringFromClass([self class]), self, _socketServiceUUID,
                                     _advertisedName, _scanning ? @"YES" : @"NO",
                                     _cbCentralScanStarted ? @"YES" : @"NO",
-                                    CBManagerStateString([self cbManagerState]),
+                                    CentralManagerStateString([self cbCentralManagerState]),
                                     _cbCentralManager, _centralPeerManagers];
 }
 
@@ -277,25 +283,26 @@ static NSString *CBManagerStateString(CBManagerState state) {
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
   NSAssert(central == _cbCentralManager, @"Wrong peripheral manager.");
-  GNCLoggerInfo(@"CoreBluetooth state: %@", CBManagerStateString([self cbManagerState]));
+  GNCLoggerInfo(@"CoreBluetooth state: %@",
+                CentralManagerStateString([self cbCentralManagerState]));
   switch (central.state) {
-    case CBManagerStatePoweredOn: {
+    case CBCentralManagerStatePoweredOn: {
       if (_scanning) {
         [self startCBScan];
       }
       break;
     }
-    case CBManagerStatePoweredOff:
-    case CBManagerStateResetting:
-    case CBManagerStateUnauthorized:
-    case CBManagerStateUnsupported:
-    case CBManagerStateUnknown:
+    case CBCentralManagerStatePoweredOff:
+    case CBCentralManagerStateResetting:
+    case CBCentralManagerStateUnauthorized:
+    case CBCentralManagerStateUnsupported:
+    case CBCentralManagerStateUnknown:
       [self stopCBScan];
       break;
   }
   [_delegate centralManagerDidUpdateBleState:self];
   for (GNSCentralPeerManager *peerManager in _centralPeerManagers.objectEnumerator) {
-    [peerManager cbManagerStateDidUpdate];
+    [peerManager cbCentralManagerStateDidUpdate];
   }
 }
 

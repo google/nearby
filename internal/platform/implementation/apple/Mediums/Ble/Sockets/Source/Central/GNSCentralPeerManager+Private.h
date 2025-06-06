@@ -60,7 +60,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Called by the central manager when the bluetooth state changes.
  */
-- (void)cbManagerStateDidUpdate;
+- (void)cbCentralManagerStateDidUpdate;
 
 @end
 
