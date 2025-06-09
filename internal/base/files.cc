@@ -104,7 +104,7 @@ bool Files::CreateDirectories(const FilePath& path) {
   std::error_code error_code;
   std::filesystem::create_directories(path.path_, error_code);
   if (error_code) {
-    VLOG(1) << "Failed to create directories: " << error_code.message();
+    VLOG(1) << "Failed to create directories: " << error_code.value();
     return false;
   }
   return true;
@@ -114,7 +114,7 @@ bool Files::CreateHardLink(const FilePath& target, const FilePath& link_path) {
   std::error_code error_code;
   std::filesystem::create_hard_link(target.path_, link_path.path_, error_code);
   if (error_code) {
-    VLOG(1) << "Failed to create hard link: " << error_code.message();
+    VLOG(1) << "Failed to create hard link: " << error_code.value();
     return false;
   }
   return true;
@@ -124,7 +124,7 @@ bool Files::CopyFileSafely(const FilePath& old_path, const FilePath& new_path) {
   std::error_code error_code;
   std::filesystem::copy(old_path.path_, new_path.path_, error_code);
   if (error_code) {
-    VLOG(1) << "Failed to copy file: " << error_code.message();
+    VLOG(1) << "Failed to copy file: " << error_code.value();
     return false;
   }
   return true;
@@ -138,6 +138,7 @@ std::optional<size_t> Files::GetAvailableDiskSpaceInBytes(
   if (error_code.value() == 0) {
     return space_info.available;
   }
+  VLOG(1) << "Failed to get available disk space: " << error_code.value();
   return std::nullopt;
 }
 
