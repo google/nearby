@@ -539,6 +539,8 @@ enum OperationResultCode {
   CLIENT_CANCELLATION_LOCAL_DISCONNECT = 522;
   // Payloads failure due to remote disconnect
   CLIENT_CANCELLATION_REMOTE_DISCONNECT = 523;
+  // Client cancel the file payload transfer since it is disabled
+  CLIENT_CANCELLATION_FILE_PAYLOAD_TRANSFER_DISABLED = 524;
 
   // Section of CATEGORY_DEVICE_STATE_ERROR, from 1000 to 1499
   // Session unfinished with ongoing upgrading
