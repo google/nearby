@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -28,8 +29,10 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
+#include "connections/c/core/shared_buffer_stream.h"
 #include "connections/c/nc_types.h"
 #include "connections/connection_options.h"
 #include "connections/core.h"
@@ -48,6 +51,7 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #if TARGET_OS_IOS
 #include "internal/platform/implementation/apple/nearby_logger.h"
@@ -682,7 +686,25 @@ void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
     cpp_payload =
         ::nearby::connections::Payload(payload->id, std::move(input_file));
   } else if (payload->type == NC_PAYLOAD_TYPE_STREAM) {
-    // TODO(guogang): support stream later.
+    SharedBufferStream* shared_buffer_stream =
+        reinterpret_cast<SharedBufferStream*>(payload->content.stream.stream);
+
+    if (shared_buffer_stream == nullptr) {
+      result_callback(NC_STATUS_ERROR, context);
+      return;
+    }
+
+    // Verify if the stream is already closed.
+    {
+      absl::MutexLock lock(&shared_buffer_stream->mutex_join_);
+      if (shared_buffer_stream->join_thread_) {
+        result_callback(NC_STATUS_ERROR, context);
+        return;
+      }
+    }
+
+    cpp_payload = ::nearby::connections::Payload(
+        std::unique_ptr<nearby::InputStream>(shared_buffer_stream));
   }
 
   nc_context->core->SendPayload(

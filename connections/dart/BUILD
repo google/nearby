@@ -36,6 +36,8 @@ windows.cc_windows_dll(
     deps = [
         "//connections/c:nc_types",
         "//connections/c:nc_windows",
+        "//connections/c/core:shared_buffer_manager",
+        "//connections/c/core:shared_buffer_stream",
         "//internal/platform:types",
         "//internal/platform/implementation/windows",
         "//third_party/dart_lang/v2:dart_api_dl",
@@ -63,8 +65,8 @@ objc_library(
     deps = [
         "//connections/c:nc",
         "//connections/c:nc_types",
-        "//connections/implementation/flags:connections_flags",
-        "//internal/flags:nearby_flags",
+        "//connections/c/core:shared_buffer_manager",
+        "//connections/c/core:shared_buffer_stream",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/implementation/apple",  # buildcleaner: keep

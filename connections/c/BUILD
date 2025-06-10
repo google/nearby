@@ -43,6 +43,7 @@ cc_library(
         ":nc_types",
         "//connections:core",
         "//connections:core_types",
+        "//connections/c/core:shared_buffer_stream",
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:flag_reader",
         "//internal/flags:nearby_flags",
@@ -51,6 +52,7 @@ cc_library(
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
     ] + select({
         "@platforms//os:platform_ios": [

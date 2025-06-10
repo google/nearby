@@ -15,8 +15,14 @@
 #ifndef THIRD_PARTY_NEARBY_CONNECTIONS_DART_NC_ADAPTER_DART_H_
 #define THIRD_PARTY_NEARBY_CONNECTIONS_DART_NC_ADAPTER_DART_H_
 
+#include "absl/base/no_destructor.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
+#include "absl/synchronization/mutex.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_api_dl.h"
 #include "third_party/dart_lang/v2/runtime/include/dart_native_api.h"
+#include "connections/c/core/shared_buffer_manager.h"
+#include "connections/c/core/shared_buffer_stream.h"
 #include "connections/c/nc.h"
 #include "connections/c/nc_types.h"
 #include "connections/dart/nc_adapter_def.h"
@@ -25,6 +31,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct SharedBufferMapEntry {
+  std::unique_ptr<SharedBuffer> sharedBuffer;
+  absl::Mutex mutex;
+};
+
+extern absl::NoDestructor<
+    absl::flat_hash_map<int, std::unique_ptr<SharedBufferMapEntry>>>
+    g_sharedBuffers;
+extern absl::NoDestructor<absl::Mutex> g_sharedBuffersMutex;
 
 static void ResultCB(NC_STATUS status);
 
@@ -190,6 +206,18 @@ DART_API void DisconnectFromEndpointDart(NC_INSTANCE instance, int endpoint_id,
 //         PayloadCallback#onPayloadTransferUpdate.
 DART_API void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
                               PayloadDart payload_dart, Dart_Port result_cb);
+
+DART_API bool WriteDataToSharedBufferDart(int64_t payload_id,
+                                          const uint8_t *data, size_t size);
+
+DART_API void StopWritingToSharedBufferDart(int64_t payload_id);
+
+DART_API int InitSharedBufferForPayloadDart(int64_t payload_id,
+                                            Dart_Port payload_listener_port);
+
+DART_API void EraseSharedBuffer(int bufferId);
+DART_API SharedBufferManager *GetSharedBufferManager();
+DART_EXPORT int GetSharedBufferSizeDart();
 
 #ifdef __cplusplus
 }  // extern "C"
