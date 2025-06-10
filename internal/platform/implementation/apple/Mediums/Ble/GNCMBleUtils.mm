@@ -116,7 +116,6 @@ NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash) {
 // TODO: b/399815436 - Add unit tests for this function.
 GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data) {
   if (data.length < 1) {
-    GNCLoggerError(@"[NEARBY] Invalid packet length: %@", @(data.length));
     return nil;
   }
 
@@ -125,7 +124,6 @@ GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data) {
   NSUInteger receivedDataLength = [data length];
   GNCMBLEL2CAPCommand command = (GNCMBLEL2CAPCommand)bytes[0];
   if (!IsSupportedCommand(command)) {
-    GNCLoggerError(@"[NEARBY] Invalid command: %lu", command);
     return nil;
   }
 
