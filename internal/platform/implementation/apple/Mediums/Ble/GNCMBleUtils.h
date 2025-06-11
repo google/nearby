@@ -79,6 +79,9 @@ NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data);
 /** Creates the disconnection packet for Ble SocketControlFrame. */
 NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash);
 
+/** Creates the packet acknowledgement packet for Ble SocketControlFrame. */
+NSData *GNCMGenerateBLEFramesPacketAcknowledgementPacket(NSData *serviceIDHash, int receivedSize);
+
 /** Parses the BLE L2CAP packet from the data. */
 GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data);
 

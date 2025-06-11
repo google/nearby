@@ -100,6 +100,25 @@ NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash) {
   return packet;
 }
 
+NSData *GNCMGenerateBLEFramesPacketAcknowledgementPacket(NSData *serviceIDHash, int receivedSize) {
+  ::location::nearby::mediums::SocketControlFrame socket_control_frame;
+
+  socket_control_frame.set_type(
+      ::location::nearby::mediums::SocketControlFrame::PACKET_ACKNOWLEDGEMENT);
+  auto *packet_acknowledgement_frame = socket_control_frame.mutable_packet_acknowledgement();
+  std::string service_id_hash((char *)serviceIDHash.bytes, (size_t)serviceIDHash.length);
+  packet_acknowledgement_frame->set_service_id_hash(service_id_hash);
+  packet_acknowledgement_frame->set_received_size(receivedSize);
+
+  NSMutableData *packet = [NSMutableData dataWithBytes:kGNCMControlPacketServiceIDHash
+                                                length:sizeof(kGNCMControlPacketServiceIDHash)];
+  std::ostringstream stream;
+  socket_control_frame.SerializeToOstream(&stream);
+  NSData *frameData = [NSData dataWithBytes:stream.str().data() length:stream.str().length()];
+  [packet appendData:frameData];
+  return packet;
+}
+
 @implementation GNCMBLEL2CAPPacket
 
 - (instancetype)initWithCommand:(GNCMBLEL2CAPCommand)command data:(nullable NSData *)data {

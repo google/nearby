@@ -217,6 +217,12 @@ static NSData *PrefixLengthData(NSData *data) {
     return bytesProcessed;
   }
 
+  dispatch_async(_selfQueue, ^{
+    [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesPacketAcknowledgementPacket(
+                          _serviceIDHash, realData.length))
+        completionBlock:^(BOOL result){
+        }];
+  });
   if (_connectionHandlers.payloadHandler) {
     dispatch_async(_callbackQueue, ^{
       _connectionHandlers.payloadHandler([NSData

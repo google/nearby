@@ -64,6 +64,7 @@ typedef void (^GNCBLEL2CAPStreamClosedBlock)(void);
 /// YES, data is completely written to the local L2CAP socket. Note that this does not necessarily
 /// mean the device received it. NO indicates writing failed, which typically happens when the
 /// stream is torn down.
+// TODO edwinwu - Makes the completionBlock nullable.
 - (void)sendData:(NSData *)data completionBlock:(void (^)(BOOL))completionBlock;
 
 /// Closes the stream.
