@@ -28,7 +28,6 @@
 #include "internal/platform/logging.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/scoped_refptr.h"
-#include "webrtc/api/task_queue/default_task_queue_factory.h"
 #include "webrtc/rtc_base/thread.h"
 
 namespace nearby {
@@ -98,8 +97,6 @@ void WebRtcMedium::CreatePeerConnection(
 
   webrtc::PeerConnectionDependencies dependencies(observer);
   webrtc::PeerConnectionFactoryDependencies factory_dependencies;
-  factory_dependencies.task_queue_factory =
-      webrtc::CreateDefaultTaskQueueFactory();
   factory_dependencies.signaling_thread = signaling_thread.release();
 
   webrtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
