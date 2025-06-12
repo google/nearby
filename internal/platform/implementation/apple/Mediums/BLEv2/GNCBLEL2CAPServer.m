@@ -41,6 +41,9 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
   GNCBLEL2CAPStream *_l2CAPStream;
   /// Whether start call has been performed when the peripheral was off.
   BOOL _alreadyStartedWhenPeripheralPoweredOff;
+
+  /// The peer ID of the opened channel. Nil if no channel is opened.
+  NSUUID *_Nullable _openedChannelPeerID;
 }
 
 - (instancetype)init {
@@ -59,6 +62,7 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
       // Set for @c GNCPeripheralManager to be able to forward callbacks.
       _peripheralManager.peripheralDelegate = self;
     }
+    _openedChannelPeerID = nil;
   }
   return self;
 }
@@ -91,7 +95,7 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
     // insufficient authentication errors due to initialization order.
     [_peripheralManager publishL2CAPChannelWithEncryption:NO];
   } else {
-    GNCLoggerInfo(@"[NEARBY] Peripheral must be on to start, waiting.");
+    GNCLoggerInfo(@"Peripheral must be on to start, waiting.");
     _alreadyStartedWhenPeripheralPoweredOff = YES;
   }
 }
@@ -124,9 +128,9 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
        didPublishL2CAPChannel:(CBL2CAPPSM)PSM
                         error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
-  GNCLoggerDebug(@"[NEARBY] didPublishL2CAPChannel with PSM: %@", @(PSM));
+  GNCLoggerDebug(@"didPublishL2CAPChannel with PSM: %@", @(PSM));
   if (error) {
-    GNCLoggerError(@"[NEARBY] Failed to publish L2CAP channel: %@", error);
+    GNCLoggerError(@"Failed to publish L2CAP channel: %@", error);
     if (_psmPublishedCompletionHandler) {
       _psmPublishedCompletionHandler(0, error);
     }
@@ -142,9 +146,9 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
      didUnpublishL2CAPChannel:(CBL2CAPPSM)PSM
                         error:(NSError *)error {
   dispatch_assert_queue(_queue);
-  GNCLoggerDebug(@"[NEARBY] didUnpublishL2CAPChannel on PSM %@", @(PSM));
+  GNCLoggerDebug(@"didUnpublishL2CAPChannel on PSM %@", @(PSM));
   if (error) {
-    GNCLoggerError(@"[NEARBY] Failed to unpublish L2CAP channel: %@", error);
+    GNCLoggerError(@"Failed to unpublish L2CAP channel: %@", error);
   }
   [_l2CAPStream tearDown];
   _l2CAPStream = nil;
@@ -155,14 +159,21 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
           didOpenL2CAPChannel:(nullable CBL2CAPChannel *)channel
                         error:(nullable NSError *)error {
   dispatch_assert_queue(_queue);
-  GNCLoggerDebug(
-      @"[NEARBY] didOpenL2CAPChannel, channel: %@, inputStream: %@, outputStream: %@, error: %@",
-      channel, channel.inputStream, channel.outputStream, error);
+  GNCLoggerDebug(@"didOpenL2CAPChannel, channel: %@, inputStream: %@, outputStream: %@, error: %@",
+                 channel, channel.inputStream, channel.outputStream, error);
   // TODO: edwinwu - channel.inputStream is null when doing testing. Refactor tests in the future.
   if (error || (channel && (!channel.inputStream || !channel.outputStream))) {
     if (_channelOpenedCompletionHandler) {
       _channelOpenedCompletionHandler(nil, error);
     }
+    return;
+  }
+
+  if (_openedChannelPeerID && ![_openedChannelPeerID isEqual:channel.peer.identifier]) {
+    GNCLoggerWarning(
+        @"didOpenL2CAPChannel, the connection request came from a device with different NSUUID. "
+        @"_openedChannelPeerID: %@, channel.peer.identifier: %@ ",
+        _openedChannelPeerID, channel.peer.identifier);
     return;
   }
 
@@ -175,6 +186,7 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
     [self closeL2CAPChannel];
   }
 
+  _openedChannelPeerID = channel.peer.identifier;
   _l2CAPChannel = channel;
   __weak __typeof__(self) weakSelf = self;
   _l2CAPStream = [[GNCBLEL2CAPStream alloc]
@@ -226,6 +238,7 @@ static char *const kGNCBLEL2CAPServerQueueLabel = "com.google.nearby.GNCBLEL2CAP
 }
 
 - (void)closeL2CAPChannel {
+  _openedChannelPeerID = nil;
   [_l2CAPStream tearDown];
   _l2CAPStream = nil;
   _l2CAPChannel = nil;
