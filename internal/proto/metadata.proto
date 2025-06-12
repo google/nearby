@@ -16,6 +16,8 @@ syntax = "proto3";
 
 package nearby.internal;
 
+import "internal/proto/credential.proto";
+
 // option java_api_version = 2;
 option java_multiple_files = true;
 option java_package = "com.google.nearby.presence";
@@ -48,6 +50,17 @@ message DeviceIdentityMetaData {
 
   // The device's manufacturer name
   string device_manufacturer = 7;
+
+  // identity of the user profile
+  PresenceIdentity identity = 8;
+}
+
+message PresenceIdentity {
+  // The type of the identity.
+  IdentityType identity_type = 1;
+
+  // The name of the identity provider.
+  string identity_provider_name = 2;
 }
 
 // The metadata of a device.

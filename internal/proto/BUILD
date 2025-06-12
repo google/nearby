@@ -56,6 +56,7 @@ proto_library(
     name = "metadata_proto",
     srcs = ["metadata.proto"],
     visibility = ["//visibility:private"],
+    deps = [":credential_proto"],
 )
 
 proto_library(
