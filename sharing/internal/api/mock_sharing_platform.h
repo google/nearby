@@ -51,11 +51,6 @@ class MockSharingPlatform : public SharingPlatform {
   MOCK_METHOD(void, InitProductIdGetter,
               (absl::string_view (*product_id_getter)()), (override));
 
-  MOCK_METHOD(void, InitLogging, (absl::string_view log_file_base_name),
-              (override));
-
-  MOCK_METHOD(void, UpdateLoggingLevel, (), (override));
-
   MOCK_METHOD(std::unique_ptr<nearby::api::NetworkMonitor>,
               CreateNetworkMonitor,
               (std::function<void(nearby::api::NetworkMonitor::ConnectionType,

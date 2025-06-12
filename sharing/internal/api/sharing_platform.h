@@ -50,12 +50,6 @@ class SharingPlatform {
   virtual void InitProductIdGetter(
       absl::string_view (*product_id_getter)()) = 0;
 
-  // This function should only be called once.
-  virtual void InitLogging(absl::string_view log_file_base_name) = 0;
-
-  // Platform specific implementation to set default logging levels.
-  virtual void UpdateLoggingLevel() = 0;
-
   virtual std::unique_ptr<nearby::api::NetworkMonitor> CreateNetworkMonitor(
       std::function<void(nearby::api::NetworkMonitor::ConnectionType, bool,
                          bool)>
