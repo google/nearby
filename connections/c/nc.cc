@@ -258,6 +258,10 @@ NC_INSTANCE NcCreateService() {
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableStopBLEScanningOnWifiUpgrade,
       true);
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      ::nearby::connections::config_package_nearby::nearby_connections_feature::
+          kUseStableEndpointId,
+      true);
 #endif
 
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
