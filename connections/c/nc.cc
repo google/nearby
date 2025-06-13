@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -48,6 +49,7 @@
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #if TARGET_OS_IOS
 #include "internal/platform/implementation/apple/nearby_logger.h"
@@ -682,7 +684,14 @@ void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
     cpp_payload =
         ::nearby::connections::Payload(payload->id, std::move(input_file));
   } else if (payload->type == NC_PAYLOAD_TYPE_STREAM) {
-    // TODO(guogang): support stream later.
+    if (payload->content.stream.stream == nullptr) {
+      result_callback(NC_STATUS_ERROR, context);
+      return;
+    }
+    cpp_payload =
+        ::nearby::connections::Payload(std::unique_ptr<nearby::InputStream>(
+            reinterpret_cast<nearby::InputStream*>(
+                payload->content.stream.stream)));
   }
 
   nc_context->core->SendPayload(
