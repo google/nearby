@@ -307,7 +307,6 @@ class NearbySharingServiceImpl
   // Returns the share target if it has been removed, std::nullopt otherwise.
   std::optional<ShareTarget> RemoveOutgoingShareTargetWithEndpointId(
       absl::string_view endpoint_id);
-  void RemoveOutgoingShareTargetAndReportLost(absl::string_view endpoint_id);
 
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);

@@ -2380,20 +2380,6 @@ void NearbySharingServiceImpl::OnRotateBackgroundAdvertisementTimerFired() {
   }
 }
 
-void NearbySharingServiceImpl::RemoveOutgoingShareTargetAndReportLost(
-    absl::string_view endpoint_id) {
-  std::optional<ShareTarget> share_target_opt =
-      RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
-  if (!share_target_opt.has_value()) {
-    return;
-  }
-  NotifyShareTargetLost(*share_target_opt);
-
-  VLOG(1) << __func__
-          << ": NotifyShareTargetLost for EndpointId: " << endpoint_id
-          << " share target: " << share_target_opt->ToString();
-}
-
 void NearbySharingServiceImpl::OnTransferComplete() {
   bool was_sending_files = is_sending_files_;
   is_receiving_files_ = false;
@@ -3452,19 +3438,13 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
     // Find the endpoint id that matches the given share target.
     auto it = outgoing_share_session_map_.find(share_target_id);
     if (it != outgoing_share_session_map_.end()) {
-      if (NearbyFlags::GetInstance().GetBoolFlag(
+      LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
+                << it->second.endpoint_id() << " to discovery_cache.";
+      MoveToDiscoveryCache(
+          it->second.endpoint_id(),
+          NearbyFlags::GetInstance().GetInt64Flag(
               config_package_nearby::nearby_sharing_feature::
-                  kDedupInUnregisterShareTarget)) {
-        LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
-                  << it->second.endpoint_id() << " to discovery_cache.";
-        MoveToDiscoveryCache(
-            it->second.endpoint_id(),
-            NearbyFlags::GetInstance().GetInt64Flag(
-                config_package_nearby::nearby_sharing_feature::
-                    kUnregisterTargetDiscoveryCacheLostExpiryMs));
-      } else {
-        RemoveOutgoingShareTargetAndReportLost(it->second.endpoint_id());
-      }
+                  kUnregisterTargetDiscoveryCacheLostExpiryMs));
     } else {
       // Be careful not to clear out the share session map if a new session
       // was started during the cancellation delay.

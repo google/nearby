@@ -73,9 +73,6 @@ constexpr auto kUseGrpcClient =
 // When true, call the 3P Nearby Identity API instead of the 1P private API
 constexpr auto kCallNearbyIdentityApi =
     flags::Flag<bool>(kConfigPackage, "45667328", false);
-// When true, dedup in UnregisterShareTarget.
-constexpr auto kDedupInUnregisterShareTarget =
-    flags::Flag<bool>(kConfigPackage, "45664277", false);
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFileFix =
     flags::Flag<bool>(kConfigPackage, "45657036", false);
@@ -131,7 +128,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
       {45667328, kCallNearbyIdentityApi},
-      {45664277, kDedupInUnregisterShareTarget},
       {45657036, kDeleteUnexpectedReceivedFileFix},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45665616, kHonor3PClientIdAndSecret},
