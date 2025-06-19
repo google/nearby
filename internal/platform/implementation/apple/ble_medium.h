@@ -26,12 +26,12 @@
 #include <vector>
 
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/bluetooth_adapter.h"
-#include "internal/platform/uuid.h"
 #import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_adapter.h"
+#include "internal/platform/uuid.h"
 
 @class GNCBLEMedium;
 @class GNSCentralManager;
@@ -163,6 +163,15 @@ class BleMedium : public api::ble_v2::BleMedium {
   //
   // This is currently always false for all Apple hardware.
   bool IsExtendedAdvertisementsAvailable() override;
+
+  // Retrieves a BlePeripheral ID from a native BLE peripheral ID.
+  // On Apple platform, the native ID is NSUUID in string format like
+  // "E621E1F8-C36C-495A-93FC-0C247A3E6E5F".
+  //
+  // Returns std::nullopt if cannot retrieve the BlePeripheral from the native
+  // BLE peripheral id.
+  std::optional<api::ble_v2::BlePeripheral::UniqueId> RetrieveBlePeripheralIdFromNativeId(
+      const std::string &ble_peripheral_native_id) override;
 
  private:
   // A map for maintaining the set of currently known peripherals.

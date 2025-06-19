@@ -584,6 +584,31 @@ bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return [medium_ supportsExtendedAdvertisements];
 }
 
+std::optional<api::ble_v2::BlePeripheral::UniqueId> BleMedium::RetrieveBlePeripheralIdFromNativeId(
+    const std::string &ble_peripheral_native_id) {
+  NSString *uuidString = [[NSString alloc] initWithUTF8String:ble_peripheral_native_id.c_str()];
+  if (uuidString == nil) {
+    GNCLoggerError(@"Empty native BLE peripheral ID is invalid.");
+    return std::nullopt;
+  }
+
+  NSUUID *uuidFromString = [[NSUUID alloc] initWithUUIDString:uuidString];
+  if (uuidFromString == nil) {
+    GNCLoggerError(@"Native BLE peripheral ID is not a valid UUID.");
+    return std::nullopt;
+  }
+
+  id<GNCPeripheral> peripheral = peripherals_.Get(uuidFromString.hash);
+  if (peripheral) {
+    // Already has the BLE peripheral, return the Nearby Connections BLE peripheral id.
+    return peripheral.identifier.hash;
+  }
+
+  // Retrieve the BLE peripheral from CBCentralManager.
+  peripheral = [socketCentralManager_ retrievePeripheralWithIdentifier:uuidFromString];
+  return peripheral.identifier.hash;
+}
+
 void BleMedium::ClearAdvertisementPacketsMap() {
   absl::MutexLock lock(&advertisement_packets_mutex_);
   advertisement_packets_map_.clear();

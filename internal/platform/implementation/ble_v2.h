@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -90,8 +91,7 @@ class BlePeripheral {
 
   BlePeripheral(UniqueId unique_id, MacAddress address)
       : unique_id_(unique_id), address_(std::move(address)) {}
-  explicit BlePeripheral(UniqueId unique_id = 0)
-      : unique_id_(unique_id) {}
+  explicit BlePeripheral(UniqueId unique_id = 0) : unique_id_(unique_id) {}
   virtual ~BlePeripheral() = default;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice#getAddress()
@@ -111,9 +111,7 @@ class BlePeripheral {
   virtual UniqueId GetUniqueId() const { return unique_id_; }
 
   // Sets platform specific data that can be retrieved by `GetPlatformData()`.
-  void SetPlatformData(void* platform_data) {
-    platform_data_ = platform_data;
-  }
+  void SetPlatformData(void* platform_data) { platform_data_ = platform_data; }
 
   void* GetPlatformData() const { return platform_data_; }
 
@@ -627,6 +625,20 @@ class BleMedium {
 
   virtual void AddAlternateUuidForService(uint16_t uuid,
                                           const std::string& service_id) {}
+
+  // Retrieves a BlePeripheral ID from a native BLE peripheral id.
+  // The native ID is platform specific and is used to identify a BLE
+  // peripheral. On iOS, it should be NSUUID in string format. On other
+  // platforms, it should be the Bluetooth address in string format
+  // "XX:XX:XX:XX:XX:XX".
+  //
+  // Returns std::nullopt if cannot retrieve the BlePeripheral from the native
+  // BLE peripheral id.
+  virtual std::optional<BlePeripheral::UniqueId>
+  RetrieveBlePeripheralIdFromNativeId(
+      const std::string& ble_peripheral_native_id) {
+    return std::nullopt;
+  }
 };
 
 }  // namespace ble_v2

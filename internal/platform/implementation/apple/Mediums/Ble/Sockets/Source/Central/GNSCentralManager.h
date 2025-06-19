@@ -183,6 +183,13 @@ NS_ASSUME_NONNULL_BEGIN
                        advertisementData:(NSDictionary<NSString *, id> *)advertisementData;
 
 /**
+ * Tries to retrieve a peripheral that matches the given identifier.
+ *
+ * @param identifier The peripheral identifier.
+ */
+- (nullable CBPeripheral *)retrievePeripheralWithIdentifier:(NSUUID *)identifier;
+
+/**
  * Stops "no-scan" mode.
  */
 - (void)stopNoScanMode;

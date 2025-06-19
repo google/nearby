@@ -143,6 +143,22 @@ static NSString *CBManagerStateString(CBManagerState state) {
   }
 }
 
+- (nullable CBPeripheral *)retrievePeripheralWithIdentifier:(NSUUID *)identifier {
+  NSAssert(_cbCentralManager, @"CBCentralManager not created.");
+  NSAssert(identifier, @"Should have an identifier, self: %@", self);
+
+  NSArray<CBPeripheral *> *peripherals =
+      [_cbCentralManager retrievePeripheralsWithIdentifiers:@[ identifier ]];
+
+  for (CBPeripheral *peripheral in peripherals) {
+    if ([peripheral.identifier isEqual:identifier]) {
+      return peripheral;
+    }
+  }
+
+  return nil;
+}
+
 - (void)stopNoScanMode {
   _advertisedServiceUUIDs = nil;
 }
@@ -181,8 +197,8 @@ static NSString *CBManagerStateString(CBManagerState state) {
                                     NSStringFromClass([self class]), self, _socketServiceUUID,
                                     _advertisedName, _scanning ? @"YES" : @"NO",
                                     _cbCentralScanStarted ? @"YES" : @"NO",
-                                    CBManagerStateString([self cbManagerState]),
-                                    _cbCentralManager, _centralPeerManagers];
+                                    CBManagerStateString([self cbManagerState]), _cbCentralManager,
+                                    _centralPeerManagers];
 }
 
 #pragma mark - Private
