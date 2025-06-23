@@ -211,6 +211,9 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
   if (NearbyFlags::GetInstance().GetBoolFlag(
           nearby::platform::config_package_nearby::nearby_platform_feature::
               kEnableBlockingSocket)) {
+    // The service may be running under WinRT when the flag is enabled.
+    dnssd_service_instance_ = nullptr;
+
     bool result = wifi_lan_mdns_.StopMdnsService();
 
     if (result) {
@@ -223,6 +226,9 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
     medium_status_ &= (~kMediumStatusAdvertising);
     return false;
   } else {
+    // The service may be running under Win32 when the flag is disabled.
+    wifi_lan_mdns_.StopMdnsService();
+
     dnssd_service_instance_ = nullptr;
 
     LOG(INFO) << "succeeded to stop mDNS advertising for service type ="

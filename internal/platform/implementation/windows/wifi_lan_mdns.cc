@@ -148,7 +148,7 @@ bool WifiLanMdns::StopMdnsService() {
   LOG(INFO) << "StopMdnsService is called";
   if (!is_service_started_) {
     LOG(WARNING) << "The mDNS service is not started.";
-    return false;
+    return true;
   }
 
   dns_service_notification_ = std::make_unique<absl::Notification>();
