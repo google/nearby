@@ -19,10 +19,7 @@ cc_library(
         "pcp.h",
         "webrtc_state.h",
     ],
-    visibility = [
-        "//connections:__subpackages__",
-        "//sharing:__subpackages__",
-    ],
+    visibility = ["//connections:__subpackages__"],
 )
 
 cc_library(
@@ -33,10 +30,7 @@ cc_library(
     hdrs = [
         "ble_advertisement.h",
     ],
-    visibility = [
-        "//connections:__subpackages__",
-        "//sharing:__subpackages__",
-    ],
+    visibility = ["//connections:__subpackages__"],
     deps = [
         ":types",
         "//internal/platform:base",
