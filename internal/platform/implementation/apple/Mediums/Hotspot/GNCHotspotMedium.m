@@ -75,12 +75,17 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     }
     if (connected) {
       NSString *currentSSID = [self getCurrentWifiSSID];
-      if ([currentSSID isEqualToString:ssid]) {
-        GNCLoggerDebug(@"Connected to %@ successfully", ssid);
+      if (currentSSID == nil) {
+        GNCLoggerInfo(@"Not able to get current SSID, assume connected");
         break;
       } else {
-        GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
-        connected = NO;
+        if ([currentSSID isEqualToString:ssid]) {
+          GNCLoggerDebug(@"Connected to %@ successfully", ssid);
+          break;
+        } else {
+          GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
+          connected = NO;
+        }
       }
     } else {
       [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
@@ -189,38 +194,46 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
 - (NSString *)getCurrentWifiSSID {
 #if TARGET_OS_IOS
-  // Request permission
-  CLLocationManager *locationManager = [[CLLocationManager alloc] init];
-  [locationManager requestWhenInUseAuthorization];
-  GNCLoggerDebug(@"Request Location permission");
   dispatch_semaphore_t semaphore_internal = dispatch_semaphore_create(0);
   __block NSString *networkSSID = nil;
+  CLAuthorizationStatus status;
 
-  // Delay 1 seconds to ensure that we got the permission
-  dispatch_after(
-      dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (@available(iOS 14.0, *)) {
-          [NEHotspotNetwork
-              fetchCurrentWithCompletionHandler:^(NEHotspotNetwork *_Nullable network) {
-                if (network) {
-                  networkSSID = network.SSID;
-                  GNCLoggerDebug(@"iOS 14+ Current Wi-Fi SSID: %@", networkSSID);
-                } else {
-                  GNCLoggerError(@"Failed to get current Wifi SSID");
-                }
-                dispatch_semaphore_signal(semaphore_internal);
-              }];
-        } else {
-          NSArray<NSString *> *interfaces = CFBridgingRelease(CNCopySupportedInterfaces());
-          for (NSString *interface in interfaces) {
-            id info =
-                CFBridgingRelease(CNCopyCurrentNetworkInfo((__bridge CFStringRef)(interface)));
-            networkSSID = [info valueForKey:@"SSID"];
-            GNCLoggerDebug(@"Current Wi-Fi SSID: %@", networkSSID);
-          }
-          dispatch_semaphore_signal(semaphore_internal);
-        }
-      });
+  // Request permission
+  GNCLoggerDebug(@"Request Location permission");
+  CLLocationManager *locationManager = [[CLLocationManager alloc] init];
+
+  if (@available(iOS 14.0, *)) {
+    status = locationManager.authorizationStatus;
+  } else {
+    status = [CLLocationManager authorizationStatus];
+  }
+
+  if (status != kCLAuthorizationStatusAuthorizedWhenInUse &&
+      status != kCLAuthorizationStatusAuthorizedAlways) {
+    GNCLoggerError(@"❌ Location access permission is not granted, skipping Hotspot SSID check");
+    return nil;
+  }
+
+  if (@available(iOS 14.0, *)) {
+    [NEHotspotNetwork fetchCurrentWithCompletionHandler:^(NEHotspotNetwork *_Nullable network) {
+      if (network) {
+        networkSSID = network.SSID;
+        GNCLoggerDebug(@"iOS 14+ Current Wi-Fi SSID: %@", networkSSID);
+      } else {
+        GNCLoggerError(@"Failed to get current Wifi SSID");
+      }
+      dispatch_semaphore_signal(semaphore_internal);
+    }];
+  } else {
+    NSArray<NSString *> *interfaces = CFBridgingRelease(CNCopySupportedInterfaces());
+    for (NSString *interface in interfaces) {
+      id info = CFBridgingRelease(CNCopyCurrentNetworkInfo((__bridge CFStringRef)(interface)));
+      networkSSID = [info valueForKey:@"SSID"];
+      GNCLoggerDebug(@"Current Wi-Fi SSID: %@", networkSSID);
+    }
+    dispatch_semaphore_signal(semaphore_internal);
+  }
+
   dispatch_time_t timeout =
       dispatch_time(DISPATCH_TIME_NOW, kConnectionToHostTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
