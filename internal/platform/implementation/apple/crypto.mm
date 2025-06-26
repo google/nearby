@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/crypto.h"
 
+#import <Foundation/Foundation.h>
+
 #import "absl/strings/string_view.h"
 #import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/utils.h"
@@ -25,13 +27,14 @@ void Crypto::Init() {}
 ByteArray Crypto::Md5(absl::string_view input) {
   if (input.empty()) return ByteArray();
 
-  return ByteArrayFromNSData(GNCMd5String(ObjCStringFromCppString(input)));
+  return ByteArrayFromNSData(GNCMd5Data([NSData dataWithBytes:input.data() length:input.size()]));
 }
 
 ByteArray Crypto::Sha256(absl::string_view input) {
   if (input.empty()) return ByteArray();
 
-  return ByteArrayFromNSData(GNCSha256String(ObjCStringFromCppString(input)));
+  return ByteArrayFromNSData(GNCSha256Data([NSData dataWithBytes:input.data()
+                                                          length:input.size()]));
 }
 
 }  // namespace nearby
