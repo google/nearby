@@ -437,6 +437,10 @@ void NearbySharingServiceImpl::RegisterSendSurface(
                   << static_cast<uint8_t>(blocked_vendor_id)
                   << ", disable_wifi_hotspot: " << disable_wifi_hotspot
                   << ", transfer_callback: " << transfer_callback;
+        LOG(ERROR) << __func__ << "XXX before foreground_send_surface_map_: "
+                   << foreground_send_surface_map_.size();
+        LOG(ERROR) << __func__ << "XXX before background_send_surface_map_: "
+                   << background_send_surface_map_.size();
 
         if (foreground_send_surface_map_.contains(transfer_callback) ||
             background_send_surface_map_.contains(transfer_callback)) {
@@ -467,11 +471,21 @@ void NearbySharingServiceImpl::RegisterSendSurface(
             return;
           }
 
-          foreground_send_surface_map_.insert(
-              {transfer_callback, wrapped_callback});
+          if (foreground_send_surface_map_
+                  .insert({transfer_callback, wrapped_callback})
+                  .second) {
+            LOG(ERROR) << __func__
+                       << "XXX insert foreground_send_surface_map_: "
+                       << transfer_callback;
+          }
         } else {
-          background_send_surface_map_.insert(
-              {transfer_callback, wrapped_callback});
+          if (background_send_surface_map_
+                  .insert({transfer_callback, wrapped_callback})
+                  .second) {
+            LOG(ERROR) << __func__
+                       << "XXX insert background_send_surface_map_: "
+                       << transfer_callback;
+          }
         }
 
         if (is_receiving_files_) {
@@ -558,10 +572,14 @@ void NearbySharingServiceImpl::UnregisterSendSurface(
       "api_unregister_send_surface",
       [this, transfer_callback,
        status_codes_callback = std::move(status_codes_callback)]() {
+        VLOG(1) << "Before UnregisterSendSurface: foreground_send_surface_map_:"
+                << foreground_send_surface_map_.size()
+                << ", background_send_surface_map_:"
+                << background_send_surface_map_.size();
         StatusCodes status_codes =
             InternalUnregisterSendSurface(transfer_callback);
 
-        VLOG(1) << "UnregisterSendSurface: foreground_send_surface_map_:"
+        VLOG(1) << "After UnregisterSendSurface: foreground_send_surface_map_:"
                 << foreground_send_surface_map_.size()
                 << ", background_send_surface_map_:"
                 << background_send_surface_map_.size();
