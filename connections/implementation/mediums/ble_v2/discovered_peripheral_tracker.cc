@@ -196,8 +196,7 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
 
   for (const auto& hash : on_lost_advertisement->hashes()) {
     for (const auto& it : gatt_advertisement_infos_) {
-      if (it.second.advertisement_header.GetAdvertisementHash().string_data() ==
-          hash) {
+      if (it.second.instant_on_lost_hash.string_data() == hash) {
         auto discovery_cb_it = service_id_infos_.find(it.second.service_id);
         if (discovery_cb_it == service_id_infos_.end()) {
           LOG(INFO)
@@ -216,7 +215,10 @@ bool DiscoveredPeripheralTracker::HandleOnLostAdvertisementLocked(
           if (gatt_advertisement.IsValid()) {
             if (NearbyFlags::GetInstance().GetBoolFlag(
                     config_package_nearby::nearby_connections_feature::
-                        kEnableInstantOnLost)) {
+                        kEnableInstantOnLost) ||
+                NearbyFlags::GetInstance().GetBoolFlag(
+                    config_package_nearby::nearby_connections_feature::
+                        kEnableScanningForInstantOnLost)) {
               AddInstantLostAdvertisement(it.second.advertisement_header);
               discovery_cb_it->second.discovered_peripheral_callback
                   .instant_lost_cb(lost_peripheral, it.second.service_id,
@@ -500,7 +502,10 @@ BleAdvertisementHeader DiscoveredPeripheralTracker::HandleRawGattAdvertisements(
     GattAdvertisementInfo gatt_advertisement_info = {
         .service_id = service_id,
         .advertisement_header = new_advertisement_header,
-        .peripheral = peripheral};
+        .peripheral = peripheral,
+        .instant_on_lost_hash = bleutils::GenerateAdvertisementHash(
+            gatt_advertisement.ByteArrayWithExtraField())};
+
     gatt_advertisement_infos_.insert_or_assign(
         gatt_advertisement, std::move(gatt_advertisement_info));
   }

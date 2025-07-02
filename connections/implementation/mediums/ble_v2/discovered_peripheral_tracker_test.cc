@@ -341,8 +341,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 0);
 }
 
-TEST_P(DiscoveredPeripheralTrackerTest,
-       DctAdvertisementPeripheralDiscovered) {
+TEST_P(DiscoveredPeripheralTrackerTest, DctAdvertisementPeripheralDiscovered) {
   ByteArray dct_advertisement_bytes = CreateDctAdvertisement(
       std::string(kServiceIdA), std::string(kDeviceName));
   CountDownLatch found_latch(1);
@@ -1204,7 +1203,8 @@ TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForInstantOnLost) {
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
 
   auto advertisement = InstantOnLostAdvertisement::CreateFromHashes(
-      std::list<std::string>({std::string(advertisement_hash)}));
+      std::list<std::string>({std::string(
+          bleutils::GenerateAdvertisementHash(advertisement_bytes))}));
   ASSERT_OK(advertisement);
   api::ble_v2::BleAdvertisementData loss_advertisement_data{};
   loss_advertisement_data.service_data.insert(
@@ -1269,7 +1269,8 @@ TEST_P(DiscoveredPeripheralTrackerTest, InstantLostPeripheralForInstantOnLost) {
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
 
   auto advertisement = InstantOnLostAdvertisement::CreateFromHashes(
-      std::list<std::string>({std::string(advertisement_hash)}));
+      std::list<std::string>({std::string(
+          bleutils::GenerateAdvertisementHash(advertisement_bytes))}));
   ASSERT_OK(advertisement);
   api::ble_v2::BleAdvertisementData loss_advertisement_data{};
   loss_advertisement_data.service_data.insert(
@@ -1340,7 +1341,8 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
   CountDownLatch fetch_latch2(1);
   auto advertisement = InstantOnLostAdvertisement::CreateFromHashes(
-      std::list<std::string>({std::string(advertisement_hash)}));
+      std::list<std::string>({std::string(
+          bleutils::GenerateAdvertisementHash(advertisement_bytes))}));
   ASSERT_OK(advertisement);
   api::ble_v2::BleAdvertisementData loss_advertisement_data{};
   loss_advertisement_data.service_data.insert(

@@ -141,8 +141,11 @@ class DiscoveredPeripheralTracker {
     // gatt_advertisements_.
     BleAdvertisementHeader advertisement_header;
 
-    // A proxy BlePeripheral for found/lost disovery callback.
+    // A proxy BlePeripheral for found/lost discovery callback.
     BleV2Peripheral peripheral;
+
+    // Hash for instant on lost.
+    ByteArray instant_on_lost_hash;
   };
 
   // Clears stale data from any previous sessions.

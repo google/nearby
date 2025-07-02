@@ -107,7 +107,10 @@ BleV2::~BleV2() {
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableInstantOnLost)) {
+              kEnableInstantOnLost) ||
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableAdvertisingForInstantOnLost)) {
     instant_on_lost_manager_.Shutdown();
   }
 }
@@ -272,7 +275,10 @@ bool BleV2::StopAdvertising(const std::string& service_id) {
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableInstantOnLost)) {
+              kEnableInstantOnLost) ||
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableAdvertisingForInstantOnLost)) {
     instant_on_lost_manager_.OnAdvertisingStopped(service_id);
   }
 
@@ -1197,7 +1203,10 @@ bool BleV2::StartFastAdvertisingLocked(
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableInstantOnLost)) {
+              kEnableInstantOnLost) ||
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableAdvertisingForInstantOnLost)) {
     instant_on_lost_manager_.OnAdvertisingStarted(service_id,
                                                   medium_advertisement_bytes);
   }
@@ -1233,7 +1242,10 @@ bool BleV2::StartRegularAdvertisingLocked(
     } else {
       if (NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_connections_feature::
-                  kEnableInstantOnLost)) {
+                  kEnableInstantOnLost) ||
+          NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_connections_feature::
+                  kEnableAdvertisingForInstantOnLost)) {
         instant_on_lost_manager_.OnAdvertisingStarted(
             service_id, medium_advertisement_bytes);
       }
@@ -1319,10 +1331,12 @@ bool BleV2::StartGattAdvertisingLocked(
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableInstantOnLost)) {
-    for (const auto& item : advertising_data.service_data) {
-      instant_on_lost_manager_.OnAdvertisingStarted(service_id, item.second);
-    }
+              kEnableInstantOnLost) ||
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableAdvertisingForInstantOnLost)) {
+    instant_on_lost_manager_.OnAdvertisingStarted(service_id,
+                                                  medium_advertisement_bytes);
   }
 
   return true;

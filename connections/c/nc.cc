@@ -256,7 +256,7 @@ NC_INSTANCE NcCreateService() {
       true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableStopBLEScanningOnWifiUpgrade,
+          kEnableStopBleScanningOnWifiUpgrade,
       true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::

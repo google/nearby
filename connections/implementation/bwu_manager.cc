@@ -983,7 +983,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
       config_package_nearby::nearby_connections_feature::kEnableBleV2);
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableStopBLEScanningOnWifiUpgrade)) {
+              kEnableStopBleScanningOnWifiUpgrade)) {
     if (client->GetLocalOsInfo().type() ==
             location::nearby::connections::OsInfo::APPLE &&
         old_medium == Medium::BLE && medium == Medium::WIFI_HOTSPOT) {
@@ -1005,7 +1005,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableStopBLEScanningOnWifiUpgrade)) {
+              kEnableStopBleScanningOnWifiUpgrade)) {
     if (disable_ble_scanning) {
       if (enable_ble_v2) {
         NEARBY_LOGS(INFO) << "Resume BLE_V2 scanning.";
