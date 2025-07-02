@@ -66,6 +66,7 @@ class BleAdvertisement {
   static constexpr int kVersionBitmask = 0x0E0;
   static constexpr int kSocketVersionBitmask = 0x01C;
   static constexpr int kFastAdvertisementFlagBitmask = 0x002;
+  static constexpr int kSecondProfileBitmask = 0x001;
   static constexpr int kDataSizeLength = 4;      // Length of one int.
   static constexpr int kFastDataSizeLength = 1;  // Length of one byte.
   static constexpr int kMinAdvertisementLength =
@@ -114,6 +115,7 @@ class BleAdvertisement {
   Version GetVersion() const { return version_; }
   SocketVersion GetSocketVersion() const { return socket_version_; }
   bool IsFastAdvertisement() const { return fast_advertisement_; }
+  bool IsSecondProfile() const { return is_second_profile_; }
   ByteArray GetServiceIdHash() const { return service_id_hash_; }
   ByteArray &GetData() & { return data_; }
   const ByteArray &GetData() const & { return data_; }
@@ -122,6 +124,12 @@ class BleAdvertisement {
   ByteArray GetDeviceToken() const { return device_token_; }
   int GetPsm() const { return psm_; }
   void SetPsm(int psm) { psm_ = psm; }
+  ByteArray GetRxInstantConnectionAdv() const {
+    return rx_instant_connection_adv_;
+  }
+  void SetRxInstantConnectionAdv(const ByteArray &rx_instant_connection_adv) {
+    rx_instant_connection_adv_ = rx_instant_connection_adv;
+  }
   std::string ToReadableString() const {
     return absl::StrFormat(
         "BleAdvertisement { version=%d, socket_version=%d, "
@@ -142,21 +150,30 @@ class BleAdvertisement {
   // e.g. [BIT_MASK][X_FIELD(2 Bytes)][LENGTH(2 Bytes) + Y_FIELD(n Bytes)]
   //
   // Below is the current fields
-  // [BIT_MASK][PSM_VALUE(2 Bytes)]
+  // [BIT_MASK][PSM_VALUE(2 Bytes)][RX_INSTANT_CONNECTION_ADV(1 Byte length +
+  // 1~N Bytes data)]
   //
   // The PSM (protocol service multiplexer) value is used for create data
   // connection on L2CAP socket. It only exists when remote device supports
   // L2CAP socket feature.
   class BleExtraFields {
    public:
-    explicit BleExtraFields(int psm);
+    static constexpr int kRxInstantConnectionAdvSizeLength = 1;
+
+    explicit BleExtraFields(int psm,
+                            const ByteArray &rx_instant_connection_adv);
     explicit BleExtraFields(const ByteArray &ble_extra_fields_bytes);
     explicit operator ByteArray() const;
 
     int GetPsm() const { return psm_; }
 
+    ByteArray GetRxInstantConnectionAdv() const {
+      return rx_instant_connection_adv_;
+    }
+
    private:
     int psm_ = BleAdvertisementHeader::kDefaultPsmValue;
+    ByteArray rx_instant_connection_adv_;
   };
 
   void DoInitialize(bool fast_advertisement, Version version,
@@ -165,9 +182,6 @@ class BleAdvertisement {
                     const ByteArray &device_token, int psm);
   static bool IsSupportedVersion(Version version);
   static bool IsSupportedSocketVersion(SocketVersion socket_version);
-  void SerializeDataSize(bool fast_advertisement,
-                         char *data_size_bytes_write_ptr,
-                         size_t data_size) const;
   int ComputeAdvertisementLength(int data_length, int total_optional_length,
                                  bool fast_advertisement) const {
     // The advertisement length is the minimum length + the length of the data +
@@ -181,10 +195,12 @@ class BleAdvertisement {
   Version version_{Version::kUndefined};
   SocketVersion socket_version_{SocketVersion::kUndefined};
   bool fast_advertisement_ = false;
+  bool is_second_profile_ = false;
   ByteArray service_id_hash_;
   ByteArray data_;
   ByteArray device_token_;
   int psm_ = BleAdvertisementHeader::kDefaultPsmValue;
+  ByteArray rx_instant_connection_adv_;
 };
 
 }  // namespace mediums

@@ -15,6 +15,8 @@
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstring>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -22,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/hash/hash_testing.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
 #include "internal/platform/byte_array.h"
@@ -571,6 +574,30 @@ TEST(BleAdvertisementTest, Hash) {
                        ByteArray{}, ByteArray(std::string(kFastData)),
                        ByteArray(std::string(kDeviceToken))),
   }));
+}
+
+TEST(BleAdvertisementTest, TestExtraFields) {
+  ByteArray advertisement_data{
+      std::string("\x48\xfc\x9f\x5e\x00\x00\x00\x33\x23\xfc"
+                  "\x9f\x5e\x36\x58\x42\x54\x22\x22\x96\xe6"
+                  "\xe2\x0f\xc4\x4a\x61\x87\xfe\xf9\xbb\xc4"
+                  "\x98\x4b\x1c\x8a\x10\x6e\x65\x61\x72\x62"
+                  "\x79\x27\x73\x20\x50\x69\x78\x65\x6c\x20"
+                  "\x37\x0c\xc4\x13\x2e\xdc\x8d\x00\x00\xbf"
+                  "\xf9\x02\x3f\xa0\x17\x79\x15\xfa\x9c\x97"
+                  "\xb8\x5a\x3b\x1f\xd9\x54\x8e\x13\xe2\xf5"
+                  "\xb7\x0b\xb0\x91\xaf\x7b\x17\x4c\x6b\x6f"
+                  "\x67\x3b\xda\xc9\x1c\x10\x28\x84\x15\x05"
+                  "\x61\x00\x00\x84\x15\x06\x61\x00\x00\x84"
+                  "\x15\x04\x7f\x00\x00\x84\x15\x07\x61\x00"
+                  "\x00\x83\x15\x01\x16\x44",
+                  126)};
+  absl::StatusOr<BleAdvertisement> ble_advertisement =
+      BleAdvertisement::CreateBleAdvertisement(advertisement_data);
+  EXPECT_EQ(ble_advertisement->GetPsm(), 0);
+  EXPECT_FALSE(ble_advertisement->IsFastAdvertisement());
+  EXPECT_TRUE(ble_advertisement.ok());
+  EXPECT_EQ(ble_advertisement->ByteArrayWithExtraField(), advertisement_data);
 }
 
 }  // namespace

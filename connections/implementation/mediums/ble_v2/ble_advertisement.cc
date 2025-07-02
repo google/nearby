@@ -27,6 +27,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/stream_reader.h"
+#include "internal/platform/stream_writer.h"
 
 namespace nearby {
 namespace connections {
@@ -35,6 +36,7 @@ namespace mediums {
 namespace {
 
 constexpr uint8_t kPsmBitmask = 0x01;
+constexpr uint8_t kRxInstantConnectionAdvBitmask = 0x02;
 
 bool HasField(uint8_t field_mask, uint8_t psm_bit) {
   return (field_mask & psm_bit) > 0;
@@ -125,6 +127,9 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   bool fast_advertisement =
       static_cast<bool>((*version_byte & kFastAdvertisementFlagBitmask) >> 1);
 
+  bool is_second_profile =
+      static_cast<bool>(*version_byte & kSecondProfileBitmask);
+
   // The next 3 bytes are supposed to be the service_id_hash if not fast
   // advertisement.
   ByteArray service_id_hash;
@@ -171,6 +176,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   ble_advertisement.version_ = version;
   ble_advertisement.socket_version_ = socket_version;
   ble_advertisement.fast_advertisement_ = fast_advertisement;
+  ble_advertisement.is_second_profile_ = is_second_profile;
   ble_advertisement.service_id_hash_ = service_id_hash;
   ble_advertisement.data_ = data;
 
@@ -183,25 +189,40 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
           "Cannot deserialize BleAdvertisement: device_token.");
     }
     ble_advertisement.device_token_ = *device_token_bytes;
-  } else {
-    // No device token no more optional field.
-    return ble_advertisement;
   }
 
   // Extra fields, for backward compatible reason, put this field in the end of
   // this advertisement. That means it must support device token if there's any
   // extra field. E.g. If iOS or other platform wants to use extra fields, need
   // to put a random or empty device token in the advertisement.
-  int extra_fields_byte_number =
-      kExtraFieldsMaskLength + BleAdvertisementHeader::kPsmValueByteLength;
-  if (stream_reader.IsAvailable(extra_fields_byte_number)) {
-    auto extra_fields_bytes = stream_reader.ReadBytes(extra_fields_byte_number);
-    if (!extra_fields_bytes.has_value()) {
-      return absl::InvalidArgumentError(
-          "Cannot deserialize BleAdvertisement: extra_field.");
+  if (stream_reader.IsAvailable(kExtraFieldsMaskLength)) {
+    uint8_t extra_fields_mask = stream_reader.ReadUint8().value_or(0);
+    if (extra_fields_mask & kPsmBitmask) {
+      auto psm_value = stream_reader.ReadUint16();
+      if (!psm_value.has_value()) {
+        return absl::InvalidArgumentError(
+            "Cannot deserialize BleAdvertisement: psm_value.");
+      }
+      ble_advertisement.psm_ = *psm_value;
     }
-    BleExtraFields extra_fields{*extra_fields_bytes};
-    ble_advertisement.psm_ = extra_fields.GetPsm();
+
+    if (extra_fields_mask & kRxInstantConnectionAdvBitmask) {
+      auto rx_instant_connection_adv_byte = stream_reader.ReadUint8();
+      if (!rx_instant_connection_adv_byte.has_value()) {
+        return absl::InvalidArgumentError(
+            "Cannot deserialize BleAdvertisement: "
+            "rx_instant_connection_adv_byte.");
+      }
+      auto rx_instant_connection_adv_data =
+          stream_reader.ReadBytes(*rx_instant_connection_adv_byte);
+      if (!rx_instant_connection_adv_data.has_value()) {
+        return absl::InvalidArgumentError(
+            "Cannot deserialize BleAdvertisement: "
+            "rx_instant_connection_adv_data.");
+      }
+      ble_advertisement.rx_instant_connection_adv_ =
+          *rx_instant_connection_adv_data;
+    }
   }
   return ble_advertisement;
 }
@@ -211,6 +232,8 @@ BleAdvertisement::operator ByteArray() const {
     return ByteArray{};
   }
 
+  StreamWriter stream_writer;
+
   // The first 3 bits are the Version.
   char version_byte = (static_cast<char>(version_) << 5) & kVersionBitmask;
   // The next 3 bits are the Socket version. 2 bits left are reserved.
@@ -219,37 +242,34 @@ BleAdvertisement::operator ByteArray() const {
   // The next 1 bit is the fast advertisement flag. 1 bit left is reserved.
   version_byte |= (static_cast<char>(fast_advertisement_ ? 1 : 0) << 1) &
                   kFastAdvertisementFlagBitmask;
+  version_byte |=
+      (static_cast<char>(is_second_profile_ ? 1 : 0)) & kSecondProfileBitmask;
+
+  stream_writer.WriteUint8(version_byte);
 
   // Serialize Data size bytes
-  ByteArray data_size_bytes{static_cast<size_t>(
-      fast_advertisement_ ? kFastDataSizeLength : kDataSizeLength)};
-  auto *data_size_bytes_write_ptr = data_size_bytes.data();
-  SerializeDataSize(fast_advertisement_, data_size_bytes_write_ptr,
-                    data_.size());
+  if (fast_advertisement_) {
+    stream_writer.WriteUint8(data_.size());
+    stream_writer.WriteBytes(std::string(data_));
+    stream_writer.WriteBytes(std::string(device_token_));
+  } else {
+    stream_writer.WriteBytes(std::string(service_id_hash_));
+    stream_writer.WriteUint32(data_.size());
+    stream_writer.WriteBytes(std::string(data_));
+    stream_writer.WriteBytes(std::string(device_token_));
+  }
 
   // For Extra fields, there's no space for legacy fast advertisement, use
   // ByteArrayWithExtraField() to get the new advertisement bytes for extended
   // advertising.
 
-  // clang-format on
-  if (fast_advertisement_) {
-    std::string out =
-        absl::StrCat(std::string(1, version_byte), std::string(data_size_bytes),
-                     std::string(data_), std::string(device_token_));
-    return ByteArray{std::move(out)};
-  } else {
-    std::string out = absl::StrCat(
-        std::string(1, version_byte), std::string(service_id_hash_),
-        std::string(data_size_bytes), std::string(data_),
-        std::string(device_token_));
-    return ByteArray{std::move(out)};
-  }
-  // clang-format on
+  return ByteArray{stream_writer.GetData()};
 }
 
 ByteArray BleAdvertisement::ByteArrayWithExtraField() const {
   ByteArray advertisement_bytes = ByteArray(*this);
-  ByteArray extra_fields_bytes = ByteArray(BleExtraFields(psm_));
+  ByteArray extra_fields_bytes =
+      ByteArray(BleExtraFields(psm_, rx_instant_connection_adv_));
 
   std::string advertisement_with_extra_fields_bytes = absl::StrCat(
       std::string(advertisement_bytes), std::string(extra_fields_bytes));
@@ -264,7 +284,8 @@ bool BleAdvertisement::operator==(const BleAdvertisement &rhs) const {
          this->GetServiceIdHash() == rhs.GetServiceIdHash() &&
          this->GetData() == rhs.GetData() &&
          this->GetDeviceToken() == rhs.GetDeviceToken() &&
-         this->GetPsm() == rhs.GetPsm();
+         this->GetPsm() == rhs.GetPsm() &&
+         this->GetRxInstantConnectionAdv() == rhs.GetRxInstantConnectionAdv();
 }
 
 bool BleAdvertisement::IsSupportedVersion(Version version) {
@@ -276,23 +297,9 @@ bool BleAdvertisement::IsSupportedSocketVersion(SocketVersion socket_version) {
          socket_version <= SocketVersion::kV2;
 }
 
-void BleAdvertisement::SerializeDataSize(bool fast_advertisement,
-                                         char *data_size_bytes_write_ptr,
-                                         size_t data_size) const {
-  // Get a raw representation of the data size bytes in memory.
-  char *data_size_bytes = reinterpret_cast<char *>(&data_size);
-
-  const int data_size_length =
-      fast_advertisement ? kFastDataSizeLength : kDataSizeLength;
-
-  // Append these raw bytes to advertisement bytes, keeping in mind that we need
-  // to convert from Little Endian to Big Endian in the process.
-  for (int i = 0; i < data_size_length; ++i) {
-    data_size_bytes_write_ptr[i] = data_size_bytes[data_size_length - i - 1];
-  }
-}
-
-BleAdvertisement::BleExtraFields::BleExtraFields(int psm) : psm_(psm) {}
+BleAdvertisement::BleExtraFields::BleExtraFields(
+    int psm, const ByteArray &rx_instant_connection_adv)
+    : psm_(psm), rx_instant_connection_adv_(rx_instant_connection_adv) {}
 
 BleAdvertisement::BleExtraFields::BleExtraFields(
     const ByteArray &ble_extra_fields_bytes) {
@@ -313,22 +320,39 @@ BleAdvertisement::BleExtraFields::BleExtraFields(
       stream_reader.IsAvailable(BleAdvertisementHeader::kPsmValueByteLength)) {
     psm_ = stream_reader.ReadUint16().value_or(0);
   }
+
+  if (HasField(mask_byte, kRxInstantConnectionAdvBitmask) &&
+      stream_reader.IsAvailable(kRxInstantConnectionAdvSizeLength)) {
+    auto rx_instant_connection_adv_byte = stream_reader.ReadUint8();
+    auto rx_instant_connection_adv_data =
+        stream_reader.ReadBytes(*rx_instant_connection_adv_byte);
+    if (rx_instant_connection_adv_data.has_value()) {
+      rx_instant_connection_adv_ = *rx_instant_connection_adv_data;
+    }
+  }
 }
 
 BleAdvertisement::BleExtraFields::operator ByteArray() const {
-  if (psm_ == BleAdvertisementHeader::kDefaultPsmValue) {
+  if (psm_ == BleAdvertisementHeader::kDefaultPsmValue &&
+      rx_instant_connection_adv_.Empty()) {
     return ByteArray{};
   }
 
-  ByteArray psm_byte{BleAdvertisementHeader::kPsmValueByteLength};
-  char *data = psm_byte.data();
-  // Save the PSM value in network byte order.
-  data[0] = (psm_ >> 8) & 0xFF;
-  data[1] = psm_ & 0xFF;
+  StreamWriter stream_writer;
+  stream_writer.WriteUint8(
+      (psm_ != BleAdvertisementHeader::kDefaultPsmValue ? kPsmBitmask : 0) |
+      (rx_instant_connection_adv_.Empty() ? 0
+                                          : kRxInstantConnectionAdvBitmask));
+  if (psm_ != BleAdvertisementHeader::kDefaultPsmValue) {
+    stream_writer.WriteUint16(psm_);
+  }
 
-  std::string out =
-      absl::StrCat(std::string(1, kPsmBitmask), std::string(psm_byte));
-  return ByteArray{std::move(out)};
+  if (!rx_instant_connection_adv_.Empty()) {
+    stream_writer.WriteUint8(rx_instant_connection_adv_.size());
+    stream_writer.WriteBytes(std::string(rx_instant_connection_adv_));
+  }
+
+  return ByteArray{stream_writer.GetData()};
 }
 
 }  // namespace mediums
