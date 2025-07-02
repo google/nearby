@@ -3128,8 +3128,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartAwdlAdvertising(
                  << ", endpoint_info="
                  << absl::BytesToHexString(local_endpoint_info.data()) << "}.";
     awdl_medium_.StopAcceptingConnections(service_id);
-    return {
-        Error(OperationResultCode::NEARBY_WIFI_LAN_ADVERTISE_TO_BYTES_FAILURE)};
+    return {Error(OperationResultCode::NEARBY_AWDL_ADVERTISE_TO_BYTES_FAILURE)};
   }
   LOG(INFO) << "In StartAwdlAdvertising("
             << absl::BytesToHexString(local_endpoint_info.data())
