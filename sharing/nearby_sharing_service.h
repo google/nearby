@@ -20,7 +20,6 @@
 #include <memory>
 #include <string>
 
-#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/time/time.h"
 #include "internal/platform/clock.h"
