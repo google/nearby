@@ -121,8 +121,7 @@ class BleV2 final {
   // service UUID16 may be used to trigger a GATT connection to retrieve GATT
   // characteristics for the Nearby service
   // These alternate uuids are active until the next call to `StopScanning`.
-  void AddAlternateUuidForService(
-      uint16_t uuid, const std::string& service_id);
+  void AddAlternateUuidForService(uint16_t uuid, const std::string& service_id);
 
   // Enables BLE scanning for a service ID. Will report any discoverable
   // advertisement data through a callback.
@@ -163,7 +162,9 @@ class BleV2 final {
 
   // Starts a worker thread, creates a Ble L2CAP socket, associates it with a
   // service id.
-  ErrorOr<bool> StartAcceptingL2capConnections(
+  // Returns the PSM of the L2CAP channel on success, or an error code on
+  // failure.
+  ErrorOr<int> StartAcceptingL2capConnections(
       const std::string& service_id,
       AcceptedL2capConnectionCallback l2cap_callback)
       ABSL_LOCKS_EXCLUDED(mutex_);

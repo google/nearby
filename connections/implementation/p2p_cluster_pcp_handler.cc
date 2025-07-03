@@ -2737,6 +2737,9 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
   // Bluetooth Classic.
   LOG(INFO) << "P2pClusterPcpHandler::StartBleV2Advertising: service_id="
             << service_id << " : start";
+
+  ErrorOr<int> ble_l2cap_result = 0;
+
   if (!ble_v2_medium_.IsAcceptingConnections(service_id)) {
     // TODO(b/380411884): Remove this check since we shouldn't enable radio by
     // NC.
@@ -2750,7 +2753,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
           << service_id;
       return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
     }
-    ErrorOr<bool> ble_l2cap_result = true;
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableBleL2cap)) {
@@ -2864,8 +2866,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
     // Try to read device name from local_endpoint_info.
     std::optional<std::string> device_name =
         advertisements::ReadDeviceName(local_endpoint_info);
-    // TODO(b/399740422): Get the real PSM from the L2CAP medium.
-    uint16_t psm = 0x11;
+    uint16_t psm = ble_l2cap_result.value();
     if (device_name.has_value()) {
       std::optional<advertisements::ble::DctAdvertisement> dct_advertisement =
           advertisements::ble::DctAdvertisement::Create(

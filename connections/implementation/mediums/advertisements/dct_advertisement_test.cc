@@ -103,5 +103,15 @@ TEST(DctAdvertisementTest, GenerateEndpointIdWithInvalidParameters) {
       DctAdvertisement::GenerateEndpointId(0x10, "device\xff").has_value());
 }
 
+TEST(DctAdvertisementTest, ParseData) {
+  std::optional<DctAdvertisement> dct_advertisement =
+      DctAdvertisement::Parse(std::string("\x20\x25\x6d\xfd\x24\x00\xc0\x88\x07"
+                                          "\x96\x74\x65\x73\x74\x64\x65\x76",
+                                          17));
+  EXPECT_TRUE(dct_advertisement.has_value());
+  EXPECT_EQ(dct_advertisement->GetDeviceName(), "testdev");
+  EXPECT_EQ(dct_advertisement->GetPsm(), 192);
+}
+
 }  // namespace
 }  // namespace nearby::connections::advertisements::ble
