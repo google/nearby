@@ -14,11 +14,12 @@
 
 #include "connections/implementation/ble_l2cap_endpoint_channel.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -31,16 +32,16 @@ namespace {
 
 constexpr int kDefaultBleL2capMaxTransmitPacketSize = 1024;  // 1024 bytes
 
-OutputStream* GetOutputStreamOrNull(BleL2capSocket& socket) {
-  if (socket.IsValid()) {
-    return &socket.GetOutputStream();
+OutputStream* GetOutputStreamOrNull(mediums::BleSocket* socket) {
+  if (socket != nullptr && socket->IsValid()) {
+    return &socket->GetOutputStream();
   }
   return nullptr;
 }
 
-InputStream* GetInputStreamOrNull(BleL2capSocket& socket) {
-  if (socket.IsValid()) {
-    return &socket.GetInputStream();
+InputStream* GetInputStreamOrNull(mediums::BleSocket* socket) {
+  if (socket != nullptr && socket->IsValid()) {
+    return &socket->GetInputStream();
   }
   return nullptr;
 }
@@ -49,11 +50,11 @@ InputStream* GetInputStreamOrNull(BleL2capSocket& socket) {
 
 BleL2capEndpointChannel::BleL2capEndpointChannel(
     const std::string& service_id, const std::string& channel_name,
-    BleL2capSocket socket)
+    std::unique_ptr<mediums::BleSocket> socket)
     : BaseEndpointChannel(service_id, channel_name,
-                          GetInputStreamOrNull(socket),
-                          GetOutputStreamOrNull(socket)),
-      ble_l2cap_socket_(std::move(socket)) {}
+                          GetInputStreamOrNull(socket.get()),
+                          GetOutputStreamOrNull(socket.get())),
+      ble_socket_(std::move(socket)) {}
 
 location::nearby::proto::connections::Medium
 BleL2capEndpointChannel::GetMedium() const {
@@ -65,12 +66,18 @@ int BleL2capEndpointChannel::GetMaxTransmitPacketSize() const {
 }
 
 void BleL2capEndpointChannel::CloseImpl() {
-  Exception status = ble_l2cap_socket_.Close();
+  if (ble_socket_ == nullptr || !ble_socket_->IsValid()) {
+    LOG(WARNING) << "BleL2capEndpointChannel " << GetName()
+                 << " is already closed.";
+    return;
+  }
+  Exception status = ble_socket_->Close();
   if (!status.Ok()) {
     LOG(WARNING)
         << "Failed to close underlying socket for BleL2capEndpointChannel "
         << GetName() << ": exception=" << status.value;
   }
+  LOG(INFO) << "BleL2capEndpointChannel " << GetName() << " is already closed.";
 }
 
 }  // namespace connections
