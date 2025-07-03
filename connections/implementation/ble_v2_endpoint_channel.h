@@ -15,10 +15,13 @@
 #ifndef CONNECTIONS_IMPLEMENTATION_BLE_V2_ENDPOINT_CHANNEL_H_
 #define CONNECTIONS_IMPLEMENTATION_BLE_V2_ENDPOINT_CHANNEL_H_
 
+#include <memory>
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -27,18 +30,22 @@ class BleV2EndpointChannel final : public BaseEndpointChannel {
  public:
   // Creates both outgoing and incoming Ble channels.
   BleV2EndpointChannel(const std::string& service_id,
-                       const std::string& channel_name, BleV2Socket socket);
+                       const std::string& channel_name,
+                       std::unique_ptr<mediums::BleSocket> socket);
 
-  location::nearby::proto::connections::Medium GetMedium() const override;
+  ::location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
+
+  ExceptionOr<ByteArray> DispatchPacket() override;
+  Exception WritePayloadLength(int payload_length) override;
 
  private:
   static constexpr int kDefaultBleMaxTransmitPacketSize = 512;  // 512 bytes
 
   void CloseImpl() override;
 
-  BleV2Socket ble_socket_;
+  std::unique_ptr<mediums::BleSocket> ble_socket_ = nullptr;
 };
 
 }  // namespace connections
