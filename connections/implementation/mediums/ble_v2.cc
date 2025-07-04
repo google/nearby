@@ -35,6 +35,7 @@
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
 #include "connections/implementation/mediums/ble_v2/bloom_filter.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
@@ -47,6 +48,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble_v2.h"
@@ -648,7 +650,12 @@ ErrorOr<bool> BleV2::StartAcceptingConnections(
               incoming_sockets_.insert({service_id, client_socket});
             }
             if (callback) {
-              callback(std::move(client_socket), service_id);
+              auto ble_socket = mediums::BleSocket::CreateWithBleSocket(
+                  std::move(client_socket),
+                  mediums::bleutils::GenerateHash(
+                      service_id,
+                      mediums::BleAdvertisement::kServiceIdHashLength));
+              callback(std::move(ble_socket), service_id);
             }
           }
         });
@@ -737,7 +744,24 @@ ErrorOr<int> BleV2::StartAcceptingL2capConnections(
                 {service_id, client_socket});
           }
           if (callback) {
-            callback(std::move(client_socket), service_id);
+            auto ble_socket = mediums::BleSocket::CreateWithL2capSocket(
+                std::move(client_socket),
+                mediums::bleutils::GenerateHash(
+                    service_id,
+                    mediums::BleAdvertisement::kServiceIdHashLength));
+            if (NearbyFlags::GetInstance().GetBoolFlag(
+                    config_package_nearby::nearby_connections_feature::
+                        kRefactorBleL2cap)) {
+              Exception exception =
+                  ble_socket->ProcessIncomingL2capPacketValidation();
+              if (!exception.Ok()) {
+                LOG(WARNING)
+                    << "Failed to process incoming L2CAP packet validation: "
+                    << exception.value;
+                return;
+              }
+            }
+            callback(std::move(ble_socket), service_id);
           }
         }
       });
@@ -827,9 +851,9 @@ bool BleV2::IsAcceptingL2capConnections(const std::string& service_id) {
   return IsAcceptingL2capConnectionsLocked(service_id);
 }
 
-ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
-                                    const BleV2Peripheral& peripheral,
-                                    CancellationFlag* cancellation_flag) {
+ErrorOr<std::unique_ptr<mediums::BleSocket>> BleV2::Connect(
+    const std::string& service_id, const BleV2Peripheral& peripheral,
+    CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   BleV2Socket socket;
@@ -856,15 +880,32 @@ ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
                            PowerLevelToTxPowerLevel(PowerLevel::kHighPower),
                            peripheral, cancellation_flag);
   if (!socket.IsValid()) {
-    LOG(INFO) << "Failed to Connect via Ble [service_id=" << service_id << "]";
+    LOG(WARNING) << "Failed to Connect via Ble [service_id=" << service_id
+                 << "], peripheral:"
+                 << absl::BytesToHexString(peripheral.GetId().data());
     return {Error(
         OperationResultCode::CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
   }
 
-  return socket;
+  auto ble_socket = mediums::BleSocket::CreateWithBleSocket(
+      std::move(socket),
+      mediums::bleutils::GenerateHash(
+          service_id, mediums::BleAdvertisement::kServiceIdHashLength));
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kRefactorBleL2cap)) {
+    Exception send_introduction_result = ble_socket->SendIntroduction();
+    if (!send_introduction_result.Ok()) {
+      LOG(WARNING) << "Failed to send introduction packet on BLE socket: "
+                   << send_introduction_result.value;
+      return {Error(OperationResultCode::
+                        CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
+    }
+  }
+  return std::move(ble_socket);
 }
 
-ErrorOr<BleL2capSocket> BleV2::ConnectOverL2cap(
+ErrorOr<std::unique_ptr<mediums::BleSocket>> BleV2::ConnectOverL2cap(
     const std::string& service_id, const BleV2Peripheral& peripheral,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
@@ -898,7 +939,29 @@ ErrorOr<BleL2capSocket> BleV2::ConnectOverL2cap(
                       CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
   }
 
-  return socket;
+  auto ble_socket = mediums::BleSocket::CreateWithL2capSocket(
+      std::move(socket),
+      mediums::bleutils::GenerateHash(
+          service_id, mediums::BleAdvertisement::kServiceIdHashLength));
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kRefactorBleL2cap)) {
+    Exception result = ble_socket->ProcessOutgoingL2capPacketValidation();
+    if (!result.Ok()) {
+      LOG(WARNING) << "Failed to process outgoing L2CAP packet validation: "
+                   << result.value;
+      return {Error(OperationResultCode::
+                        CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
+    }
+    Exception send_introduction_result = ble_socket->SendIntroduction();
+    if (!send_introduction_result.Ok()) {
+      LOG(WARNING) << "Failed to send introduction packet on L2CAP socket: "
+                   << send_introduction_result.value;
+      return {Error(OperationResultCode::
+                        CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
+    }
+  }
+  return std::move(ble_socket);
 }
 
 bool BleV2::IsAvailableLocked() const { return medium_.IsValid(); }
