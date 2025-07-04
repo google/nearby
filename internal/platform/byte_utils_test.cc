@@ -14,7 +14,9 @@
 
 #include "internal/platform/byte_utils.h"
 
+#include <cstdint>
 #include <string>
+#include <limits>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -31,7 +33,7 @@ constexpr absl::string_view kNegativeFourDigitsToken{"9084"};
 TEST(ByteUtilsTest, ToFourDigitStringCorrect) {
   ByteArray bytes{std::string(kFooBytes)};
 
-  auto four_digit_string = ByteUtils::ToFourDigitString(bytes);
+  auto four_digit_string = byte_utils::ToFourDigitString(bytes);
 
   EXPECT_EQ(std::string(kFooFourDigitsToken), four_digit_string);
 }
@@ -39,17 +41,51 @@ TEST(ByteUtilsTest, ToFourDigitStringCorrect) {
 TEST(ByteUtilsTest, ToFourDigitStringNegativeCorrect) {
   ByteArray bytes{std::string(kNegativeBytes)};
 
-  auto four_digit_string = ByteUtils::ToFourDigitString(bytes);
+  auto four_digit_string = byte_utils::ToFourDigitString(bytes);
 
   EXPECT_EQ(std::string(kNegativeFourDigitsToken), kNegativeFourDigitsToken);
 }
 
-TEST(ByteUtilsTest, TestEmptyByteArrayCorrect) {
-  ByteArray bytes;
+TEST(ByteUtilsTest, ToFourDigitStringHandlesEmptyInput) {
+  ByteArray bytes{};
 
-  auto four_digit_string = ByteUtils::ToFourDigitString(bytes);
+  auto four_digit_string = byte_utils::ToFourDigitString(bytes);
 
   EXPECT_EQ(std::string(kEmptyFourDigitsToken), four_digit_string);
+}
+
+TEST(ByteUtilsTest, IntToBytesThenBytesToIntIsSymmetric) {
+  constexpr std::int32_t kTestValue = 123456789;
+
+  ByteArray bytes = byte_utils::IntToBytes(kTestValue);
+
+  EXPECT_EQ(kTestValue, byte_utils::BytesToInt(bytes));
+}
+
+TEST(ByteUtilsTest, BytesToIntHandlesZero) {
+  ByteArray bytes({'\0', '\0', '\0', '\0'});
+  EXPECT_EQ(0, byte_utils::BytesToInt(bytes));
+}
+
+TEST(ByteUtilsTest, IntToBytesHandlesZero) {
+  ByteArray expected_bytes({'\0', '\0', '\0', '\0'});
+  EXPECT_EQ(expected_bytes, byte_utils::IntToBytes(0));
+}
+
+TEST(ByteUtilsTest, HandlesInt32Max) {
+  constexpr std::int32_t kMaxValue = std::numeric_limits<std::int32_t>::max();
+
+  ByteArray bytes = byte_utils::IntToBytes(kMaxValue);
+
+  EXPECT_EQ(kMaxValue, byte_utils::BytesToInt(bytes));
+}
+
+TEST(ByteUtilsTest, HandlesInt32Min) {
+  constexpr std::int32_t kMinValue = std::numeric_limits<std::int32_t>::min();
+
+  ByteArray bytes = byte_utils::IntToBytes(kMinValue);
+
+  EXPECT_EQ(kMinValue, byte_utils::BytesToInt(bytes));
 }
 
 }  // namespace nearby
