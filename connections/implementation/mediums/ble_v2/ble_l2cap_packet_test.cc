@@ -14,11 +14,15 @@
 
 #include "connections/implementation/mediums/ble_v2/ble_l2cap_packet.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/input_stream.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -29,6 +33,39 @@ constexpr absl::string_view kInCorrectData = {"\x01\x02\x03\x04\x05"};
 constexpr absl::string_view kServiceID = "1test_service_id";
 constexpr absl::string_view kCorrectData = {
     "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x00"};
+
+// A fake InputStream implementation for testing purposes.
+// It reads from a provided ByteArray.
+class FakeInputStream : public InputStream {
+ public:
+  explicit FakeInputStream(const ByteArray &bytes) : bytes_(bytes) {}
+  ~FakeInputStream() override = default;
+
+  ExceptionOr<ByteArray> Read(std::int64_t size) override {
+    if (closed_) {
+      return {Exception::kIo};
+    }
+    if (read_from_ >= bytes_.size()) {
+      return {Exception::kIo};
+    }
+    std::int64_t available =
+        static_cast<std::int64_t>(bytes_.size() - read_from_);
+    std::int64_t size_to_read = std::min(size, available);
+    ByteArray result(bytes_.data() + read_from_, size_to_read);
+    read_from_ += size_to_read;
+    return ExceptionOr<ByteArray>(result);
+  }
+
+  Exception Close() override {
+    closed_ = true;
+    return {Exception::kSuccess};
+  }
+
+ private:
+  ByteArray bytes_;
+  std::int64_t read_from_{0};
+  bool closed_{false};
+};
 
 TEST(BleL2capPacketTest, ByteArrayForRequestAdvertisementWithCorrectServiceID) {
   auto byte_array =
@@ -195,6 +232,47 @@ TEST(BleL2capPacketTest, CreateFromBytesWithInvalidLengthAdvertisement) {
 
   auto result = BleL2capPacket::CreateFromBytes(byte_array);
   ASSERT_FALSE(result.ok());
+}
+
+TEST(BleL2capPacketTest, CreateFromStreamWithCommandOnlyPacket) {
+  ByteArray raw_packet = BleL2capPacket::ByteArrayForRequestDataConnection();
+  FakeInputStream stream{raw_packet};
+
+  auto result = BleL2capPacket::CreateFromStream(stream);
+  ASSERT_TRUE(result.ok());
+  EXPECT_TRUE(result.value().IsDataConnectionRequest());
+}
+
+TEST(BleL2capPacketTest, CreateFromStreamWithAdvertisementPacket) {
+  ByteArray advertisement(kCorrectData.data(), kCorrectData.size());
+  auto raw_packet =
+      BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
+  ASSERT_TRUE(raw_packet.ok());
+  FakeInputStream stream{raw_packet.value()};
+
+  auto result = BleL2capPacket::CreateFromStream(stream);
+  ASSERT_TRUE(result.ok());
+  EXPECT_TRUE(result.value().IsAdvertisementResponse());
+  EXPECT_EQ(result.value().GetAdvertisement(), advertisement);
+}
+
+TEST(BleL2capPacketTest, CreateFromStreamFailsOnEmptyStream) {
+  ByteArray empty_packet;
+  FakeInputStream stream{empty_packet};
+
+  auto result = BleL2capPacket::CreateFromStream(stream);
+  EXPECT_FALSE(result.ok());
+}
+
+TEST(BleL2capPacketTest, CreateFromStreamFailsOnIncompleteStream) {
+  // A packet that should have a payload but doesn't.
+  char command[] = {
+      static_cast<char>(BleL2capPacket::Command::kResponseAdvertisement)};
+  ByteArray incomplete_packet(command, 1);
+  FakeInputStream stream{incomplete_packet};
+
+  auto result = BleL2capPacket::CreateFromStream(stream);
+  EXPECT_FALSE(result.ok());
 }
 
 }  // namespace

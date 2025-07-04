@@ -33,6 +33,57 @@ cc_library(
 )
 
 cc_library(
+    name = "ble_socket",
+    srcs = ["ble_socket.cc"],
+    hdrs = ["ble_socket.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+    ],
+    deps = [
+        ":ble_v2",
+        "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:util",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "ble_socket_mocks",
+    testonly = True,
+    hdrs = ["mock_ble_socket.h"],
+    deps = [
+        ":ble_socket",
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "ble_socket_test",
+    srcs = ["ble_socket_test.cc"],
+    deps = [
+        ":ble_socket",
+        ":ble_socket_mocks",
+        ":ble_v2",
+        "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/g3",  # For mocks if defined there
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "bloom_filter",
     srcs = ["bloom_filter.cc"],
     hdrs = ["bloom_filter.h"],
