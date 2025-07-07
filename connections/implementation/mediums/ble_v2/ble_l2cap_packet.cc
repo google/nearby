@@ -51,7 +51,7 @@ absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromBytes(
         "Cannot deserialize BleL2capPacket: input bytes too short.");
   }
 
-  StreamReader stream_reader(bytes);
+  StreamReader stream_reader(&bytes);
   // The first 1 byte is the command.
   auto command_byte = stream_reader.ReadUint8();
   if (!command_byte.has_value()) {

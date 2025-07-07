@@ -75,7 +75,7 @@ BluetoothDeviceName::BluetoothDeviceName(
     return;
   }
 
-  StreamReader stream_reader{bluetooth_device_name_bytes};
+  StreamReader stream_reader{&bluetooth_device_name_bytes};
   // The first 1 byte is supposed to be the version and pcp.
   auto version_and_pcp_byte = stream_reader.ReadUint8();
   if (!version_and_pcp_byte.has_value()) {

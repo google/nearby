@@ -27,7 +27,7 @@ namespace nearby {
 // A base {@link InputStream } for reading the contents of a byte array.
 class StreamReader {
  public:
-  explicit StreamReader(const ByteArray &buffer) : buffer_{buffer} {}
+  explicit StreamReader(const ByteArray *buffer) : buffer_{buffer} {}
   StreamReader(const StreamReader &) = delete;
   StreamReader &operator=(const StreamReader &) = delete;
   ~StreamReader() = default;
@@ -46,7 +46,7 @@ class StreamReader {
   std::optional<ByteArray> ReadBytes(int size);
 
   bool IsAvailable(int size) const {
-    return buffer_.size() - position_ >= size;
+    return buffer_ != nullptr && (buffer_->size() - position_ >= size);
   }
 
  private:
@@ -54,7 +54,7 @@ class StreamReader {
 
   uint8_t bits_unused_{0};
   uint8_t bits_buffer_{0};
-  const ByteArray &buffer_;
+  const ByteArray *buffer_ = nullptr;
   size_t position_{0};
 };
 

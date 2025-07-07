@@ -32,7 +32,7 @@ constexpr absl::string_view kFakeEncryptionKey =
 // Should always match the protocol implementation to read device name.
 // LINT.IfChange
 std::optional<std::string> ReadDeviceName(const ByteArray& endpoint_info) {
-  StreamReader reader(endpoint_info);
+  StreamReader reader(&endpoint_info);
   std::optional<uint8_t> version = reader.ReadBits(3);
   if (!version.has_value() || *version > 1) {
     return std::nullopt;

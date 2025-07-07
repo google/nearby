@@ -48,7 +48,7 @@ TEST(DataElementTest, FromInvalidLength) {
 
 TEST(DataElementTest, OneByteFromStreamReader) {
   ByteArray bytes("\x21\x01\x02");
-  StreamReader reader(bytes);
+  StreamReader reader(&bytes);
   std::optional<DataElement> data_element =
       DataElement::FromStreamReader(reader);
   ASSERT_TRUE(data_element.has_value());
@@ -59,7 +59,7 @@ TEST(DataElementTest, OneByteFromStreamReader) {
 
 TEST(DataElementTest, TwoByteFromStreamReader) {
   ByteArray bytes("\x84\x01\x01\x02\x03\x04");
-  StreamReader reader(bytes);
+  StreamReader reader(&bytes);
   std::optional<DataElement> data_element =
       DataElement::FromStreamReader(reader);
   ASSERT_TRUE(data_element.has_value());

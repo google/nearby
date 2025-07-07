@@ -115,7 +115,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   }
 
   ByteArray advertisement_bytes{ble_advertisement_bytes};
-  StreamReader stream_reader{advertisement_bytes};
+  StreamReader stream_reader{&advertisement_bytes};
   // The first 1 byte is supposed to be the version and pcp.
   auto version_and_pcp_byte = stream_reader.ReadUint8();
   if (!version_and_pcp_byte.has_value()) {

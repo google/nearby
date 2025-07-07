@@ -96,7 +96,7 @@ WifiLanServiceInfo::WifiLanServiceInfo(const NsdServiceInfo& nsd_service_info) {
     return;
   }
 
-  StreamReader stream_reader{service_info_bytes};
+  StreamReader stream_reader{&service_info_bytes};
   // The first 1 byte is supposed to be the version and pcp.
   auto version_and_pcp_byte = stream_reader.ReadUint8();
   if (!version_and_pcp_byte.has_value()) {

@@ -100,7 +100,7 @@ absl::StatusOr<BleAdvertisement> BleAdvertisement::CreateBleAdvertisement(
   }
 
   ByteArray advertisement_bytes(ble_advertisement_bytes);
-  StreamReader stream_reader(advertisement_bytes);
+  StreamReader stream_reader(&advertisement_bytes);
   // The first 1 byte is supposed to be the version, socket version and the fast
   // advertisement flag.
   auto version_byte = stream_reader.ReadUint8();
@@ -308,7 +308,7 @@ BleAdvertisement::BleExtraFields::BleExtraFields(
   }
 
   ByteArray mutated_extra_fields_bytes = {ble_extra_fields_bytes};
-  StreamReader stream_reader{mutated_extra_fields_bytes};
+  StreamReader stream_reader{&mutated_extra_fields_bytes};
   // The first 1 byte is field mask.
   auto mask_byte = stream_reader.ReadUint8().value_or(0);
   if (!mask_byte) {

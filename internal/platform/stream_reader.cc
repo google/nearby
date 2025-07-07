@@ -31,7 +31,7 @@ std::optional<std::uint8_t> StreamReader::ReadBits(int bits) {
     if (!IsAvailable(1)) {
       return std::nullopt;
     }
-    bits_buffer_ = (uint8_t)buffer_.data()[position_++];
+    bits_buffer_ = (uint8_t)buffer_->data()[position_++];
     bits_unused_ = 8;
   }
   if (bits_unused_ < bits) {
@@ -177,7 +177,7 @@ ExceptionOr<ByteArray> StreamReader::Read(std::int64_t size) {
   }
 
   ByteArray read_bytes{static_cast<size_t>(size)};
-  if (read_bytes.CopyAt(/*offset=*/0, buffer_,
+  if (read_bytes.CopyAt(/*offset=*/0, *buffer_,
                         /*source_offset=*/position_)) {
     position_ += size;
     return ExceptionOr<ByteArray>{read_bytes};

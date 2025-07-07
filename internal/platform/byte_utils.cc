@@ -27,7 +27,7 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
   int multiplier = 1;
   int hashCode = 0;
 
-  StreamReader stream_reader{bytes};
+  StreamReader stream_reader{&bytes};
   while (stream_reader.IsAvailable(1)) {
     auto byte = stream_reader.ReadInt8().value_or(0);
     hashCode = (hashCode + byte * multiplier) % kHashBasePrime;

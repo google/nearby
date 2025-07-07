@@ -137,7 +137,7 @@ BlePacket::BlePacket(const ByteArray& ble_packet_bytes) {
   }
 
   ByteArray packet_bytes(ble_packet_bytes);
-  StreamReader stream_reader{packet_bytes};
+  StreamReader stream_reader{&packet_bytes};
   // The first 3 bytes are supposed to be the service_id_hash.
   auto service_id_hash_bytes = stream_reader.ReadBytes(kServiceIdHashLength);
   if (!service_id_hash_bytes.has_value()) {

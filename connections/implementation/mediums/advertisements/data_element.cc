@@ -99,7 +99,7 @@ std::optional<DataElement> DataElement::FromStreamReader(StreamReader& reader) {
 
 std::optional<DataElement> DataElement::FromData(const std::string& data) {
   ByteArray bytes(data);
-  StreamReader reader(bytes);
+  StreamReader reader(&bytes);
   return FromStreamReader(reader);
 }
 
