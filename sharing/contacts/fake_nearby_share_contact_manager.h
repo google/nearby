@@ -18,8 +18,6 @@
 #include <stddef.h>
 
 #include <memory>
-#include <set>
-#include <string>
 #include <vector>
 
 #include "internal/platform/implementation/account_manager.h"
@@ -27,7 +25,6 @@
 #include "sharing/contacts/nearby_share_contact_manager_impl.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
-#include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 
 namespace nearby {
 namespace sharing {
@@ -58,11 +55,6 @@ class FakeNearbyShareContactManager : public NearbyShareContactManager {
       return latest_nearby_client_factory_;
     }
 
-    NearbyShareLocalDeviceDataManager* latest_local_device_data_manager()
-        const {
-      return latest_local_device_data_manager_;
-    }
-
     AccountManager* latest_account_manager() const {
       return latest_account_manager_;
     }
@@ -71,36 +63,20 @@ class FakeNearbyShareContactManager : public NearbyShareContactManager {
     // NearbyShareContactManagerImpl::Factory:
     std::unique_ptr<NearbyShareContactManager> CreateInstance(
         Context* context, AccountManager& account_manager,
-        nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory,
-        NearbyShareLocalDeviceDataManager* local_device_data_manager) override;
+        nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory)
+        override;
 
     std::vector<FakeNearbyShareContactManager*> instances_;
     nearby::sharing::api::SharingRpcClientFactory*
         latest_nearby_client_factory_ = nullptr;
-    NearbyShareLocalDeviceDataManager* latest_local_device_data_manager_ =
-        nullptr;
     AccountManager* latest_account_manager_ = nullptr;
   };
 
   FakeNearbyShareContactManager();
   ~FakeNearbyShareContactManager() override;
 
-  size_t num_download_contacts_calls() const {
-    return num_download_contacts_calls_;
-  }
-
-  // Make protected methods from base class public in this fake class.
-  using NearbyShareContactManager::NotifyContactsDownloaded;
-  using NearbyShareContactManager::NotifyContactsUploaded;
-
  private:
-  // NearbyShareContactsManager:
-  void DownloadContacts() override;
-  void OnStart() override;
-  void OnStop() override;
   void GetContacts(ContactsCallback callback) override;
-
-  size_t num_download_contacts_calls_ = 0;
 };
 
 }  // namespace sharing

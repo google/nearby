@@ -297,7 +297,6 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
 
 NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
   local_device_data_manager_->RemoveObserver(this);
-  contact_manager_->RemoveObserver(this);
 }
 
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
@@ -607,31 +606,6 @@ NearbyShareCertificateManagerImpl::GetValidPrivateCertificate(
 void NearbyShareCertificateManagerImpl::UpdatePrivateCertificateInStorage(
     const NearbySharePrivateCertificate& private_certificate) {
   certificate_storage_->UpdatePrivateCertificate(private_certificate);
-}
-
-void NearbyShareCertificateManagerImpl::OnContactsDownloaded(
-    const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
-    uint32_t num_unreachable_contacts_filtered_out) {
-  LOG(INFO) << "Contacts downloaded.";
-}
-
-void NearbyShareCertificateManagerImpl::OnContactsUploaded(
-    bool did_contacts_change_since_last_upload) {
-  LOG(INFO) << "Handle Contacts uploaded.";
-  if (!did_contacts_change_since_last_upload) {
-    LOG(INFO) << "Contacts not changed since last upload.";
-    return;
-  }
-  // If any of the uploaded contact data - the contact list or the allowlist -
-  // has changed since the previous successful upload, recreate certificates.
-  // We do not want to continue using the current certificates because they
-  // might have been shared with contacts no longer on the contact list or
-  // allowlist. NOTE: Ideally, we would only recreate all-contacts visibility
-  // certificates when contacts are removed from the contact list, and we
-  // would only recreate selected-contacts visibility certificates when
-  // contacts are removed from the allowlist, but our information is not that
-  // granular.
-  RegeneratePrivateCertificates();
 }
 
 void NearbyShareCertificateManagerImpl::OnLocalDeviceDataChanged(
