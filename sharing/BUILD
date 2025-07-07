@@ -45,6 +45,7 @@ cc_library(
         "wifi_credentials_attachment.h",
     ],
     visibility = [
+        "//location/nearby/apps/better_together/windows/nearby_share:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//location/nearby/testing/nearby_native:__subpackages__",
@@ -78,6 +79,7 @@ cc_library(
         "share_target.h",
     ],
     visibility = [
+        "//location/nearby/apps/better_together/windows/nearby_share:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//location/nearby/testing/nearby_native:__subpackages__",
@@ -108,7 +110,9 @@ cc_library(
         "transfer_metadata.h",
         "transfer_metadata_builder.h",
     ],
+    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
+        "//location/nearby/apps/better_together/windows/nearby_share:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
         "//location/nearby/sharing/sdk/quick_share_server:__pkg__",
         "//location/nearby/testing/nearby_native:__subpackages__",
