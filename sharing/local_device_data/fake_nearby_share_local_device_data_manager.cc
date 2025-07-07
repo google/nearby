@@ -122,15 +122,6 @@ void FakeNearbyShareLocalDeviceDataManager::UploadContacts(
   }
 }
 
-void FakeNearbyShareLocalDeviceDataManager::UploadCertificates(
-    std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-    UploadCompleteCallback callback) {
-  upload_certificates_calls_.emplace_back(std::move(certificates), callback);
-  if (is_sync_mode_) {
-    callback(upload_certificate_result_);
-  }
-}
-
 void FakeNearbyShareLocalDeviceDataManager::PublishDevice(
     std::vector<nearby::sharing::proto::PublicCertificate> certificates,
     bool force_update_contacts, PublishDeviceCallback callback) {

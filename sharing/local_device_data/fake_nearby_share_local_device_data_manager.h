@@ -117,18 +117,10 @@ class FakeNearbyShareLocalDeviceDataManager
   DeviceNameValidationResult SetDeviceName(absl::string_view name) override;
   void UploadContacts(std::vector<nearby::sharing::proto::Contact> contacts,
                       UploadCompleteCallback callback) override;
-  void UploadCertificates(
-      std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-      UploadCompleteCallback callback) override;
 
   void PublishDevice(
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,
       bool force_update_contacts, PublishDeviceCallback callback) override;
-
-  bool UsingIdentityRpc() override { return using_identity_rpc_; }
-  void SetUsingIdentityRpc(bool using_identity_rpc) {
-    using_identity_rpc_ = using_identity_rpc;
-  }
 
   // Make protected observer-notification methods from the base class public in
   // this fake class.
@@ -138,10 +130,6 @@ class FakeNearbyShareLocalDeviceDataManager
 
   std::vector<UploadContactsCall>& upload_contacts_calls() {
     return upload_contacts_calls_;
-  }
-
-  std::vector<UploadCertificatesCall>& upload_certificates_calls() {
-    return upload_certificates_calls_;
   }
 
   std::vector<PublishDeviceCall>& publish_device_calls() {
@@ -159,10 +147,6 @@ class FakeNearbyShareLocalDeviceDataManager
     upload_contact_result_ = upload_contact_result;
   }
 
-  void SetUploadCertificatesResult(bool upload_certificate_result) {
-    upload_certificate_result_ = upload_certificate_result;
-  }
-
   void SetPublishDeviceResult(bool publish_device_result) {
     publish_device_result_ = publish_device_result;
   }
@@ -177,7 +161,6 @@ class FakeNearbyShareLocalDeviceDataManager
   std::string id_;
   std::string device_name_;
   std::vector<UploadContactsCall> upload_contacts_calls_;
-  std::vector<UploadCertificatesCall> upload_certificates_calls_;
   std::vector<PublishDeviceCall> publish_device_calls_;
   DeviceNameValidationResult next_validation_result_ =
       DeviceNameValidationResult::kValid;
@@ -185,10 +168,8 @@ class FakeNearbyShareLocalDeviceDataManager
   // Used to indicate whether the class is running in synchronization mode.
   bool is_sync_mode_ = false;
   bool upload_contact_result_ = false;
-  bool upload_certificate_result_ = false;
   bool publish_device_result_ = false;
   bool publish_device_contact_removed_ = false;
-  bool using_identity_rpc_ = true;
 };
 
 }  // namespace sharing
