@@ -70,9 +70,6 @@ constexpr auto kShowAutoUpdateSetting =
 // When true, use gRpc client to access backend.
 constexpr auto kUseGrpcClient =
     flags::Flag<bool>(kConfigPackage, "45630055", false);
-// When true, call the 3P Nearby Identity API instead of the 1P private API
-constexpr auto kCallNearbyIdentityApi =
-    flags::Flag<bool>(kConfigPackage, "45667328", false);
 // When true, delete the file payload which received unexpectedly.
 constexpr auto kDeleteUnexpectedReceivedFileFix =
     flags::Flag<bool>(kConfigPackage, "45657036", false);
@@ -127,7 +124,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45411353, kSenderSkipsConfirmation},
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
-      {45667328, kCallNearbyIdentityApi},
       {45657036, kDeleteUnexpectedReceivedFileFix},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45665616, kHonor3PClientIdAndSecret},
