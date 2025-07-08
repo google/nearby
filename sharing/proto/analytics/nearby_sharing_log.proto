@@ -828,6 +828,9 @@ message SharingLog {
     // this ShareTargetInfo is the one that generated the QR code scanned by
     // this receiver.
     optional bool has_matching_qr_code = 4;
+
+    // Represents whether the share target is from external provider.
+    optional bool is_external = 5;
   }
 
   // The metadata of attachments to be shared.
