@@ -128,12 +128,12 @@ std::optional<uint64_t> ThreadPool::Run(Runnable task, absl::Duration delay,
 
   if (task == nullptr) {
     LOG(WARNING) << __func__ << ": Invalid task.";
-    return false;
+    return std::nullopt;
   }
 
   if (is_shut_down_) {
     LOG(WARNING) << __func__ << ": Thread pool is shut down.";
-    return false;
+    return std::nullopt;
   }
 
   // Closing the timer within its callback is prohibited. The thread pool

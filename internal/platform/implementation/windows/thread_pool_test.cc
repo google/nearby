@@ -189,6 +189,46 @@ TEST(ThreadPool, CancelRepeatedTaskInCallback) {
   pool->ShutDown();
 }
 
+TEST(ThreadPool, CreateWithZeroMaxPoolSizeReturnsNull) {
+  auto pool = ThreadPool::Create(0);
+  EXPECT_EQ(pool, nullptr);
+}
+
+TEST(ThreadPool, RunNullTaskReturnsFalse) {
+  auto pool = ThreadPool::Create(1);
+  EXPECT_FALSE(pool->Run(nullptr));
+  pool->ShutDown();
+}
+
+TEST(ThreadPool, RunTaskAfterShutdownReturnsFalse) {
+  auto pool = ThreadPool::Create(1);
+  pool->ShutDown();
+  std::atomic_int value = 0;
+  EXPECT_FALSE(pool->Run([&]() { value += 1; }));
+  EXPECT_EQ(value, 0);
+}
+
+TEST(ThreadPool, RunDelayedTaskAfterShutdownReturnsNullOpt) {
+  auto pool = ThreadPool::Create(1);
+  pool->ShutDown();
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id =
+      pool->Run([&]() { value += 1; }, absl::Seconds(1));
+  EXPECT_FALSE(delayed_task_id.has_value());
+  EXPECT_EQ(value, 0);
+}
+
+TEST(ThreadPool, ShutdownWithPendingDelayedTasks) {
+  auto pool = ThreadPool::Create(1);
+  std::atomic_int value = 0;
+  std::optional<uint64_t> delayed_task_id =
+      pool->Run([&]() { value += 1; }, absl::Seconds(2));
+  EXPECT_TRUE(delayed_task_id.has_value());
+  absl::SleepFor(absl::Milliseconds(100));
+  pool->ShutDown();
+  EXPECT_EQ(value, 0);
+}
+
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
