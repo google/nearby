@@ -293,9 +293,6 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               })),
       executor_(context->CreateSequencedTaskRunner()) {
   local_device_data_manager_->AddObserver(this);
-  if (!UsingIdentityRpc()) {
-    contact_manager_->AddObserver(this);
-  }
 }
 
 NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
@@ -334,10 +331,6 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
         next_page_token_ = response->next_page_token();
         FetchNextPage();
       });
-}
-
-bool NearbyShareCertificateManagerImpl::UsingIdentityRpc() {
-  return local_device_data_manager_->UsingIdentityRpc();
 }
 
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
@@ -458,11 +451,7 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
         }
         download_succeeded = UpdatePublicCertificates(certificates);
       });
-  if (UsingIdentityRpc()) {
-    context->QuerySharedCredentialsFetchNextPage();
-  } else {
-    context->FetchNextPage();
-  }
+  context->QuerySharedCredentialsFetchNextPage();
   return download_succeeded;
 }
 
@@ -518,29 +507,18 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
   bool upload_certificates_succeeded = false;
   bool regenerate_certificates = false;
   absl::Notification notification;
-  if (local_device_data_manager_->UsingIdentityRpc()) {
-    LOG(INFO) << __func__ << ": [Call Identity API] PublishDevice: upload "
-              << public_certs.size()
-              << " local device certificates, force_update_contacts = "
-              << force_update_contacts;
-    local_device_data_manager_->PublishDevice(
-        std::move(public_certs), force_update_contacts,
-        [&upload_certificates_succeeded, &regenerate_certificates,
-         &notification](bool success, bool contact_removed) {
-          upload_certificates_succeeded = success;
-          regenerate_certificates = contact_removed;
-          notification.Notify();
-        });
-  } else {
-    LOG(INFO) << __func__
-              << ": [Call NearbyShare API] UploadCertificates: upload"
-              << public_certs.size() << " local device certificates.";
-    local_device_data_manager_->UploadCertificates(
-        std::move(public_certs), [&](bool success) {
-          upload_certificates_succeeded = success;
-          notification.Notify();
-        });
-  }
+  LOG(INFO) << __func__ << ": [Call Identity API] PublishDevice: upload "
+            << public_certs.size()
+            << " local device certificates, force_update_contacts = "
+            << force_update_contacts;
+  local_device_data_manager_->PublishDevice(
+      std::move(public_certs), force_update_contacts,
+      [&upload_certificates_succeeded, &regenerate_certificates,
+        &notification](bool success, bool contact_removed) {
+        upload_certificates_succeeded = success;
+        regenerate_certificates = contact_removed;
+        notification.Notify();
+      });
   notification.WaitForNotification();
   LOG(INFO) << "Upload local device certificates "
             << (upload_certificates_succeeded ? "succeeded" : "failed")
@@ -548,7 +526,7 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
   if (!upload_certificates_succeeded) {
     return false;
   }
-  if (regenerate_certificates && UsingIdentityRpc()) {
+  if (regenerate_certificates) {
     LOG(INFO) << __func__
               << ": [Call Identity API] Another call to PublishDevice after "
                  "regenerating all Private certificates: ";

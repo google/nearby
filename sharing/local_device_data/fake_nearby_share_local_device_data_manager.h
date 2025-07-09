@@ -125,11 +125,6 @@ class FakeNearbyShareLocalDeviceDataManager
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,
       bool force_update_contacts, PublishDeviceCallback callback) override;
 
-  bool UsingIdentityRpc() override { return using_identity_rpc_; }
-  void SetUsingIdentityRpc(bool using_identity_rpc) {
-    using_identity_rpc_ = using_identity_rpc;
-  }
-
   // Make protected observer-notification methods from the base class public in
   // this fake class.
   using NearbyShareLocalDeviceDataManager::NotifyLocalDeviceDataChanged;
@@ -188,7 +183,6 @@ class FakeNearbyShareLocalDeviceDataManager
   bool upload_certificate_result_ = false;
   bool publish_device_result_ = false;
   bool publish_device_contact_removed_ = false;
-  bool using_identity_rpc_ = true;
 };
 
 }  // namespace sharing

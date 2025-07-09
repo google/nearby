@@ -209,10 +209,6 @@ void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
       });
 }
 
-bool NearbyShareLocalDeviceDataManagerImpl::UsingIdentityRpc() {
-  return nearby_identity_client_ != nullptr;
-}
-
 void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
     std::vector<nearby::sharing::proto::PublicCertificate> certificates,
     bool force_update_contacts, PublishDeviceCallback callback) {

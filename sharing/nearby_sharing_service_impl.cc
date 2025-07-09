@@ -670,13 +670,11 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                 << background_receive_callbacks_map_.size();
 
         if (IsVisibleInBackground(settings_->GetVisibility())) {
-          if (certificate_manager_->UsingIdentityRpc()) {
-            // The Identity API does not support contact manager which triggers
-            // Certificate refresh in DownloadContacts. Force upload explicitly.
-            VLOG(1) << __func__
-                    << ": [Call Identity API] ForceUploadPrivateCertificates.";
-            certificate_manager_->ForceUploadPrivateCertificates();
-          }
+          // The Identity API does not support contact manager which triggers
+          // Certificate refresh in DownloadContacts. Force upload explicitly.
+          VLOG(1) << __func__
+                  << ": [Call Identity API] ForceUploadPrivateCertificates.";
+          certificate_manager_->ForceUploadPrivateCertificates();
         }
         InvalidateReceiveSurfaceState();
         std::move(status_codes_callback)(StatusCodes::kOk);
