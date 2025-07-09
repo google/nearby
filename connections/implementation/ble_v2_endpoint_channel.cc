@@ -14,11 +14,12 @@
 
 #include "connections/implementation/ble_v2_endpoint_channel.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -29,28 +30,28 @@ namespace connections {
 
 namespace {
 
-OutputStream* GetOutputStreamOrNull(BleV2Socket& socket) {
-  if (socket.IsValid()) {
-    return &socket.GetOutputStream();
+OutputStream* GetOutputStreamOrNull(mediums::BleSocket* socket) {
+  if (socket != nullptr && socket->IsValid()) {
+    return &socket->GetOutputStream();
   }
   return nullptr;
 }
 
-InputStream* GetInputStreamOrNull(BleV2Socket& socket) {
-  if (socket.IsValid()) {
-    return &socket.GetInputStream();
+InputStream* GetInputStreamOrNull(mediums::BleSocket* socket) {
+  if (socket != nullptr && socket->IsValid()) {
+    return &socket->GetInputStream();
   }
   return nullptr;
 }
 
 }  // namespace
 
-BleV2EndpointChannel::BleV2EndpointChannel(const std::string& service_id,
-                                           const std::string& channel_name,
-                                           BleV2Socket socket)
+BleV2EndpointChannel::BleV2EndpointChannel(
+    const std::string& service_id, const std::string& channel_name,
+    std::unique_ptr<mediums::BleSocket> socket)
     : BaseEndpointChannel(service_id, channel_name,
-                          GetInputStreamOrNull(socket),
-                          GetOutputStreamOrNull(socket)),
+                          GetInputStreamOrNull(socket.get()),
+                          GetOutputStreamOrNull(socket.get())),
       ble_socket_(std::move(socket)) {}
 
 location::nearby::proto::connections::Medium BleV2EndpointChannel::GetMedium()
@@ -63,11 +64,25 @@ int BleV2EndpointChannel::GetMaxTransmitPacketSize() const {
 }
 
 void BleV2EndpointChannel::CloseImpl() {
-  Exception status = ble_socket_.Close();
+  if (ble_socket_ == nullptr || !ble_socket_->IsValid()) {
+    LOG(WARNING) << "BleV2EndpointChannel " << GetName()
+                 << " is already closed.";
+    return;
+  }
+  Exception status = ble_socket_->Close();
   if (!status.Ok()) {
     LOG(WARNING) << "Failed to close underlying socket for BleEndpointChannel "
                  << GetName() << ": exception=" << status.value;
   }
+  LOG(INFO) << "BleV2EndpointChannel " << GetName() << " is already closed.";
+}
+
+ExceptionOr<ByteArray> BleV2EndpointChannel::DispatchPacket() {
+  return ble_socket_->DispatchPacket();
+}
+
+Exception BleV2EndpointChannel::WritePayloadLength(int payload_length) {
+  return ble_socket_->WritePayloadLength(payload_length);
 }
 
 }  // namespace connections
