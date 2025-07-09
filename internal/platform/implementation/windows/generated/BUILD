@@ -40,6 +40,7 @@ cc_library(
         "dnsapi.lib",
         "wlanapi.lib",
         "shlwapi.lib",
+        "runtimeobject.lib",
     ],
     visibility = [
         "//internal:__subpackages__",
