@@ -66,6 +66,10 @@ uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
 
 std::string ipaddr_4bytes_to_dotdecimal_string(
     absl::string_view ipaddr_4bytes) {
+  if (ipaddr_4bytes.size() != 4) {
+    return {};
+  }
+
   in_addr address;
   address.S_un.S_un_b.s_b1 = ipaddr_4bytes[0];
   address.S_un.S_un_b.s_b2 = ipaddr_4bytes[1];
