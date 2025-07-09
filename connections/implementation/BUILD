@@ -159,6 +159,7 @@ cc_library(
         "//connections/implementation/mediums/advertisements:dct_advertisement",
         "//connections/implementation/mediums/advertisements:util",
         "//connections/implementation/mediums/ble_v2:ble_advertisement_header",
+        "//connections/implementation/mediums/ble_v2:ble_socket",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
@@ -436,6 +437,8 @@ cc_test(
     ],
     deps = [
         ":internal",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
