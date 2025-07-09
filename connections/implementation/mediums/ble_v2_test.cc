@@ -15,6 +15,7 @@
 #include "connections/implementation/mediums/ble_v2.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -22,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/pcp.h"
@@ -90,9 +92,10 @@ TEST_P(BleV2Test, CanConnect) {
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
-  BleV2Socket socket_for_server;
+  std::unique_ptr<mediums::BleSocket> socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
-      service_id, [&](BleV2Socket socket, const std::string&) {
+      service_id,
+      [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
@@ -122,16 +125,19 @@ TEST_P(BleV2Test, CanConnect) {
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag;
-  ErrorOr<BleV2Socket> socket_for_client_result =
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> socket_for_client_result =
       ble_client.Connect(service_id, discovered_peripheral, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(ble_server.StopAdvertising(service_id));
-  EXPECT_TRUE(socket_for_server.IsValid());
-  EXPECT_TRUE(socket_for_client_result.has_value());
-  EXPECT_TRUE(socket_for_client_result.value().IsValid());
-  EXPECT_TRUE(socket_for_server.GetRemotePeripheral().IsValid());
-  EXPECT_TRUE(socket_for_client_result.value().GetRemotePeripheral().IsValid());
+  ASSERT_NE(socket_for_server, nullptr);
+  EXPECT_TRUE(socket_for_server.get()->IsValid());
+  ASSERT_TRUE(socket_for_client_result.has_value());
+  ASSERT_NE(socket_for_client_result.value(), nullptr);
+  EXPECT_TRUE(socket_for_client_result.value().get()->IsValid());
+  EXPECT_TRUE(socket_for_server.get()->GetRemotePeripheral().IsValid());
+  EXPECT_TRUE(
+      socket_for_client_result.value().get()->GetRemotePeripheral().IsValid());
   env_.Stop();
 }
 
@@ -150,9 +156,10 @@ TEST_P(BleV2Test, CanCancelConnect) {
   CountDownLatch discovered_latch(1);
   CountDownLatch accept_latch(1);
 
-  BleV2Socket socket_for_server;
+  std::unique_ptr<mediums::BleSocket> socket_for_server;
   EXPECT_TRUE(ble_server.StartAcceptingConnections(
-      service_id, [&](BleV2Socket socket, const std::string&) {
+      service_id,
+      [&](std::unique_ptr<mediums::BleSocket> socket, const std::string&) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
@@ -182,24 +189,28 @@ TEST_P(BleV2Test, CanCancelConnect) {
   ASSERT_TRUE(discovered_peripheral.IsValid());
 
   CancellationFlag flag(true);
-  ErrorOr<BleV2Socket> socket_for_client_result =
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> socket_for_client_result =
       ble_client.Connect(service_id, discovered_peripheral, &flag);
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
     EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
-    EXPECT_TRUE(socket_for_server.IsValid());
+    ASSERT_NE(socket_for_server, nullptr);
+    EXPECT_TRUE(socket_for_server.get()->IsValid());
     EXPECT_TRUE(socket_for_client_result.has_value());
-    EXPECT_TRUE(socket_for_client_result.value().IsValid());
-    EXPECT_TRUE(socket_for_server.GetRemotePeripheral().IsValid());
-    EXPECT_TRUE(
-        socket_for_client_result.value().GetRemotePeripheral().IsValid());
+    ASSERT_NE(socket_for_client_result.value(), nullptr);
+    EXPECT_TRUE(socket_for_client_result.value().get()->IsValid());
+    EXPECT_TRUE(socket_for_server.get()->GetRemotePeripheral().IsValid());
+    EXPECT_TRUE(socket_for_client_result.value()
+                    .get()
+                    ->GetRemotePeripheral()
+                    .IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
-    EXPECT_FALSE(socket_for_server.IsValid());
+    ASSERT_EQ(socket_for_server, nullptr);
     EXPECT_TRUE(socket_for_client_result.has_error());
   }
   env_.Stop();
