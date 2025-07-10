@@ -99,7 +99,8 @@ cc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/proto:credential_cc_proto",
-        # TODO: Support WebRTC
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
+        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
         "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
