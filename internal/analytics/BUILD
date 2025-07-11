@@ -1,3 +1,5 @@
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+
 licenses(["notice"])
 # Copyright 2020 Google LLC
 #
