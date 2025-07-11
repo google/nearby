@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:objc_library.bzl", "objc_library")
 load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
 
 package(default_visibility = ["//location/nearby:__subpackages__"])
