@@ -710,6 +710,7 @@ enum AdvertisingMode {
   BACKGROUND_ADVERTISING_MODE = 2;
   MIDGROUND_ADVERTISING_MODE = 3;
   FOREGROUND_ADVERTISING_MODE = 4;
+  SUSPENDED_ADVERTISING_MODE = 5;
 }
 
 // The Nearby Sharing discovery mode.
@@ -719,6 +720,7 @@ enum DiscoveryMode {
   BACKGROUND_DISCOVERY_MODE = 2;
   MIDGROUND_DISCOVERY_MODE = 3;
   FOREGROUND_DISCOVERY_MODE = 4;
+  SUSPENDED_DISCOVERY_MODE = 5;
 }
 
 // The class name of chimera activity.
