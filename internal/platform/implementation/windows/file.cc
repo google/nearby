@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <ios>
 #include <memory>
 #include <string>
@@ -38,8 +39,8 @@ std::unique_ptr<IOFile> IOFile::CreateInputFile(absl::string_view file_path,
 
 IOFile::IOFile(absl::string_view file_path, size_t size) : path_(file_path) {
   // Always open input file path as wide string on Windows platform.
-  std::wstring wide_path = string_utils::StringToWideString(
-      std::string(file_path));
+  std::wstring wide_path =
+      string_utils::StringToWideString(std::string(file_path));
   file_.open(wide_path, std::ios::binary | std::ios::in | std::ios::ate);
 
   total_size_ = file_.tellg();
@@ -60,8 +61,7 @@ std::unique_ptr<IOFile> IOFile::CreateOutputFile(absl::string_view path) {
 IOFile::IOFile(absl::string_view file_path)
     : file_(), path_(file_path), total_size_(0) {
   // Always open input file path as wide string on Windows platform.
-  std::wstring wide_path =
-      string_utils::StringToWideString(path_);
+  std::wstring wide_path = string_utils::StringToWideString(path_);
   file_.open(wide_path, std::ios::binary | std::ios::out);
 }
 
@@ -71,12 +71,12 @@ ExceptionOr<ByteArray> IOFile::Read(std::int64_t size) {
       return ExceptionOr<ByteArray>{Exception::kIo};
     }
 
-    if (!file_.good()) {
-      return ExceptionOr<ByteArray>{Exception::kIo};
+    if (file_.peek() == EOF) {
+      return ExceptionOr<ByteArray>{ByteArray{}};
     }
 
-    if (file_.eof()) {
-      return ExceptionOr<ByteArray>{ByteArray{}};
+    if (!file_.good()) {
+      return ExceptionOr<ByteArray>{Exception::kIo};
     }
 
     if (buffer_.size() < size) {

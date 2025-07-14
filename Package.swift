@@ -521,6 +521,7 @@ let package = Package(
         "internal/flags/nearby_flags_test.cc",
         "internal/proto/analytics/connections_log_test.cc",
         "internal/platform/feature_flags_test.cc",
+        "internal/platform/file_test.cc",
         "internal/platform/cancelable_alarm_test.cc",
         "internal/platform/crypto_test.cc",
         "internal/platform/byte_array_test.cc",

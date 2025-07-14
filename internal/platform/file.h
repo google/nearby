@@ -15,6 +15,7 @@
 #ifndef PLATFORM_PUBLIC_FILE_H_
 #define PLATFORM_PUBLIC_FILE_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -26,6 +27,7 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/payload_id.h"
 
 namespace nearby {
 
