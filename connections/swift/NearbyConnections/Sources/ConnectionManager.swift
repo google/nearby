@@ -213,6 +213,11 @@ public class ConnectionManager {
       withCompletionHandler: completionHandler
     )
   }
+
+  /// Enable BLEV2.
+  public func enableBLEV2() {
+    GNCFlags.enableBLEV2 = true
+  }
 }
 
 extension ConnectionManager: InternalPayloadDelegate {
