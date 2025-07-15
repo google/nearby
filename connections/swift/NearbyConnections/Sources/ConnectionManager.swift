@@ -218,6 +218,11 @@ public class ConnectionManager {
   public func enableBLEV2() {
     GNCFlags.enableBLEV2 = true
   }
+
+  /// Enable Dynamic Role Switch.
+  public func enableDynamicRoleSwitch() {
+    GNCFlags.enableDynamicRoleSwitch = true
+  }
 }
 
 extension ConnectionManager: InternalPayloadDelegate {

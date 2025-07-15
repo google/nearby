@@ -33,4 +33,17 @@
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleV2, value);
 }
 
++ (BOOL)enableDynamicRoleSwitch {
+  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch);
+}
+
++ (void)setEnableDynamicRoleSwitch:(BOOL)value {
+  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      nearby::connections::config_package_nearby::nearby_connections_feature::
+          kEnableDynamicRoleSwitch,
+      value);
+}
+
 @end
