@@ -120,29 +120,41 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
 
 ExceptionOr<ByteArray> NearbyClientSocket::Read(std::int64_t size) {
   if (socket_ == INVALID_SOCKET) {
-    LOG(WARNING) << "Trying to read on an invalid socket.";
+    LOG(WARNING) << "Trying to read from an invalid socket.";
     return {Exception::kIo};
   }
 
   std::string buffer;
-  int count = 0;
-
   buffer.resize(size);
-  while (count < size) {
-    int result =
-        recv(/*s=*/socket_, /*buf=*/const_cast<char*>(buffer.data()) + count,
-             /*len=*/size - count, /*flags=*/MSG_WAITALL);
-    if (result == SOCKET_ERROR) {
-      LOG(ERROR) << "Failed to receive data " << WSAGetLastError();
+  char* buffer_ptr = buffer.data();
+  int64_t total_bytes_read = 0;
+
+  // Loop until all requested bytes have been received.
+  while (total_bytes_read < size) {
+    int bytes_read = recv(
+        /*s=*/socket_,
+        /*buf=*/buffer_ptr + total_bytes_read,
+        /*len=*/static_cast<int>(size - total_bytes_read),
+        /*flags=*/0  // No special flags, just a standard receive.
+    );
+
+    if (bytes_read > 0) {
+      // Successfully read some bytes.
+      total_bytes_read += bytes_read;
+    } else if (bytes_read == 0) {
+      // The peer has performed a graceful shutdown.
+      LOG(INFO) << "Socket closed gracefully by peer before all data was read.";
+      return {Exception::kIo};
+    } else {  // bytes_read == SOCKET_ERROR
+      if (WSAGetLastError() == WSAEINTR) {
+        VLOG(1) << "Interrupted while reading from socket.";
+        continue;
+      }
+      // An error occurred during the receive operation.
+      LOG(ERROR) << "Failed to receive data; recv failed with error: "
+                 << WSAGetLastError();
       return {Exception::kIo};
     }
-
-    if (result == 0) {
-      LOG(INFO) << "Socket closed gracefully.";
-      return {Exception::kIo};
-    }
-
-    count += result;
   }
 
   return ExceptionOr(ByteArray(std::move(buffer)));
