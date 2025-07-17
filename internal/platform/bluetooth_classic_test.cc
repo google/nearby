@@ -20,6 +20,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
@@ -370,6 +371,35 @@ TEST_F(BluetoothClassicMediumTest, CanStartDiscovery) {
   EXPECT_FALSE(adapter_b_->IsEnabled());
   EXPECT_TRUE(lost_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_TRUE(device_removed_latch.Await(absl::Milliseconds(1000)).result());
+}
+
+TEST_F(BluetoothClassicMediumTest, DiscoveryCallbackAfterStopDiscovery) {
+  SingleThreadExecutor executor;
+  adapter_a_->SetScanMode(BluetoothAdapter::ScanMode::kConnectable);
+  CountDownLatch found_latch(1);
+  CountDownLatch device_added_latch(1);
+  BluetoothClassicMediumObserver observer(&device_added_latch, nullptr,
+                                          nullptr);
+  bt_a_->AddObserver(&observer);
+
+  bt_a_->StartDiscovery(DiscoveryCallback{
+      .device_discovered_cb =
+          [this, &executor, &found_latch](BluetoothDevice& device) {
+            executor.Execute([&]() {
+              NEARBY_LOGS(INFO) << "Device discovered: " << device.GetName();
+              absl::SleepFor(absl::Milliseconds(500));
+              EXPECT_EQ(device.GetName(), adapter_b_->GetName());
+              found_latch.CountDown();
+            });
+          },
+      .device_lost_cb = [](BluetoothDevice& device) {}});
+  adapter_b_->SetScanMode(BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  EXPECT_EQ(adapter_b_->GetScanMode(),
+            BluetoothAdapter::ScanMode::kConnectableDiscoverable);
+  bt_a_->StopDiscovery();
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(device_added_latch.Await(absl::Milliseconds(1000)).result());
+  executor.Shutdown();
 }
 
 TEST_F(BluetoothClassicMediumTest, CanStopDiscovery) {
