@@ -99,7 +99,7 @@ class AwdlServerSocket : public api::AwdlServerSocket {
  */
 class AwdlMedium : public api::AwdlMedium {
  public:
-  explicit AwdlMedium(bool include_peer_to_peer = false);
+  AwdlMedium();
   ~AwdlMedium() override = default;
 
   AwdlMedium(const AwdlMedium&) = delete;

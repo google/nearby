@@ -122,7 +122,7 @@ Exception AwdlServerSocket::Close() {
 
 #pragma mark - AwdlMedium
 
-AwdlMedium::AwdlMedium(bool include_peer_to_peer) : medium_([GNCNWFramework sharedInstance]) {}
+AwdlMedium::AwdlMedium() { medium_ = [[GNCNWFramework alloc] init]; }
 
 bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);

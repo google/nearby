@@ -50,6 +50,7 @@ constexpr absl::Duration kAwdlDiscoveryTimeout = absl::Seconds(5);
 constexpr int kServiceNameLength = 8;
 constexpr int kPasswordLength = 16;
 constexpr absl::string_view kPskIdentity = "AwdlUpgradeMedium";
+constexpr absl::string_view kAwdlServiceIdSuffixForServiceType = "_AWDL";
 }  // namespace
 
 AwdlBwuHandler::AwdlBwuHandler(
@@ -205,7 +206,8 @@ ByteArray AwdlBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     // Need to advertise the service.
     nsd_service_info_ = NsdServiceInfo();
     nsd_service_info_.SetServiceName(GenerateServiceName());
-    nsd_service_info_.SetServiceType(GenerateServiceType(upgrade_service_id));
+    nsd_service_info_.SetServiceType(GenerateServiceType(
+        absl::StrCat(upgrade_service_id, kAwdlServiceIdSuffixForServiceType)));
 
     if (!awdl_medium_.StartAdvertising(upgrade_service_id, nsd_service_info_)) {
       LOG(ERROR) << "Failed to initiate the AWDL upgrade for "

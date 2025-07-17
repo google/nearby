@@ -122,8 +122,7 @@ Exception WifiLanServerSocket::Close() {
 
 #pragma mark - WifiLanMedium
 
-WifiLanMedium::WifiLanMedium(bool include_peer_to_peer)
-    : medium_([GNCNWFramework sharedInstance]) {}
+WifiLanMedium::WifiLanMedium() { medium_ = [[GNCNWFramework alloc] init]; }
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);

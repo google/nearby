@@ -33,9 +33,6 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
 /** Whether to include peer-to-peer services. */
 @property(atomic, readonly) BOOL includePeerToPeer;
 
-/** The shared instance of the @c GNCNWFramework object. */
-+ (nonnull instancetype)sharedInstance;
-
 /**
  * Listens for incoming connections on a given port.
  *

@@ -22,6 +22,7 @@
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/multiplex/multiplex_socket.h"
 #include "connections/implementation/mediums/utils.h"
 #include "connections/medium_selector.h"
@@ -41,10 +42,12 @@
 
 namespace nearby {
 namespace connections {
-
 namespace {
+
 using MultiplexSocket = mediums::multiplex::MultiplexSocket;
 using location::nearby::proto::connections::OperationResultCode;
+constexpr absl::string_view kAwdlServiceIdSuffixForServiceType = "_AWDL";
+
 }  // namespace
 
 Awdl::~Awdl() {
@@ -104,7 +107,8 @@ ErrorOr<bool> Awdl::StartAdvertising(const std::string& service_id,
                       CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
   }
 
-  nsd_service_info.SetServiceType(GenerateServiceType(service_id));
+  nsd_service_info.SetServiceType(GenerateServiceType(
+      absl::StrCat(service_id, kAwdlServiceIdSuffixForServiceType)));
   const auto& it = server_sockets_.find(service_id);
   if (it != server_sockets_.end()) {
     nsd_service_info.SetIPAddress(it->second.GetIPAddress());
@@ -175,7 +179,8 @@ ErrorOr<bool> Awdl::StartDiscovery(const std::string& service_id,
     return {Error(OperationResultCode::CLIENT_WIFI_LAN_DUPLICATE_DISCOVERING)};
   }
 
-  std::string service_type = GenerateServiceType(service_id);
+  std::string service_type = GenerateServiceType(
+      absl::StrCat(service_id, kAwdlServiceIdSuffixForServiceType));
   bool ret =
       medium_.StartDiscovery(service_id, service_type, std::move(callback));
   if (!ret) {
@@ -199,7 +204,8 @@ bool Awdl::StopDiscovery(const std::string& service_id) {
     return false;
   }
 
-  std::string service_type = GenerateServiceType(service_id);
+  std::string service_type = GenerateServiceType(
+      absl::StrCat(service_id, kAwdlServiceIdSuffixForServiceType));
   LOG(INFO) << "Turned off Awdl discovering with service_id=" << service_id
             << ", service_type=" << service_type;
   bool ret = medium_.StopDiscovery(service_type);

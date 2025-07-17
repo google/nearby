@@ -99,21 +99,6 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   return self;
 }
 
-static GNCNWFramework *gInstance = nil;
-
-+ (GNCNWFramework *)sharedInstance {
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    @synchronized([GNCNWFramework class]) {
-      if (!gInstance) {
-        gInstance = [[self alloc] init];
-      }
-    }
-  });
-
-  return gInstance;
-}
-
 - (BOOL)isListeningForAnyService {
   return _serverSockets.count > 0;
 }

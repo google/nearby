@@ -102,7 +102,7 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
  */
 class WifiLanMedium : public api::WifiLanMedium {
  public:
-  explicit WifiLanMedium(bool include_peer_to_peer = false);
+  WifiLanMedium();
   ~WifiLanMedium() override = default;
 
   WifiLanMedium(const WifiLanMedium&) = delete;
