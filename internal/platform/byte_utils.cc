@@ -14,6 +14,7 @@
 
 #include "internal/platform/byte_utils.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 
@@ -22,8 +23,18 @@
 #include "internal/platform/stream_reader.h"
 
 namespace nearby {
+namespace byte_utils {
 
-std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
+namespace {
+// The biggest prime number under 10000, used as a mod base to trim integers
+// into 4 digits.
+constexpr int kHashBasePrime = 9973;
+
+// The hash multiplier.
+constexpr int kHashBaseMultiplier = 31;
+}  // namespace
+
+std::string ToFourDigitString(const ByteArray& bytes) {
   int multiplier = 1;
   int hashCode = 0;
 
@@ -36,4 +47,24 @@ std::string ByteUtils::ToFourDigitString(ByteArray& bytes) {
   return absl::StrFormat("%04d", abs(hashCode));
 }
 
+std::int32_t BytesToInt(const ByteArray& bytes) {
+  const char* int_bytes = bytes.data();
+  std::int32_t result = 0;
+  result |= (static_cast<std::int32_t>(int_bytes[0]) & 0x0FF) << 24;
+  result |= (static_cast<std::int32_t>(int_bytes[1]) & 0x0FF) << 16;
+  result |= (static_cast<std::int32_t>(int_bytes[2]) & 0x0FF) << 8;
+  result |= (static_cast<std::int32_t>(int_bytes[3]) & 0x0FF);
+  return result;
+}
+
+ByteArray IntToBytes(std::int32_t value) {
+  char int_bytes[sizeof(std::int32_t)];
+  int_bytes[0] = static_cast<char>((value >> 24) & 0x0FF);
+  int_bytes[1] = static_cast<char>((value >> 16) & 0x0FF);
+  int_bytes[2] = static_cast<char>((value >> 8) & 0x0FF);
+  int_bytes[3] = static_cast<char>(value & 0x0FF);
+  return ByteArray(int_bytes, sizeof(int_bytes));
+}
+
+}  // namespace byte_utils
 }  // namespace nearby
