@@ -648,7 +648,14 @@ ErrorOr<bool> BleV2::StartAcceptingConnections(
               incoming_sockets_.insert({service_id, client_socket});
             }
             if (callback) {
-              callback(std::move(client_socket), service_id);
+              if (NearbyFlags::GetInstance().GetBoolFlag(
+                      config_package_nearby::nearby_connections_feature::
+                          kRefactorBleL2cap)) {
+                // TODO(edwinwu): Implement refactored Ble L2CAP flow in next
+                // cl.
+              } else {
+                callback(std::move(client_socket), service_id);
+              }
             }
           }
         });
@@ -737,7 +744,13 @@ ErrorOr<int> BleV2::StartAcceptingL2capConnections(
                 {service_id, client_socket});
           }
           if (callback) {
-            callback(std::move(client_socket), service_id);
+            if (NearbyFlags::GetInstance().GetBoolFlag(
+                    config_package_nearby::nearby_connections_feature::
+                        kRefactorBleL2cap)) {
+              // TODO(edwinwu): Implement refactored Ble L2CAP flow in next cl.
+            } else {
+              callback(std::move(client_socket), service_id);
+            }
           }
         }
       });
@@ -856,12 +869,20 @@ ErrorOr<BleV2Socket> BleV2::Connect(const std::string& service_id,
                            PowerLevelToTxPowerLevel(PowerLevel::kHighPower),
                            peripheral, cancellation_flag);
   if (!socket.IsValid()) {
-    LOG(INFO) << "Failed to Connect via Ble [service_id=" << service_id << "]";
+    LOG(WARNING) << "Failed to Connect via Ble [service_id=" << service_id
+                 << "], peripheral:"
+                 << absl::BytesToHexString(peripheral.GetId().data());
     return {Error(
         OperationResultCode::CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-
-  return socket;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kRefactorBleL2cap)) {
+    // TODO(edwinwu): Implement refactored Ble L2CAP flow in next cl.
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+  } else {
+    return socket;
+  }
 }
 
 ErrorOr<BleL2capSocket> BleV2::ConnectOverL2cap(
@@ -897,7 +918,12 @@ ErrorOr<BleL2capSocket> BleV2::ConnectOverL2cap(
     return {Error(OperationResultCode::
                       CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kRefactorBleL2cap)) {
+    // TODO(edwinwu): Implement refactored Ble L2CAP flow in next cl.
+    return {Error(OperationResultCode::DETAIL_UNKNOWN)};
+  }
   return socket;
 }
 
