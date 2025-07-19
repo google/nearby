@@ -14,10 +14,14 @@
 
 #include "connections/implementation/ble_v2_endpoint_channel.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
 #include "connections/implementation/base_endpoint_channel.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -43,6 +47,20 @@ InputStream* GetInputStreamOrNull(BleV2Socket& socket) {
   return nullptr;
 }
 
+OutputStream* GetOutputStreamOrNull(mediums::BleSocket* socket) {
+  if (socket != nullptr && socket->IsValid()) {
+    return &socket->GetOutputStream();
+  }
+  return nullptr;
+}
+
+InputStream* GetInputStreamOrNull(mediums::BleSocket* socket) {
+  if (socket != nullptr && socket->IsValid()) {
+    return &socket->GetInputStream();
+  }
+  return nullptr;
+}
+
 }  // namespace
 
 BleV2EndpointChannel::BleV2EndpointChannel(const std::string& service_id,
@@ -52,6 +70,14 @@ BleV2EndpointChannel::BleV2EndpointChannel(const std::string& service_id,
                           GetInputStreamOrNull(socket),
                           GetOutputStreamOrNull(socket)),
       ble_socket_(std::move(socket)) {}
+
+BleV2EndpointChannel::BleV2EndpointChannel(
+    const std::string& service_id, const std::string& channel_name,
+    std::unique_ptr<mediums::BleSocket> socket)
+    : BaseEndpointChannel(service_id, channel_name,
+                          GetInputStreamOrNull(socket.get()),
+                          GetOutputStreamOrNull(socket.get())),
+      ble_socket_2_(std::move(socket)) {}
 
 location::nearby::proto::connections::Medium BleV2EndpointChannel::GetMedium()
     const {
@@ -63,11 +89,30 @@ int BleV2EndpointChannel::GetMaxTransmitPacketSize() const {
 }
 
 void BleV2EndpointChannel::CloseImpl() {
-  Exception status = ble_socket_.Close();
-  if (!status.Ok()) {
-    LOG(WARNING) << "Failed to close underlying socket for BleEndpointChannel "
-                 << GetName() << ": exception=" << status.value;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kRefactorBleL2cap)) {
+    if (ble_socket_2_ == nullptr || !ble_socket_2_->IsValid()) {
+      LOG(WARNING) << "BleV2EndpointChannel " << GetName()
+                   << " is already closed.";
+      return;
+    }
+    Exception status = ble_socket_2_->Close();
+    if (!status.Ok()) {
+      LOG(WARNING)
+          << "Failed to close underlying socket for BleEndpointChannel "
+          << GetName() << ": exception=" << status.value;
+    }
+  } else {
+    Exception status = ble_socket_.Close();
+    if (!status.Ok()) {
+      LOG(WARNING)
+          << "Failed to close underlying socket for BleEndpointChannel "
+          << GetName() << ": exception=" << status.value;
+    }
   }
+
+  LOG(INFO) << "BleV2EndpointChannel " << GetName() << " is already closed.";
 }
 
 }  // namespace connections
