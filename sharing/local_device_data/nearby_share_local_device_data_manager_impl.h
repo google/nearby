@@ -80,9 +80,6 @@ class NearbyShareLocalDeviceDataManagerImpl
   DeviceNameValidationResult SetDeviceName(absl::string_view name) override;
   void UploadContacts(std::vector<nearby::sharing::proto::Contact> contacts,
                       UploadCompleteCallback callback) override;
-  void UploadCertificates(
-      std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-      UploadCompleteCallback callback) override;
 
   void PublishDevice(
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,

@@ -66,18 +66,6 @@ FakeNearbyShareLocalDeviceDataManager::UploadContactsCall::UploadContactsCall(
 FakeNearbyShareLocalDeviceDataManager::UploadContactsCall::
     ~UploadContactsCall() = default;
 
-FakeNearbyShareLocalDeviceDataManager::UploadCertificatesCall::
-    UploadCertificatesCall(
-        std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-        UploadCompleteCallback callback)
-    : certificates(std::move(certificates)), callback(std::move(callback)) {}
-
-FakeNearbyShareLocalDeviceDataManager::UploadCertificatesCall::
-    UploadCertificatesCall(UploadCertificatesCall&&) = default;
-
-FakeNearbyShareLocalDeviceDataManager::UploadCertificatesCall::
-    ~UploadCertificatesCall() = default;
-
 FakeNearbyShareLocalDeviceDataManager::FakeNearbyShareLocalDeviceDataManager(
     absl::string_view default_device_name)
     : id_(kDefaultId), device_name_(default_device_name) {}
@@ -119,15 +107,6 @@ void FakeNearbyShareLocalDeviceDataManager::UploadContacts(
   upload_contacts_calls_.emplace_back(std::move(contacts), callback);
   if (is_sync_mode_) {
     callback(upload_contact_result_);
-  }
-}
-
-void FakeNearbyShareLocalDeviceDataManager::UploadCertificates(
-    std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-    UploadCompleteCallback callback) {
-  upload_certificates_calls_.emplace_back(std::move(certificates), callback);
-  if (is_sync_mode_) {
-    callback(upload_certificate_result_);
   }
 }
 
