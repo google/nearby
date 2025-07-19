@@ -16,8 +16,6 @@
 
 #include <stdint.h>
 
-#include <vector>
-
 #include "sharing/proto/rpc_resources.pb.h"
 
 namespace nearby {
@@ -26,44 +24,6 @@ namespace sharing {
 NearbyShareContactManager::NearbyShareContactManager() = default;
 
 NearbyShareContactManager::~NearbyShareContactManager() = default;
-
-void NearbyShareContactManager::AddObserver(Observer* observer) {
-  observers_.AddObserver(observer);
-}
-
-void NearbyShareContactManager::RemoveObserver(Observer* observer) {
-  observers_.RemoveObserver(observer);
-}
-
-void NearbyShareContactManager::Start() {
-  if (is_running_) return;
-
-  is_running_ = true;
-  OnStart();
-}
-
-void NearbyShareContactManager::Stop() {
-  if (!is_running_) return;
-
-  is_running_ = false;
-  OnStop();
-}
-
-void NearbyShareContactManager::NotifyContactsDownloaded(
-    const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
-    uint32_t num_unreachable_contacts_filtered_out) {
-  for (Observer* observer : observers_.GetObservers()) {
-    observer->OnContactsDownloaded(contacts,
-                                   num_unreachable_contacts_filtered_out);
-  }
-}
-
-void NearbyShareContactManager::NotifyContactsUploaded(
-    bool did_contacts_change_since_last_upload) {
-  for (Observer* observer : observers_.GetObservers()) {
-    observer->OnContactsUploaded(did_contacts_change_since_last_upload);
-  }
-}
 
 }  // namespace sharing
 }  // namespace nearby

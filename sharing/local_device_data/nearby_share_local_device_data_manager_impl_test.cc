@@ -94,14 +94,6 @@ std::vector<Contact> GetFakeContacts() {
   return {std::move(contact1), std::move(contact2)};
 }
 
-std::vector<nearby::sharing::proto::PublicCertificate> GetFakeCertificates() {
-  nearby::sharing::proto::PublicCertificate cert1;
-  nearby::sharing::proto::PublicCertificate cert2;
-  cert1.set_secret_id("id1");
-  cert2.set_secret_id("id2");
-  return {std::move(cert1), std::move(cert2)};
-}
-
 class NearbyShareLocalDeviceDataManagerImplTest
     : public ::testing::Test,
       public NearbyShareLocalDeviceDataManager::Observer {
@@ -164,59 +156,6 @@ class NearbyShareLocalDeviceDataManagerImplTest
   void DestroyManager() {
     manager_->RemoveObserver(this);
     manager_.reset();
-  }
-
-  void UploadContacts(const absl::StatusOr<UpdateDeviceResponse>& response) {
-    std::optional<bool> returned_success;
-
-    client()->SetUpdateDeviceResponse(response);
-    manager_->UploadContacts(
-        GetFakeContacts(),
-        [&returned_success](bool success) { returned_success = success; });
-    Sync();
-    EXPECT_TRUE(client()->list_public_certificates_requests().empty());
-    EXPECT_EQ(response.ok(), returned_success);
-    if (!response.ok()) {
-      return;
-    }
-    std::vector<Contact> expected_fake_contacts = GetFakeContacts();
-    for (size_t i = 0; i < expected_fake_contacts.size(); ++i) {
-      EXPECT_EQ(expected_fake_contacts[i].SerializeAsString(),
-                client()
-                    ->update_device_requests()
-                    .back()
-                    .device()
-                    .contacts()
-                    .at(i)
-                    .SerializeAsString());
-    }
-  }
-
-  void UploadCertificates(
-      const absl::StatusOr<UpdateDeviceResponse>& response) {
-    std::optional<bool> returned_success;
-    EXPECT_TRUE(client()->list_contact_people_requests().empty());
-
-    client()->SetUpdateDeviceResponse(response);
-    manager_->UploadCertificates(
-        GetFakeCertificates(),
-        [&returned_success](bool success) { returned_success = success; });
-
-    Sync();
-    std::vector<nearby::sharing::proto::PublicCertificate>
-        expected_fake_certificates = GetFakeCertificates();
-    for (size_t i = 0; i < expected_fake_certificates.size(); ++i) {
-      EXPECT_EQ(expected_fake_certificates[i].SerializeAsString(),
-                client()
-                    ->update_device_requests()
-                    .back()
-                    .device()
-                    .public_certificates()
-                    .at(i)
-                    .SerializeAsString());
-    }
-
-    EXPECT_EQ(response.ok(), returned_success);
   }
 
   NearbyShareLocalDeviceDataManager* manager() { return manager_.get(); }
@@ -351,31 +290,6 @@ TEST_F(NearbyShareLocalDeviceDataManagerImplTest, SetDeviceName) {
   DestroyManager();
   CreateManager();
   EXPECT_EQ(manager()->GetDeviceName(), kFakeDeviceName);
-}
-
-TEST_F(NearbyShareLocalDeviceDataManagerImplTest, UploadContacts_Success) {
-  CreateManager();
-  SetDeviceId(kTestDeviceId);
-  UploadContacts(CreateResponse(kFakeFullName, kFakeIconUrl, kFakeIconToken));
-}
-
-TEST_F(NearbyShareLocalDeviceDataManagerImplTest, UploadContacts_Failure) {
-  CreateManager();
-  SetDeviceId(kTestDeviceId);
-  UploadContacts(/*response=*/absl::InternalError(""));
-}
-
-TEST_F(NearbyShareLocalDeviceDataManagerImplTest, UploadCertificates_Success) {
-  CreateManager();
-  SetDeviceId(kTestDeviceId);
-  UploadCertificates(
-      CreateResponse(kFakeFullName, kFakeIconUrl, kFakeIconToken));
-}
-
-TEST_F(NearbyShareLocalDeviceDataManagerImplTest, UploadCertificates_Failure) {
-  CreateManager();
-  SetDeviceId(kTestDeviceId);
-  UploadCertificates(/*response=*/absl::InternalError(""));
 }
 
 std::vector<nearby::sharing::proto::PublicCertificate> GetTestCertificates() {

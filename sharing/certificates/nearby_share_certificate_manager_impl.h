@@ -58,7 +58,6 @@ class NearbyShareScheduler;
 // changes to the local device data, such as the device name.
 class NearbyShareCertificateManagerImpl
     : public NearbyShareCertificateManager,
-      public NearbyShareContactManager::Observer,
       public NearbyShareLocalDeviceDataManager::Observer {
  public:
   class Factory {
@@ -160,12 +159,6 @@ class NearbyShareCertificateManagerImpl
       proto::DeviceVisibility visibility) const override;
   void UpdatePrivateCertificateInStorage(
       const NearbySharePrivateCertificate& private_certificate) override;
-
-  // NearbyShareContactManager::Observer:
-  void OnContactsDownloaded(
-      const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
-      uint32_t num_unreachable_contacts_filtered_out) override;
-  void OnContactsUploaded(bool did_contacts_change_since_last_upload) override;
 
   // NearbyShareLocalDeviceDataManager::Observer:
   void OnLocalDeviceDataChanged(bool did_device_name_change,
