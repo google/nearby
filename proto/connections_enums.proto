@@ -1268,6 +1268,8 @@ enum OperationResultCode {
   NEARBY_REMOTE_EXCEPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4608;
   // Bad file description when processing received payload
   NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609;
+  // Connection listener is null
+  NEARBY_CONNECTION_LISTENER_NULL = 4610;
 
   // Section of CATEGORY_DCT_ERROR, from 5000
   // BLE is disabled
