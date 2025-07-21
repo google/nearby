@@ -14,9 +14,9 @@
 
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSWeavePacket.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSWeavePacket.h"
 
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSUtils.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSUtils.h"
 
 @interface GNSWeavePacketTest : XCTestCase {
   NSData *_largeNonEmptyData;
@@ -177,8 +177,8 @@
   // 1000 0010, control packets have the MSB set and, error code is 2. The packet counter is 0.
   UInt8 header = (1 << 7) + 2;
   NSError *error = nil;
-  GNSWeavePacket *packet =
-      [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:nil] error:&error];
+  GNSWeavePacket *packet = [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:nil]
+                                               error:&error];
   XCTAssertNotNil(packet);
   XCTAssertTrue([packet isKindOfClass:[GNSWeaveErrorPacket class]]);
   XCTAssertEqual(packet.packetCounter, 0);

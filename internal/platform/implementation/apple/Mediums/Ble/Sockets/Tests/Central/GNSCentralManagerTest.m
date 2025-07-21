@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Central/GNSCentralManager+Private.h"
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager+Private.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
 @interface TestGNSCentralManager : GNSCentralManager
@@ -25,187 +25,224 @@
 
 + (CBCentralManager *)centralManagerWithDelegate:(id<CBCentralManagerDelegate>)delegate
                                            queue:(dispatch_queue_t)queue
-                                         options:(NSDictionary *)options {
-  CBCentralManager *result = OCMStrictClassMock([CBCentralManager class]);
-  OCMStub([result delegate]).andReturn(delegate);
-  return result;
+                                         options:(NSDictionary<NSString *, id> *)options {
+  CBCentralManager *mockManager = OCMStrictClassMock([CBCentralManager class]);
+  OCMStub([mockManager delegate]).andReturn(delegate);
+  return mockManager;
 }
 
 - (GNSCentralPeerManager *)createCentralPeerManagerWithPeripheral:(CBPeripheral *)peripheral {
-  GNSCentralPeerManager *manager = OCMStrictClassMock([GNSCentralPeerManager class]);
-  OCMStub([manager cbPeripheral]).andReturn(peripheral);
-  return manager;
+  GNSCentralPeerManager *mockPeerManager = OCMStrictClassMock([GNSCentralPeerManager class]);
+  OCMStub([mockPeerManager cbPeripheral]).andReturn(peripheral);
+  return mockPeerManager;
 }
 
 @end
 
-@interface GNSCentralManagerTest : XCTestCase {
-  CBUUID *_socketServiceUUID;
-  TestGNSCentralManager *_centralManager;
-  CBCentralManager *_cbCentralManagerMock;
-  CBCentralManagerState _cbCentralManagerState;
-  NSMutableArray *_mockObjectsToVerify;
-  id<GNSCentralManagerDelegate> _centralManagerDelegate;
-}
+@interface GNSCentralManagerTest : XCTestCase
+@property(nonatomic) CBUUID *socketServiceUUID;
+@property(nonatomic) TestGNSCentralManager *centralManager;
+@property(nonatomic) CBCentralManager *cbCentralManagerMock;
+@property(nonatomic) CBManagerState cbCentralManagerState;
+@property(nonatomic) NSMutableArray<OCMockObject *> *mockObjectsToVerify;
+@property(nonatomic) id<GNSCentralManagerDelegate> centralManagerDelegate;
 @end
 
 @implementation GNSCentralManagerTest
 
 - (void)setUp {
-  _mockObjectsToVerify = [NSMutableArray array];
-  _socketServiceUUID = [CBUUID UUIDWithNSUUID:[NSUUID UUID]];
-  _centralManager = [[TestGNSCentralManager alloc]
-      initWithSocketServiceUUID:_socketServiceUUID
-                          queue:dispatch_get_main_queue()];
-  _centralManagerDelegate = OCMStrictProtocolMock(@protocol(GNSCentralManagerDelegate));
-  _centralManager.delegate = _centralManagerDelegate;
-  XCTAssertFalse(_centralManager.scanning);
-  XCTAssertEqualObjects(_centralManager.socketServiceUUID, _socketServiceUUID);
-  _cbCentralManagerMock = _centralManager.testing_cbCentralManager;
-  XCTAssertEqual(_cbCentralManagerMock.delegate, _centralManager);
-  _cbCentralManagerState = CBCentralManagerStatePoweredOff;
-  OCMStub([_cbCentralManagerMock state])
-      .andDo(^(NSInvocation *invocation) {
-        [invocation setReturnValue:&_cbCentralManagerState];
-      });
+  [super setUp];
+  self.mockObjectsToVerify = [NSMutableArray array];
+  self.socketServiceUUID = [CBUUID UUIDWithNSUUID:[NSUUID UUID]];
+  self.centralManager =
+      [[TestGNSCentralManager alloc] initWithSocketServiceUUID:self.socketServiceUUID
+                                                         queue:dispatch_get_main_queue()];
+
+  self.centralManagerDelegate = OCMStrictProtocolMock(@protocol(GNSCentralManagerDelegate));
+  self.centralManager.delegate = self.centralManagerDelegate;
+
+  XCTAssertFalse(self.centralManager.scanning);
+  XCTAssertEqualObjects(self.centralManager.socketServiceUUID, self.socketServiceUUID);
+
+  self.cbCentralManagerMock = self.centralManager.testing_cbCentralManager;
+  XCTAssertEqual(self.cbCentralManagerMock.delegate, self.centralManager);
+  self.cbCentralManagerState = CBManagerStatePoweredOff;
+  OCMStub([self.cbCentralManagerMock state]).andDo(^(NSInvocation *invocation) {
+    CBManagerState state = self.cbCentralManagerState;
+    [invocation setReturnValue:&state];
+  });
 }
 
 - (void)tearDown {
-  OCMVerifyAll((id)_cbCentralManagerMock);
-  OCMVerifyAll((id)_centralManagerDelegate);
-  for (OCMockObject *object in _mockObjectsToVerify) {
+  OCMVerifyAll(self.cbCentralManagerMock);
+  OCMVerifyAll(self.centralManagerDelegate);
+  for (OCMockObject *object in self.mockObjectsToVerify) {
     OCMVerifyAll(object);
   }
+  [super tearDown];
 }
 
 #pragma mark - Scanning And Power Off/On Bluetooth
 
-- (void)startScanningWithServices:(NSArray *)services
-                 advertismentName:(NSString *)advertismentName {
-  NSDictionary *options = @{ CBCentralManagerScanOptionAllowDuplicatesKey : @YES };
-  OCMExpect([_cbCentralManagerMock scanForPeripheralsWithServices:services options:options]);
-  [_centralManager startScanWithAdvertisedName:advertismentName
-                         advertisedServiceUUID:_centralManager.socketServiceUUID];
-  XCTAssertTrue(_centralManager.scanning);
+- (void)startScanningWithServices:(NSArray<CBUUID *> *)services
+                advertisementName:(NSString *)advertisementName {
+  NSDictionary<NSString *, id> *options = @{CBCentralManagerScanOptionAllowDuplicatesKey : @YES};
+  OCMExpect([self.cbCentralManagerMock scanForPeripheralsWithServices:services options:options]);
+  [self.centralManager startScanWithAdvertisedName:advertisementName
+                             advertisedServiceUUID:self.centralManager.socketServiceUUID];
+  XCTAssertTrue(self.centralManager.scanning);
 }
 
 - (void)testScanningWithBluetoothOFF {
-  [_centralManager startScanWithAdvertisedName:nil
-                         advertisedServiceUUID:_centralManager.socketServiceUUID];
-  XCTAssertTrue(_centralManager.scanning);
-  [_centralManager stopScan];
-  XCTAssertFalse(_centralManager.scanning);
+  [self.centralManager startScanWithAdvertisedName:nil
+                             advertisedServiceUUID:self.centralManager.socketServiceUUID];
+  XCTAssertTrue(self.centralManager.scanning);
+  [self.centralManager stopScan];
+  XCTAssertFalse(self.centralManager.scanning);
 }
 
 - (void)testScanningWithBluetoothON {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  NSArray *services = @[ _socketServiceUUID ];
-  [self startScanningWithServices:services advertismentName:nil];
-  OCMExpect([_cbCentralManagerMock stopScan]);
-  [_centralManager stopScan];
-  XCTAssertFalse(_centralManager.scanning);
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  NSArray<CBUUID *> *services = @[ self.socketServiceUUID ];
+  [self startScanningWithServices:services advertisementName:nil];
+  OCMExpect([self.cbCentralManagerMock stopScan]);
+  [self.centralManager stopScan];
+  XCTAssertFalse(self.centralManager.scanning);
 }
 
 - (void)testScanningAndPowerONBluetooth {
-  NSArray *services = @[ _socketServiceUUID ];
-  [self startScanningWithServices:services advertismentName:nil];
-  OCMExpect([_centralManagerDelegate centralManagerDidUpdateBLEState:_centralManager]);
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  [_centralManager centralManagerDidUpdateState:_cbCentralManagerMock];
-  XCTAssertTrue(_centralManager.scanning);
-  OCMExpect([_cbCentralManagerMock stopScan]);
-  [_centralManager stopScan];
-  XCTAssertFalse(_centralManager.scanning);
+  // Start scanning while powered off.
+  [self.centralManager startScanWithAdvertisedName:nil
+                             advertisedServiceUUID:self.centralManager.socketServiceUUID];
+
+  // Expect a state update and scan command when power turns on.
+  OCMExpect([self.centralManagerDelegate centralManagerDidUpdateBleState:self.centralManager]);
+  OCMExpect([self.cbCentralManagerMock
+      scanForPeripheralsWithServices:@[ self.socketServiceUUID ]
+                             options:@{CBCentralManagerScanOptionAllowDuplicatesKey : @YES}]);
+
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  [self.centralManager centralManagerDidUpdateState:self.cbCentralManagerMock];
+
+  XCTAssertTrue(self.centralManager.scanning);
+  OCMExpect([self.cbCentralManagerMock stopScan]);
+  [self.centralManager stopScan];
+  XCTAssertFalse(self.centralManager.scanning);
 }
 
 - (void)testScanningAndPowerOFFBluetooth {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  NSArray *services = @[ _socketServiceUUID ];
-  [self startScanningWithServices:services advertismentName:nil];
-  OCMExpect([_centralManagerDelegate centralManagerDidUpdateBLEState:_centralManager]);
-  OCMExpect([_cbCentralManagerMock stopScan]);
-  _cbCentralManagerState = CBCentralManagerStatePoweredOff;
-  [_centralManager centralManagerDidUpdateState:_cbCentralManagerMock];
-  XCTAssertTrue(_centralManager.scanning);
-  [_centralManager stopScan];
-  XCTAssertFalse(_centralManager.scanning);
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  NSArray<CBUUID *> *services = @[ self.socketServiceUUID ];
+  [self startScanningWithServices:services advertisementName:nil];
+
+  // Expect a state update when power turns off. The stopScan is implicitly called.
+  OCMExpect([self.centralManagerDelegate centralManagerDidUpdateBleState:self.centralManager]);
+  OCMExpect([self.cbCentralManagerMock stopScan]);
+
+  self.cbCentralManagerState = CBManagerStatePoweredOff;
+  [self.centralManager centralManagerDidUpdateState:self.cbCentralManagerMock];
+
+  XCTAssertTrue(self.centralManager.scanning);
+  [self.centralManager stopScan];
+  XCTAssertFalse(self.centralManager.scanning);
 }
 
 - (void)testScanningWithAdvertisedName {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  [self startScanningWithServices:nil advertismentName:@"advertisedname"];
-  OCMExpect([_cbCentralManagerMock stopScan]);
-  [_centralManager stopScan];
-  XCTAssertFalse(_centralManager.scanning);
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  [self startScanningWithServices:nil advertisementName:@"advertisedname"];
+  OCMExpect([self.cbCentralManagerMock stopScan]);
+  [self.centralManager stopScan];
+  XCTAssertFalse(self.centralManager.scanning);
 }
 
 #pragma mark - Scanning with no advertised name
 
 - (void)testScanningPeripheralWithWrongPeripheralService {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  [self startScanningWithServices:@[ _socketServiceUUID ] advertismentName:nil];
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  [self startScanningWithServices:@[ self.socketServiceUUID ] advertisementName:nil];
   CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
-  NSDictionary *advertisementData = @{ CBAdvertisementDataServiceUUIDsKey: @[ [NSUUID UUID] ] };
-  [_centralManager centralManager:_cbCentralManagerMock
-            didDiscoverPeripheral:peripheral
-                advertisementData:advertisementData
-                             RSSI:@(19)];
+  NSDictionary<NSString *, id> *advertisementData =
+      @{CBAdvertisementDataServiceUUIDsKey : @[ [NSUUID UUID] ]};
+
+  // Expect no delegate callback since the service UUID does not match.
+  [self.centralManager centralManager:self.cbCentralManagerMock
+                didDiscoverPeripheral:peripheral
+                    advertisementData:advertisementData
+                                 RSSI:@(19)];
+  OCMVerifyAll(peripheral);
 }
 
 - (void)testScanningPeripheral {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  [self startScanningWithServices:@[ _socketServiceUUID ] advertismentName:nil];
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  [self startScanningWithServices:@[ self.socketServiceUUID ] advertisementName:nil];
   CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
   OCMStub([peripheral identifier]).andReturn([NSUUID UUID]);
-  NSDictionary *advertisementData = @{
-    CBAdvertisementDataServiceUUIDsKey : @[ _socketServiceUUID ]
-  };
-  OCMExpect([_centralManagerDelegate
-         centralManager:_centralManager
-        didDiscoverPeer:[OCMArg checkWithBlock:^BOOL(GNSCentralPeerManager *centralPeerManager) {
+  NSDictionary<NSString *, id> *advertisementData =
+      @{CBAdvertisementDataServiceUUIDsKey : @[ self.socketServiceUUID ]};
+  OCMExpect([self.centralManagerDelegate centralManager:self.centralManager
+                                        didDiscoverPeer:[OCMArg any]
+                                      advertisementData:[OCMArg any]])
+      .andDo(^(NSInvocation *invocation) {
+        __unsafe_unretained GNSCentralPeerManager *centralPeerManager;
+        [invocation getArgument:&centralPeerManager atIndex:3];
         XCTAssertEqual(centralPeerManager.cbPeripheral, peripheral);
-        return YES;
-      }]
-      advertisementData:[OCMArg any]]);
-  [_centralManager centralManager:_cbCentralManagerMock
-            didDiscoverPeripheral:peripheral
-                advertisementData:advertisementData
-                             RSSI:@(42)];
+      });
+
+  [self.centralManager centralManager:self.cbCentralManagerMock
+                didDiscoverPeripheral:peripheral
+                    advertisementData:advertisementData
+                                 RSSI:@(42)];
+  OCMVerifyAll(peripheral);
 }
 
 #pragma mark - Scanning with advertised name
 
 - (void)testScanningPeripheralWithWrongAdvertisedName {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  [self startScanningWithServices:nil advertismentName:@"advertisedname"];
+  _cbCentralManagerState = CBManagerStatePoweredOn;
+  [self startScanningWithServices:nil advertisementName:@"advertisedname"];
   CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
-  NSDictionary *advertisementData = @{
+  NSDictionary<NSString *, id> *advertisementData = @{
     CBAdvertisementDataServiceUUIDsKey : @[ [NSUUID UUID] ],
     CBAdvertisementDataLocalNameKey : @"wrongadvertisedname",
   };
-  [_centralManager centralManager:_cbCentralManagerMock
-            didDiscoverPeripheral:peripheral
-                advertisementData:advertisementData
-                             RSSI:@(19)];
+
+  // The central manager's delegate is not expected to be called because the
+  // advertised name "wrongadvertisedname" does not match "advertisedname".
+  // The strict mock on the delegate will ensure this behavior is verified.
+  [self.centralManager centralManager:self.cbCentralManagerMock
+                didDiscoverPeripheral:peripheral
+                    advertisementData:advertisementData
+                                 RSSI:@(19)];
 }
 
 - (void)testScanningPeripheralWithRightAdvertisedName {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
+  _cbCentralManagerState = CBManagerStatePoweredOn;
   NSString *advertisedName = @"advertisedname";
-  [self startScanningWithServices:nil advertismentName:advertisedName];
+  [self startScanningWithServices:nil advertisementName:advertisedName];
+
   CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
   OCMStub([peripheral identifier]).andReturn([NSUUID UUID]);
-  NSDictionary *advertisementData = @{
-    CBAdvertisementDataServiceUUIDsKey : @[ _socketServiceUUID ],
+
+  NSDictionary<NSString *, id> *advertisementData = @{
+    CBAdvertisementDataServiceUUIDsKey : @[ [NSUUID UUID] ],
     CBAdvertisementDataLocalNameKey : advertisedName,
   };
-  OCMExpect([_centralManagerDelegate centralManager:_centralManager
-                                    didDiscoverPeer:[OCMArg any]
-                                  advertisementData:[OCMArg any]]);
-  [_centralManager centralManager:_cbCentralManagerMock
-            didDiscoverPeripheral:peripheral
-                advertisementData:advertisementData
-                             RSSI:@(19)];
+
+  // Expect the delegate to be called because the advertised name matches.
+  // Use a checkWithBlock to verify the correct peripheral is passed.
+  id peerManagerCheck = [OCMArg checkWithBlock:^BOOL(id obj) {
+    GNSCentralPeerManager *peer = (GNSCentralPeerManager *)obj;
+    XCTAssertEqual(peer.cbPeripheral, peripheral);
+    return YES;
+  }];
+  OCMExpect([self.centralManagerDelegate centralManager:self.centralManager
+                                        didDiscoverPeer:peerManagerCheck
+                                      advertisementData:advertisementData]);
+
+  [self.centralManager centralManager:self.cbCentralManagerMock
+                didDiscoverPeripheral:peripheral
+                    advertisementData:advertisementData
+                                 RSSI:@(19)];
 }
 
 #pragma mark - Peripheral Retrieval
@@ -214,86 +251,86 @@
                                     peripheralState:(CBPeripheralState *)peripheralState {
   CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
   OCMStub([peripheral identifier]).andReturn(identifier);
-  OCMStub([peripheral state])
-      .andDo(^(NSInvocation *invocation) {
-        [invocation setReturnValue:peripheralState];
-      });
-  [_mockObjectsToVerify addObject:(OCMockObject *)peripheral];
+  OCMStub([peripheral state]).andDo(^(NSInvocation *invocation) {
+    [invocation setReturnValue:peripheralState];
+  });
+  [self.mockObjectsToVerify addObject:(OCMockObject *)peripheral];
   return peripheral;
 }
 
 - (GNSCentralPeerManager *)retrieveCentralPeerWithPeripheral:(CBPeripheral *)peripheral {
-  NSUUID *identifier = peripheral.identifier;
-  OCMExpect([_cbCentralManagerMock retrievePeripheralsWithIdentifiers:@[ identifier ]])
-      .andReturn([NSArray arrayWithObject:peripheral]);
+  NSUUID *identifier = [peripheral identifier];
+  OCMExpect([self.cbCentralManagerMock retrievePeripheralsWithIdentifiers:@[ identifier ]])
+      .andReturn(@[ peripheral ]);
   GNSCentralPeerManager *centralPeerManager =
-      [_centralManager retrieveCentralPeerWithIdentifier:identifier];
-  OCMStub([centralPeerManager cbPeripheral]).andReturn(peripheral);
+      [self.centralManager retrieveCentralPeerWithIdentifier:identifier];
   OCMStub([centralPeerManager identifier]).andReturn(identifier);
   XCTAssertNotNil(centralPeerManager);
-  [_mockObjectsToVerify addObject:(OCMockObject *)centralPeerManager];
+  [self.mockObjectsToVerify addObject:(OCMockObject *)centralPeerManager];
   return centralPeerManager;
 }
 
 - (void)testRetrieveCentralPeerAndConnectDisconnect {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
   NSUUID *identifier = [NSUUID UUID];
   CBPeripheralState peripheralMockState = CBPeripheralStateConnected;
-  CBPeripheral *peripheral =
-      [self prepareCBPeripheralWithIdentifier:identifier peripheralState:&peripheralMockState];
+  CBPeripheral *peripheral = [self prepareCBPeripheralWithIdentifier:identifier
+                                                     peripheralState:&peripheralMockState];
   GNSCentralPeerManager *centralPeerManager = [self retrieveCentralPeerWithPeripheral:peripheral];
   OCMExpect([centralPeerManager bleConnected]);
-  [_centralManager centralManager:_cbCentralManagerMock didConnectPeripheral:peripheral];
+  [self.centralManager centralManager:self.cbCentralManagerMock didConnectPeripheral:peripheral];
   NSError *error = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
   OCMExpect([centralPeerManager bleDisconnectedWithError:error]);
   peripheralMockState = CBPeripheralStateDisconnected;
-  [_centralManager centralManager:_cbCentralManagerMock
-          didDisconnectPeripheral:peripheral
-                            error:error];
+  [self.centralManager centralManager:self.cbCentralManagerMock
+              didDisconnectPeripheral:peripheral
+                                error:error];
 }
 
 - (void)testRetrieveTwiceCentralPeer {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
   NSUUID *identifier = [NSUUID UUID];
   CBPeripheralState peripheralMockState = CBPeripheralStateConnected;
-  CBPeripheral *peripheral =
-      [self prepareCBPeripheralWithIdentifier:identifier peripheralState:&peripheralMockState];
+  CBPeripheral *peripheral = [self prepareCBPeripheralWithIdentifier:identifier
+                                                     peripheralState:&peripheralMockState];
   GNSCentralPeerManager *centralPeerManager = [self retrieveCentralPeerWithPeripheral:peripheral];
-  XCTAssertNil([_centralManager retrieveCentralPeerWithIdentifier:identifier]);
+  XCTAssertNil([self.centralManager retrieveCentralPeerWithIdentifier:identifier]);
   OCMExpect([centralPeerManager bleConnected]);
-  [_centralManager centralManager:_cbCentralManagerMock didConnectPeripheral:peripheral];
+  [self.centralManager centralManager:self.cbCentralManagerMock didConnectPeripheral:peripheral];
   NSError *error = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
   OCMExpect([centralPeerManager bleDisconnectedWithError:error]);
   peripheralMockState = CBPeripheralStateDisconnected;
-  [_centralManager centralManager:_cbCentralManagerMock
-          didDisconnectPeripheral:peripheral
-                            error:error];
-  [_centralManager centralPeerManagerDidDisconnect:centralPeerManager];
+  [self.centralManager centralManager:self.cbCentralManagerMock
+              didDisconnectPeripheral:peripheral
+                                error:error];
+  [self.centralManager centralPeerManagerDidDisconnect:centralPeerManager];
 
+  // Retrieve a second, different peer.
   NSUUID *identifier2 = [NSUUID UUID];
   CBPeripheralState peripheralState2 = CBPeripheralStateConnected;
-  CBPeripheral *peripheral2 =
-      [self prepareCBPeripheralWithIdentifier:identifier2 peripheralState:&peripheralState2];
+  CBPeripheral *peripheral2 = [self prepareCBPeripheralWithIdentifier:identifier2
+                                                      peripheralState:&peripheralState2];
   GNSCentralPeerManager *centralPeerManager2 = [self retrieveCentralPeerWithPeripheral:peripheral2];
   XCTAssertNotNil(centralPeerManager2);
   XCTAssertNotEqual(centralPeerManager, centralPeerManager2);
 }
 
-- (void)testRetrieveCentralPeerAndConnectFailToConnect {
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
+- (void)testRetrieveCentralPeerAndFailToConnect {
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
   NSUUID *identifier = [NSUUID UUID];
   CBPeripheralState peripheralMockState = CBPeripheralStateConnected;
-  CBPeripheral *peripheral =
-      [self prepareCBPeripheralWithIdentifier:identifier peripheralState:&peripheralMockState];
+  CBPeripheral *peripheral = [self prepareCBPeripheralWithIdentifier:identifier
+                                                     peripheralState:&peripheralMockState];
   GNSCentralPeerManager *centralPeerManager = [self retrieveCentralPeerWithPeripheral:peripheral];
   OCMExpect([centralPeerManager bleConnected]);
-  [_centralManager centralManager:_cbCentralManagerMock didConnectPeripheral:peripheral];
+  [self.centralManager centralManager:self.cbCentralManagerMock didConnectPeripheral:peripheral];
+
   NSError *error = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
   OCMExpect([centralPeerManager bleDisconnectedWithError:error]);
   peripheralMockState = CBPeripheralStateDisconnected;
-  [_centralManager centralManager:_cbCentralManagerMock
-       didFailToConnectPeripheral:peripheral
-                            error:error];
+  [self.centralManager centralManager:self.cbCentralManagerMock
+           didFailToConnectPeripheral:peripheral
+                                error:error];
 }
 
 @end

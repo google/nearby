@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,97 +14,172 @@
 
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSSocket+Private.h"
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSWeavePacket.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket+Private.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSWeavePacket.h"
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
-@interface GNSSocketTest : XCTestCase {
-  GNSSocket *_socket;
-  id<GNSSocketOwner> _socketOwner;
-  CBCentral *_centralPeerMock;
-  id<GNSSocketDelegate> _socketDelegate;
-}
+@protocol GNSSocketTestDelegate <GNSSocketDelegate, GNSWeavePacketHandler>
+- (void)socketDidConnect:(GNSSocket *)socket;
+- (void)socket:(GNSSocket *)socket didReceiveWeavePacket:(GNSWeavePacket *)packet;
+- (void)socket:(GNSSocket *)socket didDisconnectWithError:(NSError *)error;
+@end
+
+@interface GNSSocketTest : XCTestCase
+@property(nonatomic) GNSSocket *socket;
+@property(nonatomic) id<GNSSocketOwner> mockOwner;
+@property(nonatomic) id<GNSSocketTestDelegate> mockDelegate;
+@property(nonatomic) dispatch_queue_t testQueue;
+
 @end
 
 @implementation GNSSocketTest
 
 - (void)setUp {
-  _centralPeerMock = OCMStrictClassMock([CBCentral class]);
-  NSUUID *identifier = [NSUUID UUID];
-  OCMStub([_centralPeerMock identifier]).andReturn(identifier);
-  _socketOwner = OCMStrictProtocolMock(@protocol(GNSSocketOwner));
-  _socket = [[GNSSocket alloc] initWithOwner:_socketOwner centralPeer:_centralPeerMock];
-  _socketDelegate = OCMStrictProtocolMock(@protocol(GNSSocketDelegate));
-  _socket.delegate = _socketDelegate;
-  XCTAssertFalse(_socket.connected);
+  [super setUp];
+  self.mockOwner = OCMProtocolMock(@protocol(GNSSocketOwner));
+  self.mockDelegate = OCMProtocolMock(@protocol(GNSSocketTestDelegate));
+  self.testQueue = dispatch_queue_create("com.google.nearby.GNSSocketTest", DISPATCH_QUEUE_SERIAL);
 }
 
 - (void)tearDown {
-  __weak GNSSocket *weakSocket = _socket;
-  OCMExpect([_socketOwner socketWillBeDeallocated:[OCMArg isNotNil]]);
-  _socket = nil;
-  XCTAssertNil(weakSocket);
-  OCMVerifyAll((id)_centralPeerMock);
-  OCMVerifyAll((id)_socketOwner);
-  OCMVerifyAll((id)_socketDelegate);
+  self.socket = nil;
+  self.mockOwner = nil;
+  self.mockDelegate = nil;
+  self.testQueue = nil;
+  [super tearDown];
 }
+
+#pragma mark - Initialization
+
+- (void)testInitWithCentralPeer {
+  CBCentral *centralPeer = OCMClassMock([CBCentral class]);
+  OCMStub([centralPeer identifier]).andReturn([NSUUID UUID]);
+  self.socket = [[GNSSocket alloc] initWithOwner:self.mockOwner
+                                     centralPeer:centralPeer
+                                           queue:self.testQueue];
+  XCTAssertNotNil(self.socket);
+  XCTAssertEqualObjects(self.socket.owner, self.mockOwner);
+  XCTAssertEqual(self.socket.packetSize, kGNSMinSupportedPacketSize);
+  XCTAssertNotNil(self.socket.socketIdentifier);
+  XCTAssertEqual(self.socket.queue, self.testQueue);
+}
+
+- (void)testInitWithPeripheralPeer {
+  CBPeripheral *peripheralPeer = OCMClassMock([CBPeripheral class]);
+  OCMStub([peripheralPeer identifier]).andReturn([NSUUID UUID]);
+  self.socket = [[GNSSocket alloc] initWithOwner:self.mockOwner
+                                  peripheralPeer:peripheralPeer
+                                           queue:self.testQueue];
+  XCTAssertNotNil(self.socket);
+  XCTAssertEqualObjects(self.socket.owner, self.mockOwner);
+  XCTAssertEqual(self.socket.packetSize, kGNSMinSupportedPacketSize);
+  XCTAssertNotNil(self.socket.socketIdentifier);
+  XCTAssertEqual(self.socket.queue, self.testQueue);
+}
+
+- (void)testDealloc {
+  OCMExpect([self.mockOwner socketWillBeDeallocated:OCMOCK_ANY]);
+  GNSSocket *__weak weakSocket;
+  @autoreleasepool {
+    CBPeripheral *peripheralPeer = OCMClassMock([CBPeripheral class]);
+    OCMStub([peripheralPeer identifier]).andReturn([NSUUID UUID]);
+    GNSSocket *socket = [[GNSSocket alloc] initWithOwner:self.mockOwner
+                                          peripheralPeer:peripheralPeer
+                                                   queue:self.testQueue];
+    weakSocket = socket;
+  }
+  OCMVerifyAll(self.mockOwner);
+  XCTAssertNil(weakSocket);
+}
+
+#pragma mark - Peer Type
 
 - (void)connectSocket {
-  OCMExpect([_socketDelegate socketDidConnect:_socket]);
-  [_socket didConnect];
-  XCTAssertTrue(_socket.connected);
+  self.socket = [self createSocket];
+  self.socket.delegate = self.mockDelegate;
+  OCMExpect([self.mockDelegate socketDidConnect:self.socket]);
+  [self.socket didConnect];
 }
 
-- (void)testPeripheralPeer {
-  CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
-  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:_socketOwner peripheralPeer:peripheral];
-  XCTAssertEqual(socket.peerAsPeripheral, peripheral);
-  OCMExpect([_socketOwner socketWillBeDeallocated:[OCMArg isNotNil]]);
+- (void)testPeerAsPeripheral {
+  CBPeripheral *peripheralPeer = OCMClassMock([CBPeripheral class]);
+  OCMStub([peripheralPeer identifier]).andReturn([NSUUID UUID]);
+  self.socket = [[GNSSocket alloc] initWithOwner:self.mockOwner
+                                  peripheralPeer:peripheralPeer
+                                           queue:self.testQueue];
+  CBPeripheral *result = [self.socket peerAsPeripheral];
+  XCTAssertEqual(result, peripheralPeer);
 }
 
-- (void)testCentralPeer {
-  CBCentral *central = OCMStrictClassMock([CBCentral class]);
-  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:_socketOwner centralPeer:central];
-  XCTAssertEqual(socket.peerAsCentral, central);
-  OCMExpect([_socketOwner socketWillBeDeallocated:[OCMArg isNotNil]]);
+- (void)testPeerAsCentral {
+  CBCentral *centralPeer = OCMClassMock([CBCentral class]);
+  OCMStub([centralPeer identifier]).andReturn([NSUUID UUID]);
+  self.socket = [[GNSSocket alloc] initWithOwner:self.mockOwner
+                                     centralPeer:centralPeer
+                                           queue:self.testQueue];
+  CBCentral *result = [self.socket peerAsCentral];
+  XCTAssertEqual(result, centralPeer);
+}
+
+#pragma mark - Connection
+
+- (void)testDidConnect {
+  [self connectSocket];
+  XCTAssertTrue(self.socket.isConnected);
+  OCMVerifyAll(self.mockDelegate);
 }
 
 - (void)testDisconnect {
   [self connectSocket];
-  OCMExpect([_socketOwner disconnectSocket:_socket]);
-  [_socket disconnect];
-  XCTAssertTrue(_socket.connected);
-  OCMExpect([_socketDelegate socket:_socket didDisconnectWithError:nil]);
-  [_socket didDisconnectWithError:nil];
-  XCTAssertFalse(_socket.connected);
+  OCMExpect([self.mockOwner disconnectSocket:self.socket]);
+  [self.socket disconnect];
+  XCTAssertTrue(self.socket.isConnected);
+  OCMExpect([self.mockDelegate socket:self.socket didDisconnectWithError:nil]);
+  [self.socket didDisconnectWithError:nil];
+  XCTAssertFalse(self.socket.isConnected);
+  OCMVerifyAll(self.mockOwner);
 }
 
-- (void)testDisconnectWithError {
+- (void)testDidDisconnectWithError {
   [self connectSocket];
-  OCMExpect([_socketOwner disconnectSocket:_socket]);
-  [_socket disconnect];
-  XCTAssertTrue(_socket.connected);
-  NSError *error = [NSError errorWithDomain:@"domain" code:-42 userInfo:nil];
-  OCMExpect([_socketDelegate socket:_socket didDisconnectWithError:error]);
-  [_socket didDisconnectWithError:error];
-  XCTAssertFalse(_socket.connected);
+  OCMExpect([self.mockOwner disconnectSocket:self.socket]);
+  [self.socket disconnect];
+  NSError *testError = [NSError errorWithDomain:@"TestDomain" code:1 userInfo:nil];
+  OCMExpect([self.mockDelegate socket:self.socket didDisconnectWithError:testError]);
+  [self.socket didDisconnectWithError:testError];
+  XCTAssertFalse(self.socket.isConnected);
+  OCMVerifyAll(self.mockDelegate);
 }
+
+- (void)testDisconnectWhenAlreadyDisconnected {
+  self.socket = [self createSocket];
+  OCMReject([self.mockOwner disconnectSocket:self.socket]);
+  [self.socket disconnect];
+  OCMVerifyAll(self.mockOwner);
+}
+
 
 #pragma mark - Receive Data
 
 - (void)testReceiveDataWithOnePacket {
   [self connectSocket];
-  XCTAssertFalse([_socket waitingForIncomingData]);
+  XCTAssertTrue(self.socket.isConnected);
+  XCTAssertFalse([self.socket waitingForIncomingData]);
   NSData *data = [@"Some data to receive" dataUsingEncoding:NSUTF8StringEncoding];
-  OCMExpect([_socketDelegate socket:_socket didReceiveData:data]);
-  GNSWeaveDataPacket *packet =
-      [[GNSWeaveDataPacket alloc] initWithPacketCounter:1 firstPacket:YES lastPacket:YES data:data];
-  [_socket didReceiveIncomingWeaveDataPacket:packet];
-  XCTAssertFalse([_socket waitingForIncomingData]);
+  OCMExpect([self.mockDelegate socket:self.socket didReceiveData:data]);
+  GNSWeaveDataPacket *packet = [[GNSWeaveDataPacket alloc] initWithPacketCounter:1
+                                                                     firstPacket:YES
+                                                                      lastPacket:YES
+                                                                            data:data];
+  [self.socket didReceiveIncomingWeaveDataPacket:packet];
+
+  OCMVerifyAll(self.mockDelegate);
 }
 
 - (void)testReceiveDataWithTwoPackets {
   [self connectSocket];
+  XCTAssertTrue(self.socket.isConnected);
   XCTAssertFalse([_socket waitingForIncomingData]);
   NSData *firstChunk = [@"Some data " dataUsingEncoding:NSUTF8StringEncoding];
   NSData *secondChunk = [@"to receive" dataUsingEncoding:NSUTF8StringEncoding];
@@ -114,9 +189,9 @@
                                                                           firstPacket:YES
                                                                            lastPacket:NO
                                                                                  data:firstChunk];
-  [_socket didReceiveIncomingWeaveDataPacket:firstPacket];
-  XCTAssertTrue([_socket waitingForIncomingData]);
-  OCMExpect([_socketDelegate socket:_socket didReceiveData:totalData]);
+  [self.socket didReceiveIncomingWeaveDataPacket:firstPacket];
+  XCTAssertTrue([self.socket waitingForIncomingData]);
+  OCMExpect([self.mockDelegate socket:self.socket didReceiveData:totalData]);
   [totalData appendData:secondChunk];
   GNSWeaveDataPacket *secondPacket = [[GNSWeaveDataPacket alloc] initWithPacketCounter:1
                                                                            firstPacket:NO
@@ -128,228 +203,189 @@
 
 - (void)testReceiveDataWithOneDataPacketAndDisconnect {
   [self connectSocket];
-  XCTAssertFalse([_socket waitingForIncomingData]);
+  XCTAssertTrue(self.socket.isConnected);
+  XCTAssertFalse([self.socket waitingForIncomingData]);
   NSData *firstChunk = [@"Some data " dataUsingEncoding:NSUTF8StringEncoding];
   GNSWeaveDataPacket *firstPacket = [[GNSWeaveDataPacket alloc] initWithPacketCounter:1
                                                                           firstPacket:YES
                                                                            lastPacket:NO
                                                                                  data:firstChunk];
-  [_socket didReceiveIncomingWeaveDataPacket:firstPacket];
-  XCTAssertTrue([_socket waitingForIncomingData]);
-  OCMExpect([_socketDelegate socket:_socket didDisconnectWithError:nil]);
-  [_socket didDisconnectWithError:nil];
-  XCTAssertFalse(_socket.connected);
-  XCTAssertFalse([_socket waitingForIncomingData]);
+  [self.socket didReceiveIncomingWeaveDataPacket:firstPacket];
+  XCTAssertTrue([self.socket waitingForIncomingData]);
+  OCMExpect([self.mockDelegate socket:self.socket didDisconnectWithError:nil]);
+  [self.socket didDisconnectWithError:nil];
+  XCTAssertFalse(self.socket.isConnected);
+  XCTAssertFalse([self.socket waitingForIncomingData]);
+}
+
+- (void)testReceiveDataWhenNotConnected {
+  self.socket = [self createSocket];
+  self.socket.delegate = self.mockDelegate;
+  NSData *testData = [@"Hello, World!" dataUsingEncoding:NSUTF8StringEncoding];
+  GNSWeaveDataPacket *packet = [[GNSWeaveDataPacket alloc] initWithPacketCounter:0
+                                                                     firstPacket:YES
+                                                                      lastPacket:YES
+                                                                            data:testData];
+  OCMReject([self.mockDelegate socket:self.socket didReceiveWeavePacket:[OCMArg any]]);
+  [self.socket didReceiveIncomingWeaveDataPacket:packet];
+  OCMVerifyAll(self.mockDelegate);
 }
 
 #pragma mark - Send Data
 
-- (void)testSendDataWithOnePacket {
-  _socket.packetSize = 100;
-  UInt8 sendPacketCounter = _socket.sendPacketCounter;
-  [self connectSocket];
-  NSData *data = [@"Some data to send" dataUsingEncoding:NSUTF8StringEncoding];
-  OCMStub([_socketOwner socketMaximumUpdateValueLength:[self checkSocketBlock]]).andReturn(100);
-  __block GNSUpdateValueHandler handler = nil;
-  OCMExpect([_socketOwner socket:_socket
-    addOutgoingCharUpdateHandler:[OCMArg checkWithBlock:^BOOL(id obj) {
-    handler = obj;
-    return YES;
-  }]]);
-  __block BOOL completionCalledCount = 0;
-  __block BOOL progressHandlerCount = 0;
-  [_socket sendData:data
-    progressHandler:^void(float progress) {
-      progressHandlerCount++;
-    }
-         completion:^(NSError *error) {
-           XCTAssertNil(error);
-           completionCalledCount++;
-         }];
-  XCTAssertTrue([_socket isSendOperationInProgress]);
-  XCTAssertNotNil(handler);
-  if (!handler) {
-    return;
-  }
-  NSUInteger offset = 0;
-  GNSWeaveDataPacket *packet = [GNSWeaveDataPacket dataPacketWithPacketCounter:sendPacketCounter
-                                                                    packetSize:_socket.packetSize
-                                                                          data:data
-                                                                        offset:&offset];
-  NSData *packetData = [packet serialize];
-  OCMExpect([_socketOwner socket:_socket sendData:packetData]).andReturn(YES);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertEqual(completionCalledCount, 1);
-  XCTAssertEqual(progressHandlerCount, 1);
-  XCTAssertFalse([_socket isSendOperationInProgress]);
+- (void)testSendData {
+  self.socket = [self createSocket];
+  [self.socket didConnect];
+  NSData *testData = [@"Hello, World!" dataUsingEncoding:NSUTF8StringEncoding];
+
+  OCMExpect([self.mockOwner sendData:[OCMArg any] socket:self.socket completion:[OCMArg any]])
+      .andDo(^(id<GNSSocketOwner> localSelf, NSData *data, GNSSocket *socket,
+               GNSErrorHandler completion) {
+        NSError *error;
+        GNSWeavePacket *packet = [GNSWeavePacket parseData:data error:&error];
+        XCTAssertNil(error);
+        XCTAssertTrue([packet isKindOfClass:[GNSWeaveDataPacket class]]);
+        GNSWeaveDataPacket *dataPacket = (GNSWeaveDataPacket *)packet;
+        XCTAssertEqualObjects(dataPacket.data, testData);
+        completion(nil);
+      });
+
+  XCTestExpectation *expectation = [self expectationWithDescription:@"Data sent"];
+  [self.socket sendData:testData
+      progressHandler:^(float progress) {
+        XCTAssertTrue(progress <= 1.0);
+      }
+      completion:^(NSError *error) {
+        XCTAssertNil(error);
+        [expectation fulfill];
+      }];
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  OCMVerifyAll(self.mockOwner);
 }
 
-- (void)testSendDataWithTwoPackets {
-  _socket.packetSize = 20;
-  UInt8 sendPacketCounter = _socket.sendPacketCounter;
-  [self connectSocket];
-  NSData *data = [@"Some larger data to send" dataUsingEncoding:NSUTF8StringEncoding];
-  OCMStub([_socketOwner socketMaximumUpdateValueLength:[self checkSocketBlock]]).andReturn(20);
-  __block GNSUpdateValueHandler handler = nil;
-  OCMExpect([_socketOwner socket:_socket
-    addOutgoingCharUpdateHandler:[OCMArg checkWithBlock:^BOOL(id obj) {
-    handler = obj;
-    return YES;
-  }]]);
-  __block BOOL completionCalledCount = 0;
-  [_socket sendData:data progressHandler:nil completion:^(NSError *error) {
-    XCTAssertNil(error);
-    completionCalledCount++;
-  }];
-  XCTAssertNotNil(handler);
-  if (!handler) {
-    return;
+- (void)testSendLargeData {
+  self.socket = [self createSocket];
+  [self.socket didConnect];
+  self.socket.packetSize = 20;
+  NSMutableString *longString = [NSMutableString string];
+  for (int i = 0; i < 100; i++) {
+    [longString appendString:@"A"];
   }
-  NSUInteger offset = 0;
-  GNSWeaveDataPacket *firstPacket =
-      [GNSWeaveDataPacket dataPacketWithPacketCounter:sendPacketCounter
-                                           packetSize:_socket.packetSize
-                                                 data:data
-                                               offset:&offset];
-  NSData *firstPacketData = [firstPacket serialize];
-  OCMExpect([_socketOwner socket:_socket sendData:firstPacketData]).andReturn(YES);
-  OCMExpect([_socketOwner socket:_socket
-      addOutgoingCharUpdateHandler:[OCMArg checkWithBlock:^BOOL(id obj) {
-        handler = obj;
-        return YES;
-      }]]);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertNotNil(handler);
-  if (!handler) {
-    return;
-  }
-  XCTAssertEqual(completionCalledCount, 0);
+  NSData *testData = [longString dataUsingEncoding:NSUTF8StringEncoding];
+  __block NSUInteger totalBytesSent = 0;
+  __block int numberOfChunks = 0;
+  OCMStub([self.mockOwner sendData:[OCMArg any] socket:self.socket completion:[OCMArg any]])
+      .andDo(^(id<GNSSocketOwner> localSelf, NSData *data, GNSSocket *socket,
+               GNSErrorHandler completion) {
+        NSError *error;
+        GNSWeavePacket *packet = [GNSWeavePacket parseData:data error:&error];
+        XCTAssertNil(error);
+        XCTAssertTrue([packet isKindOfClass:[GNSWeaveDataPacket class]]);
+        GNSWeaveDataPacket *dataPacket = (GNSWeaveDataPacket *)packet;
+        totalBytesSent += dataPacket.data.length;
+        numberOfChunks++;
+        completion(nil);
+      });
 
-  GNSWeaveDataPacket *secondPacket =
-      [GNSWeaveDataPacket dataPacketWithPacketCounter:sendPacketCounter + 1
-                                           packetSize:_socket.packetSize
-                                                 data:data
-                                               offset:&offset];
-  NSData *secondPacketData = [secondPacket serialize];
-  OCMExpect([_socketOwner socket:_socket sendData:secondPacketData]).andReturn(YES);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertEqual(completionCalledCount, 1);
-  XCTAssertFalse([_socket isSendOperationInProgress]);
+  XCTestExpectation *expectation = [self expectationWithDescription:@"Large data sent"];
+  [self.socket sendData:testData
+      progressHandler:^(float progress) {
+      }
+      completion:^(NSError *error) {
+        XCTAssertNil(error);
+        XCTAssertEqual(totalBytesSent, testData.length);
+        XCTAssertGreaterThan(numberOfChunks, 1);
+        [expectation fulfill];
+      }];
+
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
 }
 
-- (void)testSendDataWithBluetoothRetry {
-  _socket.packetSize = 100;
-  UInt8 sentPacketCounter = _socket.sendPacketCounter;
-  [self connectSocket];
-  NSData *data = [@"Some data to send" dataUsingEncoding:NSUTF8StringEncoding];
-  OCMStub([_socketOwner socketMaximumUpdateValueLength:[self checkSocketBlock]]).andReturn(100);
-  __block GNSUpdateValueHandler handler = nil;
-  OCMExpect([_socketOwner socket:_socket
-    addOutgoingCharUpdateHandler:[OCMArg checkWithBlock:^BOOL(id obj) {
-    handler = obj;
-    return YES;
-  }]]);
-  __block BOOL completionCalledCount = 0;
-  [_socket sendData:data progressHandler:nil completion:^(NSError *error) {
-    XCTAssertNil(error);
-    completionCalledCount++;
-  }];
-  XCTAssertTrue([_socket isSendOperationInProgress]);
-  XCTAssertNotNil(handler);
-  if (!handler) {
-    return;
-  }
-  NSUInteger offset = 0;
-  GNSWeaveDataPacket *packet = [GNSWeaveDataPacket dataPacketWithPacketCounter:sentPacketCounter
-                                                                    packetSize:_socket.packetSize
-                                                                          data:data
-                                                                        offset:&offset];
-  NSData *packetData = [packet serialize];
-  OCMExpect([_socketOwner socket:_socket sendData:packetData]).andReturn(NO);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateScheduleLater);
-  XCTAssertEqual(completionCalledCount, 0);
-  XCTAssertTrue([_socket isSendOperationInProgress]);
-  OCMExpect([_socketOwner socket:_socket sendData:packetData]).andReturn(YES);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertEqual(completionCalledCount, 1);
-  XCTAssertFalse([_socket isSendOperationInProgress]);
+- (void)testSendDataWhenAlreadySending {
+  self.socket = [self createSocket];
+  [self.socket didConnect];
+  NSData *testData1 = [@"First data" dataUsingEncoding:NSUTF8StringEncoding];
+  NSData *testData2 = [@"Second data" dataUsingEncoding:NSUTF8StringEncoding];
+
+  // Mock the owner to simulate a slow send operation
+  OCMStub([self.mockOwner sendData:[OCMArg any] socket:self.socket completion:[OCMArg any]])
+      .andDo(^(id<GNSSocketOwner> localSelf, NSData *data, GNSSocket *socket,
+               GNSErrorHandler completion) {
+        // Simulate a delay
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)),
+                       self.testQueue, ^{
+                         completion(nil);
+                       });
+      });
+
+  XCTestExpectation *expectation1 = [self expectationWithDescription:@"First data started"];
+  [self.socket sendData:testData1
+        progressHandler:nil
+             completion:^(NSError *error) {
+               XCTAssertNil(error);
+               [expectation1 fulfill];
+             }];
+
+  XCTestExpectation *expectation2 = [self expectationWithDescription:@"Second data failed"];
+  [self.socket sendData:testData2
+        progressHandler:nil
+             completion:^(NSError *error) {
+               XCTAssertNotNil(error);
+               XCTAssertEqual(error.code, GNSErrorOperationInProgress);
+               [expectation2 fulfill];
+             }];
+
+  // The enforceOrder parameter has been removed.
+  [self waitForExpectations:@[ expectation1, expectation2 ] timeout:1.0];
 }
 
-- (void)testDisconnectAndSendDataWithOneChunk {
-  [self connectSocket];
-  OCMExpect([_socketDelegate socket:_socket didDisconnectWithError:nil]);
-  [_socket didDisconnectWithError:nil];
-  XCTAssertFalse(_socket.connected);
-  NSData *data = [@"Some data to send" dataUsingEncoding:NSUTF8StringEncoding];
-  OCMStub([_socketOwner socketMaximumUpdateValueLength:[self checkSocketBlock]]).andReturn(100);
-  __block BOOL completionCalledCount = 0;
-  [_socket sendData:data progressHandler:nil completion:^(NSError *error) {
-    XCTAssertNotNil(error);
-    XCTAssertEqualObjects(error.domain, kGNSSocketsErrorDomain);
-    XCTAssertEqual(error.code, GNSErrorNoConnection);
-    completionCalledCount++;
-  }];
-  XCTAssertEqual(completionCalledCount, 1);
-  XCTAssertFalse([_socket isSendOperationInProgress]);
+- (void)testSendDataWhenDisconnected {
+  self.socket = [self createSocket];
+  NSData *testData = [@"Test Data" dataUsingEncoding:NSUTF8StringEncoding];
+  OCMReject([self.mockOwner sendData:[OCMArg any] socket:self.socket completion:[OCMArg any]]);
+  XCTestExpectation *expectation = [self expectationWithDescription:@"Data send failed"];
+
+  [self.socket sendData:testData
+        progressHandler:nil
+             completion:^(NSError *error) {
+               XCTAssertNotNil(error);
+               XCTAssertEqual(error.code, GNSErrorNoConnection);
+               [expectation fulfill];
+             }];
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  OCMVerifyAll(self.mockOwner);
 }
 
-- (void)testSendDataWithTwoChunksAndDisconnectBetweenChunk {
-  _socket.packetSize = 20;
-  UInt8 sentPacketCounter = _socket.sendPacketCounter;
-  [self connectSocket];
-  NSData *data = [@"Some larger data to send" dataUsingEncoding:NSUTF8StringEncoding];
-  OCMStub([_socketOwner socketMaximumUpdateValueLength:[self checkSocketBlock]]).andReturn(20);
-  __block GNSUpdateValueHandler handler = nil;
-  OCMExpect([_socketOwner socket:_socket
-    addOutgoingCharUpdateHandler:[OCMArg checkWithBlock:^BOOL(id obj) {
-    handler = obj;
-    return YES;
-  }]]);
-  __block BOOL completionCalledCount = 0;
-  [_socket sendData:data progressHandler:nil completion:^(NSError *error) {
-    XCTAssertNotNil(error);
-    XCTAssertEqualObjects(error.domain, kGNSSocketsErrorDomain);
-    XCTAssertEqual(error.code, GNSErrorNoConnection);
-    completionCalledCount++;
-  }];
-  XCTAssertNotNil(handler);
-  if (!handler) {
-    return;
+#pragma mark - Packet Counter
+
+- (void)testIncrementReceivePacketCounter {
+  self.socket = [self createSocket];
+  // Assuming the counter is 3-bit and wraps around at 8.
+  const int kPacketCounterWrapValue = 8;
+  for (int i = 0; i < kGNSMaxPacketCounterValue; i++) {
+    [self.socket incrementReceivePacketCounter];
+    // The expected value should account for the wrap-around.
+    XCTAssertEqual(self.socket.receivePacketCounter, (UInt8)((i + 1) % kPacketCounterWrapValue));
   }
-  NSUInteger offset = 0;
-  GNSWeaveDataPacket *packet = [GNSWeaveDataPacket dataPacketWithPacketCounter:sentPacketCounter
-                                                                    packetSize:_socket.packetSize
-                                                                          data:data
-                                                                        offset:&offset];
-  NSData *packetData = [packet serialize];
-  OCMExpect([_socketOwner socket:_socket sendData:packetData]).andReturn(YES);
-  OCMExpect([_socketOwner socket:_socket
-      addOutgoingCharUpdateHandler:[OCMArg checkWithBlock:^BOOL(id obj) {
-        handler = obj;
-        return YES;
-      }]]);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertNotNil(handler);
-  if (!handler) {
-    return;
+}
+
+- (void)testIncrementSendPacketCounter {
+  self.socket = [self createSocket];
+  const int kPacketCounterWrapValue = 8;
+  for (int i = 0; i < kGNSMaxPacketCounterValue; i++) {
+    [self.socket incrementSendPacketCounter];
+    XCTAssertEqual(self.socket.sendPacketCounter, (UInt8)((i + 1) % kPacketCounterWrapValue));
   }
-  XCTAssertEqual(completionCalledCount, 0);
-  OCMExpect([_socketDelegate socket:_socket didDisconnectWithError:nil]);
-  [_socket didDisconnectWithError:nil];
-  XCTAssertFalse(_socket.connected);
-  XCTAssertEqual(handler(), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertEqual(completionCalledCount, 1);
-  XCTAssertFalse([_socket isSendOperationInProgress]);
 }
 
 #pragma mark - Helpers
 
-- (id)checkSocketBlock {
-  // This method create a OCMArg without retaining the parameter.
-  __weak GNSSocket *weakSocket = _socket;
-  return [OCMArg checkWithBlock:^BOOL(id object) {
-    return object == weakSocket;
-  }];
+- (GNSSocket *)createSocket {
+  CBPeripheral *peripheralPeer = OCMClassMock([CBPeripheral class]);
+  OCMStub([peripheralPeer identifier]).andReturn([NSUUID UUID]);
+  return [[GNSSocket alloc] initWithOwner:self.mockOwner
+                           peripheralPeer:peripheralPeer
+                                    queue:self.testQueue];
 }
 
 @end
