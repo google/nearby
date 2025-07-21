@@ -84,6 +84,8 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
     LOG(INFO) << "BT Discovery already enabled; impl=" << &GetImpl();
     return false;
   }
+
+  devices_.clear();
   bool success = impl_->StartDiscovery({
       .device_discovered_cb =
           [this](api::BluetoothDevice& device) {
@@ -136,7 +138,6 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
   });
   if (success) {
     discovery_callback_ = std::move(callback);
-    devices_.clear();
     discovery_enabled_ = true;
   }
   LOG(INFO) << "BT StartDiscovery result:" << success
@@ -150,7 +151,6 @@ bool BluetoothClassicMedium::StopDiscovery() {
   if (!discovery_enabled_) return true;
   discovery_enabled_ = false;
   discovery_callback_ = {};
-  devices_.clear();
   LOG(INFO) << "BT Discovery disabled: impl=" << &GetImpl();
   return impl_->StopDiscovery();
 }
