@@ -26,7 +26,6 @@
 #include "sharing/advertisement.h"
 #include "sharing/attachment_container.h"
 #include "sharing/certificates/nearby_share_certificate_manager.h"
-#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_sharing_settings.h"
 #include "sharing/share_target_discovered_callback.h"
@@ -40,7 +39,6 @@ namespace sharing {
 
 class NearbyNotificationDelegate;
 class NearbyShareContactManager;
-class NearbyShareHttpNotifier;
 
 // This service implements Nearby Sharing on top of the Nearby Connections mojo.
 // Currently, only single profile will be allowed to be bound at a time and only
@@ -236,7 +234,6 @@ class NearbySharingService {
   virtual void UpdateFilePathsInProgress(bool update_file_paths) = 0;
 
   virtual NearbyShareSettings* GetSettings() = 0;
-  virtual nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() = 0;
   virtual NearbyShareLocalDeviceDataManager* GetLocalDeviceDataManager() = 0;
   virtual NearbyShareContactManager* GetContactManager() = 0;
   virtual NearbyShareCertificateManager* GetCertificateManager() = 0;

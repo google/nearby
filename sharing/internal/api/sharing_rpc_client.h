@@ -20,7 +20,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "proto/identity/v1/rpcs.pb.h"
-#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/device_rpc.pb.h"
@@ -97,7 +96,6 @@ class SharingRpcClientFactory {
 
   virtual std::unique_ptr<SharingRpcClient> CreateInstance() = 0;
   virtual std::unique_ptr<IdentityRpcClient> CreateIdentityInstance() = 0;
-  virtual api::SharingRpcNotifier* GetRpcNotifier() const  = 0;
 };
 
 }  // namespace nearby::sharing::api
