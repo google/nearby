@@ -21,7 +21,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/device_rpc.pb.h"
@@ -190,9 +189,6 @@ class FakeNearbyShareClientFactory
   std::vector<FakeNearbyShareClient*>& instances() { return instances_; }
   std::vector<FakeNearbyIdentityClient*>& identity_instances() {
     return identity_instances_;
-  }
-  nearby::sharing::api::SharingRpcNotifier* GetRpcNotifier() const override {
-    return nullptr;
   }
 
  private:
