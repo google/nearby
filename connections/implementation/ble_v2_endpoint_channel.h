@@ -15,9 +15,11 @@
 #ifndef CONNECTIONS_IMPLEMENTATION_BLE_V2_ENDPOINT_CHANNEL_H_
 #define CONNECTIONS_IMPLEMENTATION_BLE_V2_ENDPOINT_CHANNEL_H_
 
+#include <memory>
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "internal/platform/ble_v2.h"
 
 namespace nearby {
@@ -29,6 +31,11 @@ class BleV2EndpointChannel final : public BaseEndpointChannel {
   BleV2EndpointChannel(const std::string& service_id,
                        const std::string& channel_name, BleV2Socket socket);
 
+  // A refactor version of the above constructor.
+  BleV2EndpointChannel(const std::string& service_id,
+                       const std::string& channel_name,
+                       std::unique_ptr<mediums::BleSocket> socket);
+
   location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
@@ -39,6 +46,7 @@ class BleV2EndpointChannel final : public BaseEndpointChannel {
   void CloseImpl() override;
 
   BleV2Socket ble_socket_;
+  std::unique_ptr<mediums::BleSocket> ble_socket_2_ = nullptr;
 };
 
 }  // namespace connections
