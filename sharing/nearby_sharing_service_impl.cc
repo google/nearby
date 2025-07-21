@@ -230,9 +230,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
               context_, preference_manager_, account_manager_, device_info_,
               nearby_share_client_factory_.get())),
       contact_manager_(NearbyShareContactManagerImpl::Factory::Create(
-          context_, preference_manager_, account_manager_,
-          nearby_share_client_factory_.get(),
-          local_device_data_manager_.get())),
+          context_, account_manager_, nearby_share_client_factory_.get())),
       nearby_fast_initiation_(
           NearbyFastInitiationImpl::Factory::Create(context_)),
       settings_(std::make_unique<NearbyShareSettings>(
@@ -279,7 +277,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   nearby_connections_manager_->SetCustomSavePath(custom_save_path);
 
   local_device_data_manager_->Start();
-  contact_manager_->Start();
   certificate_manager_->Start();
   update_file_paths_in_progress_ = false;
 
@@ -325,7 +322,6 @@ void NearbySharingServiceImpl::Shutdown(
         settings_->RemoveSettingsObserver(this);
 
         local_device_data_manager_->Stop();
-        contact_manager_->Stop();
         certificate_manager_->Stop();
 
         is_shutting_down_ = nullptr;
@@ -516,7 +512,6 @@ void NearbySharingServiceImpl::RegisterSendSurface(
         // user to be blocked for hours waiting for a periodic sync.
         if (state == SendSurfaceState::kForeground &&
             !last_outgoing_metadata_) {
-          contact_manager_->DownloadContacts();
           VLOG(1) << __func__
                   << ": Downloading public certificates from Nearby server at "
                      "start of sending flow.";
@@ -1033,12 +1028,10 @@ void NearbySharingServiceImpl::OnIncomingConnection(
   app_info_->SetActiveFlag();
 
   // Sync down data from Nearby server when the receiving flow starts, making
-  // our best effort to have fresh contact and certificate data. There is no
-  // need to wait for these calls to finish. The periodic server requests will
-  // typically be sufficient, but we don't want the user to be blocked for
-  // hours waiting for a periodic sync.
-
-  contact_manager_->DownloadContacts();
+  // our best effort to have fresh certificate data. There is no need to wait
+  // for the call to finish. The periodic server requests will typically be
+  // sufficient, but we don't want the user to be blocked for hours waiting for
+  // a periodic sync.
   VLOG(1) << __func__ << ": Downloading certificates from "
           << "Nearby server at start of receiving flow.";
   certificate_manager_->DownloadPublicCertificates();
@@ -3552,7 +3545,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   StopScanning();
   nearby_connections_manager_->Shutdown();
   local_device_data_manager_->Stop();
-  contact_manager_->Stop();
   certificate_manager_->Stop();
 
   // Reset preferences for logout.
@@ -3598,7 +3590,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
 
   // Start services again.
   local_device_data_manager_->Start();
-  contact_manager_->Start();
   certificate_manager_->Start();
 
   InvalidateSurfaceState();

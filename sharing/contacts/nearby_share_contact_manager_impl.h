@@ -23,19 +23,12 @@
 #include <utility>
 #include <vector>
 
-#include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
-#include "absl/time/time.h"
-#include "internal/platform/clock.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
-#include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
-#include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/rpc_resources.pb.h"
-#include "sharing/scheduling/nearby_share_scheduler.h"
 
 namespace nearby {
 namespace sharing {
@@ -63,19 +56,16 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
   class Factory {
    public:
     static std::unique_ptr<NearbyShareContactManager> Create(
-        Context* context,
-        nearby::sharing::api::PreferenceManager& preference_manager,
-        AccountManager& account_manager,
-        nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory,
-        NearbyShareLocalDeviceDataManager* local_device_data_manager);
+        Context* context, AccountManager& account_manager,
+        nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
     virtual ~Factory();
     virtual std::unique_ptr<NearbyShareContactManager> CreateInstance(
         Context* context, AccountManager& account_manager,
-        nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory,
-        NearbyShareLocalDeviceDataManager* local_device_data_manager) = 0;
+        nearby::sharing::api::SharingRpcClientFactory*
+            nearby_client_factory) = 0;
 
    private:
     static Factory* test_factory_;
@@ -110,43 +100,14 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
   };
 
   NearbyShareContactManagerImpl(
-      Context* context,
-      nearby::sharing::api::PreferenceManager& preference_manager,
-      AccountManager& account_manager,
-      nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory,
-      NearbyShareLocalDeviceDataManager* local_device_data_manager);
+      Context* context, AccountManager& account_manager,
+      nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory);
 
   // NearbyShareContactsManager:
-  void DownloadContacts() override;
   void GetContacts(ContactsCallback callback) override;
-  void OnStart() override;
-  void OnStop() override;
 
-  void OnContactsDownloadCompleted(
-      absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>
-          contacts,
-      uint32_t num_unreachable_contacts_filtered_out);
-  void OnContactsDownloadSuccess(
-      std::vector<::nearby::sharing::proto::ContactRecord> contacts,
-      uint32_t num_unreachable_contacts_filtered_out);
-  void OnContactsDownloadFailure();
-  void OnContactsUploadFinished(bool did_contacts_change_since_last_upload,
-                                absl::string_view contact_upload_hash,
-                                absl::Time upload_time,
-                                bool success);
-
-  // Notify the base-class and mojo observers that contacts were downloaded.
-  void NotifyAllObserversContactsDownloaded(
-      const std::vector<nearby::sharing::proto::ContactRecord>& contacts,
-      uint32_t num_unreachable_contacts_filtered_out);
-
-  nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
-  Clock* const clock_;
-  nearby::sharing::api::SharingRpcClientFactory* const nearby_client_factory_;
   std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_share_client_;
-  NearbyShareLocalDeviceDataManager* local_device_data_manager_ = nullptr;
-  std::unique_ptr<NearbyShareScheduler> contact_download_and_upload_scheduler_;
 
   std::unique_ptr<TaskRunner> executor_ = nullptr;
 };

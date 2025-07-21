@@ -69,16 +69,6 @@ class FakeNearbyShareLocalDeviceDataManager
         nullptr;
   };
 
-  struct UploadContactsCall {
-    UploadContactsCall(std::vector<nearby::sharing::proto::Contact> contacts,
-                       UploadCompleteCallback callback);
-    UploadContactsCall(UploadContactsCall&&);
-    ~UploadContactsCall();
-
-    std::vector<nearby::sharing::proto::Contact> contacts;
-    UploadCompleteCallback callback;
-  };
-
   struct PublishDeviceCall {
     PublishDeviceCall(
         std::vector<nearby::sharing::proto::PublicCertificate> certificates,
@@ -104,8 +94,6 @@ class FakeNearbyShareLocalDeviceDataManager
   DeviceNameValidationResult ValidateDeviceName(
       absl::string_view name) override;
   DeviceNameValidationResult SetDeviceName(absl::string_view name) override;
-  void UploadContacts(std::vector<nearby::sharing::proto::Contact> contacts,
-                      UploadCompleteCallback callback) override;
 
   void PublishDevice(
       std::vector<nearby::sharing::proto::PublicCertificate> certificates,
@@ -117,10 +105,6 @@ class FakeNearbyShareLocalDeviceDataManager
 
   void SetId(absl::string_view id) { id_ = std::string(id); }
 
-  std::vector<UploadContactsCall>& upload_contacts_calls() {
-    return upload_contacts_calls_;
-  }
-
   std::vector<PublishDeviceCall>& publish_device_calls() {
     return publish_device_calls_;
   }
@@ -131,10 +115,6 @@ class FakeNearbyShareLocalDeviceDataManager
 
   // methods for synchronization test.
   void set_is_sync_mode(bool is_sync_mode) { is_sync_mode_ = is_sync_mode; }
-
-  void SetUploadContactsResult(bool upload_contact_result) {
-    upload_contact_result_ = upload_contact_result;
-  }
 
   void SetPublishDeviceResult(bool publish_device_result) {
     publish_device_result_ = publish_device_result;
@@ -149,14 +129,12 @@ class FakeNearbyShareLocalDeviceDataManager
 
   std::string id_;
   std::string device_name_;
-  std::vector<UploadContactsCall> upload_contacts_calls_;
   std::vector<PublishDeviceCall> publish_device_calls_;
   DeviceNameValidationResult next_validation_result_ =
       DeviceNameValidationResult::kValid;
 
   // Used to indicate whether the class is running in synchronization mode.
   bool is_sync_mode_ = false;
-  bool upload_contact_result_ = false;
   bool publish_device_result_ = false;
   bool publish_device_contact_removed_ = false;
 };

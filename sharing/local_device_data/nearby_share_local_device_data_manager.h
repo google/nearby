@@ -80,15 +80,6 @@ class NearbyShareLocalDeviceDataManager {
   // are notified via OnLocalDeviceDataChanged() if the device name changes.
   virtual DeviceNameValidationResult SetDeviceName(absl::string_view name) = 0;
 
-  // Uses the UpdateDevice RPC to send the local device's contact list to the
-  // Nearby Share server, including which contacts are allowed for
-  // selected-contacts visibility mode. This should only be invoked by the
-  // contact manager, and the contact manager should handle scheduling, failure
-  // retry, etc.
-  virtual void UploadContacts(
-      std::vector<nearby::sharing::proto::Contact> contacts,
-      UploadCompleteCallback callback) = 0;
-
   // Calls Identity PublishDevice RPC to upload local device's public
   // certificates.
   virtual void PublishDevice(

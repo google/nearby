@@ -57,11 +57,7 @@ using ::google::nearby::identity::v1::PublishDeviceResponse;
 using ::nearby::api::DeviceInfo;
 using ::nearby::sharing::api::PreferenceManager;
 using ::nearby::sharing::api::SharingRpcClientFactory;
-using ::nearby::sharing::proto::UpdateDeviceRequest;
-using ::nearby::sharing::proto::UpdateDeviceResponse;
 
-constexpr absl::string_view kDeviceIdPrefix = "users/me/devices/";
-constexpr absl::string_view kContactsFieldMaskPath = "contacts";
 constexpr absl::string_view kDefaultDeviceName = "$0\'s $1";
 
 // Returns a truncated version of |name| that is |max_length| characters long.
@@ -117,7 +113,6 @@ NearbyShareLocalDeviceDataManagerImpl::NearbyShareLocalDeviceDataManagerImpl(
     : preference_manager_(preference_manager),
       account_manager_(account_manager),
       device_info_(device_info),
-      nearby_share_client_(rpc_client_factory->CreateInstance()),
       nearby_identity_client_(rpc_client_factory->CreateIdentityInstance()),
       executor_(context->CreateSequencedTaskRunner()) {}
 
@@ -162,49 +157,6 @@ DeviceNameValidationResult NearbyShareLocalDeviceDataManagerImpl::SetDeviceName(
                                /*did_icon_change=*/false);
 
   return DeviceNameValidationResult::kValid;
-}
-
-void NearbyShareLocalDeviceDataManagerImpl::UploadContacts(
-    std::vector<nearby::sharing::proto::Contact> contacts,
-    UploadCompleteCallback callback) {
-  executor_->PostTask(
-      [&, contacts = std::move(contacts), callback = std::move(callback)]() {
-        LOG(INFO) << __func__ << ": size=" << contacts.size();
-        if (!is_running()) {
-          LOG(WARNING) << "UploadContacts: skip to upload contacts due "
-                          "to manager is stopped.";
-          callback(false);
-          return;
-        }
-
-        std::string device_id = GetId();
-        if (!account_manager_.GetCurrentAccount().has_value() ||
-            device_id.empty()) {
-          LOG(WARNING) << __func__
-                       << ": skip to upload contacts due "
-                          "to no login account.";
-          callback(/*success=*/true);
-          return;
-        }
-
-        UpdateDeviceRequest request;
-        request.mutable_device()->set_name(
-            absl::StrCat(kDeviceIdPrefix, device_id));
-        request.mutable_device()->mutable_contacts()->Add(contacts.begin(),
-                                                          contacts.end());
-        request.mutable_update_mask()->add_paths(
-            std::string(kContactsFieldMaskPath));
-        nearby_share_client_->UpdateDevice(
-            request, [callback = std::move(callback)](
-                         const absl::StatusOr<UpdateDeviceResponse>& response) {
-              if (!response.ok()) {
-                LOG(WARNING)
-                    << "UploadContacts: Failed to get response from backend: "
-                    << response.status();
-              }
-              callback(/*success=*/response.ok());
-            });
-      });
 }
 
 void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
