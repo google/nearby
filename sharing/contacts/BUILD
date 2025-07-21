@@ -19,12 +19,10 @@ cc_library(
     srcs = [
         "nearby_share_contact_manager.cc",
         "nearby_share_contact_manager_impl.cc",
-        "nearby_share_contacts_sorter.cc",
     ],
     hdrs = [
         "nearby_share_contact_manager.h",
         "nearby_share_contact_manager_impl.h",
-        "nearby_share_contacts_sorter.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -76,7 +74,6 @@ cc_test(
     name = "contacts_test",
     srcs = [
         "nearby_share_contact_manager_impl_test.cc",
-        "nearby_share_contacts_sorter_test.cc",
     ],
     deps = [
         ":contacts",

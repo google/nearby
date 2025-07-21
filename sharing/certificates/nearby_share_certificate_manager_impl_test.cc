@@ -78,7 +78,6 @@ using ::testing::UnorderedElementsAreArray;
 const absl::Time t0 = absl::UnixEpoch() + absl::Hours(365 * 50 * 24);
 
 constexpr char kPageTokenPrefix[] = "page_token_";
-constexpr char kSecretIdPrefix[] = "secret_id_";
 constexpr char kDeviceId[] = "123456789A";
 constexpr char kDefaultDeviceName[] = "Josh's Chromebook";
 
@@ -329,53 +328,6 @@ class NearbyShareCertificateManagerImplTest
               publish_device_success);
   }
 
-  // Test downloading public certificates with or without errors. The RPC is
-  // paginated, and |num_pages| will be simulated. Any failures, as indicated by
-  // |result|, will be simulated on the last page.
-  void DownloadPublicCertificatesFlow(size_t num_pages,
-                                      DownloadPublicCertificatesResult result) {
-    size_t prev_num_results = download_scheduler_->handled_results().size();
-    cert_store_->SetPublicCertificateIds(kPublicCertificateIds);
-
-    size_t initial_num_notifications =
-        num_public_certs_downloaded_notifications_;
-    size_t initial_num_public_cert_exp_reschedules =
-        public_cert_exp_scheduler_->num_reschedule_calls();
-
-    // Build RPC responses.
-    std::vector<absl::StatusOr<proto::ListPublicCertificatesResponse>>
-        responses;
-    std::string page_token;
-    for (size_t page_number = 0; page_number < num_pages; ++page_number) {
-      bool last_page = page_number == num_pages - 1;
-      if (last_page && result == DownloadPublicCertificatesResult::kHttpError) {
-        responses.push_back(absl::InternalError(""));
-        break;
-      }
-      page_token = last_page ? std::string()
-                             : absl::StrCat(kPageTokenPrefix, page_number);
-      responses.push_back(BuildRpcResponse(page_number, page_token));
-    }
-
-    client_factory_.instances().back()->SetListPublicCertificatesResponses(
-        responses);
-    cert_store_->SetAddPublicCertificatesResult(
-        result != DownloadPublicCertificatesResult::kStorageError);
-    download_scheduler_->InvokeRequestCallback();
-    Sync();
-
-    CheckRpcRequest(num_pages);
-    ASSERT_EQ(download_scheduler_->handled_results().size(),
-              prev_num_results + 1);
-
-    bool success = result == DownloadPublicCertificatesResult::kSuccess;
-    EXPECT_EQ(download_scheduler_->handled_results().back(), success);
-    EXPECT_EQ(num_public_certs_downloaded_notifications_,
-              initial_num_notifications + (success ? 1u : 0u));
-    EXPECT_EQ(public_cert_exp_scheduler_->num_reschedule_calls(),
-              initial_num_public_cert_exp_reschedules + (success ? 1u : 0u));
-  }
-
   void QuerySharedCredentialsFlow(size_t num_pages,
                                   DownloadPublicCertificatesResult result) {
     size_t prev_num_results = download_scheduler_->handled_results().size();
@@ -423,25 +375,6 @@ class NearbyShareCertificateManagerImplTest
               initial_num_notifications + (success ? 1u : 0u));
     EXPECT_EQ(public_cert_exp_scheduler_->num_reschedule_calls(),
               initial_num_public_cert_exp_reschedules + (success ? 1u : 0u));
-  }
-
-  void CheckRpcRequest(int num_pages) {
-    std::vector<proto::ListPublicCertificatesRequest> requests =
-        client_factory_.instances().back()->list_public_certificates_requests();
-    EXPECT_EQ(requests.size(), num_pages);
-  }
-
-  nearby::sharing::proto::ListPublicCertificatesResponse BuildRpcResponse(
-      size_t page_number, absl::string_view page_token) {
-    nearby::sharing::proto::ListPublicCertificatesResponse response;
-    for (size_t i = 0; i < public_certificates_.size(); ++i) {
-      public_certificates_[i].set_secret_id(
-          absl::StrCat(kSecretIdPrefix, page_number, "_", i));
-      response.add_public_certificates();
-      *response.mutable_public_certificates(i) = public_certificates_[i];
-    }
-    response.set_next_page_token(page_token);
-    return response;
   }
 
   QuerySharedCredentialsResponse BuildQuerySharedCredentialsResponse(

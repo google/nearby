@@ -79,8 +79,6 @@ using ::nearby::sharing::api::PublicCertificateDatabase;
 using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::EncryptedMetadata;
-using ::nearby::sharing::proto::ListPublicCertificatesRequest;
-using ::nearby::sharing::proto::ListPublicCertificatesResponse;
 using ::nearby::sharing::proto::PublicCertificate;
 
 constexpr char kDeviceIdPrefix[] = "users/me/devices/";
@@ -225,7 +223,6 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
       account_manager_(account_manager),
       local_device_data_manager_(local_device_data_manager),
       contact_manager_(contact_manager),
-      nearby_client_(client_factory->CreateInstance()),
       nearby_identity_client_(client_factory->CreateIdentityInstance()),
       certificate_storage_(NearbyShareCertificateStorageImpl::Factory::Create(
           preference_manager, std::move(public_certificate_database))),
@@ -297,39 +294,6 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
 
 NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
   local_device_data_manager_->RemoveObserver(this);
-}
-
-void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
-    FetchNextPage() {
-  LOG(INFO) << "Downloading certificate page=" << page_number_++;
-  ListPublicCertificatesRequest request;
-  request.set_parent(device_id_);
-  if (next_page_token_.has_value()) {
-    request.set_page_token(*next_page_token_);
-  }
-  nearby_share_client_->ListPublicCertificates(
-      request, [this](const absl::StatusOr<ListPublicCertificatesResponse>&
-                          response) mutable {
-        if (!response.ok()) {
-          LOG(WARNING) << "Failed to download certificates: "
-                       << response.status();
-          std::move(download_failure_callback_)();
-          return;
-        }
-
-        certificates_.insert(certificates_.end(),
-                             response->public_certificates().begin(),
-                             response->public_certificates().end());
-
-        if (response->next_page_token().empty()) {
-          LOG(INFO) << "Finished downloading " << certificates_.size()
-                    << " certificates from backend";
-          std::move(download_success_callback_)(certificates_);
-          return;
-        }
-        next_page_token_ = response->next_page_token();
-        FetchNextPage();
-      });
 }
 
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
@@ -435,10 +399,9 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
 
   bool download_succeeded = false;
   // Currently certificates download is synchronous.  It completes after
-  // FetchNextPage() returns.
+  // QuerySharedCredentialsFetchNextPage() returns.
   auto context = std::make_unique<CertificateDownloadContext>(
-      nearby_client_.get(), nearby_identity_client_.get(),
-      kDeviceIdPrefix + device_id,
+      nearby_identity_client_.get(), kDeviceIdPrefix + device_id,
       [&download_succeeded]() { download_succeeded = false; },
       [this, &download_succeeded](
           const std::vector<PublicCertificate>& certificates) {

@@ -95,7 +95,6 @@ class NearbyShareCertificateManagerImpl
   class CertificateDownloadContext {
    public:
     CertificateDownloadContext(
-        nearby::sharing::api::SharingRpcClient* nearby_share_client,
         nearby::sharing::api::IdentityRpcClient* nearby_identity_client,
         std::string device_id,
         absl::AnyInvocable<void() &&> download_failure_callback,
@@ -103,24 +102,19 @@ class NearbyShareCertificateManagerImpl
             void(const std::vector<nearby::sharing::proto::PublicCertificate>&
                      certificates) &&>
             download_success_callback)
-        : nearby_share_client_(nearby_share_client),
-          nearby_identity_client_(nearby_identity_client),
+        : nearby_identity_client_(nearby_identity_client),
           device_id_(std::move(device_id)),
           download_failure_callback_(std::move(download_failure_callback)),
           download_success_callback_(std::move(download_success_callback)) {}
 
-    // Fetches the next page of certificates.
+    // Fetches the next page of certificates by calling Identity API
+    // QuerySharedCredentials.
     // If |next_page_token_| is empty, it fetches the first page.
     // On successful download, if  page token in the response is empty, the
     // |download_success_callback_| is invoked with all downloaded certificates.
-    void FetchNextPage();
-
-    // Fetches the next page of certificates by calling Identity API
-    // QuerySharedCredentials.
     void QuerySharedCredentialsFetchNextPage();
 
    private:
-    nearby::sharing::api::SharingRpcClient* const nearby_share_client_;
     nearby::sharing::api::IdentityRpcClient* const nearby_identity_client_;
     std::string device_id_;
     std::optional<std::string> next_page_token_;

@@ -28,15 +28,6 @@
 namespace nearby {
 namespace sharing {
 
-void FakeNearbyShareClient::UpdateDevice(
-    const proto::UpdateDeviceRequest& request,
-    absl::AnyInvocable<
-        void(const absl::StatusOr<proto::UpdateDeviceResponse>& response) &&>
-        callback) {
-  update_device_requests_.emplace_back(request);
-  std::move(callback)(update_device_response_);
-}
-
 void FakeNearbyShareClient::ListContactPeople(
     const proto::ListContactPeopleRequest& request,
     absl::AnyInvocable<void(const absl::StatusOr<
@@ -49,23 +40,6 @@ void FakeNearbyShareClient::ListContactPeople(
   }
   auto response = list_contact_people_responses_[0];
   list_contact_people_responses_.erase(list_contact_people_responses_.begin());
-  std::move(callback)(response);
-}
-
-void FakeNearbyShareClient::ListPublicCertificates(
-    const proto::ListPublicCertificatesRequest& request,
-    absl::AnyInvocable<
-        void(const absl::StatusOr<proto::ListPublicCertificatesResponse>&
-                 response) &&>
-        callback) {
-  list_public_certificates_requests_.emplace_back(request);
-  if (list_public_certificates_responses_.empty()) {
-    std::move(callback)(absl::NotFoundError(""));
-    return;
-  }
-  auto response = list_public_certificates_responses_[0];
-  list_public_certificates_responses_.erase(
-      list_public_certificates_responses_.begin());
   std::move(callback)(response);
 }
 

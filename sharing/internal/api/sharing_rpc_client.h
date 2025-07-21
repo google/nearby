@@ -63,26 +63,11 @@ class SharingRpcClient {
   SharingRpcClient() = default;
   virtual ~SharingRpcClient() = default;
 
-  // Updates device data.
-  virtual void UpdateDevice(
-      const proto::UpdateDeviceRequest& request,
-      absl::AnyInvocable<
-          void(const absl::StatusOr<proto::UpdateDeviceResponse>& response) &&>
-          callback) = 0;
-
   // NearbyShareService v1: ListContactPeople
   virtual void ListContactPeople(
       const proto::ListContactPeopleRequest& request,
       absl::AnyInvocable<void(const absl::StatusOr<
                               proto::ListContactPeopleResponse>& response) &&>
-          callback) = 0;
-
-  // NearbyShareService v1: ListPublicCertificates
-  virtual void ListPublicCertificates(
-      const proto::ListPublicCertificatesRequest& request,
-      absl::AnyInvocable<
-          void(const absl::StatusOr<proto::ListPublicCertificatesResponse>&
-                   response) &&>
           callback) = 0;
 };
 
