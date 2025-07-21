@@ -12,189 +12,172 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "connections/implementation/mediums/ble_v2/ble_l2cap_packet.h"
-
 #include <string>
 
+#include "gmock/gmock.h"
+#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/mediums/ble_v2/ble_packet.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 namespace {
+using ::location::nearby::mediums::SocketControlFrame;
+using ::location::nearby::mediums::SocketVersion;
 
-constexpr absl::string_view kInCorrectData = {"\x01\x02\x03\x04\x05"};
-constexpr absl::string_view kServiceID = "1test_service_id";
-constexpr absl::string_view kCorrectData = {
-    "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x00"};
+constexpr absl::string_view kServiceIDHash = {"\x01\x02\x03"};
+constexpr absl::string_view kData = {"\x01\x02\x03\x04\x05"};
 
-TEST(BleL2capPacketTest, ByteArrayForRequestAdvertisementWithCorrectServiceID) {
-  auto byte_array =
-      BleL2capPacket::ByteArrayForRequestAdvertisement(std::string(kServiceID));
+TEST(BlePacketTest, CreatingControlIntroductionFramePacketWorks) {
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
 
-  ASSERT_TRUE(byte_array.ok());
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateControlIntroductionPacket(service_id_hash);
 
-  auto result = BleL2capPacket::CreateFromBytes(*byte_array);
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsFetchAdvertisementRequest());
-  ASSERT_EQ(result.value().GetServiceIdHash(),
-            BleL2capPacket::GenerateServiceIdHash(std::string(kServiceID)));
+  ASSERT_OK(ble_packet_status_or);
+  EXPECT_TRUE(ble_packet_status_or.value().IsValid());
+  EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
+  EXPECT_EQ(ble_packet_status_or.value().GetControlFrameType(),
+            SocketControlFrame::INTRODUCTION);
+  ASSERT_OK_AND_ASSIGN(
+      SocketVersion version,
+      ble_packet_status_or.value().GetIntroductonSocketVersion());
+  EXPECT_EQ(version, SocketVersion::V2);
+  EXPECT_EQ(ble_packet_status_or.value().GetServiceIdHash(), service_id_hash);
 }
 
-TEST(BleL2capPacketTest, ByteArrayForRequestAdvertisementWithEmptyServiceID) {
-  auto byte_array = BleL2capPacket::ByteArrayForRequestAdvertisement("");
+TEST(BlePacketTest, CreatingControlDisconnectionFramePacketWorks) {
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
 
-  ASSERT_FALSE(byte_array.ok());
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateControlDisconnectionPacket(service_id_hash);
+
+  ASSERT_OK(ble_packet_status_or);
+  EXPECT_TRUE(ble_packet_status_or.value().IsValid());
+  EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
+  EXPECT_EQ(ble_packet_status_or.value().GetControlFrameType(),
+            SocketControlFrame::DISCONNECTION);
+  EXPECT_EQ(ble_packet_status_or.value().GetServiceIdHash(), service_id_hash);
 }
 
-TEST(BleL2capPacketTest,
-     ByteArrayForResponseAdvertisementWithCorrectAdvertisement) {
-  ByteArray advertisement(kCorrectData.data(), kCorrectData.size());
-  auto byte_array =
-      BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
+TEST(BlePacketTest, CreatingControlPacketAcknowledgementFramePacketWorks) {
+  constexpr int kReceivedSize = 100;
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
 
-  ASSERT_TRUE(byte_array.ok());
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateControlPacketAcknowledgementPacket(service_id_hash,
+                                                          kReceivedSize);
 
-  auto result = BleL2capPacket::CreateFromBytes(*byte_array);
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsAdvertisementResponse());
-  ASSERT_EQ(result.value().GetAdvertisement(), advertisement);
+  ASSERT_OK(ble_packet_status_or);
+  EXPECT_TRUE(ble_packet_status_or.value().IsValid());
+  EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
+  EXPECT_EQ(ble_packet_status_or.value().GetControlFrameType(),
+            SocketControlFrame::PACKET_ACKNOWLEDGEMENT);
+  EXPECT_EQ(ble_packet_status_or.value().GetServiceIdHash(), service_id_hash);
+  ASSERT_OK_AND_ASSIGN(
+      int received_size,
+      ble_packet_status_or.value().GetPacketAcknowledgementReceivedSize());
+  EXPECT_EQ(received_size, kReceivedSize);
 }
 
-TEST(BleL2capPacketTest,
-     ByteArrayForResponseAdvertisementWithInCorrectAdvertisement) {
-  ByteArray advertisement(kInCorrectData.data(), kInCorrectData.size());
-  auto byte_array =
-      BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
+TEST(BlePacketTest, CreatingDataPacketWorks) {
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
+  ByteArray data((std::string(kData)));
 
-  ASSERT_FALSE(byte_array.ok());
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateDataPacket(service_id_hash, data);
+
+  ASSERT_OK(ble_packet_status_or);
+  EXPECT_TRUE(ble_packet_status_or.value().IsValid());
+  EXPECT_EQ(service_id_hash, ble_packet_status_or.value().GetServiceIdHash());
+  EXPECT_EQ(data, ble_packet_status_or.value().GetData());
 }
 
-TEST(BleL2capPacketTest,
-     ByteArrayForResponseAdvertisementWithLargeAdvertisement) {
-  auto byte_array =
-      BleL2capPacket::ByteArrayForResponseAdvertisement(ByteArray(300));
+TEST(BlePacketTest, CreatingDataPacketWorksWithEmptyData) {
+  char empty_data[] = "";
 
-  ASSERT_TRUE(byte_array.ok());
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
+  ByteArray data(empty_data);
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array.value());
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsAdvertisementResponse());
-  ASSERT_EQ(result.value().GetAdvertisement().size(), 300);
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateDataPacket(service_id_hash, data);
+
+  ASSERT_OK(ble_packet_status_or);
+  EXPECT_TRUE(ble_packet_status_or.value().IsValid());
+  EXPECT_EQ(service_id_hash, ble_packet_status_or.value().GetServiceIdHash());
+  EXPECT_EQ(data, ble_packet_status_or.value().GetData());
 }
 
-TEST(BleL2capPacketTest, ByteArrayForRequestAdvertisementFinish) {
-  ByteArray byte_array =
-      BleL2capPacket::ByteArrayForRequestAdvertisementFinish();
+TEST(BlePacketTest, CreatingDataPacketFailsWithShortServiceIdHash) {
+  char short_service_id_hash[] = "\x0a\x0b";
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsFetchAdvertisementFinished());
+  ByteArray service_id_hash(short_service_id_hash);
+  ByteArray data((std::string(kData)));
+
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateDataPacket(service_id_hash, data);
+
+  EXPECT_FALSE(ble_packet_status_or.ok());
 }
 
-TEST(BleL2capPacketTest, ByteArrayForServiceIdNotFound) {
-  ByteArray byte_array = BleL2capPacket::ByteArrayForServiceIdNotFound();
+TEST(BlePacketTest, CreatingDataPacketFailsWithLongServiceIdHash) {
+  char long_service_id_hash[] = "\x0a\x0b\x0c\x0d";
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_TRUE(result.value().IsErrorServiceIdNotFound());
+  ByteArray service_id_hash(long_service_id_hash);
+  ByteArray data((std::string(kData)));
+
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateDataPacket(service_id_hash, data);
+
+  EXPECT_FALSE(ble_packet_status_or.ok());
 }
 
-TEST(BleL2capPacketTest, ByteArrayForRequestDataConnection) {
-  ByteArray byte_array = BleL2capPacket::ByteArrayForRequestDataConnection();
+TEST(BlePacketTest, ConstructionFromSerializedBytesWorks) {
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
+  ByteArray data((std::string(kData)));
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsDataConnectionRequest());
+  absl::StatusOr<BlePacket> org_ble_packet_status_or =
+      BlePacket::CreateDataPacket(service_id_hash, data);
+
+  ASSERT_OK(org_ble_packet_status_or);
+
+  ByteArray ble_packet_bytes(org_ble_packet_status_or.value());
+
+  BlePacket ble_packet(ble_packet_bytes);
+
+  EXPECT_TRUE(ble_packet.IsValid());
+  EXPECT_EQ(service_id_hash, ble_packet.GetServiceIdHash());
+  EXPECT_EQ(data, ble_packet.GetData());
 }
 
-TEST(BleL2capPacketTest, ByteArrayForDataConnectionReady) {
-  ByteArray byte_array = BleL2capPacket::ByteArrayForDataConnectionReady();
+TEST(BlePacketTest, ConstructionFromSerializedShortLengthDataBytesFails) {
+  ByteArray service_id_hash((std::string(kServiceIDHash)));
+  ByteArray data((std::string(kData)));
 
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsDataConnectionReadyResponse());
+  absl::StatusOr<BlePacket> org_ble_packet_status_or =
+      BlePacket::CreateDataPacket(service_id_hash, data);
+
+  ASSERT_OK(org_ble_packet_status_or);
+
+  ByteArray org_ble_packet_bytes(org_ble_packet_status_or.value());
+
+  // Cut off the packet so that it's too short
+  ByteArray short_ble_packet_bytes(ByteArray(org_ble_packet_bytes.data(), 2));
+
+  BlePacket short_ble_packet(short_ble_packet_bytes);
+
+  EXPECT_FALSE(short_ble_packet.IsValid());
 }
 
-TEST(BleL2capPacketTest, ByteArrayForDataConnectionFailure) {
-  ByteArray byte_array = BleL2capPacket::ByteArrayForDataConnectionFailure();
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_TRUE(result.ok());
-  ASSERT_TRUE(result.value().IsDataConnectionFailureResponse());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithEmptyData) {
-  auto byte_array = BleL2capPacket::CreateFromBytes(ByteArray());
-
-  ASSERT_FALSE(byte_array.ok());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithInvalidCommand) {
-  ByteArray byte_array(nullptr, 1);
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithoutDataLength) {
-  ByteArray byte_array{1};
-  char *byte_array_data = byte_array.data();
-  byte_array_data[0] =
-      static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement);
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithEmptyDataLength) {
-  ByteArray byte_array{3};
-  char *byte_array_data = byte_array.data();
-  byte_array_data[0] =
-      static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement);
-  byte_array_data[1] = 0x00;
-  byte_array_data[2] = 0x00;
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithInvalidServiceIdHashLength) {
-  ByteArray byte_array{3};
-  char *byte_array_data = byte_array.data();
-  byte_array_data[0] =
-      static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement);
-  byte_array_data[1] = 0x00;
-  byte_array_data[2] = 0x01;
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithTooLongAdvertisementLength) {
-  ByteArray byte_array{3};
-  char *byte_array_data = byte_array.data();
-  byte_array_data[0] =
-      static_cast<char>(BleL2capPacket::Command::kResponseAdvertisement);
-  byte_array_data[1] = 0xFF;
-  byte_array_data[2] = 0xFF;
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
-}
-
-TEST(BleL2capPacketTest, CreateFromBytesWithInvalidLengthAdvertisement) {
-  ByteArray byte_array{4};
-  char *byte_array_data = byte_array.data();
-  byte_array_data[0] =
-      static_cast<char>(BleL2capPacket::Command::kResponseAdvertisement);
-  byte_array_data[1] = 0x00;
-  byte_array_data[2] = 0x03;
-  byte_array_data[3] = 0x01;
-
-  auto result = BleL2capPacket::CreateFromBytes(byte_array);
-  ASSERT_FALSE(result.ok());
+TEST(BlePacketTest, IsControlPacketBytes) {
+  EXPECT_TRUE(BlePacket::IsControlPacketBytes(ByteArray("\x00\x00\x00", 3)));
+  EXPECT_FALSE(
+      BlePacket::IsControlPacketBytes(ByteArray(std::string(kServiceIDHash))));
+  EXPECT_FALSE(BlePacket::IsControlPacketBytes(ByteArray("invalid", 7)));
 }
 
 }  // namespace

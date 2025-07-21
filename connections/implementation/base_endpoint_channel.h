@@ -25,8 +25,8 @@
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "internal/platform/condition_variable.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/condition_variable.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
@@ -89,6 +89,23 @@ class BaseEndpointChannel : public EndpointChannel {
   uint32_t GetNextKeepAliveSeqNo() const override;
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override;
+
+  // Reads a complete packet from the underlying medium.
+  virtual ExceptionOr<ByteArray> DispatchPacket() {
+    return ExceptionOr<ByteArray>{};
+  }
+
+  // Reads the length of the next incoming data packet from the underlying
+  // medium.
+  virtual ExceptionOr<std::int32_t> ReadPayloadLength() {
+    return ExceptionOr<std::int32_t>{0};
+  }
+
+  // Writes the length of a data packet to the underlying medium before writing
+  // the packet itself.
+  virtual Exception WritePayloadLength(int payload_length) {
+    return {Exception::kFailed};
+  }
 
  protected:
   virtual void CloseImpl() = 0;
