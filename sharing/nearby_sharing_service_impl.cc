@@ -74,7 +74,6 @@
 #include "sharing/incoming_share_session.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/sharing_rpc_notifier.h"
 #include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"
@@ -1006,11 +1005,6 @@ void NearbySharingServiceImpl::SetVisibility(
 
 NearbyShareSettings* NearbySharingServiceImpl::GetSettings() {
   return settings_.get();
-}
-
-nearby::sharing::api::SharingRpcNotifier*
-NearbySharingServiceImpl::GetRpcNotifier() {
-  return nearby_share_client_factory_->GetRpcNotifier();
 }
 
 NearbyShareLocalDeviceDataManager*

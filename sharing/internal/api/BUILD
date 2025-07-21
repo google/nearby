@@ -27,7 +27,6 @@ cc_library(
         "public_certificate_database.h",
         "sharing_platform.h",
         "sharing_rpc_client.h",
-        "sharing_rpc_notifier.h",
         "system_info.h",
         "wifi_adapter.h",
     ],
