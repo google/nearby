@@ -1744,7 +1744,10 @@ void BasePcpHandler::OnEndpointFound(
 void BasePcpHandler::OnEndpointLost(
     ClientProxy* client, const BasePcpHandler::DiscoveredEndpoint& endpoint) {
   // Look up the DiscoveredEndpoint we have in our cache.
-  NEARBY_LOGS(INFO) << "OnEndpointLost: id=" << endpoint.endpoint_id;
+  NEARBY_LOGS(INFO) << "OnEndpointLost: id=" << endpoint.endpoint_id
+                    << " on medium="
+                    << location::nearby::proto::connections::Medium_Name(
+                           endpoint.medium);
   MutexLock lock(&discovered_endpoint_mutex_);
   auto range = discovered_endpoints_.equal_range(endpoint.endpoint_id);
   bool is_range_empty = range.first == range.second;
