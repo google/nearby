@@ -14,13 +14,14 @@
 
 #include "connections/listeners.h"
 
-#include <memory>
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "connections/medium_selector.h"
+#include "connections/payload.h"
+#include "connections/status.h"
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
