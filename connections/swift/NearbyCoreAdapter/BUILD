@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_apple//apple:ios.bzl", "ios_unit_test")
+load("@rules_cc//cc:objc_library.bzl", "objc_library")
 load("//third_party/nearby:minimum_os.bzl", "IOS_LATEST_TEST_RUNNER", "IOS_MINIMUM_OS")
 load("//tools/build_defs/swift:swift_library.bzl", "swift_library")
 
