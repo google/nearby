@@ -539,6 +539,10 @@ enum OperationResultCode {
   CLIENT_CANCELLATION_LOCAL_DISCONNECT = 522;
   // Payloads failure due to remote disconnect
   CLIENT_CANCELLATION_REMOTE_DISCONNECT = 523;
+  // Client cancel server socket creating during AWDL upgrading
+  CLIENT_CANCELLATION_AWDL_SERVER_SOCKET_CREATION = 524;
+  // Client cancel the AWDL outgoing connection operation
+  CLIENT_CANCELLATION_CANCEL_AWDL_OUTGOING_CONNECTION = 525;
 
   // Section of CATEGORY_DEVICE_STATE_ERROR, from 1000 to 1499
   // Session unfinished with ongoing upgrading
@@ -647,6 +651,8 @@ enum OperationResultCode {
   MEDIUM_UNAVAILABLE_POOR_SIGNAL = 1545;
   // Second outgoing BT connection is not available due to multiplex disabled.
   MEDIUM_UNAVAILABLE_BT_MULTIPLEX_DISABLED = 1546;
+  // AWDL is unavailable due to framework not support
+  MEDIUM_UNAVAILABLE_AWDL_NOT_AVAILABLE = 1547;
 
   // Section of CATEGORY_CLIENT_ERROR, from 2000 to 2499
   // NC already hosting a WFD group for this client (same service id)
@@ -721,6 +727,12 @@ enum OperationResultCode {
   CLIENT_ALREADY_CONNECTED_TO_ENDPOINT = 2034;
   // Client request connecting to unknown endpoint
   CLIENT_CONNECT_TO_UNKNOWN_ENDPOINT = 2035;
+  // Duplicated requesting to start advertising
+  CLIENT_AWDL_DUPLICATE_ADVERTISING = 2036;
+  // Duplicated requesting to start discovery
+  CLIENT_AWDL_DUPLICATE_DISCOVERING = 2037;
+  // Duplicate accepting AWDL connection request
+  CLIENT_DUPLICATE_ACCEPTING_AWDL_CONNECTION_REQUEST = 2038;
 
   // Section of CATEGORY_MISCELLANEOUS, from 2500 to 2999
   // BT MAC address is null
@@ -1035,6 +1047,17 @@ enum OperationResultCode {
   CONNECTIVITY_INSTANT_CONNECTION_LISTENING_TIMEOUT = 3600;
   // Invalid credential for connection
   CONNECTIVITY_MEDIUM_INVALID_CREDENTIAL = 3601;
+  // Failed to start AWDL advertisement
+  CONNECTIVITY_AWDL_START_ADVERTISING_FAILURE = 3602;
+  // Failed to start AWDL discovery
+  CONNECTIVITY_AWDL_START_DISCOVERY_FAILURE = 3603;
+  // Invalid AWDL credential data
+  CONNECTIVITY_AWDL_INVALID_CREDENTIAL = 3604;
+  // Failed to create AWDL outgoing socket (IOException on socket#connect)
+  CONNECTIVITY_AWDL_CLIENT_SOCKET_CREATION_FAILURE = 3605;
+  // Payloads IOError due to endpoint get IOException on AWDL medium
+  // (IOException on Channel#write)
+  CONNECTIVITY_CHANNEL_IO_ERROR_ON_AWDL = 3606;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
@@ -1270,6 +1293,11 @@ enum OperationResultCode {
   NEARBY_BAD_FILE_DESCRIPTION_WHEN_PROCESSING_RECEIVED_PAYLOAD = 4609;
   // Connection listener is null
   NEARBY_CONNECTION_LISTENER_NULL = 4610;
+  // Failed to transform advertising info into bytes
+  NEARBY_AWDL_ADVERTISE_TO_BYTES_FAILURE = 4611;
+  // Outgoing AWDL channel creation failure (IOException on
+  // socket#getInputStream and socket#getOutputStream)
+  NEARBY_AWDL_ENDPOINT_CHANNEL_CREATION_FAILURE = 4612;
 
   // Section of CATEGORY_DCT_ERROR, from 5000
   // BLE is disabled
