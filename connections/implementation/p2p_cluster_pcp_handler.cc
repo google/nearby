@@ -70,6 +70,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/os_name.h"
@@ -427,7 +428,15 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
     BluetoothDevice device) {
   RunOnPcpHandlerThread(
       "p2p-bt-device-discovered",
-      [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
+      [this, client, service_id, device,
+       bluetooth_discovery_start_time =
+           bluetooth_discovery_start_time_]() RUN_ON_PCP_HANDLER_THREAD() {
+        if (bluetooth_discovery_start_time != bluetooth_discovery_start_time_) {
+          LOG(INFO) << "Skipping Bluetooth device discovery; original "
+                       "discovery is complete.";
+          return;
+        }
+
         if (!device.IsValid()) {
           LOG(WARNING) << "BluetoothDeviceDiscoveredHandler: "
                           "Skipping the invalid Bluetooth device";
@@ -477,7 +486,15 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
     BluetoothDevice device) {
   RunOnPcpHandlerThread(
       "p2p-bt-name-changed",
-      [this, client, service_id, device]() RUN_ON_PCP_HANDLER_THREAD() {
+      [this, client, service_id, device,
+       bluetooth_discovery_start_time =
+           bluetooth_discovery_start_time_]() RUN_ON_PCP_HANDLER_THREAD() {
+        if (bluetooth_discovery_start_time != bluetooth_discovery_start_time_) {
+          LOG(INFO) << "Skipping Bluetooth device name changed; original "
+                       "discovery is complete.";
+          return;
+        }
+
         // Make sure we are still discovering before proceeding.
         if (!device.IsValid()) {
           LOG(WARNING) << "BluetoothNameChangedHandler: Skipping the "
@@ -563,8 +580,15 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
 
   const std::string& device_name_string = device.GetName();
   RunOnPcpHandlerThread(
-      "p2p-bt-device-lost", [this, client, service_id,
-                             device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
+      "p2p-bt-device-lost",
+      [this, client, service_id, device_name_string,
+       bluetooth_discovery_start_time =
+           bluetooth_discovery_start_time_]() RUN_ON_PCP_HANDLER_THREAD() {
+        if (bluetooth_discovery_start_time != bluetooth_discovery_start_time_) {
+          LOG(INFO) << "Skipping Bluetooth device lost; original "
+                       "discovery is complete.";
+          return;
+        }
         // Make sure we are still discovering before proceeding.
         if (!client->IsDiscovering()) {
           LOG(WARNING) << "Ignoring lost BluetoothDevice " << device_name_string
@@ -2303,6 +2327,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBluetoothDiscovery(
     return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
   }
 
+  bluetooth_discovery_start_time_ = SystemClock::ElapsedRealtime();
   ErrorOr<bool> result = bluetooth_medium_.StartDiscovery(
       service_id,
       {

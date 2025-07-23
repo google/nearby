@@ -22,6 +22,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/discovery_options.h"
 #include "connections/implementation/base_pcp_handler.h"
@@ -41,12 +42,14 @@
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
+#include "connections/implementation/webrtc_state.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
 #include "connections/power_level.h"
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
+#include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
@@ -353,6 +356,9 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   // Maps service id to its client.
   absl::flat_hash_map<std::string, ClientProxy*>
       paused_bluetooth_clients_discoveries_;
+
+  // The start time of bluetooth scanning.
+  absl::Time bluetooth_discovery_start_time_ = absl::InfinitePast();
 };
 
 }  // namespace connections
