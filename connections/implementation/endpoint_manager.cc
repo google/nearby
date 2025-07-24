@@ -205,7 +205,7 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
   while (true) {
     ExceptionOr<ByteArray> decrypted = endpoint_channel->TryDecrypt(data);
     if (decrypted.ok()) {
-      NEARBY_VLOG(1) << "Message decrypted after "
+      VLOG(1) << "Message decrypted after "
                      << SystemClock::ElapsedRealtime() - start_time;
       return parser::FromBytes(decrypted.result());
     }
@@ -518,14 +518,14 @@ EndpointManager::LockedFrameProcessor EndpointManager::GetFrameProcessor(
 }
 
 void EndpointManager::RemoveEndpointState(const std::string& endpoint_id) {
-  NEARBY_VLOG(1) << "EnsureWorkersTerminated for endpoint " << endpoint_id;
+  VLOG(1) << "EnsureWorkersTerminated for endpoint " << endpoint_id;
   auto item = endpoints_.find(endpoint_id);
   if (item != endpoints_.end()) {
     LOG(INFO) << "EndpointState found for endpoint " << endpoint_id;
     // If another instance of data and keep-alive handlers is running, it will
     // terminate soon. Removing EndpointState waits for workers to complete.
     endpoints_.erase(item);
-    NEARBY_VLOG(1) << "Workers terminated for endpoint " << endpoint_id;
+    VLOG(1) << "Workers terminated for endpoint " << endpoint_id;
   } else {
     LOG(INFO) << "EndpointState not found for endpoint " << endpoint_id;
   }
@@ -607,7 +607,7 @@ void EndpointManager::RegisterEndpoint(
         // (**) Wifi Hotspots can fail to notice a connection has been lost,
         // and they will happily keep writing to /dev/null. This is why we
         // listen for the pong.
-        NEARBY_VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
+        VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
                        << endpoint_id;
         endpoint_state.StartEndpointKeepAliveManager(
             [this, client, endpoint_id, keep_alive_interval,
@@ -723,7 +723,7 @@ void EndpointManager::DiscardEndpoint(ClientProxy* client,
     {
       MutexLock lock(&mutex_);
       if (is_shutdown_) {
-        NEARBY_VLOG(1)
+        VLOG(1)
             << "DiscardEndpoint called during destruction, returning early.";
         return;
       }
@@ -977,7 +977,7 @@ EndpointManager::EndpointState::~EndpointState() {
   // object (in move constructor) which prevents unregistering the channel
   // prematurely.
   if (channel_manager_) {
-    NEARBY_VLOG(1) << "EndpointState destructor " << endpoint_id_;
+    VLOG(1) << "EndpointState destructor " << endpoint_id_;
     channel_manager_->UnregisterChannelForEndpoint(
         endpoint_id_, DisconnectionReason::SHUTDOWN,
         ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);

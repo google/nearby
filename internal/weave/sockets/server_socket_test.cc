@@ -22,6 +22,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace weave {
@@ -69,7 +70,7 @@ class FakeConnection : public Connection {
       packets_written_.erase(packets_written_.begin());
       return front;
     }
-    NEARBY_LOGS(WARNING) << "No more packets";
+    LOG(WARNING) << "No more packets";
     return "";
   }
   bool NoMorePackets() {
@@ -116,7 +117,7 @@ class ServerSocketTest : public ::testing::Test {
                                      .on_error_cb =
                                          [this](absl::Status status) {
                                            last_error_ = status;
-                                           NEARBY_LOGS(ERROR) << status;
+                                           LOG(ERROR) << status;
                                          },
                                  })) {}
   void SetUp() override { EXPECT_FALSE(socket_.IsConnected()); }

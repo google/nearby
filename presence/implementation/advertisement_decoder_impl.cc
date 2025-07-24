@@ -146,7 +146,7 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
         "Data element (%s) is %d bytes long. Expected at least %d",
         absl::BytesToHexString(input), input.size(), index));
   }
-  NEARBY_VLOG(1) << "Type: " << static_cast<int>(data_type)
+  VLOG(1) << "Type: " << static_cast<int>(data_type)
                  << " length: " << static_cast<int>(length) << " DE: "
                  << absl::BytesToHexString(input.substr(start, length));
   return DataElement(data_type, input.substr(start, length));
@@ -156,7 +156,7 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
 void DecodeBaseAction(absl::string_view serialized_action,
                       Advertisement& decoded_advertisement) {
   if (serialized_action.empty() || serialized_action.size() > 3) {
-    NEARBY_LOGS(WARNING) << "Base NP action \'"
+    LOG(WARNING) << "Base NP action \'"
                          << absl::BytesToHexString(serialized_action)
                          << "\' has wrong length " << serialized_action.size()
                          << " , expected size in range [1 - 3]";
@@ -212,7 +212,7 @@ absl::Status DecryptDataElements(
   absl::StatusOr<std::string> decrypted =
       DecryptLdt(credentials, salt, encrypted, decoded_advertisement);
   if (!decrypted.ok()) {
-    NEARBY_LOGS(WARNING) << "Failed to decrypt advertisement, status: "
+    LOG(WARNING) << "Failed to decrypt advertisement, status: "
                          << decrypted.status();
     return decrypted.status();
   }
@@ -221,7 +221,7 @@ absl::Status DecryptDataElements(
     absl::StatusOr<DataElement> internal_elem =
         ParseDataElement(*decrypted, index);
     if (!internal_elem.ok()) {
-      NEARBY_LOGS(WARNING) << "Failed to read data element, status: "
+      LOG(WARNING) << "Failed to read data element, status: "
                            << internal_elem.status();
       return internal_elem.status();
     }
@@ -238,13 +238,13 @@ absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
     absl::string_view advertisement) {
   Advertisement decoded_advertisement = Advertisement{};
   std::vector<DataElement> result;
-  NEARBY_LOGS(INFO) << "Advertisement: "
+  LOG(INFO) << "Advertisement: "
                     << absl::BytesToHexString(advertisement);
   if (advertisement.empty()) {
     return absl::OutOfRangeError("Empty advertisement");
   }
   uint8_t version = advertisement[0];
-  NEARBY_VLOG(1) << "Version: " << version;
+  VLOG(1) << "Version: " << version;
   if (version != kAdvertisementVersion) {
     return absl::UnimplementedError(absl::StrFormat(
         "Advertisement version (%d) is not supported", version));
@@ -255,7 +255,7 @@ absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
   while (index < advertisement.size()) {
     absl::StatusOr<DataElement> elem = ParseDataElement(advertisement, index);
     if (!elem.ok()) {
-      NEARBY_LOGS(WARNING) << "Failed to read data element, status: "
+      LOG(WARNING) << "Failed to read data element, status: "
                            << elem.status();
       return elem.status();
     }

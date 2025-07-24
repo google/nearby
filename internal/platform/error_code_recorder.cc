@@ -52,7 +52,7 @@ void ErrorCodeRecorder::LogErrorCode(Medium medium, Event event, int error,
                                      Description description,
                                      const std::string& pii_message,
                                      const std::string& connection_token) {
-  NEARBY_LOGS(INFO) << "ErrorCodeRecorder LogErrorCode";
+  LOG(INFO) << "ErrorCodeRecorder LogErrorCode";
   ErrorCodeParams params = BuildErrorCodeParams(
       medium, event, error, description, pii_message, connection_token);
   listener_(params);

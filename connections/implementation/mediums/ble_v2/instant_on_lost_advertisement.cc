@@ -63,7 +63,7 @@ InstantOnLostAdvertisement::CreateFromHashes(
 
 std::string InstantOnLostAdvertisement::ToBytes() const {
   if (hashes_.empty() || hashes_.size() > kMaxHashCount) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Failed to convert hashes due to hash "
                           "size is not valid, size = "
                        << hashes_.size();
@@ -79,7 +79,7 @@ std::string InstantOnLostAdvertisement::ToBytes() const {
   std::string result = absl::StrFormat("%c%c", header, count);
   for (const auto& hash : hashes_) {
     if (hash.length() != kAdvertisementHashLength) {
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": Failed to convert hashes to advertisement due "
                             "to invalid hash : "
                          << absl::BytesToHexString(hash);

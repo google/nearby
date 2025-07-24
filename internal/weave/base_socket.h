@@ -61,7 +61,7 @@ class BaseSocket {
   void WriteControlPacket(Packet packet);
   void OnReceiveDataPacket(Packet packet);
   void RunOnSocketThread(std::string name, Runnable&& runnable) {
-    NEARBY_LOGS(INFO) << "RunOnSocketThread: " << name;
+    LOG(INFO) << "RunOnSocketThread: " << name;
     executor_.Execute(name, std::move(runnable));
   }
   void ShutDown();

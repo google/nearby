@@ -107,18 +107,18 @@ class OfflineServiceControllerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOGS(INFO) << "EP-B: [discovered] "
+    LOG(INFO) << "EP-B: [discovered] "
                       << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connect_latch_);
     EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOGS(INFO) << "EP-A: [discovered] "
+    LOG(INFO) << "EP-A: [discovered] "
                       << user_a.GetDiscovered().endpoint_id;
-    NEARBY_LOGS(INFO) << "Both users discovered their peers.";
+    LOG(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
     EXPECT_TRUE(accept_latch_.Await(kLongTimeout));
-    NEARBY_LOGS(INFO) << "Both users reached connected state.";
+    LOG(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 
@@ -400,11 +400,11 @@ TEST_P(OfflineServiceControllerTest, CanDisconnect) {
   OfflineSimulationUser user_a(kDeviceA, GetParam());
   OfflineSimulationUser user_b(kDeviceB, GetParam());
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-  NEARBY_LOGS(INFO) << "Disconnecting";
+  LOG(INFO) << "Disconnecting";
   user_b.ExpectDisconnect(disconnect_latch);
   user_b.Disconnect();
   EXPECT_TRUE(disconnect_latch.Await(kLongTimeout));
-  NEARBY_LOGS(INFO) << "Disconnected";
+  LOG(INFO) << "Disconnected";
   EXPECT_FALSE(user_b.IsConnected());
   user_a.Stop();
   user_b.Stop();
@@ -418,7 +418,7 @@ TEST_P(OfflineServiceControllerTest, TestUpdateAdvertisingOptions) {
   EXPECT_THAT(user_a.StartAdvertising(std::string(kServiceId), nullptr),
               Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(user_a.IsAdvertising());
-  NEARBY_LOGS(INFO) << "Started advertising";
+  LOG(INFO) << "Started advertising";
   AdvertisingOptions new_options = {
       {
           Strategy::kP2pCluster,
@@ -431,9 +431,9 @@ TEST_P(OfflineServiceControllerTest, TestUpdateAdvertisingOptions) {
   EXPECT_THAT(user_a.UpdateAdvertisingOptions(kServiceId, new_options),
               Eq(Status{Status::kSuccess}));
   EXPECT_TRUE(user_a.IsAdvertising());
-  NEARBY_LOGS(INFO) << "Updated advertising options";
+  LOG(INFO) << "Updated advertising options";
   user_a.StopAdvertising();
-  NEARBY_LOGS(INFO) << "Stopped advertising";
+  LOG(INFO) << "Stopped advertising";
   user_a.Stop();
   env_.Stop();
 }

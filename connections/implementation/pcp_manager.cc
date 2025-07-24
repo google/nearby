@@ -73,9 +73,9 @@ void PcpManager::DisconnectFromEndpointManager() {
 }
 
 PcpManager::~PcpManager() {
-  NEARBY_LOGS(INFO) << "Initiating shutdown of PcpManager.";
+  LOG(INFO) << "Initiating shutdown of PcpManager.";
   DisconnectFromEndpointManager();
-  NEARBY_LOGS(INFO) << "PcpManager has shut down.";
+  LOG(INFO) << "PcpManager has shut down.";
 }
 
 Status PcpManager::StartAdvertising(
@@ -215,7 +215,7 @@ bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
   current_ = GetPcpHandler(StrategyToPcp(strategy));
 
   if (!current_) {
-    NEARBY_LOGS(ERROR) << "Failed to set current PCP handler: strategy="
+    LOG(ERROR) << "Failed to set current PCP handler: strategy="
                        << strategy.GetName();
   }
 

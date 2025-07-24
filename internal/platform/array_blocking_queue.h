@@ -43,7 +43,7 @@ class ArrayBlockingQueue {
       has_space_.Wait();
     }
     queue_.push(value);
-    NEARBY_LOGS(INFO) << "ArrayBlockingQueue::Put()";
+    LOG(INFO) << "ArrayBlockingQueue::Put()";
     has_data_.Notify();
   }
 
@@ -54,7 +54,7 @@ class ArrayBlockingQueue {
     }
     T front = queue_.front();
     queue_.pop();
-    NEARBY_LOGS(INFO) << "ArrayBlockingQueue::Take()";
+    LOG(INFO) << "ArrayBlockingQueue::Take()";
     has_space_.Notify();
     return front;
   }

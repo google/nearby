@@ -76,7 +76,7 @@ class FakeConnection : public Connection {
       packets_written_.erase(packets_written_.begin());
       return front;
     }
-    NEARBY_LOGS(WARNING) << "No more packets";
+    LOG(WARNING) << "No more packets";
     return "";
   }
   bool NoMorePackets() {
@@ -123,7 +123,7 @@ class ClientSocketTest : public ::testing::Test {
                                      .on_error_cb =
                                          [this](absl::Status status) {
                                            last_error_ = status;
-                                           NEARBY_LOGS(ERROR) << status;
+                                           LOG(ERROR) << status;
                                          },
                                  })) {}
   void SetUp() override { EXPECT_FALSE(socket_.IsConnected()); }
@@ -134,7 +134,7 @@ class ClientSocketTest : public ::testing::Test {
   void RunConnect(int client_size, int server_size,
                   absl::string_view initial_data) {
     connection_.SetMaxPacketSize(client_size);
-    NEARBY_LOGS(INFO) << "connect";
+    LOG(INFO) << "connect";
     socket_.Connect();
     absl::SleepFor(absl::Milliseconds(10));
     auto packet = Packet::FromBytes(ByteArray(connection_.PollWrittenPacket()));
@@ -350,7 +350,7 @@ TEST_F(ClientSocketTest, TestSocketWithRandomDataProvider) {
                 messages_read_.push_back(message);
               },
           .on_error_cb =
-              [](absl::Status status) { NEARBY_LOGS(ERROR) << status; },
+              [](absl::Status status) { LOG(ERROR) << status; },
       },
       std::move(provider));
   socket.Connect();

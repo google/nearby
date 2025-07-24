@@ -131,7 +131,7 @@ bool PayloadManager::SendPayloadLoop(
                                     PayloadStatus::LOCAL_ERROR);
       return false;
     }
-    NEARBY_VLOG(1) << "PayloadManager successfully skipped "
+    VLOG(1) << "PayloadManager successfully skipped "
                    << real_offset.GetResult() << " bytes on payload_id "
                    << pending_payload.GetInternalPayload()->GetId();
     next_chunk_offset = real_offset.GetResult();
@@ -199,7 +199,7 @@ bool PayloadManager::SendPayloadLoop(
             payload_chunk.offset(), payload_chunk.body().size());
       }
     }
-    NEARBY_VLOG(1) << "PayloadManager done sending chunk at offset "
+    VLOG(1) << "PayloadManager done sending chunk at offset "
                    << next_chunk_offset << " of payload_id="
                    << pending_payload.GetInternalPayload()->GetId();
     next_chunk_offset += next_chunk_size;
@@ -1310,7 +1310,7 @@ void PayloadManager::ProcessDataPacket(
       *payload_transfer_frame.mutable_payload_header();
   PayloadTransferFrame::PayloadChunk& payload_chunk =
       *payload_transfer_frame.mutable_payload_chunk();
-  NEARBY_VLOG(1) << "PayloadManager got data OfflineFrame for payload_id="
+  VLOG(1) << "PayloadManager got data OfflineFrame for payload_id="
                  << payload_header.id()
                  << " from endpoint_id=" << from_endpoint_id << " at offset "
                  << payload_chunk.offset();
@@ -1485,7 +1485,7 @@ void PayloadManager::ProcessControlPacket(
         pending_payload->SetEndpointStatusFromControlMessage(from_endpoint_id,
                                                              control_message);
       }
-      NEARBY_VLOG(1)
+      VLOG(1)
           << "Marked "
           << (pending_payload->IsIncoming() ? "incoming" : "outgoing")
           << " payload_id=" << pending_payload->GetInternalPayload()->GetId()
@@ -1605,7 +1605,7 @@ PayloadManager::EndpointInfo::ControlMessageEventToEndpointInfoStatus(
 void PayloadManager::EndpointInfo::SetStatusFromControlMessage(
     const PayloadTransferFrame::ControlMessage& control_message) {
   status.Set(ControlMessageEventToEndpointInfoStatus(control_message.event()));
-  NEARBY_VLOG(1) << "Marked endpoint " << id << " with status "
+  VLOG(1) << "Marked endpoint " << id << " with status "
                  << ToString(status.Get()) << " based on OOB ControlMessage";
 }
 
@@ -1766,12 +1766,12 @@ void PayloadManager::PendingPayloads::Remove(
     int refcount = it->second->DecRefCount();
     if (refcount == 0) {
       // Nobody is using the payload, we can remove it.
-      NEARBY_VLOG(1) << "Erase payload " << it->second->ToString();
+      VLOG(1) << "Erase payload " << it->second->ToString();
       pending_payloads_.erase(it);
     } else {
       // Someone is still using the payload. Move it to the garbage bin. The
       // payload will be removed when they release it.
-      NEARBY_VLOG(1) << "Bin payload " << it->second->ToString();
+      VLOG(1) << "Bin payload " << it->second->ToString();
       payload_garbage_bin_.push_back(
           std::move(pending_payloads_.extract(it).mapped()));
     }
@@ -1813,7 +1813,7 @@ void PayloadManager::PendingPayloads::ForEachPayload(
 void PayloadManager::PendingPayloads::Release(PendingPayload* payload) {
   // Called when `PendingPayloadHandle` is destroyed.
   MutexLock lock(&mutex_);
-  NEARBY_VLOG(1) << __func__ << " " << payload->ToString();
+  VLOG(1) << __func__ << " " << payload->ToString();
   auto it = pending_payloads_.find(payload->GetId());
   if (it != pending_payloads_.end() && it->second.get() == payload) {
     // The payload is still tracked.

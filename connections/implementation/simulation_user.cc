@@ -27,9 +27,9 @@ void SimulationUser::OnConnectionInitiated(const std::string& endpoint_id,
                                            const ConnectionResponseInfo& info,
                                            bool is_outgoing) {
   if (is_outgoing) {
-    NEARBY_LOGS(INFO) << "RequestConnection: initiated_cb called";
+    LOG(INFO) << "RequestConnection: initiated_cb called";
   } else {
-    NEARBY_LOGS(INFO) << "StartAdvertising: initiated_cb called";
+    LOG(INFO) << "StartAdvertising: initiated_cb called";
     discovered_ = DiscoveredInfo{
         .endpoint_id = endpoint_id,
         .endpoint_info = GetInfo(),
@@ -51,7 +51,7 @@ void SimulationUser::OnConnectionRejected(const std::string& endpoint_id,
 void SimulationUser::OnEndpointFound(const std::string& endpoint_id,
                                      const ByteArray& endpoint_info,
                                      const std::string& service_id) {
-  NEARBY_LOGS(INFO) << "Device discovered: id=" << endpoint_id;
+  LOG(INFO) << "Device discovered: id=" << endpoint_id;
   discovered_ = DiscoveredInfo{
       .endpoint_id = endpoint_id,
       .endpoint_info = endpoint_info,
@@ -210,7 +210,7 @@ void SimulationUser::StartListeningForIncomingConnections(
   auto result = mgr_.StartListeningForIncomingConnections(
       &client_, service_id, /*listener=*/{}, options);
   latch->CountDown();
-  NEARBY_LOGS(INFO) << "status: " << result.first.ToString();
+  LOG(INFO) << "status: " << result.first.ToString();
   EXPECT_EQ(expected_status, result.first);
 }
 

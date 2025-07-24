@@ -75,7 +75,7 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
       mediums_1, [&](ClientProxy* client,
                      std::unique_ptr<BwuHandler::IncomingSocketConnection>
                          mutable_connection) {
-        NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
+        LOG(WARNING) << "Server socket connection accept call back";
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
       });

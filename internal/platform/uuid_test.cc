@@ -54,7 +54,7 @@ TEST(UuidTest, CreateFromStringWithMd5) {
   std::string uuid_str(uuid);
   std::array<char, 16> uuid_data = uuid.data();
   std::string md5_data(Crypto::Md5(kString));
-  NEARBY_LOGS(INFO) << "MD5-based UUID: " << uuid_str;
+  LOG(INFO) << "MD5-based UUID: " << uuid_str;
   uuid_data[6] = 0;
   uuid_data[8] = 0;
   md5_data[6] = 0;
@@ -66,7 +66,7 @@ TEST(UuidTest, CreateFromBinaryCanOutputString) {
   Uuid uuid(kCopresenceServiceUuidMsb, kCopresenceServiceUuidLsb);
   std::array<char, 16> uuid_data = uuid.data();
   std::string uuid_str(uuid);
-  NEARBY_LOGS(INFO) << "UUID: " << uuid_str;
+  LOG(INFO) << "UUID: " << uuid_str;
   EXPECT_EQ(uuid_data[0],
             static_cast<char>((kCopresenceServiceUuidMsb >> 56) & 0xFF));
   EXPECT_EQ(uuid_data[1],

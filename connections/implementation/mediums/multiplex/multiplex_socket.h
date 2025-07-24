@@ -92,7 +92,7 @@ class MultiplexSocket {
 
   bool IsEnabled() { return enabled_.Get(); }
   void Enable() {
-    NEARBY_LOGS(INFO) << "Enable the Multiplex MediumSocket.";
+    LOG(INFO) << "Enable the Multiplex MediumSocket.";
     enabled_.Set(true);
   }
 

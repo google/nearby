@@ -83,13 +83,13 @@ class BluetoothSocket : public MediumSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override {
     if (IsVirtualSocket()) {
-      NEARBY_LOGS(INFO) << "Multiplex: Closing virtual socket: " << this;
+      LOG(INFO) << "Multiplex: Closing virtual socket: " << this;
       blocking_queue_input_stream_->Close();
       virtual_output_stream_->Close();
       CloseLocal();
       return {Exception::kSuccess};
     }
-    NEARBY_LOGS(INFO) << "Multiplex: Closing physical socket: " << this;
+    LOG(INFO) << "Multiplex: Closing physical socket: " << this;
     return impl_->Close();
   }
 
@@ -106,7 +106,7 @@ class BluetoothSocket : public MediumSocket {
   /** Feeds the received incoming data to the client. */
   void FeedIncomingData(ByteArray data) override {
     if (!IsVirtualSocket()) {
-      NEARBY_LOGS(INFO) << "Feeding data on a physical socket is not allowed.";
+      LOG(INFO) << "Feeding data on a physical socket is not allowed.";
       return;
     }
     blocking_queue_input_stream_->Write(data);
@@ -170,7 +170,7 @@ class BluetoothServerSocket final {
   BluetoothSocket Accept() {
     auto socket = impl_->Accept();
     if (!socket) {
-      NEARBY_LOGS(INFO) << "Accept() failed on server socket: " << this;
+      LOG(INFO) << "Accept() failed on server socket: " << this;
     }
     return BluetoothSocket(std::move(socket));
   }
@@ -179,7 +179,7 @@ class BluetoothServerSocket final {
   //
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() {
-    NEARBY_LOGS(INFO) << "Closing server socket: " << this;
+    LOG(INFO) << "Closing server socket: " << this;
     return impl_->Close();
   }
 

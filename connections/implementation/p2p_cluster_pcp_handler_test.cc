@@ -80,7 +80,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
 class P2pClusterPcpHandlerTest : public testing::Test {
  protected:
   void SetUp() override {
-    NEARBY_LOGS(INFO) << "SetUp: begin";
+    LOG(INFO) << "SetUp: begin";
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     SetBleExtendedAdvertisementsAvailable(true);
@@ -213,7 +213,7 @@ TEST_F(P2pClusterPcpHandlerTest,
                   [&latch](const std::string& endpoint_id,
                            const ByteArray& endpoint_info,
                            const std::string& service_id) {
-                    NEARBY_LOGS(INFO)
+                    LOG(INFO)
                         << "Device discovered: id=" << endpoint_id;
                     latch.CountDown();
                   },
@@ -241,7 +241,7 @@ class P2pClusterPcpHandlerTestWithParam
                                  /*disable_bluetooth_scanning*/ bool>> {
  protected:
   void SetUp() override {
-    NEARBY_LOGS(INFO) << "SetUp: begin";
+    LOG(INFO) << "SetUp: begin";
     env_.SetBleExtendedAdvertisementsAvailable(false);
     bool ble_v2_enabled = std::get<1>(GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -255,21 +255,21 @@ class P2pClusterPcpHandlerTestWithParam
             kDisableBluetoothClassicScanning,
         is_disable_bluetooth_scanning);
     if (advertising_options_.allowed.ble) {
-      NEARBY_LOGS(INFO) << "SetUp: BLE enabled";
+      LOG(INFO) << "SetUp: BLE enabled";
     }
     if (advertising_options_.allowed.bluetooth) {
-      NEARBY_LOGS(INFO) << "SetUp: BT enabled";
+      LOG(INFO) << "SetUp: BT enabled";
     }
     if (advertising_options_.allowed.wifi_lan) {
-      NEARBY_LOGS(INFO) << "SetUp: WifiLan enabled";
+      LOG(INFO) << "SetUp: WifiLan enabled";
     }
     if (advertising_options_.allowed.web_rtc) {
-      NEARBY_LOGS(INFO) << "SetUp: WebRTC enabled";
+      LOG(INFO) << "SetUp: WebRTC enabled";
     }
-    NEARBY_LOGS(INFO) << "SetUp: ble v2 enabled: " << ble_v2_enabled;
-    NEARBY_LOGS(INFO) << "SetUp: is_disable_bluetooth_scanning: "
+    LOG(INFO) << "SetUp: ble v2 enabled: " << ble_v2_enabled;
+    LOG(INFO) << "SetUp: is_disable_bluetooth_scanning: "
                       << is_disable_bluetooth_scanning;
-    NEARBY_LOGS(INFO) << "SetUp: end";
+    LOG(INFO) << "SetUp: end";
   }
 
   ClientProxy client_a_;
@@ -562,7 +562,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscover) {
                         [&latch](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
-                          NEARBY_LOGS(INFO)
+                          LOG(INFO)
                               << "Device discovered: id=" << endpoint_id;
                           latch.CountDown();
                         },
@@ -602,7 +602,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
                         [&latch](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
-                          NEARBY_LOGS(INFO)
+                          LOG(INFO)
                               << "Device discovered: id=" << endpoint_id;
                           latch.CountDown();
                         },
@@ -687,7 +687,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
                         [&latch](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
-                          NEARBY_LOGS(INFO)
+                          LOG(INFO)
                               << "Device discovered: id=" << endpoint_id;
                           latch.CountDown();
                         },
@@ -765,7 +765,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
                         [&](const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
-                          NEARBY_LOGS(INFO)
+                          LOG(INFO)
                               << "Device discovered: id=" << endpoint_id;
                           if (!first) {
                             first_found_latch.CountDown();
@@ -776,7 +776,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
                         },
                     .endpoint_lost_cb =
                         [&](const std::string& id) {
-                          NEARBY_LOGS(INFO) << "Device lost: id=" << id;
+                          LOG(INFO) << "Device lost: id=" << id;
                           lost_latch.CountDown();
                         },
                 }),
@@ -885,12 +885,12 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   EXPECT_EQ(old_enabled.bluetooth,
             mediums_a.GetBluetoothClassic().StopDiscovery(service_id_));
-  NEARBY_LOGS(INFO) << "started discovery";
+  LOG(INFO) << "started discovery";
   // Update discovery options
   EXPECT_TRUE(
       handler_a.UpdateDiscoveryOptions(&client_a_, service_id_, new_options)
           .Ok());
-  NEARBY_LOGS(INFO) << "updated discovery options";
+  LOG(INFO) << "updated discovery options";
   if (std::get<1>(GetParam())) {
     EXPECT_EQ(new_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   } else {
@@ -944,7 +944,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   auto result = handler_a.UpdateDiscoveryOptions(&client_a_, service_id_,
                                                  discovery_options_);
   EXPECT_TRUE(result.Ok());
-  NEARBY_LOGS(INFO) << "updated discovery options";
+  LOG(INFO) << "updated discovery options";
   if (std::get<1>(GetParam())) {
     EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   } else {
@@ -996,7 +996,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
                       .initiated_cb =
                           [&connect_latch](const std::string& endpoint_id,
                                            const ConnectionResponseInfo& info) {
-                            NEARBY_LOGS(INFO)
+                            LOG(INFO)
                                 << "StartAdvertising: initiated_cb called";
                             connect_latch.CountDown();
                           },
@@ -1011,7 +1011,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
                             const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
-                          NEARBY_LOGS(INFO)
+                          LOG(INFO)
                               << "Device discovered: id=" << endpoint_id
                               << ", endpoint_info="
                               << std::string{endpoint_info};
@@ -1047,7 +1047,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
                .initiated_cb =
                    [&connect_latch](const std::string& endpoint_id,
                                     const ConnectionResponseInfo& info) {
-                     NEARBY_LOGS(INFO)
+                     LOG(INFO)
                          << "RequestConnection: initiated_cb called";
                      connect_latch.CountDown();
                    },

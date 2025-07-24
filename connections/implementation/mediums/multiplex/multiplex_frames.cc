@@ -203,7 +203,7 @@ bool IsMultiplexFrame(const ByteArray& data) {
   if (!frame.ok()) {
     return false;
   } else {
-    NEARBY_LOGS(INFO) << "Checked data is a multiplex frame. Is Control ? "
+    LOG(INFO) << "Checked data is a multiplex frame. Is Control ? "
                       << frame.result().has_control_frame() << ", is data ? "
                       << frame.result().has_data_frame();
     return true;

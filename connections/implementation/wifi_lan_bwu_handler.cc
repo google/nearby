@@ -58,28 +58,28 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
       upgrade_path_info.wifi_lan_socket();
   if (!upgrade_path_info_socket.has_ip_address() ||
       !upgrade_path_info_socket.has_wifi_port()) {
-    NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to parse UpgradePathInfo.";
+    LOG(ERROR) << "WifiLanBwuHandler failed to parse UpgradePathInfo.";
     return {Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_IP_ADDRESS_ERROR)};
   }
 
   const std::string& ip_address = upgrade_path_info_socket.ip_address();
   std::int32_t port = upgrade_path_info_socket.wifi_port();
 
-  NEARBY_VLOG(1) << "WifiLanBwuHandler is attempting to connect to "
+  VLOG(1) << "WifiLanBwuHandler is attempting to connect to "
                  << "available WifiLan service (" << ip_address << ":" << port
                  << ") for endpoint " << endpoint_id;
 
   ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
       service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
   if (socket_result.has_error()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << "WifiLanBwuHandler failed to connect to the WifiLan service ("
         << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
         << ") for endpoint " << endpoint_id;
     return {Error(socket_result.error().operation_result_code().value())};
   }
 
-  NEARBY_VLOG(1)
+  VLOG(1)
       << "WifiLanBwuHandler successfully connected to WifiLan service ("
       << ip_address << ":" << port << ") while upgrading endpoint "
       << endpoint_id;
@@ -88,7 +88,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   auto channel = std::make_unique<WifiLanEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
-    NEARBY_LOGS(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "
+    LOG(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "
                        << "channel to the WifiLan service (" << ip_address
                        << ":" << port << ") for endpoint " << endpoint_id;
     socket_result.value().Close();
@@ -110,14 +110,14 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
             upgrade_service_id,
             absl::bind_front(&WifiLanBwuHandler::OnIncomingWifiLanConnection,
                              this, client))) {
-      NEARBY_LOGS(ERROR)
+      LOG(ERROR)
           << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id
           << " because it failed to start listening for incoming WifiLan "
              "connections.";
       return {};
     }
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "WifiLanBwuHandler successfully started listening for incoming "
            "WifiLan connections while upgrading endpoint "
         << endpoint_id;
@@ -130,14 +130,14 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   auto ip_address = credential.first;
   auto port = credential.second;
   if (ip_address.empty()) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
         << "service " << upgrade_service_id << " and endpoint " << endpoint_id
         << " because the wifi_lan ip address were unable to be obtained.";
     return {};
   }
 
-  NEARBY_LOGS(INFO)
+  LOG(INFO)
       << "WifiLanBwuHandler retrieved WIFI_LAN credentials. IP addr: "
       << ip_address[0] << "." << ip_address[1] << "." << ip_address[2] << "."
       << ip_address[3] << ",  Port: " << port;
@@ -148,7 +148,7 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
 void WifiLanBwuHandler::HandleRevertInitiatorStateForService(
     const std::string& upgrade_service_id) {
   wifi_lan_medium_.StopAcceptingConnections(upgrade_service_id);
-  NEARBY_LOGS(INFO) << "WifiLanBwuHandler successfully reverted all states for "
+  LOG(INFO) << "WifiLanBwuHandler successfully reverted all states for "
                     << "upgrade service ID " << upgrade_service_id;
 }
 

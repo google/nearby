@@ -75,12 +75,12 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
       mediums_1, [&](ClientProxy* client,
                      std::unique_ptr<BwuHandler::IncomingSocketConnection>
                          mutable_connection) {
-        NEARBY_LOGS(WARNING) << "Server socket connection accept call back";
+        LOG(WARNING) << "Server socket connection accept call back";
         std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
             mutable_connection.release());
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
-        NEARBY_LOGS(WARNING) << "Test is done. Close the socket";
+        LOG(WARNING) << "Test is done. Close the socket";
         connection->channel->Close();
         connection->socket->Close();
       });

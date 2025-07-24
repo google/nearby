@@ -57,7 +57,7 @@ void AddActionsToAdvertisement(const nearby_protocol::V0Actions& parsed_actions,
   for (const auto action : kAllActionBits) {
     auto action_type = MapAction(action);
     if (!action_type.ok()) {
-      NEARBY_LOGS(WARNING)
+      LOG(WARNING)
           << "Advertisement contains an unsupported action bit: "
           << (int)action;
       continue;

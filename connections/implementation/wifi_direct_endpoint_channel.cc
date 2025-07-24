@@ -38,7 +38,7 @@ WifiDirectEndpointChannel::GetMedium() const {
 void WifiDirectEndpointChannel::CloseImpl() {
   Exception status = socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Failed to close underlying socket for WifiDirectEndpointChannel "
         << GetName() << " : exception = " << status.value;
   }

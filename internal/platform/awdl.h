@@ -84,7 +84,7 @@ class AwdlSocket : public MediumSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override {
     if (IsVirtualSocket()) {
-      NEARBY_LOGS(INFO) << "Multiplex: Closing virtual socket: " << this;
+      LOG(INFO) << "Multiplex: Closing virtual socket: " << this;
       blocking_queue_input_stream_->Close();
       virtual_output_stream_->Close();
       CloseLocal();  // This will trigger MultiplexSocket::OnVirtualSocketClosed
@@ -106,7 +106,7 @@ class AwdlSocket : public MediumSocket {
   /** Feeds the received incoming data to the client. */
   void FeedIncomingData(ByteArray data) override {
     if (!IsVirtualSocket()) {
-      NEARBY_LOGS(INFO) << "Feeding data on a physical socket is not allowed.";
+      LOG(INFO) << "Feeding data on a physical socket is not allowed.";
       return;
     }
     blocking_queue_input_stream_->Write(data);
@@ -166,7 +166,7 @@ class AwdlServerSocket final {
   AwdlSocket Accept() {
     std::unique_ptr<api::AwdlSocket> socket = impl_->Accept();
     if (!socket) {
-      NEARBY_LOGS(INFO) << "AwdlServerSocket Accept() failed on server socket: "
+      LOG(INFO) << "AwdlServerSocket Accept() failed on server socket: "
                         << this;
     }
     return AwdlSocket(std::move(socket));
@@ -174,7 +174,7 @@ class AwdlServerSocket final {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() {
-    NEARBY_LOGS(INFO) << "AwdlServerSocket Closing:: " << this;
+    LOG(INFO) << "AwdlServerSocket Closing:: " << this;
     return impl_->Close();
   }
 

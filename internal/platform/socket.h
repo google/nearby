@@ -63,9 +63,7 @@ class MediumSocket : public Socket {
   }
 
   /** Feeds the received incoming data to the client. */
-  virtual void FeedIncomingData(ByteArray data) {
-//    NEARBY_LOGS(INFO) << "FeedIncomingData: do nothing";
-  }
+  virtual void FeedIncomingData(ByteArray data) {}
 
   /** Returns true if the socket is a virtual socket. */
   virtual bool IsVirtualSocket() {

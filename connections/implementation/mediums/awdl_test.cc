@@ -93,7 +93,7 @@ TEST_P(AwdlTest, CanConnect) {
           .service_discovered_cb =
               [&discovered_latch, &discovered_service_info](
                   NsdServiceInfo service_info, const std::string& service_id) {
-                NEARBY_LOGS(INFO)
+                LOG(INFO)
                     << "Discovered service_info=" << &service_info;
                 discovered_service_info = service_info;
                 discovered_latch.CountDown();
@@ -146,7 +146,7 @@ TEST_P(AwdlTest, CanCancelConnect) {
           .service_discovered_cb =
               [&discovered_latch, &discovered_service_info](
                   NsdServiceInfo service_info, const std::string& service_id) {
-                NEARBY_LOGS(INFO)
+                LOG(INFO)
                     << "Discovered service_info=" << &service_info;
                 discovered_service_info = service_info;
                 discovered_latch.CountDown();

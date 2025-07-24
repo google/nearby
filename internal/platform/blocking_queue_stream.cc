@@ -74,7 +74,7 @@ void BlockingQueueStream::Write(const ByteArray& bytes) {
   is_writing_ = true;
   blocking_queue_.Put(bytes);
   is_writing_ = false;
-  NEARBY_VLOG(1) << "BlockingQueueStream wrote " << bytes.size() << " bytes";
+  VLOG(1) << "BlockingQueueStream wrote " << bytes.size() << " bytes";
 }
 
 Exception BlockingQueueStream::Close() {

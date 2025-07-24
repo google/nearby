@@ -30,9 +30,9 @@ void OfflineSimulationUser::OnConnectionInitiated(
     const std::string& endpoint_id, const ConnectionResponseInfo& info,
     bool is_outgoing) {
   if (is_outgoing) {
-    NEARBY_LOGS(INFO) << "RequestConnection: initiated_cb called";
+    LOG(INFO) << "RequestConnection: initiated_cb called";
   } else {
-    NEARBY_LOGS(INFO) << "StartAdvertising: initiated_cb called";
+    LOG(INFO) << "StartAdvertising: initiated_cb called";
     discovered_ = DiscoveredInfo{
         .endpoint_id = endpoint_id,
         .endpoint_info = GetInfo(),
@@ -54,7 +54,7 @@ void OfflineSimulationUser::OnConnectionRejected(const std::string& endpoint_id,
 
 void OfflineSimulationUser::OnEndpointDisconnect(
     const std::string& endpoint_id) {
-  NEARBY_LOGS(INFO) << "OnEndpointDisconnect: self=" << this
+  LOG(INFO) << "OnEndpointDisconnect: self=" << this
                     << "; id=" << endpoint_id;
   if (disconnect_latch_) disconnect_latch_->CountDown();
 }
@@ -62,7 +62,7 @@ void OfflineSimulationUser::OnEndpointDisconnect(
 void OfflineSimulationUser::OnEndpointFound(const std::string& endpoint_id,
                                             const ByteArray& endpoint_info,
                                             const std::string& service_id) {
-  NEARBY_LOGS(INFO) << "Device discovered: id=" << endpoint_id;
+  LOG(INFO) << "Device discovered: id=" << endpoint_id;
   discovered_ = DiscoveredInfo{
       .endpoint_id = endpoint_id,
       .endpoint_info = endpoint_info,
@@ -229,7 +229,7 @@ Status OfflineSimulationUser::RejectConnection(CountDownLatch* latch) {
 }
 
 void OfflineSimulationUser::Disconnect() {
-  NEARBY_LOGS(INFO) << "Disconnecting from id=" << discovered_.endpoint_id;
+  LOG(INFO) << "Disconnecting from id=" << discovered_.endpoint_id;
   ctrl_.DisconnectFromEndpoint(&client_, discovered_.endpoint_id);
 }
 

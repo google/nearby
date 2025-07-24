@@ -153,7 +153,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     return {Error(socket_result.error().operation_result_code().value())};
   }
 
-  NEARBY_VLOG(1)
+  VLOG(1)
       << "WifiHotspotBwuHandler successfully connected to WifiHotspot service ("
       << hotspot_credentials.GetGateway() << ":"
       << hotspot_credentials.GetPort() << ") while upgrading endpoint "

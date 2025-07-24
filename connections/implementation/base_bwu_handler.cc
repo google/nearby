@@ -54,7 +54,7 @@ void BaseBwuHandler::RevertInitiatorState() {
 void BaseBwuHandler::RevertInitiatorState(const std::string& upgrade_service_id,
                                           const std::string& endpoint_id) {
   if (!IsInitiatorUpgradeServiceId(upgrade_service_id)) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << "BaseBwuHandler::RevertInitiatorState: input service ID "
         << upgrade_service_id << " is not an BWU initiator ID; ignoring.";
     return;
@@ -82,7 +82,7 @@ void BaseBwuHandler::RevertResponderState(const std::string& service_id) {
 void BaseBwuHandler::NotifyOnIncomingConnection(
     ClientProxy* client, std::unique_ptr<IncomingSocketConnection> connection) {
   if (!incoming_connection_callback_) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << "Ignoring incoming connection, no callback registered";
     return;
   }

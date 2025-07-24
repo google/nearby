@@ -155,14 +155,14 @@ TEST_F(ScanManagerTest, CannotStopScanTwice) {
   ScanSessionId scan_session =
       manager.StartScan(MakeDefaultScanRequest(), MakeDefaultScanCallback());
 
-  NEARBY_LOGS(INFO) << "Start scan";
+  LOG(INFO) << "Start scan";
   EXPECT_TRUE(start_latch_.Await().Ok());
   // Ensure that we have started scanning before we try to stop.
   env_.Sync();
-  NEARBY_LOGS(INFO) << "Stop scan";
+  LOG(INFO) << "Stop scan";
   manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
-  NEARBY_LOGS(INFO) << "Stop scan again";
+  LOG(INFO) << "Stop scan again";
   manager.StopScan(scan_session);
   EXPECT_EQ(manager.ScanningCallbacksLengthForTest(), 0);
 }
@@ -319,7 +319,7 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
                                          },
                                      .on_discovered_cb =
                                          [&](PresenceDevice pd) {
-                                           NEARBY_LOGS(INFO)
+                                           LOG(INFO)
                                                << "scansession2 found";
                                            found_latch2.CountDown();
                                            manager.StopScan(scan_session);

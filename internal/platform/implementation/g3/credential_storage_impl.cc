@@ -63,11 +63,11 @@ void CredentialStorageImpl::SaveCredentials(
     return;
   }
   if (private_credentials.empty()) {
-    NEARBY_LOGS(INFO) << "There are no Private Credentials for account: ["
+    LOG(INFO) << "There are no Private Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
   } else {
-    NEARBY_LOGS(INFO) << "G3 Save Private Credentials for account: ["
+    LOG(INFO) << "G3 Save Private Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
     SaveLocalCredentialsLocked(manager_app_id, account_name,
@@ -75,11 +75,11 @@ void CredentialStorageImpl::SaveCredentials(
   }
 
   if (public_credentials.empty()) {
-    NEARBY_LOGS(INFO) << "There are no Public Credentials for account: ["
+    LOG(INFO) << "There are no Public Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
   } else {
-    NEARBY_LOGS(INFO) << "G3 Save Public Credentials for account: ["
+    LOG(INFO) << "G3 Save Public Credentials for account: ["
                       << account_name << "], manager app ID:[" << manager_app_id
                       << "]";
     PublicCredentialKey key = CreatePublicCredentialKey(
@@ -87,7 +87,7 @@ void CredentialStorageImpl::SaveCredentials(
     auto public_result =
         public_credentials_map_.insert(std::make_pair(key, public_credentials));
     if (!public_result.second) {
-      NEARBY_LOGS(WARNING)
+      LOG(WARNING)
           << "Credentials already saved in map. Overwriting previous creds!";
       public_credentials_map_[key] = public_credentials;
     }
@@ -102,7 +102,7 @@ void CredentialStorageImpl::SaveLocalCredentialsLocked(
   auto private_result =
       private_credentials_map_.insert(std::make_pair(key, private_credentials));
   if (!private_result.second) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << "Credentials already saved in map. Overwriting previous creds!";
     private_credentials_map_[key] = private_credentials;
   }
@@ -111,7 +111,7 @@ void CredentialStorageImpl::SaveLocalCredentialsLocked(
 void CredentialStorageImpl::UpdateLocalCredential(
     absl::string_view manager_app_id, absl::string_view account_name,
     LocalCredential credential, SaveCredentialsResultCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Update Private Credential for for account: ["
+  LOG(INFO) << "G3 Update Private Credential for for account: ["
                     << account_name << "], manager app ID:[" << manager_app_id
                     << "]";
   absl::StatusOr<std::vector<LocalCredential>> credentials =
@@ -120,7 +120,7 @@ void CredentialStorageImpl::UpdateLocalCredential(
           .account_name = std::string(account_name),
           .identity_type = IdentityType::IDENTITY_TYPE_UNSPECIFIED});
   if (!credentials.ok()) {
-    NEARBY_LOGS(WARNING) << credentials.status();
+    LOG(WARNING) << credentials.status();
     credentials = std::vector<LocalCredential>();
   }
   auto it = std::find_if(
@@ -138,7 +138,7 @@ void CredentialStorageImpl::UpdateLocalCredential(
 void CredentialStorageImpl::GetLocalCredentials(
     const CredentialSelector& credential_selector,
     GetLocalCredentialsResultCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Get Private Credentials for " << credential_selector;
+  LOG(INFO) << "G3 Get Private Credentials for " << credential_selector;
   std::move(callback.credentials_fetched_cb)(
       GetLocalCredentialsLocked(credential_selector));
 }
@@ -149,7 +149,7 @@ CredentialStorageImpl::GetLocalCredentialsLocked(
   LocalCredentialKey key = CreateLocalCredentialKey(
       credential_selector.manager_app_id, credential_selector.account_name);
   if (private_credentials_map_.find(key) == private_credentials_map_.end()) {
-    NEARBY_LOGS(WARNING) << "There are no Private Credentials stored for key:"
+    LOG(WARNING) << "There are no Private Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key);
     return absl::NotFoundError(
         absl::StrFormat("No private credentials for %v", credential_selector));
@@ -168,12 +168,12 @@ void CredentialStorageImpl::GetPublicCredentials(
     const CredentialSelector& credential_selector,
     PublicCredentialType public_credential_type,
     GetPublicCredentialsResultCallback callback) {
-  NEARBY_LOGS(INFO) << "G3 Get Public Credentials for " << credential_selector;
+  LOG(INFO) << "G3 Get Public Credentials for " << credential_selector;
   PublicCredentialKey key = CreatePublicCredentialKey(
       credential_selector.manager_app_id, credential_selector.account_name,
       public_credential_type);
   if (public_credentials_map_.find(key) == public_credentials_map_.end()) {
-    NEARBY_LOGS(WARNING) << "There are no Public Credentials stored for key:"
+    LOG(WARNING) << "There are no Public Credentials stored for key:"
                          << std::get<0>(key) << ", " << std::get<1>(key) << ", "
                          << std::get<2>(key);
     std::move(callback.credentials_fetched_cb)(absl::NotFoundError(

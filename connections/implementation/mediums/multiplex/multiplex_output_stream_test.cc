@@ -225,14 +225,14 @@ TEST_F(MultiplexOutputStreamTest, CreateTwoVirtualStreams_SendData) {
             std::string(GenerateServiceIdHashWithSalt(std::string(kServiceId_1),
                                                       std::string(kSalt_1)))) {
     EXPECT_EQ(frame.data_frame().data(), std::string(data_1));
-    NEARBY_LOGS(INFO) << "Read first virtual stream frame first.";
+    LOG(INFO) << "Read first virtual stream frame first.";
   } else {
     EXPECT_EQ(frame.header().salted_service_id_hash(),
             std::string(GenerateServiceIdHashWithSalt(std::string(kServiceId_2),
                                                       std::string(kSalt_2))));
     EXPECT_EQ(frame.data_frame().data(), std::string(data_2));
     first_frame_is_data_1 = false;
-    NEARBY_LOGS(INFO) << "Read second virtual stream frame first.";
+    LOG(INFO) << "Read second virtual stream frame first.";
   }
 
   frame_data = ReadFrame();

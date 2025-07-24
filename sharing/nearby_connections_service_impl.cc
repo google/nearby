@@ -305,7 +305,7 @@ void NearbyConnectionsServiceImpl::AcceptConnection(
               return;
             }
 
-            NEARBY_VLOG(1) << "payload callback id=" << payload.GetId();
+            VLOG(1) << "payload callback id=" << payload.GetId();
 
             switch (payload.GetType()) {
               case NcPayloadType::kBytes:
@@ -326,7 +326,7 @@ void NearbyConnectionsServiceImpl::AcceptConnection(
             transfer_update.payload_id = info.payload_id;
             transfer_update.status = static_cast<PayloadStatus>(info.status);
             transfer_update.total_bytes = info.total_bytes;
-            NEARBY_VLOG(1) << "payload transfer update id=" << info.payload_id;
+            VLOG(1) << "payload transfer update id=" << info.payload_id;
             auto payload_listener = payload_listeners_.find(endpoint_id);
             if (payload_listener != payload_listeners_.end()) {
               payload_listener->second.payload_progress_cb(endpoint_id,

@@ -63,7 +63,7 @@ class FakeConnection : public Connection {
       packets_written_.erase(packets_written_.begin());
       return front;
     }
-    NEARBY_LOGS(WARNING) << "No more packets";
+    LOG(WARNING) << "No more packets";
     return "";
   }
   bool NoMorePackets() {
@@ -143,7 +143,7 @@ class BaseSocketTest : public ::testing::Test {
                                  .on_error_cb =
                                      [this](absl::Status status) {
                                        error_status_ = status;
-                                       NEARBY_LOGS(ERROR) << status;
+                                       LOG(ERROR) << status;
                                      },
                              }) {}
   void TransmitAndFail() {
@@ -282,7 +282,7 @@ TEST_F(BaseSocketTest, TestWritePacketCounterRollover) {
     Packet packet = Packet::CreateDataPacket(true, true, ByteArray("\x01"));
     EXPECT_OK(packet.SetPacketCounter(i));
     nearby::Future<absl::Status> result = socket_.Write(ByteArray("\x01"));
-    NEARBY_LOGS(INFO) << "sent packet " << i;
+    LOG(INFO) << "sent packet " << i;
     EXPECT_OK(result.Get().GetResult());
     EXPECT_EQ(connection_.PollWrittenPacket(), packet.GetBytes());
   }
@@ -327,7 +327,7 @@ TEST_F(BaseSocketTest, TestResetByDisconnect) {
 
   // connect again
   socket_.OnConnectedProxy(kMaxPacketSize);
-  NEARBY_LOGS(INFO) << "Reconnected socket";
+  LOG(INFO) << "Reconnected socket";
   // sleep for 10 ms to allow for packet population
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_EQ(connection_.PollWrittenPacket(), "");
@@ -445,18 +445,18 @@ TEST_F(BaseSocketTest, TestOnRemoteTransitEmpty) {
 TEST_F(BaseSocketTest, TestReconnect) {
   connection_.SetInstantTransmit(false);
   socket_.OnConnectedProxy(kMaxPacketSize);
-  NEARBY_LOGS(INFO) << "Starting TransmitAndFail1";
+  LOG(INFO) << "Starting TransmitAndFail1";
   TransmitAndFail();
-  NEARBY_LOGS(INFO) << "TransmitAndFail1 completed";
+  LOG(INFO) << "TransmitAndFail1 completed";
   connection_.OnTransmitProxy(absl::UnavailableError(""));
   EXPECT_EQ(error_status_.code(), absl::StatusCode::kUnavailable);
   absl::SleepFor(absl::Milliseconds(20));
-  NEARBY_LOGS(INFO) << "Reconnecting";
+  LOG(INFO) << "Reconnecting";
   socket_.OnConnectedProxy(kMaxPacketSize);
   absl::SleepFor(absl::Milliseconds(20));
-  NEARBY_LOGS(INFO) << "Starting transmit and fail 2";
+  LOG(INFO) << "Starting transmit and fail 2";
   TransmitAndFail();
-  NEARBY_LOGS(INFO) << "TransmitAndFail2 completed";
+  LOG(INFO) << "TransmitAndFail2 completed";
   absl::SleepFor(absl::Milliseconds(10));
   EXPECT_TRUE(connection_.NoMorePackets());
 }

@@ -80,13 +80,13 @@ BaseSocket::BaseSocket(const Connection& connection, SocketCallback&& callback)
 }
 
 BaseSocket::~BaseSocket() {
-  NEARBY_LOGS(INFO) << "~BaseSocket";
+  LOG(INFO) << "~BaseSocket";
   ShutDown();
 }
 
 void BaseSocket::ShutDown() {
   executor_.Shutdown();
-  NEARBY_LOGS(INFO) << "BaseSocket gone.";
+  LOG(INFO) << "BaseSocket gone.";
 }
 
 void BaseSocket::TryWriteNextControl() {
@@ -136,11 +136,11 @@ void BaseSocket::TryWriteNextMessage() {
 
 void BaseSocket::WritePacket(absl::StatusOr<Packet> packet) {
   if (!packet.ok()) {
-    NEARBY_LOGS(WARNING) << "Packet status:" << packet.status();
+    LOG(WARNING) << "Packet status:" << packet.status();
     return;
   }
   CHECK_OK(packet->SetPacketCounter(packet_counter_generator_.Next()));
-  NEARBY_LOGS(INFO) << "transmitting packet";
+  LOG(INFO) << "transmitting packet";
   connection_.Transmit(packet->GetBytes());
 }
 
@@ -155,13 +155,13 @@ void BaseSocket::OnWriteRequestWriteComplete(absl::Status status) {
                 current_control_ = nullptr;
                 control_request_queue_.pop_front();
               } else if (current_message_ != nullptr) {
-                NEARBY_LOGS(INFO) << "OnWriteResult current is not null";
+                LOG(INFO) << "OnWriteResult current is not null";
                 if (current_message_->IsFinished()) {
-                  NEARBY_LOGS(INFO) << "OnWriteResult current finished";
+                  LOG(INFO) << "OnWriteResult current finished";
                   current_message_->SetWriteStatus(status);
                   if (!message_request_queue_.empty() &&
                       current_message_ == &message_request_queue_.front()) {
-                    NEARBY_LOGS(INFO) << "remove message";
+                    LOG(INFO) << "remove message";
                     message_request_queue_.pop_front();
                     current_message_ = nullptr;
                   }
@@ -231,9 +231,9 @@ void BaseSocket::DisconnectQuietly() {
                             current_message_ = nullptr;
                             state_ = SocketConnectionState::kDisconnected;
                           }
-                          NEARBY_LOGS(INFO) << "Socket now disconnected.";
+                          LOG(INFO) << "Socket now disconnected.";
                         });
-  NEARBY_LOGS(INFO) << "scheduled reset";
+  LOG(INFO) << "scheduled reset";
 }
 
 void BaseSocket::OnReceiveDataPacket(Packet packet) {
@@ -280,7 +280,7 @@ void BaseSocket::WriteControlPacket(Packet packet) {
             }
             TryWriteNextControl();
           });
-  NEARBY_LOGS(INFO) << "Scheduled TryWriteControl";
+  LOG(INFO) << "Scheduled TryWriteControl";
 }
 
 void BaseSocket::DisconnectInternal(absl::Status status) {

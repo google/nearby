@@ -54,7 +54,7 @@ class ReconnectSimulatorUser : public SimulationUser {
       : SimulationUser(std::string(name), allowed,
                        SetSafeToDisconnect(true, true, false, 3)) {}
   ~ReconnectSimulatorUser() override {
-    NEARBY_LOGS(INFO) << "ReconnectSimulatorUser: [down] name=" << info_.data();
+    LOG(INFO) << "ReconnectSimulatorUser: [down] name=" << info_.data();
   }
 
   bool IsConnected() const {
@@ -75,18 +75,18 @@ class ReconnectManagerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOGS(INFO) << "EP-B: [discovered]"
+    LOG(INFO) << "EP-B: [discovered]"
                       << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connection_latch_);
     EXPECT_TRUE(connection_latch_.Await(kDefaultTimeout).result());
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    NEARBY_LOGS(INFO) << "EP-A: [discovered]"
+    LOG(INFO) << "EP-A: [discovered]"
                       << user_a.GetDiscovered().endpoint_id;
-    NEARBY_LOGS(INFO) << "Both users discovered their peers.";
+    LOG(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
     EXPECT_TRUE(accept_latch_.Await(kDefaultTimeout).result());
-    NEARBY_LOGS(INFO) << "Both users reached connected state.";
+    LOG(INFO) << "Both users reached connected state.";
     return user_a.IsConnected() && user_b.IsConnected();
   }
 
@@ -111,14 +111,14 @@ TEST_P(ReconnectManagerTest, AllowReconnect) {
   ReconnectManager::AutoReconnectCallback auto_reconnect_callback = {
       .on_reconnect_success_cb =
           [&](ClientProxy* client, const std::string& endpoint_id) {
-            NEARBY_LOGS(INFO)
+            LOG(INFO)
                 << " Reconnect successfully for endpoint_id: " << endpoint_id;
           },
       .on_reconnect_failure_cb =
           [&](ClientProxy* client, const std::string& endpoint_id,
               bool send_disconnection_notification,
               DisconnectionReason disconnection_reason) {
-            NEARBY_LOGS(INFO)
+            LOG(INFO)
                 << " Reconnect failed for endpoint_id: " << endpoint_id;
           },
   };
@@ -139,7 +139,7 @@ TEST_P(ReconnectManagerTest, AllowReconnect) {
       /*send_disconnection_notification=*/false,
       DisconnectionReason::UNFINISHED));
 
-  NEARBY_LOGS(INFO) << "Test completed.";
+  LOG(INFO) << "Test completed.";
   user_a.Stop();
   user_b.Stop();
   env_.Stop();

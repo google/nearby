@@ -105,7 +105,7 @@ void ScanManager::StopScan(ScanSessionId id) {
         if (it->second.scanning_session) {
           absl::Status status = it->second.scanning_session->stop_scanning();
           if (!status.ok()) {
-            NEARBY_LOGS(WARNING) << "StopScan error: " << status;
+            LOG(WARNING) << "StopScan error: " << status;
           }
         }
         scan_sessions_.erase(it);
@@ -222,7 +222,7 @@ void ScanManager::FetchCredentials(ScanSessionId id,
     // Not fetching for PUBLIC.
     if (selector.identity_type == internal::IDENTITY_TYPE_UNSPECIFIED ||
         selector.identity_type == internal::IDENTITY_TYPE_PUBLIC) {
-      NEARBY_LOGS(INFO) << __func__
+      LOG(INFO) << __func__
                         << ": skip feteching creds for identity type: "
                         << selector.identity_type;
       continue;
@@ -235,7 +235,7 @@ void ScanManager::FetchCredentials(ScanSessionId id,
                      std::vector<::nearby::internal::SharedCredential>>
                      credentials) {
                if (!credentials.ok()) {
-                 NEARBY_LOGS(WARNING)
+                 LOG(WARNING)
                      << "Failed to fetch credentials: " << credentials.status();
                  return;
                }

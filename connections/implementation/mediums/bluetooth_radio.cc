@@ -21,20 +21,20 @@ namespace connections {
 
 BluetoothRadio::BluetoothRadio() {
   if (!IsAdapterValid()) {
-    NEARBY_LOGS(ERROR) << "Bluetooth adapter is not valid: BT is not supported";
+    LOG(ERROR) << "Bluetooth adapter is not valid: BT is not supported";
   }
 }
 
 BluetoothRadio::~BluetoothRadio() {
   // We never enabled Bluetooth, nothing to do.
   if (!ever_saved_state_.Get()) {
-    NEARBY_LOGS(INFO) << "BT adapter was not used. Not touching HW.";
+    LOG(INFO) << "BT adapter was not used. Not touching HW.";
     return;
   }
 
-  NEARBY_LOGS(INFO) << "Bring BT adapter to original state";
+  LOG(INFO) << "Bring BT adapter to original state";
   if (!SetBluetoothState(originally_enabled_.Get())) {
-    NEARBY_LOGS(INFO) << "Failed to restore BT adapter original state.";
+    LOG(INFO) << "Failed to restore BT adapter original state.";
   }
 }
 

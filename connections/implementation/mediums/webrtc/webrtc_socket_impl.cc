@@ -34,19 +34,19 @@ namespace mediums {
 // OutputStreamImpl
 Exception WebRtcSocket::OutputStreamImpl::Write(const ByteArray& data) {
   if (data.size() > kMaxDataSize) {
-    NEARBY_LOGS(WARNING) << "Sending data larger than 1MB";
+    LOG(WARNING) << "Sending data larger than 1MB";
     return {Exception::kIo};
   }
 
   socket_->BlockUntilSufficientSpaceInBuffer(data.size());
 
   if (socket_->IsClosed()) {
-    NEARBY_LOGS(WARNING) << "Tried sending message while socket is closed";
+    LOG(WARNING) << "Tried sending message while socket is closed";
     return {Exception::kIo};
   }
 
   if (!socket_->SendMessage(data)) {
-    NEARBY_LOGS(INFO) << "Unable to write data to socket.";
+    LOG(INFO) << "Unable to write data to socket.";
     return {Exception::kIo};
   }
   return {Exception::kSuccess};
@@ -67,14 +67,14 @@ WebRtcSocket::WebRtcSocket(
     const std::string& name,
     webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
     : name_(name), data_channel_(std::move(data_channel)) {
-  NEARBY_LOGS(INFO) << "WebRtcSocket::WebRtcSocket(" << name_
+  LOG(INFO) << "WebRtcSocket::WebRtcSocket(" << name_
                     << ") this: " << this;
   std::tie(pipe_input_, pipe_output_) = CreatePipe();
   data_channel_->RegisterObserver(this);
 }
 
 WebRtcSocket::~WebRtcSocket() {
-  NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
+  LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
                     << ") this: " << this;
 
   if (!IsClosed()) {
@@ -82,7 +82,7 @@ WebRtcSocket::~WebRtcSocket() {
     Close();
   }
 
-  NEARBY_LOGS(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
+  LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
                     << ") this: " << this << " done";
 }
 
@@ -91,7 +91,7 @@ InputStream& WebRtcSocket::GetInputStream() { return *pipe_input_; }
 OutputStream& WebRtcSocket::GetOutputStream() { return output_stream_; }
 
 Exception WebRtcSocket::Close() {
-  NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this;
+  LOG(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this;
   if (closed_.Set(true)) return {Exception::kSuccess};
 
   ClosePipe();
@@ -99,14 +99,14 @@ Exception WebRtcSocket::Close() {
   // to 'closing' but does not block until 'closed' is sent so the data channel
   // is not fully closed when this call is done.
   data_channel_->Close();
-  NEARBY_LOGS(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
+  LOG(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
                     << " done";
   return {Exception::kSuccess};
 }
 
 void WebRtcSocket::OnStateChange() {
   // Running on the signaling thread right now.
-  NEARBY_LOGS(ERROR)
+  LOG(ERROR)
       << "WebRtcSocket::OnStateChange() webrtc data channel state: "
       << webrtc::DataChannelInterface::DataStateString(data_channel_->state());
   switch (data_channel_->state()) {
@@ -120,7 +120,7 @@ void WebRtcSocket::OnStateChange() {
     case webrtc::DataChannelInterface::DataState::kClosing:
       break;
     case webrtc::DataChannelInterface::DataState::kClosed:
-      NEARBY_LOGS(ERROR) << "WebRtcSocket::OnStateChange() unregistering data "
+      LOG(ERROR) << "WebRtcSocket::OnStateChange() unregistering data "
                             "channel observer.";
       // This will trigger a destruction of the owning connection flow
       // We implicitly depend on the |socket_listener_| to offload from
@@ -163,7 +163,7 @@ bool WebRtcSocket::SendMessage(const ByteArray& data) {
 bool WebRtcSocket::IsClosed() { return closed_.Get(); }
 
 void WebRtcSocket::ClosePipe() {
-  NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_
+  LOG(INFO) << "WebRtcSocket::ClosePipe(" << name_
                     << ") this: " << this;
   // This is thread-safe to close these sockets even if a read or write is in
   // process on another thread, Close will wait for the exclusive mutex before
@@ -171,7 +171,7 @@ void WebRtcSocket::ClosePipe() {
   pipe_input_->Close();
   pipe_output_->Close();
   WakeUpWriter();
-  NEARBY_LOGS(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this
+  LOG(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this
                     << " done";
 }
 

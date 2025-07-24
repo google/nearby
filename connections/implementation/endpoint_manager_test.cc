@@ -330,9 +330,9 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   ON_CALL(*endpoint_channel, Read(_))
       .WillByDefault([channel = endpoint_channel.get()]() {
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
-        NEARBY_LOGS(INFO) << "Simulate read delay: wait";
+        LOG(INFO) << "Simulate read delay: wait";
         absl::SleepFor(absl::Milliseconds(100));
-        NEARBY_LOGS(INFO) << "Simulate read delay: done";
+        LOG(INFO) << "Simulate read delay: done";
         if (channel->IsClosed()) return ExceptionOr<ByteArray>(Exception::kIo);
         return ExceptionOr<ByteArray>(ByteArray{});
       });
@@ -340,7 +340,7 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
       .WillByDefault(
           [channel = endpoint_channel.get()](DisconnectionReason reason) {
             channel->DoClose();
-            NEARBY_LOGS(INFO) << "Channel closed";
+            LOG(INFO) << "Channel closed";
           });
   EXPECT_CALL(*endpoint_channel, Write(_, _))
       .WillRepeatedly(Return(Exception{Exception::kSuccess}));
@@ -352,9 +352,9 @@ TEST_F(EndpointManagerTest, SendControlMessageAndPayloadAckWorks) {
   auto failed_ids_2 =
       em_.SendPayloadAck(header.id(), std::vector<std::string>{endpoint_id_});
   EXPECT_EQ(failed_ids_2, std::vector<std::string>{});
-  NEARBY_LOGS(INFO) << "Will unregister endpoint now";
+  LOG(INFO) << "Will unregister endpoint now";
   em_.UnregisterEndpoint(client_.get(), endpoint_id_);
-  NEARBY_LOGS(INFO) << "Will call destructors now";
+  LOG(INFO) << "Will call destructors now";
 }
 
 TEST_F(EndpointManagerTest, SingleReadOnReadError) {

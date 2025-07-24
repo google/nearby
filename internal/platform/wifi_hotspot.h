@@ -133,7 +133,7 @@ class WifiHotspotServerSocket final {
   WifiHotspotSocket Accept() {
     std::unique_ptr<api::WifiHotspotSocket> socket = impl_->Accept();
     if (!socket) {
-      NEARBY_LOGS(INFO)
+      LOG(INFO)
           << "WifiHotspotServerSocket Accept() failed on server socket: ";
     }
     return WifiHotspotSocket(std::move(socket));
@@ -141,7 +141,7 @@ class WifiHotspotServerSocket final {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() {
-    NEARBY_LOGS(INFO) << "WifiHotspotServerSocket Closing:: " << this;
+    LOG(INFO) << "WifiHotspotServerSocket Closing:: " << this;
     return impl_->Close();
   }
 

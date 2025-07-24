@@ -53,25 +53,25 @@ MultiplexOutputStream::MultiplexOutputStream(OutputStream* physical_writer,
 Exception MultiplexOutputStream::WaitForResult(const std::string& method_name,
                                                Future<bool>* future) {
   if (!future) {
-    NEARBY_LOGS(INFO) << "No future to wait for; return with error.";
+    LOG(INFO) << "No future to wait for; return with error.";
     return {Exception::kFailed};
   }
-  NEARBY_LOGS(INFO) << "Waiting for future to complete: " << method_name;
+  LOG(INFO) << "Waiting for future to complete: " << method_name;
   ExceptionOr<bool> result =
       future->Get(FeatureFlags::GetInstance()
                       .GetFlags()
                       .mediums_frame_write_timeout_millis);
   if (!result.ok()) {
-    NEARBY_LOGS(INFO) << "Future:[" << method_name
+    LOG(INFO) << "Future:[" << method_name
                       << "] completed with exception:" << result.exception();
     return {Exception::kFailed};
   }
   if (result.result()) {
-    NEARBY_LOGS(INFO) << "Future:[" << method_name
+    LOG(INFO) << "Future:[" << method_name
                       << "] completed with success.";
     return {Exception::kSuccess};
   }
-  NEARBY_LOGS(INFO) << "Future:[" << method_name
+  LOG(INFO) << "Future:[" << method_name
                     << "] completed with failure.";
   return {Exception::kFailed};
 }
@@ -111,7 +111,7 @@ bool MultiplexOutputStream::WriteConnectionResponseFrame(
 bool MultiplexOutputStream::Close(const std::string& service_id) {
   auto item = virtual_output_streams_.find(service_id);
   if (item == virtual_output_streams_.end()) {
-    NEARBY_LOGS(INFO) << "Don't need to close VirtualOutputStream("
+    LOG(INFO) << "Don't need to close VirtualOutputStream("
                          << service_id << ") because it's already gone.";
     return false;
   }
@@ -216,7 +216,7 @@ void MultiplexOutputStream::MultiplexWriter::EnqueueToSend(
 }
 
 void MultiplexOutputStream::MultiplexWriter::StartWriting() {
-  NEARBY_LOGS(INFO) << "Writing loop started.";
+  LOG(INFO) << "Writing loop started.";
   while (true) {
     auto enqueued_frame = data_queue_.TryTake();
     if (enqueued_frame != std::nullopt) {
@@ -227,23 +227,23 @@ void MultiplexOutputStream::MultiplexWriter::StartWriting() {
       MutexLock lock(&writing_mutex_);
       if (data_queue_.Empty() && is_writing_ && !is_closed_) {
         is_writing_ = false;
-        NEARBY_LOGS(INFO) << "Waiting for data_queue_ has data.";
+        LOG(INFO) << "Waiting for data_queue_ has data.";
         Exception wait_succeeded = is_writing_cond_.Wait();
         if (!wait_succeeded.Ok()) {
-          NEARBY_LOGS(WARNING)
+          LOG(WARNING)
               << "Failure waiting to wait: " << wait_succeeded.value;
           return;
         }
       }
       if (is_closed_) {
-        NEARBY_LOGS(INFO) << "Notify to close_writing_thread";
+        LOG(INFO) << "Notify to close_writing_thread";
         MutexLock lock(&close_writing_thread_mutex_);
         close_writing_thread_cond_.Notify();
         break;
       }
     }
   }
-  NEARBY_LOGS(INFO) << "Writing loop stopped.";
+  LOG(INFO) << "Writing loop stopped.";
 }
 
 void MultiplexOutputStream::MultiplexWriter::Write(
@@ -268,10 +268,10 @@ void MultiplexOutputStream::MultiplexWriter::Write(
 
 void MultiplexOutputStream::MultiplexWriter::Close() {
   if (is_closed_) {
-    NEARBY_LOGS(INFO) << "MultiplexWriter is already closed.";
+    LOG(INFO) << "MultiplexWriter is already closed.";
     return;
   }
-  NEARBY_LOGS(INFO) << "Stop writing loop and Shutdown writer thread.";
+  LOG(INFO) << "Stop writing loop and Shutdown writer thread.";
   {
     MutexLock lock(&writing_mutex_);
     is_closed_ = true;
@@ -282,11 +282,11 @@ void MultiplexOutputStream::MultiplexWriter::Close() {
     is_write_loop_running_ = false;
     is_writing_cond_.Notify();
   }
-  NEARBY_LOGS(INFO) << "Wait to close_writing_thread";
+  LOG(INFO) << "Wait to close_writing_thread";
   {
     MutexLock lock(&close_writing_thread_mutex_);
     close_writing_thread_cond_.Wait(absl::Milliseconds(20));
-    NEARBY_LOGS(INFO) << "Shutdown writer thread.";
+    LOG(INFO) << "Shutdown writer thread.";
     writer_thread_.Shutdown();
   }
 }
@@ -306,7 +306,7 @@ MultiplexOutputStream::VirtualOutputStream::VirtualOutputStream(
 Exception MultiplexOutputStream::VirtualOutputStream::Write(
     const ByteArray& data) {
   if (is_closed_.Get()) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << "Failed to write data because the VirtualOutputStream for "
         << service_id_ << " closed";
     return {Exception::kIo};
@@ -326,7 +326,7 @@ Exception MultiplexOutputStream::VirtualOutputStream::Write(
       // true to let the remote handle correctly.
       if ((service_id_hash_salt_ == kFakeSalt) && !should_pass_salt) {
         should_pass_salt = true;
-        NEARBY_LOGS(INFO) << "service_idHashSalt is still a fake one and "
+        LOG(INFO) << "service_idHashSalt is still a fake one and "
                              "not changed yet; continue to pass salt.";
       }
     }
@@ -354,7 +354,7 @@ Exception MultiplexOutputStream::VirtualOutputStream::Flush() {
 }
 
 Exception MultiplexOutputStream::VirtualOutputStream::Close() {
-  NEARBY_LOGS(INFO) << "MultiplexOutputStream::VirtualOutputStream::Close";
+  LOG(INFO) << "MultiplexOutputStream::VirtualOutputStream::Close";
   is_closed_.Set(true);
   return {Exception::kSuccess};
 }

@@ -112,7 +112,7 @@ TEST_P(BleV2Test, CanConnect) {
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 discovered_peripheral = peripheral;
-                NEARBY_LOGS(INFO)
+                LOG(INFO)
                     << "Discovered peripheral, fast advertisement="
                     << fast_advertisement;
                 discovered_latch.CountDown();
@@ -172,7 +172,7 @@ TEST_P(BleV2Test, CanCancelConnect) {
                   const ByteArray& advertisement_bytes,
                   bool fast_advertisement) {
                 discovered_peripheral = peripheral;
-                NEARBY_LOGS(INFO)
+                LOG(INFO)
                     << "Discovered peripheral, fast advertisement="
                     << fast_advertisement;
                 discovered_latch.CountDown();

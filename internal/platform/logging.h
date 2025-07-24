@@ -29,12 +29,4 @@
 // IWYU pragma: end_exports
 #endif                                               // defined(NEARBY_CHROMIUM)
 
-// Public APIs
-// The stream statement must come last, or it won't compile.
-#define NEARBY_VLOG(level) VLOG(level)
-#define NEARBY_LOGS(severity) LOG(severity)
-
-#define NEARBY_DLOG(severity) DLOG(severity)
-#define NEARBY_DVLOG(severity) DVLOG(severity)
-
 #endif  // PLATFORM_BASE_LOGGING_H_

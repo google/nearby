@@ -38,7 +38,7 @@ WifiHotspotEndpointChannel::GetMedium() const {
 void WifiHotspotEndpointChannel::CloseImpl() {
   Exception status = socket_.Close();
   if (!status.Ok()) {
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "Failed to close underlying socket for WifiHotspotEndpointChannel "
         << GetName() << " : exception = " << status.value;
   }

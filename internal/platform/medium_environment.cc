@@ -176,7 +176,7 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Store device name, and report it as discovered.
       info.devices.emplace(&device, name);
       if (enable_notifications_) {
-        NEARBY_VLOG(1) << "Notify about new discovered device";
+        VLOG(1) << "Notify about new discovered device";
         info.callback.device_discovered_cb(device);
         for (auto& observer : observers_.GetObservers()) {
           observer->DeviceAdded(device);
@@ -199,7 +199,7 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       } else {
         // Device is in discovery mode, so we are reporting it anyway.
         if (enable_notifications_) {
-          NEARBY_VLOG(1) << "Notify about existing discovered device";
+          VLOG(1) << "Notify about existing discovered device";
           info.callback.device_discovered_cb(device);
           for (auto& observer : observers_.GetObservers()) {
             observer->DeviceAdded(device);
@@ -211,7 +211,7 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
       // Known device is turned off.
       // Erase it from the map, and report as lost.
       if (enable_notifications_) {
-        NEARBY_VLOG(1) << "Notify about removed device";
+        VLOG(1) << "Notify about removed device";
         info.callback.device_lost_cb(device);
         for (auto& observer : observers_.GetObservers()) {
           observer->DeviceRemoved(device);

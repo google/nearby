@@ -80,7 +80,7 @@ void PresenceClientImpl::StopBroadcast(BroadcastSessionId session_id) {
   if (borrowed) {
     (*borrowed)->StopBroadcast(session_id);
   } else {
-    NEARBY_VLOG(1) << "Session already finished, id: " << session_id;
+    VLOG(1) << "Session already finished, id: " << session_id;
   }
 }
 

@@ -73,7 +73,7 @@ bool HandleEncryptionSuccess(const std::string& endpoint_id,
 void CancelableAlarmRunnable(ClientProxy* client,
                              const std::string& endpoint_id,
                              EndpointChannel* endpoint_channel) {
-  NEARBY_LOGS(INFO) << "Timing out encryption for client "
+  LOG(INFO) << "Timing out encryption for client "
                     << client->GetClientId()
                     << " to endpoint_id=" << endpoint_id << " after "
                     << absl::FormatDuration(kTimeout);
@@ -126,7 +126,7 @@ class ServerRunnable final {
       return;
     }
 
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "In StartServer(), read UKEY2 Message 1 from endpoint(id="
         << endpoint_id_ << ").";
 
@@ -149,7 +149,7 @@ class ServerRunnable final {
       return;
     }
 
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "In StartServer(), wrote UKEY2 Message 2 to endpoint(id="
         << endpoint_id_ << ").";
 
@@ -175,7 +175,7 @@ class ServerRunnable final {
       return;
     }
 
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "In StartServer(), read UKEY2 Message 3 from endpoint(id="
         << endpoint_id_ << ").";
 
@@ -190,7 +190,7 @@ class ServerRunnable final {
 
  private:
   void LogException() const {
-    NEARBY_LOGS(ERROR) << "In StartServer(), UKEY2 failed with endpoint(id="
+    LOG(ERROR) << "In StartServer(), UKEY2 failed with endpoint(id="
                        << endpoint_id_ << ").";
   }
 
@@ -204,7 +204,7 @@ class ServerRunnable final {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
     if (!write_exception.Ok()) {
-      NEARBY_LOGS(WARNING)
+      LOG(WARNING)
           << "In StartServer(), client " << client_->GetClientId()
           << " failed to pass the alert error message to endpoint(id="
           << endpoint_id_ << ").";
@@ -263,7 +263,7 @@ class ClientRunnable final {
       return;
     }
 
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "In StartClient(), wrote UKEY2 Message 1 to endpoint(id="
         << endpoint_id_ << ").";
 
@@ -289,7 +289,7 @@ class ClientRunnable final {
       return;
     }
 
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "In StartClient(), read UKEY2 Message 2 from endpoint(id="
         << endpoint_id_ << ").";
 
@@ -312,7 +312,7 @@ class ClientRunnable final {
       return;
     }
 
-    NEARBY_LOGS(INFO)
+    LOG(INFO)
         << "In StartClient(), wrote UKEY2 Message 3 to endpoint(id="
         << endpoint_id_ << ").";
 
@@ -327,7 +327,7 @@ class ClientRunnable final {
 
  private:
   void LogException() const {
-    NEARBY_LOGS(ERROR) << "In StartClient(), UKEY2 failed with endpoint(id="
+    LOG(ERROR) << "In StartClient(), UKEY2 failed with endpoint(id="
                        << endpoint_id_ << ").";
   }
 
@@ -341,7 +341,7 @@ class ClientRunnable final {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
     if (!write_exception.Ok()) {
-      NEARBY_LOGS(WARNING)
+      LOG(WARNING)
           << "In StartClient(), client " << client_->GetClientId()
           << " failed to pass the alert error message to endpoint(id="
           << endpoint_id_ << ").";

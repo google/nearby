@@ -49,7 +49,7 @@ ClientSocket::ClientSocket(
 ClientSocket::~ClientSocket() {
   ShutDown();
   executor_.Shutdown();
-  NEARBY_LOGS(INFO) << "ClientSocket gone.";
+  LOG(INFO) << "ClientSocket gone.";
 }
 
 void ClientSocket::Connect() {

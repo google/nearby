@@ -91,7 +91,7 @@ v3::Quality ServiceControllerRouter::GetMediumQuality(Medium medium) {
 }
 
 ServiceControllerRouter::ServiceControllerRouter() {
-  NEARBY_LOGS(INFO) << "ServiceControllerRouter going up.";
+  LOG(INFO) << "ServiceControllerRouter going up.";
 }
 
 ServiceControllerRouter::ServiceControllerRouter(
@@ -120,7 +120,7 @@ ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
 }
 
 ServiceControllerRouter::~ServiceControllerRouter() {
-  NEARBY_LOGS(INFO) << "ServiceControllerRouter going down.";
+  LOG(INFO) << "ServiceControllerRouter going down.";
 
   if (service_controller_) {
     service_controller_->Stop();
@@ -268,7 +268,7 @@ void ServiceControllerRouter::AcceptConnection(ClientProxy* client,
         }
 
         if (client->HasLocalEndpointResponded(endpoint_id)) {
-          NEARBY_LOGS(WARNING)
+          LOG(WARNING)
               << "Client " << client->GetClientId()
               << " invoked acceptConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
@@ -297,7 +297,7 @@ void ServiceControllerRouter::RejectConnection(ClientProxy* client,
         }
 
         if (client->HasLocalEndpointResponded(endpoint_id)) {
-          NEARBY_LOGS(WARNING)
+          LOG(WARNING)
               << "Client " << client->GetClientId()
               << " invoked rejectConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
@@ -510,7 +510,7 @@ void ServiceControllerRouter::RequestConnectionV3(
         Status status = GetServiceController()->RequestConnectionV3(
             client, remote_device, std::move(old_info), connection_options);
         if (!status.Ok()) {
-          NEARBY_LOGS(WARNING) << "Unable to request connection to endpoint "
+          LOG(WARNING) << "Unable to request connection to endpoint "
                                << endpoint_id << ": " << status.ToString();
           client->CancelEndpoint(endpoint_id);
         }
@@ -532,7 +532,7 @@ void ServiceControllerRouter::AcceptConnectionV3(
         }
 
         if (client->HasLocalEndpointResponded(endpoint_id)) {
-          NEARBY_LOGS(WARNING)
+          LOG(WARNING)
               << "Client " << client->GetClientId()
               << " invoked acceptConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
@@ -575,7 +575,7 @@ void ServiceControllerRouter::RejectConnectionV3(
         }
 
         if (client->HasLocalEndpointResponded(endpoint_id)) {
-          NEARBY_LOGS(WARNING)
+          LOG(WARNING)
               << "Client " << client->GetClientId()
               << " invoked rejectConnectionRequest() after having already "
                  "accepted/rejected the connection to endpoint(id="
@@ -696,7 +696,7 @@ void ServiceControllerRouter::StopAllEndpoints(ClientProxy* client,
   RouteToServiceController(
       "scr-stop-all-endpoints",
       [this, client, callback = std::move(callback)]() mutable {
-        NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+        LOG(INFO) << "Client " << client->GetClientId()
                           << " has requested us to stop all endpoints. We will "
                              "now reset the client.";
         FinishClientSession(client);
@@ -710,7 +710,7 @@ void ServiceControllerRouter::SetCustomSavePath(ClientProxy* client,
   RouteToServiceController(
       "scr-set-custom-save-path", [this, client, path = std::string(path),
                                    callback = std::move(callback)]() mutable {
-        NEARBY_LOGS(INFO) << "Client " << client->GetClientId()
+        LOG(INFO) << "Client " << client->GetClientId()
                           << " has requested us to set custom save path to "
                           << path;
         GetServiceController()->SetCustomSavePath(client, path);

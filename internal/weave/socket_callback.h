@@ -26,16 +26,16 @@ namespace weave {
 
 struct SocketCallback {
   std::function<void()> on_connected_cb = []() {
-    NEARBY_LOGS(WARNING) << "Unimplemented!";
+    LOG(WARNING) << "Unimplemented!";
   };
   std::function<void()> on_disconnected_cb = []() {
-    NEARBY_LOGS(WARNING) << "Unimplemented!";
+    LOG(WARNING) << "Unimplemented!";
   };
   std::function<void(std::string message)> on_receive_cb = [](std::string) {
-    NEARBY_LOGS(WARNING) << "Unimplemented!";
+    LOG(WARNING) << "Unimplemented!";
   };
   std::function<void(absl::Status)> on_error_cb = [](absl::Status) {
-    NEARBY_LOGS(WARNING) << "Unimplemented!";
+    LOG(WARNING) << "Unimplemented!";
   };
 };
 

@@ -63,7 +63,7 @@ bool WifiDirectServerSocket::Connect(WifiDirectSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << "Failed to connect to WifiDirect server socket: already connected";
     return true;  // already connected.
   }
@@ -130,7 +130,7 @@ bool WifiDirectMedium::StartWifiDirect(
   std::string password = absl::StrFormat("%08x", Prng().NextUint32());
   wifi_direct_credentials->SetPassword(password);
 
-  NEARBY_LOGS(INFO) << "G3 StartWifiDirect GO: ssid=" << ssid
+  LOG(INFO) << "G3 StartWifiDirect GO: ssid=" << ssid
                     << ",  password:" << password;
 
   auto& env = MediumEnvironment::Instance();
@@ -142,7 +142,7 @@ bool WifiDirectMedium::StartWifiDirect(
 
 bool WifiDirectMedium::StopWifiDirect() {
   absl::MutexLock lock(&mutex_);
-  NEARBY_LOGS(INFO) << "G3 StopWifiDirect GO";
+  LOG(INFO) << "G3 StopWifiDirect GO";
 
   auto& env = MediumEnvironment::Instance();
   env.UpdateWifiDirectMediumForStartOrConnect(*this, /*credentials*/ nullptr,
@@ -155,7 +155,7 @@ bool WifiDirectMedium::ConnectWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
   absl::MutexLock lock(&mutex_);
 
-  NEARBY_LOGS(INFO) << "G3 ConnectWifiDirect : ssid="
+  LOG(INFO) << "G3 ConnectWifiDirect : ssid="
                     << wifi_direct_credentials->GetSSID()
                     << ",  password:" << wifi_direct_credentials->GetPassword();
 
@@ -178,7 +178,7 @@ bool WifiDirectMedium::ConnectWifiDirect(
 bool WifiDirectMedium::DisconnectWifiDirect() {
   absl::MutexLock lock(&mutex_);
 
-  NEARBY_LOGS(INFO) << "G3 DisconnectWifiDirect";
+  LOG(INFO) << "G3 DisconnectWifiDirect";
 
   auto& env = MediumEnvironment::Instance();
   env.UpdateWifiDirectMediumForStartOrConnect(*this, /*credentials*/ nullptr,
@@ -191,7 +191,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
   std::string socket_name = WifiDirectServerSocket::GetName(ip_address, port);
-  NEARBY_LOGS(INFO) << "G3 WifiDirect ConnectToService [self]: medium=" << this
+  LOG(INFO) << "G3 WifiDirect ConnectToService [self]: medium=" << this
                     << ", ip address + port=" << socket_name;
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
@@ -202,7 +202,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   }
 
   WifiDirectServerSocket* server_socket = nullptr;
-  NEARBY_LOGS(INFO) << "G3 WifiDirect ConnectToService [peer]: medium="
+  LOG(INFO) << "G3 WifiDirect ConnectToService [peer]: medium="
                     << remote_medium
                     << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
@@ -212,7 +212,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
-      NEARBY_LOGS(ERROR) << "G3 WifiDirect Failed to find WifiDirect Server "
+      LOG(ERROR) << "G3 WifiDirect Failed to find WifiDirect Server "
                             "socket: socket_name="
                          << socket_name;
       return nullptr;
@@ -220,7 +220,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   }
 
   if (cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << "G3 WifiDirect Connect: Has been cancelled: socket_name="
         << socket_name;
     return nullptr;
@@ -230,7 +230,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
   // Finally, Request to connect to this socket.
 
   server_socket->Connect(*socket);
-  NEARBY_LOGS(INFO) << "G3 WifiDirect GC ConnectToService: connected: socket="
+  LOG(INFO) << "G3 WifiDirect GC ConnectToService: connected: socket="
                     << socket.get();
   return socket;
 }
@@ -256,7 +256,7 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
     absl::MutexLock lock(&mutex_);
     server_sockets_.erase(socket_name);
   });
-  NEARBY_LOGS(INFO) << "G3 WifiDirect GO Adding server socket: medium=" << this
+  LOG(INFO) << "G3 WifiDirect GO Adding server socket: medium=" << this
                     << ", socket_name=" << socket_name;
   absl::MutexLock lock(&mutex_);
   server_sockets_.insert({socket_name, server_socket.get()});

@@ -67,14 +67,14 @@ void PendingJobRegistry::ListJobs() {
   for (auto& job : pending_jobs_) {
     auto age = current_time - job.second;
     if (age >= kReportPendingJobsOlderThan) {
-      NEARBY_LOGS(INFO) << "Task \"" << job.first << "\" is waiting for "
+      LOG(INFO) << "Task \"" << job.first << "\" is waiting for "
                         << absl::ToInt64Seconds(age) << " s";
     }
   }
   for (auto& job : running_jobs_) {
     auto age = current_time - job.second;
     if (age >= kReportRunningJobsOlderThan) {
-      NEARBY_LOGS(INFO) << "Task \"" << job.first << "\" is running for "
+      LOG(INFO) << "Task \"" << job.first << "\" is running for "
                         << absl::ToInt64Seconds(age) << " s";
     }
   }
@@ -86,12 +86,12 @@ void PendingJobRegistry::ListAllJobs() {
   auto current_time = SystemClock::ElapsedRealtime();
   for (auto& job : pending_jobs_) {
     auto age = current_time - job.second;
-    NEARBY_LOGS(INFO) << "Task \"" << job.first << "\" is waiting for "
+    LOG(INFO) << "Task \"" << job.first << "\" is waiting for "
                       << absl::ToInt64Seconds(age) << " s";
   }
   for (auto& job : running_jobs_) {
     auto age = current_time - job.second;
-    NEARBY_LOGS(INFO) << "Task \"" << job.first << "\" is running for "
+    LOG(INFO) << "Task \"" << job.first << "\" is running for "
                       << absl::ToInt64Seconds(age) << " s";
   }
   list_jobs_time_ = current_time;

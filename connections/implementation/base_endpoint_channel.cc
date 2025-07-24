@@ -136,7 +136,7 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     }
 
     if (read_int.result() < 0 || read_int.result() > max_allowed_read_bytes_) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Read an invalid number of bytes: "
+      LOG(WARNING) << __func__ << ": Read an invalid number of bytes: "
                            << read_int.result();
       return ExceptionOr<ByteArray>(Exception::kIo);
     }
@@ -173,24 +173,24 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
         if (parsed.ok()) {
           if (parser::GetFrameType(parsed.result()) ==
               location::nearby::connections::V1Frame::KEEP_ALIVE) {
-            NEARBY_LOGS(INFO)
+            LOG(INFO)
                 << __func__
                 << ": Read unencrypted KEEP_ALIVE on encrypted channel.";
             result = ByteArray(input);
           } else {
-            NEARBY_LOGS(WARNING)
+            LOG(WARNING)
                 << __func__ << ": Read unexpected unencrypted frame of type "
                 << parser::GetFrameType(parsed.result());
           }
         } else {
           message_exception.value = parsed.exception();
-          NEARBY_LOGS(WARNING)
+          LOG(WARNING)
               << __func__ << ": Unable to parse data as unencrypted message.";
         }
       }
       packet_meta_data.StopEncryption();
       if (result.Empty()) {
-        NEARBY_LOGS(WARNING) << __func__ << ": Unable to parse read result.";
+        LOG(WARNING) << __func__ << ": Unable to parse read result.";
         return ExceptionOr<ByteArray>(message_exception);
       }
     }
@@ -234,7 +234,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
             crypto_context_->EncodeMessageToPeer(std::string(data));
         packet_meta_data.StopEncryption();
         if (!encrypted) {
-          NEARBY_LOGS(WARNING) << __func__ << ": Failed to encrypt data.";
+          LOG(WARNING) << __func__ << ": Failed to encrypt data.";
           return {Exception::kIo};
         }
         encrypted_data = ByteArray(std::move(*encrypted));
@@ -244,7 +244,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
 
     size_t data_size = data_to_write->size();
     if (data_size < 0 || data_size > max_allowed_read_bytes_) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Write an invalid number of bytes: "
+      LOG(WARNING) << __func__ << ": Write an invalid number of bytes: "
                            << data_size;
       return {Exception::kIo};
     }
@@ -253,19 +253,19 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
     Exception write_exception =
         WriteInt(writer_, static_cast<std::int32_t>(data_size));
     if (write_exception.Raised()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failed to write header: "
+      LOG(WARNING) << __func__ << ": Failed to write header: "
                            << write_exception.value;
       return write_exception;
     }
     write_exception = writer_->Write(*data_to_write);
     if (write_exception.Raised()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failed to write data: "
+      LOG(WARNING) << __func__ << ": Failed to write data: "
                            << write_exception.value;
       return write_exception;
     }
     Exception flush_exception = writer_->Flush();
     if (flush_exception.Raised()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failed to flush writer: "
+      LOG(WARNING) << __func__ << ": Failed to flush writer: "
                            << flush_exception.value;
       return flush_exception;
     }
@@ -285,7 +285,7 @@ void BaseEndpointChannel::Close() {
     // In case channel is paused, resume it first thing.
     MutexLock lock(&is_paused_mutex_);
     if (is_closed_) {
-      NEARBY_VLOG(1) << "EndpointChannel already closed";
+      VLOG(1) << "EndpointChannel already closed";
       return;
     }
     is_closed_ = true;
@@ -303,7 +303,7 @@ void BaseEndpointChannel::CloseIo() {
     // IO and Read() will proceed normally (with Exception::kIo).
     Exception exception = reader_->Close();
     if (!exception.Ok()) {
-      NEARBY_LOGS(WARNING) << __func__
+      LOG(WARNING) << __func__
                            << ": Exception closing reader: " << exception.value;
     }
   }
@@ -313,7 +313,7 @@ void BaseEndpointChannel::CloseIo() {
     // IO and Write() will proceed normally (with Exception::kIo).
     Exception exception = writer_->Close();
     if (!exception.Ok()) {
-      NEARBY_LOGS(WARNING) << __func__
+      LOG(WARNING) << __func__
                            << ": Exception closing writer: " << exception.value;
     }
   }
@@ -339,7 +339,7 @@ void BaseEndpointChannel::Close(
 void BaseEndpointChannel::Close(
     location::nearby::proto::connections::DisconnectionReason reason,
     SafeDisconnectionResult result) {
-  NEARBY_LOGS(INFO) << __func__
+  LOG(INFO) << __func__
                     << ": Closing endpoint channel, reason: " << reason;
   Close();
 
@@ -477,7 +477,7 @@ void BaseEndpointChannel::BlockUntilUnpaused() {
   while (is_paused_) {
     Exception wait_succeeded = is_paused_cond_.Wait();
     if (!wait_succeeded.Ok()) {
-      NEARBY_LOGS(WARNING) << __func__ << ": Failure waiting to unpause: "
+      LOG(WARNING) << __func__ << ": Failure waiting to unpause: "
                            << wait_succeeded.value;
       return;
     }

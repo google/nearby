@@ -38,27 +38,27 @@ bool Compare(const Descriptor* desc1, const Descriptor* desc2);
 // or type is different.
 bool Compare(const FieldDescriptor* field1, const FieldDescriptor* field2) {
   if (field1->name() != field2->name()) {
-    NEARBY_LOGS(WARNING) << "Field name diff: " << field1->name() << " <=> "
-                         << field2->name();
+    LOG(WARNING) << "Field name diff: " << field1->name() << " <=> "
+                 << field2->name();
     return false;
   }
   if (field1->number() != field2->number()) {
-    NEARBY_LOGS(WARNING) << "Field " << field1->name()
-                         << " number diff: " << field1->number() << " <=> "
-                         << field2->number();
+    LOG(WARNING) << "Field " << field1->name()
+                 << " number diff: " << field1->number() << " <=> "
+                 << field2->number();
     return false;
   }
   if (field1->label() != field2->label()) {
-    NEARBY_LOGS(WARNING) << "Field " << field1->name()
-                         << " label diff: " << field1->label() << " <=> "
-                         << field2->label();
+    LOG(WARNING) << "Field " << field1->name()
+                 << " label diff: " << field1->label() << " <=> "
+                 << field2->label();
     return false;
   }
   bool bRet = false;
   if (field1->type() != field2->type()) {
-    NEARBY_LOGS(WARNING) << "Field " << field1->name()
-                         << " type diff: " << field1->type() << " <=> "
-                         << field2->type();
+    LOG(WARNING) << "Field " << field1->name()
+                 << " type diff: " << field1->type() << " <=> "
+                 << field2->type();
     return bRet;
   } else if (field1->type() == FieldDescriptor::TYPE_MESSAGE) {
     const Descriptor* msg1 = field1->message_type();
@@ -74,8 +74,8 @@ bool Compare(const FieldDescriptor* field1, const FieldDescriptor* field2) {
 
 // Compares the two descriptors and return false immediately if different.
 bool Compare(const Descriptor* desc1, const Descriptor* desc2) {
-  NEARBY_LOGS(INFO) << "Descriptor1 full name: " << desc1->full_name()
-                    << " <=> " << desc2->full_name();
+  LOG(INFO) << "Descriptor1 full name: " << desc1->full_name() << " <=> "
+            << desc2->full_name();
   for (int i = 0; i < desc1->field_count(); ++i) {
     const FieldDescriptor* field1 = desc1->field(i);
     const FieldDescriptor* field2 = desc2->FindFieldByName(field1->name());
@@ -84,11 +84,11 @@ bool Compare(const Descriptor* desc1, const Descriptor* desc2) {
     if (field2) {
       bRet = Compare(field1, field2);
     } else {
-      NEARBY_LOGS(ERROR) << "Descriptor1 full name: " << desc1->full_name()
-                         << "=> Extra field1 name=" << field1->name()
-                         << ", number=" << field1->number()
-                         << ", label=" << field1->label()
-                         << ", type=" << field1->type();
+      LOG(ERROR) << "Descriptor1 full name: " << desc1->full_name()
+                 << "=> Extra field1 name=" << field1->name()
+                 << ", number=" << field1->number()
+                 << ", label=" << field1->label()
+                 << ", type=" << field1->type();
     }
     if (!bRet) {
       return false;
@@ -98,11 +98,11 @@ bool Compare(const Descriptor* desc1, const Descriptor* desc2) {
     const FieldDescriptor* field2 = desc2->field(i);
     const FieldDescriptor* field1 = desc1->FindFieldByName(field2->name());
     if (!field1) {
-      NEARBY_LOGS(ERROR) << "Descriptor2 full name: " << desc2->full_name()
-                         << "=> Extra field2 name=" << field2->name()
-                         << ", number=" << field2->number()
-                         << ", label=" << field2->label()
-                         << ", type=" << field2->type();
+      LOG(ERROR) << "Descriptor2 full name: " << desc2->full_name()
+                 << "=> Extra field2 name=" << field2->name()
+                 << ", number=" << field2->number()
+                 << ", label=" << field2->label()
+                 << ", type=" << field2->type();
       return false;
     }
   }

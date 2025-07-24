@@ -151,7 +151,7 @@ TEST_P(ThroughputRecorderTest, OnFrameSentStopAndDump) {
                           packet_meta_data);
 
   if (GetParam() == true) {
-    NEARBY_LOGS(INFO) << "MarkAsSuccess";
+    LOG(INFO) << "MarkAsSuccess";
     TPRecorder->MarkAsSuccess();
   }
   EXPECT_TRUE(TPRecorder->Stop());

@@ -278,12 +278,12 @@ NC_INSTANCE NcCreateService() {
 void NcCloseService(NC_INSTANCE instance) {
   NcContext* nc_context = GetContext(instance);
   if (nc_context == nullptr) {
-    NEARBY_LOGS(WARNING) << "Trying to close not existent service " << instance;
+    LOG(WARNING) << "Trying to close not existent service " << instance;
     return;
   }
 
   nc_context->core->StopAllEndpoints([](::nearby::connections::Status status) {
-    NEARBY_LOGS(INFO) << "Stopping all endpoints with status "
+    LOG(INFO) << "Stopping all endpoints with status "
                       << status.ToString();
   });
 

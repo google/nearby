@@ -30,7 +30,7 @@ namespace presence {
 BasePresenceRequestBuilder& BasePresenceRequestBuilder::SetSalt(
     absl::string_view salt) {
   if (salt.size() != kSaltSize) {
-    NEARBY_LOGS(WARNING) << "Unsupported salt length: " << salt.size();
+    LOG(WARNING) << "Unsupported salt length: " << salt.size();
   } else {
     salt_ = std::string(salt);
   }
@@ -93,7 +93,7 @@ absl::StatusOr<BaseBroadcastRequest> BaseBroadcastRequest::Create(
       return absl::InvalidArgumentError("Missing broadcast sections");
     }
     if (presence_request.sections.size() > 1) {
-      NEARBY_LOGS(WARNING)
+      LOG(WARNING)
           << "Only first section is used in BLE 4.2 advertisement";
     }
     const PresenceBroadcast::BroadcastSection& section =

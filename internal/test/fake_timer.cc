@@ -100,7 +100,7 @@ bool FakeTimer::InternalStart(int delay, int period,
   }
 
   if (!timer_data_.id.empty()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": timer is already running";
+    LOG(ERROR) << __func__ << ": timer is already running";
     return false;
   }
 

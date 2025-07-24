@@ -147,7 +147,7 @@ void CredentialManagerImpl::GenerateCredentials(
                callback = std::move(credentials_generated_cb),
                public_credentials](absl::Status status) mutable {
                 if (!status.ok()) {
-                  NEARBY_LOGS(WARNING)
+                  LOG(WARNING)
                       << "Save credentials failed with: " << status;
                   std::move(callback.credentials_generated_cb)(status);
                   return;
@@ -180,7 +180,7 @@ void CredentialManagerImpl::UpdateRemotePublicCredentials(
                callback = std::move(credentials_updated_cb)](
                   absl::Status status) mutable {
                 if (!status.ok()) {
-                  NEARBY_LOGS(WARNING)
+                  LOG(WARNING)
                       << "Update remote credentials failed with: " << status;
                 } else {
                   RunOnServiceControllerThread(
@@ -282,7 +282,7 @@ SharedCredential CredentialManagerImpl::CreatePublicCredential(
       device_identity_metadata.SerializeAsString());
 
   if (encrypted_meta_data.empty()) {
-    NEARBY_LOGS(ERROR) << "Fails to encrypt the device identity metadata.";
+    LOG(ERROR) << "Fails to encrypt the device identity metadata.";
     public_credential.set_identity_type(
         IdentityType::IDENTITY_TYPE_UNSPECIFIED);
     return public_credential;
@@ -514,7 +514,7 @@ CredentialManagerImpl::GetSubscribedIdentities(
 void CredentialManagerImpl::OnCredentialsChanged(
     absl::string_view manager_app_id, absl::string_view account_name,
     PublicCredentialType credential_type) {
-  NEARBY_LOGS(INFO) << "OnCredentialsChanged for app " << manager_app_id
+  LOG(INFO) << "OnCredentialsChanged for app " << manager_app_id
                     << ", account " << account_name;
   for (IdentityType identity_type :
        GetSubscribedIdentities(manager_app_id, account_name, credential_type)) {
@@ -535,7 +535,7 @@ CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
           [this,
            key](absl::StatusOr<std::vector<SharedCredential>> credentials) {
             if (!credentials.ok()) {
-              NEARBY_LOGS(WARNING)
+              LOG(WARNING)
                   << "Failed to get public credentials: error code: "
                   << credentials.status();
               return;
@@ -555,7 +555,7 @@ void CredentialManagerImpl::NotifySubscribers(
   // without locking.
   auto it = subscribers_.find(key);
   if (it == subscribers_.end()) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << "No subscribers for (app: " << key.credential_selector.manager_app_id
         << ", account: " << key.credential_selector.account_name
         << ", identity type: "
@@ -633,7 +633,7 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
       valid_shared_credentials.push_back(credential);
     }
   } else {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << "Bad parameters for CheckCredentialsAndRefillIfNeeded";
     return;
   }
@@ -803,7 +803,7 @@ void CredentialManagerImpl::OnCredentialRefillComplete(
     std::optional<GetPublicCredentialsResultCallback>
         callback_for_shared_credentials) {
   if (!save_credentials_status.ok()) {
-    NEARBY_LOGS(ERROR) << "Save credentials failed with: "
+    LOG(ERROR) << "Save credentials failed with: "
                        << save_credentials_status;
     if (callback_for_local_credentials.has_value()) {
       callback_for_local_credentials.value().credentials_fetched_cb(
@@ -828,7 +828,7 @@ bool CredentialManagerImpl::WaitForLatch(absl::string_view method_name,
                                          CountDownLatch* latch) {
   Exception await_exception = latch->Await();
   if (!await_exception.Ok()) {
-    NEARBY_LOGS(ERROR) << "Blocked in " << method_name
+    LOG(ERROR) << "Blocked in " << method_name
                        << " with exeception code: " << await_exception.value;
     return false;
   }
