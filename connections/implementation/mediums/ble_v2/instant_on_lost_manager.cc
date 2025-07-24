@@ -22,7 +22,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble_v2/ble_utils.h"
@@ -112,7 +111,7 @@ void InstantOnLostManager::OnAdvertisingStopped(const std::string& service_id) {
     }
 
     active_on_lost_advertising_list_.push_back(
-        {absl::Now(), std::string(advertisement_hash)});
+        {SystemClock::ElapsedRealtime(), std::string(advertisement_hash)});
 
     if (!StartInstantOnLostAdvertisement()) {
       LOG(ERROR) << __func__ << ": Failed to advertise instant onLost BLE.";
@@ -277,7 +276,7 @@ bool InstantOnLostManager::StopOnLostAdvertising() {
 }
 
 void InstantOnLostManager::RemoveExpiredOnLostAdvertisements() {
-  absl::Time now = absl::Now();
+  absl::Time now = SystemClock::ElapsedRealtime();
   auto it = active_on_lost_advertising_list_.begin();
   while (it != active_on_lost_advertising_list_.end()) {
     if ((now - it->start_time) >= kInstantOnLostAdvertiseDuration) {

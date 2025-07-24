@@ -28,7 +28,6 @@
 #include "absl/functional/bind_front.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
 #include "connections/implementation/analytics/throughput_recorder.h"
@@ -50,6 +49,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/single_thread_executor.h"
@@ -131,9 +131,9 @@ bool PayloadManager::SendPayloadLoop(
                                     PayloadStatus::LOCAL_ERROR);
       return false;
     }
-    VLOG(1) << "PayloadManager successfully skipped "
-                   << real_offset.GetResult() << " bytes on payload_id "
-                   << pending_payload.GetInternalPayload()->GetId();
+    VLOG(1) << "PayloadManager successfully skipped " << real_offset.GetResult()
+            << " bytes on payload_id "
+            << pending_payload.GetInternalPayload()->GetId();
     next_chunk_offset = real_offset.GetResult();
   }
   for (const auto& endpoint_id : available_endpoint_ids) {
@@ -200,8 +200,8 @@ bool PayloadManager::SendPayloadLoop(
       }
     }
     VLOG(1) << "PayloadManager done sending chunk at offset "
-                   << next_chunk_offset << " of payload_id="
-                   << pending_payload.GetInternalPayload()->GetId();
+            << next_chunk_offset << " of payload_id="
+            << pending_payload.GetInternalPayload()->GetId();
     next_chunk_offset += next_chunk_size;
 
     if (!next_chunk_size) {
@@ -1158,7 +1158,7 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
               return;
             }
 
-            absl::Time current_time = absl::Now();
+            absl::Time current_time = SystemClock::ElapsedRealtime();
             if (!is_last_chunk && payload_chunk_offset != 0 &&
                 current_time - last_outgoing_chunk_update_time_ <
                     kMinTransferUpdateInterval) {
@@ -1256,7 +1256,7 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
               return;
             }
 
-            absl::Time current_time = absl::Now();
+            absl::Time current_time = SystemClock::ElapsedRealtime();
             if (!is_last_chunk && payload_chunk_offset != 0 &&
                 current_time - last_incoming_chunk_update_time_ <
                     kMinTransferUpdateInterval) {
@@ -1311,9 +1311,8 @@ void PayloadManager::ProcessDataPacket(
   PayloadTransferFrame::PayloadChunk& payload_chunk =
       *payload_transfer_frame.mutable_payload_chunk();
   VLOG(1) << "PayloadManager got data OfflineFrame for payload_id="
-                 << payload_header.id()
-                 << " from endpoint_id=" << from_endpoint_id << " at offset "
-                 << payload_chunk.offset();
+          << payload_header.id() << " from endpoint_id=" << from_endpoint_id
+          << " at offset " << payload_chunk.offset();
   // We explicitly deny payloads with ID 0.
   if (payload_header.id() == 0) {
     LOG(WARNING) << "Denying payload with ID 0 for endpoint_id="
@@ -1485,11 +1484,11 @@ void PayloadManager::ProcessControlPacket(
         pending_payload->SetEndpointStatusFromControlMessage(from_endpoint_id,
                                                              control_message);
       }
-      VLOG(1)
-          << "Marked "
-          << (pending_payload->IsIncoming() ? "incoming" : "outgoing")
-          << " payload_id=" << pending_payload->GetInternalPayload()->GetId()
-          << " as canceled at request of endpoint_id=" << from_endpoint_id;
+      VLOG(1) << "Marked "
+              << (pending_payload->IsIncoming() ? "incoming" : "outgoing")
+              << " payload_id="
+              << pending_payload->GetInternalPayload()->GetId()
+              << " as canceled at request of endpoint_id=" << from_endpoint_id;
       break;
     case PayloadTransferFrame::ControlMessage::PAYLOAD_ERROR:
       if (pending_payload->IsIncoming()) {
@@ -1606,7 +1605,7 @@ void PayloadManager::EndpointInfo::SetStatusFromControlMessage(
     const PayloadTransferFrame::ControlMessage& control_message) {
   status.Set(ControlMessageEventToEndpointInfoStatus(control_message.event()));
   VLOG(1) << "Marked endpoint " << id << " with status "
-                 << ToString(status.Get()) << " based on OOB ControlMessage";
+          << ToString(status.Get()) << " based on OOB ControlMessage";
 }
 
 void PayloadManager::EndpointInfo::MarkReceivedAckFromEndpoint() {
