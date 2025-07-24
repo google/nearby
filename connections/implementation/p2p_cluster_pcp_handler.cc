@@ -435,10 +435,9 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
         }
 
         // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
-          LOG(WARNING) << "Skipping discovery of BluetoothDevice "
-                       << device.GetName()
-                       << " because we are no longer discovering.";
+        if (!bluetooth_medium_.IsDiscovering(service_id)) {
+          LOG(WARNING) << "Skipping discovered Bluetooth device due to "
+                          "no longer discovering.";
           return;
         }
 
@@ -485,9 +484,9 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
           return;
         }
 
-        if (!client->IsDiscovering()) {
-          LOG(WARNING) << "Ignoring lost BluetoothDevice " << device.GetName()
-                       << " because Connections is no longer discovering.";
+        if (!bluetooth_medium_.IsDiscovering(service_id)) {
+          LOG(WARNING) << "Ignoring name changed Bluetooth device due to no "
+                          "longer discovering.";
           return;
         }
 
@@ -566,9 +565,8 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
       "p2p-bt-device-lost", [this, client, service_id,
                              device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering()) {
-          LOG(WARNING) << "Ignoring lost BluetoothDevice " << device_name_string
-                       << " because Connections is no "
+        if (!bluetooth_medium_.IsDiscovering(service_id)) {
+          LOG(WARNING) << "Ignoring lost Bluetooth device due to no "
                           "longer discovering.";
           return;
         }
