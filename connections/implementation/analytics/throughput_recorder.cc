@@ -56,12 +56,10 @@ void ThroughputRecorder::Start(PayloadType payload_type,
       (payload_direction == PayloadDirection::INCOMING_PAYLOAD) ? "; Receive"
                                                                 : "; Send";
 
-  LOG(INFO) << "Start TP profiling for payload_id:" << payload_id_
-                    << direction;
+  LOG(INFO) << "Start TP profiling for payload_id:" << payload_id_ << direction;
 
   if (payload_type == PayloadType::kUnknown) {
-    LOG(INFO)
-        << "Ignore ThroughputRecorder::start for Unknown Payload type";
+    LOG(INFO) << "Ignore ThroughputRecorder::start for Unknown Payload type";
     return;
   }
 
@@ -277,7 +275,7 @@ std::string ThroughputRecorder::ToString(PayloadType type) {
 void ThroughputRecorderContainer::Shutdown() {
   MutexLock lock(&mutex_);
   LOG(INFO) << __func__
-                    << ".  Num of Instance:" << throughput_recorders_.size();
+            << ".  Num of Instance:" << throughput_recorders_.size();
   for (auto& throughput_recorder : throughput_recorders_) {
     LOG(INFO) << "Stop instance: " << throughput_recorder.second;
     throughput_recorder.second->Stop();
@@ -297,7 +295,7 @@ ThroughputRecorder* ThroughputRecorderContainer::GetTPRecorder(
         (payload_direction == PayloadDirection::INCOMING_PAYLOAD) ? "; Receive"
                                                                   : "; Send";
     LOG(INFO) << "Add ThroughputRecorder instance : " << instance
-                      << " for payload_id:" << payload_id << direction;
+              << " for payload_id:" << payload_id << direction;
     throughput_recorders_.emplace(
         std::pair<int64_t, PayloadDirection>(payload_id, payload_direction),
         instance);
@@ -317,8 +315,7 @@ void ThroughputRecorderContainer::StopTPRecorder(
       std::pair<int64_t, PayloadDirection>(payload_id, payload_direction));
   if (it != throughput_recorders_.end()) {
     LOG(INFO) << "Found and stop/delete ThroughputRecorder instance : "
-                      << &(it->second) << " for payload_id:" << payload_id
-                      << direction;
+              << &(it->second) << " for payload_id:" << payload_id << direction;
     it->second->Stop();
     delete it->second;
     throughput_recorders_.erase(

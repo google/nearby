@@ -23,15 +23,14 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 
-
 namespace nearby {
 namespace connections {
 namespace mediums {
 namespace multiplex {
 
-using ::location::nearby::mediums::MultiplexFrame;
-using ::location::nearby::mediums::MultiplexControlFrame;
 using ::location::nearby::mediums::ConnectionResponseFrame;
+using ::location::nearby::mediums::MultiplexControlFrame;
+using ::location::nearby::mediums::MultiplexFrame;
 
 ByteArray GenerateServiceIdHash(const std::string& service_id) {
   return Utils::Sha256Hash(service_id, kServiceIdHashLength);
@@ -115,8 +114,7 @@ ByteArray ForDisconnection(const std::string& service_id,
   header->set_service_id_hash_salt(service_id_hash_salt);
 
   auto* control_frame = frame.mutable_control_frame();
-  control_frame->set_control_frame_type(
-      MultiplexControlFrame::DISCONNECTION);
+  control_frame->set_control_frame_type(MultiplexControlFrame::DISCONNECTION);
 
   return ToBytes(std::move(frame));
 }
@@ -140,7 +138,7 @@ ByteArray ForData(const std::string& service_id,
   return ToBytes(std::move(frame));
 }
 
-ExceptionOr<MultiplexFrame> FromBytes(const ByteArray& multiplex_frame_bytes){
+ExceptionOr<MultiplexFrame> FromBytes(const ByteArray& multiplex_frame_bytes) {
   MultiplexFrame frame;
 
   if (frame.ParseFromString(std::string(multiplex_frame_bytes))) {
@@ -173,24 +171,24 @@ bool IsValid(const MultiplexFrame& frame) {
 }
 
 bool IsValidControlFrame(const MultiplexFrame& frame) {
-    if (!frame.has_control_frame()) {
-        return false;
-    }
-
-    switch (frame.control_frame().control_frame_type()) {
-        case MultiplexControlFrame::CONNECTION_REQUEST:
-        case MultiplexControlFrame::CONNECTION_RESPONSE:
-        case MultiplexControlFrame::DISCONNECTION:
-          if (frame.header().salted_service_id_hash().size() ==
-              kServiceIdHashLength) {
-            return true;
-          }
-          break;
-        default:
-            break;
-    }
-
+  if (!frame.has_control_frame()) {
     return false;
+  }
+
+  switch (frame.control_frame().control_frame_type()) {
+    case MultiplexControlFrame::CONNECTION_REQUEST:
+    case MultiplexControlFrame::CONNECTION_RESPONSE:
+    case MultiplexControlFrame::DISCONNECTION:
+      if (frame.header().salted_service_id_hash().size() ==
+          kServiceIdHashLength) {
+        return true;
+      }
+      break;
+    default:
+      break;
+  }
+
+  return false;
 }
 
 bool IsValidDataFrame(const MultiplexFrame& frame) {
@@ -204,8 +202,8 @@ bool IsMultiplexFrame(const ByteArray& data) {
     return false;
   } else {
     LOG(INFO) << "Checked data is a multiplex frame. Is Control ? "
-                      << frame.result().has_control_frame() << ", is data ? "
-                      << frame.result().has_data_frame();
+              << frame.result().has_control_frame() << ", is data ? "
+              << frame.result().has_data_frame();
     return true;
   }
 }

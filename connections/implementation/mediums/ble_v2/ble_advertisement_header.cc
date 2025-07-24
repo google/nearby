@@ -69,7 +69,7 @@ BleAdvertisementHeader::BleAdvertisementHeader(
         advertisement_header_bytes = ble_advertisement_header_bytes;
       } else {
         VLOG(1) << "Cannot deserialize BLEAdvertisementHeader. "
-                          "Invalid advertising data.";
+                   "Invalid advertising data.";
         return;
       }
     } else {

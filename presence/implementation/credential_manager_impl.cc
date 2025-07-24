@@ -29,12 +29,12 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "absl/types/variant.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/crypto_cros/aead.h"
 #include "internal/crypto_cros/ec_private_key.h"
 #include "internal/crypto_cros/hkdf.h"
 #include "internal/platform/base64_utils.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/crypto.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/credential_callbacks.h"
@@ -147,8 +147,7 @@ void CredentialManagerImpl::GenerateCredentials(
                callback = std::move(credentials_generated_cb),
                public_credentials](absl::Status status) mutable {
                 if (!status.ok()) {
-                  LOG(WARNING)
-                      << "Save credentials failed with: " << status;
+                  LOG(WARNING) << "Save credentials failed with: " << status;
                   std::move(callback.credentials_generated_cb)(status);
                   return;
                 }
@@ -514,8 +513,8 @@ CredentialManagerImpl::GetSubscribedIdentities(
 void CredentialManagerImpl::OnCredentialsChanged(
     absl::string_view manager_app_id, absl::string_view account_name,
     PublicCredentialType credential_type) {
-  LOG(INFO) << "OnCredentialsChanged for app " << manager_app_id
-                    << ", account " << account_name;
+  LOG(INFO) << "OnCredentialsChanged for app " << manager_app_id << ", account "
+            << account_name;
   for (IdentityType identity_type :
        GetSubscribedIdentities(manager_app_id, account_name, credential_type)) {
     CredentialSelector credential_selector = {
@@ -535,9 +534,8 @@ CredentialManagerImpl::CreateNotifySubscribersCallback(SubscriberKey key) {
           [this,
            key](absl::StatusOr<std::vector<SharedCredential>> credentials) {
             if (!credentials.ok()) {
-              LOG(WARNING)
-                  << "Failed to get public credentials: error code: "
-                  << credentials.status();
+              LOG(WARNING) << "Failed to get public credentials: error code: "
+                           << credentials.status();
               return;
             }
             RunOnServiceControllerThread(
@@ -555,13 +553,13 @@ void CredentialManagerImpl::NotifySubscribers(
   // without locking.
   auto it = subscribers_.find(key);
   if (it == subscribers_.end()) {
-    LOG(WARNING)
-        << "No subscribers for (app: " << key.credential_selector.manager_app_id
-        << ", account: " << key.credential_selector.account_name
-        << ", identity type: "
-        << static_cast<int>(key.credential_selector.identity_type)
-        << ", credential type: " << static_cast<int>(key.public_credential_type)
-        << ")";
+    LOG(WARNING) << "No subscribers for (app: "
+                 << key.credential_selector.manager_app_id
+                 << ", account: " << key.credential_selector.account_name
+                 << ", identity type: "
+                 << static_cast<int>(key.credential_selector.identity_type)
+                 << ", credential type: "
+                 << static_cast<int>(key.public_credential_type) << ")";
     return;
   }
   for (auto& subscriber : it->second) {
@@ -633,8 +631,7 @@ void CredentialManagerImpl::CheckCredentialsAndRefillIfNeeded(
       valid_shared_credentials.push_back(credential);
     }
   } else {
-    LOG(ERROR)
-        << "Bad parameters for CheckCredentialsAndRefillIfNeeded";
+    LOG(ERROR) << "Bad parameters for CheckCredentialsAndRefillIfNeeded";
     return;
   }
 
@@ -803,8 +800,7 @@ void CredentialManagerImpl::OnCredentialRefillComplete(
     std::optional<GetPublicCredentialsResultCallback>
         callback_for_shared_credentials) {
   if (!save_credentials_status.ok()) {
-    LOG(ERROR) << "Save credentials failed with: "
-                       << save_credentials_status;
+    LOG(ERROR) << "Save credentials failed with: " << save_credentials_status;
     if (callback_for_local_credentials.has_value()) {
       callback_for_local_credentials.value().credentials_fetched_cb(
           save_credentials_status);
@@ -829,7 +825,7 @@ bool CredentialManagerImpl::WaitForLatch(absl::string_view method_name,
   Exception await_exception = latch->Await();
   if (!await_exception.Ok()) {
     LOG(ERROR) << "Blocked in " << method_name
-                       << " with exeception code: " << await_exception.value;
+               << " with exeception code: " << await_exception.value;
     return false;
   }
   return true;

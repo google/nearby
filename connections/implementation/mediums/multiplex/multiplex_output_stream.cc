@@ -63,16 +63,14 @@ Exception MultiplexOutputStream::WaitForResult(const std::string& method_name,
                       .mediums_frame_write_timeout_millis);
   if (!result.ok()) {
     LOG(INFO) << "Future:[" << method_name
-                      << "] completed with exception:" << result.exception();
+              << "] completed with exception:" << result.exception();
     return {Exception::kFailed};
   }
   if (result.result()) {
-    LOG(INFO) << "Future:[" << method_name
-                      << "] completed with success.";
+    LOG(INFO) << "Future:[" << method_name << "] completed with success.";
     return {Exception::kSuccess};
   }
-  LOG(INFO) << "Future:[" << method_name
-                    << "] completed with failure.";
+  LOG(INFO) << "Future:[" << method_name << "] completed with failure.";
   return {Exception::kFailed};
 }
 
@@ -111,8 +109,8 @@ bool MultiplexOutputStream::WriteConnectionResponseFrame(
 bool MultiplexOutputStream::Close(const std::string& service_id) {
   auto item = virtual_output_streams_.find(service_id);
   if (item == virtual_output_streams_.end()) {
-    LOG(INFO) << "Don't need to close VirtualOutputStream("
-                         << service_id << ") because it's already gone.";
+    LOG(INFO) << "Don't need to close VirtualOutputStream(" << service_id
+              << ") because it's already gone.";
     return false;
   }
 
@@ -230,8 +228,7 @@ void MultiplexOutputStream::MultiplexWriter::StartWriting() {
         LOG(INFO) << "Waiting for data_queue_ has data.";
         Exception wait_succeeded = is_writing_cond_.Wait();
         if (!wait_succeeded.Ok()) {
-          LOG(WARNING)
-              << "Failure waiting to wait: " << wait_succeeded.value;
+          LOG(WARNING) << "Failure waiting to wait: " << wait_succeeded.value;
           return;
         }
       }
@@ -306,9 +303,8 @@ MultiplexOutputStream::VirtualOutputStream::VirtualOutputStream(
 Exception MultiplexOutputStream::VirtualOutputStream::Write(
     const ByteArray& data) {
   if (is_closed_.Get()) {
-    LOG(WARNING)
-        << "Failed to write data because the VirtualOutputStream for "
-        << service_id_ << " closed";
+    LOG(WARNING) << "Failed to write data because the VirtualOutputStream for "
+                 << service_id_ << " closed";
     return {Exception::kIo};
   }
   if (multiplex_output_stream_.is_enabled_.Get()) {
@@ -327,7 +323,7 @@ Exception MultiplexOutputStream::VirtualOutputStream::Write(
       if ((service_id_hash_salt_ == kFakeSalt) && !should_pass_salt) {
         should_pass_salt = true;
         LOG(INFO) << "service_idHashSalt is still a fake one and "
-                             "not changed yet; continue to pass salt.";
+                     "not changed yet; continue to pass salt.";
       }
     }
     ByteArray data_frame =

@@ -75,8 +75,8 @@ class MultiplexOutputStreamTest : public ::testing::Test {
 };
 
 TEST_F(MultiplexOutputStreamTest, SendConnectionRequestFrame) {
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
   EXPECT_TRUE(multiplex_output_stream_->WriteConnectionRequestFrame(
       std::string(kServiceId_1), std::string(kNoSalt)));
 
@@ -94,8 +94,8 @@ TEST_F(MultiplexOutputStreamTest, SendConnectionRequestFrame) {
 
 TEST_F(MultiplexOutputStreamTest, SendConnectionRequestFrameDisabled) {
   enabled_.Set(false);
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
   EXPECT_FALSE(multiplex_output_stream_->WriteConnectionRequestFrame(
       std::string(kServiceId_1), std::string(kNoSalt)));
 
@@ -103,8 +103,8 @@ TEST_F(MultiplexOutputStreamTest, SendConnectionRequestFrameDisabled) {
 }
 
 TEST_F(MultiplexOutputStreamTest, SendConnectionResponseFrame) {
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
   EXPECT_TRUE(multiplex_output_stream_->WriteConnectionResponseFrame(
       GenerateServiceIdHash(std::string(kServiceId_1)), std::string(kNoSalt),
       ConnectionResponseFrame::CONNECTION_ACCEPTED));
@@ -127,8 +127,8 @@ TEST_F(MultiplexOutputStreamTest, SendConnectionResponseFrame) {
 
 TEST_F(MultiplexOutputStreamTest, SendConnectionResponseFrameDisabled) {
   enabled_.Set(false);
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
   EXPECT_FALSE(multiplex_output_stream_->WriteConnectionResponseFrame(
       GenerateServiceIdHash(std::string(kServiceId_1)), std::string(kNoSalt),
       ConnectionResponseFrame::CONNECTION_ACCEPTED));
@@ -137,16 +137,16 @@ TEST_F(MultiplexOutputStreamTest, SendConnectionResponseFrameDisabled) {
 }
 
 TEST_F(MultiplexOutputStreamTest, CloseVirtualStreamFailed) {
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
   EXPECT_FALSE(multiplex_output_stream_->Close(std::string(kServiceId_1)));
 
   multiplex_output_stream_->Shutdown();
 }
 
 TEST_F(MultiplexOutputStreamTest, CloseVirtualStreamSuccess) {
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
   EXPECT_FALSE(multiplex_output_stream_->Close(std::string(kServiceId_1)));
 
   multiplex_output_stream_->CreateVirtualOutputStream(std::string(kServiceId_1),
@@ -166,8 +166,8 @@ TEST_F(MultiplexOutputStreamTest, CloseVirtualStreamSuccess) {
 }
 
 TEST_F(MultiplexOutputStreamTest, CreateVirtualStream_SendData) {
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
 
   auto virtual_output_stream =
       multiplex_output_stream_->CreateVirtualOutputStream(
@@ -189,8 +189,8 @@ TEST_F(MultiplexOutputStreamTest, CreateVirtualStream_SendData) {
 }
 
 TEST_F(MultiplexOutputStreamTest, CreateTwoVirtualStreams_SendData) {
-  multiplex_output_stream_ = std::make_unique<MultiplexOutputStream>(
-      writer_.get(), enabled_);
+  multiplex_output_stream_ =
+      std::make_unique<MultiplexOutputStream>(writer_.get(), enabled_);
 
   auto virtual_output_stream_1 =
       multiplex_output_stream_->CreateVirtualOutputStreamForFirstVirtualSocket(
@@ -222,14 +222,14 @@ TEST_F(MultiplexOutputStreamTest, CreateTwoVirtualStreams_SendData) {
   EXPECT_EQ(frame.frame_type(), MultiplexFrame::DATA_FRAME);
   bool first_frame_is_data_1 = true;
   if (frame.header().salted_service_id_hash() ==
-            std::string(GenerateServiceIdHashWithSalt(std::string(kServiceId_1),
-                                                      std::string(kSalt_1)))) {
+      std::string(GenerateServiceIdHashWithSalt(std::string(kServiceId_1),
+                                                std::string(kSalt_1)))) {
     EXPECT_EQ(frame.data_frame().data(), std::string(data_1));
     LOG(INFO) << "Read first virtual stream frame first.";
   } else {
     EXPECT_EQ(frame.header().salted_service_id_hash(),
-            std::string(GenerateServiceIdHashWithSalt(std::string(kServiceId_2),
-                                                      std::string(kSalt_2))));
+              std::string(GenerateServiceIdHashWithSalt(
+                  std::string(kServiceId_2), std::string(kSalt_2))));
     EXPECT_EQ(frame.data_frame().data(), std::string(data_2));
     first_frame_is_data_1 = false;
     LOG(INFO) << "Read second virtual stream frame first.";

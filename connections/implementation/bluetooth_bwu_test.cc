@@ -17,8 +17,8 @@
 
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
-#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/bluetooth_bwu_handler.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"

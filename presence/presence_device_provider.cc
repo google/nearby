@@ -17,6 +17,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/variant.h"
@@ -51,7 +52,7 @@ std::string AuthenticationErrorToString(AuthenticationStatus status) {
       return "AuthenticationStatus::kFailure";
   }
   LOG(ERROR) << "Unexpected value for AuthenticationStatus: "
-                     << static_cast<int>(status);
+             << static_cast<int>(status);
   return "AuthenticationStatus::kUnknown";
 }
 
@@ -131,16 +132,14 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
                                                &shared_secret](
                                                   auto status_or_credentials) {
         if (!status_or_credentials.ok()) {
-          LOG(INFO)
-              << __func__ << ": failure to fetch local credentials";
+          LOG(INFO) << __func__ << ": failure to fetch local credentials";
           response.Set(AuthenticationStatus::kFailure);
           return;
         }
 
         auto credential = GetValidCredential(status_or_credentials.value());
         if (!credential.has_value()) {
-          LOG(INFO)
-              << __func__ << ": failure to find a valid local credential";
+          LOG(INFO) << __func__ << ": failure to find a valid local credential";
           response.Set(AuthenticationStatus::kFailure);
           return;
         }
@@ -176,7 +175,7 @@ AuthenticationStatus PresenceDeviceProvider::AuthenticateAsInitiator(
   CHECK(result.ok());
 
   LOG(INFO) << "Future:[" << __func__ << "] completed with status:"
-                    << AuthenticationErrorToString(result.result());
+            << AuthenticationErrorToString(result.result());
   return result.result();
 }
 
@@ -203,8 +202,7 @@ bool PresenceDeviceProvider::WriteToRemoteDevice(
           /*ukey2_secret=*/shared_secret, /*local_credential=*/local_credential,
           /*shared_credential=*/shared_credential.value());
   if (!status_or_initiator_data.ok()) {
-    LOG(INFO) << __func__
-                      << ": failure to build signed message as initiator";
+    LOG(INFO) << __func__ << ": failure to build signed message as initiator";
     return false;
   }
 
@@ -232,8 +230,8 @@ bool PresenceDeviceProvider::ReadAndVerifyRemoteDeviceData(
                                                &shared_secret](
                                                   auto status_or_credentials) {
         if (!status_or_credentials.ok()) {
-          LOG(INFO)
-              << __func__ << ": failure to fetch local public credentials";
+          LOG(INFO) << __func__
+                    << ": failure to fetch local public credentials";
           read_and_verify_result.Set(/*success=*/false);
           return;
         }
@@ -255,7 +253,7 @@ bool PresenceDeviceProvider::ReadAndVerifyRemoteDeviceData(
   LOG(INFO) << __func__ << ": Waiting for future to complete";
   ExceptionOr<bool> result = read_and_verify_result.Get();
   LOG(INFO) << "Future:[" << __func__
-                    << "] completed with status:" << result.result();
+            << "] completed with status:" << result.result();
   return result.result();
 }
 

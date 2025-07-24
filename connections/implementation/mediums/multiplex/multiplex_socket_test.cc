@@ -50,9 +50,9 @@ namespace multiplex {
 constexpr absl::string_view SERVICE_ID_1 = "serviceId_1";
 constexpr absl::string_view SERVICE_ID_2 = "serviceId_2";
 
-using location::nearby::mediums::MultiplexFrame;
-using location::nearby::mediums::MultiplexControlFrame;
 using location::nearby::mediums::ConnectionResponseFrame;
+using location::nearby::mediums::MultiplexControlFrame;
+using location::nearby::mediums::MultiplexFrame;
 using location::nearby::proto::connections::Medium;
 using location::nearby::proto::connections::Medium_Name;
 
@@ -66,8 +66,7 @@ class FakeSocket : public MediumSocket {
     pipe_2_ = CreatePipe();
     reader_2_ = std::move(pipe_2_.first);
     writer_2_ = std::move(pipe_2_.second);
-    LOG(WARNING) << "Physical Socket Medium:"
-                         << Medium_Name(GetMedium());
+    LOG(WARNING) << "Physical Socket Medium:" << Medium_Name(GetMedium());
   };
   ~FakeSocket() override = default;
 
@@ -117,22 +116,21 @@ class FakeSocket : public MediumSocket {
 
     auto virtual_socket = std::make_shared<FakeSocket>(medium, outputstream);
     LOG(WARNING) << "Created the virtual socket for Medium: "
-                         << Medium_Name(virtual_socket->GetMedium());
+                 << Medium_Name(virtual_socket->GetMedium());
 
     if (virtual_sockets_ptr_ == nullptr) {
       virtual_sockets_ptr_ = virtual_sockets_ptr;
     }
 
     (*virtual_sockets_ptr_)[salted_service_id_hash_key] = virtual_socket;
-    LOG(INFO) << "virtual_sockets_ size: "
-                      << virtual_sockets_ptr_->size();
+    LOG(INFO) << "virtual_sockets_ size: " << virtual_sockets_ptr_->size();
     return virtual_socket.get();
   }
 
   void FeedIncomingData(ByteArray data) override {
     bytes_read_future_.Set(data);
-    LOG(INFO) << "FeedIncomingData. Size of receive data: "
-                      << data.size() << ", bytes content:" << std::string(data);
+    LOG(INFO) << "FeedIncomingData. Size of receive data: " << data.size()
+              << ", bytes content:" << std::string(data);
   }
 
   bool IsVirtualSocket() override { return is_virtual_socket_; }
@@ -155,8 +153,7 @@ class FakeSocket : public MediumSocket {
 };
 
 TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
-  auto fake_socket_ptr =
-      std::make_shared<FakeSocket>(Medium::BLUETOOTH);
+  auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::BLUETOOTH);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::BLUETOOTH);
   MultiplexSocket* multiplex_socket_incoming =
@@ -204,8 +201,7 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 0);
 }
 TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
-  auto fake_socket_ptr =
-      std::make_shared<FakeSocket>(Medium::WEB_RTC);
+  auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::WEB_RTC);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::WEB_RTC);
   MultiplexSocket* multiplex_socket_incoming =
@@ -231,9 +227,8 @@ TEST(MultiplexSocketTest,
       multiplex_socket->EstablishVirtualSocket(std::string(SERVICE_ID_2));
   EXPECT_EQ(socket, nullptr);
   absl::SleepFor(absl::Milliseconds(100));
-  FakeSocket* virtual_socket =
-      (FakeSocket*)multiplex_socket->GetVirtualSocket(
-          std::string(SERVICE_ID_1));
+  FakeSocket* virtual_socket = (FakeSocket*)multiplex_socket->GetVirtualSocket(
+      std::string(SERVICE_ID_1));
   if (virtual_socket == nullptr) {
     LOG(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
     return;
@@ -278,8 +273,7 @@ TEST(MultiplexSocketTest,
   LOG(INFO) << "reader_2_ Read start";
   ExceptionOr<std::int32_t> read_int = Base64Utils::ReadInt(reader);
   if (!read_int.ok()) {
-    ADD_FAILURE() << "Failed to read. Exception:"
-                         << read_int.exception();
+    ADD_FAILURE() << "Failed to read. Exception:" << read_int.exception();
   }
   auto length = read_int.result();
   LOG(INFO) << " length:" << length;
@@ -294,8 +288,7 @@ TEST(MultiplexSocketTest,
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
 }
 
-TEST(MultiplexSocketTest,
-     EstablishVirtualSocket_RemoteAccepted) {
+TEST(MultiplexSocketTest, EstablishVirtualSocket_RemoteAccepted) {
   auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::BLUETOOTH);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
                                                       Medium::BLUETOOTH);
@@ -339,8 +332,7 @@ TEST(MultiplexSocketTest,
     ADD_FAILURE() << "Invalid frame length:" << length;
   }
 
-  ExceptionOr<MultiplexFrame> frame_exc =
-      multiplex::FromBytes(bytes.result());
+  ExceptionOr<MultiplexFrame> frame_exc = multiplex::FromBytes(bytes.result());
   if (!frame_exc.ok()) {
     ADD_FAILURE() << "Failed to parse MultiplexFrame. Exception:"
                   << frame_exc.exception();
@@ -356,7 +348,7 @@ TEST(MultiplexSocketTest,
   ASSERT_EQ(control_frame.control_frame_type(),
             MultiplexControlFrame::CONNECTION_REQUEST);
   LOG(INFO) << "Recieved MultiplexControlFrame::CONNECTION_REQUEST "
-                       "frame, now send CONNECTION_RESPONSE frame.";
+               "frame, now send CONNECTION_RESPONSE frame.";
 
   ByteArray connection_response_frame =
       ForConnectionResponse(salted_service_id_hash, service_id_hash_salt,

@@ -14,17 +14,17 @@
 
 #include "internal/platform/wifi_direct.h"
 
-#include "internal/platform/logging.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/logging.h"
 
 namespace nearby {
 
 WifiDirectSocket WifiDirectMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  LOG(INFO) << "WifiDirectMedium::ConnectToService: ip address="
-                    << ip_address << ", port=" << port;
+  LOG(INFO) << "WifiDirectMedium::ConnectToService: ip address=" << ip_address
+            << ", port=" << port;
   return WifiDirectSocket(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
 }

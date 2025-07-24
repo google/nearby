@@ -67,7 +67,7 @@ int GetMask(const DataElement& element) {
     }
   }
   LOG(WARNING) << "Data Element " << type
-                       << " not supported in base advertisement";
+               << " not supported in base advertisement";
   return kEmptyMask;
 }
 

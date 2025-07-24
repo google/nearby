@@ -213,8 +213,7 @@ TEST_F(P2pClusterPcpHandlerTest,
                   [&latch](const std::string& endpoint_id,
                            const ByteArray& endpoint_info,
                            const std::string& service_id) {
-                    LOG(INFO)
-                        << "Device discovered: id=" << endpoint_id;
+                    LOG(INFO) << "Device discovered: id=" << endpoint_id;
                     latch.CountDown();
                   },
           }),
@@ -268,7 +267,7 @@ class P2pClusterPcpHandlerTestWithParam
     }
     LOG(INFO) << "SetUp: ble v2 enabled: " << ble_v2_enabled;
     LOG(INFO) << "SetUp: is_disable_bluetooth_scanning: "
-                      << is_disable_bluetooth_scanning;
+              << is_disable_bluetooth_scanning;
     LOG(INFO) << "SetUp: end";
   }
 
@@ -562,8 +561,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscover) {
                         [&latch](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
-                          LOG(INFO)
-                              << "Device discovered: id=" << endpoint_id;
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id;
                           latch.CountDown();
                         },
                 }),
@@ -602,8 +600,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
                         [&latch](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
-                          LOG(INFO)
-                              << "Device discovered: id=" << endpoint_id;
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id;
                           latch.CountDown();
                         },
                 }),
@@ -687,8 +684,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
                         [&latch](const std::string& endpoint_id,
                                  const ByteArray& endpoint_info,
                                  const std::string& service_id) {
-                          LOG(INFO)
-                              << "Device discovered: id=" << endpoint_id;
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id;
                           latch.CountDown();
                         },
                 }),
@@ -765,8 +761,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanBluetoothDiscoverChangeName) {
                         [&](const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
-                          LOG(INFO)
-                              << "Device discovered: id=" << endpoint_id;
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id;
                           if (!first) {
                             first_found_latch.CountDown();
                             first = true;
@@ -1011,10 +1006,9 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
                             const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
-                          LOG(INFO)
-                              << "Device discovered: id=" << endpoint_id
-                              << ", endpoint_info="
-                              << std::string{endpoint_info};
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id
+                                    << ", endpoint_info="
+                                    << std::string{endpoint_info};
                           discovered = {
                               .endpoint_id = endpoint_id,
                               .endpoint_info = endpoint_info,
@@ -1047,8 +1041,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
                .initiated_cb =
                    [&connect_latch](const std::string& endpoint_id,
                                     const ConnectionResponseInfo& info) {
-                     LOG(INFO)
-                         << "RequestConnection: initiated_cb called";
+                     LOG(INFO) << "RequestConnection: initiated_cb called";
                      connect_latch.CountDown();
                    },
            }},

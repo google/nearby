@@ -123,7 +123,7 @@ bool WifiLanMdns::StartMdnsService(
 
   if (status != DNS_REQUEST_PENDING) {
     LOG(ERROR) << "Failed to start mDNS advertising for service type ="
-                       << service_type;
+               << service_type;
     return false;
   }
 

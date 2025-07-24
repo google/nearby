@@ -87,8 +87,7 @@ absl::StatusOr<BroadcastSessionId> BroadcastManager::StartBroadcast(
   absl::StatusOr<BaseBroadcastRequest> request =
       BaseBroadcastRequest::Create(broadcast_request);
   if (!request.ok()) {
-    LOG(WARNING) << "Invalid broadcast request, reason: "
-                         << request.status();
+    LOG(WARNING) << "Invalid broadcast request, reason: " << request.status();
     callback.start_broadcast_cb(request.status());
     return request.status();
   }
@@ -124,9 +123,8 @@ void BroadcastManager::FetchCredentials(
                       std::vector<::nearby::internal::LocalCredential>>
                       credentials) {
                 if (!credentials.ok()) {
-                  LOG(WARNING)
-                      << "Failed to fetch credentials, status: "
-                      << credentials.status();
+                  LOG(WARNING) << "Failed to fetch credentials, status: "
+                               << credentials.status();
                   NotifyStartCallbackStatus(id, credentials.status());
                   return;
                 }
@@ -143,10 +141,9 @@ void BroadcastManager::FetchCredentials(
                                 selector, std::move(*credential),
                                 {[](absl::Status status) {
                                   if (!status.ok()) {
-                                    LOG(WARNING)
-                                        << "Failed to update private "
-                                           "credential, status: "
-                                        << status;
+                                    LOG(WARNING) << "Failed to update private "
+                                                    "credential, status: "
+                                                 << status;
                                   }
                                 }});
                           }
@@ -191,7 +188,7 @@ absl::optional<LocalCredential> BroadcastManager::Advertise(  // NOLINT
       AdvertisementFactory().CreateAdvertisement(broadcast_request, credential);
   if (!advertisement.ok()) {
     LOG(WARNING) << "Can't create advertisement, reason: "
-                         << advertisement.status();
+                 << advertisement.status();
     NotifyStartCallbackStatus(id, advertisement.status());
     return absl::optional<LocalCredential>();  // NOLINT
   }
@@ -233,8 +230,7 @@ void BroadcastManager::StopBroadcast(BroadcastSessionId id) {
       "stop-broadcast", [this, id]() ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_) {
         auto it = sessions_.find(id);
         if (it == sessions_.end()) {
-          VLOG(1) << absl::StrFormat("BroadcastSession(0x%x) not found",
-                                            id);
+          VLOG(1) << absl::StrFormat("BroadcastSession(0x%x) not found", id);
           return;
         }
         it->second.StopAdvertising();

@@ -65,8 +65,7 @@ bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    LOG(ERROR)
-        << "Failed to connect to BT server socket: already connected";
+    LOG(ERROR) << "Failed to connect to BT server socket: already connected";
     return true;  // already connected.
   }
   // add client socket to the pending list
@@ -172,8 +171,8 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     api::BluetoothDevice& remote_device, const std::string& service_uuid,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 ConnectToService [self]: medium=" << this
-                    << ", adapter=" << &GetAdapter()
-                    << ", device=" << &GetAdapter().GetDevice();
+            << ", adapter=" << &GetAdapter()
+            << ", device=" << &GetAdapter().GetDevice();
   // First, find an instance of remote medium, that exposed this device.
   auto& adapter = static_cast<BluetoothDevice&>(remote_device).GetAdapter();
   auto* medium =
@@ -183,24 +182,23 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 
   BluetoothServerSocket* server_socket = nullptr;
   LOG(INFO) << "G3 ConnectToService [peer]: medium=" << medium
-                    << ", adapter=" << &adapter << ", device=" << &remote_device
-                    << ", uuid=" << service_uuid.c_str();
+            << ", adapter=" << &adapter << ", device=" << &remote_device
+            << ", uuid=" << service_uuid;
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&medium->mutex_);
     auto item = medium->sockets_.find(service_uuid);
     server_socket = item != medium->sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
-      LOG(ERROR) << "Failed to find BT Server socket: uuid="
-                         << service_uuid;
+      LOG(ERROR) << "Failed to find BT Server socket: uuid=" << service_uuid;
       return {};
     }
   }
 
   if (cancellation_flag->Cancelled()) {
     LOG(ERROR) << "G3 Bluetooth Connect: Has been cancelled: "
-                          "service_uuid="
-                       << service_uuid;
+                  "service_uuid="
+               << service_uuid;
     return {};
   }
 
@@ -212,23 +210,20 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   auto socket = std::make_unique<BluetoothSocket>(&GetAdapter());
   // Finally, Request to connect to this socket.
   if (!server_socket->Connect(*socket)) {
-    LOG(ERROR)
-        << "Failed to connect to existing BT Server socket: uuid="
-        << service_uuid;
+    LOG(ERROR) << "Failed to connect to existing BT Server socket: uuid="
+               << service_uuid;
     return {};
   }
 
   if (cancellation_flag->Cancelled()) {
-    LOG(ERROR)
-        << "G3 Bluetooth Connect: Has been cancelled after connected: "
-           "service_uuid="
-        << service_uuid;
+    LOG(ERROR) << "G3 Bluetooth Connect: Has been cancelled after connected: "
+                  "service_uuid="
+               << service_uuid;
     socket->Close();
     return {};
   }
 
-  LOG(INFO) << "G3 ConnectToService: connected: socket="
-                    << socket.get();
+  LOG(INFO) << "G3 ConnectToService: connected: socket=" << socket.get();
   return socket;
 }
 
@@ -240,8 +235,7 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
     absl::MutexLock lock(&mutex_);
     sockets_.erase(uuid);
   });
-  LOG(INFO) << "Adding service: medium=" << this
-                    << ", uuid=" << service_uuid;
+  LOG(INFO) << "Adding service: medium=" << this << ", uuid=" << service_uuid;
   absl::MutexLock lock(&mutex_);
   sockets_.emplace(service_uuid, socket.get());
   return socket;

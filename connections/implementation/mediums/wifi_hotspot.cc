@@ -75,8 +75,7 @@ bool WifiHotspot::IsHotspotStarted() {
 bool WifiHotspot::StartWifiHotspot() {
   MutexLock lock(&mutex_);
   if (is_hotspot_started_) {
-    LOG(INFO)
-        << "No need to start Hotspot because it is already started.";
+    LOG(INFO) << "No need to start Hotspot because it is already started.";
     return true;
   }
   is_hotspot_started_ = medium_.StartWifiHotspot();
@@ -132,7 +131,7 @@ HotspotCredentials* WifiHotspot::GetCredentials(absl::string_view service_id) {
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
     LOG(INFO) << "No server socket found for service_id:" << service_id
-                      << ".  Use default credentials";
+              << ".  Use default credentials";
     return crendential;
   }
   crendential->SetGateway(it->second.GetIPAddress());
@@ -148,14 +147,13 @@ bool WifiHotspot::StartAcceptingConnections(
 
   if (service_id.empty()) {
     LOG(INFO) << "Can not to start accepting WifiHotspot connections; "
-                         "service_id is empty.";
+                 "service_id is empty.";
     return false;
   }
 
   if (!IsAPAvailableLocked()) {
-    LOG(INFO)
-        << "Can't start accepting WifiHotspot connections [service_id="
-        << service_id << "]; WifiHotspot not available.";
+    LOG(INFO) << "Can't start accepting WifiHotspot connections [service_id="
+              << service_id << "]; WifiHotspot not available.";
     return false;
   }
 
@@ -208,16 +206,15 @@ bool WifiHotspot::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
-    LOG(INFO)
-        << "Unable to stop accepting WifiHotspot connections because "
-           "the service_id is empty.";
+    LOG(INFO) << "Unable to stop accepting WifiHotspot connections because "
+                 "the service_id is empty.";
     return false;
   }
 
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
     LOG(INFO) << "Can't stop accepting WifiHotspot connections for "
-                      << service_id << " because it was never started.";
+              << service_id << " because it was never started.";
     return false;
   }
 
@@ -238,9 +235,8 @@ bool WifiHotspot::StopAcceptingConnections(const std::string& service_id) {
 
   // Finally, close the WifiHotspotServerSocket.
   if (!listening_socket.Close().Ok()) {
-    LOG(INFO)
-        << "Failed to close WifiHotspot server socket for service_id:"
-        << service_id;
+    LOG(INFO) << "Failed to close WifiHotspot server socket for service_id:"
+              << service_id;
     return false;
   }
 
@@ -265,13 +261,13 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
 
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client WifiHotspot socket because "
-                         "service_id is empty.";
+                 "service_id is empty.";
     return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
   }
 
   if (!IsClientAvailableLocked()) {
     LOG(INFO) << "Can't create client WifiHotspot socket [service_id="
-                      << service_id << "]; WifiHotspot isn't available.";
+              << service_id << "]; WifiHotspot isn't available.";
     return {Error(
         OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NOT_AVAILABLE)};
   }
@@ -285,8 +281,8 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
 
   socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
   if (!socket.IsValid()) {
-    LOG(INFO) << "Failed to Connect via WifiHotspot [service_id="
-                      << service_id << "]";
+    LOG(INFO) << "Failed to Connect via WifiHotspot [service_id=" << service_id
+              << "]";
     return {
         Error(OperationResultCode::
                   CONNECTIVITY_WIFI_HOTSPOT_CLIENT_SOCKET_CREATION_FAILURE)};

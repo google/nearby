@@ -147,8 +147,8 @@ absl::StatusOr<DataElement> ParseDataElement(const absl::string_view input,
         absl::BytesToHexString(input), input.size(), index));
   }
   VLOG(1) << "Type: " << static_cast<int>(data_type)
-                 << " length: " << static_cast<int>(length) << " DE: "
-                 << absl::BytesToHexString(input.substr(start, length));
+          << " length: " << static_cast<int>(length)
+          << " DE: " << absl::BytesToHexString(input.substr(start, length));
   return DataElement(data_type, input.substr(start, length));
 }
 }  // namespace
@@ -157,9 +157,9 @@ void DecodeBaseAction(absl::string_view serialized_action,
                       Advertisement& decoded_advertisement) {
   if (serialized_action.empty() || serialized_action.size() > 3) {
     LOG(WARNING) << "Base NP action \'"
-                         << absl::BytesToHexString(serialized_action)
-                         << "\' has wrong length " << serialized_action.size()
-                         << " , expected size in range [1 - 3]";
+                 << absl::BytesToHexString(serialized_action)
+                 << "\' has wrong length " << serialized_action.size()
+                 << " , expected size in range [1 - 3]";
     return;
   }
   // Action, 0-2 bytes in Big Endian order.
@@ -213,7 +213,7 @@ absl::Status DecryptDataElements(
       DecryptLdt(credentials, salt, encrypted, decoded_advertisement);
   if (!decrypted.ok()) {
     LOG(WARNING) << "Failed to decrypt advertisement, status: "
-                         << decrypted.status();
+                 << decrypted.status();
     return decrypted.status();
   }
   size_t index = 0;
@@ -222,7 +222,7 @@ absl::Status DecryptDataElements(
         ParseDataElement(*decrypted, index);
     if (!internal_elem.ok()) {
       LOG(WARNING) << "Failed to read data element, status: "
-                           << internal_elem.status();
+                   << internal_elem.status();
       return internal_elem.status();
     }
     if (internal_elem->GetType() == DataElement::kActionFieldType) {
@@ -238,8 +238,7 @@ absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
     absl::string_view advertisement) {
   Advertisement decoded_advertisement = Advertisement{};
   std::vector<DataElement> result;
-  LOG(INFO) << "Advertisement: "
-                    << absl::BytesToHexString(advertisement);
+  LOG(INFO) << "Advertisement: " << absl::BytesToHexString(advertisement);
   if (advertisement.empty()) {
     return absl::OutOfRangeError("Empty advertisement");
   }
@@ -255,8 +254,7 @@ absl::StatusOr<Advertisement> AdvertisementDecoderImpl::DecodeAdvertisement(
   while (index < advertisement.size()) {
     absl::StatusOr<DataElement> elem = ParseDataElement(advertisement, index);
     if (!elem.ok()) {
-      LOG(WARNING) << "Failed to read data element, status: "
-                           << elem.status();
+      LOG(WARNING) << "Failed to read data element, status: " << elem.status();
       return elem.status();
     }
     if (IsIdentity(elem->GetType())) {

@@ -69,7 +69,7 @@ using ConnectionResponseCode = ConnectionResponseFrame::ConnectionResponseCode;
 
 // AtomicBoolean is trivial destructible, so it is safe to use it as a static
 // variable.
-AtomicBoolean MultiplexSocket::is_shutting_down_{false}; // NOLINT
+AtomicBoolean MultiplexSocket::is_shutting_down_{false};  // NOLINT
 
 void MultiplexSocket::ListenForIncomingConnection(
     const std::string& service_id, Medium type,
@@ -131,14 +131,14 @@ MultiplexSocket* MultiplexSocket::CreateIncomingSocket(
           new (&storage_wlan) MultiplexSocket(physical_socket);
       break;
     default:
-      LOG(ERROR) << __func__ << "Unsupported medium: "
-                         << physical_socket->GetMedium();
+      LOG(ERROR) << __func__
+                 << "Unsupported medium: " << physical_socket->GetMedium();
       multiplex_incoming_socket = nullptr;
       return multiplex_incoming_socket;
   }
   LOG(INFO) << "CreateIncomingSocket with serviceId=" << service_id
-                    << ", serviceIdHashSalt=" << kFakeSalt << " for medium="
-                    << Medium_Name(physical_socket->GetMedium());
+            << ", serviceIdHashSalt=" << kFakeSalt
+            << " for medium=" << Medium_Name(physical_socket->GetMedium());
 
   multiplex_incoming_socket->CreateFirstVirtualSocket(service_id,
                                                       (std::string)kFakeSalt);
@@ -175,14 +175,13 @@ MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
           new (&storage_wlan) MultiplexSocket(physical_socket);
       break;
     default:
-      LOG(ERROR) << __func__ << "Unsupported medium: "
-                         << physical_socket->GetMedium();
+      LOG(ERROR) << __func__
+                 << "Unsupported medium: " << physical_socket->GetMedium();
       return multiplex_outgoing_socket;
   }
   LOG(INFO) << "CreateOutgoingSocket with serviceId=" << service_id
-                    << ", serviceIdHashSalt=" << service_id_hash_salt
-                    << " for medium="
-                    << Medium_Name(physical_socket->GetMedium());
+            << ", serviceIdHashSalt=" << service_id_hash_salt
+            << " for medium=" << Medium_Name(physical_socket->GetMedium());
 
   multiplex_outgoing_socket->CreateFirstVirtualSocket(service_id,
                                                       service_id_hash_salt);
@@ -207,9 +206,8 @@ MediumSocket* MultiplexSocket::CreateFirstVirtualSocket(
   std::string salted_service_id_hash_key =
       GenerateServiceIdHashKeyWithSalt(service_id, service_id_hash_salt);
   LOG(INFO) << __func__ << " for service_id=" << service_id
-                    << ", salt=" << service_id_hash_salt
-                    << ", salted_service_id_hash_key="
-                    << salted_service_id_hash_key;
+            << ", salt=" << service_id_hash_salt
+            << ", salted_service_id_hash_key=" << salted_service_id_hash_key;
   MediumSocket* virtual_socket = physical_socket_ptr_->CreateVirtualSocket(
       salted_service_id_hash_key, output_stream, medium_, &virtual_sockets_);
 
@@ -234,9 +232,8 @@ MediumSocket* MultiplexSocket::CreateVirtualSocket(
       GenerateServiceIdHashKeyWithSalt(service_id, service_id_hash_salt);
 
   LOG(INFO) << __func__ << "service_id=" << service_id
-                    << ", salt=" << service_id_hash_salt
-                    << ", salted_service_id_hash_key="
-                    << salted_service_id_hash_key;
+            << ", salt=" << service_id_hash_salt
+            << ", salted_service_id_hash_key=" << salted_service_id_hash_key;
 
   MediumSocket* virtual_socket = physical_socket_ptr_->CreateVirtualSocket(
       salted_service_id_hash_key, output_stream, medium_, &virtual_sockets_);
@@ -251,8 +248,8 @@ MediumSocket* MultiplexSocket::CreateVirtualSocket(
 MediumSocket* MultiplexSocket::GetVirtualSocket(const std::string& service_id) {
   MutexLock lock(&virtual_socket_mutex_);
   LOG(INFO) << __func__ << " service_id=" << service_id << ", Salt="
-                    << multiplex_output_stream_.GetServiceIdHashSalt(service_id)
-                    << ", virtual_sockets_.size()=" << virtual_sockets_.size();
+            << multiplex_output_stream_.GetServiceIdHashSalt(service_id)
+            << ", virtual_sockets_.size()=" << virtual_sockets_.size();
   auto item = virtual_sockets_.find(GenerateServiceIdHashKeyWithSalt(
       service_id, multiplex_output_stream_.GetServiceIdHashSalt(service_id)));
   if (item == virtual_sockets_.end()) {
@@ -269,11 +266,10 @@ int MultiplexSocket::GetVirtualSocketCount() {
 
 void MultiplexSocket::ListVirtualSocket() {
   LOG(INFO) << __func__
-                    << " virtual_sockets_.size()=" << virtual_sockets_.size();
+            << " virtual_sockets_.size()=" << virtual_sockets_.size();
   for (auto& [service_id_hash_key, virtual_socket] : virtual_sockets_) {
-    LOG(INFO) << __func__
-                      << " service_id_hash_key=" << service_id_hash_key
-                      << ", virtual_socket=" << virtual_socket;
+    LOG(INFO) << __func__ << " service_id_hash_key=" << service_id_hash_key
+              << ", virtual_socket=" << virtual_socket;
   }
 }
 
@@ -309,8 +305,8 @@ MediumSocket* MultiplexSocket::EstablishVirtualSocket(
                       .multiplex_socket_connection_response_timeout_millis);
   if (!result.ok()) {
     LOG(ERROR) << __func__
-                       << "EstablishVirtualSocket failed with response code="
-                       << result.exception();
+               << "EstablishVirtualSocket failed with response code="
+               << result.exception();
     return nullptr;
   }
 
@@ -318,21 +314,21 @@ MediumSocket* MultiplexSocket::EstablishVirtualSocket(
   switch (response_code) {
     case ConnectionResponseFrame::CONNECTION_ACCEPTED:
       LOG(INFO) << "EstablishVirtualSocket after remote response to"
-                           " accept the connection with service_id="
-                        << service_id
-                        << ", service_id_hash_salt=" << service_id_hash_salt;
+                   " accept the connection with service_id="
+                << service_id
+                << ", service_id_hash_salt=" << service_id_hash_salt;
       return CreateVirtualSocket(service_id, service_id_hash_salt);
     case ConnectionResponseFrame::NOT_LISTENING:
       LOG(ERROR) << "EstablishVirtualSocket failed for service_id="
-                         << service_id
-                         << ", service_id_hash_salt=" << service_id_hash_salt
-                         << " with response code=NOT_LISTENING";
+                 << service_id
+                 << ", service_id_hash_salt=" << service_id_hash_salt
+                 << " with response code=NOT_LISTENING";
       break;
     default:
       LOG(ERROR) << "EstablishVirtualSocket failed for service_id="
-                         << service_id
-                         << ", service_id_hash_salt=" << service_id_hash_salt
-                         << " with response code=UNKNOWN_RESPONSE_CODE";
+                 << service_id
+                 << ", service_id_hash_salt=" << service_id_hash_salt
+                 << " with response code=UNKNOWN_RESPONSE_CODE";
       break;
   }
   return nullptr;
@@ -341,7 +337,7 @@ MediumSocket* MultiplexSocket::EstablishVirtualSocket(
 void MultiplexSocket::StartReaderThread(std::int32_t first_frame_len) {
   if (is_shutdown_) {
     LOG(WARNING) << "Stop to start reader thread since socket is "
-                            "shutdown.";
+                    "shutdown.";
     return;
   }
   reader_thread_shutdown_barrier_ = std::make_unique<CountDownLatch>(1);
@@ -359,8 +355,8 @@ void MultiplexSocket::StartReaderThread(std::int32_t first_frame_len) {
         read_int = Base64Utils::ReadInt(physical_reader_);
       }
       if (!read_int.ok()) {
-        LOG(WARNING)
-            << __func__ << "Failed to read. Exception:" << read_int.exception();
+        LOG(WARNING) << __func__
+                     << "Failed to read. Exception:" << read_int.exception();
         fail = true;
       } else {
         auto length = read_int.result();
@@ -371,16 +367,16 @@ void MultiplexSocket::StartReaderThread(std::int32_t first_frame_len) {
                                        .connection_max_frame_length) {
           // Ignore the failure because not only one client use this
           // connection.
-          LOG(WARNING)
-              << __func__ << "Failed to read because received a invalid length "
-              << length << ", but continue to read.";
+          LOG(WARNING) << __func__
+                       << "Failed to read because received a invalid length "
+                       << length << ", but continue to read.";
           continue;
         }
 
         bytes = physical_reader_->ReadExactly(length);
         if (!bytes.ok()) {
-          LOG(WARNING)
-              << __func__ << "Read data exception:" << bytes.exception();
+          LOG(WARNING) << __func__
+                       << "Read data exception:" << bytes.exception();
           fail = true;
         }
       }
@@ -402,10 +398,9 @@ void MultiplexSocket::StartReaderThread(std::int32_t first_frame_len) {
         // the remote, it means that the remote and the local both
         // support multiplex as well. So it is safe to just turn on
         // the feature at this point.
-        LOG(INFO)
-            << __func__
-            << " Received a multiplex frame while not enabled, enable "
-               "multiplex.";
+        LOG(INFO) << __func__
+                  << " Received a multiplex frame while not enabled, enable "
+                     "multiplex.";
         Enable();
       }
       const auto& frame = frame_exc.result();
@@ -425,9 +420,9 @@ void MultiplexSocket::StartReaderThread(std::int32_t first_frame_len) {
                           frame.data_frame());
           break;
         default:
-          LOG(WARNING)
-              << __func__ << " Received MultiplexFrame with unknown frame type "
-              << frame.frame_type();
+          LOG(WARNING) << __func__
+                       << " Received MultiplexFrame with unknown frame type "
+                       << frame.frame_type();
       }
     }
   });
@@ -435,8 +430,7 @@ void MultiplexSocket::StartReaderThread(std::int32_t first_frame_len) {
 
 void MultiplexSocket::HandleOfflineFrame(const ByteArray& bytes) {
   MutexLock lock(&virtual_socket_mutex_);
-  LOG(INFO) << __func__
-                    << " Virtual_socket num:" << virtual_sockets_.size();
+  LOG(INFO) << __func__ << " Virtual_socket num:" << virtual_sockets_.size();
   if (virtual_sockets_.size() == 1) {
     auto item = virtual_sockets_.begin();
     if (item->second == nullptr) {
@@ -461,12 +455,12 @@ void MultiplexSocket::HandleControlFrame(
       });
       break;
     case MultiplexControlFrame::CONNECTION_RESPONSE:
-      LOG(INFO)
-          << __func__ << "Received an CONNECTION_RESPONSE frame."
-          << " salted_service_id_hash: " << std::string(salted_service_id_hash)
-          << ", service_id_hash_salt: " << service_id_hash_salt
-          << ", ConnectionResponseCode: "
-          << frame.connection_response_frame().connection_response_code();
+      LOG(INFO) << __func__ << "Received an CONNECTION_RESPONSE frame."
+                << " salted_service_id_hash: "
+                << std::string(salted_service_id_hash)
+                << ", service_id_hash_salt: " << service_id_hash_salt
+                << ", ConnectionResponseCode: "
+                << frame.connection_response_frame().connection_response_code();
 
       RunOffloadThread("CONNECTION_RESPONSE", [this, salted_service_id_hash,
                                                service_id_hash_salt,
@@ -482,7 +476,7 @@ void MultiplexSocket::HandleControlFrame(
       break;
     default:
       LOG(WARNING) << __func__ << "Received an unknown frame type "
-                           << frame.control_frame_type();
+                   << frame.control_frame_type();
       break;
   }
 }
@@ -492,8 +486,8 @@ void MultiplexSocket::HandleConnectionRequest(
     const std::string& service_id_hash_salt) {
   if (!IsEnabled()) {
     LOG(WARNING) << "Received a CONNECTION_REQUEST frame on medium "
-                         << Medium_Name(medium_)
-                         << " but status is disabled, ignore it.";
+                 << Medium_Name(medium_)
+                 << " but status is disabled, ignore it.";
     return;
   }
 
@@ -513,12 +507,12 @@ void MultiplexSocket::HandleConnectionRequest(
 
   if (incoming_connection_callback == nullptr || listening_service_id.empty()) {
     LOG(INFO) << "There's no client listening for hash salt : "
-                      << service_id_hash_salt
-                      << ", hash key : " << salted_service_id_hash_key
-                      << " on medium " << Medium_Name(medium_);
+              << service_id_hash_salt
+              << ", hash key : " << salted_service_id_hash_key << " on medium "
+              << Medium_Name(medium_);
 
     LOG(INFO) << "The size of incomingConnectionCallbacks : "
-                      << GetIncomingConnectionCallbacks().size();
+              << GetIncomingConnectionCallbacks().size();
     if (!multiplex_output_stream_.WriteConnectionResponseFrame(
             salted_service_id_hash, service_id_hash_salt,
             ConnectionResponseFrame::NOT_LISTENING)) {
@@ -527,10 +521,9 @@ void MultiplexSocket::HandleConnectionRequest(
     return;
   }
   LOG(INFO) << "Accept new virtual socket request service ID : "
-                    << listening_service_id
-                    << ", hash salt : " << service_id_hash_salt
-                    << ", hash key : " << salted_service_id_hash_key
-                    << " on medium " << Medium_Name(medium_);
+            << listening_service_id << ", hash salt : " << service_id_hash_salt
+            << ", hash key : " << salted_service_id_hash_key << " on medium "
+            << Medium_Name(medium_);
 
   if (!multiplex_output_stream_.WriteConnectionResponseFrame(
           salted_service_id_hash, service_id_hash_salt,
@@ -539,10 +532,10 @@ void MultiplexSocket::HandleConnectionRequest(
     return;
   }
 
-  VLOG(1)
-      << "EstablishVirtualSocket after local device accept the connection "
-         "with serviceId="
-      << listening_service_id << ", serviceIdHashSalt=" << service_id_hash_salt;
+  VLOG(1) << "EstablishVirtualSocket after local device accept the connection "
+             "with serviceId="
+          << listening_service_id
+          << ", serviceIdHashSalt=" << service_id_hash_salt;
   MediumSocket* virtual_socket =
       CreateVirtualSocket(listening_service_id, service_id_hash_salt);
   (*incoming_connection_callback)(std::move(listening_service_id),
@@ -553,18 +546,16 @@ void MultiplexSocket::HandleConnectionResponse(
     const ByteArray& salted_service_id_hash,
     const std::string& service_id_hash_salt,
     const ConnectionResponseFrame& frame) {
-  LOG(INFO) << __func__ << "connection_response_code: "
-                    << frame.connection_response_code();
+  LOG(INFO) << __func__
+            << "connection_response_code: " << frame.connection_response_code();
   for (auto& [service_id, future] : connection_response_futures_) {
     if (GenerateServiceIdHashWithSalt(service_id, service_id_hash_salt) ==
         salted_service_id_hash) {
       if (future != nullptr) {
         future->Set(frame.connection_response_code());
-        LOG(INFO) << __func__
-                          << "Set the future for serviceId=" << service_id
-                          << ", serviceIdHashSalt=" << service_id_hash_salt
-                          << " with response code="
-                          << frame.connection_response_code();
+        LOG(INFO) << __func__ << "Set the future for serviceId=" << service_id
+                  << ", serviceIdHashSalt=" << service_id_hash_salt
+                  << " with response code=" << frame.connection_response_code();
         return;
       }
     }
@@ -639,37 +630,36 @@ void MultiplexSocket::OnVirtualSocketClosed(const std::string& service_id) {
   LOG(INFO) << __func__ << " for service_id:" << service_id;
   CountDownLatch latch(1);
   bool shutdown = false;
-  RunOffloadThread("VirtualSocketClosed", [this, service_id, &latch,
-                                           &shutdown]() {
-    LOG(INFO) << "Try to close Virtual socket: " << service_id;
-    MediumSocket* virtual_socket = GetVirtualSocket(service_id);
-    {
-      MutexLock lock(&virtual_socket_mutex_);
-      LOG(INFO) << "virtual_socket:" << virtual_socket;
-      if (virtual_socket != nullptr) {
-        auto salted_service_id_hash_key = GenerateServiceIdHashKeyWithSalt(
-            service_id,
-            multiplex_output_stream_.GetServiceIdHashSalt(service_id));
-        multiplex_output_stream_.Close(service_id);
-        virtual_sockets_.erase(salted_service_id_hash_key);
-        LOG(INFO) << "Erase Virtual socket with service_id: "
-                          << service_id
-                          << ", hash_key: " << salted_service_id_hash_key;
-        ListVirtualSocket();
+  RunOffloadThread(
+      "VirtualSocketClosed", [this, service_id, &latch, &shutdown]() {
+        LOG(INFO) << "Try to close Virtual socket: " << service_id;
+        MediumSocket* virtual_socket = GetVirtualSocket(service_id);
+        {
+          MutexLock lock(&virtual_socket_mutex_);
+          LOG(INFO) << "virtual_socket:" << virtual_socket;
+          if (virtual_socket != nullptr) {
+            auto salted_service_id_hash_key = GenerateServiceIdHashKeyWithSalt(
+                service_id,
+                multiplex_output_stream_.GetServiceIdHashSalt(service_id));
+            multiplex_output_stream_.Close(service_id);
+            virtual_sockets_.erase(salted_service_id_hash_key);
+            LOG(INFO) << "Erase Virtual socket with service_id: " << service_id
+                      << ", hash_key: " << salted_service_id_hash_key;
+            ListVirtualSocket();
 
-        if (virtual_sockets_.empty()) {
-          LOG(INFO) << "Close the physical socket because all virtual "
-                               "sockets disconnected.";
-          is_shutting_down_.Set(true);
-          Shutdown();
-          shutdown = true;
+            if (virtual_sockets_.empty()) {
+              LOG(INFO) << "Close the physical socket because all virtual "
+                           "sockets disconnected.";
+              is_shutting_down_.Set(true);
+              Shutdown();
+              shutdown = true;
+            }
+          } else {
+            LOG(INFO) << "Virtual socket(" << service_id << ") not found";
+          }
         }
-      } else {
-        LOG(INFO) << "Virtual socket(" << service_id << ") not found";
-      }
-    }
-    latch.CountDown();
-  });
+        latch.CountDown();
+      });
 
   if (!latch.Await(absl::Milliseconds(1000)).result()) {
     LOG(ERROR) << "Timeout to close virtual socket";
@@ -690,8 +680,8 @@ MediumSocket* MultiplexSocket::ReMapAndGetVirtualSocket(
   std::string salted_service_id_hash_key =
       GenerateServiceIdHashKey(salted_service_id_hash);
   VLOG(1) << "ReMapAndGetVirtualSocket with serviceIdHashSalt="
-                 << service_id_hash_salt
-                 << ", saltedServiceIdHashKey=" << salted_service_id_hash_key;
+          << service_id_hash_salt
+          << ", saltedServiceIdHashKey=" << salted_service_id_hash_key;
   {
     MutexLock lock(&virtual_socket_mutex_);
     for (auto& [hash_key, virtual_socket] : virtual_sockets_) {
@@ -779,8 +769,7 @@ void MultiplexSocket::ShutdownAll() {
     LOG(ERROR) << "Timeout to close virtual socket";
   }
 
-  LOG(INFO)
-      << "Shutdown single_thread_offloader_ and physical_reader_thread_";
+  LOG(INFO) << "Shutdown single_thread_offloader_ and physical_reader_thread_";
   single_thread_offloader_.Shutdown();
   physical_reader_thread_.Shutdown();
   LOG(INFO) << __func__ << " end";

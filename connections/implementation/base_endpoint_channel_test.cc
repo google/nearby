@@ -98,7 +98,7 @@ std::function<void(const ByteArray&)> MakeDataMonitor(const std::string& label,
       *capture += s;
     }
     LOG(INFO) << "source='" << label << "'"
-                      << "; message='" << s << "'";
+              << "; message='" << s << "'";
   };
 }
 

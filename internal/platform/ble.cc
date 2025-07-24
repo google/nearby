@@ -70,8 +70,8 @@ bool BleMedium::StartScanning(
                 auto context = peripherals_.find(&peripheral);
                 if (context == peripherals_.end()) return;
                 LOG(INFO) << "Removing peripheral="
-                                  << context->second->peripheral.GetName()
-                                  << ", impl=" << &peripheral;
+                          << context->second->peripheral.GetName()
+                          << ", impl=" << &peripheral;
                 discovered_peripheral_callback_.peripheral_lost_cb(
                     context->second->peripheral, service_id);
               },
@@ -103,11 +103,11 @@ bool BleMedium::StartAcceptingConnections(const std::string& service_id,
         auto& context = *pair.first->second;
         if (!pair.second) {
           LOG(INFO) << "Accepting (again) socket=" << &context.socket
-                            << ", impl=" << &socket;
+                    << ", impl=" << &socket;
         } else {
           context.socket = BleSocket(&socket);
-          LOG(INFO)
-              << "Accepting socket=" << &context.socket << ", impl=" << &socket;
+          LOG(INFO) << "Accepting socket=" << &context.socket
+                    << ", impl=" << &socket;
         }
         if (accepted_connection_callback_) {
           accepted_connection_callback_(context.socket, service_id);
@@ -120,8 +120,7 @@ bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
     MutexLock lock(&mutex_);
     accepted_connection_callback_ = nullptr;
     sockets_.clear();
-    LOG(INFO) << "Ble accepted connection disabled: impl="
-                      << &GetImpl();
+    LOG(INFO) << "Ble accepted connection disabled: impl=" << &GetImpl();
   }
   return impl_->StopAcceptingConnections(service_id);
 }
@@ -131,9 +130,8 @@ BleSocket BleMedium::Connect(BlePeripheral& peripheral,
                              CancellationFlag* cancellation_flag) {
   {
     MutexLock lock(&mutex_);
-    LOG(INFO) << "BleMedium::Connect: peripheral="
-                      << peripheral.GetName()
-                      << ",impl=" << &peripheral.GetImpl();
+    LOG(INFO) << "BleMedium::Connect: peripheral=" << peripheral.GetName()
+              << ",impl=" << &peripheral.GetImpl();
   }
   return BleSocket(
       impl_->Connect(peripheral.GetImpl(), service_id, cancellation_flag));

@@ -44,8 +44,8 @@ std::string ConnectionsAuthenticationTransport::ReadMessage() const {
     return response.result().string_data();
   }
   LOG(WARNING) << "ConnectionsAuthenticationTransport: read failed "
-                          "with exception/result: "
-                       << response.exception();
+                  "with exception/result: "
+               << response.exception();
   return "";
 }
 

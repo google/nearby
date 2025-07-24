@@ -93,8 +93,7 @@ void ListenerInitiatedCB(
     NC_INSTANCE instance, int endpoint_id,
     const NC_CONNECTION_RESPONSE_INFO *connection_response_info,
     void *context) {
-  LOG(INFO) << "Advertising initiated: id="
-                    << GetEndpointIdString(endpoint_id);
+  LOG(INFO) << "Advertising initiated: id=" << GetEndpointIdString(endpoint_id);
 
   Dart_CObject dart_object_endpoint_id = {
       .type = Dart_CObject_Type::Dart_CObject_kInt32,
@@ -127,8 +126,7 @@ void ListenerInitiatedCB(
 }
 
 void ListenerAcceptedCB(NC_INSTANCE instance, int endpoint_id, void *context) {
-  LOG(INFO) << "Advertising accepted: id="
-                    << GetEndpointIdString(endpoint_id);
+  LOG(INFO) << "Advertising accepted: id=" << GetEndpointIdString(endpoint_id);
   Dart_CObject dart_object_accepted;
   dart_object_accepted.type = Dart_CObject_kInt32;
   dart_object_accepted.value.as_int32 = endpoint_id;
@@ -142,8 +140,7 @@ void ListenerAcceptedCB(NC_INSTANCE instance, int endpoint_id, void *context) {
 
 void ListenerRejectedCB(NC_INSTANCE instance, int endpoint_id, NC_STATUS status,
                         void *context) {
-  LOG(INFO) << "Advertising rejected: id="
-                    << GetEndpointIdString(endpoint_id);
+  LOG(INFO) << "Advertising rejected: id=" << GetEndpointIdString(endpoint_id);
   Dart_CObject dart_object_rejected;
   dart_object_rejected.type = Dart_CObject_kInt32;
   dart_object_rejected.value.as_int32 = endpoint_id;
@@ -158,7 +155,7 @@ void ListenerRejectedCB(NC_INSTANCE instance, int endpoint_id, NC_STATUS status,
 void ListenerDisconnectedCB(NC_INSTANCE instance, int endpoint_id,
                             void *context) {
   LOG(INFO) << "Advertising disconnected: id="
-                    << GetEndpointIdString(endpoint_id);
+            << GetEndpointIdString(endpoint_id);
   Dart_CObject dart_object_disconnected;
   dart_object_disconnected.type = Dart_CObject_kInt32;
   dart_object_disconnected.value.as_int32 = endpoint_id;
@@ -173,7 +170,7 @@ void ListenerDisconnectedCB(NC_INSTANCE instance, int endpoint_id,
 void ListenerBandwidthChangedCB(NC_INSTANCE instance, int endpoint_id,
                                 NC_MEDIUM medium, void *context) {
   LOG(INFO) << "Advertising bandwidth changed: id="
-                    << GetEndpointIdString(endpoint_id);
+            << GetEndpointIdString(endpoint_id);
   Dart_CObject dart_object_bandwidth_changed;
 
   dart_object_bandwidth_changed.type = Dart_CObject_kInt32;
@@ -189,10 +186,9 @@ void ListenerBandwidthChangedCB(NC_INSTANCE instance, int endpoint_id,
 void ListenerEndpointFoundCB(NC_INSTANCE instance, int endpoint_id,
                              const NC_DATA *endpoint_info,
                              const NC_DATA *service_id, void *context) {
-  LOG(INFO) << "Device discovered: id="
-                    << GetEndpointIdString(endpoint_id);
+  LOG(INFO) << "Device discovered: id=" << GetEndpointIdString(endpoint_id);
   LOG(INFO) << "Device discovered: service_id="
-                    << std::string(service_id->data, service_id->size);
+            << std::string(service_id->data, service_id->size);
 
   std::string endpoint_info_str = absl::BytesToHexString(
       absl::string_view(endpoint_info->data, endpoint_info->size));
@@ -244,7 +240,7 @@ void ListenerEndpointDistanceChangedCB(NC_INSTANCE instance, int endpoint_id,
                                        void *context) {
   (void)distance_info;  // Avoid unused parameter warning
   LOG(INFO) << "Device distance changed: id="
-                    << GetEndpointIdString(endpoint_id);
+            << GetEndpointIdString(endpoint_id);
   Dart_CObject dart_object_distance_changed;
   dart_object_distance_changed.type = Dart_CObject_kInt32;
   dart_object_distance_changed.value.as_int32 = endpoint_id;
@@ -259,9 +255,8 @@ void ListenerEndpointDistanceChangedCB(NC_INSTANCE instance, int endpoint_id,
 void ListenerPayloadCB(NC_INSTANCE instance, int endpoint_id,
                        const NC_PAYLOAD *payload, void *context) {
   LOG(INFO) << "Payload callback called. id: "
-                    << GetEndpointIdString(endpoint_id)
-                    << ", payload_id: " << payload->id
-                    << ", type: " << payload->type;
+            << GetEndpointIdString(endpoint_id)
+            << ", payload_id: " << payload->id << ", type: " << payload->type;
 
   Dart_CObject dart_object_endpoint_id;
   dart_object_endpoint_id.type = Dart_CObject_kInt32;
@@ -361,12 +356,12 @@ void ListenerPayloadProgressCB(
     NC_INSTANCE instance, int endpoint_id,
     const NC_PAYLOAD_PROGRESS_INFO *payload_progress_info, void *context) {
   LOG(INFO) << "Payload progress callback called. id: "
-                    << GetEndpointIdString(endpoint_id)
-                    << ", payload_id: " << payload_progress_info->id
-                    << ", bytes transferred: "
-                    << payload_progress_info->bytes_transferred
-                    << ", total: " << payload_progress_info->total_bytes
-                    << ", status: " << payload_progress_info->status;
+            << GetEndpointIdString(endpoint_id)
+            << ", payload_id: " << payload_progress_info->id
+            << ", bytes transferred: "
+            << payload_progress_info->bytes_transferred
+            << ", total: " << payload_progress_info->total_bytes
+            << ", status: " << payload_progress_info->status;
   Dart_CObject dart_object_endpoint_id;
   dart_object_endpoint_id.type = Dart_CObject_kInt32;
   dart_object_endpoint_id.value.as_int32 = endpoint_id;
@@ -449,8 +444,7 @@ void EnableBleV2Dart(NC_INSTANCE instance, int64_t enable,
                  status);
       },
       nullptr);
-  LOG(INFO) << "EnableBleV2Dart callback is called with enable="
-                    << enable;
+  LOG(INFO) << "EnableBleV2Dart callback is called with enable=" << enable;
 }
 
 void StartAdvertisingDart(NC_INSTANCE instance, DataDart service_id,
@@ -784,9 +778,8 @@ void SendPayloadDart(NC_INSTANCE instance, int endpoint_id,
     }
     case PAYLOAD_TYPE_FILE:
       LOG(INFO) << "File name: "
-                        << std::string(payload_dart.data.data,
-                                       payload_dart.data.size)
-                        << ", size " << payload_dart.size;
+                << std::string(payload_dart.data.data, payload_dart.data.size)
+                << ", size " << payload_dart.size;
       std::string file_name_str(payload_dart.data.data, payload_dart.data.size);
 
       NC_PAYLOAD payload{};

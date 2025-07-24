@@ -39,27 +39,26 @@ void NearbyHttpClient::StartRequest(
     const HttpRequest& request,
     absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback) {
   MutexLock lock(&mutex_);
-  executor_.Execute(
-      [request = std::move(request), callback = std::move(callback)]() mutable {
-        LOG(INFO) << __func__ << ": Start async request to url="
-                          << request.GetUrl().GetUrlPath();
-        absl::StatusOr<HttpResponse> response = InternalGetResponse(request);
-        if (response.ok()) {
-          LOG(INFO)
-              << __func__
-              << ": Got response from url=" << request.GetUrl().GetUrlPath();
-        } else {
-          LOG(ERROR) << __func__ << ": Failed to get response from url="
-                             << request.GetUrl().GetUrlPath() << ", status"
-                             << response.status();
-        }
+  executor_.Execute([request = std::move(request),
+                     callback = std::move(callback)]() mutable {
+    LOG(INFO) << __func__ << ": Start async request to url="
+              << request.GetUrl().GetUrlPath();
+    absl::StatusOr<HttpResponse> response = InternalGetResponse(request);
+    if (response.ok()) {
+      LOG(INFO) << __func__
+                << ": Got response from url=" << request.GetUrl().GetUrlPath();
+    } else {
+      LOG(ERROR) << __func__ << ": Failed to get response from url="
+                 << request.GetUrl().GetUrlPath() << ", status"
+                 << response.status();
+    }
 
-        if (callback) {
-          callback(response);
-        }
-        LOG(INFO) << __func__ << ": Completed request to url="
-                          << request.GetUrl().GetUrlPath();
-      });
+    if (callback) {
+      callback(response);
+    }
+    LOG(INFO) << __func__
+              << ": Completed request to url=" << request.GetUrl().GetUrlPath();
+  });
 }
 
 void NearbyHttpClient::StartCancellableRequest(
@@ -71,63 +70,55 @@ void NearbyHttpClient::StartCancellableRequest(
     callback(absl::InvalidArgumentError("invalid cancellable request"));
     return;
   }
-  executor_
-      .Execute(
-          [cancellable_request = std::move(cancellable_request),
-           callback = std::move(callback)]() mutable {
-            LOG(INFO)
-                << __func__ << ": Start async request to url="
+  executor_.Execute([cancellable_request = std::move(cancellable_request),
+                     callback = std::move(callback)]() mutable {
+    LOG(INFO) << __func__ << ": Start async request to url="
+              << cancellable_request->http_request().GetUrl().GetUrlPath();
+    if (cancellable_request->is_cancelled()) {
+      LOG(WARNING) << __func__ << ": Async request to url="
+                   << cancellable_request->http_request().GetUrl().GetUrlPath()
+                   << " is cancelled.";
+      return;
+    }
+    absl::StatusOr<HttpResponse> response =
+        InternalGetResponse(cancellable_request->http_request());
+    if (response.ok()) {
+      LOG(INFO) << __func__ << ": Got response from url="
                 << cancellable_request->http_request().GetUrl().GetUrlPath();
-            if (cancellable_request->is_cancelled()) {
-              LOG(WARNING)
-                  << __func__ << ": Async request to url="
-                  << cancellable_request->http_request().GetUrl().GetUrlPath()
-                  << " is cancelled.";
-              return;
-            }
-            absl::StatusOr<HttpResponse> response =
-                InternalGetResponse(cancellable_request->http_request());
-            if (response.ok()) {
-              LOG(INFO)
-                  << __func__ << ": Got response from url="
-                  << cancellable_request->http_request().GetUrl().GetUrlPath();
-            } else {
-              LOG(ERROR)
-                  << __func__ << ": Failed to get response from url="
-                  << cancellable_request->http_request().GetUrl().GetUrlPath()
-                  << ", status" << response.status();
-            }
+    } else {
+      LOG(ERROR) << __func__ << ": Failed to get response from url="
+                 << cancellable_request->http_request().GetUrl().GetUrlPath()
+                 << ", status" << response.status();
+    }
 
-            if (cancellable_request->is_cancelled()) {
-              LOG(WARNING)
-                  << __func__ << ": Async request to url="
-                  << cancellable_request->http_request().GetUrl().GetUrlPath()
-                  << " is cancelled.";
-              return;
-            }
+    if (cancellable_request->is_cancelled()) {
+      LOG(WARNING) << __func__ << ": Async request to url="
+                   << cancellable_request->http_request().GetUrl().GetUrlPath()
+                   << " is cancelled.";
+      return;
+    }
 
-            if (callback) {
-              callback(response);
-            }
-            LOG(INFO)
-                << __func__ << ": Completed request to url="
-                << cancellable_request->http_request().GetUrl().GetUrlPath();
-          });
+    if (callback) {
+      callback(response);
+    }
+    LOG(INFO) << __func__ << ": Completed request to url="
+              << cancellable_request->http_request().GetUrl().GetUrlPath();
+  });
 }
 
 absl::StatusOr<HttpResponse> NearbyHttpClient::GetResponse(
     const HttpRequest& request) {
-  LOG(INFO) << __func__ << ": Start request to url="
-                    << request.GetUrl().GetUrlPath();
+  LOG(INFO) << __func__
+            << ": Start request to url=" << request.GetUrl().GetUrlPath();
 
   absl::StatusOr<HttpResponse> response = InternalGetResponse(request);
   if (response.ok()) {
-    LOG(INFO) << __func__ << ": Got response from url="
-                      << request.GetUrl().GetUrlPath();
+    LOG(INFO) << __func__
+              << ": Got response from url=" << request.GetUrl().GetUrlPath();
   } else {
     LOG(ERROR) << __func__ << ": Failed to get response from url="
-                       << request.GetUrl().GetUrlPath() << ", status"
-                       << response.status();
+               << request.GetUrl().GetUrlPath() << ", status"
+               << response.status();
   }
 
   return response;

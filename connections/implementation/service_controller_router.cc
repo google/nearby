@@ -511,7 +511,7 @@ void ServiceControllerRouter::RequestConnectionV3(
             client, remote_device, std::move(old_info), connection_options);
         if (!status.Ok()) {
           LOG(WARNING) << "Unable to request connection to endpoint "
-                               << endpoint_id << ": " << status.ToString();
+                       << endpoint_id << ": " << status.ToString();
           client->CancelEndpoint(endpoint_id);
         }
         callback(status);
@@ -697,8 +697,8 @@ void ServiceControllerRouter::StopAllEndpoints(ClientProxy* client,
       "scr-stop-all-endpoints",
       [this, client, callback = std::move(callback)]() mutable {
         LOG(INFO) << "Client " << client->GetClientId()
-                          << " has requested us to stop all endpoints. We will "
-                             "now reset the client.";
+                  << " has requested us to stop all endpoints. We will "
+                     "now reset the client.";
         FinishClientSession(client);
         callback({Status::kSuccess});
       });
@@ -711,8 +711,7 @@ void ServiceControllerRouter::SetCustomSavePath(ClientProxy* client,
       "scr-set-custom-save-path", [this, client, path = std::string(path),
                                    callback = std::move(callback)]() mutable {
         LOG(INFO) << "Client " << client->GetClientId()
-                          << " has requested us to set custom save path to "
-                          << path;
+                  << " has requested us to set custom save path to " << path;
         GetServiceController()->SetCustomSavePath(client, path);
         callback({Status::kSuccess});
       });

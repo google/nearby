@@ -37,15 +37,14 @@ location::nearby::proto::connections::Medium WifiLanEndpointChannel::GetMedium()
 void WifiLanEndpointChannel::CloseImpl() {
   auto status = socket_.Close();
   if (!status.Ok()) {
-    LOG(INFO)
-        << "Failed to close underlying socket for WifiLanEndpointChannel "
-        << GetName() << " : exception = " << status.value;
+    LOG(INFO) << "Failed to close underlying socket for WifiLanEndpointChannel "
+              << GetName() << " : exception = " << status.value;
   }
 }
 
 bool WifiLanEndpointChannel::EnableMultiplexSocket() {
   LOG(INFO) << "WifiLanEndpointChannel MultiplexSocket will be "
-                       "enabled if the WifiLan MultiplexSocket is valid";
+               "enabled if the WifiLan MultiplexSocket is valid";
   socket_.EnableMultiplexSocket();
   return true;
 }

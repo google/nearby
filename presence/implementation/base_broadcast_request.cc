@@ -93,8 +93,7 @@ absl::StatusOr<BaseBroadcastRequest> BaseBroadcastRequest::Create(
       return absl::InvalidArgumentError("Missing broadcast sections");
     }
     if (presence_request.sections.size() > 1) {
-      LOG(WARNING)
-          << "Only first section is used in BLE 4.2 advertisement";
+      LOG(WARNING) << "Only first section is used in BLE 4.2 advertisement";
     }
     const PresenceBroadcast::BroadcastSection& section =
         presence_request.sections.front();

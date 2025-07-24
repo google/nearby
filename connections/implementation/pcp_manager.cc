@@ -216,7 +216,7 @@ bool PcpManager::SetCurrentPcpHandler(Strategy strategy) {
 
   if (!current_) {
     LOG(ERROR) << "Failed to set current PCP handler: strategy="
-                       << strategy.GetName();
+               << strategy.GetName();
   }
 
   return current_;

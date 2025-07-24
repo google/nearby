@@ -167,7 +167,7 @@ class AwdlServerSocket final {
     std::unique_ptr<api::AwdlSocket> socket = impl_->Accept();
     if (!socket) {
       LOG(INFO) << "AwdlServerSocket Accept() failed on server socket: "
-                        << this;
+                << this;
     }
     return AwdlSocket(std::move(socket));
   }

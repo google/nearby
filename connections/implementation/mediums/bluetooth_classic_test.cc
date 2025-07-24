@@ -269,7 +269,7 @@ TEST_P(BluetoothClassicTest, CanConnect) {
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 latch.CountDown();
               },
       }));
@@ -319,7 +319,7 @@ TEST_P(BluetoothClassicTest, CanCancelBeforeConnect) {
           .device_discovered_cb =
               [&latch, &discovered_device](BluetoothDevice& device) {
                 LOG(INFO) << "Discovered device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 discovered_device = device;
                 latch.CountDown();
               },
@@ -387,7 +387,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect) {
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 latch.CountDown();
               },
       }));
@@ -453,7 +453,7 @@ TEST_P(BluetoothClassicTest, CanCancelDuringConnect_MultipleEndpoints) {
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 latch.CountDown();
               },
       }));
@@ -599,21 +599,21 @@ TEST_F(BluetoothClassicTest, CanDiscoverDeviceChanges) {
               [&discovered_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 discovered_latch.CountDown();
               },
           .device_name_changed_cb =
               [&rename_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Rename device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 rename_latch.CountDown();
               },
           .device_lost_cb =
               [&lost_latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Lost device=" << device.GetName()
-                                  << ", impl=" << &device.GetImpl();
+                          << ", impl=" << &device.GetImpl();
                 lost_latch.CountDown();
               },
       }));
@@ -645,7 +645,7 @@ TEST_F(BluetoothClassicTest, CanStartAcceptingConnections) {
               [&latch, &discovered_device](BluetoothDevice& device) {
                 discovered_device = device;
                 LOG(INFO) << "Discovered device=" << device.GetName()
-                                  << ",impl=" << &device.GetImpl();
+                          << ",impl=" << &device.GetImpl();
                 latch.CountDown();
               },
       }));

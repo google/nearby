@@ -41,9 +41,7 @@ constexpr absl::string_view kDeviceB = "device-b";
 constexpr absl::Duration kDefaultTimeout = absl::Milliseconds(1000);
 
 constexpr BooleanMediumSelector kTestCases[] = {
-  BooleanMediumSelector{
-    .bluetooth = true
-  },
+    BooleanMediumSelector{.bluetooth = true},
 };
 
 class ReconnectSimulatorUser : public SimulationUser {
@@ -75,13 +73,11 @@ class ReconnectManagerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    LOG(INFO) << "EP-B: [discovered]"
-                      << user_b.GetDiscovered().endpoint_id;
+    LOG(INFO) << "EP-B: [discovered]" << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connection_latch_);
     EXPECT_TRUE(connection_latch_.Await(kDefaultTimeout).result());
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    LOG(INFO) << "EP-A: [discovered]"
-                      << user_a.GetDiscovered().endpoint_id;
+    LOG(INFO) << "EP-A: [discovered]" << user_a.GetDiscovered().endpoint_id;
     LOG(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
@@ -98,8 +94,8 @@ class ReconnectManagerTest
 };
 
 TEST_P(ReconnectManagerTest, AllowReconnect) {
-  FeatureFlags::Flags feature_flags = {
-      .enable_cancellation_flag = std::get<1>(GetParam())};
+  FeatureFlags::Flags feature_flags = {.enable_cancellation_flag =
+                                           std::get<1>(GetParam())};
   env_.SetFeatureFlags(feature_flags);
   env_.Start();
 
@@ -111,15 +107,14 @@ TEST_P(ReconnectManagerTest, AllowReconnect) {
   ReconnectManager::AutoReconnectCallback auto_reconnect_callback = {
       .on_reconnect_success_cb =
           [&](ClientProxy* client, const std::string& endpoint_id) {
-            LOG(INFO)
-                << " Reconnect successfully for endpoint_id: " << endpoint_id;
+            LOG(INFO) << " Reconnect successfully for endpoint_id: "
+                      << endpoint_id;
           },
       .on_reconnect_failure_cb =
           [&](ClientProxy* client, const std::string& endpoint_id,
               bool send_disconnection_notification,
               DisconnectionReason disconnection_reason) {
-            LOG(INFO)
-                << " Reconnect failed for endpoint_id: " << endpoint_id;
+            LOG(INFO) << " Reconnect failed for endpoint_id: " << endpoint_id;
           },
   };
 

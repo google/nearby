@@ -109,8 +109,8 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
       config_package_nearby::nearby_connections_feature::
           kSafeToDisconnectVersion);
   LOG(INFO) << "[safe-to-disconnect]: Local enabled: "
-                    << supports_safe_to_disconnect_
-                    << "; Version: " << local_safe_to_disconnect_version_;
+            << supports_safe_to_disconnect_
+            << "; Version: " << local_safe_to_disconnect_version_;
   // Generate a 7 bits dedup value.
   absl::BitGen bitgen;
   dct_dedup_ = absl::Uniform(bitgen, 0, 1 << 7);
@@ -127,21 +127,20 @@ std::string ClientProxy::GetLocalEndpointId() {
     return GetEndpointIdForDct().value();
   } else {
     if (!local_endpoint_id_.empty()) {
-      LOG(INFO) << __func__ << ": Reusing cached endpoint id: "
-                        << local_endpoint_id_;
+      LOG(INFO) << __func__
+                << ": Reusing cached endpoint id: " << local_endpoint_id_;
       return local_endpoint_id_;
     }
     if (external_device_provider_ == nullptr) {
       local_endpoint_id_ = GenerateLocalEndpointId();
-      LOG(INFO) << __func__ << ": Locally generating endpoint id: "
-                        << local_endpoint_id_;
+      LOG(INFO) << __func__
+                << ": Locally generating endpoint id: " << local_endpoint_id_;
     } else {
       local_endpoint_id_ =
           external_device_provider_->GetLocalDevice()->GetEndpointId();
-      LOG(INFO)
-          << __func__
-          << ": From external device provider, populating endpoint id: "
-          << local_endpoint_id_;
+      LOG(INFO) << __func__
+                << ": From external device provider, populating endpoint id: "
+                << local_endpoint_id_;
     }
     return local_endpoint_id_;
   }
@@ -184,10 +183,10 @@ std::string ClientProxy::GenerateLocalEndpointId() {
     if (!cached_endpoint_id_.empty()) {
       if (stable_endpoint_id_mode_) {
         LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
-                             "endpoint id due to in stable endpoint id mode]: "
-                             "client="
-                          << GetClientId()
-                          << "; cached_endpoint_id_=" << cached_endpoint_id_;
+                     "endpoint id due to in stable endpoint id mode]: "
+                     "client="
+                  << GetClientId()
+                  << "; cached_endpoint_id_=" << cached_endpoint_id_;
         return cached_endpoint_id_;
       }
     }
@@ -195,9 +194,9 @@ std::string ClientProxy::GenerateLocalEndpointId() {
     if (high_vis_mode_) {
       if (!cached_endpoint_id_.empty()) {
         LOG(INFO) << "ClientProxy [Local Endpoint Re-using cached "
-                             "endpoint id]: client="
-                          << GetClientId()
-                          << "; cached_endpoint_id_=" << cached_endpoint_id_;
+                     "endpoint id]: client="
+                  << GetClientId()
+                  << "; cached_endpoint_id_=" << cached_endpoint_id_;
         return cached_endpoint_id_;
       }
     }
@@ -231,8 +230,7 @@ void ClientProxy::StartedAdvertising(
         operation_result_with_mediums,
     const AdvertisingOptions& advertising_options) {
   MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [StartedAdvertising]: client="
-                    << GetClientId();
+  LOG(INFO) << "ClientProxy [StartedAdvertising]: client=" << GetClientId();
 
   if (IsFeatureUseStableEndpointIdEnabled()) {
     if (stable_endpoint_id_mode_) {
@@ -268,8 +266,7 @@ void ClientProxy::StartedAdvertising(
 
 void ClientProxy::StoppedAdvertising() {
   MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [StoppedAdvertising]: client="
-                    << GetClientId();
+  LOG(INFO) << "ClientProxy [StoppedAdvertising]: client=" << GetClientId();
 
   if (IsAdvertising()) {
     advertising_info_.Clear();
@@ -436,16 +433,14 @@ void ClientProxy::OnEndpointFound(
     location::nearby::proto::connections::Medium medium) {
   MutexLock lock(&mutex_);
 
-  LOG(INFO) << "ClientProxy [Endpoint Found]: [enter] id="
-                    << endpoint_id << "; service=" << service_id
-                    << "; info=" << absl::BytesToHexString(endpoint_info.data())
-                    << "; medium="
-                    << location::nearby::proto::connections::Medium_Name(
-                           medium);
+  LOG(INFO) << "ClientProxy [Endpoint Found]: [enter] id=" << endpoint_id
+            << "; service=" << service_id
+            << "; info=" << absl::BytesToHexString(endpoint_info.data())
+            << "; medium="
+            << location::nearby::proto::connections::Medium_Name(medium);
   if (!IsDiscoveringServiceId(service_id)) {
     LOG(INFO) << "ClientProxy [Endpoint Found]: Ignoring event for id="
-                      << endpoint_id
-                      << " because this client is not discovering.";
+              << endpoint_id << " because this client is not discovering.";
     return;
   }
 
@@ -467,11 +462,10 @@ void ClientProxy::OnEndpointLost(const std::string& service_id,
   MutexLock lock(&mutex_);
 
   LOG(INFO) << "ClientProxy [Endpoint Lost]: [enter] id=" << endpoint_id
-                    << "; service=" << service_id;
+            << "; service=" << service_id;
   if (!IsDiscoveringServiceId(service_id)) {
     LOG(INFO) << "ClientProxy [Endpoint Lost]: Ignoring event for id="
-                      << endpoint_id
-                      << " because this client is not discovering.";
+              << endpoint_id << " because this client is not discovering.";
     return;
   }
 
@@ -520,10 +514,9 @@ void ClientProxy::OnConnectionInitiated(
   // (can not use c++17 features, until chromium does) we unpack manually.
   auto& pair_iter = result.first;
   bool inserted = result.second;
-  LOG(INFO)
-      << "ClientProxy [Connection Initiated]: add Connection: client="
-      << GetClientId() << "; endpoint_id=" << endpoint_id
-      << "; inserted=" << inserted;
+  LOG(INFO) << "ClientProxy [Connection Initiated]: add Connection: client="
+            << GetClientId() << "; endpoint_id=" << endpoint_id
+            << "; inserted=" << inserted;
   DCHECK(inserted);
   const ConnectionPair& item = pair_iter->second;
   // Notify the client.
@@ -547,8 +540,8 @@ void ClientProxy::OnConnectionAccepted(const std::string& endpoint_id) {
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
     LOG(INFO) << "ClientProxy [Connection Accepted]: no pending "
-                         "connection; endpoint_id="
-                      << endpoint_id;
+                 "connection; endpoint_id="
+              << endpoint_id;
     return;
   }
 
@@ -567,8 +560,8 @@ void ClientProxy::OnConnectionRejected(const std::string& endpoint_id,
 
   if (!HasPendingConnectionToEndpoint(endpoint_id)) {
     LOG(INFO) << "ClientProxy [Connection Rejected]: no pending "
-                         "connection; endpoint_id="
-                      << endpoint_id;
+                 "connection; endpoint_id="
+              << endpoint_id;
     return;
   }
 
@@ -591,7 +584,7 @@ void ClientProxy::OnBandwidthChanged(const std::string& endpoint_id,
     item->first.connection_listener.bandwidth_changed_cb(endpoint_id,
                                                          new_medium);
     LOG(INFO) << "ClientProxy [reporting onBandwidthChanged]: client="
-                      << GetClientId() << "; endpoint_id=" << endpoint_id;
+              << GetClientId() << "; endpoint_id=" << endpoint_id;
   }
 }
 
@@ -1040,9 +1033,9 @@ void ClientProxy::OnPayload(const std::string& endpoint_id, Payload payload) {
         LookupConnection(endpoint_id);
     if (item != nullptr) {
       LOG(INFO) << "ClientProxy [reporting onPayloadReceived]: client="
-                        << GetClientId() << "; endpoint_id=" << endpoint_id
-                        << " ; payload {id:" << payload.GetId()
-                        << ", type:" << payload.GetType() << "}";
+                << GetClientId() << "; endpoint_id=" << endpoint_id
+                << " ; payload {id:" << payload.GetId()
+                << ", type:" << payload.GetType() << "}";
       item->second.payload_cb(endpoint_id, std::move(payload));
     }
   }
@@ -1072,15 +1065,14 @@ void ClientProxy::OnPayloadProgress(const std::string& endpoint_id,
 
       if (info.status == PayloadProgressInfo::Status::kInProgress) {
         VLOG(1) << "ClientProxy [reporting onPayloadProgress]: client="
-                       << GetClientId() << "; endpoint_id=" << endpoint_id
-                       << "; payload_id=" << info.payload_id
-                       << ", payload_status=" << ToString(info.status);
+                << GetClientId() << "; endpoint_id=" << endpoint_id
+                << "; payload_id=" << info.payload_id
+                << ", payload_status=" << ToString(info.status);
       } else {
-        LOG(INFO)
-            << "ClientProxy [reporting onPayloadProgress]: client="
-            << GetClientId() << "; endpoint_id=" << endpoint_id
-            << "; payload_id=" << info.payload_id
-            << ", payload_status=" << ToString(info.status);
+        LOG(INFO) << "ClientProxy [reporting onPayloadProgress]: client="
+                  << GetClientId() << "; endpoint_id=" << endpoint_id
+                  << "; payload_id=" << info.payload_id
+                  << ", payload_status=" << ToString(info.status);
       }
     }
   }
@@ -1142,15 +1134,14 @@ v3::ConnectionListeningOptions ClientProxy::GetListeningOptions() const {
 void ClientProxy::EnterHighVisibilityMode() {
   MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [EnterHighVisibilityMode]: client="
-                    << GetClientId();
+            << GetClientId();
 
   high_vis_mode_ = true;
 }
 
 void ClientProxy::ExitHighVisibilityMode() {
   MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [ExitHighVisibilityMode]: client="
-                    << GetClientId();
+  LOG(INFO) << "ClientProxy [ExitHighVisibilityMode]: client=" << GetClientId();
 
   high_vis_mode_ = false;
   ScheduleClearCachedEndpointIdAlarm();
@@ -1159,7 +1150,7 @@ void ClientProxy::ExitHighVisibilityMode() {
 void ClientProxy::EnterStableEndpointIdMode() {
   MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [EnterStableEndpointIdMode]: client="
-                    << GetClientId();
+            << GetClientId();
 
   stable_endpoint_id_mode_ = true;
 }
@@ -1167,7 +1158,7 @@ void ClientProxy::EnterStableEndpointIdMode() {
 void ClientProxy::ExitStableEndpointIdMode() {
   MutexLock lock(&mutex_);
   LOG(INFO) << "ClientProxy [ExitStableEndpointIdMode]: client="
-                    << GetClientId();
+            << GetClientId();
 
   stable_endpoint_id_mode_ = false;
   ScheduleClearCachedEndpointIdAlarm();
@@ -1178,38 +1169,34 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
 
   if (cached_endpoint_id_.empty()) {
     VLOG(1) << "ClientProxy [There is no cached local high power "
-                      "advertising endpoint Id]: client="
-                   << GetClientId();
+               "advertising endpoint Id]: client="
+            << GetClientId();
     return;
   }
 
   if (IsFeatureUseStableEndpointIdEnabled() && HasOngoingConnection()) {
     VLOG(1) << "ClientProxy [Handle clearing cached endpoint ID "
-                      "during disconnection]: client="
-                   << GetClientId();
+               "during disconnection]: client="
+            << GetClientId();
     return;
   }
 
   // Schedule to clear cache high visibility mode advertisement endpoint id in
   // 30s.
   LOG(INFO) << "ClientProxy [High Visibility Mode Adv, Schedule to "
-                       "Clear Cache EndpointId]: client="
-                    << GetClientId()
-                    << "; cached_endpoint_id_=" << cached_endpoint_id_;
-  cached_endpoint_id_alarm_ =
-      std::make_unique<CancelableAlarm>(
-          "clear_high_power_endpoint_id_cache",
-          [this]() {
-            MutexLock lock(&mutex_);
-            LOG(INFO)
-                << "ClientProxy [Cleared cached local high power advertising "
-                   "endpoint Id.]: client="
-                << GetClientId()
-                << "; cached_endpoint_id_=" << cached_endpoint_id_;
-            cached_endpoint_id_.clear();
-          },
-          kHighPowerAdvertisementEndpointIdCacheTimeout,
-          &single_thread_executor_);
+               "Clear Cache EndpointId]: client="
+            << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
+  cached_endpoint_id_alarm_ = std::make_unique<CancelableAlarm>(
+      "clear_high_power_endpoint_id_cache",
+      [this]() {
+        MutexLock lock(&mutex_);
+        LOG(INFO) << "ClientProxy [Cleared cached local high power advertising "
+                     "endpoint Id.]: client="
+                  << GetClientId()
+                  << "; cached_endpoint_id_=" << cached_endpoint_id_;
+        cached_endpoint_id_.clear();
+      },
+      kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
 }
 
 void ClientProxy::CancelClearCachedEndpointIdAlarm() {
@@ -1250,7 +1237,7 @@ std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
              ? kWifiLanMultiplexEnabled
              : 0);
     LOG(INFO) << "ClientProxy [GetLocalMultiplexSocketBitmask]: "
-                      << multiplex_bitmask;
+              << multiplex_bitmask;
     return multiplex_bitmask;
   }
   return 0;
@@ -1263,7 +1250,7 @@ void ClientProxy::SetRemoteMultiplexSocketBitmask(
     item->first.remote_multiplex_socket_bitmask =
         remote_multiplex_socket_bitmask;
     LOG(INFO) << "ClientProxy [SetRemoteMultiplexSocketBitmask]: "
-                      << remote_multiplex_socket_bitmask;
+              << remote_multiplex_socket_bitmask;
   }
 }
 
@@ -1272,7 +1259,7 @@ bool ClientProxy::IsLocalMultiplexSocketSupported(Medium medium) {
   switch (medium) {
     case Medium::BLUETOOTH:
       LOG(INFO) << "ClientProxy [IsLocalMultiplexSocketSupported]: "
-                        << (bitmask & kBtMultiplexEnabled);
+                << (bitmask & kBtMultiplexEnabled);
       return (bitmask & kBtMultiplexEnabled) != 0;
     case Medium::WIFI_LAN:
       return (bitmask & kWifiLanMultiplexEnabled) != 0;
@@ -1315,7 +1302,7 @@ void ClientProxy::SetWebRtcNonCellular(bool webrtc_non_cellular) {
   std::string allow_webrtc_cellular_str =
       webrtc_non_cellular ? "disallow" : "allow";
   LOG(INFO) << "ClientProxy: client=" << GetClientId()
-                    << allow_webrtc_cellular_str << " to use mobile data.",
+            << allow_webrtc_cellular_str << " to use mobile data.",
       webrtc_non_cellular_ = webrtc_non_cellular;
 }
 

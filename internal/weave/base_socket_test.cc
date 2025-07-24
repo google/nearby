@@ -94,9 +94,7 @@ class FakeSocket : public BaseSocket {
   explicit FakeSocket(const Connection& connection,
                       SocketCallback&& socketCallback)
       : BaseSocket(connection, std::move(socketCallback)) {}
-  ~FakeSocket() override {
-    ShutDown();
-  }
+  ~FakeSocket() override { ShutDown(); }
   MOCK_METHOD(void, Connect, (), (override));
   void OnReceiveControlPacket(Packet packet) override {
     control_packets_.push_back(std::move(packet));

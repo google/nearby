@@ -206,7 +206,7 @@ ExceptionOr<OfflineFrame> EndpointManager::TryDecryptFrame(
     ExceptionOr<ByteArray> decrypted = endpoint_channel->TryDecrypt(data);
     if (decrypted.ok()) {
       VLOG(1) << "Message decrypted after "
-                     << SystemClock::ElapsedRealtime() - start_time;
+              << SystemClock::ElapsedRealtime() - start_time;
       return parser::FromBytes(decrypted.result());
     }
     if (decrypted.exception() == Exception::kExecution) {
@@ -608,7 +608,7 @@ void EndpointManager::RegisterEndpoint(
         // and they will happily keep writing to /dev/null. This is why we
         // listen for the pong.
         VLOG(1) << "EndpointManager enabling KeepAlive for endpoint "
-                       << endpoint_id;
+                << endpoint_id;
         endpoint_state.StartEndpointKeepAliveManager(
             [this, client, endpoint_id, keep_alive_interval,
              keep_alive_timeout](Mutex* keep_alive_waiter_mutex,

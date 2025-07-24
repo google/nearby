@@ -65,11 +65,10 @@ bool AdvertisementFilter::MatchesScanFilter(
       !(std::find(
             requested_identity_types.begin(), requested_identity_types.end(),
             advertisement.identity_type) != requested_identity_types.end())) {
-    LOG(INFO)
-        << "Skipping advertisement with identity type: "
-        << advertisement.identity_type
-        << " because that identity type was not requested in the scan "
-           "request";
+    LOG(INFO) << "Skipping advertisement with identity type: "
+              << advertisement.identity_type
+              << " because that identity type was not requested in the scan "
+                 "request";
     return false;
   }
 

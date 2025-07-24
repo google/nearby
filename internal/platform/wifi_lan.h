@@ -164,8 +164,8 @@ class WifiLanServerSocket final {
   WifiLanSocket Accept() {
     std::unique_ptr<api::WifiLanSocket> socket = impl_->Accept();
     if (!socket) {
-      LOG(INFO)
-          << "WifiLanServerSocket Accept() failed on server socket: " << this;
+      LOG(INFO) << "WifiLanServerSocket Accept() failed on server socket: "
+                << this;
     }
     return WifiLanSocket(std::move(socket));
   }

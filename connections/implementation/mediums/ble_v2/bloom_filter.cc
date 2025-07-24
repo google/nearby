@@ -39,8 +39,8 @@ BloomFilter::BloomFilter(std::unique_ptr<BitSet> bit_set,
   // If the size is not matched, fall out.
   if (bytes.size() * 8 != bit_set_->Size()) {
     LOG(INFO) << "Cannot construct from bytes since the size is not "
-                         "matched. bytes.size(x8) = "
-                      << bytes.size() << ", bit_set.size=" << bit_set_->Size();
+                 "matched. bytes.size(x8) = "
+              << bytes.size() << ", bit_set.size=" << bit_set_->Size();
     return;
   }
   for (size_t byte_index = 0; byte_index < bytes.size(); byte_index++) {

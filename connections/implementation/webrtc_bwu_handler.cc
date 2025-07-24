@@ -88,34 +88,31 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
   if (web_rtc_credentials.has_location_hint()) {
     location_hint = web_rtc_credentials.location_hint();
   }
-  LOG(INFO)
-      << "WebRtcBwuHandler is attempting to connect to remote peer "
-      << peer_id.GetId() << ", location hint "
-      << absl::StrCat(location_hint.location());
+  LOG(INFO) << "WebRtcBwuHandler is attempting to connect to remote peer "
+            << peer_id.GetId() << ", location hint "
+            << location_hint.location();
 
   ErrorOr<mediums::WebRtcSocketWrapper> socket_result = webrtc_.Connect(
       service_id, peer_id, location_hint,
       client->GetCancellationFlag(endpoint_id), client->GetWebRtcNonCellular());
   if (socket_result.has_error()) {
     LOG(ERROR) << "WebRtcBwuHandler failed to connect to remote peer ("
-                       << peer_id.GetId() << ") on endpoint " << endpoint_id
-                       << ", aborting upgrade.";
+               << peer_id.GetId() << ") on endpoint " << endpoint_id
+               << ", aborting upgrade.";
     return {Error(socket_result.error().operation_result_code().value())};
   }
 
   LOG(INFO) << "WebRtcBwuHandler successfully connected to remote "
-                       "peer ("
-                    << peer_id.GetId() << ") while upgrading endpoint "
-                    << endpoint_id;
+               "peer ("
+            << peer_id.GetId() << ") while upgrading endpoint " << endpoint_id;
 
   // Create a new WebRtcEndpointChannel.
   auto channel = std::make_unique<WebRtcEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
     socket_result.value().Close();
-    LOG(ERROR)
-        << "WebRtcBwuHandler failed to create new EndpointChannel for "
-           "outgoing socket, aborting upgrade.";
+    LOG(ERROR) << "WebRtcBwuHandler failed to create new EndpointChannel for "
+                  "outgoing socket, aborting upgrade.";
     return {Error(
         OperationResultCode::NEARBY_WEB_RTC_ENDPOINT_CHANNEL_CREATION_FAILURE)};
   }
@@ -126,9 +123,8 @@ WebrtcBwuHandler::CreateUpgradedEndpointChannel(
 void WebrtcBwuHandler::HandleRevertInitiatorStateForService(
     const std::string& upgrade_service_id) {
   webrtc_.StopAcceptingConnections(upgrade_service_id);
-  LOG(INFO)
-      << "WebrtcBwuHandler successfully reverted state for service "
-      << upgrade_service_id;
+  LOG(INFO) << "WebrtcBwuHandler successfully reverted state for service "
+            << upgrade_service_id;
 }
 
 // Called by BWU initiator. Set up WebRTC upgraded medium for this endpoint,
@@ -148,15 +144,15 @@ ByteArray WebrtcBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
                              this, client),
             client->GetWebRtcNonCellular())) {
       LOG(ERROR) << "WebRtcBwuHandler couldn't initiate the WEB_RTC "
-                            "upgrade for endpoint "
-                         << endpoint_id
-                         << " because it failed to start listening for "
-                            "incoming WebRTC connections.";
+                    "upgrade for endpoint "
+                 << endpoint_id
+                 << " because it failed to start listening for "
+                    "incoming WebRTC connections.";
       return {};
     }
     LOG(INFO) << "WebRtcBwuHandler successfully started listening for "
-                         "incoming WebRTC connections while upgrading endpoint "
-                      << endpoint_id;
+                 "incoming WebRTC connections while upgrading endpoint "
+              << endpoint_id;
   }
 
   return parser::ForBwuWebrtcPathAvailable(self_id.GetId(), location_hint);

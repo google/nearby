@@ -98,18 +98,18 @@ class ScanManagerTest : public testing::Test {
   }
 
   ScanCallback MakeDefaultScanCallback() {
-    return {.start_scan_cb =
-                [this](absl::Status status) {
-                  if (status.ok()) {
-                    start_latch_.CountDown();
-                  }
-                },
-            .on_discovered_cb =
-                [this](PresenceDevice pd) { found_latch_.CountDown(); },
-            .on_updated_cb =
-                [this](PresenceDevice pd) { updated_latch_.CountDown(); },
-            .on_lost_cb =
-                [this](PresenceDevice pd) { lost_latch_.CountDown(); }};
+    return {
+        .start_scan_cb =
+            [this](absl::Status status) {
+              if (status.ok()) {
+                start_latch_.CountDown();
+              }
+            },
+        .on_discovered_cb =
+            [this](PresenceDevice pd) { found_latch_.CountDown(); },
+        .on_updated_cb =
+            [this](PresenceDevice pd) { updated_latch_.CountDown(); },
+        .on_lost_cb = [this](PresenceDevice pd) { lost_latch_.CountDown(); }};
   }
 
   std::vector<nearby::internal::IdentityType> MakeDefaultIdentityTypes() {
@@ -319,8 +319,7 @@ TEST_F(ScanManagerTest, StopOneSessionFromAnotherDeadlock) {
                                          },
                                      .on_discovered_cb =
                                          [&](PresenceDevice pd) {
-                                           LOG(INFO)
-                                               << "scansession2 found";
+                                           LOG(INFO) << "scansession2 found";
                                            found_latch2.CountDown();
                                            manager.StopScan(scan_session);
                                          }};

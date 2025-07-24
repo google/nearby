@@ -1302,8 +1302,7 @@ void MediumEnvironment::UnregisterGattServer(api::ble_v2::BleMedium& medium) {
     }
     auto& context = it->second;
     LOG(INFO) << "Unregistered GattServer for peripheral id:"
-              << context.ble_peripheral_id
-              << " on medium:" << &medium;
+              << context.ble_peripheral_id << " on medium:" << &medium;
     context.gatt_server = nullptr;
     context.ble_peripheral_id = 0LL;
     latch.CountDown();

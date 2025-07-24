@@ -64,7 +64,7 @@ absl::Status AppendDataElement(unsigned data_type,
   auto header = CreateDataElementHeader(data_element.size(), data_type);
   if (!header.ok()) {
     LOG(WARNING) << "Can't add Data element type: " << data_type
-                         << ", length: " << data_element.size();
+                 << ", length: " << data_element.size();
     return header.status();
   }
   output.push_back(*header);
@@ -152,7 +152,7 @@ AdvertisementFactory::CreateBaseNpAdvertisement(
       return result;
     }
     VLOG(1) << "Unencrypted advertisement payload "
-                   << absl::BytesToHexString(unencrypted);
+            << absl::BytesToHexString(unencrypted);
     absl::StatusOr<std::string> encrypted =
         EncryptDataElements(*credential, request.salt, unencrypted);
     if (!encrypted.ok()) {

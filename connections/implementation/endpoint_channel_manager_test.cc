@@ -103,7 +103,7 @@ std::function<void(const ByteArray&)> MakeDataMonitor(absl::string_view label,
       *capture += s;
     }
     LOG(INFO) << "source='" << label << "'"
-                      << "; message='" << s << "'";
+              << "; message='" << s << "'";
   };
 }
 
@@ -243,11 +243,11 @@ TEST(BaseEndpointChannelManagerTest, RegisterChannelEncryptedReadwrite) {
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
   ecm_a.UnregisterChannelForEndpoint(
-        std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
   ecm_b.UnregisterChannelForEndpoint(
-        std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
 }
 
 TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
@@ -311,11 +311,12 @@ TEST(BaseEndpointChannelManagerTest, ReplaceChannelNoEncrypted) {
   channel_a_raw->Close(DisconnectionReason::LOCAL_DISCONNECTION);
   channel_b_raw->Close(DisconnectionReason::REMOTE_DISCONNECTION);
   ecm_a.UnregisterChannelForEndpoint(
-        std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+      std::string(kEndpointId), DisconnectionReason::LOCAL_DISCONNECTION,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
   ecm_b.UnregisterChannelForEndpoint(
-        std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
-        ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);}
+      std::string(kEndpointId), DisconnectionReason::REMOTE_DISCONNECTION,
+      ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+}
 
 }  // namespace
 }  // namespace connections

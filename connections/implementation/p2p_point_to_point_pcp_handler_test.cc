@@ -21,7 +21,6 @@
 #include <tuple>
 
 #include "gtest/gtest.h"
-
 #include "absl/time/time.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -199,10 +198,9 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
                             const std::string& endpoint_id,
                             const ByteArray& endpoint_info,
                             const std::string& service_id) {
-                          LOG(INFO)
-                              << "Device discovered: id=" << endpoint_id
-                              << ", endpoint_info="
-                              << endpoint_info.AsStringView();
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id
+                                    << ", endpoint_info="
+                                    << endpoint_info.AsStringView();
                           discovered = {
                               .endpoint_id = endpoint_id,
                               .endpoint_info = endpoint_info,
@@ -235,8 +233,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
                .initiated_cb =
                    [&connect_latch](const std::string& endpoint_id,
                                     const ConnectionResponseInfo& info) {
-                     LOG(INFO)
-                         << "RequestConnection: initiated_cb called";
+                     LOG(INFO) << "RequestConnection: initiated_cb called";
                      connect_latch.CountDown();
                    },
            }},

@@ -122,8 +122,7 @@ class WifiDirectServerSocket final {
   WifiDirectSocket Accept() {
     std::unique_ptr<api::WifiDirectSocket> socket = impl_->Accept();
     if (!socket) {
-      LOG(INFO)
-          << "WifiDirectServerSocket Accept() failed on server socket: ";
+      LOG(INFO) << "WifiDirectServerSocket Accept() failed on server socket: ";
     }
     return WifiDirectSocket(std::move(socket));
   }

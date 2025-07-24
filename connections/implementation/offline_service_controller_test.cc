@@ -97,7 +97,8 @@ class OfflineServiceControllerTest
         config_package_nearby::nearby_connections_feature::kEnableBleV2, true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
-            kEnableSafeToDisconnect, false);
+            kEnableSafeToDisconnect,
+        false);
   }
   bool SetupConnection(OfflineSimulationUser& user_a,
                        OfflineSimulationUser& user_b) {
@@ -107,13 +108,11 @@ class OfflineServiceControllerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    LOG(INFO) << "EP-B: [discovered] "
-                      << user_b.GetDiscovered().endpoint_id;
+    LOG(INFO) << "EP-B: [discovered] " << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connect_latch_);
     EXPECT_TRUE(connect_latch_.Await(kLongTimeout));
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    LOG(INFO) << "EP-A: [discovered] "
-                      << user_a.GetDiscovered().endpoint_id;
+    LOG(INFO) << "EP-A: [discovered] " << user_a.GetDiscovered().endpoint_id;
     LOG(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);

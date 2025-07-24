@@ -807,10 +807,9 @@ class BasePcpHandlerTest
                     .endpoint_channel = nullptr,
                 };
               } else {
-                LOG(INFO)
-                    << "Connect with Medium: "
-                    << location::nearby::proto::connections::Medium_Name(
-                           endpoint->medium);
+                LOG(INFO) << "Connect with Medium: "
+                          << location::nearby::proto::connections::Medium_Name(
+                                 endpoint->medium);
                 return MockPcpHandler::ConnectImplResult{
                     .medium = endpoint->medium,
                     .status = {Status::kSuccess},

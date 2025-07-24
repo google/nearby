@@ -84,8 +84,8 @@ ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   int freq = wifi_direct_crendential->GetFrequency();
 
   LOG(INFO) << "Start WifiDirect GO with SSID: " << ssid
-                    << ",  Password: " << password << ",  Port: " << port
-                    << ",  Gateway: " << gateway << ", Frequency: " << freq;
+            << ",  Password: " << password << ",  Port: " << port
+            << ",  Gateway: " << gateway << ", Frequency: " << freq;
 
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
@@ -100,9 +100,8 @@ void WifiDirectBwuHandler::HandleRevertInitiatorStateForService(
   wifi_direct_medium_.StopWifiDirect();
   wifi_direct_medium_.DisconnectWifiDirect();
 
-  LOG(INFO)
-      << "WifiDirectBwuHandler successfully reverted all states for "
-      << "upgrade service ID " << upgrade_service_id;
+  LOG(INFO) << "WifiDirectBwuHandler successfully reverted all states for "
+            << "upgrade service ID " << upgrade_service_id;
 }
 
 ErrorOr<std::unique_ptr<EndpointChannel>>
@@ -123,8 +122,8 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
   const std::string& gateway = upgrade_path_info_credentials.gateway();
 
   LOG(INFO) << "Received WifiDirect credential SSID: " << ssid
-                    << ",  Password:" << password << ",  Port:" << port
-                    << ",  Gateway:" << gateway;
+            << ",  Password:" << password << ",  Port:" << port
+            << ",  Gateway:" << gateway;
 
   if (!wifi_direct_medium_.ConnectWifiDirect(ssid, password)) {
     LOG(ERROR) << "Connect to WifiDiret GO failed";
@@ -147,7 +146,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
 
   // Create a new WifiDirectEndpointChannel.
   return {std::make_unique<WifiDirectEndpointChannel>(
-              service_id, /*channel_name=*/service_id, socket_result.value())};
+      service_id, /*channel_name=*/service_id, socket_result.value())};
 }
 
 void WifiDirectBwuHandler::OnIncomingWifiDirectConnection(

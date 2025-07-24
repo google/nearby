@@ -27,9 +27,9 @@ namespace nearby {
 
 BlockingQueueStream::BlockingQueueStream() {
   LOG(INFO) << "Create a BlockingQueueStream with size "
-                    << FeatureFlags::GetInstance()
-                           .GetFlags()
-                           .blocking_queue_stream_queue_capacity;
+            << FeatureFlags::GetInstance()
+                   .GetFlags()
+                   .blocking_queue_stream_queue_capacity;
 }
 
 ExceptionOr<ByteArray> BlockingQueueStream::Read(std::int64_t size) {
@@ -39,8 +39,7 @@ ExceptionOr<ByteArray> BlockingQueueStream::Read(std::int64_t size) {
   }
 
   if (is_closed_) {
-    LOG(INFO)
-        << "Failed to read BlockingQueueStream because it was closed.";
+    LOG(INFO) << "Failed to read BlockingQueueStream because it was closed.";
     return ExceptionOr<ByteArray>(Exception::kIo);
   }
 
@@ -67,8 +66,7 @@ void BlockingQueueStream::Write(const ByteArray& bytes) {
     return;
   }
   if (is_closed_) {
-    LOG(INFO)
-        << "Failed to write BlockingQueueStream because it was closed.";
+    LOG(INFO) << "Failed to write BlockingQueueStream because it was closed.";
     return;
   }
   is_writing_ = true;

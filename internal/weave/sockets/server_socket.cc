@@ -87,9 +87,9 @@ void ServerSocket::OnReceiveControlPacket(Packet packet) {
   // after the initial handshake.
   if (state_ != State::kClientConnectionRequest) {
     LOG(ERROR) << "Not in 'Connection Request' state, but "
-                          "incorrectly received control packet of type "
-                       << Packet::ControlPacketTypeToString(
-                              packet.GetControlCommandNumber());
+                  "incorrectly received control packet of type "
+               << Packet::ControlPacketTypeToString(
+                      packet.GetControlCommandNumber());
     GetSocketCallback().on_error_cb(
         absl::InvalidArgumentError("Unexpected control packet"));
     return;
@@ -97,9 +97,9 @@ void ServerSocket::OnReceiveControlPacket(Packet packet) {
   if (packet.GetControlCommandNumber() !=
       Packet::ControlPacketType::kControlConnectionRequest) {
     LOG(ERROR) << "Expected connection request control packet, "
-                          "received control packet of type "
-                       << Packet::ControlPacketTypeToString(
-                              packet.GetControlCommandNumber());
+                  "received control packet of type "
+               << Packet::ControlPacketTypeToString(
+                      packet.GetControlCommandNumber());
     DisconnectInternal(
         absl::InvalidArgumentError("Unexpected control packet type."));
     return;
@@ -117,8 +117,7 @@ void ServerSocket::OnReceiveControlPacket(Packet packet) {
   if (min_protocol_version > kProtocolVersion ||
       max_protocol_version < kProtocolVersion) {
     LOG(ERROR) << "Received unexpected min/max protocol versions: "
-                       << min_protocol_version << " and "
-                       << max_protocol_version;
+               << min_protocol_version << " and " << max_protocol_version;
     DisconnectInternal(
         absl::InvalidArgumentError("unexpected protocol versions"));
     return;
@@ -145,7 +144,7 @@ void ServerSocket::WriteConnectionConfirm() {
       kProtocolVersion, max_packet_size_, "");
   if (!packet.ok()) {
     LOG(ERROR) << "Failed to create connection confirm packet: "
-                       << packet.status();
+               << packet.status();
     DisconnectInternal(packet.status());
     return;
   }

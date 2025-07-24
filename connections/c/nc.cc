@@ -283,8 +283,7 @@ void NcCloseService(NC_INSTANCE instance) {
   }
 
   nc_context->core->StopAllEndpoints([](::nearby::connections::Status status) {
-    LOG(INFO) << "Stopping all endpoints with status "
-                      << status.ToString();
+    LOG(INFO) << "Stopping all endpoints with status " << status.ToString();
   });
 
   kNcContextMap->erase(nc_context->core);

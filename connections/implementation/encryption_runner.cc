@@ -73,10 +73,9 @@ bool HandleEncryptionSuccess(const std::string& endpoint_id,
 void CancelableAlarmRunnable(ClientProxy* client,
                              const std::string& endpoint_id,
                              EndpointChannel* endpoint_channel) {
-  LOG(INFO) << "Timing out encryption for client "
-                    << client->GetClientId()
-                    << " to endpoint_id=" << endpoint_id << " after "
-                    << absl::FormatDuration(kTimeout);
+  LOG(INFO) << "Timing out encryption for client " << client->GetClientId()
+            << " to endpoint_id=" << endpoint_id << " after "
+            << absl::FormatDuration(kTimeout);
   endpoint_channel->Close();
 }
 
@@ -126,9 +125,8 @@ class ServerRunnable final {
       return;
     }
 
-    LOG(INFO)
-        << "In StartServer(), read UKEY2 Message 1 from endpoint(id="
-        << endpoint_id_ << ").";
+    LOG(INFO) << "In StartServer(), read UKEY2 Message 1 from endpoint(id="
+              << endpoint_id_ << ").";
 
     // Message 2 (Server Init)
     std::unique_ptr<std::string> server_init =
@@ -149,9 +147,8 @@ class ServerRunnable final {
       return;
     }
 
-    LOG(INFO)
-        << "In StartServer(), wrote UKEY2 Message 2 to endpoint(id="
-        << endpoint_id_ << ").";
+    LOG(INFO) << "In StartServer(), wrote UKEY2 Message 2 to endpoint(id="
+              << endpoint_id_ << ").";
 
     // Message 3 (Client Finish)
     ExceptionOr<ByteArray> client_finish = channel_->Read();
@@ -175,9 +172,8 @@ class ServerRunnable final {
       return;
     }
 
-    LOG(INFO)
-        << "In StartServer(), read UKEY2 Message 3 from endpoint(id="
-        << endpoint_id_ << ").";
+    LOG(INFO) << "In StartServer(), read UKEY2 Message 3 from endpoint(id="
+              << endpoint_id_ << ").";
 
     timeout_alarm.Cancel();
 
@@ -191,7 +187,7 @@ class ServerRunnable final {
  private:
   void LogException() const {
     LOG(ERROR) << "In StartServer(), UKEY2 failed with endpoint(id="
-                       << endpoint_id_ << ").";
+               << endpoint_id_ << ").";
   }
 
   void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) {
@@ -204,10 +200,9 @@ class ServerRunnable final {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
     if (!write_exception.Ok()) {
-      LOG(WARNING)
-          << "In StartServer(), client " << client_->GetClientId()
-          << " failed to pass the alert error message to endpoint(id="
-          << endpoint_id_ << ").";
+      LOG(WARNING) << "In StartServer(), client " << client_->GetClientId()
+                   << " failed to pass the alert error message to endpoint(id="
+                   << endpoint_id_ << ").";
     }
   }
 
@@ -263,9 +258,8 @@ class ClientRunnable final {
       return;
     }
 
-    LOG(INFO)
-        << "In StartClient(), wrote UKEY2 Message 1 to endpoint(id="
-        << endpoint_id_ << ").";
+    LOG(INFO) << "In StartClient(), wrote UKEY2 Message 1 to endpoint(id="
+              << endpoint_id_ << ").";
 
     // Message 2 (Server Init)
     ExceptionOr<ByteArray> server_init = channel_->Read();
@@ -289,9 +283,8 @@ class ClientRunnable final {
       return;
     }
 
-    LOG(INFO)
-        << "In StartClient(), read UKEY2 Message 2 from endpoint(id="
-        << endpoint_id_ << ").";
+    LOG(INFO) << "In StartClient(), read UKEY2 Message 2 from endpoint(id="
+              << endpoint_id_ << ").";
 
     // Message 3 (Client Finish)
     std::unique_ptr<std::string> client_finish =
@@ -312,9 +305,8 @@ class ClientRunnable final {
       return;
     }
 
-    LOG(INFO)
-        << "In StartClient(), wrote UKEY2 Message 3 to endpoint(id="
-        << endpoint_id_ << ").";
+    LOG(INFO) << "In StartClient(), wrote UKEY2 Message 3 to endpoint(id="
+              << endpoint_id_ << ").";
 
     timeout_alarm.Cancel();
 
@@ -328,7 +320,7 @@ class ClientRunnable final {
  private:
   void LogException() const {
     LOG(ERROR) << "In StartClient(), UKEY2 failed with endpoint(id="
-                       << endpoint_id_ << ").";
+               << endpoint_id_ << ").";
   }
 
   void HandleHandshakeOrIoException(CancelableAlarm* timeout_alarm) {
@@ -341,10 +333,9 @@ class ClientRunnable final {
     Exception write_exception =
         channel_->Write(ByteArray(*parse_result.alert_to_send));
     if (!write_exception.Ok()) {
-      LOG(WARNING)
-          << "In StartClient(), client " << client_->GetClientId()
-          << " failed to pass the alert error message to endpoint(id="
-          << endpoint_id_ << ").";
+      LOG(WARNING) << "In StartClient(), client " << client_->GetClientId()
+                   << " failed to pass the alert error message to endpoint(id="
+                   << endpoint_id_ << ").";
     }
   }
 

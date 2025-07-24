@@ -65,8 +65,7 @@ bool BleServerSocket::Connect(BleSocket& socket) {
   absl::MutexLock lock(&mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
-    LOG(ERROR)
-        << "Failed to connect to Ble server socket: already connected";
+    LOG(ERROR) << "Failed to connect to Ble server socket: already connected";
     return true;  // already connected.
   }
   // add client socket to the pending list
@@ -128,7 +127,7 @@ BleMedium::~BleMedium() {
 
   accept_loops_runner_.Shutdown();
   LOG(INFO) << "BleMedium dtor advertising_accept_thread_running_ = "
-                    << acceptance_thread_running_.load();
+            << acceptance_thread_running_.load();
   // If acceptance thread is still running, wait to finish.
   if (acceptance_thread_running_) {
     while (acceptance_thread_running_) {
@@ -143,11 +142,11 @@ bool BleMedium::StartAdvertising(
     const std::string& service_id, const ByteArray& advertisement_bytes,
     const std::string& fast_advertisement_service_uuid) {
   LOG(INFO) << "G3 Ble StartAdvertising: service_id=" << service_id
-                    << ", advertisement bytes="
-                    << absl::BytesToHexString(std::string(advertisement_bytes))
-                    << "(" << advertisement_bytes.size() << "),"
-                    << ", fast advertisement service uuid="
-                    << absl::BytesToHexString(fast_advertisement_service_uuid);
+            << ", advertisement bytes="
+            << absl::BytesToHexString(std::string(advertisement_bytes)) << "("
+            << advertisement_bytes.size() << "),"
+            << ", fast advertisement service uuid="
+            << absl::BytesToHexString(fast_advertisement_service_uuid);
   auto& env = MediumEnvironment::Instance();
   auto& peripheral = adapter_->GetPeripheral();
   peripheral.SetAdvertisementBytes(service_id, advertisement_bytes);
@@ -181,7 +180,7 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
     absl::MutexLock lock(&mutex_);
     if (advertising_info_.Empty()) {
       LOG(INFO) << "G3 Ble StopAdvertising: Can't stop advertising "
-                           "because we never started advertising.";
+                   "because we never started advertising.";
       return false;
     }
     advertising_info_.Clear();
@@ -194,8 +193,8 @@ bool BleMedium::StopAdvertising(const std::string& service_id) {
   accept_loops_runner_.Shutdown();
   if (server_socket_ == nullptr) {
     LOG(ERROR) << "G3 Ble StopAdvertising: Failed to find Ble Server "
-                          "socket: service_id="
-                       << service_id;
+                  "socket: service_id="
+               << service_id;
     // Fall through for server socket not found.
     return true;
   }
@@ -231,7 +230,7 @@ bool BleMedium::StopScanning(const std::string& service_id) {
     absl::MutexLock lock(&mutex_);
     if (scanning_info_.Empty()) {
       LOG(INFO) << "G3 Ble StopDiscovery: Can't stop scanning because "
-                           "we never started scanning.";
+                   "we never started scanning.";
       return false;
     }
     scanning_info_.Clear();
@@ -244,8 +243,7 @@ bool BleMedium::StopScanning(const std::string& service_id) {
 
 bool BleMedium::StartAcceptingConnections(const std::string& service_id,
                                           AcceptedConnectionCallback callback) {
-  LOG(INFO) << "G3 Ble StartAcceptingConnections: service_id="
-                    << service_id;
+  LOG(INFO) << "G3 Ble StartAcceptingConnections: service_id=" << service_id;
   auto& env = MediumEnvironment::Instance();
   env.UpdateBleMediumForAcceptedConnection(*this, service_id,
                                            std::move(callback));
@@ -253,8 +251,7 @@ bool BleMedium::StartAcceptingConnections(const std::string& service_id,
 }
 
 bool BleMedium::StopAcceptingConnections(const std::string& service_id) {
-  LOG(INFO) << "G3 Ble StopAcceptingConnections: service_id="
-                    << service_id;
+  LOG(INFO) << "G3 Ble StopAcceptingConnections: service_id=" << service_id;
   auto& env = MediumEnvironment::Instance();
   env.UpdateBleMediumForAcceptedConnection(*this, service_id, {});
   return true;
@@ -264,9 +261,9 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
     api::BlePeripheral& remote_peripheral, const std::string& service_id,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 Ble Connect [self]: medium=" << this
-                    << ", adapter=" << &GetAdapter()
-                    << ", peripheral=" << &GetAdapter().GetPeripheral()
-                    << ", service_id=" << service_id;
+            << ", adapter=" << &GetAdapter()
+            << ", peripheral=" << &GetAdapter().GetPeripheral()
+            << ", service_id=" << service_id;
   // First, find an instance of remote medium, that exposed this peripheral.
   auto& adapter = static_cast<BlePeripheral&>(remote_peripheral).GetAdapter();
   auto* medium = static_cast<BleMedium*>(adapter.GetBleMedium());
@@ -275,9 +272,8 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
 
   BleServerSocket* remote_server_socket = nullptr;
   LOG(INFO) << "G3 Ble Connect [peer]: medium=" << medium
-                    << ", adapter=" << &adapter
-                    << ", peripheral=" << &remote_peripheral
-                    << ", service_id=" << service_id;
+            << ", adapter=" << &adapter << ", peripheral=" << &remote_peripheral
+            << ", service_id=" << service_id;
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(&medium->mutex_);
@@ -292,8 +288,8 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
 
   if (cancellation_flag->Cancelled()) {
     LOG(ERROR) << "G3 BLE Connect: Has been cancelled: "
-                          "service_id="
-                       << service_id;
+                  "service_id="
+               << service_id;
     return {};
   }
 
@@ -307,8 +303,8 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
   // Finally, Request to connect to this socket.
   if (!remote_server_socket->Connect(*socket)) {
     LOG(ERROR) << "G3 Ble Connect: Failed to connect to existing Ble "
-                          "Server socket: service_id="
-                       << service_id;
+                  "Server socket: service_id="
+               << service_id;
     return {};
   }
 

@@ -71,7 +71,7 @@ class CreateSessionDescriptionObserverImpl
 
   void OnFailure(webrtc::RTCError error) override {
     LOG(ERROR) << "Error when creating session description: "
-                       << error.message();
+               << error.message();
     settable_future_.SetException({Exception::kFailed});
   }
 
@@ -252,7 +252,7 @@ bool ConnectionFlow::SetLocalSessionDescription(SessionDescriptionWrapper sdp) {
   bool success = result.ok() && result.result();
   if (!success) {
     LOG(ERROR) << "Failed to set local session description: "
-                       << result.exception();
+               << result.exception();
   }
   return success;
 }
@@ -284,8 +284,7 @@ bool ConnectionFlow::SetRemoteSessionDescription(SessionDescriptionWrapper sdp,
   ExceptionOr<bool> result = observer->GetResult(kTimeout);
   bool success = result.ok() && result.result();
   if (!success) {
-    LOG(ERROR) << "Failed to set remote description: "
-                       << result.exception();
+    LOG(ERROR) << "Failed to set remote description: " << result.exception();
   }
   return success;
 }
@@ -330,8 +329,7 @@ void ConnectionFlow::AddIceCandidatesOnSignalingThread(
         ice_candidates) {
   CHECK(IsRunningOnSignalingThread());
   if (state_ == State::kEnded) {
-    LOG(WARNING)
-        << "You cannot add ice candidates to a disconnected session.";
+    LOG(WARNING) << "You cannot add ice candidates to a disconnected session.";
     return;
   }
   if (state_ != State::kWaitingToConnect && state_ != State::kConnected) {
@@ -397,8 +395,7 @@ bool ConnectionFlow::InitPeerConnection(WebRtcMedium& webrtc_medium) {
   bool success = result.ok() && result.result();
   if (!success) {
     shutdown_latch_.CountDown();
-    LOG(ERROR) << "Failed to create peer connection: "
-                       << result.exception();
+    LOG(ERROR) << "Failed to create peer connection: " << result.exception();
   }
   return success;
 }
@@ -424,7 +421,7 @@ void ConnectionFlow::CreateSocketFromDataChannel(
         CHECK(IsRunningOnSignalingThread());
         if (!TransitionState(State::kWaitingToConnect, State::kConnected)) {
           LOG(ERROR) << "Data channel socket is open but connection "
-                                "flow was not in the required state";
+                        "flow was not in the required state";
           socket->Close();
           return;
         }
@@ -475,7 +472,7 @@ void ConnectionFlow::OnConnectionChange(
       new_state == PeerConnectionState::kFailed ||
       new_state == PeerConnectionState::kDisconnected) {
     LOG(INFO) << "Closing due to peer connection state change: "
-                      << static_cast<int>(new_state);
+              << static_cast<int>(new_state);
     CloseOnSignalingThread();
   }
 }
@@ -499,13 +496,13 @@ bool ConnectionFlow::TransitionState(State current_state, State new_state) {
   CHECK(IsRunningOnSignalingThread());
   if (current_state != state_) {
     LOG(WARNING) << "Invalid state transition to "
-                         << static_cast<int>(new_state) << ": current state is "
-                         << static_cast<int>(state_) << " but expected "
-                         << static_cast<int>(current_state);
+                 << static_cast<int>(new_state) << ": current state is "
+                 << static_cast<int>(state_) << " but expected "
+                 << static_cast<int>(current_state);
     return false;
   }
   LOG(INFO) << "Transition: " << static_cast<int>(state_) << "->"
-                    << static_cast<int>(new_state);
+            << static_cast<int>(new_state);
   state_ = new_state;
   return true;
 }
@@ -540,25 +537,24 @@ bool ConnectionFlow::RunOnSignalingThread(Runnable&& runnable) {
   CHECK(!IsRunningOnSignalingThread());
   auto pc = GetPeerConnection();
   if (!pc) {
-    LOG(WARNING)
-        << "Peer connection not available. Cannot schedule tasks.";
+    LOG(WARNING) << "Peer connection not available. Cannot schedule tasks.";
     return false;
   }
   // We are off signaling thread, so we can't use peer connection's methods
   // but we can access the signaling thread handle.
-  pc->signaling_thread()->PostTask([can_run_tasks =
-                                        std::weak_ptr<void>(can_run_tasks_),
-                                    task = std::move(runnable)]() mutable {
-    // Don't run the task if the weak_ptr is no longer valid.
-    // shared_ptr |can_run_tasks_| is destroyed on the same thread
-    // (signaling thread). This guarantees that if the weak_ptr is valid
-    // when this task starts, it will stay valid until the task ends.
-    if (!can_run_tasks.lock()) {
-      LOG(INFO) << "Peer connection already closed. Cannot run tasks.";
-      return;
-    }
-    task();
-  });
+  pc->signaling_thread()->PostTask(
+      [can_run_tasks = std::weak_ptr<void>(can_run_tasks_),
+       task = std::move(runnable)]() mutable {
+        // Don't run the task if the weak_ptr is no longer valid.
+        // shared_ptr |can_run_tasks_| is destroyed on the same thread
+        // (signaling thread). This guarantees that if the weak_ptr is valid
+        // when this task starts, it will stay valid until the task ends.
+        if (!can_run_tasks.lock()) {
+          LOG(INFO) << "Peer connection already closed. Cannot run tasks.";
+          return;
+        }
+        task();
+      });
   return true;
 }
 

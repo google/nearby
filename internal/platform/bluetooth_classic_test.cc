@@ -600,8 +600,7 @@ TEST_F(BluetoothClassicMediumTest, CancelBluetoothPairing) {
   bt_a_->StartDiscovery(
       DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
         LOG(INFO) << "Device discovered: " << device.GetName();
-        LOG(INFO) << "Device discovered address: "
-                          << device.GetMacAddress();
+        LOG(INFO) << "Device discovered address: " << device.GetMacAddress();
         EXPECT_EQ(device.GetName(), adapter_b_->GetName());
         discovered_device = &device;
         found_latch.CountDown();

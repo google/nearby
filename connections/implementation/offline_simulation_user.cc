@@ -54,8 +54,7 @@ void OfflineSimulationUser::OnConnectionRejected(const std::string& endpoint_id,
 
 void OfflineSimulationUser::OnEndpointDisconnect(
     const std::string& endpoint_id) {
-  LOG(INFO) << "OnEndpointDisconnect: self=" << this
-                    << "; id=" << endpoint_id;
+  LOG(INFO) << "OnEndpointDisconnect: self=" << this << "; id=" << endpoint_id;
   if (disconnect_latch_) disconnect_latch_->CountDown();
 }
 

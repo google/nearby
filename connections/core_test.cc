@@ -167,7 +167,6 @@ TEST(CoreTest, DisconnectFailsWithEmptyEndpoint) {
   EXPECT_EQ(final_status.value, Status::kEndpointUnknown);
 }
 
-
 TEST(CoreTest, SendPayloadCallsScRouter) {
   MockServiceControllerRouter mock_controller;
   // Called when Core is destroyed.

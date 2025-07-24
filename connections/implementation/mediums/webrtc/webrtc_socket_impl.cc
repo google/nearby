@@ -67,23 +67,21 @@ WebRtcSocket::WebRtcSocket(
     const std::string& name,
     webrtc::scoped_refptr<webrtc::DataChannelInterface> data_channel)
     : name_(name), data_channel_(std::move(data_channel)) {
-  LOG(INFO) << "WebRtcSocket::WebRtcSocket(" << name_
-                    << ") this: " << this;
+  LOG(INFO) << "WebRtcSocket::WebRtcSocket(" << name_ << ") this: " << this;
   std::tie(pipe_input_, pipe_output_) = CreatePipe();
   data_channel_->RegisterObserver(this);
 }
 
 WebRtcSocket::~WebRtcSocket() {
-  LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
-                    << ") this: " << this;
+  LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_ << ") this: " << this;
 
   if (!IsClosed()) {
     data_channel_->UnregisterObserver();
     Close();
   }
 
-  LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_
-                    << ") this: " << this << " done";
+  LOG(INFO) << "WebRtcSocket::~WebRtcSocket(" << name_ << ") this: " << this
+            << " done";
 }
 
 InputStream& WebRtcSocket::GetInputStream() { return *pipe_input_; }
@@ -99,16 +97,15 @@ Exception WebRtcSocket::Close() {
   // to 'closing' but does not block until 'closed' is sent so the data channel
   // is not fully closed when this call is done.
   data_channel_->Close();
-  LOG(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this
-                    << " done";
+  LOG(INFO) << "WebRtcSocket::Close(" << name_ << ") this: " << this << " done";
   return {Exception::kSuccess};
 }
 
 void WebRtcSocket::OnStateChange() {
   // Running on the signaling thread right now.
-  LOG(ERROR)
-      << "WebRtcSocket::OnStateChange() webrtc data channel state: "
-      << webrtc::DataChannelInterface::DataStateString(data_channel_->state());
+  LOG(ERROR) << "WebRtcSocket::OnStateChange() webrtc data channel state: "
+             << webrtc::DataChannelInterface::DataStateString(
+                    data_channel_->state());
   switch (data_channel_->state()) {
     case webrtc::DataChannelInterface::DataState::kConnecting:
       break;
@@ -121,7 +118,7 @@ void WebRtcSocket::OnStateChange() {
       break;
     case webrtc::DataChannelInterface::DataState::kClosed:
       LOG(ERROR) << "WebRtcSocket::OnStateChange() unregistering data "
-                            "channel observer.";
+                    "channel observer.";
       // This will trigger a destruction of the owning connection flow
       // We implicitly depend on the |socket_listener_| to offload from
       // the signaling thread so it does not get blocked.
@@ -163,8 +160,7 @@ bool WebRtcSocket::SendMessage(const ByteArray& data) {
 bool WebRtcSocket::IsClosed() { return closed_.Get(); }
 
 void WebRtcSocket::ClosePipe() {
-  LOG(INFO) << "WebRtcSocket::ClosePipe(" << name_
-                    << ") this: " << this;
+  LOG(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this;
   // This is thread-safe to close these sockets even if a read or write is in
   // process on another thread, Close will wait for the exclusive mutex before
   // setting state.
@@ -172,7 +168,7 @@ void WebRtcSocket::ClosePipe() {
   pipe_output_->Close();
   WakeUpWriter();
   LOG(INFO) << "WebRtcSocket::ClosePipe(" << name_ << ") this: " << this
-                    << " done";
+            << " done";
 }
 
 // Must not be called on signalling thread.

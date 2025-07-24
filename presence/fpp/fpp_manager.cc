@@ -90,7 +90,7 @@ absl::Status FppManager::UpdateBleScanResult(uint64_t device_id,
       presence_detector_handle_, ble_scan_result, &new_proximity_estimate);
   if (status_code == kNoComputedProximityEstimate) {
     LOG(INFO) << "Insufficient number of scan results available to "
-                         "compute proximity state";
+                 "compute proximity state";
     return absl::OkStatus();
   }
   if (status_code == kSuccess) {
@@ -142,9 +142,8 @@ void FppManager::CheckPresenceZoneChanged(uint64_t device_id,
                                           ProximityEstimate old_estimate,
                                           ProximityEstimate new_estimate) {
   if (old_estimate.proximity_state != new_estimate.proximity_state) {
-    LOG(WARNING)
-        << "Updating zone transition callbacks with new zone. Zone="
-        << static_cast<int>(new_estimate.proximity_state);
+    LOG(WARNING) << "Updating zone transition callbacks with new zone. Zone="
+                 << static_cast<int>(new_estimate.proximity_state);
     for (auto& pair : zone_transition_callbacks_) {
       pair.second.on_proximity_zone_changed(
           device_id,

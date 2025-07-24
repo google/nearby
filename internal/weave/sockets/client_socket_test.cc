@@ -349,8 +349,7 @@ TEST_F(ClientSocketTest, TestSocketWithRandomDataProvider) {
                 MutexLock lock(&mutex_);
                 messages_read_.push_back(message);
               },
-          .on_error_cb =
-              [](absl::Status status) { LOG(ERROR) << status; },
+          .on_error_cb = [](absl::Status status) { LOG(ERROR) << status; },
       },
       std::move(provider));
   socket.Connect();

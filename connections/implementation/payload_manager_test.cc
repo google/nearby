@@ -41,8 +41,8 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
-using ::nearby::analytics::PacketMetaData;
 using ::location::nearby::proto::connections::Medium;
+using ::nearby::analytics::PacketMetaData;
 
 constexpr size_t kChunkSize = 64 * 1024;
 constexpr absl::string_view kServiceId = "service-id";
@@ -148,13 +148,11 @@ class PayloadManagerTest
     EXPECT_EQ(user_b.GetDiscovered().service_id, kServiceId);
     EXPECT_EQ(user_b.GetDiscovered().endpoint_info, user_a.GetInfo());
     EXPECT_FALSE(user_b.GetDiscovered().endpoint_id.empty());
-    LOG(INFO) << "EP-B: [discovered] "
-                      << user_b.GetDiscovered().endpoint_id;
+    LOG(INFO) << "EP-B: [discovered] " << user_b.GetDiscovered().endpoint_id;
     user_b.RequestConnection(&connection_latch_);
     EXPECT_TRUE(connection_latch_.Await(kDefaultTimeout).result());
     EXPECT_FALSE(user_a.GetDiscovered().endpoint_id.empty());
-    LOG(INFO) << "EP-A: [discovered] "
-                      << user_a.GetDiscovered().endpoint_id;
+    LOG(INFO) << "EP-A: [discovered] " << user_a.GetDiscovered().endpoint_id;
     LOG(INFO) << "Both users discovered their peers.";
     user_a.AcceptConnection(&accept_latch_);
     user_b.AcceptConnection(&accept_latch_);
