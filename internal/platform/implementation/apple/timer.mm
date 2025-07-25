@@ -16,6 +16,7 @@
 
 #include <utility>
 
+#include "absl/synchronization/mutex.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/implementation/timer.h"
 
@@ -37,6 +38,7 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
     return false;
   }
 
+  absl::MutexLock lock(&mutex_);
   if (timer_ != nil) {
     GNCLoggerError(@"Timer has already started.");
     return false;
@@ -48,20 +50,30 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
   uint64_t intervalInNanoseconds = interval == 0 ? DISPATCH_TIME_FOREVER : interval * NSEC_PER_MSEC;
   callback_ = std::move(callback);
 
+  // Run the timer on a background queue to avoid deadlocking the main thread,
+  // which may be blocked waiting for a future to complete.
   timer_ = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, /*handle=*/0, /*mask=*/0,
-                                  dispatch_get_main_queue());
+                                  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 
   dispatch_source_set_event_handler(timer_, ^{
-    // If our interval is `DISPATCH_TIME_FOREVER`, it means we only want the timer to fire once.
-    // We need to cancel the timer before the callback is called since the `Timer` object may no
-    // longer exist immediately after invoking the callback.
-    if (intervalInNanoseconds == DISPATCH_TIME_FOREVER && timer_ != nil) {
-      dispatch_source_cancel(timer_);
-      timer_ = nil;
+    absl::AnyInvocable<void()> callback_to_run = nil;
+    {
+      absl::MutexLock lock(&mutex_);
+      // If Stop() was called concurrently, the callback will be null.
+      if (callback_ == nil) {
+        return;
+      }
+      // If our interval is `DISPATCH_TIME_FOREVER`, it means we only want the timer to fire once.
+      // We need to cancel the timer before the callback is called since the `Timer` object may no
+      // longer exist immediately after invoking the callback.
+      if (intervalInNanoseconds == DISPATCH_TIME_FOREVER && timer_ != nil) {
+        dispatch_source_cancel(timer_);
+        timer_ = nil;
+      }
+      callback_to_run = std::move(callback_);
     }
-
-    if (callback_ != nil) {
-      callback_();
+    if (callback_to_run) {
+      callback_to_run();
     }
   });
 
@@ -72,6 +84,7 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
 }
 
 bool Timer::Stop() {
+  absl::MutexLock lock(&mutex_);
   if (timer_ != nil) {
     dispatch_source_cancel(timer_);
   }
@@ -81,13 +94,17 @@ bool Timer::Stop() {
 }
 
 bool Timer::FireNow() {
-  if (callback_ != nil) {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
-      callback_();
-    });
-    return true;
+  absl::AnyInvocable<void()> callback_to_run;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (!callback_) {
+      return false;
+    }
+    callback_to_run = std::move(callback_);
   }
-  return false;
+
+  callback_to_run();
+  return true;
 }
 
 }  // namespace apple
