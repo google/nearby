@@ -148,19 +148,18 @@ Exception BleV2ServerSocket::DoClose() {
   return {Exception::kSuccess};
 }
 
-BleV2Medium::BleV2Medium(api::BluetoothAdapter& adapter)
-    : adapter_(dynamic_cast<BluetoothAdapter*>(&adapter)) {
-  CHECK(adapter_);
-  adapter_->SetBleV2Medium(this);
+BleV2Medium::BleV2Medium(BluetoothAdapter& adapter) : adapter_(adapter) {
+  CHECK(&adapter_);
+  adapter_.SetBleV2Medium(this);
   is_extended_advertisements_available_ =
       MediumEnvironment::Instance().IsBleExtendedAdvertisementsAvailable();
 
   MediumEnvironment::Instance().RegisterBleV2Medium(*this,
-                                                    adapter_->GetUniqueId());
+                                                    adapter_.GetUniqueId());
 }
 
 BleV2Medium::~BleV2Medium() {
-  adapter_->SetBleV2Medium(nullptr);
+  adapter_.SetBleV2Medium(nullptr);
   MediumEnvironment::Instance().UnregisterBleV2Medium(*this);
 }
 
@@ -183,7 +182,7 @@ bool BleV2Medium::StartAdvertising(
 
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, adapter_->GetUniqueId(), advertising_data);
+      /*enabled=*/true, *this, adapter_.GetUniqueId(), advertising_data);
   return true;
 }
 
@@ -193,7 +192,7 @@ bool BleV2Medium::StopAdvertising() {
 
   BleAdvertisementData empty_advertisement_data = {};
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/false, *this, adapter_->GetUniqueId(),
+      /*enabled=*/false, *this, adapter_.GetUniqueId(),
       empty_advertisement_data);
   return true;
 }
@@ -221,7 +220,7 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
   }
   absl::MutexLock lock(&mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
-      /*enabled=*/true, *this, adapter_->GetUniqueId(), advertising_data);
+      /*enabled=*/true, *this, adapter_.GetUniqueId(), advertising_data);
   return std::make_unique<AdvertisingSession>(
       AdvertisingSession{.stop_advertising = [this] {
         return StopAdvertising()
@@ -736,7 +735,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 Ble Connect [self]: medium=" << this
             << ", adapter=" << &GetAdapter()
-            << ", peripheral id=" << adapter_->GetUniqueId()
+            << ", peripheral id=" << adapter_.GetUniqueId()
             << ", service_id=" << service_id;
   // First, find an instance of remote medium, that exposed this peripheral.
   BleV2Medium* remote_medium = dynamic_cast<BleV2Medium*>(

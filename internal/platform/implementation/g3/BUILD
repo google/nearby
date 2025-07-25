@@ -118,6 +118,22 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "comm_test",
+    srcs = ["ble_v2_test.cc"],
+    deps = [
+        ":comm",
+        ":g3",
+        "//internal/platform:base",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "crypto",
     testonly = True,

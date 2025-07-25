@@ -131,7 +131,7 @@ class BleV2ServerSocket : public api::ble_v2::BleServerSocket {
 // Container of operations that can be performed over the BLE medium.
 class BleV2Medium : public api::ble_v2::BleMedium {
  public:
-  explicit BleV2Medium(api::BluetoothAdapter& adapter);
+  explicit BleV2Medium(BluetoothAdapter& adapter);
   ~BleV2Medium() override;
 
   // Returns true once the Ble advertising has been initiated.
@@ -188,7 +188,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   bool IsExtendedAdvertisementsAvailable() override;
 
-  BluetoothAdapter& GetAdapter() { return *adapter_; }
+  BluetoothAdapter& GetAdapter() { return adapter_; }
 
  private:
   class GattClient;
@@ -304,7 +304,7 @@ class BleV2Medium : public api::ble_v2::BleMedium {
 
   bool IsStopped(Borrowable<api::ble_v2::GattServer*> server);
   absl::Mutex mutex_;
-  BluetoothAdapter* adapter_;  // Our device adapter; read-only.
+  BluetoothAdapter& adapter_;  // Our device adapter; read-only.
   absl::flat_hash_map<std::string, BleV2ServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
   absl::flat_hash_set<std::pair<Uuid, std::uint32_t>>
