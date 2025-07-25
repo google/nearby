@@ -94,7 +94,6 @@ class ExecutorCancelable : public nearby::api::Cancelable {
 namespace nearby {
 namespace apple {
 
-static const std::int64_t kExecutorShutdownDefaultTimeout = 500;  // 0.5 seconds
 
 ScheduledExecutor::ScheduledExecutor() { impl_ = [GNCOperationQueueImpl implWithMaxConcurrency:1]; }
 
@@ -107,7 +106,6 @@ ScheduledExecutor::~ScheduledExecutor() {
   impl_ = nil;
 }
 
-void ScheduledExecutor::Shutdown() { Shutdown(kExecutorShutdownDefaultTimeout); }
 
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable,
                                                              absl::Duration duration) {
@@ -159,16 +157,19 @@ bool ScheduledExecutor::DoSubmit(Runnable &&runnable) {
   return true;
 }
 
-void ScheduledExecutor::Shutdown(std::int64_t timeout_millis) {
+void ScheduledExecutor::Shutdown() {
+  if (impl_.shuttingDown) {
+    return;
+  }
   // Prevent new/delayed operations from being queued/executed.
   impl_.shuttingDown = YES;
 
-  // Block until either (a) all currently executing operations finish, or (b) the timeout expires.
+  // Block until all currently executing operations finish.
   dispatch_group_t group = dispatch_group_create();
   dispatch_group_async(group, dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0), ^{
     [impl_.queue waitUntilAllOperationsAreFinished];
   });
-  dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, timeout_millis * NSEC_PER_MSEC));
+  dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
 }
 
 }  // namespace apple

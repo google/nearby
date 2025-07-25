@@ -20,7 +20,7 @@ licenses(["notice"])
 package(default_visibility = [
     "//connections:__subpackages__",
     "//googlemac/iPhone/Nearby:__subpackages__",
-    "//internal/platform/implementation/apple:__subpackages__",
+    "//internal/platform:__subpackages__",
     "//location/nearby:__subpackages__",
     "//sharing:__subpackages__",
 ])
