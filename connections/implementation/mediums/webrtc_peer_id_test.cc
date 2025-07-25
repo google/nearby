@@ -14,17 +14,16 @@
 
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 
-#include <memory>
+#include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/crypto.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
+
+constexpr char kTestPeerId[] = "this_is_a_test";
 
 TEST(WebrtcPeerIdTest, GenerateRandomPeerId) {
   WebrtcPeerId peer_id = WebrtcPeerId::FromRandom();
@@ -45,9 +44,16 @@ TEST(WebrtcPeerIdTest, GenerateFromSeed) {
 }
 
 TEST(WebrtcPeerIdTest, GetId) {
-  const std::string id = "this_is_a_test";
-  WebrtcPeerId peer_id(id);
-  EXPECT_EQ(id, peer_id.GetId());
+  WebrtcPeerId peer_id(kTestPeerId);
+  EXPECT_EQ(kTestPeerId, peer_id.GetId());
+}
+
+TEST(WebrtcPeerIdTest, IsValid) {
+  WebrtcPeerId peer_id(kTestPeerId);
+  EXPECT_TRUE(peer_id.IsValid());
+
+  WebrtcPeerId peer_id_empty;
+  EXPECT_FALSE(peer_id_empty.IsValid());
 }
 
 }  // namespace mediums
