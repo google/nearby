@@ -16,32 +16,69 @@
 
 #import <Foundation/Foundation.h>
 
+#include <atomic>
 #include <memory>
 #include <utility>
 
 #include "absl/time/time.h"
-#import "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/runnable.h"
 
-// This wraps the C++ Runnable in an Obj-C object for memory management. It is retained by the
-// dispatch block below, and deleted when the block is released.
-@interface GNCRunnableWrapper : NSObject {
+// Defines the state of a scheduled task. This enum is at global scope
+// to be accessible by the global Objective-C++ classes below.
+enum class GNCScheduledTaskState {
+  kScheduled,
+  kRunning,
+  kDone,
+  kCanceled,
+};
+
+// An Objective-C object to hold the shared state between the cancelable handle
+// and the scheduled block. Its lifetime is managed by ARC.
+@interface GNCScheduledTask : NSObject {
  @public
+  // The user-provided runnable to execute.
   nearby::Runnable _runnable;
-  std::unique_ptr<nearby::apple::AtomicBoolean> _canceled;
+  // The atomic state machine for the task's lifecycle.
+  std::atomic<GNCScheduledTaskState> _state;
+}
+- (instancetype)initWithRunnable:(nearby::Runnable &&)runnable;
+@end
+
+@implementation GNCScheduledTask
+- (instancetype)initWithRunnable:(nearby::Runnable &&)runnable {
+  if ((self = [super init])) {
+    _runnable = std::move(runnable);
+    _state = GNCScheduledTaskState::kScheduled;
+  }
+  return self;
 }
 @end
 
-@implementation GNCRunnableWrapper
+// An implementation of api::Cancelable that controls a GNCScheduledTask.
+// This is an Objective-C++ class to allow for a __strong ivar, which lets ARC
+// manage the lifetime of the GNCScheduledTask object.
+class ExecutorCancelable : public nearby::api::Cancelable {
+ public:
+  explicit ExecutorCancelable(GNCScheduledTask *task) : task_(task) {}
+  ~ExecutorCancelable() override = default;
+  ExecutorCancelable(const ExecutorCancelable &) = delete;
+  ExecutorCancelable &operator=(const ExecutorCancelable &) = delete;
 
-+ (instancetype)wrapperWithRunnable:(nearby::Runnable)runnable {
-  GNCRunnableWrapper *wrapper = [[GNCRunnableWrapper alloc] init];
-  wrapper->_runnable = std::move(runnable);
-  wrapper->_canceled = std::make_unique<nearby::apple::AtomicBoolean>(false);
-  return wrapper;
-}
+  bool Cancel() override {
+    // If the task has already been canceled, do nothing and return true.
+    if (task_->_state.load() == GNCScheduledTaskState::kCanceled) {
+      return true;
+    }
+    GNCScheduledTaskState expected = GNCScheduledTaskState::kScheduled;
+    // Atomically transition from Scheduled to Canceled. This will only
+    // succeed if the task has not already started running.
+    return task_->_state.compare_exchange_strong(expected, GNCScheduledTaskState::kCanceled);
+  }
 
-@end
+ private:
+  // ARC-managed strong reference to the shared task state.
+  __strong GNCScheduledTask *task_;
+};
 
 @implementation GNCOperationQueueImpl
 
@@ -59,32 +96,16 @@ namespace apple {
 
 static const std::int64_t kExecutorShutdownDefaultTimeout = 500;  // 0.5 seconds
 
-// This Cancelable references a Runnable and a cancel method that sets its canceled boolean to true.
-class CancelableForRunnable : public api::Cancelable {
- public:
-  explicit CancelableForRunnable(GNCRunnableWrapper *runnable) : runnable_(runnable) {}
-  CancelableForRunnable() = default;
-  ~CancelableForRunnable() override = default;
-  CancelableForRunnable(const CancelableForRunnable &) = delete;
-  CancelableForRunnable &operator=(const CancelableForRunnable &) = delete;
-
-  // api::Cancelable:
-  bool Cancel() override {
-    runnable_->_canceled->Set(true);
-    return true;
-  }
-
- private:
-  GNCRunnableWrapper *runnable_;
-};
-
 ScheduledExecutor::ScheduledExecutor() { impl_ = [GNCOperationQueueImpl implWithMaxConcurrency:1]; }
 
 ScheduledExecutor::ScheduledExecutor(int max_concurrency) {
   impl_ = [GNCOperationQueueImpl implWithMaxConcurrency:max_concurrency];
 }
 
-ScheduledExecutor::~ScheduledExecutor() { impl_ = nil; }
+ScheduledExecutor::~ScheduledExecutor() {
+  Shutdown();
+  impl_ = nil;
+}
 
 void ScheduledExecutor::Shutdown() { Shutdown(kExecutorShutdownDefaultTimeout); }
 
@@ -92,24 +113,35 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(Runnable &&runnable
                                                              absl::Duration duration) {
   if (impl_.shuttingDown) return std::shared_ptr<api::Cancelable>(nullptr);
 
-  // Wrap the runnable in an Obj-C object so it can be referenced by the delayed block.
-  GNCRunnableWrapper *wrapper = [GNCRunnableWrapper wrapperWithRunnable:std::move(runnable)];
-  CancelableForRunnable *cancelable = new CancelableForRunnable(wrapper);
-  GNCOperationQueueImpl *impl = impl_;  // don't capture |this|
+  // Create the shared task object. ARC will manage its lifetime.
+  GNCScheduledTask *task = [[GNCScheduledTask alloc] initWithRunnable:std::move(runnable)];
+
+  // Create the cancelable handle that the caller will own.
+  auto cancelable = std::make_shared<ExecutorCancelable>(task);
+
+  __weak __typeof__(impl_) weakImpl = impl_;
   dispatch_after(
       dispatch_time(DISPATCH_TIME_NOW, absl::ToInt64Milliseconds(duration) * NSEC_PER_MSEC),
-      dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0), ^{
-        [impl.queue addOperationWithBlock:^{
-          // Execute the runnable only if the executor is not shutting down, and the runnable isn't
-          // canceled.
-          // Warning: This block should reference only Obj-C objects, and never C++ objects.
-          if (!impl.shuttingDown && !wrapper->_canceled->Get()) {
-            wrapper->_runnable();
+      dispatch_get_global_queue(DISPATCH_TARGET_QUEUE_DEFAULT, 0),
+      // The block captures the task object, and ARC will keep it alive.
+      [weakImpl, task]() {
+        __strong __typeof__(weakImpl) strongImpl = weakImpl;
+        if (!strongImpl || strongImpl.shuttingDown) {
+          return;
+        }
+        [strongImpl.queue addOperationWithBlock:^{
+          if (strongImpl.shuttingDown) {
+            return;
+          }
+          GNCScheduledTaskState expected = GNCScheduledTaskState::kScheduled;
+          if (task->_state.compare_exchange_strong(expected, GNCScheduledTaskState::kRunning)) {
+            task->_runnable();
+            task->_state.store(GNCScheduledTaskState::kDone);
           }
         }];
       });
 
-  return std::shared_ptr<api::Cancelable>(cancelable);
+  return cancelable;
 }
 
 void ScheduledExecutor::Execute(Runnable &&runnable) { DoSubmit(std::move(runnable)); }

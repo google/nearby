@@ -14,12 +14,11 @@
 
 #include "internal/platform/cancelable_alarm.h"
 
-#include <memory>
-
 #include "gtest/gtest.h"
 #include "absl/time/time.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/atomic_reference.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby {

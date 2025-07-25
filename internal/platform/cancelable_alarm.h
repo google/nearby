@@ -15,15 +15,16 @@
 #ifndef PLATFORM_PUBLIC_CANCELABLE_ALARM_H_
 #define PLATFORM_PUBLIC_CANCELABLE_ALARM_H_
 
-#include <cstdint>
-#include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/cancelable.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "absl/time/time.h"
 #include "internal/platform/scheduled_executor.h"
 
 namespace nearby {
@@ -49,18 +50,18 @@ class CancelableAlarm {
   }
   ~CancelableAlarm() = default;
 
-  bool Cancel() {
+  bool Cancel() ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     return cancelable_.Cancel();
   }
 
-  bool IsValid() {
+  bool IsValid() ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     return cancelable_.IsValid();
   }
 
  private:
-  void Schedule() {
+  void Schedule() ABSL_LOCKS_EXCLUDED(mutex_) {
     MutexLock lock(&mutex_);
     cancelable_ = scheduled_executor_->Schedule(
         [this]() {
@@ -72,7 +73,7 @@ class CancelableAlarm {
 
   Mutex mutex_;
   std::string name_;
-  Cancelable cancelable_;
+  Cancelable cancelable_ ABSL_GUARDED_BY(mutex_);
   ScheduledExecutor* scheduled_executor_;
   absl::Duration delay_;
   absl::AnyInvocable<void()> runnable_;

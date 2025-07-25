@@ -575,6 +575,7 @@ cc_test(
         "//internal/flags:nearby_flags",
         "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//internal/proto:credential_cc_proto",
         "//internal/test",
         "//proto:connections_enums_cc_proto",
