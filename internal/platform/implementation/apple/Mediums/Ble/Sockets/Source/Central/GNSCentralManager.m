@@ -168,7 +168,8 @@ static NSString *CBManagerStateString(CBManagerState state) {
   NSAssert(identifier, @"Should have an identifier, self: %@", self);
   GNSCentralPeerManager *peerManager = [_centralPeerManagers objectForKey:identifier];
   if (peerManager) {
-    GNCLoggerFatal(@"Previous GNSCentralPeerManager still alive, self: %@, peer manager: %@", self,
+    // GNCFATAL will cause tests terminating. Change to GNCLoggerError.
+    GNCLoggerError(@"Previous GNSCentralPeerManager still alive, self: %@, peer manager: %@", self,
                    peerManager);
     return nil;
   }

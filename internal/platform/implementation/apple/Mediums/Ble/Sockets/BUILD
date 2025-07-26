@@ -90,6 +90,28 @@ objc_library(
 )
 
 objc_library(
+    name = "CentralTestsLib",
+    testonly = 1,
+    srcs = [
+        "Tests/Central/GNSCentralManagerTest.m",
+    ],
+    deps = [
+        ":Central",
+        ":Shared",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//third_party/objective_c/ocmock/v3:OCMock",
+    ],
+)
+
+ios_unit_test(
+    name = "CentralTests",
+    google_create_srl_bindings_module = False,
+    minimum_os_version = IOS_MINIMUM_OS,
+    runner = "//testing/utp/ios:IOS_LATEST",
+    deps = [":CentralTestsLib"],
+)
+
+objc_library(
     name = "SharedTestsLib",
     testonly = 1,
     srcs = [
