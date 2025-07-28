@@ -33,6 +33,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 
@@ -221,6 +222,68 @@ TEST_F(BleV2Test, CanConstructValidObject) {
   env_.Stop();
 }
 
+TEST_F(BleV2Test, CanNotStartAdvertisingWithEmptyAdvertisementBytes) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Enable();
+  ByteArray advertisement_bytes;
+
+  EXPECT_FALSE(ble_a.StartAdvertising(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      BleV2::AdvertisingType::kRegular, advertisement_bytes));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotStartAdvertisingWhenRadioNotEnabled) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Disable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+
+  EXPECT_FALSE(ble_a.StartAdvertising(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      BleV2::AdvertisingType::kRegular, advertisement_bytes));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartAdvertisingWithDifferentPowerLevels) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+
+  EXPECT_TRUE(ble_a.StartAdvertising(
+      std::string(kServiceIDA), PowerLevel::kLowPower,
+      BleV2::AdvertisingType::kRegular, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StartAdvertising(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      BleV2::AdvertisingType::kRegular, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartAdvertisingWithDifferentAdvertisingTypes) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Enable();
+  ByteArray advertisement_bytes((std::string(kAdvertisementString)));
+
+  EXPECT_TRUE(ble_a.StartAdvertising(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      BleV2::AdvertisingType::kRegular, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StartAdvertising(
+      std::string(kServiceIDA), PowerLevel::kHighPower,
+      BleV2::AdvertisingType::kFast, advertisement_bytes));
+  EXPECT_TRUE(ble_a.StopAdvertising(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
 TEST_F(BleV2Test, CanStartFastAdvertising) {
   env_.Start();
   BluetoothRadio radio_a;
@@ -354,6 +417,80 @@ TEST_F(BleV2Test, CanStartScanning) {
   EXPECT_TRUE(found_latch.Await(kWaitDuration).result());
   ble_b.StopAdvertising(std::string(kServiceIDA));
   EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotStartScanningWhenRadioNotEnabled) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Disable();
+
+  EXPECT_FALSE(ble_a.StartScanning(
+      std::string(kServiceIDA), Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+      /*include_dct_advertisement=*/false,
+      mediums::DiscoveredPeripheralCallback{}));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotStartAcceptingConnectionsWhenRadioNotEnabled) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Disable();
+
+  EXPECT_FALSE(ble_a.StartAcceptingConnections(
+      std::string(kServiceIDA),
+      [&](BleV2Socket socket, const std::string&) {}));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanStartScanningWithDifferentPowerLevels) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  BleV2 ble_a(radio_a);
+  radio_a.Enable();
+
+  EXPECT_TRUE(ble_a.StartScanning(std::string(kServiceIDA),
+                                  Pcp::kP2pPointToPoint, PowerLevel::kLowPower,
+                                  /*include_dct_advertisement=*/false,
+                                  mediums::DiscoveredPeripheralCallback{}));
+  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  EXPECT_TRUE(ble_a.StartScanning(std::string(kServiceIDA),
+                                  Pcp::kP2pPointToPoint, PowerLevel::kHighPower,
+                                  /*include_dct_advertisement=*/false,
+                                  mediums::DiscoveredPeripheralCallback{}));
+  EXPECT_TRUE(ble_a.StopScanning(std::string(kServiceIDA)));
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotConnectWithInvalidPeripheral) {
+  env_.Start();
+  BluetoothRadio radio_client;
+  BleV2 ble_client{radio_client};
+  radio_client.Enable();
+  std::string service_id(kServiceIDA);
+  BleV2Peripheral invalid_peripheral;
+  CancellationFlag flag;
+
+  ErrorOr<BleV2Socket> socket_for_client_result =
+      ble_client.Connect(service_id, invalid_peripheral, &flag);
+  EXPECT_TRUE(socket_for_client_result.has_error());
+  env_.Stop();
+}
+
+TEST_F(BleV2Test, CanNotConnectWithEmptyServiceId) {
+  env_.Start();
+  BluetoothRadio radio_client;
+  BleV2 ble_client{radio_client};
+  radio_client.Enable();
+  std::string empty_service_id;
+  BleV2Peripheral peripheral;
+  CancellationFlag flag;
+
+  ErrorOr<BleV2Socket> socket_for_client_result =
+      ble_client.Connect(empty_service_id, peripheral, &flag);
+  EXPECT_TRUE(socket_for_client_result.has_error());
   env_.Stop();
 }
 
