@@ -16,6 +16,7 @@
 
 #include <utility>
 
+#include "absl/synchronization/mutex.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/implementation/timer.h"
 
@@ -37,7 +38,8 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
     return false;
   }
 
-  if (timer_ != nil) {
+  absl::MutexLock lock(&mutex_);
+  if (timer_ != nullptr) {
     GNCLoggerError(@"Timer has already started.");
     return false;
   }
@@ -52,16 +54,33 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
                                   dispatch_get_main_queue());
 
   dispatch_source_set_event_handler(timer_, ^{
-    // If our interval is `DISPATCH_TIME_FOREVER`, it means we only want the timer to fire once.
-    // We need to cancel the timer before the callback is called since the `Timer` object may no
-    // longer exist immediately after invoking the callback.
-    if (intervalInNanoseconds == DISPATCH_TIME_FOREVER && timer_ != nil) {
-      dispatch_source_cancel(timer_);
-      timer_ = nil;
+    absl::AnyInvocable<void()> callback_to_run = nullptr;
+    bool is_one_shot = (intervalInNanoseconds == DISPATCH_TIME_FOREVER);
+    {
+      absl::MutexLock lock(&mutex_);
+      // If Stop() was called concurrently, the callback will be null.
+      if (!callback_ || callback_running_) {
+        return;
+      }
+      callback_running_ = true;
+      if (is_one_shot && timer_ != nullptr) {
+        dispatch_source_cancel(timer_);
+        timer_ = nullptr;
+      }
+      callback_to_run = std::move(callback_);
     }
 
-    if (callback_ != nil) {
-      callback_();
+    if (callback_to_run) {
+      callback_to_run();
+    }
+    {
+      absl::MutexLock lock(&mutex_);
+      if (!is_one_shot && callback_to_run) {
+        // For periodic timers, move the callback back for the next run.
+        callback_ = std::move(callback_to_run);
+      }
+      callback_running_ = false;
+      condvar_.SignalAll();
     }
   });
 
@@ -72,22 +91,41 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
 }
 
 bool Timer::Stop() {
-  if (timer_ != nil) {
+  absl::MutexLock lock(&mutex_);
+  if (timer_ != nullptr) {
     dispatch_source_cancel(timer_);
+    timer_ = nullptr;
   }
-  timer_ = nil;
-  callback_ = nil;
+  // Wait for a potentially running callback to finish before destroying it.
+  while (callback_running_) {
+    condvar_.Wait(&mutex_);
+  }
+  callback_ = nullptr;
   return true;
 }
 
 bool Timer::FireNow() {
-  if (callback_ != nil) {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
-      callback_();
-    });
-    return true;
+  absl::AnyInvocable<void()> callback_to_run;
+  {
+    absl::MutexLock lock(&mutex_);
+
+    // Don't fire if there's no callback or if a callback is already in progress.
+    if (!callback_ || callback_running_) {
+      return false;
+    }
+    callback_running_ = true;
+    callback_to_run = std::move(callback_);
   }
-  return false;
+
+  // Execute callback outside of the lock.
+  callback_to_run();
+  {
+    absl::MutexLock lock(&mutex_);
+    callback_ = std::move(callback_to_run);
+    callback_running_ = false;
+    condvar_.Signal();  // Notify Stop() if it's waiting.
+  }
+  return true;
 }
 
 }  // namespace apple

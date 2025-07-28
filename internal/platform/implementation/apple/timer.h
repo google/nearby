@@ -19,6 +19,8 @@
 
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/timer.h"
 
 namespace nearby {
@@ -27,18 +29,22 @@ namespace apple {
 class Timer : public api::Timer {
  public:
   Timer() = default;
-  ~Timer() override;
+  ~Timer() override ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool Create(int delay, int interval,
-              absl::AnyInvocable<void()> callback) override;
+              absl::AnyInvocable<void()> callback) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool Stop() override;
+  bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool FireNow() override;
+  bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
-  absl::AnyInvocable<void()> callback_;
-  dispatch_source_t timer_;
+  absl::Mutex mutex_;
+  absl::CondVar condvar_ ABSL_GUARDED_BY(mutex_);
+  bool callback_running_ ABSL_GUARDED_BY(mutex_) = false;
+  absl::AnyInvocable<void()> callback_ ABSL_GUARDED_BY(mutex_);
+  dispatch_source_t timer_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace apple
