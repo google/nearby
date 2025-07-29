@@ -90,6 +90,23 @@ class BaseEndpointChannel : public EndpointChannel {
   void SetAnalyticsRecorder(analytics::AnalyticsRecorder* analytics_recorder,
                             const std::string& endpoint_id) override;
 
+  // Reads a complete packet from the underlying medium.
+  virtual ExceptionOr<ByteArray> DispatchPacket() {
+    return ExceptionOr<ByteArray>{};
+  }
+
+  // Reads the length of the next incoming data packet from the underlying
+  // medium.
+  virtual ExceptionOr<std::int32_t> ReadPayloadLength() {
+    return ExceptionOr<std::int32_t>{0};
+  }
+
+  // Writes the length of a data packet to the underlying medium before writing
+  // the packet itself.
+  virtual Exception WritePayloadLength(int payload_length) {
+    return {Exception::kFailed};
+  }
+
  protected:
   virtual void CloseImpl() = 0;
   // For tests only.
