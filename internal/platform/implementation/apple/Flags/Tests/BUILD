@@ -12,21 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_apple//apple:ios.bzl", "ios_unit_test")
 load("@rules_cc//cc:objc_library.bzl", "objc_library")
+load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS")
 
 licenses(["notice"])
 
-package(default_visibility = [
-    "//internal/platform/implementation/apple:__subpackages__",
-])
+package(default_visibility = ["//visibility:public"])
 
 objc_library(
-    name = "Flags",
-    srcs = ["GNCFeatureFlags.mm"],
-    hdrs = ["GNCFeatureFlags.h"],
+    name = "GNCFeatureFlagsTestLib",
+    testonly = True,
+    srcs = ["GNCFeatureFlagsTest.mm"],
     deps = [
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
-        "//third_party/apple_frameworks:Foundation",
+        "//internal/platform/implementation/apple/Flags",
+        "//third_party/apple_frameworks:XCTest",
     ],
+)
+
+ios_unit_test(
+    name = "GNCFeatureFlagsTests",
+    minimum_os_version = IOS_MINIMUM_OS,
+    runner = "//testing/utp/ios:IOS_LATEST",
+    deps = [":GNCFeatureFlagsTestLib"],
 )

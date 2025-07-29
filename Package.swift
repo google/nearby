@@ -396,6 +396,7 @@ let package = Package(
         "internal/platform/implementation/g3",
         "internal/platform/implementation/android",
         "internal/platform/implementation/apple/Tests",
+        "internal/platform/implementation/apple/Flags/Tests",
         "internal/platform/implementation/apple/Mediums/Ble/Sockets/Tests",
         "internal/platform/implementation/windows",
         "third_party",
