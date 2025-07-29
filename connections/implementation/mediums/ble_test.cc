@@ -275,6 +275,37 @@ TEST_F(BleTest, CanStartAndStopLegacyAdvertising) {
   env_.Stop();
 }
 
+TEST_F(BleTest, CanStartLegacyAdvertisingWithEmptyServiceUuid) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  Ble ble_a{radio_a};
+  radio_a.Enable();
+  std::string service_id(kServiceID);
+  std::string legacy_service_id(std::string{kServiceID} + "-Legacy");
+  std::string device_a_endpoint_id{"1A1A"};
+  EXPECT_TRUE(
+      ble_a.StartLegacyAdvertising(service_id, device_a_endpoint_id,
+                                   /*fast_advertisement_service_uuid=*/""));
+  EXPECT_FALSE(ble_a.IsAdvertising(service_id));
+  EXPECT_TRUE(ble_a.IsAdvertising(legacy_service_id));
+  EXPECT_TRUE(ble_a.StopLegacyAdvertising(service_id));
+  EXPECT_FALSE(ble_a.IsAdvertising(legacy_service_id));
+  env_.Stop();
+}
+
+TEST_F(BleTest, ConnectWithEmptyServiceId) {
+  env_.Start();
+  BluetoothRadio radio_a;
+  Ble ble_a{radio_a};
+  radio_a.Enable();
+  BlePeripheral peripheral;
+  CancellationFlag flag;
+  ErrorOr<BleSocket> socket_result =
+      ble_a.Connect(peripheral, /*service_id=*/"", &flag);
+  EXPECT_TRUE(socket_result.has_error());
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

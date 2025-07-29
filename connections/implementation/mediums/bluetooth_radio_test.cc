@@ -17,6 +17,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "internal/platform/bluetooth_adapter.h"
 
 namespace nearby {
 namespace connections {
@@ -43,6 +44,17 @@ TEST(BluetoothRadioTest, CanDisable) {
   EXPECT_TRUE(radio.IsEnabled());
   EXPECT_TRUE(radio.Disable());
   EXPECT_FALSE(radio.IsEnabled());
+}
+
+TEST(BluetoothRadioTest, DestructorRestoresState) {
+  BluetoothAdapter adapter;
+  bool initial_state = adapter.IsEnabled();
+  {
+    BluetoothRadio radio;
+    EXPECT_TRUE(radio.IsAdapterValid());
+    radio.Disable();
+  }
+  EXPECT_EQ(initial_state, adapter.IsEnabled());
 }
 
 }  // namespace

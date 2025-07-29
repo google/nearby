@@ -129,6 +129,30 @@ TEST(LostEntityTrackerTest, SameEntityMultipleCopies) {
   EXPECT_TRUE(lost_entities.find(entity_1_copy) != lost_entities.end());
 }
 
+TEST(LostEntityTrackerTest, LostEntitiesAreClearedAfterComputation) {
+  LostEntityTracker<TestEntity> lost_entity_tracker;
+  TestEntity entity_1{1};
+  TestEntity entity_2{2};
+  TestEntity entity_3{3};
+
+  // Discover some entities.
+  lost_entity_tracker.RecordFoundEntity(entity_1);
+  lost_entity_tracker.RecordFoundEntity(entity_2);
+  lost_entity_tracker.RecordFoundEntity(entity_3);
+
+  // Make sure none are lost on the first round.
+  EXPECT_TRUE(lost_entity_tracker.ComputeLostEntities().empty());
+
+  // Go through a round without rediscovering any entities.
+  typename LostEntityTracker<TestEntity>::EntitySet lost_entities =
+      lost_entity_tracker.ComputeLostEntities();
+  EXPECT_EQ(lost_entities.size(), 3);
+
+  // Make sure we don't get any more lost entities on the next round if we don't
+  // discover any more entities.
+  EXPECT_TRUE(lost_entity_tracker.ComputeLostEntities().empty());
+}
+
 }  // namespace
 }  // namespace mediums
 }  // namespace connections

@@ -252,6 +252,42 @@ TEST_P(WifiLanTest, CanCancelConnect) {
   env_.Stop();
 }
 
+TEST_P(WifiLanTest, CanConnectWithIpAddressAndPort) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  WifiLan wifi_lan_client;
+  WifiLan wifi_lan_server;
+  std::string service_id(kServiceID);
+  CountDownLatch accept_latch(1);
+
+  WifiLanSocket socket_for_server;
+  EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
+      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+        socket_for_server = std::move(socket);
+        accept_latch.CountDown();
+      }));
+
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(std::string(kServiceInfoName));
+  EXPECT_TRUE(wifi_lan_server.StartAdvertising(service_id, nsd_service_info));
+
+  auto server_credentials = wifi_lan_server.GetCredentials(service_id);
+  ASSERT_FALSE(server_credentials.first.empty());
+  ASSERT_NE(server_credentials.second, 0);
+
+  CancellationFlag flag;
+  ErrorOr<WifiLanSocket> socket_for_client_result = wifi_lan_client.Connect(
+      service_id, server_credentials.first, server_credentials.second, &flag);
+  EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
+  EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
+  EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));
+  EXPECT_TRUE(socket_for_server.IsValid());
+  ASSERT_TRUE(socket_for_client_result.has_value());
+  EXPECT_TRUE(socket_for_client_result.value().IsValid());
+  env_.Stop();
+}
+
 INSTANTIATE_TEST_SUITE_P(ParametrisedWifiLanTest, WifiLanTest,
                          ::testing::ValuesIn(kTestCases));
 
