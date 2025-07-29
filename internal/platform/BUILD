@@ -593,6 +593,9 @@ cc_test(
         "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
+        "@platforms//os:platform_ios": [
+            "//internal/platform/implementation/apple",
+        ],
         "//conditions:default": [
             "//internal/platform/implementation/g3",
         ],
