@@ -50,8 +50,10 @@ bool Timer::Create(int delay, int interval, absl::AnyInvocable<void()> callback)
   uint64_t intervalInNanoseconds = interval == 0 ? DISPATCH_TIME_FOREVER : interval * NSEC_PER_MSEC;
   callback_ = std::move(callback);
 
+  // Run the timer on a background queue to avoid deadlocking the main thread,
+  // which may be blocked waiting for a future to complete.
   timer_ = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, /*handle=*/0, /*mask=*/0,
-                                  dispatch_get_main_queue());
+                                  dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 
   dispatch_source_set_event_handler(timer_, ^{
     absl::AnyInvocable<void()> callback_to_run = nullptr;
