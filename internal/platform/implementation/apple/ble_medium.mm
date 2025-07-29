@@ -27,6 +27,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
@@ -522,8 +523,10 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
     return nullptr;
   }
 
-  // Send the (empty) intro packet, which the BLE advertiser is expecting.
-  socket->GetOutputStream().Write(ByteArray());
+  if (!GNCFeatureFlags.refactorBleL2capEnabled) {
+    // Send the (empty) intro packet, which the BLE advertiser is expecting.
+    socket->GetOutputStream().Write(ByteArray());
+  }
   return std::move(socket);
 }
 
@@ -554,17 +557,22 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                                                          serviceID:@(service_id_str.c_str())
                                                 incomingConnection:NO
                                                      callbackQueue:dispatch_get_main_queue()];
-                   // Blocked call to wait for the packet validation result.
-                   // TODO: b/419654808 - Remove this once the packet validation is moved to the
-                   // Connections layer.
-                   [connection requestDataConnectionWithCompletion:^(BOOL result) {
-                     if (result) {
-                       socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
-                     }
-                     GNCLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
-                                          : @"[NEARBY] Request data connection is not ok");
+                   if (GNCFeatureFlags.refactorBleL2capEnabled) {
+                     socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
                      dispatch_semaphore_signal(semaphore);
-                   }];
+                   } else {
+                     // Blocked call to wait for the packet validation result.
+                     // TODO: b/419654808 - Remove this once the packet validation is moved to the
+                     // Connections layer.
+                     [connection requestDataConnectionWithCompletion:^(BOOL result) {
+                       if (result) {
+                         socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
+                       }
+                       GNCLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
+                                            : @"[NEARBY] Request data connection is not ok");
+                       dispatch_semaphore_signal(semaphore);
+                     }];
+                   }
                  }];
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
     GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP: timeout.");
