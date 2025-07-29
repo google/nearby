@@ -44,6 +44,8 @@ namespace connections {
 
 namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
+using ::location::nearby::proto::connections::Medium::BLE;
+using ::location::nearby::proto::connections::Medium::BLE_L2CAP;
 using DisconnectionReason =
     ::location::nearby::proto::connections::DisconnectionReason;
 
@@ -130,7 +132,15 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     MutexLock lock(&reader_mutex_);
 
     packet_meta_data.StartSocketIo();
-    ExceptionOr<std::int32_t> read_int = ReadInt(reader_);
+    ExceptionOr<std::int32_t> read_int;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kRefactorBleL2cap)) {
+      // TODO(edwinwu): Implement the new read logic.
+      return ExceptionOr<ByteArray>(Exception::kFailed);
+    } else {
+      read_int = ReadInt(reader_);
+    }
     if (!read_int.ok()) {
       return ExceptionOr<ByteArray>(read_int.exception());
     }
@@ -249,8 +259,16 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
     }
 
     packet_meta_data.StartSocketIo();
-    Exception write_exception =
-        WriteInt(writer_, static_cast<std::int32_t>(data_size));
+    Exception write_exception;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kRefactorBleL2cap) &&
+        (GetMedium() == BLE || GetMedium() == BLE_L2CAP)) {
+      // TODO(edwinwu): Implement the new write logic.
+      write_exception = {Exception::kFailed};
+    } else {
+      write_exception = WriteInt(writer_, static_cast<std::int32_t>(data_size));
+    }
     if (write_exception.Raised()) {
       LOG(WARNING) << __func__
                    << ": Failed to write header: " << write_exception.value;
