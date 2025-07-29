@@ -15,10 +15,14 @@
 #ifndef CORE_INTERNAL_BLE_L2CAP_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_BLE_L2CAP_ENDPOINT_CHANNEL_H_
 
+#include <cstdint>
+#include <memory>
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -28,7 +32,7 @@ class BleL2capEndpointChannel final : public BaseEndpointChannel {
   // Creates both outgoing and incoming Ble channels.
   BleL2capEndpointChannel(const std::string& service_id,
                           const std::string& channel_name,
-                          BleL2capSocket socket);
+                          std::unique_ptr<mediums::BleSocket> socket);
 
   // Returns the medium of this endpoint channel.
   location::nearby::proto::connections::Medium GetMedium() const override;
@@ -36,10 +40,14 @@ class BleL2capEndpointChannel final : public BaseEndpointChannel {
   // Returns the maximum transmit packet size of this endpoint channel.
   int GetMaxTransmitPacketSize() const override;
 
+  ExceptionOr<ByteArray> DispatchPacket() override;
+  ExceptionOr<std::int32_t> ReadPayloadLength() override;
+  Exception WritePayloadLength(int payload_length) override;
+
  private:
   void CloseImpl() override;
 
-  BleL2capSocket ble_l2cap_socket_;
+  std::unique_ptr<mediums::BleSocket> ble_socket_ = nullptr;
 };
 
 }  // namespace connections
