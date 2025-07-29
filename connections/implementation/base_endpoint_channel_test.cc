@@ -31,7 +31,9 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/encryption_runner.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -58,6 +60,7 @@ class TestEndpointChannel : public BaseEndpointChannel {
 
   using BaseEndpointChannel::EncodeMessageForTests;
 
+  MOCK_METHOD(ExceptionOr<ByteArray>, DispatchPacket, (), (override));
   MOCK_METHOD(Medium, GetMedium, (), (const, override));
   MOCK_METHOD(void, CloseImpl, (), (override));
 };
@@ -163,13 +166,77 @@ DoDhKeyExchange(BaseEndpointChannel* channel_a,
   return std::make_pair(std::move(context_a), std::move(context_b));
 }
 
-TEST(BaseEndpointChannelTest, ConstructorDestructorWorks) {
+class BaseEndpointChannelTest : public ::testing::Test {
+ protected:
+  void TearDown() override {
+    // Restore any overridden flags after each test to ensure test isolation.
+    NearbyFlags::GetInstance().ResetOverridedValues();
+  }
+
+  const ByteArray kTestData{"test_data"};
+};
+
+TEST_F(BaseEndpointChannelTest, ReadSucceedsWhenFlagDisabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      false);
+
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
+
+  channel_a.Write(kTestData);
+  ByteArray rx_message = std::move(channel_b.Read().result());
+  EXPECT_EQ(rx_message, kTestData);
+}
+
+TEST_F(BaseEndpointChannelTest, ReadCallsDispatchPacketWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      true);
+
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
+
+  EXPECT_CALL(channel_b, DispatchPacket)
+      .WillOnce(::testing::Return(ExceptionOr<ByteArray>(kTestData)));
+
+  channel_a.Write(kTestData);
+
+  auto read_byte = channel_b.Read();
+  EXPECT_TRUE(read_byte.ok());
+  EXPECT_EQ(read_byte.result(), kTestData);
+}
+
+TEST_F(BaseEndpointChannelTest,
+       ReadPropagatesFailureFromDispatchPacketWhenFlagEnabled) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      true);
+
+  auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
+  auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
+  TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
+  TestEndpointChannel channel_b(pipe_a.first.get(), pipe_b.second.get());
+
+  EXPECT_CALL(channel_b, DispatchPacket)
+      .WillOnce(::testing::Return(ExceptionOr<ByteArray>(Exception::kIo)));
+
+  auto read_byte = channel_b.Read();
+  EXPECT_FALSE(read_byte.ok());
+  EXPECT_EQ(read_byte.GetException().value, Exception::kIo);
+}
+
+TEST_F(BaseEndpointChannelTest, ConstructorDestructorWorks) {
   auto [input, output] = CreatePipe();
 
   TestEndpointChannel test_channel(input.get(), output.get());
 }
 
-TEST(BaseEndpointChannelTest, ReadWrite) {
+TEST_F(BaseEndpointChannelTest, ReadWrite) {
   // Direct not-encrypted IO.
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
@@ -181,7 +248,7 @@ TEST(BaseEndpointChannelTest, ReadWrite) {
   EXPECT_EQ(rx_message, tx_message);
 }
 
-TEST(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
+TEST_F(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
   auto pipe = CreatePipe();
   TestEndpointChannel channel(pipe.first.get(), pipe.second.get());
 
@@ -192,7 +259,7 @@ TEST(BaseEndpointChannelTest, ChannelUnencryptedByDefault) {
   EXPECT_EQ(result.exception(), Exception::kFailed);
 }
 
-TEST(BaseEndpointChannelTest, TryDecrypt) {
+TEST_F(BaseEndpointChannelTest, TryDecrypt) {
   absl::string_view kMessage = "message";
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
@@ -214,7 +281,7 @@ TEST(BaseEndpointChannelTest, TryDecrypt) {
   EXPECT_EQ(decrypted_message.result().AsStringView(), kMessage);
 }
 
-TEST(BaseEndpointChannelTest, TryDecryptFailsWhenDecryptionFails) {
+TEST_F(BaseEndpointChannelTest, TryDecryptFailsWhenDecryptionFails) {
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
   TestEndpointChannel channel_a(pipe_b.first.get(), pipe_a.second.get());
@@ -231,7 +298,7 @@ TEST(BaseEndpointChannelTest, TryDecryptFailsWhenDecryptionFails) {
   EXPECT_EQ(result.exception(), Exception::kExecution);
 }
 
-TEST(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
+TEST_F(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
   // Not encrypted IO; MITM scenario.
 
   // Setup test communication environment.
@@ -282,7 +349,7 @@ TEST(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
   channel_b.Close(DisconnectionReason::REMOTE_DISCONNECTION);
 }
 
-TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
+TEST_F(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   // Encrypted IO; MITM scenario.
 
   // Setup test communication environment.
@@ -346,7 +413,7 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   channel_b.Close(DisconnectionReason::REMOTE_DISCONNECTION);
 }
 
-TEST(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
+TEST_F(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
   // Setup test communication environment.
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
@@ -398,7 +465,7 @@ TEST(BaseEndpointChannelTest, CanBesuspendedAndResumed) {
   channel_b.Close(DisconnectionReason::REMOTE_DISCONNECTION);
 }
 
-TEST(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
+TEST_F(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
   auto [input, output] = CreatePipe();
 
   TestEndpointChannel test_channel(input.get(), output.get());
@@ -413,7 +480,7 @@ TEST(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
   ASSERT_TRUE(read_data.GetException().Raised(Exception::kIo));
 }
 
-TEST(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
+TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {
   // Setup test communication environment.
   auto pipe_a = CreatePipe();  // channel_a writes to pipe_a, reads from pipe_b.
   auto pipe_b = CreatePipe();  // channel_b writes to pipe_b, reads from pipe_a.
