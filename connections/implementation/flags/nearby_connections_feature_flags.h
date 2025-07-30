@@ -51,7 +51,7 @@ constexpr auto kEnableBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45685706", false);
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
-    flags::Flag<bool>(kConfigPackage, "45401515", false);
+    flags::Flag<bool>(kConfigPackage, "45401515", true);
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
@@ -62,9 +62,8 @@ constexpr auto kEnableDynamicRoleSwitch =
 constexpr auto kEnableGattClientDisconnection =
     flags::Flag<bool>(kConfigPackage, "45698964", false);
 // Disable/Enable GATT query in thread in BLE V2.
-// Manual edit: setting this to false for ChromeOS rollout as well.
 constexpr auto kEnableGattQueryInThread =
-    flags::Flag<bool>(kConfigPackage, "45415261", false);
+    flags::Flag<bool>(kConfigPackage, "45415261", true);
 // When true, enable instant on lost feature.
 constexpr auto kEnableInstantOnLost =
     flags::Flag<bool>(kConfigPackage, "45642180", false);
