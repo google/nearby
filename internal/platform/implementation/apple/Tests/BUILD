@@ -52,9 +52,10 @@ objc_library(
         "GNCPlatformTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
-        "GNCUtilsTest.mm",
+        "GNCUtilsTest.m",
         "NSData+GNCBase85Test.m",
         "NSData+GNCWebSafeBase64Test.m",
+        "UtilsTest.mm",
     ],
     deps = [
         "//internal/platform:base",
@@ -62,8 +63,10 @@ objc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
+        "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple:ble_v2",
         "//internal/platform/implementation/apple/Mediums",
+        "//third_party/apple_frameworks:CommonCrypto",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
