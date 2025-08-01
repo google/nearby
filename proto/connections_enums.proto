@@ -1374,6 +1374,9 @@ enum DeviceType {
   NEARBY_PRESENCE = 2;
   DCT = 3;
 }
+
+// Todo: add instant connection result and error stage codes
+
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
