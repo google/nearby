@@ -960,3 +960,13 @@ enum ButtonStatus {
 // LINT.ThenChange(
 //   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
 // )
+
+enum TransferUIEvent {
+  TRANSFER_UI_EVENT_UNKNOWN = 0;
+
+  // Receive attachments.
+  TRANSFER_UI_EVENT_RECEIVE_ACCEPT = 1;
+  TRANSFER_UI_EVENT_RECEIVE_PROGRESS = 2;
+  TRANSFER_UI_EVENT_RECEIVE_RECEIVED = 3;
+  TRANSFER_UI_EVENT_RECEIVE_ERROR = 4;
+}
