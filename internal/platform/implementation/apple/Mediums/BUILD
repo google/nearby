@@ -1,5 +1,3 @@
-load("@rules_cc//cc:objc_library.bzl", "objc_library")
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +11,9 @@ load("@rules_cc//cc:objc_library.bzl", "objc_library")
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+load("@rules_cc//cc:objc_library.bzl", "objc_library")
+
 licenses(["notice"])
 
 package(default_visibility = [
@@ -45,13 +46,6 @@ objc_library(
         "GNCMConnection.m",
         "Hotspot/GNCHotspotMedium.m",
         "Hotspot/GNCHotspotSocket.m",
-        "WiFiCommon/GNCIPv4Address.m",
-        "WiFiCommon/GNCNWFramework.m",
-        "WiFiCommon/GNCNWFrameworkError.m",
-        "WiFiCommon/GNCNWFrameworkServerSocket.m",
-        "WiFiCommon/GNCNWFrameworkServerSocket+Internal.h",
-        "WiFiCommon/GNCNWFrameworkSocket.m",
-        "WiFiCommon/GNCNWParameters.m",
     ],
     hdrs = [
         "BLEv2/GNCBLEError.h",
@@ -73,12 +67,6 @@ objc_library(
         "GNCMConnection.h",
         "Hotspot/GNCHotspotMedium.h",
         "Hotspot/GNCHotspotSocket.h",
-        "WiFiCommon/GNCIPv4Address.h",
-        "WiFiCommon/GNCNWFramework.h",
-        "WiFiCommon/GNCNWFrameworkError.h",
-        "WiFiCommon/GNCNWFrameworkServerSocket.h",
-        "WiFiCommon/GNCNWFrameworkSocket.h",
-        "WiFiCommon/GNCNWParameters.h",
     ],
     deps = [
         "//internal/encoding:base85",
@@ -86,6 +74,7 @@ objc_library(
         "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:CoreLocation",
@@ -93,7 +82,6 @@ objc_library(
         "//third_party/apple_frameworks:Network",
         "//third_party/apple_frameworks:NetworkExtension",
         "//third_party/apple_frameworks:ObjectiveC",
-        "//third_party/apple_frameworks:Security",
         "//third_party/apple_frameworks:SystemConfiguration",
     ],
 )
