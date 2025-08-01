@@ -15,23 +15,24 @@
 #ifndef PLATFORM_BASE_BYTE_UTILS_H_
 #define PLATFORM_BASE_BYTE_UTILS_H_
 
+#include <cstdint>
 #include <string>
+
 #include "internal/platform/byte_array.h"
 
 namespace nearby {
+namespace byte_utils {
 
-class ByteUtils {
- public:
-  static std::string ToFourDigitString(ByteArray& bytes);
+// Generates a four-digit numeric string representation of a byte array.
+std::string ToFourDigitString(const ByteArray& bytes);
 
- private:
-  // The biggest prime number under 10000, used as a mod base to trim integers
-  // into 4 digits.
-  static constexpr int kHashBasePrime = 9973;
-  // The hash multiplier.
-  static constexpr int kHashBaseMultiplier = 31;
-};
+// Converts a 4-byte ByteArray to a 32-bit integer in big-endian format.
+std::int32_t BytesToInt(const ByteArray& bytes);
 
+// Converts a 32-bit integer to a 4-byte ByteArray in big-endian format.
+ByteArray IntToBytes(std::int32_t value);
+
+}  // namespace byte_utils
 }  // namespace nearby
 
 #endif  // PLATFORM_BASE_BYTE_UTILS_H_
