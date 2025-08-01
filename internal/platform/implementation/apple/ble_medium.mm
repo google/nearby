@@ -112,34 +112,28 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
 
   [socketPeripheralManager_ start];
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block NSError *blockError = nil;
   [medium_ startAdvertisingData:serviceData
               completionHandler:^(NSError *error) {
                 if (error != nil) {
                   GNCLoggerError(@"Failed to start advertising: %@", error);
+                } else {
+                  GNCLoggerInfo(@"Start advertising operation completed.");
                 }
-                blockError = error;
-                dispatch_semaphore_signal(semaphore);
               }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return blockError == nil;
+  return true;  // Indicates operation was initiated.
 }
 
 bool BleMedium::StopAdvertising() {
   [socketPeripheralManager_ stop];
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block NSError *blockError = nil;
   [medium_ stopAdvertisingWithCompletionHandler:^(NSError *error) {
     if (error != nil) {
       GNCLoggerError(@"Failed to stop advertising: %@", error);
+    } else {
+      GNCLoggerInfo(@"Stop advertising completed.");
     }
-    blockError = error;
-    dispatch_semaphore_signal(semaphore);
   }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return blockError == nil;
+  return true;  // Indicates operation was initiated.
 }
 
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
@@ -229,8 +223,6 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block NSError *blockError = nil;
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
@@ -239,12 +231,11 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
       completionHandler:^(NSError *error) {
         if (error != nil) {
           GNCLoggerError(@"Failed to start scanning: %@", error);
+        } else {
+          GNCLoggerInfo(@"Start scanning operation completed.");
         }
-        blockError = error;
-        dispatch_semaphore_signal(semaphore);
       }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return blockError == nil;
+  return true;  // Indicates operation was initiated.
 }
 
 bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_uuids,
@@ -271,8 +262,6 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUIDs[0]];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUIDs[0] ]];
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block NSError *blockError = nil;
   [medium_ startScanningForMultipleServices:serviceUUIDs
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
@@ -281,44 +270,37 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
       completionHandler:^(NSError *error) {
         if (error != nil) {
           GNCLoggerError(@"Failed to start scanning for multiple services: %@", error);
-          blockError = error;
+        } else {
+          GNCLoggerInfo(@"StartMultipleServicesScanning operation completed.");
         }
-        dispatch_semaphore_signal(semaphore);
       }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return blockError == nil;
+  return true;  // Indicates operation was initiated.
 }
 
 bool BleMedium::StopScanning() {
   [socketCentralManager_ stopNoScanMode];
 
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block NSError *blockError = nil;
   [medium_ stopScanningWithCompletionHandler:^(NSError *error) {
     if (error != nil) {
       GNCLoggerError(@"Failed to stop scanning: %@", error);
+    } else {
+      GNCLoggerInfo(@"Stop scanning completed.");
     }
-    blockError = error;
-    dispatch_semaphore_signal(semaphore);
   }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return blockError == nil;
+  return true;  // Indicates operation was initiated.
 }
 
 bool BleMedium::PauseMediumScanning() { return StopScanning(); }
 
 bool BleMedium::ResumeMediumScanning() {
-  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  __block NSError *blockError = nil;
   [medium_ resumeMediumScanning:^(NSError *error) {
     if (error != nil) {
-      GNCLoggerError(@"Failed to start scanning for multiple services: %@", error);
-      blockError = error;
+      GNCLoggerError(@"Failed to resume scanning: %@", error);
+    } else {
+      GNCLoggerInfo(@"ResumeMediumScanning operation completed.");
     }
-    dispatch_semaphore_signal(semaphore);
   }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return blockError == nil;
+  return true;  // Indicates operation was initiated.
 }
 
 // TODO(b/290385712): Add implementation that calls ServerGattConnectionCallback methods.
@@ -474,6 +456,7 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
 
   return std::move(l2cap_server_socket);
 }
+
 // TODO(b/290385712): Add support for @c cancellation_flag.
 // TODO(b/293336684): Old Weave code that need to be deleted once shared Weave is complete.
 std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
@@ -481,7 +464,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
-    GNCLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
+    GNCLoggerError(@"Failed to connect to Gatt server: peripheral is not found.");
     return nullptr;
   }
 
@@ -492,6 +475,8 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
   }
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  dispatch_time_t timeout =
+      dispatch_time(DISPATCH_TIME_NOW, kRequestConnectionTimeoutInSeconds * NSEC_PER_SEC);
   __block std::unique_ptr<BleSocket> socket;
   [updatedCentralPeerManager
       socketWithPairingCharacteristic:NO
@@ -517,7 +502,10 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
                                dispatch_semaphore_signal(semaphore);
                              });
                            }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+    GNCLoggerError(@"Failed to connect BLE socket: timeout.");
+    return nullptr;
+  }
   if (socket == nullptr) {
     return nullptr;
   }
@@ -532,7 +520,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
     api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
-    GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP: peripheral is not found.");
+    GNCLoggerError(@"Failed to connect over L2CAP: peripheral is not found.");
     return nullptr;
   }
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
@@ -567,12 +555,12 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                    }];
                  }];
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
-    GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP: timeout.");
+    GNCLoggerError(@"Failed to connect over L2CAP: timeout.");
     return nullptr;
   }
   if (socket == nullptr) {
     if (openError != nil) {
-      GNCLoggerError(@"[NEARBY] Failed to connect over L2CAP:%@.", openError);
+      GNCLoggerError(@"Failed to connect over L2CAP:%@.", openError);
     }
     return nullptr;
   }

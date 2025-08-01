@@ -128,6 +128,7 @@ bool BleV2Medium::StopScanning() {
   LOG(INFO) << "Ble Scanning disabled";
   return impl_->StopScanning();
 }
+
 bool BleV2Medium::PauseMediumScanning() {
   MutexLock lock(&mutex_);
   if (!scanning_enabled_) {
