@@ -25,7 +25,7 @@
 
 #import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTClient.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 
 namespace nearby {
