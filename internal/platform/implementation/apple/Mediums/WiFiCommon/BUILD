@@ -21,12 +21,28 @@ package(default_visibility = [
 ])
 
 objc_library(
-    name = "Flags",
-    srcs = ["GNCFeatureFlags.mm"],
-    hdrs = ["GNCFeatureFlags.h"],
+    name = "WiFiCommon",
+    srcs = [
+        "GNCIPv4Address.m",
+        "GNCNWFramework.m",
+        "GNCNWFrameworkError.m",
+        "GNCNWFrameworkServerSocket.m",
+        "GNCNWFrameworkSocket.m",
+        "GNCNWParameters.m",
+    ],
+    hdrs = [
+        "GNCIPv4Address.h",
+        "GNCNWFramework.h",
+        "GNCNWFrameworkError.h",
+        "GNCNWFrameworkServerSocket.h",
+        "GNCNWFrameworkServerSocket+Internal.h",
+        "GNCNWFrameworkSocket.h",
+        "GNCNWParameters.h",
+    ],
     deps = [
-        "//connections/implementation/flags:connections_flags",
-        "//internal/flags:nearby_flags",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:Network",
+        "//third_party/apple_frameworks:Security",
     ],
 )
