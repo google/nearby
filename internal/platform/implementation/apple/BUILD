@@ -57,7 +57,7 @@ objc_library(
     deps = [
         ":Platform_cc",
         ":Shared",
-        ":ble_v2",
+        ":ble",
         ":network_utils",
         # Required Reason API File: third_party/nearby/internal/platform/implementation/apple/preferences_manager.mm
         "//releasetools/apple/privacy/privacymanifests/requiredreasonsapi:user_defaults-user_defaults-read_write_app_data_ca92_1",
@@ -76,7 +76,9 @@ objc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
-        "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/apple/Mediums/BLE",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
+        "//internal/platform/implementation/apple/Mediums/Hotspot",
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
     ] + select({
@@ -88,7 +90,7 @@ objc_library(
 )
 
 objc_library(
-    name = "ble_v2",
+    name = "ble",
     srcs = [
         "ble_gatt_client.h",
         "ble_gatt_client.mm",
@@ -112,7 +114,7 @@ objc_library(
         "utils.mm",
     ],
     hdrs = [
-        "ble.h",
+        "ble_medium.h",
         "ble_utils.h",
         "utils.h",
     ],
@@ -125,9 +127,9 @@ objc_library(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Log:GNCLogger",
-        "//internal/platform/implementation/apple/Mediums",
-        "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Central",
-        "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Peripheral",
+        "//internal/platform/implementation/apple/Mediums/BLE",
+        "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Central",
+        "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Peripheral",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -163,7 +165,7 @@ objc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Log:GNCLogger",
-        "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )
@@ -216,10 +218,8 @@ cc_library(
     ],
     deps = [
         "//internal/platform:base",
-        "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
     ],
