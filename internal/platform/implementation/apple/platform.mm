@@ -23,7 +23,7 @@
 #include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
-#include "internal/platform/implementation/apple/ble.h"
+#include "internal/platform/implementation/apple/ble_medium.h"
 #include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
