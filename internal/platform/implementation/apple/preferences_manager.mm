@@ -253,4 +253,8 @@ void PreferencesManager::Remove(absl::string_view key) {
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:@(std::string(key).c_str())];
 }
 
+NSUserDefaults* PreferencesManager::GetUserDefaults() const {
+  return [NSUserDefaults standardUserDefaults];
+}
+
 }  // namespace nearby::apple
