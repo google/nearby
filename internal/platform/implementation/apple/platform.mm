@@ -23,7 +23,7 @@
 #include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
-#include "internal/platform/implementation/apple/ble.h"
+#include "internal/platform/implementation/apple/ble_medium.h"
 #include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
@@ -258,12 +258,10 @@ std::unique_ptr<Timer> ImplementationPlatform::CreateTimer() {
   return std::make_unique<apple::Timer>();
 }
 
-// TODO(b/261511530): Add implementation.
 std::unique_ptr<nearby::api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<apple::DeviceInfo>();
 }
 
-// TODO(b/261503919): Add implementation.
 std::unique_ptr<nearby::api::PreferencesManager> ImplementationPlatform::CreatePreferencesManager(
     absl::string_view path) {
   return std::make_unique<apple::PreferencesManager>(path);
