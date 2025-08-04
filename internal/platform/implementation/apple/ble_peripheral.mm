@@ -21,7 +21,7 @@
 
 #include "internal/platform/implementation/ble_v2.h"
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
 
 namespace nearby {
 namespace apple {
