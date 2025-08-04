@@ -19,7 +19,7 @@
 
 #include <string>
 
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/utils.h"
 
 namespace nearby {

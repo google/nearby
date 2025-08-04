@@ -20,7 +20,7 @@
 #include <utility>
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPServer.h"
 
 namespace nearby {
 namespace apple {
