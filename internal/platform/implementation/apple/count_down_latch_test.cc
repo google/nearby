@@ -79,6 +79,15 @@ TEST(CountDownLatchTest, InitialCountNegativeAwaitDoesNotBlock) {
   EXPECT_TRUE(response.Ok());
 }
 
+TEST(CountDownLatchTest, CountDown) {
+  CountDownLatch latch(2);
+  latch.CountDown();
+  latch.CountDown();
+  auto response = latch.Await(absl::Milliseconds(100));
+  EXPECT_TRUE(response.ok());
+  EXPECT_TRUE(response.result());
+}
+
 }  // namespace
 }  // namespace apple
 }  // namespace nearby

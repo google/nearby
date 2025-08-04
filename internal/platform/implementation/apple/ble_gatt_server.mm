@@ -20,7 +20,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTServer.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTServer.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 #import "internal/platform/implementation/apple/utils.h"
 
