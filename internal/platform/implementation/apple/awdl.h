@@ -100,6 +100,8 @@ class AwdlServerSocket : public api::AwdlServerSocket {
 class AwdlMedium : public api::AwdlMedium {
  public:
   AwdlMedium();
+  // For testing only.
+  explicit AwdlMedium(GNCNWFramework* medium);
   ~AwdlMedium() override = default;
 
   AwdlMedium(const AwdlMedium&) = delete;
