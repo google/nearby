@@ -124,6 +124,8 @@ Exception AwdlServerSocket::Close() {
 
 AwdlMedium::AwdlMedium() { medium_ = [[GNCNWFramework alloc] init]; }
 
+AwdlMedium::AwdlMedium(GNCNWFramework* medium) : medium_(medium) {}
+
 bool AwdlMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);
 }

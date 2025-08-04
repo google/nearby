@@ -47,6 +47,18 @@
                                          byte4:bytes[3]];
 }
 
++ (nullable instancetype)addressWithDottedRepresentation:(NSString *)address {
+  NSArray<NSString *> *components = [address componentsSeparatedByString:@"."];
+  if (components.count != 4) {
+    return nil;
+  }
+
+  return [[GNCIPv4Address alloc] initWithByte1:[components[0] intValue]
+                                         byte2:[components[1] intValue]
+                                         byte3:[components[2] intValue]
+                                         byte4:[components[3] intValue]];
+}
+
 - (NSData *)binaryRepresentation {
   const uint8_t bytes[] = {_byte1, _byte2, _byte3, _byte4};
   return [NSData dataWithBytes:bytes length:4];
