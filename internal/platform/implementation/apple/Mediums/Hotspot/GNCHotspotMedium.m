@@ -27,6 +27,8 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 #if TARGET_OS_IOS
 // The maximum number of retries for connecting to the Hotspot.
 static const UInt8 kMaxRetryCount = 3;
@@ -38,10 +40,23 @@ static const UInt8 kConnectionTimeoutInSeconds = 18;
 // An arbitrary timeout that should be pretty lenient.
 static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
-@implementation GNCHotspotMedium
+@implementation GNCHotspotMedium {
+  dispatch_queue_t _hotspot_queue;
+}
 
-- (BOOL)connectToWifiNetworkWithSSID:(nonnull NSString *)ssid
-                            password:(nonnull NSString *)password {
+- (instancetype)init {
+  return [self initWithQueue:dispatch_get_main_queue()];
+}
+
+- (instancetype)initWithQueue:(dispatch_queue_t)queue {
+  self = [super init];
+  if (self) {
+    _hotspot_queue = queue;
+  }
+  return self;
+}
+
+- (BOOL)connectToWifiNetworkWithSSID:(NSString *)ssid password:(NSString *)password {
 #if TARGET_OS_IOS
   __block BOOL connected = NO;
   NEHotspotConfiguration *config = [[NEHotspotConfiguration alloc] initWithSSID:ssid
@@ -98,7 +113,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 #endif  // TARGET_OS_IOS
 }
 
-- (void)disconnectToWifiNetworkWithSSID:(nonnull NSString *)ssid {
+- (void)disconnectToWifiNetworkWithSSID:(NSString *)ssid {
 #if TARGET_OS_IOS
   [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
 #else
@@ -106,9 +121,10 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 #endif  // TARGET_OS_IOS
 }
 
-- (GNCHotspotSocket *)connectToHost:(GNCIPv4Address *)host
-                               port:(NSInteger)port
-                              error:(NSError **)error {
+- (nullable GNCHotspotSocket *)connectToHost:(GNCIPv4Address *)host
+                                        port:(NSInteger)port
+                                cancelSource:(nullable dispatch_source_t)cancelSource
+                                       error:(NSError *_Nullable *_Nullable)error {
   // Validate host address
   if (!host.dottedRepresentation.UTF8String) {
     if (error) {
@@ -122,12 +138,16 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
   nw_endpoint_t endpoint =
       nw_endpoint_create_host(host.dottedRepresentation.UTF8String, @(port).stringValue.UTF8String);
-  return [self connectToEndpoint:endpoint includePeerToPeer:(BOOL)YES error:error];
+  return [self connectToEndpoint:endpoint
+               includePeerToPeer:(BOOL)YES
+                    cancelSource:cancelSource
+                           error:error];
 }
 
-- (GNCHotspotSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
-                      includePeerToPeer:(BOOL)includePeerToPeer
-                                  error:(NSError **)error {
+- (nullable GNCHotspotSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
+                               includePeerToPeer:(BOOL)includePeerToPeer
+                                    cancelSource:(nullable dispatch_source_t)cancelSource
+                                           error:(NSError *_Nullable *_Nullable)error {
   GNCLoggerInfo(@"connectToEndpoint: %@ includePeerToPeer: %d", endpoint.debugDescription,
                 includePeerToPeer);
 
@@ -142,7 +162,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
   nw_connection_t connection = nw_connection_create(endpoint, parameters);
 
-  nw_connection_set_queue(connection, dispatch_get_main_queue());
+  nw_connection_set_queue(connection, _hotspot_queue);
 
   nw_connection_set_state_changed_handler(
       connection, ^(nw_connection_state_t state, nw_error_t error) {
@@ -158,6 +178,14 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
           dispatch_semaphore_signal(semaphore_internal);
         }
       });
+
+  if (cancelSource != nil) {
+    dispatch_source_set_event_handler(cancelSource, ^{
+      GNCLoggerWarning(@"connectToEndpoint is cancelled.");
+      nw_connection_cancel(connection);
+      dispatch_source_cancel(cancelSource);
+    });
+  }
 
   nw_connection_start(connection);
   dispatch_time_t timeout =
@@ -249,3 +277,5 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 }
 
 @end
+
+NS_ASSUME_NONNULL_END

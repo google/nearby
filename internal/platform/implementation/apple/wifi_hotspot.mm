@@ -21,6 +21,7 @@
 #include <utility>
 
 #include <arpa/inet.h>
+#include "internal/platform/cancellation_flag_listener.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotSocket.h"
@@ -28,6 +29,9 @@
 
 namespace nearby {
 namespace apple {
+namespace {
+constexpr char kHotspotQueueLabel[] = "com.google.nearby.wifi_hotspot";
+}
 
 #pragma mark - WifiHotspotInputStream
 
@@ -93,7 +97,11 @@ Exception WifiHotspotSocket::Close() {
 
 #pragma mark - WifiHotspotMedium
 
-WifiHotspotMedium::WifiHotspotMedium() : medium_([[GNCHotspotMedium alloc] init]) {}  // NOLINT
+WifiHotspotMedium::WifiHotspotMedium() {
+  hotspot_queue_ = dispatch_queue_create(kHotspotQueueLabel, DISPATCH_QUEUE_SERIAL);
+  medium_ = [[GNCHotspotMedium alloc] initWithQueue:hotspot_queue_];
+}
+
 WifiHotspotMedium::~WifiHotspotMedium() { DisconnectWifiHotspot(); }
 
 bool WifiHotspotMedium::ConnectWifiHotspot(HotspotCredentials* hotspot_credentials_) {
@@ -146,7 +154,29 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   }
   GNCLoggerInfo(@"Connect to Hotspot host server: %@", [host dottedRepresentation]);
 
-  GNCHotspotSocket* socket = [medium_ connectToHost:host port:port error:&error];
+  // Setup cancel listener
+  std::unique_ptr<nearby::CancellationFlagListener> connection_cancellation_listener = nullptr;
+  dispatch_source_t cancellation_source = nullptr;
+  if (cancellation_flag != nullptr) {
+    if (cancellation_flag->Cancelled()) {
+      return nullptr;
+    }
+
+    cancellation_source =
+        dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, hotspot_queue_);
+
+    dispatch_resume(cancellation_source);
+    connection_cancellation_listener = std::make_unique<nearby::CancellationFlagListener>(
+        cancellation_flag, [&cancellation_source]() {
+          GNCLoggerWarning(@"Cancelling to connect WiFi hotspot.");
+          dispatch_source_merge_data(cancellation_source, 1);
+        });
+  }
+
+  GNCHotspotSocket* socket = [medium_ connectToHost:host
+                                               port:port
+                                       cancelSource:cancellation_source
+                                              error:&error];
   if (socket != nil) {
     return std::make_unique<WifiHotspotSocket>(socket);
   }

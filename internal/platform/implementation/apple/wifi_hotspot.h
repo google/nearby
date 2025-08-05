@@ -138,6 +138,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   }
 
  private:
+  dispatch_queue_t hotspot_queue_ = nil;
   GNCHotspotMedium* medium_;
   NSString* hotspot_ssid_ = nil;
 };
