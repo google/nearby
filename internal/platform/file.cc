@@ -68,10 +68,6 @@ Exception OutputFile::Write(const ByteArray& data) {
   return impl_->Write(data);
 }
 
-// Ensures that all data written by previous calls to Write() is passed
-// down to the applicable transport layer.
-Exception OutputFile::Flush() { return impl_->Flush(); }
-
 // Disallows further writes to the file and frees system resources,
 // associated with it.
 Exception OutputFile::Close() { return impl_->Close(); }

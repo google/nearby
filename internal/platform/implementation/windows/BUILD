@@ -366,3 +366,18 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "file_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "file_test.cc",
+    ],
+    tags = ["nozapfhahn"],
+    deps = [
+        ":windows",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

@@ -85,10 +85,6 @@ class OutputFile final {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Write(const ByteArray& data);
 
-  // Ensures that all data written by previous calls to Write() is passed
-  // down to the applicable transport layer.
-  Exception Flush();
-
   // Disallows further writes to the file and frees system resources,
   // associated with it.
   Exception Close();
