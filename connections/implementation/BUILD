@@ -424,6 +424,7 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/test",
         "//proto:connections_enums_cc_proto",
+        "//testing/fuzzing:fuzztest",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",

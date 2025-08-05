@@ -24,6 +24,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "testing/fuzzing/fuzztest.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -49,6 +50,9 @@ namespace nearby {
 namespace connections {
 namespace {
 
+using ::fuzztest::Filter;
+using ::fuzztest::Map;
+using ::fuzztest::String;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
@@ -391,40 +395,56 @@ TEST_F(EndpointManagerTest, ReadInvalidUnencryptedPayloadIgnoresFrame) {
   em_.UnregisterEndpoint(client_.get(), endpoint_id_);
 }
 
-TEST_F(EndpointManagerTest, ReadInvalidEncryptedPayloadIgnoresFrame) {
-  // 1. EndpointChannel is unencrypted.
-  // 2. EndpointManager receives an invalid encrypted frame.
-  // 3. EndpointManager calls EndpointChannel::TryDecrypt(), decryption fails
-  // too.
-  // 4. Invalid frame is ignored. No bad side effects.
-  const ByteArray payload("not a valid frame");
-  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
-      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
-  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
-      .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kExecution)));
-  EXPECT_CALL(*endpoint_channel, Write(_))
-      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
-  RegisterEndpoint(std::move(endpoint_channel));
+class EndpointManagerFuzzTest
+    : public fuzztest::PerIterationFixtureAdapter<EndpointManagerTest> {
+ public:
+  void ReadInvalidEncryptedPayloadIgnoresFrame(const ByteArray payload) {
+    // 1. EndpointChannel is unencrypted.
+    // 2. EndpointManager receives an invalid encrypted frame.
+    // 3. EndpointManager calls EndpointChannel::TryDecrypt(), decryption fails
+    // too.
+    // 4. Invalid frame is ignored. No bad side effects.
+    auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+    EXPECT_CALL(*endpoint_channel, Read(_))
+        .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+        .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+    EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload)))
+        .WillOnce(Return(ExceptionOr<ByteArray>(Exception::kFailed)))
+        .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kExecution)));
+    // Only write once when disconnecting
+    EXPECT_CALL(*endpoint_channel, Write(_)).Times(1);
+    RegisterEndpoint(std::move(endpoint_channel));
+  }
+
+  void ReadInvalidPayloadFromEncryptedChannelIgnoresFrame(ByteArray payload) {
+    // 1. EndpointChannel is encrypted.
+    // 2. EndpointManager receives an invalid encrypted frame.
+    // 3. No calls to TryDecrypt.
+    auto endpoint_channel = std::make_unique<MockEndpointChannel>();
+    EXPECT_CALL(*endpoint_channel, Read(_))
+        .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
+        .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
+    EXPECT_CALL(*endpoint_channel, IsEncrypted()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload))).Times(0);
+    // Only write once when disconnecting
+    EXPECT_CALL(*endpoint_channel, Write(_)).Times(1);
+    RegisterEndpoint(std::move(endpoint_channel));
+  }
+};
+
+auto InvalidPayloadDomain() {
+  return Filter(
+      [](ByteArray payload) { return !parser::FromBytes(payload).ok(); },
+      Map([](std::string payloadString) { return ByteArray(payloadString); },
+          String()));
 }
 
-TEST_F(EndpointManagerTest, ReadInvalidPayloadFromEncryptedChannel) {
-  // 1. EndpointChannel is encrypted.
-  // 2. EndpointManager receives an invalid encrypted frame.
-  // 3. No calls to TryDecrypt.
-  const ByteArray payload("not a valid frame");
-  auto endpoint_channel = std::make_unique<MockEndpointChannel>();
-  EXPECT_CALL(*endpoint_channel, Read(_))
-      .WillOnce(Return(ExceptionOr<ByteArray>(payload)))
-      .WillRepeatedly(Return(ExceptionOr<ByteArray>(Exception::kIo)));
-  EXPECT_CALL(*endpoint_channel, IsEncrypted()).WillRepeatedly(Return(true));
-  EXPECT_CALL(*endpoint_channel, TryDecrypt(Eq(payload))).Times(0);
-  EXPECT_CALL(*endpoint_channel, Write(_))
-      .WillRepeatedly(Return(Exception{Exception::kSuccess}));
-  RegisterEndpoint(std::move(endpoint_channel));
-}
+FUZZ_TEST_F(EndpointManagerFuzzTest, ReadInvalidEncryptedPayloadIgnoresFrame)
+    .WithDomains(InvalidPayloadDomain());
+
+FUZZ_TEST_F(EndpointManagerFuzzTest,
+            ReadInvalidPayloadFromEncryptedChannelIgnoresFrame)
+    .WithDomains(InvalidPayloadDomain());
 
 TEST_F(EndpointManagerTest, TryDecrypt) {
   // 1. EndpointChannel is unencrypted.
