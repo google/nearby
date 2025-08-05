@@ -903,6 +903,7 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
       LOG(WARNING)
           << ": Ignore the fetched GATT advertisement from server due to it "
              "is not interesting header now.";
+      fetching_advertisements_.erase(advertisement_header);
       return;
     }
 
