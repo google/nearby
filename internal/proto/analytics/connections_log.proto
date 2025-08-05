@@ -175,6 +175,10 @@ message ConnectionsLog {
 
     // The type of the device.
     optional location.nearby.proto.connections.DeviceType device_type = 10;
+
+    // The supported service.
+    optional location.nearby.proto.connections.SupportedService
+        supported_service = 11;
   }
 
   // An endpoint discovered on a particular medium during discovery.
@@ -263,6 +267,10 @@ message ConnectionsLog {
 
     // The type of the device.
     optional location.nearby.proto.connections.DeviceType device_type = 8;
+
+    // The supported service.
+    optional location.nearby.proto.connections.SupportedService
+        supported_service = 9;
   }
 
   // A request to connect, corresponding to the API's concept of
@@ -330,6 +338,10 @@ message ConnectionsLog {
 
     // The type of the device.
     optional location.nearby.proto.connections.DeviceType device_type = 11;
+
+    // The supported service.
+    optional location.nearby.proto.connections.SupportedService
+        supported_service = 12;
   }
 
   message DeviceInfo {
@@ -419,6 +431,10 @@ message ConnectionsLog {
 
     // The type of the device.
     optional location.nearby.proto.connections.DeviceType device_type = 13;
+
+    // The supported service.
+    optional location.nearby.proto.connections.SupportedService
+        supported_service = 14;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
@@ -485,6 +501,10 @@ message ConnectionsLog {
     optional OperationResult operation_result = 9;
 
     optional location.nearby.proto.connections.DeviceType device_type = 10;
+
+    // The supported service.
+    optional location.nearby.proto.connections.SupportedService
+        supported_service = 11;
   }
 
   // Next Id: 22
