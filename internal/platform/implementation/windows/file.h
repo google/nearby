@@ -23,6 +23,7 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/input_file.h"
@@ -49,6 +50,8 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   Exception Close() override;
 
   Exception Write(const ByteArray& data) override;
+  absl::Time GetLastModifiedTime() const override;
+  void SetLastModifiedTime(absl::Time last_modified_time) override;
 
  private:
   explicit IOFile(absl::string_view file_path, size_t size);

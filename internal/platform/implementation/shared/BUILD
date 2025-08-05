@@ -66,6 +66,7 @@ cc_library(
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/time",
     ],
 )
 

@@ -23,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
@@ -183,6 +184,22 @@ TEST(IOFileTest, OutputFileWrite) {
   ExceptionOr<ByteArray> read_result = input_file->Read(10);
   EXPECT_TRUE(read_result.ok());
   EXPECT_EQ(read_result.result(), ByteArray("test1test2"));
+
+  ::DeleteFileA(temp_file.data());
+}
+
+TEST(IOFileTest, GetSetModifiedTime) {
+  std::string temp_file = GetTempFileName("GetSetModifiedTime");
+  std::unique_ptr<IOFile> output_file = IOFile::CreateOutputFile(temp_file);
+  ASSERT_NE(output_file, nullptr);
+
+  output_file->SetLastModifiedTime(absl::FromUnixSeconds(1234567890));
+  output_file->Close();
+
+  std::unique_ptr<IOFile> input_file =
+      IOFile::CreateInputFile(temp_file, /*size=*/0);
+  EXPECT_EQ(input_file->GetLastModifiedTime(),
+            absl::FromUnixSeconds(1234567890));
 
   ::DeleteFileA(temp_file.data());
 }

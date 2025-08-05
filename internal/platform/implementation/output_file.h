@@ -15,6 +15,7 @@
 #ifndef PLATFORM_API_OUTPUT_FILE_H_
 #define PLATFORM_API_OUTPUT_FILE_H_
 
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/output_stream.h"
 
@@ -25,6 +26,7 @@ namespace api {
 class OutputFile : public OutputStream {
  public:
   ~OutputFile() override = default;
+  virtual void SetLastModifiedTime(absl::Time last_modified_time) = 0;
   // File flush is a no-op.
   Exception Flush() override { return {Exception::kSuccess}; }
 };

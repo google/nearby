@@ -16,9 +16,9 @@
 #define PLATFORM_API_INPUT_FILE_H_
 
 #include <cstdint>
+#include <string>
 
-#include "internal/platform/byte_array.h"
-#include "internal/platform/exception.h"
+#include "absl/time/time.h"
 #include "internal/platform/input_stream.h"
 
 namespace nearby {
@@ -30,6 +30,7 @@ class InputFile : public InputStream {
   ~InputFile() override = default;
   virtual std::string GetFilePath() const = 0;
   virtual std::int64_t GetTotalSize() const = 0;
+  virtual absl::Time GetLastModifiedTime() const = 0;
 };
 
 }  // namespace api

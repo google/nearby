@@ -21,6 +21,8 @@
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {
@@ -94,9 +96,13 @@ Exception IOFile::Write(const ByteArray& data) {
   return {file_.good() ? Exception::kSuccess : Exception::kIo};
 }
 
-Exception IOFile::Flush() {
-  file_.flush();
-  return {file_.good() ? Exception::kSuccess : Exception::kIo};
+absl::Time IOFile::GetLastModifiedTime() const {
+  // TODO(ftsui): Implement this method.
+  return absl::Now();
+}
+
+void IOFile::SetLastModifiedTime(absl::Time last_modified_time) {
+  // TODO(ftsui): Implement this method.
 }
 
 }  // namespace shared

@@ -16,6 +16,7 @@
 
 #include <fileapi.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -24,12 +25,66 @@
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/civil_time.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
+
+namespace {
+static const absl::Time kFiletimeEpoch =
+    absl::FromCivil(absl::CivilYear(1601), absl::UTCTimeZone());
+
+constexpr absl::Duration kFiletimeUnit = absl::Nanoseconds(100);
+const int64_t kFiletimeUnitsPerSecond = absl::Seconds(1) / kFiletimeUnit;
+
+static const absl::Time kMinDosFileTime =
+    absl::FromCivil(absl::CivilYear(1980), absl::UTCTimeZone());
+static const absl::Time kMaxDosFileTime =
+    absl::FromCivil(absl::CivilYear(2108), absl::UTCTimeZone()) - kFiletimeUnit;
+
+absl::Duration DurationFromFiletime(const FILETIME& file_time) {
+  LONGLONG quadDateTime =
+      (static_cast<LONGLONG>(file_time.dwHighDateTime) << 32) |
+      static_cast<LONGLONG>(file_time.dwLowDateTime);
+
+  const absl::Duration subsecond =
+      kFiletimeUnit * (quadDateTime % kFiletimeUnitsPerSecond);
+  const absl::Duration seconds =
+      absl::Seconds(quadDateTime / kFiletimeUnitsPerSecond);
+  return seconds + subsecond;
+}
+
+absl::Time TimeFromFiletime(const FILETIME& file_time) {
+  return kFiletimeEpoch + DurationFromFiletime(file_time);
+}
+
+bool DurationToFiletime(const absl::Duration duration, FILETIME* file_time) {
+  absl::Duration remainder;
+  const int64_t filetime_value =
+      absl::IDivDuration(duration, kFiletimeUnit, &remainder);
+  if (remainder <= -kFiletimeUnit || remainder >= kFiletimeUnit) {
+    return false;
+  }
+  file_time->dwLowDateTime = static_cast<DWORD>(filetime_value);
+  file_time->dwHighDateTime = static_cast<DWORD>(filetime_value >> 32);
+  return true;
+}
+
+void TimeToFiletime(absl::Time time, FILETIME* file_time) {
+  // Clamp to the range that FileTimeToDosDateTime supports. Explorer's date
+  // display and built-in zip feature can only handle this range.
+  time = std::clamp(time, kMinDosFileTime, kMaxDosFileTime);
+
+  if (!DurationToFiletime(time - kFiletimeEpoch, file_time)) {
+    DurationToFiletime(kMaxDosFileTime - kFiletimeEpoch, file_time);
+  }
+}
+}  // namespace
 
 // InputFile
 std::unique_ptr<IOFile> IOFile::CreateInputFile(absl::string_view file_path,
@@ -126,6 +181,36 @@ Exception IOFile::Write(const ByteArray& data) {
     return {Exception::kIo};
   }
   return {Exception::kSuccess};
+}
+
+absl::Time IOFile::GetLastModifiedTime() const {
+  if (file_ == INVALID_HANDLE_VALUE) {
+    LOG(ERROR) << "Failed to get file modified time for: " << path_;
+    return absl::Now();
+  }
+  FILETIME last_write_time;
+  if (::GetFileTime(file_, /*lpCreationTime=*/nullptr,
+                    /*lpLastAccessTime=*/nullptr, &last_write_time) == 0) {
+    LOG(ERROR) << "Failed to get file last write time: " << path_
+               << " with error: " << ::GetLastError();
+    return absl::Now();
+  }
+  return TimeFromFiletime(last_write_time);
+}
+
+void IOFile::SetLastModifiedTime(absl::Time last_modified_time) {
+  if (file_ == INVALID_HANDLE_VALUE) {
+    LOG(ERROR) << "Failed to set file modified time for: " << path_;
+    return;
+  }
+  FILETIME last_write_time;
+  TimeToFiletime(last_modified_time, &last_write_time);
+  // Set both creation time and last write time.
+  if (::SetFileTime(file_, /*lpCreationTime=*/&last_write_time,
+                /*lpLastAccessTime=*/nullptr, &last_write_time) == 0) {
+    LOG(ERROR) << "Failed to set file last write time: " << path_
+               << " with error: " << ::GetLastError();
+  }
 }
 
 }  // namespace nearby::windows

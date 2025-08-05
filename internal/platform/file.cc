@@ -13,6 +13,10 @@
 // limitations under the License.
 
 #include "internal/platform/file.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include "absl/time/time.h"
 
 namespace nearby {
 
@@ -36,6 +40,10 @@ std::string InputFile::GetFilePath() const { return impl_->GetFilePath(); }
 
 // Returns total size of this file in bytes.
 std::int64_t InputFile::GetTotalSize() const { return impl_->GetTotalSize(); }
+
+absl::Time InputFile::GetLastModifiedTime() const {
+  return impl_->GetLastModifiedTime();
+}
 
 ExceptionOr<size_t> InputFile::Skip(size_t offset) {
   return impl_->Skip(offset);
@@ -80,5 +88,9 @@ Exception OutputFile::Close() { return impl_->Close(); }
 // Write, or Close will be observable through OutputStream& handle, and vice
 // versa.
 OutputStream& OutputFile::GetOutputStream() { return *impl_; }
+
+void OutputFile::SetLastModifiedTime(absl::Time last_modified_time) {
+  impl_->SetLastModifiedTime(last_modified_time);
+}
 
 }  // namespace nearby
