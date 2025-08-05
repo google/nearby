@@ -998,6 +998,8 @@ OperationResultCode AnalyticsRecorder::GetChannelIoErrorResultCodeFromMedium(
       return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WIFI_DIRECT;
     case Medium::WEB_RTC:
       return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_WEB_RTC;
+    case Medium::AWDL:
+      return OperationResultCode::CONNECTIVITY_CHANNEL_IO_ERROR_ON_AWDL;
     default:
       return OperationResultCode::
           CONNECTIVITY_CHANNEL_IO_ERROR_ON_UNKNOWN_MEDIUM;
