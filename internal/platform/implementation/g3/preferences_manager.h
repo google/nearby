@@ -28,6 +28,7 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
 #include "internal/platform/implementation/g3/preferences_repository.h"
 #include "internal/platform/implementation/preferences_manager.h"
 
@@ -40,7 +41,7 @@ namespace g3 {
 // change by the observer.
 class PreferencesManager : public api::PreferencesManager {
  public:
-  PreferencesManager();
+  explicit PreferencesManager(FilePath preferences_dir);
 
   // Sets values
 

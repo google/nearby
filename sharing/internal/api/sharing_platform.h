@@ -39,8 +39,6 @@
 
 namespace nearby::sharing::api {
 
-constexpr char kSharingPreferencesFilePath[] = "Google/Nearby/Sharing";
-
 // Platform abstraction interface for NearbyShare cross-platform compatibility.
 class SharingPlatform {
  public:

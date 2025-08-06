@@ -19,6 +19,8 @@
 #include "gtest/gtest.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 
 namespace nearby::g3 {
 namespace {
@@ -26,7 +28,8 @@ using json = ::nlohmann::json;
 }  // namespace
 
 TEST(Preferences, TestSaveAndGetPreferences) {
-  PreferencesRepository preferences_repository;
+  PreferencesRepository preferences_repository(
+      Files::GetTemporaryDirectory().append(FilePath("test1.json")));
   std::string string_key = "string_value";
   std::string string_value = "hello world";
   std::string int_key = "int_value";
@@ -40,7 +43,8 @@ TEST(Preferences, TestSaveAndGetPreferences) {
 }
 
 TEST(Preferences, TestMultipleSaveAndGetPreferences) {
-  PreferencesRepository preferences_repository;
+  PreferencesRepository preferences_repository(
+      Files::GetTemporaryDirectory().append(FilePath("test2.json")));
   std::string string_key = "string_value";
   std::string string_value = "hello world";
   std::string string_new_value = "again";

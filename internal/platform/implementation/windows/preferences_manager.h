@@ -41,8 +41,7 @@ namespace windows {
 // change by the observer.
 class PreferencesManager : public api::PreferencesManager {
  public:
-  // `path` is relative to the user's local app data directory.
-  explicit PreferencesManager(nearby::FilePath path);
+  explicit PreferencesManager(nearby::FilePath preferences_dir);
 
   // Sets values
 

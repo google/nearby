@@ -269,7 +269,7 @@ ImplementationPlatform::CreateDeviceInfo() {
 
 std::unique_ptr<nearby::api::PreferencesManager>
 ImplementationPlatform::CreatePreferencesManager(absl::string_view path) {
-  return std::make_unique<g3::PreferencesManager>();
+  return std::make_unique<g3::PreferencesManager>(FilePath(path));
 }
 
 }  // namespace api

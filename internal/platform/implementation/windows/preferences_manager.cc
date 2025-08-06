@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -28,9 +27,7 @@
 #include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
-#include "internal/base/files.h"
 #include "internal/base/file_path.h"
-#include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/windows/preferences_repository.h"
 #include "internal/platform/logging.h"
 
@@ -39,16 +36,9 @@ namespace {
 using json = ::nlohmann::json;
 }  // namespace
 
-PreferencesManager::PreferencesManager(FilePath file_path) {
-  std::optional<FilePath> path =
-      nearby::api::ImplementationPlatform::CreateDeviceInfo()
-          ->GetLocalAppDataPath();
-  if (!path.has_value()) {
-    path = Files::GetTemporaryDirectory();
-  }
-
-  path->append(file_path);
-  preferences_repository_ = std::make_unique<PreferencesRepository>(*path);
+PreferencesManager::PreferencesManager(FilePath preferences_dir) {
+  preferences_repository_ =
+      std::make_unique<PreferencesRepository>(preferences_dir);
   value_ = preferences_repository_->LoadPreferences();
 }
 
