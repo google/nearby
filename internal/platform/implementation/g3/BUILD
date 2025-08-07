@@ -16,6 +16,16 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 licenses(["notice"])
 
 cc_library(
+    name = "linux_path_util",
+    hdrs = ["linux_path_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/base:file_path",
+        "//internal/base:files",
+    ],
+)
+
+cc_library(
     name = "types",
     testonly = True,
     srcs = [
@@ -37,6 +47,7 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        ":linux_path_util",
         ":preferences_repository",
         "//internal/base:file_path",
         "//internal/base:files",

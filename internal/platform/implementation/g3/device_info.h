@@ -15,7 +15,6 @@
 #ifndef PLATFORM_IMPL_G3_DEVICE_INFO_H_
 #define PLATFORM_IMPL_G3_DEVICE_INFO_H_
 
-#include <cstdlib>
 #include <functional>
 #include <optional>
 #include <string>
@@ -26,6 +25,7 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/g3/linux_path_util.h"
 
 namespace nearby {
 namespace g3 {
@@ -49,14 +49,7 @@ class DeviceInfo : public api::DeviceInfo {
   }
 
   std::optional<FilePath> GetLocalAppDataPath() const override {
-    const char* home_dir = getenv("HOME");
-    if (home_dir == nullptr) {
-      return Files::GetTemporaryDirectory();
-    }
-    // Yhis matches the .NET LocalAppData directory on Linux.
-    return FilePath(home_dir)
-        .append(FilePath(".local"))
-        .append(FilePath("share"));
+    return GetAppDataPath();
   }
 
   std::optional<FilePath> GetCommonAppDataPath() const override {
