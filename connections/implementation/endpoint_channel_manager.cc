@@ -22,6 +22,7 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
@@ -49,7 +50,7 @@ void EndpointChannelManager::RegisterChannelForEndpoint(
   MutexLock lock(&mutex_);
 
   LOG(INFO) << "EndpointChannelManager registered channel of type "
-                    << channel->GetType() << " to endpoint " << endpoint_id;
+            << channel->GetType() << " to endpoint " << endpoint_id;
   SetActiveEndpointChannel(client, endpoint_id, std::move(channel),
                            true /* enable_encryption */);
 
@@ -72,8 +73,8 @@ void EndpointChannelManager::ReplaceChannelForEndpoint(
   auto* endpoint = channel_state_.LookupEndpointData(endpoint_id);
   if (endpoint != nullptr && endpoint->channel == nullptr) {
     LOG(INFO) << "EndpointChannelManager is missing channel while "
-                         "trying to update: endpoint "
-                      << endpoint_id;
+                 "trying to update: endpoint "
+              << endpoint_id;
   }
   SetActiveEndpointChannel(client, endpoint_id, std::move(channel),
                            enable_encryption);
@@ -128,11 +129,10 @@ bool EndpointChannelManager::isWifiLanConnected() const {
 }
 
 void EndpointChannelManager::UpdateSafeToDisconnectForEndpoint(
-    const std::string& endpoint_id,
-    bool safe_to_disconnect_enabled) {
+    const std::string& endpoint_id, bool safe_to_disconnect_enabled) {
   MutexLock lock(&mutex_);
   channel_state_.UpdateSafeToDisconnectForEndpoint(endpoint_id,
-                                                  safe_to_disconnect_enabled);
+                                                   safe_to_disconnect_enabled);
 }
 
 void EndpointChannelManager::MarkEndpointStopWaitToDisconnect(
@@ -202,11 +202,10 @@ void EndpointChannelManager::ChannelState::UpdateEncryptionContextForEndpoint(
 }
 
 void EndpointChannelManager::ChannelState::UpdateSafeToDisconnectForEndpoint(
-    const std::string& endpoint_id,
-    bool safe_to_disconnect_enabled) {
+    const std::string& endpoint_id, bool safe_to_disconnect_enabled) {
   LOG(INFO) << "[safe-to-disconnect] "
-                       "UpdateSafeToDisconnectForEndpoint for: "
-                    << endpoint_id << " " << safe_to_disconnect_enabled;
+               "UpdateSafeToDisconnectForEndpoint for: "
+            << endpoint_id << " " << safe_to_disconnect_enabled;
 
   endpoints_[endpoint_id].safe_to_disconnect_enabled =
       safe_to_disconnect_enabled;
@@ -217,7 +216,7 @@ bool EndpointChannelManager::ChannelState::GetSafeToDisconnectForEndpoint(
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
   LOG(INFO) << "[safe-to-disconnect] GetSafeToDisconnectForEndpoint: "
-                    << item->second.safe_to_disconnect_enabled;
+            << item->second.safe_to_disconnect_enabled;
   return item->second.safe_to_disconnect_enabled;
 }
 
@@ -227,10 +226,9 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
 
-  MarkEndpointStopWaitToDisconnect(
-      endpoint_id,
-      /* is_safe_to_disconnect */ true,
-      /* notify_stop_waiting */ true);
+  MarkEndpointStopWaitToDisconnect(endpoint_id,
+                                   /* is_safe_to_disconnect */ true,
+                                   /* notify_stop_waiting */ true);
   item->second.disconnect_reason = reason;
   auto channel = item->second.channel;
 
@@ -240,7 +238,7 @@ bool EndpointChannelManager::ChannelState::RemoveEndpoint(
     channel->Resume();
 
     LOG(INFO) << "[safe-to-disconnect] Sending DISCONNECTION frame"
-                         " with request 0, ack 0";
+                 " with request 0, ack 0";
     channel->Write(
         parser::ForDisconnection(/* request_safe_to_disconnect */ false,
                                  /* ack_safe_to_disconnect */ false));
@@ -260,8 +258,7 @@ bool EndpointChannelManager::ChannelState::isWifiLanConnected() const {
     auto channel = endpoint.second.channel;
     if (channel) {
       if (channel->GetMedium() == Medium::WIFI_LAN) {
-        LOG(INFO) << "Found WIFI_LAN Medium for endpoint:"
-                          << endpoint.first;
+        LOG(INFO) << "Found WIFI_LAN Medium for endpoint:" << endpoint.first;
         return true;
       }
     }
@@ -276,16 +273,16 @@ void EndpointChannelManager::ChannelState::MarkEndpointStopWaitToDisconnect(
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return;
   LOG(INFO) << "[safe-to-disconnect] is_safe_to_disconnect= "
-                    << is_safe_to_disconnect
-                    << ", notify_stop_waiting= " << notify_stop_waiting
-                    << " for endpoint: " << endpoint_id;
+            << is_safe_to_disconnect
+            << ", notify_stop_waiting= " << notify_stop_waiting
+            << " for endpoint: " << endpoint_id;
   {
     MutexLock lock(&item->second.timeout_to_disconnected_mutex);
     item->second.is_safe_to_disconnect = is_safe_to_disconnect;
     if (!item->second.timeout_to_disconnected_enabled) return;
     if (notify_stop_waiting) {
       LOG(INFO) << "[safe-to-disconnect] Notify stop "
-                           "waiting before timeout.";
+                   "waiting before timeout.";
       item->second.timeout_to_disconnected.Notify();
       item->second.timeout_to_disconnected_notified = true;
     }
@@ -297,17 +294,16 @@ bool EndpointChannelManager::ChannelState::CreateNewTimeoutDisconnectedState(
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return false;
   LOG(INFO) << "[safe-to-disconnect] "
-                       "Create TimeoutDisconnectedState for endpoint: "
-                    << endpoint_id;
+               "Create TimeoutDisconnectedState for endpoint: "
+            << endpoint_id;
   {
     MutexLock lock(&item->second.timeout_to_disconnected_mutex);
     item->second.timeout_to_disconnected_enabled = true;
     item->second.timeout_to_disconnected_notified = false;
     item->second.timeout_to_disconnected.Wait(timeout_millis);
     LOG(INFO) << "[safe-to-disconnect] Wait is done with "
-                      << (item->second.timeout_to_disconnected_notified
-                              ? "notification"
-                              : "timeout");
+              << (item->second.timeout_to_disconnected_notified ? "notification"
+                                                                : "timeout");
     if (!item->second.timeout_to_disconnected_notified)
       item->second.is_safe_to_disconnect = true;
     item->second.timeout_to_disconnected_notified = false;
@@ -322,16 +318,15 @@ bool EndpointChannelManager::ChannelState::IsWaitingForSafeToDisconnectTimeout(
   {
     MutexLock lock(&item->second.timeout_to_disconnected_mutex);
     LOG(INFO) << "[safe-to-disconnect] "
-                         "IsWaitingForSafeToDisconnectTimeout for endpoint: "
-                      << endpoint_id << ": "
-                      << item->second.timeout_to_disconnected_enabled;
+                 "IsWaitingForSafeToDisconnectTimeout for endpoint: "
+              << endpoint_id << ": "
+              << item->second.timeout_to_disconnected_enabled;
     return (item->second.timeout_to_disconnected_enabled);
   }
 }
 
 bool EndpointChannelManager::ChannelState::IsSafeToDisconnect(
     const std::string& endpoint_id) {
-
   auto item = endpoints_.find(endpoint_id);
   if (item == endpoints_.end()) return true;
   {
@@ -365,9 +360,8 @@ bool EndpointChannelManager::UnregisterChannelForEndpoint(
                                      safe_to_disconnect_enabled, result)) {
     return false;
   }
-  LOG(INFO)
-      << "EndpointChannelManager unregistered channel for endpoint "
-      << endpoint_id;
+  LOG(INFO) << "EndpointChannelManager unregistered channel for endpoint "
+            << endpoint_id;
   return true;
 }
 

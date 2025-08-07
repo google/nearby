@@ -172,7 +172,16 @@ static NSData *PrefixLengthData(NSData *data) {
 }
 
 - (void)stream:(GNCBLEL2CAPStream *)stream didDisconnectWithError:(NSError *_Nullable)error {
+  __weak __typeof__(self) weakSelf = self;
+
   dispatch_async(_selfQueue, ^{
+    __typeof__(self) strongSelf = weakSelf;
+    if (!strongSelf) {
+      return;
+    }
+
+    [strongSelf->_stream close];
+
     if (_connectionHandlers.disconnectedHandler) {
       dispatch_async(_callbackQueue, ^{
         _connectionHandlers.disconnectedHandler();
@@ -206,8 +215,8 @@ static NSData *PrefixLengthData(NSData *data) {
   }
 
   if (realData.length < _serviceIDHash.length) {
-    GNCLoggerError(@"Data length mismatch. Expected size: > %lu, Data: %@",
-                   _serviceIDHash.length, realData);
+    GNCLoggerError(@"Data length mismatch. Expected size: > %lu, Data: %@", _serviceIDHash.length,
+                   realData);
     return bytesProcessed;
   }
 

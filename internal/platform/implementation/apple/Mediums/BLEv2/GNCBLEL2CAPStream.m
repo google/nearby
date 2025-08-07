@@ -16,6 +16,8 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 
+NS_ASSUME_NONNULL_BEGIN
+
 enum { READ_BUFFER_SIZE = 409600 };
 
 /** A pending packet that will be written to the L2CAP socket. */
@@ -69,6 +71,9 @@ enum { READ_BUFFER_SIZE = 409600 };
   /// Verbose logging for some statements which are only useful when debugging but produce far too
   /// much log-spam to enable on Dev.
   BOOL _verboseLoggingEnabled;
+
+  /// Whether the stream is closed.
+  BOOL _closed;
 }
 
 #pragma mark Public
@@ -96,7 +101,13 @@ enum { READ_BUFFER_SIZE = 409600 };
 }
 
 - (void)close {
-  _closedBlock();
+  if (_closed) {
+    return;
+  }
+  if (_closedBlock) {
+    _closedBlock();
+  }
+  _closed = YES;
 }
 
 - (void)tearDown {
@@ -139,6 +150,12 @@ enum { READ_BUFFER_SIZE = 409600 };
 - (void)sendData:(NSData *)data completionBlock:(void (^)(BOOL))completionBlock {
   if (!data || data.length == 0) {
     GNCLoggerError(@"[NEARBY] Sending data cannot be nil or empty");
+  }
+
+  if (_closed) {
+    GNCLoggerInfo(@"[NEARBY] Sending data after stream is closed.");
+    completionBlock(YES);
+    return;
   }
 
   GNCBLEL2CAPStreamWriteOperation *write =
@@ -322,12 +339,18 @@ enum { READ_BUFFER_SIZE = 409600 };
     });
   } else if (bytesRead < 0) {
     GNCLoggerError(@"[NEARBY] Stream read error: %@", self.inputStream.streamError);
+    [_delegate stream:self didDisconnectWithError:self.inputStream.streamError];
+    if (_closedBlock) {
+      _closedBlock();
+    }
   } else if (bytesRead == 0) {
     GNCLoggerDebug(@"[NEARBY] End of stream reached. Disconnecting");
     // This indicates the L2CAP socket is closed. Notifying the owner so that it can tear down this
     // stream and update its own state.
     [_delegate stream:self didDisconnectWithError:nil];
-    _closedBlock();
+    if (_closedBlock) {
+      _closedBlock();
+    }
   }
 }
 
@@ -350,3 +373,5 @@ enum { READ_BUFFER_SIZE = 409600 };
 }
 
 @end
+
+NS_ASSUME_NONNULL_END
