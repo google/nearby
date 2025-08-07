@@ -30,7 +30,6 @@ class TimerImpl : public Timer {
              absl::AnyInvocable<void()> callback) override;
   void Stop() override;
   bool IsRunning() override;
-  bool FireNow() override;
 
  private:
   int delay_ = 0;

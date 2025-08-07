@@ -39,7 +39,6 @@ class Timer : public api::Timer {
               absl::AnyInvocable<void()> callback) override
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool Stop() override ABSL_LOCKS_EXCLUDED(mutex_);
-  bool FireNow() override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   mutable absl::Mutex mutex_;

@@ -54,14 +54,6 @@ class Timer : public api::Timer {
     return false;
   }
 
-  bool FireNow() override {
-    if (is_stopped_) {
-      return false;
-    }
-    callback_();
-    return true;
-  }
-
  private:
   bool Schedule(absl::Duration delay) {
     absl::MutexLock lock(&mutex_);
