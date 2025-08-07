@@ -96,11 +96,11 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 }
 
 - (instancetype)init {
+  dispatch_queue_t queue = dispatch_queue_create(kBLEMediumQueueLabel, DISPATCH_QUEUE_SERIAL);
   CBCentralManager *centralManager =
       [[CBCentralManager alloc] initWithDelegate:self
-                                           queue:_queue
+                                           queue:queue
                                          options:@{CBCentralManagerOptionShowPowerAlertKey : @NO}];
-  dispatch_queue_t queue = dispatch_queue_create(kBLEMediumQueueLabel, DISPATCH_QUEUE_SERIAL);
   return [self initWithCentralManager:centralManager queue:queue];
 }
 
@@ -506,43 +506,33 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
 #pragma mark - CBCentralManagerDelegate
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
-  dispatch_async(_queue, ^{
-    [self gnc_centralManagerDidUpdateState:central];
-  });
+  [self gnc_centralManagerDidUpdateState:central];
 }
 
 - (void)centralManager:(CBCentralManager *)central
     didDiscoverPeripheral:(CBPeripheral *)peripheral
         advertisementData:(NSDictionary<NSString *, id> *)advertisementData
                      RSSI:(NSNumber *)RSSI {
-  dispatch_async(_queue, ^{
-    [self gnc_centralManager:central
-        didDiscoverPeripheral:peripheral
-            advertisementData:advertisementData
-                         RSSI:RSSI];
-  });
+  [self gnc_centralManager:central
+      didDiscoverPeripheral:peripheral
+          advertisementData:advertisementData
+                       RSSI:RSSI];
 }
 
 - (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral {
-  dispatch_async(_queue, ^{
-    [self gnc_centralManager:central didConnectPeripheral:peripheral];
-  });
+  [self gnc_centralManager:central didConnectPeripheral:peripheral];
 }
 
 - (void)centralManager:(CBCentralManager *)central
     didFailToConnectPeripheral:(CBPeripheral *)peripheral
                          error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    [self gnc_centralManager:central didFailToConnectPeripheral:peripheral error:error];
-  });
+  [self gnc_centralManager:central didFailToConnectPeripheral:peripheral error:error];
 }
 
 - (void)centralManager:(CBCentralManager *)central
     didDisconnectPeripheral:(CBPeripheral *)peripheral
                       error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    [self gnc_centralManager:central didDisconnectPeripheral:peripheral error:error];
-  });
+  [self gnc_centralManager:central didDisconnectPeripheral:peripheral error:error];
 }
 
 @end

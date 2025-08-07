@@ -17,7 +17,7 @@
 
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPServer.h"
-// #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPStream.h"
+#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCCentralManager.h"
 
 @class GNCBLEGATTServer;
 @class GNCBLEGATTClient;
@@ -101,6 +101,20 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
  */
 @interface GNCBLEMedium : NSObject
 
+/**
+ * Initializes the BLE medium.
+ */
+- (instancetype)init;
+
+/**
+ * Initializes the BLE medium with a custom central manager.
+ *
+ * @param centralManager The central manager to use for BLE operations.
+ * @param queue The queue to use for all internal operations.
+ */
+- (instancetype)initWithCentralManager:(id<GNCCentralManager>)centralManager
+                                 queue:(nullable dispatch_queue_t)queue;
+
 /** The hardware supports BOTH advertising extensions and extended scans. */
 @property(nonatomic, readonly) BOOL supportsExtendedAdvertisements;
 
@@ -171,8 +185,7 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
  * @param completionHandler Called on a private queue with @c nil if successfully resumed scanning
  *                          or an error if one has occurred.
  */
-- (void)resumeMediumScanning:
-    (nullable GNCStartScanningCompletionHandler)completionHandler;
+- (void)resumeMediumScanning:(nullable GNCStartScanningCompletionHandler)completionHandler;
 
 /**
  * Starts a GATT server.

@@ -1,7 +1,3 @@
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_cc//cc:cc_test.bzl", "cc_test")
-load("@rules_cc//cc:objc_library.bzl", "objc_library")
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +11,11 @@ load("@rules_cc//cc:objc_library.bzl", "objc_library")
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_cc//cc:objc_library.bzl", "objc_library")
+
 licenses(["notice"])
 
 package(default_visibility = [
@@ -26,12 +27,34 @@ package(default_visibility = [
 ])
 
 objc_library(
+    name = "comm",
+    srcs = [
+        "multi_thread_executor.mm",
+    ],
+    hdrs = [
+        "multi_thread_executor.h",
+        "scheduled_executor.h",
+        "single_thread_executor.h",
+    ],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
+        "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
+        "//internal/platform/implementation/apple/Flags",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
+    ],
+)
+
+objc_library(
     name = "apple",
     srcs = [
         "awdl.mm",
         "crypto.mm",
         "device_info.mm",
-        "multi_thread_executor.mm",
         "platform.mm",
         "preferences_manager.mm",
         "scheduled_executor.mm",
@@ -42,10 +65,7 @@ objc_library(
     hdrs = [
         "awdl.h",
         "device_info.h",
-        "multi_thread_executor.h",
         "preferences_manager.h",
-        "scheduled_executor.h",
-        "single_thread_executor.h",
         "timer.h",
         "wifi.h",
         "wifi_hotspot.h",
@@ -55,6 +75,7 @@ objc_library(
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     features = ["-layering_check"],
     deps = [
+        ":comm",
         ":Platform_cc",
         ":Shared",
         ":ble_v2",
@@ -119,10 +140,12 @@ objc_library(
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
+        ":comm",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums",

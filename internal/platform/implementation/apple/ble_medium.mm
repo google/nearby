@@ -200,7 +200,8 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
-        HandleAdvertisementFound(peripheral, serviceData);
+        callback_executor_.Execute(
+            [this, peripheral, serviceData] { HandleAdvertisementFound(peripheral, serviceData); });
       }
       completionHandler:^(NSError *error) {
         if (scanning_cb_.start_scanning_result) {
@@ -234,7 +235,8 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
-        HandleAdvertisementFound(peripheral, serviceData);
+        callback_executor_.Execute(
+            [this, peripheral, serviceData] { HandleAdvertisementFound(peripheral, serviceData); });
       }
       completionHandler:^(NSError *error) {
         if (error != nil) {
@@ -276,7 +278,8 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
   [medium_ startScanningForMultipleServices:serviceUUIDs
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
-        HandleAdvertisementFound(peripheral, serviceData);
+        callback_executor_.Execute(
+            [this, peripheral, serviceData] { HandleAdvertisementFound(peripheral, serviceData); });
       }
       completionHandler:^(NSError *error) {
         if (error != nil) {
@@ -349,7 +352,26 @@ std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
     return nullptr;
   }
 
-  __block api::ble_v2::ClientGattConnectionCallback blockCallback = std::move(callback);
+  api::ble_v2::ClientGattConnectionCallback thread_callback = {
+      .on_characteristic_changed_cb =
+          [this,
+           call_on_characteristic_changed_cb = std::move(callback.on_characteristic_changed_cb)](
+              absl::string_view characteristic_uuid) mutable {
+            callback_executor_.Execute([characteristic_uuid = std::string(characteristic_uuid),
+                                        call_on_characteristic_changed_cb = std::move(
+                                            call_on_characteristic_changed_cb)]() mutable {
+              call_on_characteristic_changed_cb(characteristic_uuid);
+            });
+          },
+      .disconnected_cb =
+          [this, call_disconnected_cb = std::move(callback.disconnected_cb)]() mutable {
+            callback_executor_.Execute(
+                [call_disconnected_cb = std::move(call_disconnected_cb)]() mutable {
+                  call_disconnected_cb();
+                });
+          }};
+
+  __block api::ble_v2::ClientGattConnectionCallback blockCallback = std::move(thread_callback);
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block GNCBLEGATTClient *blockClient = nil;

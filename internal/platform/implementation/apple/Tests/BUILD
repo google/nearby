@@ -65,6 +65,7 @@ objc_library(
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple:ble_v2",
+        "//internal/platform/implementation/apple:comm",
         "//internal/platform/implementation/apple/Mediums",
         "//third_party/apple_frameworks:CommonCrypto",
         "//third_party/apple_frameworks:CoreBluetooth",

@@ -29,6 +29,7 @@
 #import "internal/platform/implementation/apple/ble_l2cap_server_socket.h"
 #import "internal/platform/implementation/apple/ble_server_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
+#import "internal/platform/implementation/apple/single_thread_executor.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/uuid.h"
@@ -201,6 +202,9 @@ class BleMedium : public api::ble_v2::BleMedium {
   void AddAdvertisementPacketInfo(api::ble_v2::BlePeripheral::UniqueId peripheral_id,
                                   NSDictionary<CBUUID *, NSData *> *service_data);
   NSDate *GetLastTimestampToCleanExpiredAdvertisementPackets();
+
+  // The executor for handling callbacks.
+  apple::SingleThreadExecutor callback_executor_;
 
   GNCBLEMedium *medium_;
 
