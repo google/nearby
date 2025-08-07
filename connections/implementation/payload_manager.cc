@@ -475,9 +475,8 @@ void PayloadManager::SendPayload(ClientProxy* client,
                                   payload_type, resume_offset,
                                   internal_payload->GetTotalSize());
 
-    PayloadTransferFrame::PayloadHeader payload_header{CreatePayloadHeader(
-        *internal_payload, resume_offset, internal_payload->GetParentFolder(),
-        internal_payload->GetFileName())};
+    PayloadTransferFrame::PayloadHeader payload_header{
+        CreatePayloadHeader(*internal_payload, resume_offset)};
 
     bool should_continue = true;
     std::int64_t next_chunk_offset = 0;
@@ -754,8 +753,7 @@ int PayloadManager::GetOptimalChunkSize(EndpointIds endpoint_ids) {
 }
 
 PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
-    const InternalPayload& internal_payload, size_t offset,
-    const std::string& parent_folder, const std::string& file_name) {
+    const InternalPayload& internal_payload, size_t offset) {
   PayloadTransferFrame::PayloadHeader payload_header;
   size_t payload_size = internal_payload.GetTotalSize();
 
@@ -764,14 +762,15 @@ PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
   if (internal_payload.GetType() ==
       nearby::connections::PayloadTransferFrame::PayloadTransferFrame::
           PayloadHeader::FILE) {
-    payload_header.set_file_name(file_name);
-    payload_header.set_parent_folder(parent_folder);
+    payload_header.set_file_name(internal_payload.GetFileName());
+    payload_header.set_parent_folder(internal_payload.GetParentFolder());
+    payload_header.set_last_modified_timestamp_millis(
+        absl::ToUnixMillis(internal_payload.GetLastModifiedTime()));
   }
   payload_header.set_total_size(payload_size ==
                                         InternalPayload::kIndeterminateSize
                                     ? InternalPayload::kIndeterminateSize
                                     : payload_size - offset);
-
   return payload_header;
 }
 

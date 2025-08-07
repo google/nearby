@@ -18,9 +18,12 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 #include <variant>
 
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "absl/types/variant.h"
 #include "connections/payload_type.h"
 #include "internal/platform/byte_array.h"
@@ -53,9 +56,7 @@ class Payload {
 
   // Constructors for outgoing payloads.
   explicit Payload(ByteArray&& bytes);
-
   explicit Payload(const ByteArray& bytes);
-  explicit Payload(InputFile input_file);
 
   // InputFile is just "a pointer to a file on your disc", a wrapper around a
   // file name or file descriptor. It has no understanding that Nearby is going
@@ -105,8 +106,11 @@ class Payload {
 
   const std::string& GetFileName() const;
   const std::string& GetParentFolder() const;
+  absl::Time GetLastModifiedTime() const { return last_modified_time_; }
 
  private:
+  void InitFilePayload(Id id, std::string parent_folder, std::string file_name,
+                       InputFile input_file);
   PayloadType FindType() const;
 
   Id id_{GenerateId()};
@@ -114,6 +118,7 @@ class Payload {
 
   std::string parent_folder_;
   std::string file_name_;
+  absl::Time last_modified_time_ = absl::Now();
 
   PayloadType type_{FindType()};
   Content content_;

@@ -76,7 +76,7 @@ TEST(PayloadTest, SupportsMultiDotNamedFileType) {
   constexpr char expected[] = "this.is.a.multidot.file";
   InputFile file(expected, 0);
 
-  Payload payload(std::move(file));
+  Payload payload(/*parent_folder=*/"", expected, std::move(file));
 
   EXPECT_EQ(payload.GetFileName(), expected);
 }
@@ -89,7 +89,7 @@ TEST(PayloadTest,
       "this.is.a.multidot.backslash.folder.separated.file";
   InputFile file(file_name, 0);
 
-  Payload payload(std::move(file));
+  Payload payload(/*parent_folder=*/"", file_name, std::move(file));
 
   EXPECT_EQ(payload.GetFileName(), expected);
 }

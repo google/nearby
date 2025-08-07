@@ -16,7 +16,9 @@
 #define CORE_INTERNAL_INTERNAL_PAYLOAD_H_
 
 #include <cstdint>
+#include <string>
 
+#include "absl/time/time.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
 #include "internal/platform/byte_array.h"
@@ -41,8 +43,13 @@ class InternalPayload {
 
   Payload::Id GetId() const;
 
-  const std::string& GetParentFolder() { return payload_.GetParentFolder(); }
-  const std::string& GetFileName() { return payload_.GetFileName(); }
+  const std::string& GetParentFolder() const {
+    return payload_.GetParentFolder();
+  }
+  const std::string& GetFileName() const { return payload_.GetFileName(); }
+  absl::Time GetLastModifiedTime() const {
+    return payload_.GetLastModifiedTime();
+  }
 
   // Returns the PayloadType of the Payload to which this object is bound.
   //
