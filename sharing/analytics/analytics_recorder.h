@@ -164,11 +164,6 @@ class AnalyticsRecorder {
 
   void NewDeviceSettings(AnalyticsDeviceSettings settings);
 
-  void NewFastShareServerResponse(
-      location::nearby::proto::sharing::ServerActionName name,
-      location::nearby::proto::sharing::ServerResponseState state,
-      int64_t latency_millis);
-
   void NewSetDataUsage(nearby::sharing::proto::DataUsage original_preference,
                        nearby::sharing::proto::DataUsage preference);
 

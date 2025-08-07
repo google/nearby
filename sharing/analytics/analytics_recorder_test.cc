@@ -735,27 +735,6 @@ TEST_F(AnalyticsRecorderTest, NewDeviceSettings) {
   analytics_recoder().NewDeviceSettings(device_settings);
 }
 
-TEST_F(AnalyticsRecorderTest, NewFastShareServerResponse) {
-  EXPECT_CALL(event_logger(), Log(An<const SharingLog&>()))
-      .WillOnce([](const SharingLog& log) {
-        EXPECT_EQ(log.event_type(), EventType::FAST_SHARE_SERVER_RESPONSE);
-        EXPECT_EQ(log.event_category(), EventCategory::SETTINGS_EVENT);
-        EXPECT_EQ(log.fast_share_server_response().latency_millis(), 200);
-        EXPECT_EQ(log.fast_share_server_response().name(),
-                  ::location::nearby::proto::sharing::ServerActionName::
-                      UPLOAD_CONTACTS);
-        EXPECT_EQ(log.fast_share_server_response().status(),
-                  ::location::nearby::proto::sharing::ServerResponseState::
-                      SERVER_RESPONSE_SUCCESS);
-      });
-
-  analytics_recoder().NewFastShareServerResponse(
-      ::location::nearby::proto::sharing::ServerActionName::UPLOAD_CONTACTS,
-      ::location::nearby::proto::sharing::ServerResponseState::
-          SERVER_RESPONSE_SUCCESS,
-      200);
-}
-
 TEST_F(AnalyticsRecorderTest, NewSetDataUsage) {
   EXPECT_CALL(event_logger(), Log(An<const SharingLog&>()))
       .WillOnce([](const SharingLog& log) {

@@ -685,22 +685,6 @@ void AnalyticsRecorder::NewDeviceSettings(AnalyticsDeviceSettings settings) {
   LogEvent(*sharing_log);
 }
 
-void AnalyticsRecorder::NewFastShareServerResponse(
-    ::location::nearby::proto::sharing::ServerActionName name,
-    ::location::nearby::proto::sharing::ServerResponseState state,
-    int64_t latency_millis) {
-  std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
-      EventCategory::SETTINGS_EVENT, EventType::FAST_SHARE_SERVER_RESPONSE);
-
-  auto* fast_share_server_response =
-      sharing_log->mutable_fast_share_server_response();
-  fast_share_server_response->set_name(name);
-  fast_share_server_response->set_status(state);
-  fast_share_server_response->set_latency_millis(latency_millis);
-
-  LogEvent(*sharing_log);
-}
-
 void AnalyticsRecorder::NewSetDataUsage(DataUsage original_preference,
                                         DataUsage preference) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
