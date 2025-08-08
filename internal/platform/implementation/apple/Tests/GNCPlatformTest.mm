@@ -80,4 +80,10 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertEqualObjects(@(actual.c_str()), expected);
 }
 
+- (void)testCreateBleV2Medium {
+  auto bluetooth_adapter = nearby::api::ImplementationPlatform::CreateBluetoothAdapter();
+  auto ble_medium = nearby::api::ImplementationPlatform::CreateBleV2Medium(*bluetooth_adapter);
+  XCTAssertNotEqual(ble_medium.get(), nullptr);
+}
+
 @end

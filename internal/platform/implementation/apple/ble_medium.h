@@ -47,7 +47,7 @@ namespace apple {
 class BleMedium : public api::ble_v2::BleMedium {
  public:
   BleMedium();
-  ~BleMedium() override = default;
+  ~BleMedium() override;
 
   // Async interface for StartAdvertising.
   //

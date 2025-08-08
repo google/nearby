@@ -34,6 +34,7 @@ NS_ASSUME_NONNULL_BEGIN
 static char *const kBLEMediumQueueLabel = "com.nearby.GNCBLEMedium";
 // TODO: b/762454867 - Make this a flag.
 static const NSTimeInterval kPeripheralConnectTimeout = 10.0;  // 10 seconds timeout
+static const NSTimeInterval kStopTimeout = 5.0;
 
 static NSError *AlreadyScanningError() {
   return [NSError errorWithDomain:GNCBLEErrorDomain code:GNCBLEErrorAlreadyScanning userInfo:nil];
@@ -122,8 +123,17 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   return self;
 }
 
-- (void)dealloc {
-  [self cancelConnectionTimeout];
+- (void)stop {
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  dispatch_async(_queue, ^{
+    [self cancelConnectionTimeout];
+    dispatch_semaphore_signal(semaphore);
+  });
+  dispatch_time_t timeout =
+      dispatch_time(DISPATCH_TIME_NOW, kStopTimeout * NSEC_PER_SEC);  // 5 seconds timeout
+  if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+    GNCLoggerError(@"GNCBLEMedium stop timeout.");
+  }
 }
 
 - (BOOL)supportsExtendedAdvertisements {

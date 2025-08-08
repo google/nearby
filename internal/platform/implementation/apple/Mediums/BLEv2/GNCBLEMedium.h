@@ -238,6 +238,11 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
                      peripheral:(id<GNCPeripheral>)remotePeripheral
               completionHandler:(nullable GNCOpenL2CAPStreamCompletionHandler)completionHandler;
 
+/**
+ * Stops all BLE operations.
+ */
+- (void)stop;
+
 @end
 
 NS_ASSUME_NONNULL_END

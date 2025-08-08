@@ -82,6 +82,9 @@ NSString *ConvertDataToHexString(NSData *data) {
 
 BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {}
 
+// ble_medium.mm
+BleMedium::~BleMedium() { [medium_ stop]; }
+
 std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> BleMedium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData &advertising_data,
     api::ble_v2::AdvertiseParameters advertise_set_parameters,
