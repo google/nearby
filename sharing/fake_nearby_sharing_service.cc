@@ -191,12 +191,6 @@ void FakeNearbySharingService::FireStartDiscoveryResult(bool success) {
   }
 }
 
-void FakeNearbySharingService::FireShutdown() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnShutdown();
-  }
-}
-
 void FakeNearbySharingService::FireSendTransferUpdate(
     SendSurfaceState state, const ShareTarget& share_target,
     const AttachmentContainer& attachment_container,

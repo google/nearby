@@ -34,7 +34,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/base/observer_list.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -69,6 +68,7 @@
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/proto/wire_format.pb.h"
+#include "sharing/service_observers.h"
 #include "sharing/share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/share_target_discovered_callback.h"
@@ -492,7 +492,7 @@ class NearbySharingServiceImpl
   std::unique_ptr<ThreadTimer> certificate_download_during_discovery_timer_;
 
   // A list of service observers.
-  ObserverList<NearbySharingService::Observer> observers_;
+  ServiceObservers service_observers_;
   // A map of foreground receiver callbacks -> vendor ID.
   absl::flat_hash_map<TransferUpdateCallback*, Advertisement::BlockedVendorId>
       foreground_receive_callbacks_map_;

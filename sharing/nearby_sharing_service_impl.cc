@@ -44,7 +44,6 @@
 #include "absl/types/span.h"
 #include "internal/base/bluetooth_address.h"
 #include "internal/base/file_path.h"
-#include "internal/base/observer_list.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/network/url.h"
 #include "internal/platform/device_info.h"
@@ -291,11 +290,7 @@ void NearbySharingServiceImpl::Shutdown(
       "api_shutdown",
       [this, status_codes_callback = std::move(status_codes_callback)]() {
         *is_shutting_down_ = true;
-        for (auto* observer : observers_.GetObservers()) {
-          observer->OnShutdown();
-        }
-
-        observers_.Clear();
+        service_observers_.Clear();
 
         StopAdvertising();
         StopFastInitiationScanning();
@@ -377,7 +372,7 @@ void NearbySharingServiceImpl::SendInitialAdapterState(
         // |observer| may have been removed before the task is run.  This is not
         // sufficient to catch all cases, but without taking some form of
         // ownership of the observer, this is the best we can do.
-        if (!observers_.HasObserver(observer)) {
+        if (!service_observers_.HasObserver(observer)) {
           return;
         }
         observer->OnBluetoothStatusChanged(
@@ -393,12 +388,12 @@ void NearbySharingServiceImpl::SendInitialAdapterState(
 void NearbySharingServiceImpl::AddObserver(
     NearbySharingService::Observer* observer) {
   SendInitialAdapterState(observer);
-  observers_.AddObserver(observer);
+  service_observers_.AddObserver(observer);
 }
 
 void NearbySharingServiceImpl::RemoveObserver(
     NearbySharingService::Observer* observer) {
-  observers_.RemoveObserver(observer);
+  service_observers_.RemoveObserver(observer);
 }
 
 void NearbySharingServiceImpl::RegisterSendSurface(
@@ -1339,9 +1334,7 @@ void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id,
         // Reset all settings.
         ResetAllSettings(/*logout=*/true);
         if (credential_error) {
-          for (auto& observer : observers_.GetObservers()) {
-            observer->OnCredentialError();
-          }
+          service_observers_.NotifyCredentialError();
         }
       });
 }
@@ -1390,9 +1383,7 @@ void NearbySharingServiceImpl::AdapterPresentChanged(
                 << present << ")";
         NearbySharingService::Observer::AdapterState state =
             MapAdapterState(present, adapter->IsPowered());
-        for (auto& observer : observers_.GetObservers()) {
-          observer->OnBluetoothStatusChanged(state);
-        }
+        service_observers_.NotifyBluetoothStatusChanged(state);
         InvalidateSurfaceState();
       });
 }
@@ -1405,9 +1396,7 @@ void NearbySharingServiceImpl::AdapterPoweredChanged(
                 << powered << ")";
         NearbySharingService::Observer::AdapterState state =
             MapAdapterState(adapter->IsPresent(), powered);
-        for (auto& observer : observers_.GetObservers()) {
-          observer->OnBluetoothStatusChanged(state);
-        }
+        service_observers_.NotifyBluetoothStatusChanged(state);
         InvalidateSurfaceState();
       });
 }
@@ -1420,9 +1409,7 @@ void NearbySharingServiceImpl::AdapterPresentChanged(
                 << present << ")";
         NearbySharingService::Observer::AdapterState state =
             MapAdapterState(present, adapter->IsPowered());
-        for (auto& observer : observers_.GetObservers()) {
-          observer->OnWifiStatusChanged(state);
-        }
+        service_observers_.NotifyWifiStatusChanged(state);
         InvalidateSurfaceState();
       });
 }
@@ -1435,9 +1422,7 @@ void NearbySharingServiceImpl::AdapterPoweredChanged(
                 << powered << ")";
         NearbySharingService::Observer::AdapterState state =
             MapAdapterState(adapter->IsPresent(), powered);
-        for (auto& observer : observers_.GetObservers()) {
-          observer->OnWifiStatusChanged(state);
-        }
+        service_observers_.NotifyWifiStatusChanged(state);
         InvalidateSurfaceState();
       });
 }
@@ -1446,9 +1431,7 @@ void NearbySharingServiceImpl::HardwareErrorReported(
     NearbyFastInitiation* fast_init) {
   RunOnNearbySharingServiceThread("hardware_error_reported", [this]() {
     VLOG(1) << __func__ << ": Hardware error reported, need to restart PC.";
-    for (auto& observer : observers_.GetObservers()) {
-      observer->OnIrrecoverableHardwareErrorReported();
-    }
+    service_observers_.NotifyIrrecoverableHardwareErrorReported();
     InvalidateSurfaceState();
   });
 }
@@ -2083,9 +2066,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
     return;
   }
   if (device_name.has_value()) {
-    for (auto& observer : observers_.GetObservers()) {
-      observer->OnHighVisibilityChangeRequested();
-    }
+    service_observers_.NotifyHighVisibilityChangeRequested();
   }
 
   advertising_session_id_ = analytics_recorder_.GenerateNextId();
@@ -3432,9 +3413,7 @@ void NearbySharingServiceImpl::OnStartAdvertisingResult(bool used_device_name,
                << ": StartAdvertising over Nearby Connections failed: "
                << NearbyConnectionsManager::ConnectionsStatusToString(status);
     SetInHighVisibility(false);
-    for (auto& observer : observers_.GetObservers()) {
-      observer->OnStartAdvertisingFailure();
-    }
+    service_observers_.NotifyStartAdvertisingFailure();
   }
 }
 
@@ -3473,9 +3452,7 @@ void NearbySharingServiceImpl::OnStartDiscoveryResult(Status status) {
                << ": StartDiscovery over Nearby Connections failed: "
                << NearbyConnectionsManager::ConnectionsStatusToString(status);
   }
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnStartDiscoveryResult(success);
-  }
+  service_observers_.NotifyStartDiscoveryResult(success);
 }
 
 void NearbySharingServiceImpl::SetInHighVisibility(
@@ -3485,9 +3462,7 @@ void NearbySharingServiceImpl::SetInHighVisibility(
   }
 
   in_high_visibility_ = new_in_high_visibility;
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnHighVisibilityChanged(in_high_visibility_);
-  }
+  service_observers_.NotifyHighVisibilityChanged(in_high_visibility_);
 }
 
 void NearbySharingServiceImpl::OnNetworkChanged(
@@ -3507,9 +3482,7 @@ void NearbySharingServiceImpl::OnLanConnectedChanged(bool connected) {
         NearbySharingService::Observer::AdapterState state =
             connected ? NearbySharingService::Observer::AdapterState::ENABLED
                       : NearbySharingService::Observer::AdapterState::DISABLED;
-        for (auto& observer : observers_.GetObservers()) {
-          observer->OnLanStatusChanged(state);
-        }
+        service_observers_.NotifyLanStatusChanged(state);
       });
 }
 

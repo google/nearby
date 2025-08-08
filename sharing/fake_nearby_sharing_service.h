@@ -118,7 +118,6 @@ class FakeNearbySharingService : public NearbySharingService {
   void FireHighVisibilityChanged(bool in_high_visibility);
   void FireStartAdvertisingFailure();
   void FireStartDiscoveryResult(bool success);
-  void FireShutdown();
 
   // Fire transfer update events.
   void FireSendTransferUpdate(SendSurfaceState state,

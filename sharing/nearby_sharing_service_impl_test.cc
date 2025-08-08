@@ -1375,14 +1375,7 @@ class TestObserver : public NearbySharingService::Observer {
 
   void OnCredentialError() override { credential_error_called_ = true; }
 
-  void OnShutdown() override {
-    shutdown_called_ = true;
-    service_->RemoveObserver(this);
-    service_ = nullptr;
-  }
-
   bool in_high_visibility_ = false;
-  bool shutdown_called_ = false;
   bool on_start_advertising_failure_called_ = false;
   bool credential_error_called_ = false;
   NearbySharingService* service_;
@@ -3967,13 +3960,6 @@ TEST_F(NearbySharingServiceImplTest, AddObserverLanAdapterUpdate) {
 
   // Remove the observer before it goes out of scope.
   service_->RemoveObserver(&observer);
-}
-
-TEST_F(NearbySharingServiceImplTest, ShutdownCallsObservers) {
-  TestObserver observer(service_.get());
-  EXPECT_FALSE(observer.shutdown_called_);
-  Shutdown();
-  EXPECT_TRUE(observer.shutdown_called_);
 }
 
 TEST_F(NearbySharingServiceImplTest, RotateBackgroundAdvertisementPeriodic) {

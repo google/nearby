@@ -271,6 +271,8 @@ cc_library(
         "nearby_sharing_service_impl.cc",
         "nearby_sharing_settings.cc",
         "nearby_sharing_util.cc",
+        "service_observers.cc",
+        "service_observers.h",
         "transfer_manager.cc",
         "wrapped_share_target_discovered_callback.cc",
     ],

@@ -115,10 +115,6 @@ class NearbySharingService {
     virtual void OnIrrecoverableHardwareErrorReported() {}
 
     virtual void OnCredentialError() {}
-
-    // Called during the |KeyedService| shutdown, but before everything has been
-    // cleaned up. It is safe to remove any observers on this event.
-    virtual void OnShutdown() = 0;
   };
 
   static std::string StatusCodeToString(StatusCodes status_code);
