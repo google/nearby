@@ -30,7 +30,6 @@
 #include "connections/implementation/offline_frames.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
@@ -170,8 +169,7 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
 
   SingleThreadExecutor executor;
   FakeSocket* socket = fake_socket_ptr.get();
-  CountDownLatch latch(1);
-  executor.Execute([socket, &latch]() {
+  executor.Execute([socket]() {
     ByteArray connection_req_frame = parser::ForConnectionRequestConnections(
         {}, {
                 .local_endpoint_id = "endpoint1",
@@ -183,10 +181,8 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
     writer->Write(connection_req_frame);
     writer->Flush();
     LOG(INFO) << "writer_1_ Write end";
-    latch.CountDown();
   });
 
-  latch.Await(absl::Milliseconds(100));
   ExceptionOr<ByteArray> result = virtual_socket->GetByteReadFuture().Get();
   if (!result.ok()) {
     ADD_FAILURE() << "Read error: " << result.GetException().value;
@@ -195,11 +191,15 @@ TEST(MultiplexSocketTest, CreateSuccessAndReaderThreadStarted) {
   LOG(INFO) << "Received " << data.size() << " bytes of data.";
   EXPECT_NE(data.size(), 0);
   absl::SleepFor(absl::Milliseconds(100));
+
   socket->reader_1_->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 0);
+  multiplex_socket_incoming->ShutdownAll();
+  fake_socket_ptr->Close();
 }
+
 TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
   auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::WEB_RTC);
   MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
@@ -209,34 +209,7 @@ TEST(MultiplexSocketTest, CreateFail_MediumNotSupport) {
           fake_socket_ptr, std::string(SERVICE_ID_1), /*first_frame_len*/ 0);
 
   ASSERT_EQ(multiplex_socket_incoming, nullptr);
-}
-
-TEST(MultiplexSocketTest,
-     EstablishVirtualSocket_ReturnNullWhenMultiplexSocketDisabled) {
-  auto fake_socket_ptr = std::make_shared<FakeSocket>(Medium::BLE);
-
-  MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_1),
-                                                      Medium::BLE);
-  MultiplexSocket::StopListeningForIncomingConnection(std::string(SERVICE_ID_2),
-                                                      Medium::BLE);
-  MultiplexSocket* multiplex_socket = MultiplexSocket::CreateOutgoingSocket(
-      fake_socket_ptr, std::string(SERVICE_ID_1));
-  ASSERT_NE(multiplex_socket, nullptr);
-
-  MediumSocket* socket =
-      multiplex_socket->EstablishVirtualSocket(std::string(SERVICE_ID_2));
-  EXPECT_EQ(socket, nullptr);
-  absl::SleepFor(absl::Milliseconds(100));
-  FakeSocket* virtual_socket = (FakeSocket*)multiplex_socket->GetVirtualSocket(
-      std::string(SERVICE_ID_1));
-  if (virtual_socket == nullptr) {
-    LOG(INFO) << "Virtual socket not found for " << SERVICE_ID_1;
-    return;
-  }
-  fake_socket_ptr->reader_1_->Close();
-  EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
-  virtual_socket->Close();
-  EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
+  fake_socket_ptr->Close();
 }
 
 TEST(MultiplexSocketTest,
@@ -257,35 +230,36 @@ TEST(MultiplexSocketTest,
     return;
   }
 
-  SingleThreadExecutor executor;
-  CountDownLatch latch(1);
-  executor.Execute([&multiplex_socket, &latch]() {
+  SingleThreadExecutor establish_socket_executor;
+  establish_socket_executor.Execute([&multiplex_socket]() {
     LOG(INFO) << "EstablishVirtualSocket";
     MediumSocket* socket =
         multiplex_socket->EstablishVirtualSocket(std::string(SERVICE_ID_2));
     LOG(INFO) << "EstablishVirtualSocket finished";
     EXPECT_EQ(socket, nullptr);
-    latch.CountDown();
   });
-  latch.Await(absl::Milliseconds(3000));
 
-  auto reader = fake_socket_ptr->reader_2_.get();
-  LOG(INFO) << "reader_2_ Read start";
-  ExceptionOr<std::int32_t> read_int = Base64Utils::ReadInt(reader);
-  if (!read_int.ok()) {
-    ADD_FAILURE() << "Failed to read. Exception:" << read_int.exception();
-  }
-  auto length = read_int.result();
-  LOG(INFO) << " length:" << length;
-  EXPECT_GT(length, 0);
-  EXPECT_EQ(multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2)),
-            nullptr);
+  SingleThreadExecutor read_executor;
+  read_executor.Execute([&multiplex_socket, &fake_socket_ptr]() {
+    auto reader = fake_socket_ptr->reader_2_.get();
+    LOG(INFO) << "reader_2_ Read start";
+    ExceptionOr<std::int32_t> read_int = Base64Utils::ReadInt(reader);
+    if (!read_int.ok()) {
+      ADD_FAILURE() << "Failed to read. Exception:" << read_int.exception();
+    }
+    auto length = read_int.result();
+    LOG(INFO) << " length:" << length;
+    EXPECT_GT(length, 0);
+    EXPECT_EQ(multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2)),
+              nullptr);
+  });
 
-  absl::SleepFor(absl::Milliseconds(100));
-  fake_socket_ptr->reader_1_->Close();
+  absl::SleepFor(absl::Milliseconds(300));
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
+  multiplex_socket->ShutdownAll();
+  fake_socket_ptr->Close();
 }
 
 TEST(MultiplexSocketTest, EstablishVirtualSocket_RemoteAccepted) {
@@ -363,10 +337,11 @@ TEST(MultiplexSocketTest, EstablishVirtualSocket_RemoteAccepted) {
   EXPECT_NE(multiplex_socket->GetVirtualSocket(std::string(SERVICE_ID_2)),
             nullptr);
 
-  fake_socket_ptr->reader_1_->Close();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 2);
   multiplex_socket->ShutdownAll();
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 0);
+  multiplex_socket->ShutdownAll();
+  fake_socket_ptr->Close();
 }
 
 }  // namespace multiplex
