@@ -27,53 +27,62 @@
 
 namespace nearby::apple {
 
-class PreferencesManager : public api::PreferencesManager {
+class PreferencesManager : public nearby::api::PreferencesManager {
  public:
   explicit PreferencesManager(absl::string_view path);
 
-  // Sets values
-
+  // Json
   bool Set(absl::string_view key, const nlohmann::json& value) override;
-
-  bool SetBoolean(absl::string_view key, bool value) override;
-  bool SetInteger(absl::string_view key, int value) override;
-  bool SetInt64(absl::string_view key, int64_t value) override;
-  bool SetString(absl::string_view key, absl::string_view value) override;
-
-  bool SetBooleanArray(absl::string_view key,
-                       absl::Span<const bool> value) override;
-  bool SetIntegerArray(absl::string_view key,
-                       absl::Span<const int> value) override;
-  bool SetInt64Array(absl::string_view key,
-                     absl::Span<const int64_t> value) override;
-  bool SetStringArray(absl::string_view key,
-                      absl::Span<const std::string> value) override;
-
-  bool SetTime(absl::string_view key, absl::Time value) override;
-
-  // Gets values
   nlohmann::json Get(absl::string_view key,
                      const nlohmann::json& default_value) const override;
 
+  // bool
+  bool SetBoolean(absl::string_view key, bool value) override;
   bool GetBoolean(absl::string_view key, bool default_value) const override;
+
+  // int
+  bool SetInteger(absl::string_view key, int value) override;
   int GetInteger(absl::string_view key, int default_value) const override;
+
+  // int64
+  bool SetInt64(absl::string_view key, int64_t value) override;
   int64_t GetInt64(absl::string_view key, int64_t default_value) const override;
+
+  // string
+  bool SetString(absl::string_view key, absl::string_view value) override;
   std::string GetString(absl::string_view key,
                         const std::string& default_value) const override;
 
+  // bool array
+  bool SetBooleanArray(absl::string_view key,
+                         absl::Span<const bool> value) override;
   std::vector<bool> GetBooleanArray(
       absl::string_view key,
       absl::Span<const bool> default_value) const override;
+
+  // int array
+  bool SetIntegerArray(absl::string_view key,
+                         absl::Span<const int> value) override;
   std::vector<int> GetIntegerArray(
       absl::string_view key,
       absl::Span<const int> default_value) const override;
+
+  // int64 array
+  bool SetInt64Array(absl::string_view key,
+                         absl::Span<const int64_t> value) override;
   std::vector<int64_t> GetInt64Array(
       absl::string_view key,
       absl::Span<const int64_t> default_value) const override;
+
+  // string array
+  bool SetStringArray(absl::string_view key,
+                          absl::Span<const std::string> value) override;
   std::vector<std::string> GetStringArray(
       absl::string_view key,
       absl::Span<const std::string> default_value) const override;
 
+  // time
+  bool SetTime(absl::string_view key, absl::Time value) override;
   absl::Time GetTime(absl::string_view key,
                      absl::Time default_value) const override;
 
