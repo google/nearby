@@ -18,6 +18,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -161,7 +162,10 @@ class MockDiscoveredPeripheralCallback : public DiscoveredPeripheralCallback {
   MOCK_METHOD(void, OnLegacyDeviceDiscovered, (), ());
 };
 
-class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
+class DiscoveredPeripheralTrackerTest
+    : public testing::TestWithParam<
+          std::tuple</*kEnableGattQueryInThread=*/bool,
+                     /*kEnableReadGattForExtendedAdvertisement=*/bool>> {
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -174,8 +178,14 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableGattQueryInThread,
-        GetParam());
+        std::get<0>(GetParam()));
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableReadGattForExtendedAdvertisement,
+        std::get<1>(GetParam()));
     MediumEnvironment::Instance().Start();
+    discovered_peripheral_tracker_ =
+        std::make_unique<DiscoveredPeripheralTracker>();
     adapter_peripheral_ = std::make_unique<BluetoothAdapter>();
     adapter_central_ = std::make_unique<BluetoothAdapter>();
     ble_peripheral_ = std::make_unique<BleV2Medium>(*adapter_peripheral_);
@@ -183,6 +193,7 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
   }
 
   void TearDown() override {
+    discovered_peripheral_tracker_.reset();
     MediumEnvironment::Instance().Stop();
     NearbyFlags::GetInstance().ResetOverridedValues();
   }
@@ -200,7 +211,7 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
       CountDownLatch& fetch_latch) {
     BleV2Peripheral peripheral = CreateBlePeripheral();
 
-    discovered_peripheral_tracker_.ProcessFoundBleAdvertisement(
+    discovered_peripheral_tracker_->ProcessFoundBleAdvertisement(
         peripheral, advertisement_data,
         GetAdvertisementFetcher(fetch_latch, advertisement_bytes_list));
   }
@@ -212,7 +223,7 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
       CountDownLatch& fetch_latch) {
     BleV2Peripheral peripheral = CreateBlePeripheral();
 
-    discovered_peripheral_tracker_.ProcessFoundBleAdvertisement(
+    discovered_peripheral_tracker_->ProcessFoundBleAdvertisement(
         peripheral, advertisement_data,
         GetAdvertisementFetcher(fetch_latch, advertisement_bytes_list));
   }
@@ -223,7 +234,7 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
       CountDownLatch& fetch_latch) {
     BleV2Peripheral peripheral = CreateBlePeripheral();
 
-    discovered_peripheral_tracker_.ProcessFoundBleAdvertisement(
+    discovered_peripheral_tracker_->ProcessFoundBleAdvertisement(
         peripheral, advertisement_data,
         GetSlowAdvertisementFetcher(fetch_latch, advertisement_bytes_list));
   }
@@ -243,13 +254,6 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
   void EnableInstantOnLost() {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
-        true);
-  }
-
-  void EnableFetchGattAdvertisementInThread() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnableGattQueryInThread,
         true);
   }
 
@@ -301,7 +305,7 @@ class DiscoveredPeripheralTrackerTest : public testing::TestWithParam<bool> {
   std::unique_ptr<BleV2Medium> ble_central_;
   mutable Mutex mutex_;
   int fetch_count_ ABSL_GUARDED_BY(mutex_) = 0;
-  DiscoveredPeripheralTracker discovered_peripheral_tracker_;
+  std::unique_ptr<DiscoveredPeripheralTracker> discovered_peripheral_tracker_;
 };
 
 TEST_P(DiscoveredPeripheralTrackerTest,
@@ -311,7 +315,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -347,7 +351,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, DctAdvertisementPeripheralDiscovered) {
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), true, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -387,7 +391,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch legacy_found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {.peripheral_discovered_cb =
            [&found_latch](
@@ -425,7 +429,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   std::atomic<int> callback_times = 0;
 
   // 1st tracking.
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -450,7 +454,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   FindFastAdvertisement(advertisement_data, {}, fetch_latch);
 
   // 2nd tracking.
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -469,7 +473,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   FindFastAdvertisement(advertisement_data, {}, fetch_latch);
 
   // 3rd tracking.
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -496,7 +500,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch fetch_latch(3);
   std::atomic<int> callback_times = 0;
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -541,7 +545,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
   // Start tracking a service ID and then process a discovery containing a valid
   // fast advertisement, but under a different service UUID.
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -584,7 +588,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch_b(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -598,7 +602,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
               },
       },
       Uuid(kFastAdvertisementServiceUuid));
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdB), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -643,7 +647,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -683,7 +687,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -724,7 +728,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch fetch_latch(1);
   std::atomic<int> callback_times = 0;
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -770,7 +774,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch fetch_latch(3);
   std::atomic<int> callback_times = 0;
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -818,7 +822,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -855,7 +859,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch fetch_latch(1);
   std::atomic<int> lost_callback_times = 0;
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -899,8 +903,8 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   // Then, go through two cycles of onLost. The first cycle should include the
   // recently discovered peripheral in its 'found' pool. The second one should
   // trigger the onLost callback.
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // We should receive a client callback of a lost peripheral.
   EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
@@ -918,7 +922,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch lost_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -953,7 +957,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   for (int i = 0; i < 20; i++) {
     FindFastAdvertisement(advertisement_data, {fast_advertisement_bytes},
                           fetch_latch);
-    discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+    discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
   }
 
   // We should only receive ONE client callback of a peripheral discovery, ZERO
@@ -975,7 +979,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
   CountDownLatch lost_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1011,8 +1015,8 @@ TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForAdvertisementLost) {
   // Then, go through two cycles of onLost. The first cycle should include the
   // recently discovered peripheral in its 'found' pool. The second one should
   // trigger the onLost callback.
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // We should receive a client callback of a lost peripheral
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
@@ -1034,7 +1038,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch lost_latch_b(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1053,7 +1057,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
                   bool fast_advertisement) { lost_latch_a.CountDown(); },
       },
       Uuid(kFastAdvertisementServiceUuid));
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdB), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1094,8 +1098,8 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   // Then, go through two cycles of onLost. The first cycle should include the
   // recently discovered peripheral in its 'found' pool. The second one should
   // trigger the onLost callback.
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // We should receive two client callbacks of a lost peripheral from each
   // service ID.
@@ -1115,7 +1119,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch lost_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1149,9 +1153,9 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
 
   // Then, stop tracking the service ID and go through two cycles of onLost.
-  discovered_peripheral_tracker_.StopTracking(std::string(kServiceIdA));
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->StopTracking(std::string(kServiceIdA));
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // We should NOT receive a client callback of a lost peripheral
   EXPECT_FALSE(lost_latch.Await(kWaitDuration).result());
@@ -1169,7 +1173,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForInstantOnLost) {
   CountDownLatch lost_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1216,7 +1220,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, LostPeripheralForInstantOnLost) {
   // Then, go through a cycle of onLost. Since we triggered a forced loss via
   // the instant on los advertisement, the lost call should trigger the onLost
   // client callback.
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // We should receive a client callback of a lost peripheral
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
@@ -1235,7 +1239,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, InstantLostPeripheralForInstantOnLost) {
   CountDownLatch lost_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1282,7 +1286,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, InstantLostPeripheralForInstantOnLost) {
   // Then, go through a cycle of onLost. Since we triggered a forced loss via
   // the instant on los advertisement, the lost call should trigger the onLost
   // client callback.
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // We should receive a client callback of a lost peripheral
   EXPECT_TRUE(lost_latch.Await(kWaitDuration).result());
@@ -1302,7 +1306,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch fetch_latch(1);
   MockDiscoveredPeripheralCallback mock_callback;
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1356,7 +1360,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   // Then, go through a cycle of onLost. Since we triggered a forced loss via
   // the instant on los advertisement, the lost call should trigger the onLost
   // client callback.
-  discovered_peripheral_tracker_.ProcessLostGattAdvertisements();
+  discovered_peripheral_tracker_->ProcessLostGattAdvertisements();
 
   // Lost advertisement should not be reported.
   CountDownLatch fetch_latch3(1);
@@ -1381,7 +1385,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch lost_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1441,7 +1445,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, HandleDummyAdvertisement) {
   CountDownLatch fetch_latch(1);
   CountDownLatch legacy_device_found_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1477,7 +1481,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipDummyAdvertisement) {
   CountDownLatch fetch_latch(1);
   CountDownLatch legacy_device_found_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1500,7 +1504,11 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipDummyAdvertisement) {
 }
 
 TEST_P(DiscoveredPeripheralTrackerTest, FetchGattAdvertisementInThread) {
-  EnableFetchGattAdvertisementInThread();
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableGattQueryInThread)) {
+    return;
+  }
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);
@@ -1510,7 +1518,7 @@ TEST_P(DiscoveredPeripheralTrackerTest, FetchGattAdvertisementInThread) {
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1542,7 +1550,12 @@ TEST_P(DiscoveredPeripheralTrackerTest, FetchGattAdvertisementInThread) {
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        IgnoreGattAdvertisementResultWhentrackingStoppedInThread) {
-  EnableFetchGattAdvertisementInThread();
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableGattQueryInThread)) {
+    return;
+  }
+
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);
@@ -1552,7 +1565,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch(1);
   CountDownLatch fetch_latch(1);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1578,7 +1591,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
   // We should receive a client callback of a peripheral discovery.
   absl::SleepFor(absl::Milliseconds(20));
-  discovered_peripheral_tracker_.StopTracking(std::string(kServiceIdA));
+  discovered_peripheral_tracker_->StopTracking(std::string(kServiceIdA));
   fetch_latch.Await(kWaitDuration);
   EXPECT_FALSE(found_latch.Await(kWaitDuration).result());
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
@@ -1586,7 +1599,11 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        FetchMultipleGattAdvertisementResultsInThread) {
-  EnableFetchGattAdvertisementInThread();
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableGattQueryInThread)) {
+    return;
+  }
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);
@@ -1601,7 +1618,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   CountDownLatch found_latch(2);
   CountDownLatch fetch_latch(2);
 
-  discovered_peripheral_tracker_.StartTracking(
+  discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
@@ -1639,9 +1656,11 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 2);
 }
 
-INSTANTIATE_TEST_SUITE_P(DiscoveredPeripheralTrackerFlagsTest,
-                         DiscoveredPeripheralTrackerTest,
-                         /*kEnableGattQueryInThread=*/testing::Bool());
+INSTANTIATE_TEST_SUITE_P(
+    DiscoveredPeripheralTrackerFlagsTest, DiscoveredPeripheralTrackerTest,
+    ::testing::Combine(
+        /*kEnableGattQueryInThread=*/testing::Bool(),
+        /*kEnableReadGattForExtendedAdvertisement=*/testing::Bool()));
 
 }  // namespace
 
