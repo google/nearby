@@ -401,11 +401,6 @@ void NearbySharingServiceImpl::RemoveObserver(
   observers_.RemoveObserver(observer);
 }
 
-bool NearbySharingServiceImpl::HasObserver(
-    NearbySharingService::Observer* observer) {
-  return observers_.HasObserver(observer);
-}
-
 void NearbySharingServiceImpl::RegisterSendSurface(
     TransferUpdateCallback* transfer_callback,
     ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
@@ -2307,24 +2302,9 @@ void NearbySharingServiceImpl::StartFastInitiationScanning() {
   }
 
   nearby_fast_initiation_->StartScanning(
-      [this]() { OnFastInitiationDevicesDetected(); },
-      [this]() { OnFastInitiationDevicesNotDetected(); },
+      /*devices_discovered_callback=*/[]() {},
+      /*devices_not_discovered_callback=*/[]() {},
       [this]() { StopFastInitiationScanning(); });
-}
-
-void NearbySharingServiceImpl::OnFastInitiationDevicesDetected() {
-  VLOG(1) << __func__;
-
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationDevicesDetected();
-  }
-}
-
-void NearbySharingServiceImpl::OnFastInitiationDevicesNotDetected() {
-  VLOG(1) << __func__;
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationDevicesNotDetected();
-  }
 }
 
 void NearbySharingServiceImpl::StopFastInitiationScanning() {
@@ -2335,10 +2315,6 @@ void NearbySharingServiceImpl::StopFastInitiationScanning() {
 
   nearby_fast_initiation_->StopScanning(
       []() { VLOG(1) << __func__ << ": Stopped fast initiation scanning."; });
-
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationScanningStopped();
-  }
   VLOG(1) << __func__ << ": Stopped background scanning.";
 }
 

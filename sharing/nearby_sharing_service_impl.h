@@ -112,7 +112,6 @@ class NearbySharingServiceImpl
   // NearbySharingService
   void AddObserver(NearbySharingService::Observer* observer) override;
   void RemoveObserver(NearbySharingService::Observer* observer) override;
-  bool HasObserver(NearbySharingService::Observer* observer) override;
   void Shutdown(
       std::function<void(StatusCodes)> status_codes_callback) override;
   ABSL_DEPRECATED("Use the variant with vendor ID instead.")
@@ -296,7 +295,6 @@ class NearbySharingServiceImpl
 
   void InvalidateFastInitiationScanning();
   void StartFastInitiationScanning();
-  void OnFastInitiationDevicesDetected();
   void OnFastInitiationDevicesNotDetected();
   void StopFastInitiationScanning();
 

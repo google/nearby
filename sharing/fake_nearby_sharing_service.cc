@@ -41,9 +41,6 @@ void FakeNearbySharingService::AddObserver(Observer* observer) {
 void FakeNearbySharingService::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
 }
-bool FakeNearbySharingService::HasObserver(Observer* observer) {
-  return observers_.HasObserver(observer);
-}
 
 // Shutdown the Nearby Sharing service, and cleanup.
 void FakeNearbySharingService::Shutdown(
@@ -191,24 +188,6 @@ void FakeNearbySharingService::FireStartAdvertisingFailure() {
 void FakeNearbySharingService::FireStartDiscoveryResult(bool success) {
   for (auto& observer : observers_.GetObservers()) {
     observer->OnStartDiscoveryResult(success);
-  }
-}
-
-void FakeNearbySharingService::FireFastInitiationDevicesDetected() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationDevicesDetected();
-  }
-}
-
-void FakeNearbySharingService::FireFastInitiationDevicesNotDetected() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationDevicesNotDetected();
-  }
-}
-
-void FakeNearbySharingService::FireFastInitiationScanningStopped() {
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnFastInitiationScanningStopped();
   }
 }
 

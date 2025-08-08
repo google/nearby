@@ -1365,16 +1365,6 @@ class TestObserver : public NearbySharingService::Observer {
     on_start_advertising_failure_called_ = true;
   }
 
-  void OnFastInitiationDevicesDetected() override {
-    devices_detected_called_ = true;
-  }
-  void OnFastInitiationDevicesNotDetected() override {
-    devices_not_detected_called_ = true;
-  }
-  void OnFastInitiationScanningStopped() override {
-    scanning_stopped_called_ = true;
-  }
-
   void OnBluetoothStatusChanged(AdapterState state) override {
     bluetooth_state_ = state;
   }
@@ -1394,9 +1384,6 @@ class TestObserver : public NearbySharingService::Observer {
   bool in_high_visibility_ = false;
   bool shutdown_called_ = false;
   bool on_start_advertising_failure_called_ = false;
-  bool devices_detected_called_ = false;
-  bool devices_not_detected_called_ = false;
-  bool scanning_stopped_called_ = false;
   bool credential_error_called_ = false;
   NearbySharingService* service_;
   AdapterState bluetooth_state_ = AdapterState::INVALID;
@@ -1539,25 +1526,6 @@ TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_StartAndStop) {
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
   EXPECT_EQ(fast_initiation->StartScanningCount(), 2);
   EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-}
-
-TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_NotifyObservers) {
-  FakeNearbyFastInitiation* fast_initiation =
-      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kBluetooth);
-
-  TestObserver observer(service_.get());
-
-  ASSERT_EQ(fast_initiation->StartScanningCount(), 1);
-
-  fast_initiation->FireDevicesDetected();
-  EXPECT_TRUE(observer.devices_detected_called_);
-  fast_initiation->FireDevicesNotDetected();
-  EXPECT_TRUE(observer.devices_not_detected_called_);
-
-  // Remove the observer before it goes out of scope.
-  service_->RemoveObserver(&observer);
-  FlushTesting();
 }
 
 TEST_F(NearbySharingServiceImplTest,

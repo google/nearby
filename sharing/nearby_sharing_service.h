@@ -109,10 +109,6 @@ class NearbySharingService {
     virtual void OnStartAdvertisingFailure() {}
     virtual void OnStartDiscoveryResult(bool success) {}
 
-    virtual void OnFastInitiationDevicesDetected() {}
-    virtual void OnFastInitiationDevicesNotDetected() {}
-    virtual void OnFastInitiationScanningStopped() {}
-
     virtual void OnBluetoothStatusChanged(AdapterState state) {}
     virtual void OnWifiStatusChanged(AdapterState state) {}
     virtual void OnLanStatusChanged(AdapterState state) {}
@@ -131,7 +127,6 @@ class NearbySharingService {
 
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;
-  virtual bool HasObserver(Observer* observer) = 0;
 
   // Shutdown the Nearby Sharing service, and cleanup.
   virtual void Shutdown(

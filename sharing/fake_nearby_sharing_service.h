@@ -42,7 +42,6 @@ class FakeNearbySharingService : public NearbySharingService {
 
   void AddObserver(Observer* observer) override;
   void RemoveObserver(Observer* observer) override;
-  bool HasObserver(Observer* observer) override;
 
   // Shutdown the Nearby Sharing service, and cleanup.
   void Shutdown(
@@ -119,9 +118,6 @@ class FakeNearbySharingService : public NearbySharingService {
   void FireHighVisibilityChanged(bool in_high_visibility);
   void FireStartAdvertisingFailure();
   void FireStartDiscoveryResult(bool success);
-  void FireFastInitiationDevicesDetected();
-  void FireFastInitiationDevicesNotDetected();
-  void FireFastInitiationScanningStopped();
   void FireShutdown();
 
   // Fire transfer update events.
