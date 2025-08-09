@@ -53,7 +53,7 @@ class FakeConnection : public Connection {
 
   int GetMaxPacketSize() const override { return max_packet_size_; }
   void Transmit(std::string packet) override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     packets_written_.push_back(packet);
     if (instant_transmit_) {
       callback_.on_transmit_cb(absl::OkStatus());
@@ -65,7 +65,7 @@ class FakeConnection : public Connection {
   std::string PollWrittenPacket() {
     absl::SleepFor(absl::Milliseconds(10));
     if (!NoMorePackets()) {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       auto front = packets_written_.front();
       packets_written_.erase(packets_written_.begin());
       return front;
@@ -74,7 +74,7 @@ class FakeConnection : public Connection {
     return "";
   }
   bool NoMorePackets() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return packets_written_.empty();
   }
   void SetInstantTransmit(bool instant_transmit) {
