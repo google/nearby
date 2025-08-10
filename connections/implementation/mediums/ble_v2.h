@@ -29,6 +29,7 @@
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/ble_v2/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/ble_v2/instant_on_lost_manager.h"
@@ -59,12 +60,14 @@ class BleV2 final {
   using DiscoveredPeripheralCallback = mediums::DiscoveredPeripheralCallback;
 
   // Callback that is invoked when a new connection is accepted.
-  using AcceptedConnectionCallback = absl::AnyInvocable<void(
-      BleV2Socket socket, const std::string& service_id)>;
+  using AcceptedConnectionCallback =
+      absl::AnyInvocable<void(std::unique_ptr<mediums::BleSocket> socket,
+                              const std::string& service_id)>;
 
   // Callback that is invoked when a new l2cap connection is accepted.
-  using AcceptedL2capConnectionCallback = absl::AnyInvocable<void(
-      BleL2capSocket socket, const std::string& service_id)>;
+  using AcceptedL2capConnectionCallback =
+      absl::AnyInvocable<void(std::unique_ptr<mediums::BleSocket> socket,
+                              const std::string& service_id)>;
 
   // The type of the BLE advertising. In current implementation, we don't
   // support multiple advertising types on a Medium instance.
@@ -184,17 +187,15 @@ class BleV2 final {
 
   // Establishes connection to Ble peripheral.
   // Returns socket instance. On success, BleSocket.IsValid() return true.
-  ErrorOr<BleV2Socket> Connect(const std::string& service_id,
-                               const BleV2Peripheral& peripheral,
-                               CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> Connect(
+      const std::string& service_id, const BleV2Peripheral& peripheral,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Establishes connection to Ble peripheral.
   // Returns socket instance. On success, BleSocket.IsValid() return true.
-  ErrorOr<BleL2capSocket> ConnectOverL2cap(const std::string& service_id,
-                                           const BleV2Peripheral& peripheral,
-                                           CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> ConnectOverL2cap(
+      const std::string& service_id, const BleV2Peripheral& peripheral,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Returns true if this object owns a valid platform implementation.
   bool IsMediumValid() const ABSL_LOCKS_EXCLUDED(mutex_) {
