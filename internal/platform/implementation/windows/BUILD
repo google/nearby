@@ -360,7 +360,6 @@ cc_test(
         "wifi_medium_test.cc",
     ],
     copts = ["-DCORE_ADAPTER_DLL"],
-    tags = ["nozapfhahn"],
     deps = [
         ":comm",
         ":crypto",
@@ -406,7 +405,6 @@ cc_test(
     srcs = [
         "file_test.cc",
     ],
-    tags = ["nozapfhahn"],
     deps = [
         ":windows",
         "@com_github_protobuf_matchers//protobuf-matchers",

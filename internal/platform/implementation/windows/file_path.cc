@@ -61,7 +61,7 @@ constexpr char kIllegalFileCharacters[] = {':', '*', '?', '\"', '<', '>', '|'};
 
 std::wstring FilePath::GetCustomSavePath(std::wstring parent_folder,
                                          std::wstring file_name) {
-  std::wstring path;
+  std::wstring path = L"";
   SanitizeFileName(file_name);
   path += parent_folder + kPathDelimiter + file_name;
   return CreateOutputFileWithRename(path);
