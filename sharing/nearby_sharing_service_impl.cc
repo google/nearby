@@ -130,7 +130,7 @@ constexpr absl::Duration kProcessNetworkChangeTimerDelay = absl::Seconds(1);
 
 // Cooldown period after a successful incoming share before we allow the "Device
 // nearby is sharing" notification to appear again.
-constexpr absl::Duration kFastInitiationScannerCooldown = absl::Seconds(8);
+constexpr absl::Duration kFastInitiationScannerCooldown = absl::Seconds(10);
 
 // The maximum number of certificate downloads that can be performed during a
 // discovery session.
