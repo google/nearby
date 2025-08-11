@@ -85,6 +85,9 @@ constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
 // Enable/Disable payload-received-ack feature.
 constexpr auto kEnablePayloadReceivedAck =
     flags::Flag<bool>(kConfigPackage, "45425840", false);
+// Enable/Disable GATT query for extended advertisement.
+constexpr auto kEnableReadGattForExtendedAdvertisement =
+    flags::Flag<bool>(kConfigPackage, "45718229", false);
 // Enable/Disable safe-to-disconnect feature.
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
@@ -104,9 +107,6 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
 // Enable/Disable payload-received-ack feature.
-// Set the safe-to-disconnect version.
-// Enable 1. safe-to-disconnect check 2. reserved 3. auto-reconnect 4.
-// auto-resume 5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 // When true, use stable endpoint ID.

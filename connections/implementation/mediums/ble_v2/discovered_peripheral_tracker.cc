@@ -63,23 +63,52 @@ constexpr absl::Duration kInstantLostAdvertisementTimeout = absl::Seconds(60);
 
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available)
-    : is_extended_advertisement_available_(
-          is_extended_advertisement_available) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
+    : is_fetching_in_thread_(NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread)) {
+              kEnableGattQueryInThread)),
+      is_read_gatt_for_extended_advertisement_enabled_(
+          NearbyFlags::GetInstance().GetBoolFlag(
+              config_package_nearby::nearby_connections_feature::
+                  kEnableReadGattForExtendedAdvertisement)),
+      is_extended_advertisement_available_(
+          is_extended_advertisement_available) {
+  LOG(INFO) << __func__ << ": fetch GATT in thread: " << is_fetching_in_thread_
+            << ", read GATT for extended advertisement: "
+            << is_read_gatt_for_extended_advertisement_enabled_;
+  if (is_fetching_in_thread_) {
     executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
+    if (is_read_gatt_for_extended_advertisement_enabled_) {
+      executor_->Execute([this]() { GattFetchingLoop(); });
+    }
   }
 }
 
 DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread)) {
-    MutexLock lock(&mutex_);
-    if (executor_ != nullptr) {
-      executor_->Shutdown();
+  if (is_fetching_in_thread_) {
+    if (is_read_gatt_for_extended_advertisement_enabled_) {
+      Shutdown();
+    } else {
+      MutexLock lock(&mutex_);
+      if (executor_ != nullptr) {
+        executor_->Shutdown();
+      }
     }
+  }
+}
+
+void DiscoveredPeripheralTracker::Shutdown() {
+  MutexLock lock(&mutex_);
+  if (shutting_down_.Set(true)) {
+    return;
+  }
+
+  {
+    MutexLock lock(&task_mutex_);
+    cond_.Notify();
+  }
+
+  if (executor_ != nullptr) {
+    executor_->Shutdown();
   }
 }
 
@@ -722,9 +751,7 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
   // Determine whether or not we need to read a fresh GATT advertisement.
   if (ShouldReadRawAdvertisementFromServer(advertisement_header)) {
     // Determine whether or not we need to read a fresh GATT advertisement.
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kEnableGattQueryInThread)) {
+    if (is_fetching_in_thread_) {
       VLOG(1) << ": Handle GATT advertisement header with hash "
               << absl::BytesToHexString(
                      advertisement_header.GetAdvertisementHash().AsStringView())
@@ -740,13 +767,26 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
         // The situation happens when flag value changed
         executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
       }
-      executor_->Execute(
-          [this, peripheral, advertisement_header,
-           advertisement_fetcher = std::move(advertisement_fetcher),
-           advertisement_data = std::move(advertisement_data)]() mutable {
-            FetchRawAdvertisementsInThread(peripheral, advertisement_header,
-                                           std::move(advertisement_fetcher));
+
+      if (is_read_gatt_for_extended_advertisement_enabled_) {
+        {
+          MutexLock lock(&task_mutex_);
+          gatt_fetch_tasks_.push_back({
+              .peripheral = peripheral,
+              .advertisement_header = advertisement_header,
+              .advertisement_fetcher = std::move(advertisement_fetcher),
           });
+          cond_.Notify();
+        }
+      } else {
+        executor_->Execute([this, peripheral, advertisement_header,
+                            advertisement_fetcher =
+                                std::move(advertisement_fetcher)]() mutable {
+          FetchRawAdvertisementsInThread(peripheral, advertisement_header,
+                                         std::move(advertisement_fetcher));
+        });
+      }
+
       return;
     } else {
       std::vector<const ByteArray*> gatt_advertisement_bytes_list =
@@ -927,6 +967,33 @@ void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
             << absl::BytesToHexString(
                    advertisement_header.GetAdvertisementHash().AsStringView())
             << " in thread";
+  }
+}
+
+void DiscoveredPeripheralTracker::GattFetchingLoop() {
+  while (true) {
+    GattFetchTask task;
+    {
+      MutexLock lock(&task_mutex_);
+      if (shutting_down_) {
+        gatt_fetch_tasks_.clear();
+        return;
+      }
+      while (gatt_fetch_tasks_.empty() && !shutting_down_) {
+        cond_.Wait();
+      }
+
+      if (shutting_down_) {
+        gatt_fetch_tasks_.clear();
+        return;
+      }
+
+      task = std::move(gatt_fetch_tasks_.front());
+      gatt_fetch_tasks_.pop_front();
+    }
+
+    FetchRawAdvertisementsInThread(task.peripheral, task.advertisement_header,
+                                   std::move(task.advertisement_fetcher));
   }
 }
 

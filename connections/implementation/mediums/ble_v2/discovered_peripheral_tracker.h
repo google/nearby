@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_BLE_V2_DISCOVERED_PERIPHERAL_TRACKER_H_
 
 #include <array>
+#include <deque>
 #include <memory>
 #include <optional>
 #include <string>
@@ -33,8 +34,10 @@
 #include "connections/implementation/mediums/ble_v2/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/lost_entity_tracker.h"
 #include "connections/implementation/pcp.h"
+#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/condition_variable.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
@@ -106,6 +109,9 @@ class DiscoveredPeripheralTracker {
   // any lost peripherals.
   void ProcessLostGattAdvertisements() ABSL_LOCKS_EXCLUDED(mutex_);
 
+  // Shuts down the GATT fetching thread.
+  void Shutdown() ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   using BleAdvertisementSet = absl::flat_hash_set<BleAdvertisement>;
 
@@ -146,6 +152,12 @@ class DiscoveredPeripheralTracker {
 
     // Hash for instant on lost.
     ByteArray instant_on_lost_hash;
+  };
+
+  struct GattFetchTask {
+    BleV2Peripheral peripheral;
+    BleAdvertisementHeader advertisement_header;
+    AdvertisementFetcher advertisement_fetcher;
   };
 
   // Clears stale data from any previous sessions.
@@ -260,6 +272,9 @@ class DiscoveredPeripheralTracker {
       const BleAdvertisementHeader& advertisement_header,
       AdvertisementFetcher advertisement_fetcher);
 
+  // The main loop for the GATT fetching thread.
+  void GattFetchingLoop();
+
   // Updates `gatt_advertisement_infos_` map no matter whether we read a new
   // GATT advertisement by the input `advertisement_header` and 'mac_address`.
   void UpdateCommonStateForFoundBleAdvertisement(
@@ -290,6 +305,8 @@ class DiscoveredPeripheralTracker {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
+  bool is_fetching_in_thread_ = false;
+  bool is_read_gatt_for_extended_advertisement_enabled_ = true;
   bool is_extended_advertisement_available_;
 
   // ------------ SERVICE ID MAPS ------------
@@ -340,6 +357,11 @@ class DiscoveredPeripheralTracker {
 
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
+
+  Mutex task_mutex_;
+  AtomicBoolean shutting_down_{false};
+  ConditionVariable cond_{&task_mutex_};
+  std::deque<GattFetchTask> gatt_fetch_tasks_ ABSL_GUARDED_BY(task_mutex_);
 
   // Maps an advertisement header's hash with the time it's reported lost.
   // Ignores subsequent discovery events for the same advertisement header.
