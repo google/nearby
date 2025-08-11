@@ -27,6 +27,7 @@
 #include "internal/base/files.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/device_info.h"
+#include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Foundation.Collections.h"
@@ -49,10 +50,6 @@ using IVectorView = winrt::Windows::Foundation::Collections::IVectorView<T>;
 
 template <typename T>
 using IAsyncOperation = winrt::Windows::Foundation::IAsyncOperation<T>;
-
-constexpr absl::string_view kLogsRelativePath = "Google\\Nearby\\Sharing\\Logs";
-constexpr absl::string_view kCrashDumpsRelativePath =
-    "Google\\Nearby\\Sharing\\CrashDumps";
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   DWORD size = 0;
@@ -102,17 +99,7 @@ std::optional<FilePath> DeviceInfo::GetDownloadPath() const {
 }
 
 std::optional<FilePath> DeviceInfo::GetLocalAppDataPath() const {
-  PWSTR path;
-  HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT,
-                                        /*hToken=*/nullptr, &path);
-  if (result == S_OK) {
-    std::wstring local_appdata_path{path};
-    CoTaskMemFree(path);
-    return FilePath(std::wstring_view(local_appdata_path));
-  }
-
-  CoTaskMemFree(path);
-  return std::nullopt;
+  return nearby::platform::windows::GetLocalAppDataPath(FilePath());
 }
 
 std::optional<FilePath> DeviceInfo::GetCommonAppDataPath() const {
@@ -134,19 +121,11 @@ std::optional<FilePath> DeviceInfo::GetTemporaryPath() const {
 }
 
 std::optional<FilePath> DeviceInfo::GetLogPath() const {
-  std::optional<FilePath> prefix_path = GetLocalAppDataPath();
-  if (prefix_path.has_value()) {
-    return prefix_path.value().append(FilePath(kLogsRelativePath));
-  }
-  return std::nullopt;
+  return nearby::platform::windows::GetLogPath();
 }
 
 std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
-  std::optional<FilePath> prefix_path = GetLocalAppDataPath();
-  if (prefix_path.has_value()) {
-    return prefix_path.value().append(FilePath(kCrashDumpsRelativePath));
-  }
-  return std::nullopt;
+  return nearby::platform::windows::GetCrashDumpPath();
 }
 
 bool DeviceInfo::IsScreenLocked() const {
