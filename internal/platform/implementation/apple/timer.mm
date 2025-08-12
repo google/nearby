@@ -107,26 +107,29 @@ bool Timer::Stop() {
 }
 
 bool Timer::FireNow() {
-  absl::AnyInvocable<void()> callback_to_run;
-  {
-    absl::MutexLock lock(&mutex_);
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
+    absl::AnyInvocable<void()> callback_to_run;
+    {
+      absl::MutexLock lock(&mutex_);
 
-    // Don't fire if there's no callback or if a callback is already in progress.
-    if (!callback_ || callback_running_) {
-      return false;
+      // Don't fire if there's no callback or if a callback is already in progress.
+      if (!callback_ || callback_running_) {
+        return;
+      }
+      callback_running_ = true;
+      callback_to_run = std::move(callback_);
     }
-    callback_running_ = true;
-    callback_to_run = std::move(callback_);
-  }
 
-  // Execute callback outside of the lock.
-  callback_to_run();
-  {
-    absl::MutexLock lock(&mutex_);
-    callback_ = std::move(callback_to_run);
-    callback_running_ = false;
-    condvar_.Signal();  // Notify Stop() if it's waiting.
-  }
+    // Execute callback outside of the lock.
+    callback_to_run();
+    {
+      absl::MutexLock lock(&mutex_);
+      callback_ = std::move(callback_to_run);
+      callback_running_ = false;
+      condvar_.Signal();  // Notify Stop() if it's waiting.
+    }
+  });
+
   return true;
 }
 
