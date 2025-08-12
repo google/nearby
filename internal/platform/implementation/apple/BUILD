@@ -77,6 +77,7 @@ objc_library(
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     features = ["-layering_check"],
     deps = [
+        ":GNCDevicePaths",
         ":comm",
         ":Platform_cc",
         ":Shared",
@@ -102,6 +103,7 @@ objc_library(
         "//internal/platform/implementation/apple/Mediums",
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//internal/platform:cancellation_flag",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",
@@ -222,6 +224,16 @@ objc_library(
     deps = [
         ":os_log_sink",
         "//internal/platform:logging",
+    ],
+)
+
+objc_library(
+    name = "GNCDevicePaths",
+    srcs = ["GNCDevicePaths.m"],
+    hdrs = ["GNCDevicePaths.h"],
+    deps = [
+        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//third_party/apple_frameworks:Foundation",
     ],
 )
 
