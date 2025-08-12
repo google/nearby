@@ -105,6 +105,9 @@ class NearbyConnectionsManager {
                                 bool use_stable_endpoint_id,
                                 ConnectionsCallback callback) = 0;
 
+  // Reset the cached endpoint ID so that a new one will be generated.
+  virtual void RotateEndpointId() = 0;
+
   // Stops advertising through Nearby Connections.
   virtual void StopAdvertising(ConnectionsCallback callback) = 0;
 

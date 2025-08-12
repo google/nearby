@@ -49,6 +49,8 @@ class FakeNearbyConnectionsService : public NearbyConnectionsService {
                std::function<void(Status status)> callback),
               (override));
 
+  MOCK_METHOD(void, RotateEndpointId, (), (override));
+
   MOCK_METHOD(void, StopAdvertising,
               (absl::string_view service_id,
                std::function<void(Status status)> callback),

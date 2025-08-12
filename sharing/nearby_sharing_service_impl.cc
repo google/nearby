@@ -1316,6 +1316,7 @@ void NearbySharingServiceImpl::OnLoginSucceeded(absl::string_view account_id) {
     LOG(INFO) << __func__ << ": Account login.";
 
     ResetAllSettings(/*logout=*/false);
+    nearby_connections_manager_->RotateEndpointId();
   });
 }
 
@@ -1330,6 +1331,7 @@ void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id,
         if (credential_error) {
           service_observers_.NotifyCredentialError();
         }
+        nearby_connections_manager_->RotateEndpointId();
       });
 }
 

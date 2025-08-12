@@ -4749,7 +4749,6 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
   MockAccountObserver account_observer;
   absl::Notification notification;
   service_->GetAccountManager()->AddObserver(&account_observer);
-
   EXPECT_CALL(account_observer, OnLoginSucceeded(kTestAccountId)).Times(1);
   AccountManager::Account account;
   account.id = kTestAccountId;
@@ -4760,12 +4759,18 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
   account_manager().NotifyLogin(kTestAccountId);
   EXPECT_CALL(account_observer, OnLogoutSucceeded(kTestAccountId, false))
       .Times(1);
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  EXPECT_EQ(fake_nearby_connections_manager_->get_rotate_endpoint_id_count(),
+            1);
   absl::Notification logout_notification;
   service_->GetAccountManager()->Logout([&](absl::Status status) {
     EXPECT_TRUE(status.ok());
     logout_notification.Notify();
   });
   EXPECT_TRUE(logout_notification.WaitForNotificationWithTimeout(kWaitTimeout));
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+  EXPECT_EQ(fake_nearby_connections_manager_->get_rotate_endpoint_id_count(),
+            2);
   service_->GetAccountManager()->RemoveObserver(&account_observer);
   EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
 }

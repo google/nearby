@@ -79,6 +79,8 @@ class Core {
   void StartAdvertising(absl::string_view service_id,
                         AdvertisingOptions advertising_options,
                         ConnectionRequestInfo info, ResultCallback callback);
+  // Reset the cached endpoint ID so that a new one will be generated.
+  void RotateEndpointId();
 
   // Stops advertising a local endpoint. Should be called after calling
   // StartAdvertising, as soon as the application no longer needs to advertise
