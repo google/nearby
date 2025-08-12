@@ -106,7 +106,9 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
-// Enable/Disable payload-received-ack feature.
+// Set the safe-to-disconnect version.
+// 0. Disabled all. 1. safe-to-disconnect 2. reserved 3. auto-reconnect
+// 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
 // When true, use stable endpoint ID.
