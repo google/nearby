@@ -19,6 +19,7 @@ load("@rules_cc//cc:objc_library.bzl", "objc_library")
 licenses(["notice"])
 
 package(default_visibility = [
+    "//ambient/nearby/testing/connection/mdc/ios:__subpackages__",
     "//connections:__subpackages__",
     "//googlemac/iPhone/Nearby:__subpackages__",
     "//internal/platform:__subpackages__",

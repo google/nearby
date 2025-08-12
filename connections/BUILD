@@ -35,6 +35,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         ":partners",
+        "//ambient/nearby/testing/connection/mdc/ios/snippet:__pkg__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//location/nearby/testing:__subpackages__",
@@ -82,6 +83,7 @@ cc_library(
     copts = ["-DCORE_ADAPTER_DLL"],
     visibility = [
         ":partners",
+        "//ambient/nearby/testing/connection/mdc/ios/snippet:__pkg__",
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",
         "//connections:__subpackages__",
         "//location/nearby/testing:__subpackages__",
