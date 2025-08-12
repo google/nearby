@@ -17,6 +17,8 @@
 #include <string>
 #include <utility>
 
+#include "connections/implementation/base_endpoint_channel.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_hotspot.h"
 
@@ -38,9 +40,8 @@ WifiHotspotEndpointChannel::GetMedium() const {
 void WifiHotspotEndpointChannel::CloseImpl() {
   Exception status = socket_.Close();
   if (!status.Ok()) {
-    LOG(INFO)
-        << "Failed to close underlying socket for WifiHotspotEndpointChannel "
-        << GetName() << " : exception = " << status.value;
+    LOG(INFO) << "Failed to close socket for WifiHotspotEndpointChannel "
+              << GetName() << " : exception = " << status.value;
   }
 }
 
