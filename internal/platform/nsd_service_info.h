@@ -55,7 +55,7 @@ class NsdServiceInfo {
   // Adds the TXTRecord with a pair of key and value.
   void SetTxtRecord(const std::string& txt_record_key,
                     const std::string& txt_record_value) {
-    txt_records_.emplace(txt_record_key, txt_record_value);
+    txt_records_.insert_or_assign(txt_record_key, txt_record_value);
   }
 
   // Gets all TXTRecord.
