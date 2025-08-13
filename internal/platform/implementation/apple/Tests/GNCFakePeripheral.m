@@ -126,7 +126,7 @@ NS_ASSUME_NONNULL_BEGIN
     block();
   } else {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, _delegateDelay * NSEC_PER_SEC),
-                   dispatch_get_main_queue(), ^{
+                   dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
                      block();
                    });
   }

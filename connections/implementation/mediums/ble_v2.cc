@@ -1029,6 +1029,8 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     return;
   }
 
+  LOG(INFO) << "Connected to GATT server.";
+
   // Collect service_uuid and its associated characteristic_uuids.
   absl::flat_hash_map<int, Uuid> slot_characteristic_uuids = {};
   for (int slot = 0; slot < num_slots; ++slot) {
@@ -1070,6 +1072,8 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     return;
   }
 
+  LOG(INFO) << "Discovered service and characteristics.";
+
   // Read all advertisements from all characteristics that we haven't read from
   // yet.
   for (const auto& it : slot_characteristic_uuids) {
@@ -1078,6 +1082,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     auto gatt_characteristic = gatt_client->GetCharacteristic(
         mediums::bleutils::kCopresenceServiceUuid, characteristic_uuid);
     if (!gatt_characteristic.has_value()) {
+      LOG(INFO) << "no GATT characteristic found for slot.";
       continue;
     }
 
@@ -1099,7 +1104,10 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     // other slots to get as many advertisements as possible before
     // returning a success or failure.
   }
+
+  LOG(INFO) << "Disconnecting from GATT server.";
   gatt_client->Disconnect();
+  LOG(INFO) << "Disconnected from GATT server.";
 
   advertisement_read_result.RecordLastReadStatus(read_success);
 }
