@@ -109,8 +109,8 @@ void FakeNearbyShareCertificateStorage::GetPublicCertificate(
   get_public_certificate_callback_ = std::move(callback);
 }
 
-std::optional<std::vector<NearbySharePrivateCertificate>>
-FakeNearbyShareCertificateStorage::GetPrivateCertificates() const {
+std::vector<NearbySharePrivateCertificate>
+FakeNearbyShareCertificateStorage::GetPrivateCertificates() {
   return private_certificates_;
 }
 

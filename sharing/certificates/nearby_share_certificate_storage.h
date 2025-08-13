@@ -57,15 +57,13 @@ class NearbyShareCertificateStorage {
           bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
           callback) = 0;
 
-  // Returns all private certificates currently in storage. Will return
-  // absl::nullopt if deserialization from prefs fails -- not expected to happen
-  // under normal circumstances.
-  virtual std::optional<std::vector<NearbySharePrivateCertificate>>
-  GetPrivateCertificates() const = 0;
+  // Returns all valid private certificates currently in storage.
+  virtual std::vector<NearbySharePrivateCertificate>
+  GetPrivateCertificates() = 0;
 
-  // Returns the next time a certificate expires or absl::nullopt if no
-  // certificates are present.
-  std::optional<absl::Time> NextPrivateCertificateExpirationTime();
+  // Returns the next time a certificate expires or absl::InfinitePast() if
+  // there are fewer than `min_certs` present.
+  absl::Time NextPrivateCertificateExpirationTime(int min_certs);
   virtual std::optional<absl::Time> NextPublicCertificateExpirationTime()
       const = 0;
 

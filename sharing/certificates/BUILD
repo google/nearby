@@ -120,7 +120,6 @@ cc_test(
     deps = [
         ":certificates",
         ":test_support",
-        "//internal/flags:nearby_flags",
         "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
@@ -129,8 +128,8 @@ cc_test(
         "//sharing/common",
         "//sharing/common:enum",
         "//sharing/contacts:test_support",
-        "//sharing/flags/generated:generated_flags",
         "//sharing/internal/api:mock_sharing_platform",
+        "//sharing/internal/api:platform",
         "//sharing/internal/public:logging",
         "//sharing/internal/test:nearby_test",
         "//sharing/local_device_data:test_support",

@@ -91,9 +91,6 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
   ~FakeNearbyShareCertificateManager() override;
 
   // NearbyShareCertificateManager:
-  std::vector<nearby::sharing::proto::PublicCertificate>
-  GetPrivateCertificatesAsPublicCertificates(
-      proto::DeviceVisibility visibility) override;
   void GetDecryptedPublicCertificate(
       NearbyShareEncryptedMetadataKey encrypted_metadata_key,
       CertDecryptedCallback callback) override;

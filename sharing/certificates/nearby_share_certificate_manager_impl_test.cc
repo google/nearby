@@ -262,7 +262,7 @@ class NearbyShareCertificateManagerImplTest
       const nearby::sharing::proto::EncryptedMetadata& expected_metadata) {
     // Expect a full set of certificates for all-contacts and self-share
     std::vector<NearbySharePrivateCertificate> certs =
-        *cert_store_->GetPrivateCertificates();
+        cert_store_->GetPrivateCertificates();
     EXPECT_EQ(2 * kNearbyShareNumPrivateCertificates, certs.size());
 
     absl::Time min_not_before_all_contacts = absl::InfiniteFuture();
@@ -495,9 +495,9 @@ TEST_F(NearbyShareCertificateManagerImplTest,
               kNearbyShareCertificateValidityPeriod * 0.5 - Now());
 
   // Sanity check that the cert storage is as expected.
-  std::optional<std::vector<NearbySharePrivateCertificate>> stored_certs =
+  std::vector<NearbySharePrivateCertificate> stored_certs =
       cert_store_->GetPrivateCertificates();
-  EXPECT_EQ(stored_certs->at(0).ToCertificateData(),
+  EXPECT_EQ(stored_certs.at(0).ToCertificateData(),
             private_certificate.ToCertificateData());
 
   std::optional<NearbyShareEncryptedMetadataKey> encrypted_metadata_key =
@@ -509,7 +509,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
             encrypted_metadata_key->salt());
 
   // Verify that storage is updated when salts are consumed during encryption.
-  EXPECT_NE(cert_store_->GetPrivateCertificates()->at(0).ToCertificateData(),
+  EXPECT_NE(cert_store_->GetPrivateCertificates().at(0).ToCertificateData(),
             private_certificate.ToCertificateData());
 
   // Set up valid all-contacts visibility certificate. Then test with everyone
@@ -733,8 +733,8 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   Sync();
 
   EXPECT_EQ(0, upload_scheduler_->num_immediate_requests());
-  EXPECT_EQ(cert_store_->GetPrivateCertificates()->size(), 0);
-  EXPECT_EQ(local_device_data_manager_->publish_device_calls().size(), 0);
+  EXPECT_TRUE(cert_store_->GetPrivateCertificates().empty());
+  EXPECT_TRUE(local_device_data_manager_->publish_device_calls().empty());
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,
@@ -752,7 +752,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
         Sync();
 
         std::vector<NearbySharePrivateCertificate> certs =
-            *cert_store_->GetPrivateCertificates();
+            cert_store_->GetPrivateCertificates();
         std::vector<std::string> cert_ids;
         for (const auto& cert : certs) {
           cert_ids.push_back(std::string(cert.id().begin(), cert.id().end()));
@@ -784,7 +784,33 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 
   Sync();
   std::vector<NearbySharePrivateCertificate> certs =
-      *cert_store_->GetPrivateCertificates();
+      cert_store_->GetPrivateCertificates();
+  std::vector<std::string> cert_ids;
+  for (const auto& cert : certs) {
+    cert_ids.push_back(std::string(cert.id().begin(), cert.id().end()));
+  }
+  // New certificates should be generated.
+  EXPECT_EQ(private_certificate_ids_.size(), cert_ids.size());
+  EXPECT_THAT(cert_ids,
+              Not(UnorderedElementsAreArray(private_certificate_ids_)));
+
+  auto metadata = GetNearbyShareTestMetadata();
+  metadata.set_vendor_id(12345);
+  VerifyPrivateCertificates(/*expected_metadata=*/metadata);
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       SetVendorId_WhenNoPrivateCertificates) {
+  Initialize();
+  cert_store_->ReplacePrivateCertificates({});
+  cert_manager_->Start();
+
+  cert_manager_->SetVendorId(12345);
+
+
+  Sync();
+  std::vector<NearbySharePrivateCertificate> certs =
+      cert_store_->GetPrivateCertificates();
   std::vector<std::string> cert_ids;
   for (const auto& cert : certs) {
     cert_ids.push_back(std::string(cert.id().begin(), cert.id().end()));

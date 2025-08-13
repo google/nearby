@@ -95,16 +95,6 @@ class NearbyShareCertificateManager {
       proto::DeviceVisibility visibility,
       absl::Span<const uint8_t> authentication_token) const;
 
-  // Returns all local device private certificates of |visibility| converted to
-  // public certificates. The public certificates' for_selected_contacts fields
-  // will be set to reflect the |visibility|. NOTE: Only certificates with the
-  // requested visibility will be returned; if selected-contacts visibility is
-  // passed in, the all-contacts visibility certificates will *not* be returned
-  // as well.
-  virtual std::vector<nearby::sharing::proto::PublicCertificate>
-  GetPrivateCertificatesAsPublicCertificates(
-      proto::DeviceVisibility visibility) = 0;
-
   // Returns in |callback| the public certificate that is able to be decrypted
   // using |encrypted_metadata_key|, and returns absl::nullopt if no such public
   // certificate exists.

@@ -352,8 +352,8 @@ void NearbyShareCertificateStorageImpl::GetPublicCertificate(
   public_certificate_database_->LoadCertificate(id, std::move(callback));
 }
 
-std::optional<std::vector<NearbySharePrivateCertificate>>
-NearbyShareCertificateStorageImpl::GetPrivateCertificates() const {
+std::vector<NearbySharePrivateCertificate>
+NearbyShareCertificateStorageImpl::GetPrivateCertificates() {
   std::vector<PrivateCertificateData> list =
       preference_manager_.GetPrivateCertificateArray(
           prefs::kNearbySharingPrivateCertificateListName);
@@ -362,8 +362,13 @@ NearbyShareCertificateStorageImpl::GetPrivateCertificates() const {
   for (const PrivateCertificateData& cert_data : list) {
     std::optional<NearbySharePrivateCertificate> cert(
         NearbySharePrivateCertificate::FromCertificateData(cert_data));
+    // If any certificates in preference manager are corrupted, we need to
+    // delete all certificates and regenerate them.
     if (!cert) {
-      return std::nullopt;
+      LOG(ERROR) << "Certificate data corrupted, cleaning up.";
+      ClearPrivateCertificates();
+      // TODO: ftsui - Look into regenerating certificates when this happens.
+      return {};
     }
     // Skip selected contacts visibility certificates.  They are obsolete.
     if (cert->visibility() ==

@@ -18,14 +18,11 @@
 #include <stdint.h>
 
 #include <algorithm>
-#include <optional>
-#include <ostream>
 #include <vector>
 
 #include "absl/time/time.h"
 #include "sharing/certificates/common.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
 #include "sharing/proto/enums.pb.h"
@@ -35,34 +32,30 @@ namespace sharing {
 
 using ::nearby::sharing::proto::DeviceVisibility;
 
-std::optional<absl::Time>
-NearbyShareCertificateStorage::NextPrivateCertificateExpirationTime() {
-  std::optional<std::vector<NearbySharePrivateCertificate>> certs =
-      GetPrivateCertificates();
-  if (!certs || certs->empty()) return std::nullopt;
+absl::Time NearbyShareCertificateStorage::NextPrivateCertificateExpirationTime(
+    int min_certs) {
+  std::vector<NearbySharePrivateCertificate> certs = GetPrivateCertificates();
+  if (certs.empty() || certs.size() < min_certs) {
+    return absl::InfinitePast();
+  }
 
   absl::Time min_time = absl::InfiniteFuture();
-  for (const NearbySharePrivateCertificate& cert : *certs)
+  for (const NearbySharePrivateCertificate& cert : certs) {
     min_time = std::min(min_time, cert.not_after());
-
+  }
   return min_time;
 }
 
 void NearbyShareCertificateStorage::UpdatePrivateCertificate(
     const NearbySharePrivateCertificate& private_certificate) {
-  std::optional<std::vector<NearbySharePrivateCertificate>> certs =
-      GetPrivateCertificates();
-  if (!certs) {
-    LOG(WARNING) << __func__ << ": No private certificates to update.";
-    return;
-  }
+  std::vector<NearbySharePrivateCertificate> certs = GetPrivateCertificates();
 
   auto it = std::find_if(
-      certs->begin(), certs->end(),
+      certs.begin(), certs.end(),
       [&private_certificate](const NearbySharePrivateCertificate& cert) {
         return cert.id() == private_certificate.id();
       });
-  if (it == certs->end()) {
+  if (it == certs.end()) {
     VLOG(1) << __func__ << ": No private certificate with id="
                << nearby::utils::HexEncode(private_certificate.id());
     return;
@@ -71,17 +64,16 @@ void NearbyShareCertificateStorage::UpdatePrivateCertificate(
   VLOG(1) << __func__ << ": Updating private certificate id="
              << nearby::utils::HexEncode(private_certificate.id());
   *it = private_certificate;
-  ReplacePrivateCertificates(*certs);
+  ReplacePrivateCertificates(certs);
 }
 
 void NearbyShareCertificateStorage::RemoveExpiredPrivateCertificates(
     absl::Time now) {
-  std::optional<std::vector<NearbySharePrivateCertificate>> certs =
-      GetPrivateCertificates();
-  if (!certs) return;
+  std::vector<NearbySharePrivateCertificate> certs = GetPrivateCertificates();
+  if (certs.empty()) return;
 
   std::vector<NearbySharePrivateCertificate> unexpired_certs;
-  for (const NearbySharePrivateCertificate& cert : *certs) {
+  for (const NearbySharePrivateCertificate& cert : certs) {
     if (!IsNearbyShareCertificateExpired(
             now, cert.not_after(),
             /*use_public_certificate_tolerance=*/false)) {
@@ -89,7 +81,7 @@ void NearbyShareCertificateStorage::RemoveExpiredPrivateCertificates(
     }
   }
 
-  size_t num_removed = certs->size() - unexpired_certs.size();
+  size_t num_removed = certs.size() - unexpired_certs.size();
   if (num_removed == 0) return;
 
   VLOG(1) << __func__ << ": Removing " << num_removed
@@ -104,13 +96,12 @@ void NearbyShareCertificateStorage::ClearPrivateCertificates() {
 
 void NearbyShareCertificateStorage::ClearPrivateCertificatesOfVisibility(
     DeviceVisibility visibility) {
-  std::optional<std::vector<NearbySharePrivateCertificate>> certs =
-      GetPrivateCertificates();
-  if (!certs) return;
+  std::vector<NearbySharePrivateCertificate> certs = GetPrivateCertificates();
+  if (certs.empty()) return;
 
   bool were_certs_removed = false;
   std::vector<NearbySharePrivateCertificate> new_certs;
-  for (const NearbySharePrivateCertificate& cert : *certs) {
+  for (const NearbySharePrivateCertificate& cert : certs) {
     if (cert.visibility() == visibility) {
       were_certs_removed = true;
     } else {

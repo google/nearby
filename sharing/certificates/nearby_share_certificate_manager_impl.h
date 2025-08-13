@@ -86,7 +86,14 @@ class NearbyShareCertificateManagerImpl
 
   ~NearbyShareCertificateManagerImpl() override;
 
+  void GetDecryptedPublicCertificate(
+      NearbyShareEncryptedMetadataKey encrypted_metadata_key,
+      CertDecryptedCallback callback) override;
+  void DownloadPublicCertificates() override;
+  void ForceUploadPrivateCertificates() override;
+  void ClearPublicCertificates(std::function<void(bool)> callback) override;
   void SetVendorId(int32_t vendor_id) override;
+  std::string Dump() const override;
 
  private:
   // Class for maintaining a single instance of public certificate download
@@ -138,15 +145,6 @@ class NearbyShareCertificateManagerImpl
        nearby::sharing::api::SharingRpcClientFactory* client_factory);
 
   // NearbyShareCertificateManager:
-  std::vector<nearby::sharing::proto::PublicCertificate>
-  GetPrivateCertificatesAsPublicCertificates(
-      proto::DeviceVisibility visibility) override;
-  void GetDecryptedPublicCertificate(
-      NearbyShareEncryptedMetadataKey encrypted_metadata_key,
-      CertDecryptedCallback callback) override;
-  void DownloadPublicCertificates() override;
-  void ForceUploadPrivateCertificates() override;
-  void ClearPublicCertificates(std::function<void(bool)> callback) override;
   void OnStart() override;
   void OnStop() override;
   std::optional<NearbySharePrivateCertificate> GetValidPrivateCertificate(
@@ -158,9 +156,6 @@ class NearbyShareCertificateManagerImpl
   void OnLocalDeviceDataChanged(bool did_device_name_change,
                                 bool did_full_name_change,
                                 bool did_icon_change) override;
-
-  // Dump certs information.
-  std::string Dump() const override;
 
   // Used by the private certificate expiration scheduler to determine the next
   // private certificate expiration time. Returns base::Time::Min() if
@@ -179,7 +174,9 @@ class NearbyShareCertificateManagerImpl
   // Certificate operations that run on the executor.
   // Returns true if the operation was successful.
   bool RefreshPrivateCertificatesInExecutor(bool force_upload);
-  bool UploadDeviceCertificatesInExecutor(bool force_update_contacts);
+  bool UploadDeviceCertificatesInExecutor(
+      const std::vector<NearbySharePrivateCertificate>& private_certs,
+      bool force_update_contacts);
   bool DownloadPublicCertificatesInExecutor();
   bool RemoveExpiredPublicCertificatesInExecutor();
 

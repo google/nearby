@@ -82,13 +82,6 @@ FakeNearbyShareCertificateManager::FakeNearbyShareCertificateManager()
 FakeNearbyShareCertificateManager::~FakeNearbyShareCertificateManager() =
     default;
 
-std::vector<nearby::sharing::proto::PublicCertificate>
-FakeNearbyShareCertificateManager::GetPrivateCertificatesAsPublicCertificates(
-    DeviceVisibility visibility) {
-  ++num_get_private_certificates_as_public_certificates_calls_;
-  return GetNearbyShareTestPublicCertificateList(visibility);
-}
-
 void FakeNearbyShareCertificateManager::GetDecryptedPublicCertificate(
     NearbyShareEncryptedMetadataKey encrypted_metadata_key,
     CertDecryptedCallback callback) {

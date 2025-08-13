@@ -270,6 +270,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
                 executor_->PostTask([this]() {
                   force_contacts_update_scheduler_->HandleResult(
                       UploadDeviceCertificatesInExecutor(
+                          certificate_storage_->GetPrivateCertificates(),
                           /*force_update_contacts=*/true));
                 });
               })),
@@ -427,6 +428,7 @@ void NearbyShareCertificateManagerImpl::RegeneratePrivateCertificates() {
 }
 
 bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
+    const std::vector<NearbySharePrivateCertificate>& private_certs,
     bool force_update_contacts) {
   LOG(INFO) << "Start to upload local device certificates in executor.";
 
@@ -442,16 +444,14 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
     return true;
   }
 
-  std::optional<std::vector<NearbySharePrivateCertificate>> private_certs =
-      certificate_storage_->GetPrivateCertificates();
-  if (!private_certs.has_value() || private_certs->empty()) {
+  if (private_certs.empty()) {
     LOG(WARNING) << "Ignore local device certificates upload, no private "
                     "certificates found.";
     return false;
   }
   std::vector<PublicCertificate> public_certs;
-  public_certs.reserve(private_certs->size());
-  for (const NearbySharePrivateCertificate& private_cert : *private_certs) {
+  public_certs.reserve(private_certs.size());
+  for (const NearbySharePrivateCertificate& private_cert : private_certs) {
     std::optional<PublicCertificate> public_cert =
         private_cert.ToPublicCertificate();
     if (!public_cert.has_value()) {
@@ -495,12 +495,6 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
     RegeneratePrivateCertificates();
   }
   return true;
-}
-
-std::vector<PublicCertificate>
-NearbyShareCertificateManagerImpl::GetPrivateCertificatesAsPublicCertificates(
-    DeviceVisibility visibility) {
-  return std::vector<PublicCertificate>();
 }
 
 void NearbyShareCertificateManagerImpl::GetDecryptedPublicCertificate(
@@ -550,9 +544,9 @@ NearbyShareCertificateManagerImpl::GetValidPrivateCertificate(
     visibility = DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS;
   }
 
-  std::optional<std::vector<NearbySharePrivateCertificate>> certs =
-      *certificate_storage_->GetPrivateCertificates();
-  for (auto& cert : *certs) {
+  std::vector<NearbySharePrivateCertificate> certs =
+      certificate_storage_->GetPrivateCertificates();
+  for (auto& cert : certs) {
     if (IsNearbyShareCertificateWithinValidityPeriod(
             context_->GetClock()->Now(), cert.not_before(), cert.not_after(),
             /*use_public_certificate_tolerance=*/false) &&
@@ -613,16 +607,16 @@ std::string NearbyShareCertificateManagerImpl::Dump() const {
   sstream << std::endl;
 
   sstream << "Private Certificates" << std::endl;
-  std::optional<std::vector<NearbySharePrivateCertificate>> private_certs =
+  std::vector<NearbySharePrivateCertificate> private_certs =
       certificate_storage_->GetPrivateCertificates();
-  if (private_certs.has_value()) {
-    sstream << "  Total count:" << private_certs->size() << std::endl;
-    for (const auto& cert : *private_certs) {
+  if (private_certs.empty()) {
+    sstream << "  Total count: 0" << std::endl;
+  } else {
+    sstream << "  Total count:" << private_certs.size() << std::endl;
+    for (const auto& cert : private_certs) {
       std::string id(cert.id().begin(), cert.id().end());
       DumpCertificateId(sstream, id, false);
     }
-  } else {
-    sstream << "  Total count: 0" << std::endl;
   }
 
   return sstream.str();
@@ -637,22 +631,8 @@ NearbyShareCertificateManagerImpl::NextPrivateCertificateExpirationTime() {
   if (!account.has_value()) {
     return std::nullopt;
   }
-  // We enforce that a fixed number--kNearbyShareNumPrivateCertificates for each
-  // visibility--of private certificates be present when user is logged in.
-  // This might not be true the first time the user enables Nearby Share or
-  // after certificates are revoked. For simplicity, consider the case of
-  // missing certificates an "expired" state. Return the minimum time to
-  // immediately trigger the private certificate creation flow.
-  if (certificate_storage_->GetPrivateCertificates()->size() <
-      NumExpectedPrivateCertificates()) {
-    return absl::InfinitePast();
-  }
-
-  std::optional<absl::Time> expiration_time =
-      certificate_storage_->NextPrivateCertificateExpirationTime();
-  DCHECK(expiration_time);
-
-  return *expiration_time;
+  return certificate_storage_->NextPrivateCertificateExpirationTime(
+      NumExpectedPrivateCertificates());
 }
 
 bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
@@ -670,7 +650,7 @@ bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
   }
 
   std::vector<NearbySharePrivateCertificate> certs =
-      *certificate_storage_->GetPrivateCertificates();
+      certificate_storage_->GetPrivateCertificates();
   if (certs.size() == NumExpectedPrivateCertificates()) {
     LOG(INFO) << "All private certificates are still valid. ";
     if (force_upload) {
@@ -753,7 +733,7 @@ bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
   if (force_upload) {
     force_contacts_update_scheduler_->MakeImmediateRequest();
   } else {
-    UploadDeviceCertificatesInExecutor(/*force_update_contacts=*/false);
+    UploadDeviceCertificatesInExecutor(certs, /*force_update_contacts=*/false);
   }
   return true;
 }
