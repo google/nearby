@@ -40,6 +40,7 @@ objc_library(
         "GNCBLEMediumTest.m",
         "GNCBLEUtilsTest.mm",
         "GNCCryptoTest.mm",
+        "GNCDeviceInfoTest.mm",
         "GNCFakeCentralManager.h",
         "GNCFakeCentralManager.m",
         "GNCFakePeripheral.h",
