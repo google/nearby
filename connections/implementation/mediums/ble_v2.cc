@@ -1025,6 +1025,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
       /*ClientGattConnectionCallback=*/{});
   if (!gatt_client || !gatt_client->IsValid()) {
     advertisement_read_result.RecordLastReadStatus(false);
+    LOG(WARNING) << "Failed to connect to GATT server.";
     return;
   }
 
