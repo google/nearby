@@ -1374,6 +1374,13 @@ enum DeviceType {
   NEARBY_PRESENCE = 2;
   DCT = 3;
 }
+
+enum SupportedService {
+  SUPPORTED_SERVICE_UNSPECIFIED = 0;
+  SUPPORTED_SERVICE_SETTINGS_ESIM = 1;
+  SUPPORTED_SERVICE_DATA_MIGRATION = 2;
+  SUPPORTED_SERVICE_DATA_TRANSFER = 3;
+}
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
