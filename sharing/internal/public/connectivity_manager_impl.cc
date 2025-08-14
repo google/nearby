@@ -92,7 +92,7 @@ bool ConnectivityManagerImpl::IsHPRealtekDevice() {
     return false;
   }
 
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Lazy initialization since CreateSystemInfo can take a long time.
   if (!is_hp_realtek_device_.has_value()) {
