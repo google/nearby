@@ -17,24 +17,16 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
-#include "internal/platform/task_runner.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/rpc_resources.pb.h"
 
-namespace nearby {
-namespace sharing {
-
-class NearbyShareProfileInfoProvider;
-class NearbyShareScheduler;
+namespace nearby::sharing {
 
 // Implementation of NearbyShareLocalDeviceDataManager that persists device data
 // in prefs. All RPC-related calls are guarded by a timeout, so callbacks are
@@ -47,17 +39,14 @@ class NearbyShareLocalDeviceDataManagerImpl
   class Factory {
    public:
     static std::unique_ptr<NearbyShareLocalDeviceDataManager> Create(
-        Context* context,
         nearby::sharing::api::PreferenceManager& preference_manager,
-        AccountManager& account_manager, nearby::DeviceInfo& device_info,
-        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory);
+        AccountManager& account_manager, nearby::DeviceInfo& device_info);
     static void SetFactoryForTesting(Factory* test_factory);
 
    protected:
     virtual ~Factory();
-    virtual std::unique_ptr<NearbyShareLocalDeviceDataManager> CreateInstance(
-        Context* context,
-        nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory) = 0;
+    virtual std::unique_ptr<NearbyShareLocalDeviceDataManager>
+    CreateInstance() = 0;
 
    private:
     static Factory* test_factory_;
@@ -65,23 +54,16 @@ class NearbyShareLocalDeviceDataManagerImpl
 
   ~NearbyShareLocalDeviceDataManagerImpl() override;
 
- private:
-  NearbyShareLocalDeviceDataManagerImpl(
-      Context* context,
-      nearby::sharing::api::PreferenceManager& preference_manager,
-      AccountManager& account_manager, nearby::DeviceInfo& device_info,
-      nearby::sharing::api::SharingRpcClientFactory* rpc_client_factory);
-
   // NearbyShareLocalDeviceDataManager:
-  std::string GetId() override;
   std::string GetDeviceName() const override;
-  DeviceNameValidationResult ValidateDeviceName(
-      absl::string_view name) override;
   DeviceNameValidationResult SetDeviceName(absl::string_view name) override;
 
-  void PublishDevice(
-      std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-      bool force_update_contacts, PublishDeviceCallback callback) override;
+ private:
+  NearbyShareLocalDeviceDataManagerImpl(
+      nearby::sharing::api::PreferenceManager& preference_manager,
+      AccountManager& account_manager, nearby::DeviceInfo& device_info);
+
+  DeviceNameValidationResult ValidateDeviceName(absl::string_view name);
 
   // Creates a default device name of the form "<given name>'s <device type>."
   // For example, "Josh's Chromebook." If a given name cannot be found, returns
@@ -92,12 +74,8 @@ class NearbyShareLocalDeviceDataManagerImpl
   nearby::sharing::api::PreferenceManager& preference_manager_;
   AccountManager& account_manager_;
   nearby::DeviceInfo& device_info_;
-  std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
-      nearby_identity_client_;
-  std::unique_ptr<TaskRunner> executor_;
 };
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
 
 #endif  // THIRD_PARTY_NEARBY_SHARING_LOCAL_DEVICE_DATA_NEARBY_SHARE_LOCAL_DEVICE_DATA_MANAGER_IMPL_H_

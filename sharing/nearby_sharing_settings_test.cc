@@ -188,22 +188,6 @@ TEST_F(NearbyShareSettingsTest, GetAndSetIsFastInitiationHardwareSupported) {
   EXPECT_TRUE(settings()->is_fast_initiation_hardware_supported());
 }
 
-TEST_F(NearbyShareSettingsTest, ValidateDeviceName) {
-  auto result = DeviceNameValidationResult::kValid;
-  local_device_data_manager_.set_next_validation_result(
-      DeviceNameValidationResult::kErrorEmpty);
-  settings()->ValidateDeviceName(
-      "", [&result](DeviceNameValidationResult res) { result = res; });
-  EXPECT_EQ(result, DeviceNameValidationResult::kErrorEmpty);
-
-  local_device_data_manager_.set_next_validation_result(
-      DeviceNameValidationResult::kValid);
-  settings()->ValidateDeviceName(
-      "this string is 32 bytes in UTF-8",
-      [&result](DeviceNameValidationResult res) { result = res; });
-  EXPECT_EQ(result, DeviceNameValidationResult::kValid);
-}
-
 TEST_F(NearbyShareSettingsTest, GetAndSetDeviceName) {
   std::string name = "not_the_default";
   EXPECT_EQ(kDefaultDeviceName, settings()->GetDeviceName());

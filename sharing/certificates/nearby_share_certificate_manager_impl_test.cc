@@ -109,9 +109,6 @@ class NearbyShareCertificateManagerImplTest
     local_device_data_manager_ =
         std::make_unique<FakeNearbyShareLocalDeviceDataManager>(
             kDefaultDeviceName);
-    local_device_data_manager_->set_is_sync_mode(true);
-    local_device_data_manager_->SetId(kDeviceId);
-
     contact_manager_ = std::make_unique<FakeNearbyShareContactManager>();
 
     AccountManager::Account account{
@@ -145,12 +142,11 @@ class NearbyShareCertificateManagerImplTest
     // Setup Identity API.
     cert_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
         &fake_context_, mock_sharing_platform_,
-        local_device_data_manager_.get(), contact_manager_.get(),
+        local_device_data_manager_.get(),
         /*profile_path=*/{}, &client_factory_);
     cert_manager_->AddObserver(this);
 
     cert_store_ = cert_store_factory_.instances().back();
-    cert_store_->set_is_sync_mode(true);
 
     private_cert_exp_scheduler_ =
         scheduler_factory_.pref_name_to_expiration_instance()

@@ -38,8 +38,7 @@
 #include "sharing/scheduling/fake_nearby_share_scheduler_factory.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using ::nearby::sharing::proto::ContactRecord;
@@ -63,9 +62,7 @@ class NearbyShareContactManagerImplTest
   };
 
   NearbyShareContactManagerImplTest()
-      : local_device_data_manager_(kTestDefaultDeviceName) {
-    local_device_data_manager_.set_is_sync_mode(true);
-  }
+      : local_device_data_manager_(kTestDefaultDeviceName) {}
 
   ~NearbyShareContactManagerImplTest() override = default;
 
@@ -136,5 +133,4 @@ class NearbyShareContactManagerImplTest
 };
 
 }  // namespace
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
