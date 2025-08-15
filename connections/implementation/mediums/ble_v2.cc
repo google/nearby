@@ -1053,6 +1053,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     // TODO(b/222392304): More test coverage.
     LOG(WARNING) << "GATT client doesn't have characteristics.";
     advertisement_read_result.RecordLastReadStatus(false);
+    gatt_client->Disconnect();
     return;
   }
 
@@ -1067,6 +1068,7 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
     // TODO(b/222392304): More test coverage.
     LOG(WARNING) << "GATT client doesn't have characteristics.";
     advertisement_read_result.RecordLastReadStatus(false);
+    gatt_client->Disconnect();
     return;
   }
 
