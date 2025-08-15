@@ -190,7 +190,7 @@ objc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Log:GNCLogger",
-        "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )

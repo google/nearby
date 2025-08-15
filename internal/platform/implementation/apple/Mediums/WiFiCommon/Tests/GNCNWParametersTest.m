@@ -27,6 +27,11 @@
   XCTAssertTrue(nw_parameters_get_include_peer_to_peer(params));
 }
 
+- (void)testNonTLSParametersWithNoPeerToPeer {
+  nw_parameters_t params = GNCBuildNonTLSParameters(NO);
+  XCTAssertFalse(nw_parameters_get_include_peer_to_peer(params));
+}
+
 - (void)testTLSParametersWithEmptyPSK {
   nw_parameters_t params =
       GNCBuildTLSParameters([@"" dataUsingEncoding:NSUTF8StringEncoding],
