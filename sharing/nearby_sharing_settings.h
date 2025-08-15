@@ -168,9 +168,6 @@ class NearbyShareSettings
   void RemoveSettingsObserver(Observer* observer);
   void SetFastInitiationNotificationState(
       proto::FastInitiationNotificationState state);
-  void ValidateDeviceName(
-      absl::string_view device_name,
-      std::function<void(DeviceNameValidationResult)> callback);
   void SetDeviceName(absl::string_view device_name,
                      std::function<void(DeviceNameValidationResult)> callback);
   void SetDataUsage(proto::DataUsage data_usage);

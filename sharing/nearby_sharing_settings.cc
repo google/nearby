@@ -209,13 +209,6 @@ void NearbyShareSettings::SetFastInitiationNotificationState(
       static_cast<int>(state));
 }
 
-void NearbyShareSettings::ValidateDeviceName(
-    absl::string_view device_name,
-    std::function<void(DeviceNameValidationResult)> callback) {
-  std::move(callback)(
-      local_device_data_manager_->ValidateDeviceName(device_name));
-}
-
 void NearbyShareSettings::SetDeviceName(
     absl::string_view device_name,
     std::function<void(DeviceNameValidationResult)> callback) {

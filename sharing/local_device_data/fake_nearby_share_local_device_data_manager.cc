@@ -16,38 +16,19 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
-#include "sharing/proto/rpc_resources.pb.h"
 
-namespace nearby {
-namespace sharing {
-class NearbyShareClientFactory;
-
+namespace nearby::sharing {
 namespace {
-
-using ::nearby::sharing::api::SharingRpcClientFactory;
-
-constexpr absl::string_view kDefaultId = "123456789A";
 constexpr absl::string_view kDefaultDeviceName = "Barack's Chromebook";
-
 }  // namespace
 
-FakeNearbyShareLocalDeviceDataManager::Factory::Factory() = default;
-
-FakeNearbyShareLocalDeviceDataManager::Factory::~Factory() = default;
-
 std::unique_ptr<NearbyShareLocalDeviceDataManager>
-FakeNearbyShareLocalDeviceDataManager::Factory::CreateInstance(
-    nearby::Context* context, SharingRpcClientFactory* rpc_client_factory) {
-  latest_rpc_client_factory_ = rpc_client_factory;
-
+FakeNearbyShareLocalDeviceDataManager::Factory::CreateInstance() {
   auto instance = std::make_unique<FakeNearbyShareLocalDeviceDataManager>(
       kDefaultDeviceName);
   instances_.push_back(instance.get());
@@ -57,21 +38,10 @@ FakeNearbyShareLocalDeviceDataManager::Factory::CreateInstance(
 
 FakeNearbyShareLocalDeviceDataManager::FakeNearbyShareLocalDeviceDataManager(
     absl::string_view default_device_name)
-    : id_(kDefaultId), device_name_(default_device_name) {}
-
-FakeNearbyShareLocalDeviceDataManager::
-    ~FakeNearbyShareLocalDeviceDataManager() = default;
-
-std::string FakeNearbyShareLocalDeviceDataManager::GetId() { return id_; }
+    : device_name_(default_device_name) {}
 
 std::string FakeNearbyShareLocalDeviceDataManager::GetDeviceName() const {
   return device_name_;
-}
-
-DeviceNameValidationResult
-FakeNearbyShareLocalDeviceDataManager::ValidateDeviceName(
-    absl::string_view name) {
-  return next_validation_result_;
 }
 
 DeviceNameValidationResult FakeNearbyShareLocalDeviceDataManager::SetDeviceName(
@@ -90,17 +60,4 @@ DeviceNameValidationResult FakeNearbyShareLocalDeviceDataManager::SetDeviceName(
   return DeviceNameValidationResult::kValid;
 }
 
-void FakeNearbyShareLocalDeviceDataManager::PublishDevice(
-    std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-    bool force_update_contacts, PublishDeviceCallback callback) {
-  publish_device_calls_.emplace_back(std::move(certificates),
-                                     force_update_contacts, callback);
-  if (is_sync_mode_) {
-    callback(publish_device_result_, publish_device_contact_removed_);
-    // publish_device_contact_removed_ resets to false after the first call.
-    publish_device_contact_removed_ = false;
-  }
-};
-
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

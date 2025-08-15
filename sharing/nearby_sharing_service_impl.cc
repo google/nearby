@@ -226,8 +226,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
                                                          &analytics_recorder_)),
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
-              context_, preference_manager_, account_manager_, device_info_,
-              nearby_share_client_factory_.get())),
+              preference_manager_, account_manager_, device_info_)),
       contact_manager_(NearbyShareContactManagerImpl::Factory::Create(
           context_, account_manager_, nearby_share_client_factory_.get())),
       nearby_fast_initiation_(
@@ -247,7 +246,7 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
 
   certificate_manager_ = NearbyShareCertificateManagerImpl::Factory::Create(
       context_, sharing_platform, local_device_data_manager_.get(),
-      contact_manager_.get(), profile_path, nearby_share_client_factory_.get()),
+      profile_path, nearby_share_client_factory_.get()),
 
   certificate_manager_->AddObserver(this);
   context_->GetConnectivityManager()->RegisterConnectionListener(
@@ -275,7 +274,6 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   LOG(INFO) << __func__ << ": Set custom save path: " << custom_save_path;
   nearby_connections_manager_->SetCustomSavePath(custom_save_path);
 
-  local_device_data_manager_->Start();
   certificate_manager_->Start();
   update_file_paths_in_progress_ = false;
 
@@ -316,7 +314,6 @@ void NearbySharingServiceImpl::Shutdown(
 
         settings_->RemoveSettingsObserver(this);
 
-        local_device_data_manager_->Stop();
         certificate_manager_->Stop();
 
         is_shutting_down_ = nullptr;
@@ -3493,7 +3490,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   StopAdvertising();
   StopScanning();
   nearby_connections_manager_->Shutdown();
-  local_device_data_manager_->Stop();
   certificate_manager_->Stop();
 
   // Reset preferences for logout.
@@ -3538,7 +3534,6 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   }
 
   // Start services again.
-  local_device_data_manager_->Start();
   certificate_manager_->Start();
 
   InvalidateSurfaceState();
