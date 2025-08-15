@@ -33,8 +33,6 @@ class TimerImpl : public Timer {
   bool FireNow() override;
 
  private:
-  int delay_ = 0;
-  int period_ = 0;
   std::unique_ptr<api::Timer> internal_timer_ = nullptr;
 };
 

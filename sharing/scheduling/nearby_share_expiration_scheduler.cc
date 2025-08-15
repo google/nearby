@@ -40,15 +40,13 @@ NearbyShareExpirationScheduler::NearbyShareExpirationScheduler(
 
 NearbyShareExpirationScheduler::~NearbyShareExpirationScheduler() = default;
 
-std::optional<absl::Duration>
-NearbyShareExpirationScheduler::TimeUntilRecurringRequest(
+absl::Duration NearbyShareExpirationScheduler::TimeUntilRecurringRequest(
     absl::Time now) const {
-  std::optional<absl::Time> expiration_time = expiration_time_functor_();
-  if (!expiration_time.has_value()) return std::nullopt;
+  absl::Time expiration_time = expiration_time_functor_();
 
-  if (*expiration_time <= now) return absl::ZeroDuration();
+  if (expiration_time <= now) return absl::ZeroDuration();
 
-  return *expiration_time - now;
+  return expiration_time - now;
 }
 
 }  // namespace sharing

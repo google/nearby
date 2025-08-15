@@ -381,9 +381,9 @@ NearbyShareCertificateStorageImpl::GetPrivateCertificates() {
   return certs;
 }
 
-std::optional<absl::Time>
+absl::Time
 NearbyShareCertificateStorageImpl::NextPublicCertificateExpirationTime() const {
-  if (public_certificate_expirations_.empty()) return std::nullopt;
+  if (public_certificate_expirations_.empty()) return absl::InfiniteFuture();
 
   // |public_certificate_expirations_| is sorted by expiration date.
   return public_certificate_expirations_.front().second;

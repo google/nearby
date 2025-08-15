@@ -29,8 +29,12 @@ bool TimerImpl::Start(int delay, int period,
     return false;
   }
 
-  delay_ = delay;
-  period_ = period;
+  if (delay < 0) {
+    delay = 0;
+  }
+  if (period < 0) {
+    period = 0;
+  }
   internal_timer_ = api::ImplementationPlatform::CreateTimer();
   if (!internal_timer_->Create(delay, period, std::move(callback))) {
     LOG(INFO) << "Failed to create timer.";

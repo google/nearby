@@ -123,39 +123,39 @@ void NearbyShareSchedulerBase::Reschedule() {
 
   timer_->Stop();
 
-  std::optional<absl::Duration> delay = GetTimeUntilNextRequest();
-  if (!delay.has_value()) {
+  absl::Duration delay = GetTimeUntilNextRequest();
+  if (delay == absl::InfiniteDuration()) {
     LOG(INFO) << "Task \"" << pref_name_ << "\"" << " not scheduled";
   } else {
-    int64_t delay_milliseconds = absl::ToInt64Milliseconds(*delay);
-    LOG(INFO) << "Task \"" << pref_name_ << "\"" << " scheduled in " << *delay;
+    int64_t delay_milliseconds = absl::ToInt64Milliseconds(delay);
+    LOG(INFO) << "Task \"" << pref_name_ << "\"" << " scheduled in " << delay;
     timer_->Start(delay_milliseconds, /*period=*/0,
                   [this]() { OnTimerFired(); });
   }
   PrintSchedulerState(delay);
 }
 
-std::optional<absl::Time> NearbyShareSchedulerBase::GetLastSuccessTime() const {
+absl::Time NearbyShareSchedulerBase::GetLastSuccessTime() const {
   std::optional<int64_t> pref_value =
       preference_manager_.GetDictionaryInt64Value(
           pref_name_, SchedulerFields::kLastSuccessTimeKeyName);
   if (!pref_value.has_value()) {
-    return std::nullopt;
+    return absl::InfinitePast();
   }
   return absl::FromUnixNanos(pref_value.value());
 }
 
-std::optional<absl::Duration>
-NearbyShareSchedulerBase::GetTimeUntilNextRequest() const {
-  if (!is_running() || IsWaitingForResult()) return std::nullopt;
+absl::Duration NearbyShareSchedulerBase::GetTimeUntilNextRequest() const {
+  if (!is_running() || IsWaitingForResult()) return absl::InfiniteDuration();
 
   if (HasPendingImmediateRequest()) return absl::ZeroDuration();
 
   absl::Time now = clock_->Now();
 
   // Recover from failures using exponential backoff strategy if necessary.
-  std::optional<absl::Duration> time_until_retry = TimeUntilRetry(now);
-  if (time_until_retry) return time_until_retry;
+  absl::Duration time_until_retry = TimeUntilRetry(now);
+  if (time_until_retry != absl::InfiniteDuration())
+    return time_until_retry;
 
   // Schedule the periodic request if applicable.
   return TimeUntilRecurringRequest(now);
@@ -199,12 +199,12 @@ void NearbyShareSchedulerBase::OnInternetConnectivityChanged(
   Reschedule();
 }
 
-std::optional<absl::Time> NearbyShareSchedulerBase::GetLastAttemptTime() const {
+absl::Time NearbyShareSchedulerBase::GetLastAttemptTime() const {
   std::optional<int64_t> pref_value =
       preference_manager_.GetDictionaryInt64Value(
           pref_name_, SchedulerFields::kLastAttemptTimeKeyName);
   if (!pref_value.has_value()) {
-    return std::nullopt;
+    return absl::InfinitePast();
   }
   return absl::FromUnixNanos(pref_value.value());
 }
@@ -253,12 +253,11 @@ void NearbyShareSchedulerBase::SetIsWaitingForResult(
       is_waiting_for_result);
 }
 
-std::optional<absl::Duration> NearbyShareSchedulerBase::TimeUntilRetry(
-    absl::Time now) const {
-  if (!retry_failures_) return std::nullopt;
+absl::Duration NearbyShareSchedulerBase::TimeUntilRetry(absl::Time now) const {
+  if (!retry_failures_) return absl::InfiniteDuration();
 
   size_t num_failures = GetNumConsecutiveFailures();
-  if (num_failures == 0) return std::nullopt;
+  if (num_failures == 0) return absl::InfiniteDuration();
 
   // The exponential back off is
   //
@@ -268,7 +267,7 @@ std::optional<absl::Duration> NearbyShareSchedulerBase::TimeUntilRetry(
   absl::Duration delay =
       std::min(kMaxRetryDelay, kBaseRetryDelay * (1 << (num_failures - 1)));
 
-  absl::Duration time_elapsed_since_last_attempt = now - *GetLastAttemptTime();
+  absl::Duration time_elapsed_since_last_attempt = now - GetLastAttemptTime();
 
   return std::max(absl::ZeroDuration(),
                   delay - time_elapsed_since_last_attempt);
@@ -291,34 +290,34 @@ void NearbyShareSchedulerBase::OnTimerFired() {
 }
 
 void NearbyShareSchedulerBase::PrintSchedulerState(
-    std::optional<absl::Duration> time_until_next_request) const {
+    absl::Duration time_until_next_request) const {
   if (!VLOG_IS_ON(1)) {
     return;
   }
-  std::optional<absl::Time> last_attempt_time = GetLastAttemptTime();
-  std::optional<absl::Time> last_success_time = GetLastSuccessTime();
+  absl::Time last_attempt_time = GetLastAttemptTime();
+  absl::Time last_success_time = GetLastSuccessTime();
 
   std::stringstream ss;
   ss << "State of Nearby Share scheduler \"" << pref_name_ << "\":"
      << "\n  Last attempt time: ";
-  if (last_attempt_time) {
+  if (last_attempt_time != absl::InfinitePast()) {
     ss << nearby::utils::TimeFormatShortDateAndTimeWithTimeZone(
-        *last_attempt_time);
+        last_attempt_time);
   } else {
     ss << "Never";
   }
 
   ss << "\n  Last success time: ";
-  if (last_success_time) {
+  if (last_success_time != absl::InfinitePast()) {
     ss << nearby::utils::TimeFormatShortDateAndTimeWithTimeZone(
-        *last_success_time);
+        last_success_time);
   } else {
     ss << "Never";
   }
 
   ss << "\n  Time until next request: ";
-  if (time_until_next_request) {
-    ss << *time_until_next_request;
+  if (time_until_next_request != absl::InfiniteDuration()) {
+    ss << time_until_next_request;
   } else {
     ss << "Never";
   }

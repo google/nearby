@@ -24,7 +24,10 @@ namespace {
 TEST(TimerImpl, TestCreateTimer) {
   TimerImpl timer;
 
-  EXPECT_FALSE(timer.Start(-100, 0, nullptr));
+  EXPECT_TRUE(timer.Start(-100, 0, []() {}));
+  timer.Stop();
+  EXPECT_TRUE(timer.Start(0, -100, []() {}));
+  timer.Stop();
   EXPECT_TRUE(timer.Start(100, 100, []() {}));
   timer.Stop();
 }

@@ -17,9 +17,9 @@
 #include <memory>
 
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
-#include "sharing/scheduling/nearby_share_scheduler.h"
 
 namespace nearby {
 namespace sharing {
@@ -41,17 +41,18 @@ class NearbyShareOnDemandSchedulerTest : public ::testing::Test {
         nullptr);
   }
 
-  NearbyShareScheduler* scheduler() { return scheduler_.get(); }
+  NearbyShareOnDemandScheduler* scheduler() { return scheduler_.get(); }
 
  private:
   nearby::FakePreferenceManager preference_manager_;
   FakeContext fake_context_;
-  std::unique_ptr<NearbyShareScheduler> scheduler_;
+  std::unique_ptr<NearbyShareOnDemandScheduler> scheduler_;
 };
 
 TEST_F(NearbyShareOnDemandSchedulerTest, NoRecurringRequest) {
   scheduler()->Start();
-  EXPECT_FALSE(scheduler()->GetTimeUntilNextRequest());
+  EXPECT_EQ(scheduler()->GetTimeUntilNextRequestForTest(),
+            absl::InfiniteDuration());
 }
 
 }  // namespace

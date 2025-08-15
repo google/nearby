@@ -15,8 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_SCHEDULING_NEARBY_SHARE_PERIODIC_SCHEDULER_H_
 #define THIRD_PARTY_NEARBY_SHARING_SCHEDULING_NEARBY_SHARE_PERIODIC_SCHEDULER_H_
 
-#include <optional>
-
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -47,8 +45,7 @@ class NearbySharePeriodicScheduler : public NearbyShareSchedulerBase {
  private:
   // Returns the time until the next periodic request using the time since
   // the last success. Immediately runs a first-time periodic request.
-  std::optional<absl::Duration> TimeUntilRecurringRequest(
-      absl::Time now) const override;
+  absl::Duration TimeUntilRecurringRequest(absl::Time now) const override;
 
   absl::Duration request_period_;
 };

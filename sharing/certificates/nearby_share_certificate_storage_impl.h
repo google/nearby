@@ -19,7 +19,6 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <queue>
 #include <string>
 #include <utility>
@@ -80,8 +79,7 @@ class NearbyShareCertificateStorageImpl : public NearbyShareCertificateStorage,
           bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>
           callback) override;
   std::vector<NearbySharePrivateCertificate> GetPrivateCertificates() override;
-  std::optional<absl::Time> NextPublicCertificateExpirationTime()
-      const override;
+  absl::Time NextPublicCertificateExpirationTime() const override;
   void ReplacePrivateCertificates(
       absl::Span<const NearbySharePrivateCertificate> private_certificates)
       override;

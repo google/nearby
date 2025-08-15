@@ -898,13 +898,13 @@ TEST_F(
   Sync();
 
   EXPECT_EQ(0, upload_scheduler_->num_immediate_requests());
-  std::optional<absl::Time> next_schedule_time =
+  absl::Time next_schedule_time =
       scheduler_factory_.pref_name_to_expiration_instance()
           .find(prefs::kNearbySharingSchedulerPrivateCertificateExpirationName)
           ->second.expiration_time_functor();
 
-  // Next expiration time is set to nullopt to disable the timer.
-  EXPECT_FALSE(next_schedule_time.has_value());
+  // Next expiration time is set to InfiniteFuture to disable the timer.
+  EXPECT_EQ(next_schedule_time, absl::InfiniteFuture());
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,

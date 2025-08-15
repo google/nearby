@@ -15,8 +15,6 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_SCHEDULING_NEARBY_SHARE_ON_DEMAND_SCHEDULER_H_
 #define THIRD_PARTY_NEARBY_SHARING_SCHEDULING_NEARBY_SHARE_ON_DEMAND_SCHEDULER_H_
 
-#include <optional>
-
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "sharing/internal/api/preference_manager.h"
@@ -40,9 +38,8 @@ class NearbyShareOnDemandScheduler : public NearbyShareSchedulerBase {
   ~NearbyShareOnDemandScheduler() override;
 
  private:
-  // Return absl::nullopt so as not to schedule recurring requests.
-  std::optional<absl::Duration> TimeUntilRecurringRequest(
-      absl::Time now) const override;
+  // Return `absl::InfiniteDuration` so as not to schedule recurring requests.
+  absl::Duration TimeUntilRecurringRequest(absl::Time now) const override;
 };
 
 }  // namespace sharing

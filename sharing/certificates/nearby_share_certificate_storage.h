@@ -17,7 +17,6 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -64,8 +63,10 @@ class NearbyShareCertificateStorage {
   // Returns the next time a certificate expires or absl::InfinitePast() if
   // there are fewer than `min_certs` present.
   absl::Time NextPrivateCertificateExpirationTime(int min_certs);
-  virtual std::optional<absl::Time> NextPublicCertificateExpirationTime()
-      const = 0;
+
+  // Returns the time the next public certificate expires or
+  // absl::InfiniteFuture() if there are no public certificates present.
+  virtual absl::Time NextPublicCertificateExpirationTime() const = 0;
 
   // Deletes existing private certificates and replaces them with
   // |private_certificates|.

@@ -158,14 +158,15 @@ class NearbyShareCertificateManagerImpl
                                 bool did_icon_change) override;
 
   // Used by the private certificate expiration scheduler to determine the next
-  // private certificate expiration time. Returns base::Time::Min() if
-  // certificates are missing. This function never returns absl::nullopt.
-  std::optional<absl::Time> NextPrivateCertificateExpirationTime();
+  // private certificate expiration time. Returns InfinitePast() if
+  // certificates are missing.  Returns InfiniteFuture() if the user is not
+  // logged in.
+  absl::Time NextPrivateCertificateExpirationTime();
 
   // Used by the public certificate expiration scheduler to determine the next
-  // public certificate expiration time. Returns absl::nullopt if no public
+  // public certificate expiration time. Returns InfiniteFuture() if no public
   // certificates are present, and no expiration event is scheduled.
-  std::optional<absl::Time> NextPublicCertificateExpirationTime();
+  absl::Time NextPublicCertificateExpirationTime();
 
   // Clears all existing private certificates and regenerates new ones, then
   // uploads them to the server, without triggering contacts update.

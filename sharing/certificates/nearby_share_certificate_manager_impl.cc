@@ -622,14 +622,14 @@ std::string NearbyShareCertificateManagerImpl::Dump() const {
   return sstream.str();
 }
 
-std::optional<absl::Time>
+absl::Time
 NearbyShareCertificateManagerImpl::NextPrivateCertificateExpirationTime() {
   std::optional<AccountManager::Account> account =
       account_manager_.GetCurrentAccount();
   // If the user is not logged in, there are no certs and we don't need to check
   // for expiration.
   if (!account.has_value()) {
-    return std::nullopt;
+    return absl::InfiniteFuture();
   }
   return certificate_storage_->NextPrivateCertificateExpirationTime(
       NumExpectedPrivateCertificates());
@@ -745,18 +745,15 @@ void NearbyShareCertificateManagerImpl::ForceUploadPrivateCertificates() {
   });
 }
 
-std::optional<absl::Time>
+absl::Time
 NearbyShareCertificateManagerImpl::NextPublicCertificateExpirationTime() {
-  std::optional<absl::Time> next_expiration_time =
+  absl::Time next_expiration_time =
       certificate_storage_->NextPublicCertificateExpirationTime();
-
-  // Supposedly there are no store public certificates.
-  if (!next_expiration_time) return std::nullopt;
 
   // To account for clock skew between devices, we accept public certificates
   // that are slightly past their validity period. This conforms with the
   // GmsCore implementation.
-  return *next_expiration_time +
+  return next_expiration_time +
          kNearbySharePublicCertificateValidityBoundOffsetTolerance;
 }
 

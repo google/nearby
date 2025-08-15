@@ -19,7 +19,6 @@
 
 #include <atomic>
 #include <functional>
-#include <optional>
 
 #include "absl/time/time.h"
 
@@ -58,12 +57,8 @@ class NearbyShareScheduler {
   virtual void Reschedule() = 0;
 
   // Returns the time of the last known successful request. If no request has
-  // succeeded, absl::nullopt is returned.
-  virtual std::optional<absl::Time> GetLastSuccessTime() const = 0;
-
-  // Returns the time until the next scheduled request. Returns std::nullopt if
-  // there is no request scheduled.
-  virtual std::optional<absl::Duration> GetTimeUntilNextRequest() const = 0;
+  // succeeded, `absl::InfinitePast` is returned.
+  virtual absl::Time GetLastSuccessTime() const = 0;
 
   // Returns true after the |callback_| has been alerted of a request but before
   // HandleResult() is invoked.

@@ -16,7 +16,6 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -114,7 +113,7 @@ FakeNearbyShareCertificateStorage::GetPrivateCertificates() {
   return private_certificates_;
 }
 
-std::optional<absl::Time>
+absl::Time
 FakeNearbyShareCertificateStorage::NextPublicCertificateExpirationTime() const {
   return next_public_certificate_expiration_time_;
 }
@@ -156,7 +155,7 @@ void FakeNearbyShareCertificateStorage::SetPublicCertificateIds(
 }
 
 void FakeNearbyShareCertificateStorage::SetNextPublicCertificateExpirationTime(
-    std::optional<absl::Time> time) {
+    absl::Time time) {
   next_public_certificate_expiration_time_ = time;
 }
 

@@ -17,7 +17,6 @@
 
 #include <stddef.h>
 
-#include <optional>
 #include <vector>
 
 #include "absl/time/time.h"
@@ -39,13 +38,11 @@ class FakeNearbyShareScheduler : public NearbyShareScheduler {
   void MakeImmediateRequest() override;
   void HandleResult(bool success) override;
   void Reschedule() override;
-  std::optional<absl::Time> GetLastSuccessTime() const override;
-  std::optional<absl::Duration> GetTimeUntilNextRequest() const override;
+  absl::Time GetLastSuccessTime() const override;
   bool IsWaitingForResult() const override;
   size_t GetNumConsecutiveFailures() const override;
 
-  void SetLastSuccessTime(std::optional<absl::Time> time);
-  void SetTimeUntilNextRequest(std::optional<absl::Duration> time_delta);
+  void SetLastSuccessTime(absl::Time time);
   void SetIsWaitingForResult(bool is_waiting);
   void SetNumConsecutiveFailures(size_t num_failures);
 
@@ -63,8 +60,7 @@ class FakeNearbyShareScheduler : public NearbyShareScheduler {
   size_t num_immediate_requests_ = 0;
   size_t num_reschedule_calls_ = 0;
   std::vector<bool> handled_results_;
-  std::optional<absl::Time> last_success_time_;
-  std::optional<absl::Duration> time_until_next_request_;
+  absl::Time last_success_time_ = absl::InfinitePast();
   bool is_waiting_for_result_ = false;
   size_t num_consecutive_failures_ = 0;
 };

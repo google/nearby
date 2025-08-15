@@ -14,7 +14,6 @@
 
 #include "sharing/scheduling/nearby_share_on_demand_scheduler.h"
 
-#include <optional>
 #include <utility>
 
 #include "absl/strings/string_view.h"
@@ -38,9 +37,9 @@ NearbyShareOnDemandScheduler::NearbyShareOnDemandScheduler(
 
 NearbyShareOnDemandScheduler::~NearbyShareOnDemandScheduler() = default;
 
-std::optional<absl::Duration>
-NearbyShareOnDemandScheduler::TimeUntilRecurringRequest(absl::Time now) const {
-  return std::nullopt;
+absl::Duration NearbyShareOnDemandScheduler::TimeUntilRecurringRequest(
+    absl::Time now) const {
+  return absl::InfiniteDuration();
 }
 
 }  // namespace sharing

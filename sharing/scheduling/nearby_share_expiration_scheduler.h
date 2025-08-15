@@ -32,7 +32,8 @@ namespace sharing {
 // expiration time provided by the owner.
 class NearbyShareExpirationScheduler : public NearbyShareSchedulerBase {
  public:
-  using ExpirationTimeFunctor = std::function<std::optional<absl::Time>()>;
+  // Return InfiniteFuture() to stop scheduling.
+  using ExpirationTimeFunctor = std::function<absl::Time()>;
 
   // |expiration_time_functor|: A function provided by the owner that returns
   //     the next expiration time.
@@ -47,8 +48,7 @@ class NearbyShareExpirationScheduler : public NearbyShareSchedulerBase {
   ~NearbyShareExpirationScheduler() override;
 
  protected:
-  std::optional<absl::Duration> TimeUntilRecurringRequest(
-      absl::Time now) const override;
+  absl::Duration TimeUntilRecurringRequest(absl::Time now) const override;
 
   ExpirationTimeFunctor expiration_time_functor_;
 };
