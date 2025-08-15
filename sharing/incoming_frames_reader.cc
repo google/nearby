@@ -83,7 +83,7 @@ void IncomingFramesReader::ProcessReadRequest(
     absl::Duration timeout) {
   std::unique_ptr<V1Frame> cached_frame;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!read_frame_info_queue_.empty()) {
       // There are already outstanding read requests, just queue this up.
       ReadFrameInfo read_fame_info{frame_type, std::move(callback), timeout};
@@ -100,7 +100,7 @@ void IncomingFramesReader::ProcessReadRequest(
   }
   {
     // No matching cached frame, queue this request, then read more frames.
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ReadFrameInfo read_frame_info{frame_type, std::move(callback), timeout};
     read_frame_info_queue_.push(std::move(read_frame_info));
 
@@ -156,7 +156,7 @@ void IncomingFramesReader::OnDataReadFromConnection(
   FrameType frame_type = frame->type();
   bool cached_frame = false;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (read_frame_info_queue_.empty()) {
       return;
     }
@@ -180,7 +180,7 @@ void IncomingFramesReader::OnDataReadFromConnection(
 void IncomingFramesReader::CloseAllPendingReads() {
   std::queue<ReadFrameInfo> queue;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     queue.swap(read_frame_info_queue_);
   }
   while (!queue.empty()) {
@@ -193,7 +193,7 @@ void IncomingFramesReader::CloseAllPendingReads() {
 void IncomingFramesReader::Done(std::unique_ptr<V1Frame> frame) {
   ReadFrameInfo read_frame_info;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     timeout_timer_.reset();
     read_frame_info = std::move(read_frame_info_queue_.front());
     read_frame_info_queue_.pop();
@@ -201,7 +201,7 @@ void IncomingFramesReader::Done(std::unique_ptr<V1Frame> frame) {
   read_frame_info.callback(*frame);
 
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (read_frame_info_queue_.empty()) {
       return;
     }
