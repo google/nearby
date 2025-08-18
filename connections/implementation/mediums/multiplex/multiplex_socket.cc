@@ -111,24 +111,33 @@ MultiplexSocket* MultiplexSocket::CreateIncomingSocket(
         << "Shutting down is going on, wait for 2ms to create incoming socket";
     absl::SleepFor(absl::Milliseconds(2));
   }
-  static MultiplexSocket* multiplex_incoming_socket = nullptr;
+
+  MultiplexSocket* multiplex_incoming_socket = nullptr;
+  static MultiplexSocket* multiplex_incoming_socket_bt = nullptr;
+  static MultiplexSocket* multiplex_incoming_socket_wlan = nullptr;
+
   switch (physical_socket->GetMedium()) {
     case Medium::BLUETOOTH:
+      if (multiplex_incoming_socket_bt != nullptr) {
+        LOG(INFO) << "Multiplex incoming socket already exists for BT";
+        return multiplex_incoming_socket_bt;
+      }
       alignas(MultiplexSocket) static char storage_bt[sizeof(MultiplexSocket)];
-      multiplex_incoming_socket =
+      multiplex_incoming_socket_bt =
           new (&storage_bt) MultiplexSocket(physical_socket);
-      break;
-    case Medium::BLE:
-      alignas(MultiplexSocket) static char storage_ble[sizeof(MultiplexSocket)];
-      multiplex_incoming_socket =
-          new (&storage_ble) MultiplexSocket(physical_socket);
+      multiplex_incoming_socket = multiplex_incoming_socket_bt;
       break;
     case Medium::WIFI_LAN:
     case Medium::AWDL:
+      if (multiplex_incoming_socket_wlan != nullptr) {
+        LOG(INFO) << "Multiplex incoming socket already exists for WLAN";
+        return multiplex_incoming_socket_wlan;
+      }
       alignas(
           MultiplexSocket) static char storage_wlan[sizeof(MultiplexSocket)];
-      multiplex_incoming_socket =
+      multiplex_incoming_socket_wlan =
           new (&storage_wlan) MultiplexSocket(physical_socket);
+      multiplex_incoming_socket = multiplex_incoming_socket_wlan;
       break;
     default:
       LOG(ERROR) << __func__
@@ -155,28 +164,38 @@ MultiplexSocket* MultiplexSocket::CreateOutgoingSocket(
         << "Shutting down is going on, wait for 2ms to create outgoing socket";
     absl::SleepFor(absl::Milliseconds(2));
   }
-  static MultiplexSocket* multiplex_outgoing_socket = nullptr;
+
+  MultiplexSocket* multiplex_outgoing_socket = nullptr;
+  static MultiplexSocket* multiplex_outgoing_socket_bt = nullptr;
+  static MultiplexSocket* multiplex_outgoing_socket_wlan = nullptr;
+
   switch (physical_socket->GetMedium()) {
     case Medium::BLUETOOTH:
+      if (multiplex_outgoing_socket_bt != nullptr) {
+        LOG(INFO) << "Multiplex outgoing socket already exists for BT";
+        return multiplex_outgoing_socket_bt;
+      }
       alignas(MultiplexSocket) static char storage_bt[sizeof(MultiplexSocket)];
-      multiplex_outgoing_socket =
+      multiplex_outgoing_socket_bt =
           new (&storage_bt) MultiplexSocket(physical_socket);
-      break;
-    case Medium::BLE:
-      alignas(MultiplexSocket) static char storage_ble[sizeof(MultiplexSocket)];
-      multiplex_outgoing_socket =
-          new (&storage_ble) MultiplexSocket(physical_socket);
+      multiplex_outgoing_socket = multiplex_outgoing_socket_bt;
       break;
     case Medium::WIFI_LAN:
     case Medium::AWDL:
+      if (multiplex_outgoing_socket_wlan != nullptr) {
+        LOG(INFO) << "Multiplex outgoing socket already exists for WLAN";
+        return multiplex_outgoing_socket_wlan;
+      }
       alignas(
           MultiplexSocket) static char storage_wlan[sizeof(MultiplexSocket)];
-      multiplex_outgoing_socket =
+      multiplex_outgoing_socket_wlan =
           new (&storage_wlan) MultiplexSocket(physical_socket);
+      multiplex_outgoing_socket = multiplex_outgoing_socket_wlan;
       break;
     default:
       LOG(ERROR) << __func__
                  << "Unsupported medium: " << physical_socket->GetMedium();
+      multiplex_outgoing_socket = nullptr;
       return multiplex_outgoing_socket;
   }
   LOG(INFO) << "CreateOutgoingSocket with serviceId=" << service_id
@@ -470,9 +489,9 @@ void MultiplexSocket::HandleControlFrame(
       });
       break;
     case MultiplexControlFrame::DISCONNECTION:
-      RunOffloadThread("DISCONNECTION", [this, salted_service_id_hash] {
-        HandleDisconnection(salted_service_id_hash);
-      });
+      // The virtual socket will be closed in the offload thread, so don't run
+      // the thread here.
+      HandleDisconnection(salted_service_id_hash);
       break;
     default:
       LOG(WARNING) << __func__ << "Received an unknown frame type "
@@ -532,10 +551,10 @@ void MultiplexSocket::HandleConnectionRequest(
     return;
   }
 
-  VLOG(1) << "EstablishVirtualSocket after local device accept the connection "
-             "with serviceId="
-          << listening_service_id
-          << ", serviceIdHashSalt=" << service_id_hash_salt;
+  LOG(INFO)
+      << "EstablishVirtualSocket after local device accept the connection "
+         "with serviceId="
+      << listening_service_id;
   MediumSocket* virtual_socket =
       CreateVirtualSocket(listening_service_id, service_id_hash_salt);
   (*incoming_connection_callback)(std::move(listening_service_id),
@@ -572,6 +591,7 @@ void MultiplexSocket::HandleDisconnection(
     const ByteArray& salted_service_id_hash) {
   std::string salted_service_id_hash_key =
       GenerateServiceIdHashKey(salted_service_id_hash);
+  MediumSocket* virtual_socket_to_close = nullptr;
   {
     MutexLock lock(&virtual_socket_mutex_);
     auto item = virtual_sockets_.find(salted_service_id_hash_key);
@@ -580,12 +600,18 @@ void MultiplexSocket::HandleDisconnection(
           << "Received a DISCONNECTION frame to disconnect virtual socket for "
              "salted service ID Hash Key "
           << salted_service_id_hash_key;
+      virtual_socket_to_close = item->second.get();
     } else {
       LOG(WARNING)
           << "Received a DISCONNECTION frame but there's no alive socket to "
              "disconnect for service ID Hash Key "
           << salted_service_id_hash_key;
     }
+  }
+  // Close the virtual socket outside of the mutex lock because
+  // OnVirtualSocketClosed will lock the mutex.
+  if (virtual_socket_to_close != nullptr) {
+    virtual_socket_to_close->Close();
   }
 }
 
