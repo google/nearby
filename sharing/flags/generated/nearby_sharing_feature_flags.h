@@ -110,6 +110,9 @@ constexpr auto kEnableConflictBanner =
 // When true, enables UI experiments.
 constexpr auto kEnableUiExperiments =
     flags::Flag<bool>(kConfigPackage, "45678202", false);
+// When true, enables use of Flutter hooks.
+constexpr auto kEnableFlutterHooks =
+    flags::Flag<bool>(kConfigPackage, "45720206", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -133,6 +136,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45662570, kEnableBetaLabel},
       {45661130, kEnableConflictBanner},
       {45678202, kEnableUiExperiments},
+      {45720206, kEnableFlutterHooks},
   };
 }
 
