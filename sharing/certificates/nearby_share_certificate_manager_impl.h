@@ -32,7 +32,6 @@
 #include "sharing/certificates/nearby_share_certificate_storage.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_platform.h"
@@ -66,7 +65,6 @@ class NearbyShareCertificateManagerImpl
         Context* context,
         nearby::sharing::api::SharingPlatform& sharing_platform,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
-        NearbyShareContactManager* contact_manager,
         const FilePath& profile_path,
         nearby::sharing::api::SharingRpcClientFactory* client_factory);
     static void SetFactoryForTesting(Factory* test_factory);
@@ -76,7 +74,6 @@ class NearbyShareCertificateManagerImpl
     virtual std::unique_ptr<NearbyShareCertificateManager> CreateInstance(
         Context* context,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
-        NearbyShareContactManager* contact_manager,
         const FilePath& profile_path,
         nearby::sharing::api::SharingRpcClientFactory* client_factory) = 0;
 
@@ -141,7 +138,6 @@ class NearbyShareCertificateManagerImpl
       std::unique_ptr<nearby::sharing::api::PublicCertificateDatabase>
           public_certificate_database,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
-      NearbyShareContactManager* contact_manager,
        nearby::sharing::api::SharingRpcClientFactory* client_factory);
 
   // NearbyShareCertificateManager:
@@ -187,10 +183,18 @@ class NearbyShareCertificateManagerImpl
       const std::vector<nearby::sharing::proto::PublicCertificate>&
           certificates);
 
+  void AddCertifactesToPublishDeviceRequest(
+      const std::vector<NearbySharePrivateCertificate>& private_certs,
+      google::nearby::identity::v1::PublishDeviceRequest& request);
+
+  // Returns the device id use to identify the local device in BE.
+  std::string GetId();
+
+
   Context* const context_;
   AccountManager& account_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
-  NearbyShareContactManager* const contact_manager_;
+  nearby::sharing::api::PreferenceManager& preference_manager_;
   int32_t vendor_id_ = 0;  // Defaults to GOOGLE.
   std::unique_ptr< nearby::sharing::api::SharingRpcClient> nearby_client_;
   std::unique_ptr<nearby::sharing::api::IdentityRpcClient>

@@ -20,7 +20,9 @@
 #include <string>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
@@ -151,9 +153,11 @@ class FakeNearbyShareCertificateStorage : public NearbyShareCertificateStorage {
   }
 
  private:
+  absl::Mutex mutex_;
   absl::Time next_public_certificate_expiration_time_ = absl::InfiniteFuture();
   std::vector<std::string> public_certificate_ids_;
-  std::vector<NearbySharePrivateCertificate> private_certificates_;
+  std::vector<NearbySharePrivateCertificate> private_certificates_
+      ABSL_GUARDED_BY(mutex_);
   std::vector<PublicCertificateCallback> get_public_certificates_callbacks_;
   std::function<void(
       bool, std::unique_ptr<nearby::sharing::proto::PublicCertificate>)>

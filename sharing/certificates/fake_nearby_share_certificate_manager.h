@@ -29,7 +29,6 @@
 #include "sharing/certificates/nearby_share_certificate_manager_impl.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -61,7 +60,6 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
     std::unique_ptr<NearbyShareCertificateManager> CreateInstance(
         Context* context,
         NearbyShareLocalDeviceDataManager* local_device_data_manager,
-        NearbyShareContactManager* contact_manager,
         const FilePath& profile_path,
         nearby::sharing::api::SharingRpcClientFactory* client_factory) override;
 

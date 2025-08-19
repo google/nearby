@@ -17,17 +17,11 @@
 #include <stddef.h>
 
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
-#include <vector>
 
-#include "absl/algorithm/algorithm.h"
 #include "absl/memory/memory.h"
-#include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "internal/platform/device_info.h"
@@ -38,25 +32,18 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/preference_manager.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/base/utf_string_conversions.h"
-#include "sharing/internal/public/context.h"
-#include "sharing/internal/public/logging.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/device_rpc.pb.h"
 #include "sharing/proto/field_mask.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
 #include "sharing/proto/timestamp.pb.h"
-#include "util/hash/highway_fingerprint.h"
 
 namespace nearby {
 namespace sharing {
 namespace {
-using ::google::nearby::identity::v1::PublishDeviceRequest;
-using ::google::nearby::identity::v1::PublishDeviceResponse;
 using ::nearby::api::DeviceInfo;
 using ::nearby::sharing::api::PreferenceManager;
-using ::nearby::sharing::api::SharingRpcClientFactory;
 
 constexpr absl::string_view kDefaultDeviceName = "$0\'s $1";
 
@@ -86,16 +73,14 @@ NearbyShareLocalDeviceDataManagerImpl::Factory*
 // static
 std::unique_ptr<NearbyShareLocalDeviceDataManager>
 NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
-    Context* context, PreferenceManager& preference_manager,
-    AccountManager& account_manager, nearby::DeviceInfo& device_info,
-    SharingRpcClientFactory* rpc_client_factory) {
+    PreferenceManager& preference_manager,
+    AccountManager& account_manager, nearby::DeviceInfo& device_info) {
   if (test_factory_) {
-    return test_factory_->CreateInstance(context, rpc_client_factory);
+    return test_factory_->CreateInstance();
   }
 
   return absl::WrapUnique(new NearbyShareLocalDeviceDataManagerImpl(
-      context, preference_manager, account_manager, device_info,
-      rpc_client_factory));
+      preference_manager, account_manager, device_info));
 }
 
 // static
@@ -107,21 +92,14 @@ void NearbyShareLocalDeviceDataManagerImpl::Factory::SetFactoryForTesting(
 NearbyShareLocalDeviceDataManagerImpl::Factory::~Factory() = default;
 
 NearbyShareLocalDeviceDataManagerImpl::NearbyShareLocalDeviceDataManagerImpl(
-    Context* context, PreferenceManager& preference_manager,
-    AccountManager& account_manager, nearby::DeviceInfo& device_info,
-    SharingRpcClientFactory* rpc_client_factory)
+    PreferenceManager& preference_manager, AccountManager& account_manager,
+    nearby::DeviceInfo& device_info)
     : preference_manager_(preference_manager),
       account_manager_(account_manager),
-      device_info_(device_info),
-      nearby_identity_client_(rpc_client_factory->CreateIdentityInstance()),
-      executor_(context->CreateSequencedTaskRunner()) {}
+      device_info_(device_info) {}
 
 NearbyShareLocalDeviceDataManagerImpl::
     ~NearbyShareLocalDeviceDataManagerImpl() = default;
-
-std::string NearbyShareLocalDeviceDataManagerImpl::GetId() {
-  return preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
-}
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDeviceName() const {
   std::string device_name = preference_manager_.GetString(
@@ -157,119 +135,6 @@ DeviceNameValidationResult NearbyShareLocalDeviceDataManagerImpl::SetDeviceName(
                                /*did_icon_change=*/false);
 
   return DeviceNameValidationResult::kValid;
-}
-
-void NearbyShareLocalDeviceDataManagerImpl::PublishDevice(
-    std::vector<nearby::sharing::proto::PublicCertificate> certificates,
-    bool force_update_contacts, PublishDeviceCallback callback) {
-  executor_->PostTask([this, force_update_contacts,
-                       certificates = std::move(certificates),
-                       callback = std::move(callback)]() mutable {
-    if (!is_running()) {
-      LOG(WARNING) << __func__
-                   << ": [Call Identity API] no-op as manager is stopped.";
-      callback(/*success=*/false, /*contact_removed=*/false);
-      return;
-    }
-    std::string device_id = GetId();
-    if (device_id.empty()) {
-      LOG(WARNING) << __func__
-                   << ": [Call Identity API] failed, device id is empty.";
-      callback(/*success=*/false, /*contact_removed=*/false);
-      return;
-    }
-    LOG(INFO) << __func__ << ": [Call Identity API]  Upload "
-              << certificates.size() << " certificates.";
-
-    PublishDeviceRequest request;
-    request.mutable_device()->set_name(absl::StrCat("devices/", device_id));
-    LOG(INFO) << __func__
-              << ": [Call Identity API] PublishDeviceRequest with Device.name: "
-              << request.device().name();
-    request.mutable_device()->set_display_name(GetDeviceName());
-    // Force update contacts call is right after CONTACT_GOOGLE_CONTACT_LATEST
-    // call and can use CONTACT_GOOGLE_CONTACT to save server side computation.
-
-    request.mutable_device()->set_contact(
-        force_update_contacts
-            ? google::nearby::identity::v1::Device::CONTACT_GOOGLE_CONTACT
-            : google::nearby::identity::v1::Device::
-                  CONTACT_GOOGLE_CONTACT_LATEST);
-
-    auto* new_self_credential =
-        request.mutable_device()->add_per_visibility_shared_credentials();
-    new_self_credential->set_visibility(
-        google::nearby::identity::v1::PerVisibilitySharedCredentials::
-            VISIBILITY_SELF);
-    auto* new_contacts_credential =
-        request.mutable_device()->add_per_visibility_shared_credentials();
-    new_contacts_credential->set_visibility(
-        google::nearby::identity::v1::PerVisibilitySharedCredentials::
-            VISIBILITY_CONTACTS);
-
-    for (const auto& certificate : certificates) {
-      // Skip the certificate for deprecated SELECTED_CONTACTS.
-      if (certificate.for_selected_contacts()) {
-        continue;
-      }
-      google::nearby::identity::v1::SharedCredential* shared_credential;
-      if (certificate.for_self_share()) {
-        shared_credential = new_self_credential->add_shared_credentials();
-        LOG(INFO) << __func__ << ": [Call Identity API] self_share";
-      } else {
-        shared_credential = new_contacts_credential->add_shared_credentials();
-        LOG(INFO) << __func__ << ": [Call Identity API] contacts_share";
-      }
-
-      shared_credential->set_id(
-          util_hash::HighwayFingerprint64(certificate.secret_id()));
-      shared_credential->set_data(certificate.SerializeAsString());
-      shared_credential->set_data_type(
-          ::google::nearby::identity::v1::SharedCredential::
-              DATA_TYPE_PUBLIC_CERTIFICATE);
-      *shared_credential->mutable_expiration_time() = certificate.end_time();
-      LOG(INFO) << __func__
-                << ": shared_credential.id(): " << shared_credential->id();
-    }
-    nearby_identity_client_->PublishDevice(
-        request, [this, callback = std::move(callback)](
-                     const absl::StatusOr<PublishDeviceResponse>& response) {
-          // check whether the manager is running again
-          if (!is_running()) {
-            LOG(WARNING)
-                << __func__
-                << ": [Call Identity API] manager is stopped after call.";
-            callback(/*success=*/false, /*contact_removed=*/false);
-            return;
-          }
-          if (!response.ok()) {
-            LOG(WARNING)
-                << __func__
-                << ": [Call Identity API] Failed to get response from backend: "
-                << response.status();
-            callback(/*success=*/false, /*contact_removed=*/false);
-            return;
-          }
-
-          LOG(INFO) << __func__
-                    << ": [Call Identity API] Successfully published device.";
-
-          // If contacts are removed, regenerate all Private certificates and
-          // make a 2nd PublishDevice RPC call.
-          bool need_another_call = false;
-          if (absl::linear_search(
-                  response.value().contact_updates().begin(),
-                  response.value().contact_updates().end(),
-                  google::nearby::identity::v1::PublishDeviceResponse::
-                      CONTACT_UPDATE_REMOVED)) {
-            need_another_call = true;
-            LOG(INFO)
-                << __func__
-                << ": [Call Identity API] need another PublishDevice call";
-          }
-          callback(/*success=*/true, /*contact_removed=*/need_another_call);
-        });
-  });
 }
 
 std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()

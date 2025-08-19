@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "sharing/certificates/nearby_share_certificate_storage.h"
@@ -110,6 +111,7 @@ void FakeNearbyShareCertificateStorage::GetPublicCertificate(
 
 std::vector<NearbySharePrivateCertificate>
 FakeNearbyShareCertificateStorage::GetPrivateCertificates() {
+  absl::MutexLock lock(mutex_);
   return private_certificates_;
 }
 
@@ -120,6 +122,7 @@ FakeNearbyShareCertificateStorage::NextPublicCertificateExpirationTime() const {
 
 void FakeNearbyShareCertificateStorage::ReplacePrivateCertificates(
     absl::Span<const NearbySharePrivateCertificate> private_certificates) {
+  absl::MutexLock lock(mutex_);
   private_certificates_ = std::vector<NearbySharePrivateCertificate>(
       private_certificates.begin(), private_certificates.end());
 }

@@ -18,8 +18,10 @@
 #include <memory>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/contact_rpc.pb.h"
@@ -67,11 +69,13 @@ class FakeNearbyIdentityClient
 
   std::vector<google::nearby::identity::v1::PublishDeviceRequest>&
   publish_device_requests() {
+    absl::MutexLock lock(mutex_);
     return publish_device_requests_;
   }
 
   std::vector<google::nearby::identity::v1::QuerySharedCredentialsRequest>&
   query_shared_credentials_requests() {
+    absl::MutexLock lock(mutex_);
     return query_shared_credentials_requests_;
   }
 
@@ -82,10 +86,12 @@ class FakeNearbyIdentityClient
                                         PublishDeviceResponse>& response) &&>
           callback) override;
 
-  void SetPublishDeviceResponse(
-      absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>
-          response) {
-    publish_device_response_ = response;
+  void SetPublishDeviceResponses(
+      std::vector<
+          absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>>
+          responses) {
+    absl::MutexLock lock(mutex_);
+    publish_device_responses_ = responses;
   }
 
   void QuerySharedCredentials(
@@ -101,6 +107,7 @@ class FakeNearbyIdentityClient
       std::vector<absl::StatusOr<
           google::nearby::identity::v1::QuerySharedCredentialsResponse>>
           responses) {
+    absl::MutexLock lock(mutex_);
     query_shared_credentials_responses_ = responses;
   }
 
@@ -114,24 +121,28 @@ class FakeNearbyIdentityClient
   void SetGetAccountInfoResponse(
       absl::StatusOr<google::nearby::identity::v1::GetAccountInfoResponse>
           response) {
+    absl::MutexLock lock(mutex_);
     get_account_info_response_ = response;
   }
 
+ private:
+  absl::Mutex mutex_;
   std::vector<google::nearby::identity::v1::PublishDeviceRequest>
-      publish_device_requests_;
-  absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>
-      publish_device_response_;
+      publish_device_requests_ ABSL_GUARDED_BY(mutex_);
+  std::vector<
+      absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>>
+      publish_device_responses_ ABSL_GUARDED_BY(mutex_);
 
   std::vector<google::nearby::identity::v1::QuerySharedCredentialsRequest>
-      query_shared_credentials_requests_;
+      query_shared_credentials_requests_ ABSL_GUARDED_BY(mutex_);
   std::vector<absl::StatusOr<
       google::nearby::identity::v1::QuerySharedCredentialsResponse>>
-      query_shared_credentials_responses_;
+      query_shared_credentials_responses_ ABSL_GUARDED_BY(mutex_);
 
   std::vector<google::nearby::identity::v1::GetAccountInfoRequest>
-      get_account_info_requests_;
+      get_account_info_requests_ ABSL_GUARDED_BY(mutex_);
   absl::StatusOr<google::nearby::identity::v1::GetAccountInfoResponse>
-      get_account_info_response_;
+      get_account_info_response_ ABSL_GUARDED_BY(mutex_);
 };
 
 class FakeNearbyShareClientFactory
