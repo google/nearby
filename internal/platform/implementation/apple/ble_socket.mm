@@ -16,7 +16,7 @@
 
 #include "internal/platform/implementation/ble_v2.h"
 
-#import "internal/platform/implementation/apple/Mediums/Ble/GNCMBleConnection.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/ble_peripheral.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 #import "internal/platform/implementation/apple/utils.h"
