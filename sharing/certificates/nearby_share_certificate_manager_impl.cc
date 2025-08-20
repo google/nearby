@@ -40,6 +40,7 @@
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/account_manager.h"
+#include "internal/platform/mac_address.h"
 #include "proto/identity/v1/resources.pb.h"
 #include "proto/identity/v1/rpcs.pb.h"
 #include "sharing/certificates/common.h"
@@ -131,10 +132,14 @@ std::optional<EncryptedMetadata> BuildMetadata(
   }
   metadata.set_vendor_id(vendor_id);
 
-  auto bluetooth_mac_address = context->GetBluetoothAdapter().GetAddress();
-  if (!bluetooth_mac_address) return std::nullopt;
-
-  metadata.set_bluetooth_mac_address(bluetooth_mac_address->data(), 6u);
+  MacAddress mac_address = context->GetBluetoothAdapter().GetAddress();
+  if (mac_address.IsSet()) {
+    std::string mac_address_string(6, ' ');
+    if (mac_address.ToBytes(absl::MakeSpan(
+            reinterpret_cast<uint8_t*>(mac_address_string.data()), 6))) {
+      metadata.set_bluetooth_mac_address(mac_address_string);
+    }
+  }
   return metadata;
 }
 
@@ -316,10 +321,9 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
       request, [this](const absl::StatusOr<QuerySharedCredentialsResponse>&
                           response) mutable {
         if (!response.ok()) {
-          LOG(WARNING)
-              << __func__
-              << ": Failed to download public certificates: "
-              << response.status();
+          LOG(WARNING) << __func__
+                       << ": Failed to download public certificates: "
+                       << response.status();
           std::move(download_failure_callback_)();
           return;
         }

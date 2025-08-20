@@ -21,6 +21,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 
 namespace nearby {
 
@@ -53,6 +54,38 @@ bool MacAddress::FromUint64(uint64_t address, MacAddress& mac_address) {
     return false;
   }
   mac_address.address_ = address;
+  return true;
+}
+
+bool MacAddress::FromBytes(absl::Span<const uint8_t> bytes,
+                        MacAddress& mac_address) {
+  if (bytes.size() < 6) {
+    return false;
+  }
+  mac_address.address_ = bytes[0];
+  mac_address.address_ <<= 8;
+  mac_address.address_ |= bytes[1];
+  mac_address.address_ <<= 8;
+  mac_address.address_ |= bytes[2];
+  mac_address.address_ <<= 8;
+  mac_address.address_ |= bytes[3];
+  mac_address.address_ <<= 8;
+  mac_address.address_ |= bytes[4];
+  mac_address.address_ <<= 8;
+  mac_address.address_ |= bytes[5];
+  return true;
+}
+
+bool MacAddress::ToBytes(absl::Span<uint8_t> bytes) const {
+  if (bytes.size() < 6) {
+    return false;
+  }
+  bytes[0] = (address_ >> 40) & 0xff;
+  bytes[1] = (address_ >> 32) & 0xff;
+  bytes[2] = (address_ >> 24) & 0xff;
+  bytes[3] = (address_ >> 16) & 0xff;
+  bytes[4] = (address_ >> 8) & 0xff;
+  bytes[5] = address_ & 0xff;
   return true;
 }
 

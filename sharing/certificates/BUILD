@@ -42,6 +42,7 @@ cc_library(
         "//internal/base",
         "//internal/base:file_path",
         "//internal/crypto_cros",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
         "//proto/identity/v1:resources_cc_proto",
@@ -116,6 +117,7 @@ cc_test(
     deps = [
         ":certificates",
         ":test_support",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
@@ -126,7 +128,6 @@ cc_test(
         "//sharing/contacts:test_support",
         "//sharing/internal/api:mock_sharing_platform",
         "//sharing/internal/api:platform",
-        "//sharing/internal/public:logging",
         "//sharing/internal/test:nearby_test",
         "//sharing/local_device_data:test_support",
         "//sharing/proto:enums_cc_proto",

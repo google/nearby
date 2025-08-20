@@ -17,8 +17,7 @@
 #include <string>
 #include <utility>
 
-#include "internal/platform/bluetooth_utils.h"
-#include "internal/platform/implementation/g3/bluetooth_classic.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 
@@ -53,7 +52,11 @@ std::string BluetoothDevice::GetMacAddress() const {
 
 BluetoothAdapter::BluetoothAdapter() {
   std::uint64_t raw_mac_addr = Prng().NextInt64() & kMacAddressMask;
-  SetMacAddress(BluetoothUtils::FromNumber(raw_mac_addr));
+  MacAddress mac_address;
+  if (MacAddress::FromUint64(raw_mac_addr, mac_address) &&
+      mac_address.IsSet()) {
+    SetMacAddress(mac_address);
+  }
   unique_id_ = raw_mac_addr;
 }
 

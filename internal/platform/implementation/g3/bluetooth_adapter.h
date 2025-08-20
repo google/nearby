@@ -16,9 +16,7 @@
 #define PLATFORM_IMPL_G3_BLUETOOTH_ADAPTER_H_
 
 #include <cstdint>
-#include <memory>
 #include <string>
-#include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
@@ -27,7 +25,6 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "internal/platform/mac_address.h"
 
 namespace nearby {
@@ -131,8 +128,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   void SetBleV2Medium(api::ble_v2::BleMedium* medium);
   api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
 
-  void SetMacAddress(absl::string_view mac_address) {
-    MacAddress::FromString(mac_address, mac_address_);
+  void SetMacAddress(MacAddress mac_address) {
+    mac_address_ = mac_address;
   }
 
   std::uint64_t GetUniqueId() { return unique_id_; }

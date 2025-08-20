@@ -15,10 +15,7 @@
 #include "internal/base/bluetooth_address.h"
 
 #include <algorithm>
-#include <array>
-#include <string>
 
-#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 
@@ -90,34 +87,6 @@ bool ParseBluetoothAddress(absl::string_view input,
   }
 
   return false;
-}
-
-std::string ConvertBluetoothAddressUIntToString(uint64_t address) {
-  std::string mac_address = absl::StrFormat(
-      "%02llX:%02llX:%02llX:%02llX:%02llX:%02llX", address >> 40,
-      (address >> 32) & 0xff, (address >> 24) & 0xff, (address >> 16) & 0xff,
-      (address >> 8) & 0xff, address & 0xff);
-  return CanonicalizeBluetoothAddress(mac_address);
-}
-
-std::string CanonicalizeBluetoothAddress(absl::string_view address) {
-  std::array<uint8_t, 6> bytes;
-
-  if (!ParseBluetoothAddress(address, absl::MakeSpan(bytes.data(), 6)))
-    return std::string();
-
-  return CanonicalizeBluetoothAddress(bytes);
-}
-
-std::string CanonicalizeBluetoothAddress(
-    const std::array<uint8_t, 6>& address_bytes) {
-  return absl::StrFormat("%02X:%02X:%02X:%02X:%02X:%02X", address_bytes[0],
-                         address_bytes[1], address_bytes[2], address_bytes[3],
-                         address_bytes[4], address_bytes[5]);
-}
-
-std::string CanonicalizeBluetoothAddress(uint64_t address) {
-  return ConvertBluetoothAddressUIntToString(address);
 }
 
 }  // namespace device

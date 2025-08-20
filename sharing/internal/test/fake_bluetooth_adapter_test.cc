@@ -16,12 +16,11 @@
 
 #include <stdint.h>
 
-#include <array>
 #include <functional>
-#include <string>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/mac_address.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/test/fake_bluetooth_adapter_observer.h"
 
@@ -89,10 +88,11 @@ TEST(FakeBluetoothAdapter, GetAdapterId) {
 
 TEST(FakeBluetoothAdapter, GetAddress) {
   FakeBluetoothAdapter fake_bluetooth_adapter;
-  fake_bluetooth_adapter.SetAddress("1a:1b:1c:1d:1e:1f");
-  // Expected conversion from "1a:1b:1c:1d:1e:1f"
-  std::array<uint8_t, 6> expected_output{{26, 27, 28, 29, 30, 31}};
-  EXPECT_EQ(fake_bluetooth_adapter.GetAddress(), expected_output);
+  MacAddress mac_address;
+  MacAddress::FromString("1a:1b:1c:1d:1e:1f", mac_address);
+  fake_bluetooth_adapter.SetAddress(mac_address);
+  EXPECT_EQ(fake_bluetooth_adapter.GetAddress().ToString(),
+            "1A:1B:1C:1D:1E:1F");
 }
 
 TEST(FakeBluetoothAdapter, AddObserver) {

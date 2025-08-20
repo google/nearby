@@ -36,6 +36,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "internal/platform/implementation/account_manager.h"
+#include "internal/platform/mac_address.h"
 #include "internal/test/fake_account_manager.h"
 #include "proto/identity/v1/resources.pb.h"
 #include "proto/identity/v1/rpcs.pb.h"
@@ -130,8 +131,10 @@ class NearbyShareCertificateManagerImplTest
     // Set default device data.
     local_device_data_manager_->SetDeviceName(
         GetNearbyShareTestMetadata().device_name());
-    SetBluetoothMacAddress(kTestUnparsedBluetoothMacAddress);
-    SetMockBluetoothAddress(kTestUnparsedBluetoothMacAddress);
+    MacAddress mac_address;
+    MacAddress::FromString(kTestUnparsedBluetoothMacAddress, mac_address);
+    bluetooth_mac_address_ = mac_address;
+    SetMockBluetoothAddress(mac_address);
   }
 
   void TearDown() override {
@@ -175,10 +178,6 @@ class NearbyShareCertificateManagerImplTest
     cert_manager_->Start();
   }
 
-  void SetBluetoothMacAddress(absl::string_view bluetooth_mac_address) {
-    bluetooth_mac_address_ = bluetooth_mac_address;
-  }
-
   // NearbyShareCertificateManager::Observer:
   void OnPublicCertificatesDownloaded() override {
     ++num_public_certs_downloaded_notifications_;
@@ -211,7 +210,7 @@ class NearbyShareCertificateManagerImplTest
         absl::Milliseconds(1000)));
   }
 
-  void SetMockBluetoothAddress(absl::string_view bluetooth_mac_address) {
+  void SetMockBluetoothAddress(MacAddress bluetooth_mac_address) {
     FakeBluetoothAdapter& bluetooth_adapter =
         *fake_context_.fake_bluetooth_adapter();
     bluetooth_adapter.SetAddress(bluetooth_mac_address);
@@ -221,7 +220,7 @@ class NearbyShareCertificateManagerImplTest
     if (!is_present) {
       FakeBluetoothAdapter& bluetooth_adapter =
           *fake_context_.fake_bluetooth_adapter();
-      bluetooth_adapter.SetAddress("");
+      bluetooth_adapter.SetAddress(MacAddress{});
     }
   }
 
@@ -480,7 +479,7 @@ class NearbyShareCertificateManagerImplTest
   FakeNearbyShareScheduler* public_cert_exp_scheduler_ = nullptr;
   FakeNearbyShareScheduler* upload_scheduler_ = nullptr;
   FakeNearbyShareScheduler* download_scheduler_ = nullptr;
-  std::string bluetooth_mac_address_ = kTestUnparsedBluetoothMacAddress;
+  MacAddress bluetooth_mac_address_;
   size_t num_public_certs_downloaded_notifications_ = 0;
   size_t num_private_certs_changed_notifications_ = 0;
   std::vector<NearbySharePrivateCertificate> private_certificates_;
@@ -869,8 +868,8 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 
   cert_manager_->Start();
 
-  // Expect failure because a Bluetooth MAC address is required.
-  InvokePrivateCertificateRefresh(/*expected_success=*/false);
+  // Bluetooth MAC address is optional, so the refresh should still succeed.
+  InvokePrivateCertificateRefresh(/*expected_success=*/true);
 }
 
 TEST_F(NearbyShareCertificateManagerImplTest,

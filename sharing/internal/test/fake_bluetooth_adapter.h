@@ -17,15 +17,12 @@
 
 #include <stdint.h>
 
-#include <array>
 #include <functional>
 #include <optional>
 #include <string>
 
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h"
-#include "internal/base/bluetooth_address.h"
 #include "internal/base/observer_list.h"
+#include "internal/platform/mac_address.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 
 namespace nearby {
@@ -82,21 +79,12 @@ class FakeBluetoothAdapter : public sharing::api::BluetoothAdapter {
 
   std::optional<std::string> GetAdapterId() const override { return "nearby"; }
 
-  std::optional<std::array<uint8_t, 6>> GetAddress() const override {
-    std::array<uint8_t, 6> output;
-    if (mac_address_.has_value() && device::ParseBluetoothAddress(
-            mac_address_.value(),
-            absl::MakeSpan(output.data(), output.size()))) {
-      return output;
-    }
-    return {};
+  MacAddress GetAddress() const override {
+    return mac_address_;
   }
 
-  void SetAddress(std::optional<absl::string_view> bluetooth_address) {
-    mac_address_ = std::nullopt;
-    if (bluetooth_address.has_value()) {
-      mac_address_ = std::make_optional(std::string(bluetooth_address.value()));
-    }
+  void SetAddress(MacAddress bluetooth_address) {
+    mac_address_ = bluetooth_address;
   }
 
   void AddObserver(Observer* observer) override {
@@ -175,7 +163,7 @@ class FakeBluetoothAdapter : public sharing::api::BluetoothAdapter {
 
  private:
   ObserverList<sharing::api::BluetoothAdapter::Observer> observer_list_;
-  std::optional<std::string> mac_address_;
+  MacAddress mac_address_;
   bool is_present_ = true;
   bool is_powered_ = true;
   bool is_low_energy_supported_ = true;

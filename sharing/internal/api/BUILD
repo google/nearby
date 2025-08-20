@@ -38,6 +38,7 @@ cc_library(
     ],
     deps = [
         "//internal/base:file_path",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
         "//proto/identity/v1:rpcs_cc_proto",
@@ -74,6 +75,7 @@ cc_library(
     deps = [
         ":platform",
         "//internal/base:file_path",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",
         "//sharing/analytics",

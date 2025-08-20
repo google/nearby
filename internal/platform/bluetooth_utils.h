@@ -39,21 +39,6 @@ class BluetoothUtils {
   // e.g. "AC:37:43:BC:A9:28" -> {-84, 55, 67, -68, -87, 40}.
   ABSL_DEPRECATED("Use MacAddress class instead.")
   static ByteArray FromString(absl::string_view bluetooth_mac_address);
-
-  // Converts a MAC address from binary to canonical format.
-  // Example: 0xF1F2F3F4F5F6 -> "F1:F2:F3:F4:F5:F6"
-  ABSL_DEPRECATED("Use MacAddress class instead.")
-  static std::string FromNumber(std::uint64_t address);
-
-  // Converts a MAC address from canonical format to binary
-  // Example: "F1:F2:F3:F4:F5:F6" ->0xF1F2F3F4F5F6
-  ABSL_DEPRECATED("Use MacAddress class instead.")
-  static std::uint64_t ToNumber(absl::string_view address);
-
-  // Checks if a Bluetooth MAC address is zero for every byte.
-  ABSL_DEPRECATED("Use MacAddress class instead.")
-  static bool IsBluetoothMacAddressUnset(
-      const ByteArray& bluetooth_mac_address);
 };
 
 }  // namespace nearby

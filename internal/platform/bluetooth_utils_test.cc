@@ -88,16 +88,4 @@ TEST(BluetoothUtilsTest, InvalidStringReturnsEmptyByteArray) {
   EXPECT_TRUE(bytes_result.Empty());
 }
 
-TEST(BluetoothUtilsTest, FromNumber) {
-  EXPECT_EQ(BluetoothUtils::FromNumber(0xF1F2F3F4F5F6), "F1:F2:F3:F4:F5:F6");
-}
-
-TEST(BluetoothUtilsTest, ToNumber) {
-  EXPECT_EQ(BluetoothUtils::ToNumber("F1:F2:F3:F4:F5:F6"), 0xF1F2F3F4F5F6);
-}
-
-TEST(BluetoothUtilsTest, ToNumberInvalidString) {
-  EXPECT_EQ(BluetoothUtils::ToNumber("22:00:11:33:77:aa::bb::99"), 0);
-}
-
 }  // namespace nearby

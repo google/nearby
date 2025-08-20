@@ -627,6 +627,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
   // Start GattClient
   MacAddress mac_address;
   EXPECT_TRUE(MacAddress::FromString(adapter_a.GetMacAddress(), mac_address));
+  EXPECT_TRUE(mac_address.IsSet());
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BleV2Peripheral(ble_b, mac_address.address()), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{});

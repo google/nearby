@@ -38,11 +38,10 @@ cc_library(
     deps = [
         "//internal/base",
         "//internal/base:bluetooth_address",
-        "//internal/network:url",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/test",
         "//sharing/internal/api:platform",
-        "//sharing/internal/public:logging",
         "//sharing/internal/public:types",
         "//sharing/proto:share_cc_proto",
         "@com_google_absl//absl/base:core_headers",
@@ -70,15 +69,12 @@ cc_test(
     shard_count = 8,
     deps = [
         ":nearby_test",
-        "//internal/network:types",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # fixdeps: keep
         "//sharing/internal/api:platform",  # fixdeps: keep
         "//sharing/internal/public:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",

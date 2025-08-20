@@ -42,7 +42,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "internal/base/bluetooth_address.h"
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/network/url.h"
@@ -639,9 +638,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           } else {
             VLOG(1)
                 << __func__ << ": This device's MAC address is: "
-                << nearby::device::CanonicalizeBluetoothAddress(
-                       context_->GetBluetoothAdapter().GetAddress().value_or(
-                           std::array<uint8_t, 6>{}));
+                << context_->GetBluetoothAdapter().GetAddress().ToString();
           }
         }
 
