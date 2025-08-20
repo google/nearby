@@ -17,6 +17,8 @@
 #include <string>
 #include <utility>
 
+#include "connections/implementation/base_endpoint_channel.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_direct.h"
 
@@ -38,9 +40,8 @@ WifiDirectEndpointChannel::GetMedium() const {
 void WifiDirectEndpointChannel::CloseImpl() {
   Exception status = socket_.Close();
   if (!status.Ok()) {
-    LOG(INFO)
-        << "Failed to close underlying socket for WifiDirectEndpointChannel "
-        << GetName() << " : exception = " << status.value;
+    LOG(ERROR) << "Failed to close socket for WifiDirectEndpointChannel "
+              << GetName() << " : exception = " << status.value;
   }
 }
 

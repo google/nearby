@@ -13,9 +13,12 @@
 // limitations under the License.
 
 #include <memory>
+#include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
@@ -37,8 +40,13 @@ namespace connections {
 
 namespace {
 using ::location::nearby::connections::OfflineFrame;
+using UpgradePathInfo = ::location::nearby::connections::
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo;
 using ::location::nearby::proto::connections::OperationResultCode;
 constexpr absl::Duration kWaitDuration = absl::Milliseconds(1000);
+constexpr absl::string_view kServiceID{
+    "com.google.location.nearby.connections.test"};
+constexpr absl::string_view kEndpointID{"WifiDirect_GO"};
 }  // namespace
 
 class WifiDirectTest : public testing::Test {
@@ -55,8 +63,8 @@ TEST_F(WifiDirectTest, CanCreateBwuHandler) {
 
   auto handler = std::make_unique<WifiDirectBwuHandler>(mediums, nullptr);
 
-  handler->InitializeUpgradedMediumForEndpoint(&client, /*service_id=*/"B",
-                                               /*endpoint_id=*/"2");
+  handler->InitializeUpgradedMediumForEndpoint(&client, std::string(kServiceID),
+                                               std::string(kEndpointID));
   handler->RevertInitiatorState();
   SUCCEED();
   handler.reset();
@@ -68,57 +76,71 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
   CountDownLatch end_latch(1);
 
   ClientProxy wifi_direct_go, wifi_direct_gc;
-  Mediums mediums_1, mediums_2;
+  Mediums mediums_wfd_go, mediums_wfd_gc;
   ExceptionOr<OfflineFrame> upgrade_frame;
 
-  auto handler_1 = std::make_unique<WifiDirectBwuHandler>(
-      mediums_1, [&](ClientProxy* client,
+  auto wfd_go_bwu_handler = std::make_unique<WifiDirectBwuHandler>(
+      mediums_wfd_go, [&](ClientProxy* client,
                      std::unique_ptr<BwuHandler::IncomingSocketConnection>
                          mutable_connection) {
-        LOG(WARNING) << "Server socket connection accept call back";
+        LOG(INFO) << "Server socket connection accept call back, Socket name: "
+                  << mutable_connection->socket->ToString();
         std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
             mutable_connection.release());
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
-        LOG(WARNING) << "Test is done. Close the socket";
+
         connection->channel->Close();
         connection->socket->Close();
       });
 
-  SingleThreadExecutor server_executor;
-  server_executor.Execute(
-      [&handler_1, &wifi_direct_go, &upgrade_frame, &start_latch]() {
-        ByteArray upgrade_path_available_frame =
-            handler_1->InitializeUpgradedMediumForEndpoint(&wifi_direct_go,
-                                                           /*service_id=*/"A",
-                                                           /*endpoint_id=*/"1");
-        EXPECT_FALSE(upgrade_path_available_frame.Empty());
+  SingleThreadExecutor wfd_go_executor;
+  wfd_go_executor.Execute([&wfd_go_bwu_handler, &wifi_direct_go, &upgrade_frame,
+                           &start_latch]() {
+    ByteArray upgrade_path_available_frame =
+        wfd_go_bwu_handler->InitializeUpgradedMediumForEndpoint(
+            &wifi_direct_go, std::string(kServiceID), std::string(kEndpointID));
+    EXPECT_FALSE(upgrade_path_available_frame.Empty());
 
-        upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
-        start_latch.CountDown();
-      });
+    upgrade_frame = parser::FromBytes(upgrade_path_available_frame);
+    start_latch.CountDown();
+  });
 
-  SingleThreadExecutor client_executor;
+  wifi_direct_gc.AddCancellationFlag(std::string(kEndpointID));
+  SingleThreadExecutor wfd_gc_executor;
   // Wait till wifi_direct_go started and then connect to it
   EXPECT_TRUE(start_latch.Await(kWaitDuration).result());
-  EXPECT_FALSE(mediums_2.GetWifiDirect().IsConnectedToGO());
-  std::unique_ptr<BwuHandler> handler_2 =
-      std::make_unique<WifiDirectBwuHandler>(mediums_2, nullptr);
+  EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
+  std::unique_ptr<BwuHandler> wfd_gc_bwu_handler =
+      std::make_unique<WifiDirectBwuHandler>(mediums_wfd_gc, nullptr);
 
-  client_executor.Execute([&]() {
+  wfd_gc_executor.Execute([&]() {
+    UpgradePathInfo upgrade_path_info;
+    ErrorOr<std::unique_ptr<EndpointChannel>> result_error =
+        wfd_gc_bwu_handler->CreateUpgradedEndpointChannel(
+            &wifi_direct_gc, std::string(kServiceID),
+            std::string(kEndpointID), upgrade_path_info);
+    EXPECT_TRUE(result_error.has_error());
+
     auto bwu_frame =
         upgrade_frame.result().v1().bandwidth_upgrade_negotiation();
 
     ErrorOr<std::unique_ptr<EndpointChannel>> result =
-        handler_2->CreateUpgradedEndpointChannel(
-            &wifi_direct_gc, /*service_id=*/"A",
-            /*endpoint_id=*/"1", bwu_frame.upgrade_path_info());
-    if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
+        wfd_gc_bwu_handler->CreateUpgradedEndpointChannel(
+            &wifi_direct_gc, std::string(kServiceID),
+            std::string(kEndpointID), bwu_frame.upgrade_path_info());
+    EXPECT_EQ(wfd_gc_bwu_handler->GetUpgradeMedium(),
+              location::nearby::proto::connections::Medium::WIFI_DIRECT);
+
+    if (!wifi_direct_gc.GetCancellationFlag(std::string(kEndpointID))
+             ->Cancelled()) {
       ASSERT_TRUE(result.has_value());
       std::unique_ptr<EndpointChannel> new_channel = std::move(result.value());
       EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
       EXPECT_EQ(new_channel->GetMedium(),
                 location::nearby::proto::connections::Medium::WIFI_DIRECT);
+      absl::SleepFor(absl::Milliseconds(100));
+      new_channel->Close();
     } else {
       EXPECT_FALSE(result.has_value());
       EXPECT_TRUE(result.has_error());
@@ -127,14 +149,16 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
                     CLIENT_CANCELLATION_CANCEL_WIFI_DIRECT_OUTGOING_CONNECTION);
       accept_latch.CountDown();
     }
-    EXPECT_TRUE(mediums_2.GetWifiDirect().IsConnectedToGO());
-    handler_2->RevertResponderState(/*service_id=*/"A");
+    EXPECT_TRUE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
+    wfd_gc_bwu_handler->RevertResponderState(std::string(kServiceID));
     end_latch.CountDown();
   });
+  wfd_gc_bwu_handler->OnEndpointDisconnect(&wifi_direct_gc,
+                                  std::string(kEndpointID));
 
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
-  EXPECT_FALSE(mediums_2.GetWifiDirect().IsConnectedToGO());
+  EXPECT_FALSE(mediums_wfd_gc.GetWifiDirect().IsConnectedToGO());
 }
 
 }  // namespace connections
