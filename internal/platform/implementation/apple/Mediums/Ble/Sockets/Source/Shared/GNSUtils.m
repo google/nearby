@@ -99,4 +99,22 @@ NSString *GNSCharacteristicName(NSString *uuid) {
   return @"UnknownChar";
 }
 
+NSString *CBManagerStateString(CBManagerState state) {
+  switch (state) {
+    case CBManagerStateUnknown:
+      return @"CBManagerStateUnknown";
+    case CBManagerStateResetting:
+      return @"CBManagerStateResetting";
+    case CBManagerStateUnsupported:
+      return @"CBManagerStateUnsupported";
+    case CBManagerStateUnauthorized:
+      return @"CBManagerStateUnauthorized";
+    case CBManagerStatePoweredOff:
+      return @"CBManagerStatePoweredOff";
+    case CBManagerStatePoweredOn:
+      return @"CBManagerStatePoweredOn";
+  }
+  return @"CBManagerState Unknown";
+}
+
 NS_ASSUME_NONNULL_END
