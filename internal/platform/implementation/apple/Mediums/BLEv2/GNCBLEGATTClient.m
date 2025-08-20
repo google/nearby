@@ -17,6 +17,7 @@
 #import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEError.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLEv2/GNCPeripheral.h"
@@ -24,6 +25,13 @@
 NS_ASSUME_NONNULL_BEGIN
 
 static char *const kGNCBLEGATTClientQueueLabel = "com.nearby.GNCBLEGATTClient";
+static const UInt8 kGATTQueryTimeoutInSeconds = 10;
+
+static NSError *GATTTimeoutError() {
+  return [NSError errorWithDomain:GNCBLEErrorDomain
+                             code:GNCBLEErrorBlePerperipheralConnectionTimeout
+                         userInfo:nil];
+}
 
 static NSError *InvalidCharacteristicError() {
   return [NSError errorWithDomain:GNCBLEErrorDomain
@@ -31,17 +39,145 @@ static NSError *InvalidCharacteristicError() {
                          userInfo:nil];
 }
 
-static NSError *AlreadyDiscoveringSpecifiedCharacteristicsError() {
+static NSError *InvalidServiceDataError() {
   return [NSError errorWithDomain:GNCBLEErrorDomain
-                             code:GNCBLEErrorAlreadyDiscoveringSpecifiedCharacteristics
+                             code:GNCBLEErrorInvalidServiceData
                          userInfo:nil];
 }
 
-static NSError *AlreadyReadingCharacteristicError() {
-  return [NSError errorWithDomain:GNCBLEErrorDomain
-                             code:GNCBLEErrorAlreadyReadingCharacteristic
-                         userInfo:nil];
+/**
+ * A data object that contains parameters for discovering characteristics.
+ */
+@interface GNCDiscoverCharacteristicsRequest : NSObject
+
+/// The UUIDs of the characteristics to discover.
+@property(nonatomic, copy, readonly) NSArray<CBUUID *> *characteristicUUIDs;
+
+/// The UUID of the service to which the characteristics belong.
+@property(nonatomic, copy, readonly) CBUUID *serviceUUID;
+
+/// The completion handler to call when discovery is complete.
+@property(nonatomic, copy, readonly) GNCDiscoverCharacteristicsCompletionHandler completionHandler;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+/**
+ * Designated initializer.
+ *
+ * @param characteristicUUIDs The UUIDs of the characteristics to discover.
+ * @param serviceUUID The UUID of the service.
+ * @param completionHandler The completion handler to be called upon completion.
+ */
+- (instancetype)initWithCharacteristicUUIDs:(NSArray<CBUUID *> *)characteristicUUIDs
+                                serviceUUID:(CBUUID *)serviceUUID
+                          completionHandler:
+                              (GNCDiscoverCharacteristicsCompletionHandler)completionHandler
+    NS_DESIGNATED_INITIALIZER;
+
+@end
+
+@implementation GNCDiscoverCharacteristicsRequest
+
+- (instancetype)initWithCharacteristicUUIDs:(NSArray<CBUUID *> *)characteristicUUIDs
+                                serviceUUID:(CBUUID *)serviceUUID
+                          completionHandler:
+                              (GNCDiscoverCharacteristicsCompletionHandler)completionHandler {
+  // Call the designated initializer of the superclass (NSObject).
+  self = [super init];
+  if (self) {
+    // Use the private ivars to set the values.
+    // The 'copy' attribute on the properties ensures that we are storing
+    // an immutable copy of the incoming array and UUID, protecting the object's
+    // state from being changed by the caller after initialization.
+    _characteristicUUIDs = [characteristicUUIDs copy];
+    _serviceUUID = [serviceUUID copy];
+    _completionHandler = [completionHandler copy];
+  }
+  return self;
 }
+
+@end
+
+/**
+ * A data object that contains parameters for a characteristic read request.
+ */
+@interface GNCReadCharacteristicValueRequest : NSObject
+
+/// The characteristic whose value should be read.
+@property(nonatomic, strong, readonly) GNCBLEGATTCharacteristic *characteristic;
+
+/// The completion handler to call with the result of the read operation.
+@property(nonatomic, copy, readonly) GNCReadCharacteristicValueCompletionHandler completionHandler;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+/**
+ * Designated initializer.
+ *
+ * @param characteristic The characteristic to read from.
+ * @param completionHandler The completion handler to be called with the result.
+ */
+- (instancetype)initWithCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
+                     completionHandler:
+                         (GNCReadCharacteristicValueCompletionHandler)completionHandler
+    NS_DESIGNATED_INITIALIZER;
+
+@end
+
+@implementation GNCReadCharacteristicValueRequest
+
+- (instancetype)initWithCharacteristic:(GNCBLEGATTCharacteristic *)characteristic
+                     completionHandler:
+                         (GNCReadCharacteristicValueCompletionHandler)completionHandler {
+  // Call the designated initializer of the superclass (NSObject).
+  self = [super init];
+  if (self) {
+    // Assign the parameters to the internal instance variables.
+    // The `strong` property for the characteristic ensures it is retained.
+    // The `copy` property for the completion handler ensures we store our own
+    // immutable copy of the block, preventing it from being changed by the caller.
+    _characteristic = characteristic;
+    _completionHandler = [completionHandler copy];
+  }
+  return self;
+}
+
+@end
+
+// A wrapper for a CBService that holds additional information for characteristic discovery.
+@interface GNCServiceInfo : NSObject
+
+/// The CBService that this object wraps.
+@property(nonatomic, strong) CBService *service;
+
+/// The UUIDs of the characteristics that should be discovered for this service.
+@property(nonatomic, copy) NSMutableArray<CBUUID *> *characteristicUUIDs;
+
+- (instancetype)init NS_UNAVAILABLE;
+
+/**
+ * Designated initializer.
+ *
+ * @param service The CBService that this object wraps.
+ * @param characteristicUUIDs The UUIDs of the characteristics that should be discovered for this
+ * service.
+ */
+- (instancetype)initWithService:(CBService *)service
+            characteristicUUIDs:(NSArray<CBUUID *> *)characteristicUUIDs NS_DESIGNATED_INITIALIZER;
+@end
+
+@implementation GNCServiceInfo
+- (instancetype)initWithService:(CBService *)service
+            characteristicUUIDs:(NSArray<CBUUID *> *)characteristicUUIDs {
+  self = [super init];
+  if (self) {
+    _service = service;
+    _characteristicUUIDs = [characteristicUUIDs mutableCopy];
+  }
+  return self;
+}
+
+@end
 
 @interface GNCBLEGATTClient () <GNCPeripheralDelegate>
 @end
@@ -50,25 +186,12 @@ static NSError *AlreadyReadingCharacteristicError() {
   dispatch_queue_t _queue;
   id<GNCPeripheral> _peripheral;
   GNCRequestDisconnectionHandler _requestDisconnectionHandler;
-
-  /**
-   * A map of service UUIDs with each service holding a map of a list of characterisitcs to a
-   * completion handler. This is used to track the groupings of characteristic discovery requests.
-   * When all characteristics of a request are discovered, the completion handler is called and
-   * removed from the map.
-   */
-  NSMutableDictionary<CBUUID *, NSMutableDictionary<NSArray<CBUUID *> *,
-                                                    GNCDiscoverCharacteristicsCompletionHandler> *>
-      *_discoverCharacteristicsCompletionHandlers;
-
-  /**
-   * A service to characteristic to completion handler map. Used to track pending read requests.
-   * When a characteristic's value has been updated, the completion handler is called and removed
-   * from the map.
-   */
-  NSMutableDictionary<CBUUID *,
-                      NSMutableDictionary<CBUUID *, GNCReadCharacteristicValueCompletionHandler> *>
-      *_readCharacteristicValueCompletionHandlers;
+  GNCDiscoverCharacteristicsRequest *_Nullable _currentDiscoverCharacteristicsRequest;
+  GNCReadCharacteristicValueRequest *_Nullable _currentReadCharacteristicValueRequest;
+  dispatch_semaphore_t _semaphore;
+  int _discoveredServicesCount;
+  int _didDiscoverCharacteristicsCount;
+  NSLock *_dataLock;
 }
 
 - (instancetype)initWithPeripheral:(id<GNCPeripheral>)peripheral
@@ -87,10 +210,12 @@ static NSError *AlreadyReadingCharacteristicError() {
   if (self) {
     _queue = queue ?: dispatch_get_main_queue();
     _peripheral = peripheral;
+    _semaphore = nil;
     _peripheral.peripheralDelegate = self;
-    _discoverCharacteristicsCompletionHandlers = [[NSMutableDictionary alloc] init];
-    _readCharacteristicValueCompletionHandlers = [[NSMutableDictionary alloc] init];
+    _currentDiscoverCharacteristicsRequest = nil;
+    _currentReadCharacteristicValueRequest = nil;
     _requestDisconnectionHandler = requestDisconnectionHandler;
+    _dataLock = [[NSLock alloc] init];
   }
   return self;
 };
@@ -100,25 +225,25 @@ static NSError *AlreadyReadingCharacteristicError() {
                        completionHandler:
                            (nullable GNCDiscoverCharacteristicsCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
-    if (!_discoverCharacteristicsCompletionHandlers[serviceUUID]) {
-      _discoverCharacteristicsCompletionHandlers[serviceUUID] = [[NSMutableDictionary alloc] init];
-    }
-    // Return an error if we are already discovering the provided characteristics.
-    if (_discoverCharacteristicsCompletionHandlers[serviceUUID][characteristicUUIDs]) {
-      if (completionHandler) {
-        completionHandler(AlreadyDiscoveringSpecifiedCharacteristicsError());
-      }
-      return;
-    }
-    // Use the list of characteristic UUIDs as the key. This makes it easy to associate the
-    // completion handler with the list of characteristics we are waiting for, as well as retrieving
-    // the complete list of characteristics we need to query for a single service.
-    _discoverCharacteristicsCompletionHandlers[serviceUUID][characteristicUUIDs] =
-        completionHandler;
+    [_dataLock lock];
+    _currentDiscoverCharacteristicsRequest =
+        [[GNCDiscoverCharacteristicsRequest alloc] initWithCharacteristicUUIDs:characteristicUUIDs
+                                                                   serviceUUID:serviceUUID
+                                                             completionHandler:completionHandler];
 
-    // Note: A call to @c discoverServices: will always be paired with a delegate call even if the
-    // service has already been discovered.
+    [_dataLock unlock];
+    _semaphore = dispatch_semaphore_create(0);
+    dispatch_time_t timeout =
+        dispatch_time(DISPATCH_TIME_NOW, kGATTQueryTimeoutInSeconds * NSEC_PER_SEC);
     [_peripheral discoverServices:@[ serviceUUID ]];
+    if (dispatch_semaphore_wait(_semaphore, timeout) != 0) {
+      GNCLoggerError(@"Discover characteristics on the peripheral timed out.");
+      [_dataLock lock];
+      if (_currentDiscoverCharacteristicsRequest.completionHandler) {
+        [self finishDiscoverCharacteristicsRequest:GATTTimeoutError()];
+      }
+      [_dataLock unlock];
+    }
   });
 }
 
@@ -126,20 +251,25 @@ static NSError *AlreadyReadingCharacteristicError() {
                    serviceUUID:(CBUUID *)serviceUUID
              completionHandler:(nullable GNCGetCharacteristicCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
+    if (!completionHandler) {
+      return;
+    }
+
     CBCharacteristic *characteristic = [self synchronousCharacteristicWithUUID:characteristicUUID
                                                                    serviceUUID:serviceUUID];
     if (!characteristic) {
-      if (completionHandler) {
+      dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
         completionHandler(nil, InvalidCharacteristicError());
-      }
+      });
       return;
     }
-    if (completionHandler) {
+
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
       completionHandler([[GNCBLEGATTCharacteristic alloc] initWithUUID:characteristic.UUID
                                                            serviceUUID:characteristic.service.UUID
                                                             properties:characteristic.properties],
                         nil);
-    }
+    });
   });
 }
 
@@ -147,47 +277,52 @@ static NSError *AlreadyReadingCharacteristicError() {
                  completionHandler:
                      (nullable GNCReadCharacteristicValueCompletionHandler)completionHandler {
   dispatch_async(_queue, ^{
+    [_dataLock lock];
+    _currentReadCharacteristicValueRequest =
+        [[GNCReadCharacteristicValueRequest alloc] initWithCharacteristic:characteristic
+                                                        completionHandler:completionHandler];
+
     CBCharacteristic *cbCharacteristic =
         [self synchronousCharacteristicWithUUID:characteristic.characteristicUUID
                                     serviceUUID:characteristic.serviceUUID];
 
     if (!cbCharacteristic) {
       if (completionHandler) {
-        completionHandler(nil, InvalidCharacteristicError());
+        [self finishReadCharacteristicValueRequest:nil error:InvalidCharacteristicError()];
       }
       return;
     }
 
-    if (!_readCharacteristicValueCompletionHandlers[characteristic.serviceUUID]) {
-      _readCharacteristicValueCompletionHandlers[characteristic.serviceUUID] =
-          [[NSMutableDictionary alloc] init];
-    }
-    // Return an error if we are already discovering the provided characteristics.
-    if (_readCharacteristicValueCompletionHandlers[characteristic.serviceUUID]
-                                                  [characteristic.characteristicUUID]) {
-      if (completionHandler) {
-        completionHandler(nil, AlreadyReadingCharacteristicError());
-      }
-      return;
-    }
-    _readCharacteristicValueCompletionHandlers[characteristic.serviceUUID]
-                                              [characteristic.characteristicUUID] =
-                                                  completionHandler;
+    [_dataLock unlock];
 
+    _semaphore = dispatch_semaphore_create(0);
+
+    dispatch_time_t timeout =
+        dispatch_time(DISPATCH_TIME_NOW, kGATTQueryTimeoutInSeconds * NSEC_PER_SEC);
     [_peripheral readValueForCharacteristic:cbCharacteristic];
+    if (dispatch_semaphore_wait(_semaphore, timeout) != 0) {
+      GNCLoggerError(@"Read value for characteristic timed out.");
+      [_dataLock lock];
+      if (_currentReadCharacteristicValueRequest.completionHandler) {
+        [self finishReadCharacteristicValueRequest:nil error:GATTTimeoutError()];
+      }
+      [_dataLock unlock];
+    }
   });
 }
 
 - (void)disconnect {
   dispatch_async(_queue, ^{
-    _requestDisconnectionHandler(_peripheral);
+    if (_requestDisconnectionHandler) {
+      _requestDisconnectionHandler(_peripheral);
+    }
   });
 }
 
 #pragma mark - Internal
 
-- (CBCharacteristic *)synchronousCharacteristicWithUUID:(CBUUID *)characteristicUUID
-                                            serviceUUID:(CBUUID *)serviceUUID {
+- (nullable CBCharacteristic *)synchronousCharacteristicWithUUID:(CBUUID *)characteristicUUID
+                                                     serviceUUID:(CBUUID *)serviceUUID {
   dispatch_assert_queue(_queue);
   for (CBService *service in _peripheral.services) {
     if ([service.UUID isEqual:serviceUUID]) {
@@ -198,119 +333,173 @@ static NSError *AlreadyReadingCharacteristicError() {
       }
     }
   }
+
   return nil;
+}
+
+- (void)finishDiscoverCharacteristicsRequest:(nullable NSError *)error {
+  _currentDiscoverCharacteristicsRequest.completionHandler(error);
+  _currentDiscoverCharacteristicsRequest = nil;
+}
+
+- (void)finishReadCharacteristicValueRequest:(nullable NSData *)value
+                                       error:(nullable NSError *)error {
+  _currentReadCharacteristicValueRequest.completionHandler(value, error);
+  _currentReadCharacteristicValueRequest = nil;
 }
 
 #pragma mark - GNCPeripheralDelegate
 
 - (void)gnc_peripheral:(id<GNCPeripheral>)peripheral didDiscoverServices:(nullable NSError *)error {
-  dispatch_assert_queue(_queue);
-  // TODO(b/295911088): Queue incoming requests by service would allow us to not attempt
-  // characteristc discovery on all services and to short circuit and call the completion handler if
-  // there was an error.
-  for (CBService *service in peripheral.services) {
-    // Flatten lists of characteristics for a given service into a single list for discovery.
-    NSArray<NSArray<CBUUID *> *> *groupedCharacteristics =
-        _discoverCharacteristicsCompletionHandlers[service.UUID].allKeys;
-    if (!groupedCharacteristics) {
-      continue;
-    }
-    NSMutableSet<CBUUID *> *flattenedCharacteristics = [[NSMutableSet alloc] init];
-    for (NSArray<CBUUID *> *characteristics in groupedCharacteristics) {
-      [flattenedCharacteristics addObjectsFromArray:characteristics];
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+    [_dataLock lock];
+
+    if (!_currentDiscoverCharacteristicsRequest ||
+        !_currentDiscoverCharacteristicsRequest.completionHandler) {
+      [_dataLock unlock];
+      return;
     }
 
-    // Note: Since we don't clear @c _discoverCharacteristicsCompletionHandlers until the
-    // characterististics have been discovered, multiple calls to
-    // @c discoverService:characteristics:completionHandler: will cause duplicate characteristic
-    // discovery calls on the same service. We CANNOT clear the pending list until after we actually
-    // discover the characteristics, because there can be more than 1 service with the same UUID.
-    // This is a common occurence for Nearby services, so it should not be treated as an edge case.
-    [_peripheral discoverCharacteristics:[flattenedCharacteristics allObjects] forService:service];
-  }
+    if (error) {
+      GNCLoggerError(@"Failed to discover services on the peripheral, error: %@", error);
+      [self finishDiscoverCharacteristicsRequest:error];
+      [_dataLock unlock];
+      dispatch_semaphore_signal(_semaphore);
+      return;
+    }
+
+    _discoveredServicesCount = 0;
+    _didDiscoverCharacteristicsCount = 0;
+    NSMutableArray<GNCServiceInfo *> *servicesToDiscoverCharacteristics =
+        [[NSMutableArray alloc] init];
+
+    for (CBService *service in peripheral.services) {
+      if (![service.UUID isEqual:_currentDiscoverCharacteristicsRequest.serviceUUID]) {
+        continue;
+      }
+
+      // Flatten lists of characteristics for a given service into a single list for discovery.
+      NSMutableSet<CBUUID *> *uniqueCharacteristics = [[NSMutableSet alloc] init];
+
+      [uniqueCharacteristics
+          addObjectsFromArray:_currentDiscoverCharacteristicsRequest.characteristicUUIDs];
+
+      NSMutableArray<CBUUID *> *flattenedCharacteristics =
+          [NSMutableArray arrayWithArray:[uniqueCharacteristics allObjects]];
+
+      GNCServiceInfo *serviceInfo =
+          [[GNCServiceInfo alloc] initWithService:service
+                              characteristicUUIDs:flattenedCharacteristics];
+      [servicesToDiscoverCharacteristics addObject:serviceInfo];
+    }
+
+    _discoveredServicesCount = servicesToDiscoverCharacteristics.count;
+    _didDiscoverCharacteristicsCount = 0;
+    if (_discoveredServicesCount == 0) {
+      [self finishDiscoverCharacteristicsRequest:InvalidServiceDataError()];
+      [_dataLock unlock];
+      dispatch_semaphore_signal(_semaphore);
+      return;
+    }
+
+    for (GNCServiceInfo *serviceInfo in servicesToDiscoverCharacteristics) {
+      [_peripheral discoverCharacteristics:serviceInfo.characteristicUUIDs
+                                forService:serviceInfo.service];
+    }
+    [_dataLock unlock];
+  });
 }
 
 - (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
     didDiscoverCharacteristicsForService:(CBService *)service
                                    error:(nullable NSError *)error {
-  dispatch_assert_queue(_queue);
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+    [_dataLock lock];
 
-  // Check if each group of characteristics is a subset of the discovered characteristics. If all
-  // characteristics of the group have been discovered, call the completion handler with success,
-  // otherwise continue waiting. If the characteristic discovery returns an error, call all pending
-  // discovery request completion handlers with the error.
-  NSMutableSet<CBUUID *> *characteristics = [[NSMutableSet alloc] init];
-  for (CBCharacteristic *characteristic in service.characteristics) {
-    [characteristics addObject:characteristic.UUID];
-  }
-  [_discoverCharacteristicsCompletionHandlers[service.UUID].copy
-      enumerateKeysAndObjectsUsingBlock:^(NSArray<CBUUID *> *pendingCharacteristics,
-                                          GNCDiscoverCharacteristicsCompletionHandler handler,
-                                          BOOL *stop) {
-        if ([[NSSet setWithArray:pendingCharacteristics] isSubsetOfSet:characteristics]) {
-          _discoverCharacteristicsCompletionHandlers[service.UUID][pendingCharacteristics] = nil;
-          handler(nil);
-          return;
-        }
+    if (!_currentDiscoverCharacteristicsRequest ||
+        !_currentDiscoverCharacteristicsRequest.completionHandler) {
+      [_dataLock unlock];
+      return;
+    }
 
-        // TODO(b/295911088): Queue incoming requests by service to avoid this issue.
-        // This could be a race, where @c discoverService:characteristics:completionHandler: is
-        // called multiple times quickly for the same service. If a request fails, all pending
-        // requests for the same service are also failed.
-        if (error) {
-          _discoverCharacteristicsCompletionHandlers[service.UUID][pendingCharacteristics] = nil;
-          handler(error);
-          return;
-        }
-      }];
+    // Failed to discover characteristics on the peripheral, finish all callbacks with error.
+    if (error) {
+      GNCLoggerError(@"Failed to discover characteristics on the peripheral, error: %@", error);
+      [self finishDiscoverCharacteristicsRequest:error];
+      [_dataLock unlock];
+      dispatch_semaphore_signal(_semaphore);
+      return;
+    }
+
+    _didDiscoverCharacteristicsCount++;
+
+    // Check if each group of characteristics is a subset of the discovered characteristics. If all
+    // characteristics of the group have been discovered, call the completion handler with success,
+    // otherwise continue waiting until all characteristics callbacks are called.
+    NSMutableSet<CBUUID *> *characteristics = [[NSMutableSet alloc] init];
+    for (CBCharacteristic *characteristic in service.characteristics) {
+      [characteristics addObject:characteristic.UUID];
+    }
+    if ([[NSSet setWithArray:_currentDiscoverCharacteristicsRequest.characteristicUUIDs]
+            isSubsetOfSet:characteristics]) {
+      [self finishDiscoverCharacteristicsRequest:nil];
+      [_dataLock unlock];
+      dispatch_semaphore_signal(_semaphore);
+      return;
+    }
+
+    if (_didDiscoverCharacteristicsCount == _discoveredServicesCount) {
+      [self finishDiscoverCharacteristicsRequest:InvalidCharacteristicError()];
+      [_dataLock unlock];
+      dispatch_semaphore_signal(_semaphore);
+      return;
+    }
+
+    [_dataLock unlock];
+  });
 }
 
 - (void)gnc_peripheral:(id<GNCPeripheral>)peripheral
     didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
                               error:(nullable NSError *)error {
-  dispatch_assert_queue(_queue);
-  NSMutableDictionary<CBUUID *, GNCReadCharacteristicValueCompletionHandler> *handlers =
-      _readCharacteristicValueCompletionHandlers[characteristic.service.UUID];
-  if (!handlers) {
-    return;
-  }
-  GNCReadCharacteristicValueCompletionHandler handler = handlers[characteristic.UUID];
-  handlers[characteristic.UUID] = nil;
-  if (handler) {
-    handler(characteristic.value, error);
-  }
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+    [_dataLock lock];
+
+    if (!_currentReadCharacteristicValueRequest ||
+        !_currentReadCharacteristicValueRequest.completionHandler) {
+      [_dataLock unlock];
+      return;
+    }
+
+    [self finishReadCharacteristicValueRequest:characteristic.value error:error];
+    [_dataLock unlock];
+    dispatch_semaphore_signal(_semaphore);
+  });
 }
 
 #pragma mark - CBPeripheralDelegate
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    if ([self respondsToSelector:@selector(gnc_peripheral:didDiscoverServices:)]) {
-      [self gnc_peripheral:peripheral didDiscoverServices:error];
-    }
-  });
+  if ([self respondsToSelector:@selector(gnc_peripheral:didDiscoverServices:)]) {
+    [self gnc_peripheral:peripheral didDiscoverServices:error];
+  }
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral
     didDiscoverCharacteristicsForService:(CBService *)service
                                    error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    if ([self respondsToSelector:@selector(gnc_peripheral:
-                                     didDiscoverCharacteristicsForService:error:)]) {
-      [self gnc_peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
-    }
-  });
+  if ([self respondsToSelector:@selector(gnc_peripheral:
+                                   didDiscoverCharacteristicsForService:error:)]) {
+    [self gnc_peripheral:peripheral didDiscoverCharacteristicsForService:service error:error];
+  }
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral
     didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
                               error:(nullable NSError *)error {
-  dispatch_async(_queue, ^{
-    if ([self respondsToSelector:@selector(gnc_peripheral:
-                                     didUpdateValueForCharacteristic:error:)]) {
-      [self gnc_peripheral:peripheral didUpdateValueForCharacteristic:characteristic error:error];
-    }
-  });
+  if ([self respondsToSelector:@selector(gnc_peripheral:didUpdateValueForCharacteristic:error:)]) {
+    [self gnc_peripheral:peripheral didUpdateValueForCharacteristic:characteristic error:error];
+  }
 }
 
 @end

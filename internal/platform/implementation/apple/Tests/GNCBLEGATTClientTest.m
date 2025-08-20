@@ -80,15 +80,10 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTestExpectation *discoverCharacteristicsExpectation =
       [[XCTestExpectation alloc] initWithDescription:@"Discover characteristics."];
 
-  // TODO(b/295911088): Failed discovery of services won't trigger the completionHandler until we
-  // implement a service queue.
-  discoverCharacteristicsExpectation.inverted = YES;
-
   [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
                                    serviceUUID:serviceUUID
                              completionHandler:^(NSError *error) {
-                               // TODO(b/295911088): Make assertions when service queue is
-                               // implemented.
+                               XCTAssertNotNil(error);
                                [discoverCharacteristicsExpectation fulfill];
                              }];
 
@@ -129,7 +124,6 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTAssertEqual(fakePeripheral.services[0].characteristics.count, 0);
 }
 
-// TODO(b/295911088): When service queue is implemented, this is expected to not be an error.
 - (void)testDuplicateDiscoverCharacteristics {
   GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
 
@@ -162,7 +156,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
     [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
                                      serviceUUID:serviceUUID
                                completionHandler:^(NSError *error) {
-                                 XCTAssertNotNil(error);
+                                 XCTAssertNil(error);
                                  [discoverCharacteristics2Expectation fulfill];
                                }];
   });
@@ -191,7 +185,6 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTestExpectation *discoverCharacteristics2Expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Discover characteristics 2."];
 
-  fakePeripheral.delegateDelay = 1;
   [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
                                    serviceUUID:serviceUUID1
                              completionHandler:^(NSError *error) {
@@ -202,7 +195,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   // Queue the delay change so it doesn't immediately overwrite the delay set for the previous
   // operation.
   dispatch_async(dispatch_get_main_queue(), ^{
-    fakePeripheral.delegateDelay = 0;
+    fakePeripheral.delegateDelay = 1;
     [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
                                      serviceUUID:serviceUUID2
                                completionHandler:^(NSError *error) {
@@ -216,9 +209,9 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   ]
                     timeout:3];
 
-  XCTAssertEqualObjects(fakePeripheral.services[0].UUID, serviceUUID2);
+  XCTAssertEqualObjects(fakePeripheral.services[0].UUID, serviceUUID1);
   XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[0].UUID, characteristicUUID);
-  XCTAssertEqualObjects(fakePeripheral.services[1].UUID, serviceUUID1);
+  XCTAssertEqualObjects(fakePeripheral.services[1].UUID, serviceUUID2);
   XCTAssertEqualObjects(fakePeripheral.services[1].characteristics[0].UUID, characteristicUUID);
 }
 
@@ -240,7 +233,6 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTestExpectation *discoverCharacteristics2Expectation =
       [[XCTestExpectation alloc] initWithDescription:@"Discover characteristics 2."];
 
-  fakePeripheral.delegateDelay = 1;
   [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID1 ]
                                    serviceUUID:serviceUUID
                              completionHandler:^(NSError *error) {
@@ -251,7 +243,7 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   // Queue the delay change so it doesn't immediately overwrite the delay set for the previous
   // operation.
   dispatch_async(dispatch_get_main_queue(), ^{
-    fakePeripheral.delegateDelay = 0;
+    fakePeripheral.delegateDelay = 1;
     [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID2 ]
                                      serviceUUID:serviceUUID
                                completionHandler:^(NSError *error) {
@@ -266,8 +258,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                     timeout:3];
 
   XCTAssertEqualObjects(fakePeripheral.services[0].UUID, serviceUUID);
-  XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[0].UUID, characteristicUUID2);
-  XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[1].UUID, characteristicUUID1);
+  XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[0].UUID, characteristicUUID1);
+  XCTAssertEqualObjects(fakePeripheral.services[0].characteristics[1].UUID, characteristicUUID2);
 }
 
 #pragma mark - Get Characteristic
@@ -321,10 +313,6 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTestExpectation *characteristicExpectation =
       [[XCTestExpectation alloc] initWithDescription:@"Get characteristic."];
 
-  // TODO(b/295911088): Failed discovery of services won't trigger the completionHandler until we
-  // implement a service queue.
-  characteristicExpectation.inverted = YES;
-
   [gattClient discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
                                    serviceUUID:serviceUUID
                              completionHandler:^(NSError *error) {
@@ -333,8 +321,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                                 completionHandler:^(
                                                     GNCBLEGATTCharacteristic *characteristic,
                                                     NSError *error) {
-                                                  // TODO(b/295911088): Make assertions when service
-                                                  // queue is implemented.
+                                                  XCTAssertNotNil(error);
+                                                  XCTAssertNil(characteristic);
                                                   [characteristicExpectation fulfill];
                                                 }];
                              }];
@@ -510,27 +498,12 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
   XCTestExpectation *readValueForCharacteristicExpectation =
       [[XCTestExpectation alloc] initWithDescription:@"Read value for characteristic."];
 
-  // TODO(b/295911088): Failed discovery of services won't trigger the completionHandler until we
-  // implement a service queue.
-  readValueForCharacteristicExpectation.inverted = YES;
-
   [gattClient
       discoverCharacteristicsWithUUIDs:@[ characteristicUUID ]
                            serviceUUID:serviceUUID
                      completionHandler:^(NSError *error) {
-                       [gattClient
-                           characteristicWithUUID:characteristicUUID
-                                      serviceUUID:serviceUUID
-                                completionHandler:^(GNCBLEGATTCharacteristic *characteristic,
-                                                    NSError *error) {
-                                  [gattClient
-                                      readValueForCharacteristic:characteristic
-                                               completionHandler:^(NSData *value, NSError *error) {
-                                                 // TODO(b/295911088): Make assertions when service
-                                                 // queue is implemented.
-                                                 [readValueForCharacteristicExpectation fulfill];
-                                               }];
-                                }];
+                       XCTAssertNotNil(error);
+                       [readValueForCharacteristicExpectation fulfill];
                      }];
 
   [self waitForExpectations:@[ readValueForCharacteristicExpectation ] timeout:3];
@@ -662,8 +635,8 @@ static NSString *const kCharacteristicUUID2 = @"00000000-0000-3000-8000-00000000
                                         readValueForCharacteristic:characteristic
                                                  completionHandler:^(NSData *value,
                                                                      NSError *error) {
-                                                   XCTAssertNotNil(error);
-                                                   XCTAssertNil(value);
+                                                   XCTAssertNil(error);
+                                                   XCTAssertNotNil(value);
                                                    [readValueForCharacteristic2Expectation fulfill];
                                                  }];
                                   });
