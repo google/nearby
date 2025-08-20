@@ -92,6 +92,26 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 - (instancetype)initWithAdvertisedName:(NSString *)advertisedName
                      restoreIdentifier:(NSString *)restoreIdentifier
                                  queue:(dispatch_queue_t)queue {
+  NSMutableDictionary<NSString *, id> *options =
+      [@{CBCentralManagerOptionShowPowerAlertKey : @NO} mutableCopy];
+#if TARGET_OS_IPHONE
+  // Restored API only supported on iOS.
+  if (restoreIdentifier) {
+    options[CBPeripheralManagerOptionRestoreIdentifierKey] = restoreIdentifier;
+  }
+#endif
+  return [self initWithAdvertisedName:advertisedName
+                    restoreIdentifier:restoreIdentifier
+                                queue:queue
+                    peripheralManager:[[CBPeripheralManager alloc] initWithDelegate:self
+                                                                              queue:queue
+                                                                            options:options]];
+}
+
+- (instancetype)initWithAdvertisedName:(NSString *)advertisedName
+                     restoreIdentifier:(NSString *)restoreIdentifier
+                                 queue:(dispatch_queue_t)queue
+                     peripheralManager:(CBPeripheralManager *)peripheralManager {
   self = [super init];
   if (self) {
     _restoreIdentifier = [restoreIdentifier copy];
@@ -100,6 +120,8 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     _peripheralServiceManagers = [NSMapTable strongToWeakObjectsMapTable];
     _btCrashLastResettingDate = [NSDate dateWithTimeIntervalSince1970:0];
     _queue = queue;
+    _cbPeripheralManager = peripheralManager;
+    _cbPeripheralManager.delegate = self;
 
 #if TARGET_OS_IPHONE
     _backgroundTaskId = UIBackgroundTaskInvalid;
@@ -137,15 +159,6 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     GNCLoggerInfo(@"Peripheral manager already started.");
     return;
   }
-  NSMutableDictionary<NSString *, id> *options =
-      [@{CBCentralManagerOptionShowPowerAlertKey : @NO} mutableCopy];
-#if TARGET_OS_IPHONE
-  // Restored API only supported on iOS.
-  if (_restoreIdentifier) {
-    options[CBPeripheralManagerOptionRestoreIdentifierKey] = _restoreIdentifier;
-  }
-#endif
-  _cbPeripheralManager = [self cbPeripheralManagerWithDelegate:self queue:_queue options:options];
   GNCLoggerInfo(@"Peripheral manager started.");
   _started = YES;
   // From Apple documentation |-[GNSPeripheralManager peripheralManagerDidUpdateState:]| will be
@@ -329,12 +342,6 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   return [_cbPeripheralManager updateValue:data
                          forCharacteristic:peripheralServiceManager.weaveOutgoingCharacteristic
                       onSubscribedCentrals:@[ socket.peerAsCentral ]];
-}
-
-- (CBPeripheralManager *)cbPeripheralManagerWithDelegate:(id<CBPeripheralManagerDelegate>)delegate
-                                                   queue:(dispatch_queue_t)queue
-                                                 options:(NSDictionary<NSString *, id> *)options {
-  return [[CBPeripheralManager alloc] initWithDelegate:delegate queue:queue options:options];
 }
 
 - (void)socketDidDisconnect:(GNSSocket *)socket {
