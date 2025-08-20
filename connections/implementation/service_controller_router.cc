@@ -96,10 +96,7 @@ ServiceControllerRouter::ServiceControllerRouter() {
 
 ServiceControllerRouter::ServiceControllerRouter(
     absl::AnyInvocable<bool()> if_hp_realtek_device)
-    : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {
-  LOG(INFO)
-      << "ServiceControllerRouter going up checking if_hp_realtek_device.";
-}
+    : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {}
 
 // Constructor called by the CrOS platform implementation to override the
 // kEnableBleV2 flag.

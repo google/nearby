@@ -81,7 +81,7 @@ bool PreferencesRepository::SavePreferences(json preferences) {
 
     // Create a backup without moving the bytes on disk
     if (Files::FileExists(full_name)) {
-      LOG(INFO) << "Making backup of preferences file.";
+      VLOG(1) << "Making backup of preferences file.";
       if (!Files::Rename(full_name, full_name_backup)) {
         LOG(ERROR) << "Failed to rename preferences backup file.";
       }

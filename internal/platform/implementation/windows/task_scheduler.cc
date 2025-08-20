@@ -37,12 +37,12 @@ void CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
 }  // namespace
 
 TaskScheduler::TaskScheduler() {
-  LOG(INFO) << __func__ << ": Created task scheduler: " << this;
+  VLOG(1) << __func__ << ": Created task scheduler: " << this;
 }
 
 TaskScheduler::~TaskScheduler() {
   Shutdown();
-  LOG(INFO) << __func__ << ": Destroyed task scheduler: " << this;
+  VLOG(1) << __func__ << ": Destroyed task scheduler: " << this;
 }
 
 std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
@@ -54,10 +54,10 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
     Runnable&& runnable, absl::Duration duration,
     absl::Duration repeat_interval) {
   absl::MutexLock lock(&mutex_);
-  LOG(INFO) << __func__ << ": Scheduling task on task scheduler:" << this
-            << ", duration: " << absl::ToInt64Milliseconds(duration)
-            << "ms, repeat_interval: "
-            << absl::ToInt64Milliseconds(repeat_interval) << "ms";
+  VLOG(1) << __func__ << ": Scheduling task on task scheduler:" << this
+          << ", duration: " << absl::ToInt64Milliseconds(duration)
+          << "ms, repeat_interval: "
+          << absl::ToInt64Milliseconds(repeat_interval) << "ms";
   if (is_shutdown_) {
     LOG(ERROR) << __func__
                << ": Attempt to schedule task on a shut down task "
@@ -86,15 +86,15 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
 
   task->set_timer_handle(reinterpret_cast<intptr_t>(timer_handle));
   scheduled_tasks_.insert({reinterpret_cast<intptr_t>(timer_handle), task});
-  LOG(INFO) << __func__ << ": Scheduled task " << task.get()
-            << " on task scheduler:" << this
-            << " timer handle: " << task->timer_handle();
+  VLOG(1) << __func__ << ": Scheduled task " << task.get()
+          << " on task scheduler:" << this
+          << " timer handle: " << task->timer_handle();
   return task;
 }
 
 void TaskScheduler::Shutdown() {
   absl::MutexLock lock(&mutex_);
-  LOG(INFO) << __func__ << ": Shutting down task scheduler:" << this;
+  VLOG(1) << __func__ << ": Shutting down task scheduler:" << this;
   if (is_shutdown_) {
     return;
   }
@@ -115,7 +115,7 @@ void TaskScheduler::Shutdown() {
   }
   scheduled_tasks_.clear();
   is_shutdown_ = true;
-  LOG(INFO) << __func__ << ": Shut down task scheduler:" << this;
+  VLOG(1) << __func__ << ": Shut down task scheduler:" << this;
 }
 
 TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
@@ -134,8 +134,8 @@ TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
 }
 
 bool TaskScheduler::ScheduledTask::Cancel() {
-  LOG(INFO) << __func__ << ": Cancelling timer " << timer_handle()
-            << " from task scheduler:" << this;
+  VLOG(1) << __func__ << ": Cancelling timer " << timer_handle()
+          << " from task scheduler:" << this;
   {
     absl::MutexLock lock(&mutex_);
     if (is_cancelled_) {

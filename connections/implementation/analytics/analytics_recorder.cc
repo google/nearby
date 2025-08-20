@@ -164,7 +164,7 @@ OperationResultCategory ConvertToOperationResultCategory(
 
 AnalyticsRecorder::AnalyticsRecorder(EventLogger *event_logger)
     : event_logger_(event_logger) {
-  LOG(INFO) << "Start AnalyticsRecorder ctor event_logger_=" << event_logger_;
+  VLOG(1) << "Start AnalyticsRecorder ctor event_logger_=" << event_logger_;
   LogStartSession();
 }
 

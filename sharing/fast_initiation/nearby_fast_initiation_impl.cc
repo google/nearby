@@ -281,11 +281,11 @@ void NearbyFastInitiationImpl::AdvertisingErrorCodeCallbackHandler(
 
 void NearbyFastInitiationImpl::AddObserver(Observer* observer) {
   observer_list_.AddObserver(observer);
-  LOG(INFO) << __func__ << ": Fast Initiation observer added.";
+  VLOG(1) << __func__ << ": Fast Initiation observer added.";
 }
 void NearbyFastInitiationImpl::RemoveObserver(Observer* observer) {
   observer_list_.RemoveObserver(observer);
-  LOG(INFO) << __func__ << ": Fast Initiation observer removed.";
+  VLOG(1) << __func__ << ": Fast Initiation observer removed.";
 }
 bool NearbyFastInitiationImpl::HasObserver(Observer* observer) {
   return observer_list_.HasObserver(observer);

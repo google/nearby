@@ -98,7 +98,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
     return std::make_unique<WifiLanSocket>(std::move(client_socket));
   } else {
     absl::MutexLock lock(&mutex_);
-    LOG(INFO) << __func__ << ": Accept is called.";
+    VLOG(1) << __func__ << ": Accept is called.";
     while (!closed_ && pending_sockets_.empty()) {
       cond_.Wait(&mutex_);
     }
@@ -121,7 +121,7 @@ void WifiLanServerSocket::SetCloseNotifier(
 Exception WifiLanServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
-    LOG(INFO) << __func__ << ": Close is called.";
+    VLOG(1) << __func__ << ": Close is called.";
     if (enable_blocking_socket_) {
       if (closed_) {
         return {Exception::kSuccess};

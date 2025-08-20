@@ -89,7 +89,7 @@ bool IsFeatureUseStableEndpointIdEnabled() {
 
 ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
     : client_id_(Prng().NextInt64()) {
-  LOG(INFO) << "ClientProxy ctor event_logger=" << event_logger;
+  VLOG(1) << "ClientProxy ctor event_logger=" << event_logger;
   is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::kEnableDct);
   analytics_recorder_ =

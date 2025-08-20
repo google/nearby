@@ -476,10 +476,10 @@ void EndpointManager::RegisterFrameProcessor(
     frame_processor.set(processor);
   } else {
     MutexLock lock(&frame_processors_lock_);
-    LOG(INFO) << "EndpointManager received request to add registration "
-                 "of frame processor "
-              << processor << " for frame type "
-              << V1Frame::FrameType_Name(frame_type) << ", self=" << this;
+    VLOG(1) << "EndpointManager received request to add registration "
+               "of frame processor "
+            << processor << " for frame type "
+            << V1Frame::FrameType_Name(frame_type) << ", self=" << this;
     frame_processors_.emplace(frame_type, processor);
   }
 }

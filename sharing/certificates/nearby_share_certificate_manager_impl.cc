@@ -240,7 +240,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               /*require_connectivity=*/false,
               prefs::kNearbySharingSchedulerPrivateCertificateExpirationName,
               [this]() {
-                LOG(INFO)
+                VLOG(1)
                     << "Private certificate expiration scheduler is called.";
                 executor_->PostTask([this]() {
                   private_certificate_expiration_scheduler_->HandleResult(
@@ -256,7 +256,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               /*require_connectivity=*/false,
               prefs::kNearbySharingSchedulerPublicCertificateExpirationName,
               [this]() {
-                LOG(INFO)
+                VLOG(1)
                     << ": Public certificate expiration scheduler is called.";
                 executor_->PostTask([this]() {
                   public_certificate_expiration_scheduler_->HandleResult(
@@ -271,7 +271,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               /*require_connectivity=*/true,
               prefs::kNearbySharingSchedulerUploadLocalDeviceCertificatesName,
               [this]() {
-                LOG(INFO)
+                VLOG(1)
                     << "Upload local device certificates scheduler is called.";
                 executor_->PostTask([this]() {
                   force_contacts_update_scheduler_->HandleResult(
@@ -799,7 +799,7 @@ bool NearbyShareCertificateManagerImpl::RefreshPrivateCertificatesInExecutor(
     force_contacts_update_scheduler_->MakeImmediateRequest();
   } else {
     executor_->PostTask([this]() {
-      LOG(INFO) << "Begin UploadDeviceCertificatesInExecutor";
+      VLOG(1) << "Begin UploadDeviceCertificatesInExecutor";
       UploadDeviceCertificatesInExecutor(
           certificate_storage_->GetPrivateCertificates(),
           /*force_update_contacts=*/false);
