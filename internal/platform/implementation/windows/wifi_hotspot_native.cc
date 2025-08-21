@@ -81,7 +81,7 @@ WifiHotspotNative::WifiHotspotNative() {
     return;
   }
 
-  LOG(INFO) << "WifiHotspotNative created successfully.";
+  VLOG(1) << "WifiHotspotNative created successfully.";
 }
 
 WifiHotspotNative::~WifiHotspotNative() {
@@ -90,7 +90,7 @@ WifiHotspotNative::~WifiHotspotNative() {
     wifi_ = nullptr;
   }
 
-  LOG(INFO) << "WifiHotspotNative destroyed successfully.";
+  VLOG(1) << "WifiHotspotNative destroyed successfully.";
 }
 
 bool WifiHotspotNative::ConnectToWifiNetwork(

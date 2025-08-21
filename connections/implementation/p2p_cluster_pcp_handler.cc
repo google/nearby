@@ -182,7 +182,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
       awdl_medium = awdl_result.value();
     }
     if (awdl_medium != UNKNOWN_MEDIUM) {
-      LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: Awdl added";
+      VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: Awdl added";
       mediums_started_successfully.push_back(awdl_medium);
     }
     std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
@@ -204,7 +204,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
       wifi_lan_medium = wifi_lan_result.value();
     }
     if (wifi_lan_medium != UNKNOWN_MEDIUM) {
-      LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added";
+      VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: WifiLan added";
       mediums_started_successfully.push_back(wifi_lan_medium);
     }
     std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
@@ -238,9 +238,9 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
         if (ble_medium_.StartLegacyAdvertising(
                 service_id, local_endpoint_id,
                 advertising_options.fast_advertisement_service_uuid)) {
-          LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: "
-                       "Ble legacy started advertising";
-          LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: BT added";
+          VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: "
+                     "Ble legacy started advertising";
+          VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: BT added";
           mediums_started_successfully.push_back(bluetooth_medium);
           bluetooth_classic_advertiser_client_id_ = client->GetClientId();
         } else {
@@ -263,7 +263,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           LOG(INFO) << __func__
                     << "Ble v2 started advertising for legacy device.";
           mediums_started_successfully.push_back(bluetooth_medium);
-          LOG(INFO) << __func__ << "After Ble v2, BT added";
+          VLOG(1) << __func__ << "After Ble v2, BT added";
           bluetooth_classic_advertiser_client_id_ = client->GetClientId();
         } else {
           LOG(WARNING) << "P2pClusterPcpHandler::StartAdvertisingImpl: "
@@ -272,7 +272,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
           bluetooth_medium_.StopAcceptingConnections(service_id);
         }
       } else {
-        LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: BT added";
+        VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: BT added";
         mediums_started_successfully.push_back(bluetooth_medium);
         bluetooth_classic_advertiser_client_id_ = client->GetClientId();
       }
@@ -295,7 +295,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
                                          local_endpoint_info,
                                          advertising_options, web_rtc_state);
       if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
-        LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
+        VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
         mediums_started_successfully.push_back(ble_result.value());
       }
     } else {
@@ -303,7 +303,7 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
                                        local_endpoint_info, advertising_options,
                                        web_rtc_state);
       if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
-        LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
+        VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
         mediums_started_successfully.push_back(ble_result.value());
       }
     }
@@ -455,12 +455,11 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
         }
 
         // Report the discovered endpoint to the client.
-        LOG(INFO) << "Found BluetoothDeviceName " << device_name_string
-                  << " (with endpoint_id=" << device_name.GetEndpointId()
-                  << " and endpoint_info="
-                  << absl::BytesToHexString(
-                         device_name.GetEndpointInfo().data())
-                  << ").";
+        VLOG(1) << "Found BluetoothDeviceName " << device_name_string
+                << " (with endpoint_id=" << device_name.GetEndpointId()
+                << " and endpoint_info="
+                << absl::BytesToHexString(device_name.GetEndpointInfo().data())
+                << ").";
         OnEndpointFound(
             client,
             std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
@@ -526,21 +525,20 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
           if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
               device.GetMacAddress()) {
             // Report the BluetoothEndpoint as lost to the client.
-            LOG(INFO) << "Reporting lost BluetoothDevice "
-                      << bluetoothEndpoint->bluetooth_device.GetName()
-                      << ", due to device name change.";
+            VLOG(1) << "Reporting lost BluetoothDevice "
+                    << bluetoothEndpoint->bluetooth_device.GetName()
+                    << ", due to device name change.";
             OnEndpointLost(client, *endpoint);
             break;
           }
         }
 
         // Report the discovered endpoint to the client.
-        LOG(INFO) << "Found BluetoothDeviceName " << device_name_string
-                  << " (with endpoint_id=" << device_name.GetEndpointId()
-                  << " and endpoint_info="
-                  << absl::BytesToHexString(
-                         device_name.GetEndpointInfo().data())
-                  << ").";
+        VLOG(1) << "Found BluetoothDeviceName " << device_name_string
+                << " (with endpoint_id=" << device_name.GetEndpointId()
+                << " and endpoint_info="
+                << absl::BytesToHexString(device_name.GetEndpointInfo().data())
+                << ").";
         OnEndpointFound(
             client,
             std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
@@ -581,8 +579,7 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
           return;
 
         // Report the BluetoothEndpoint as lost to the client.
-        LOG(INFO) << "Processing lost BluetoothDeviceName "
-                  << device_name_string;
+        VLOG(1) << "Processing lost BluetoothDeviceName " << device_name_string;
         OnEndpointLost(client, DiscoveredEndpoint{device_name.GetEndpointId(),
                                                   device_name.GetEndpointInfo(),
                                                   service_id, BLUETOOTH,
@@ -659,13 +656,13 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
         StopEndpointLostByMediumAlarm(advertisement.GetEndpointId(), BLE);
 
         // Report the discovered endpoint to the client.
-        LOG(INFO) << "Found BleAdvertisement "
-                  << absl::BytesToHexString(advertisement_bytes.data())
-                  << " (with endpoint_id=" << advertisement.GetEndpointId()
-                  << ", and endpoint_info="
-                  << absl::BytesToHexString(
-                         advertisement.GetEndpointInfo().data())
-                  << ").";
+        VLOG(1) << "Found BleAdvertisement "
+                << absl::BytesToHexString(advertisement_bytes.data())
+                << " (with endpoint_id=" << advertisement.GetEndpointId()
+                << ", and endpoint_info="
+                << absl::BytesToHexString(
+                       advertisement.GetEndpointInfo().data())
+                << ").";
         OnEndpointFound(
             client,
             std::make_shared<BleEndpoint>(BleEndpoint{
@@ -731,13 +728,13 @@ void P2pClusterPcpHandler::BlePeripheralLostHandler(
           found_ble_endpoints_.erase(item);
 
           // Report the discovered endpoint to the client.
-          LOG(INFO) << "Lost BleEndpoint for BlePeripheral "
-                    << peripheral.GetName()
-                    << " (with endpoint_id=" << ble_endpoint_state.endpoint_id
-                    << " and endpoint_info="
-                    << absl::BytesToHexString(
-                           ble_endpoint_state.endpoint_info.data())
-                    << ").";
+          VLOG(1) << "Lost BleEndpoint for BlePeripheral "
+                  << peripheral.GetName()
+                  << " (with endpoint_id=" << ble_endpoint_state.endpoint_id
+                  << " and endpoint_info="
+                  << absl::BytesToHexString(
+                         ble_endpoint_state.endpoint_info.data())
+                  << ").";
           OnEndpointLost(client, DiscoveredEndpoint{
                                      ble_endpoint_state.endpoint_id,
                                      ble_endpoint_state.endpoint_info,
@@ -838,7 +835,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
 
         ble_endpoint_state.ble = true;
         found_endpoints_in_ble_discover_cb_[peripheral_id] = ble_endpoint_state;
-        LOG(INFO) << "Found " << advertisement.ToReadableString();
+        VLOG(1) << "Found " << advertisement.ToReadableString();
         StopEndpointLostByMediumAlarm(advertisement.GetEndpointId(), BLE);
         OnEndpointFound(
             client,
@@ -926,13 +923,13 @@ void P2pClusterPcpHandler::BleV2PeripheralLostHandler(
 
         if (ble_endpoint_state.ble) {
           // Report the lost endpoint to the client.
-          LOG(INFO) << "Lost BleEndpoint for BlePeripheral "
-                    << absl::BytesToHexString(peripheral.GetId().data())
-                    << " (with endpoint_id=" << advertisement.GetEndpointId()
-                    << " and endpoint_info="
-                    << absl::BytesToHexString(
-                           advertisement.GetEndpointInfo().data())
-                    << ").";
+          VLOG(1) << "Lost BleEndpoint for BlePeripheral "
+                  << absl::BytesToHexString(peripheral.GetId().data())
+                  << " (with endpoint_id=" << advertisement.GetEndpointId()
+                  << " and endpoint_info="
+                  << absl::BytesToHexString(
+                         advertisement.GetEndpointInfo().data())
+                  << ").";
           OnEndpointLost(client, DiscoveredEndpoint{
                                      advertisement.GetEndpointId(),
                                      advertisement.GetEndpointInfo(),
@@ -943,13 +940,13 @@ void P2pClusterPcpHandler::BleV2PeripheralLostHandler(
         }
         if (ble_endpoint_state.bt) {
           // Report the lost endpoint to the client.
-          LOG(INFO) << "Lost BluetoothEndpoint for BlePeripheral "
-                    << absl::BytesToHexString(peripheral.GetId().data())
-                    << " (with endpoint_id=" << advertisement.GetEndpointId()
-                    << " and endpoint_info="
-                    << absl::BytesToHexString(
-                           advertisement.GetEndpointInfo().data())
-                    << ").";
+          VLOG(1) << "Lost BluetoothEndpoint for BlePeripheral "
+                  << absl::BytesToHexString(peripheral.GetId().data())
+                  << " (with endpoint_id=" << advertisement.GetEndpointId()
+                  << " and endpoint_info="
+                  << absl::BytesToHexString(
+                         advertisement.GetEndpointInfo().data())
+                  << ").";
           OnEndpointLost(client, DiscoveredEndpoint{
                                      advertisement.GetEndpointId(),
                                      advertisement.GetEndpointInfo(),
@@ -1070,14 +1067,14 @@ void P2pClusterPcpHandler::AwdlServiceDiscoveredHandler(
         }
 
         // Report the discovered endpoint to the client.
-        LOG(INFO) << "Found NsdServiceInfo "
-                  << "with (service_name:" << service_info.GetServiceName()
-                  << ", service_type:" << service_info.GetServiceType()
-                  << ", endpoint_id:" << wifi_lan_service_info.GetEndpointId()
-                  << ", endpoint_info:"
-                  << absl::BytesToHexString(
-                         wifi_lan_service_info.GetEndpointInfo().AsStringView())
-                  << ").";
+        VLOG(1) << "Found NsdServiceInfo "
+                << "with (service_name:" << service_info.GetServiceName()
+                << ", service_type:" << service_info.GetServiceType()
+                << ", endpoint_id:" << wifi_lan_service_info.GetEndpointId()
+                << ", endpoint_info:"
+                << absl::BytesToHexString(
+                       wifi_lan_service_info.GetEndpointInfo().AsStringView())
+                << ").";
         StopEndpointLostByMediumAlarm(wifi_lan_service_info.GetEndpointId(),
                                       AWDL);
         OnEndpointFound(client, std::make_shared<AwdlEndpoint>(AwdlEndpoint{
@@ -1119,13 +1116,13 @@ void P2pClusterPcpHandler::AwdlServiceLostHandler(
           return;
 
         // Report the lost endpoint to the client.
-        LOG(INFO) << "Lost NsdServiceInfo " << service_info.GetServiceName()
-                  << " (with endpoint_id="
-                  << wifi_lan_service_info.GetEndpointId()
-                  << " and endpoint_info="
-                  << absl::BytesToHexString(
-                         wifi_lan_service_info.GetEndpointInfo().data())
-                  << ").";
+        VLOG(1) << "Lost NsdServiceInfo " << service_info.GetServiceName()
+                << " (with endpoint_id="
+                << wifi_lan_service_info.GetEndpointId()
+                << " and endpoint_info="
+                << absl::BytesToHexString(
+                       wifi_lan_service_info.GetEndpointInfo().data())
+                << ").";
         OnEndpointLost(client, DiscoveredEndpoint{
                                    wifi_lan_service_info.GetEndpointId(),
                                    wifi_lan_service_info.GetEndpointInfo(),
@@ -1192,13 +1189,12 @@ void P2pClusterPcpHandler::WifiLanServiceDiscoveredHandler(
         }
 
         // Report the discovered endpoint to the client.
-        LOG(INFO) << "Found NsdServiceInfo " << service_info.GetServiceName()
-                  << " (with endpoint_id="
-                  << wifi_lan_service_info.GetEndpointId()
-                  << "and endpoint_info="
-                  << absl::BytesToHexString(
-                         wifi_lan_service_info.GetEndpointInfo().data())
-                  << ").";
+        VLOG(1) << "Found NsdServiceInfo " << service_info.GetServiceName()
+                << " (with endpoint_id="
+                << wifi_lan_service_info.GetEndpointId() << "and endpoint_info="
+                << absl::BytesToHexString(
+                       wifi_lan_service_info.GetEndpointInfo().data())
+                << ").";
         StopEndpointLostByMediumAlarm(wifi_lan_service_info.GetEndpointId(),
                                       WIFI_LAN);
         OnEndpointFound(client,
@@ -1241,13 +1237,13 @@ void P2pClusterPcpHandler::WifiLanServiceLostHandler(
           return;
 
         // Report the lost endpoint to the client.
-        LOG(INFO) << "Lost NsdServiceInfo " << service_info.GetServiceName()
-                  << " (with endpoint_id="
-                  << wifi_lan_service_info.GetEndpointId()
-                  << " and endpoint_info="
-                  << absl::BytesToHexString(
-                         wifi_lan_service_info.GetEndpointInfo().data())
-                  << ").";
+        VLOG(1) << "Lost NsdServiceInfo " << service_info.GetServiceName()
+                << " (with endpoint_id="
+                << wifi_lan_service_info.GetEndpointId()
+                << " and endpoint_info="
+                << absl::BytesToHexString(
+                       wifi_lan_service_info.GetEndpointInfo().data())
+                << ").";
         OnEndpointLost(client, DiscoveredEndpoint{
                                    wifi_lan_service_info.GetEndpointId(),
                                    wifi_lan_service_info.GetEndpointInfo(),
@@ -3181,12 +3177,12 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
           << service_id;
       return {Error(wifi_lan_result.error().operation_result_code().value())};
     }
-    LOG(INFO) << "In StartWifiLanAdvertising("
-              << absl::BytesToHexString(local_endpoint_info.data())
-              << "), client=" << client->GetClientId()
-              << " started listening for incoming WifiLan connections "
-                 "to service_id = "
-              << service_id;
+    VLOG(1) << "In StartWifiLanAdvertising("
+            << absl::BytesToHexString(local_endpoint_info.data())
+            << "), client=" << client->GetClientId()
+            << " started listening for incoming WifiLan connections "
+               "to service_id = "
+            << service_id;
   }
 
   // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
@@ -3235,11 +3231,11 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
     wifi_lan_medium_.StopAcceptingConnections(service_id);
     return {Error(wifi_lan_result.error().operation_result_code().value())};
   }
-  LOG(INFO) << "In StartWifiLanAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << "), client=" << client->GetClientId()
-            << " advertised with WifiLanServiceInfo "
-            << nsd_service_info.GetServiceName();
+  VLOG(1) << "In StartWifiLanAdvertising("
+          << absl::BytesToHexString(local_endpoint_info.data())
+          << "), client=" << client->GetClientId()
+          << " advertised with WifiLanServiceInfo "
+          << nsd_service_info.GetServiceName();
   return {WIFI_LAN};
 }
 

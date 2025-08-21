@@ -315,25 +315,17 @@ bool BleV2Medium::StartAdvertising(const BleAdvertisementData& advertising_data,
                          absl::BytesToHexString(it.second.AsStringView()) + "}";
   }
 
-  LOG(INFO) << __func__
-            << ": advertising_data.service_data=" << service_data_info
-            << ", tx_power_level="
-            << TxPowerLevelToName(advertising_parameters.tx_power_level);
+  VLOG(1) << __func__ << ": advertising_data.service_data=" << service_data_info
+          << ", tx_power_level="
+          << TxPowerLevelToName(advertising_parameters.tx_power_level);
 
-  if (advertising_data.is_extended_advertisement) {
+  if (advertising_data.is_extended_advertisement ||
+      ble_gatt_server_ == nullptr) {
     // In BLE v2, the flag is set when the Bluetooth adapter supports extended
     // advertising and GATT server is using.
-    LOG(INFO) << __func__ << ": BLE advertising using BLE extended feature.";
     return StartBleAdvertising(advertising_data, advertising_parameters);
-  } else {
-    if (ble_gatt_server_ != nullptr) {
-      LOG(INFO) << __func__ << ": BLE advertising on GATT server.";
-      return StartGattAdvertising(advertising_data, advertising_parameters);
-    } else {
-      LOG(INFO) << __func__ << ": BLE fast advertising.";
-      return StartBleAdvertising(advertising_data, advertising_parameters);
-    }
   }
+  return StartGattAdvertising(advertising_data, advertising_parameters);
 }
 
 bool BleV2Medium::StopAdvertising() {
@@ -641,7 +633,7 @@ bool BleV2Medium::StopScanning() {
 
 std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
     const std::string& service_id) {
-  LOG(INFO) << "OpenServerSocket is called";
+  VLOG(1) << "OpenServerSocket is called";
 
   auto server_socket = std::make_unique<BleV2ServerSocket>(adapter_);
 
@@ -691,7 +683,8 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
 bool BleV2Medium::StartBleAdvertising(
     const api::ble_v2::BleAdvertisementData& advertising_data,
     api::ble_v2::AdvertiseParameters advertising_parameters) {
-  LOG(INFO) << __func__ << ": Start BLE advertising.";
+  LOG(INFO) << __func__ << ": Start BLE advertising, extended:"
+            << advertising_data.is_extended_advertisement;
   try {
     if (!adapter_->IsEnabled()) {
       LOG(WARNING) << "BLE cannot start advertising because the "
@@ -725,7 +718,7 @@ bool BleV2Medium::StartBleAdvertising(
         LOG(WARNING) << "BLE failed to get service UUID.";
         return false;
       }
-      LOG(WARNING) << "BLE service UUID: " << absl::StrCat(absl::Hex(*uuid16));
+      VLOG(1) << "BLE service UUID: " << absl::StrCat(absl::Hex(*uuid16));
 
       data_writer.WriteUInt16(*uuid16);
 

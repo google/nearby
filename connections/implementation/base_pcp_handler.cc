@@ -1433,7 +1433,7 @@ Status BasePcpHandler::AcceptConnection(ClientProxy* client,
       "accept-connection", [this, client, endpoint_id,
                             payload_listener = std::move(payload_listener),
                             &response]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        LOG(INFO) << "AcceptConnection: endpoint_id=" << endpoint_id;
+        VLOG(1) << "AcceptConnection: endpoint_id=" << endpoint_id;
         if (!pending_connections_.count(endpoint_id)) {
           LOG(INFO)
               << "AcceptConnection: no pending connection for endpoint_id="

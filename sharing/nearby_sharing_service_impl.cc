@@ -3600,8 +3600,8 @@ void NearbySharingServiceImpl::RunOnNearbySharingServiceThreadDelayed(
 void NearbySharingServiceImpl::UpdateFilePathsInProgress(
     bool update_file_paths) {
   update_file_paths_in_progress_ = update_file_paths;
-  LOG(INFO) << __func__
-            << ": Update file paths in progress: " << update_file_paths;
+  VLOG(1) << __func__
+          << ": Update file paths in progress: " << update_file_paths;
 }
 
 }  // namespace nearby::sharing

@@ -86,10 +86,10 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     if ((server_socket.second->GetIPAddress() ==
          nsd_service_info.GetIPAddress()) &&
         (server_socket.second->GetPort() == nsd_service_info.GetPort())) {
-      LOG(INFO) << "Found the server socket." << " IP: "
-                << ipaddr_4bytes_to_dotdecimal_string(
-                       nsd_service_info.GetIPAddress())
-                << "; port: " << nsd_service_info.GetPort();
+      VLOG(1) << "Found the server socket." << " IP: "
+              << ipaddr_4bytes_to_dotdecimal_string(
+                     nsd_service_info.GetIPAddress())
+              << "; port: " << nsd_service_info.GetPort();
       server_socket_ptr = server_socket.second;
       socket_found = true;
       break;
@@ -217,7 +217,6 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
     bool result = wifi_lan_mdns_.StopMdnsService();
 
     if (result) {
-      LOG(INFO) << "succeeded to stop mDNS advertising.";
       medium_status_ &= (~kMediumStatusAdvertising);
       return true;
     }

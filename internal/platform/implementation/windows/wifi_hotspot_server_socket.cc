@@ -71,11 +71,7 @@ std::string WifiHotspotServerSocket::GetIPAddress() const {
       }
     }
 
-    std::string hotspot_ip_address = GetHotspotIpAddress();
-    LOG(INFO) << __func__
-              << ": Return hotspot IP address: " << hotspot_ip_address;
-
-    return hotspot_ip_address;
+    return GetHotspotIpAddress();
   }
 }
 
@@ -112,7 +108,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
     return std::make_unique<WifiHotspotSocket>(std::move(client_socket));
   } else {
     absl::MutexLock lock(&mutex_);
-    LOG(INFO) << __func__ << ": Accept is called.";
+    VLOG(1) << __func__ << ": Accept is called.";
 
     if (NearbyFlags::GetInstance().GetBoolFlag(
             platform::config_package_nearby::nearby_platform_feature::
@@ -160,10 +156,8 @@ Exception WifiHotspotServerSocket::Close() {
       if (close_notifier_ != nullptr) {
         close_notifier_();
       }
-
-      LOG(INFO) << __func__ << ": Close completed successfully.";
     } else {
-      LOG(INFO) << __func__ << ": Close is called.";
+      VLOG(1) << __func__ << ": Close is called.";
 
       if (closed_) {
         return {Exception::kSuccess};
@@ -352,7 +346,7 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
     SocketErrorNotice("Bind");
     return false;
   }
-  LOG(INFO) << "Bind socket successful";
+  VLOG(1) << "Bind socket successful";
 
   int size = sizeof(serv_addr);
   memset(&serv_addr, 0, size);
@@ -362,7 +356,6 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
     return false;
   }
   port_ = ntohs(serv_addr.sin_port);
-  LOG(INFO) << "Hotspot Server bound to port: " << port_;
 
   socket_events_[kSocketEventListen] = WSACreateEvent();
   if (socket_events_[kSocketEventListen] == WSA_INVALID_EVENT) {
@@ -389,7 +382,7 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
     return false;
   }
   LOG(INFO) << "Hotspot Server Socket " << listen_socket_
-            << " started to listen.";
+            << " started to listen on port: " << port_;
 
   submittable_executor_.Execute([this]() {
     DWORD index;
@@ -398,8 +391,8 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
     index = WSAWaitForMultipleEvents(kSocketEventsCount, socket_events_, FALSE,
                                      WSA_INFINITE, FALSE);
 
-    LOG(INFO) << "Hotspot Server Socket " << listen_socket_
-              << " received event index: " << index;
+    VLOG(1) << "Hotspot Server Socket " << listen_socket_
+            << " received event index: " << index;
     if (index == WSA_WAIT_TIMEOUT || index == WSA_WAIT_FAILED) {
       LOG(INFO) << "Hotspot Server Socket timout or failed ";
       return false;
@@ -424,7 +417,7 @@ bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
     }
     if (network_events.lNetworkEvents & FD_ACCEPT) {
       client_socket_ = accept(listen_socket_, nullptr, nullptr);
-      LOG(INFO) << "Reveived FD_ACCEPT event.";
+      VLOG(1) << "Reveived FD_ACCEPT event.";
 
       if (client_socket_ == INVALID_SOCKET) {
         return false;
@@ -461,9 +454,8 @@ bool WifiHotspotServerSocket::listen() {
       NearbyFlags::GetInstance().GetInt64Flag(
           platform::config_package_nearby::nearby_platform_feature::
               kWifiHotspotCheckIpIntervalMillis);
-  LOG(INFO) << "maximum IP check retries=" << ip_address_max_retries
-            << ", IP check interval=" << ip_address_retry_interval_millis
-            << "ms";
+  VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
+          << ", IP check interval=" << ip_address_retry_interval_millis << "ms";
   for (int i = 0; i < ip_address_max_retries; i++) {
     hotspot_ipaddr_ = GetHotspotIpAddress();
     if (hotspot_ipaddr_.empty()) {

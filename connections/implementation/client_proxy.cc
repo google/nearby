@@ -133,8 +133,6 @@ std::string ClientProxy::GetLocalEndpointId() {
     }
     if (external_device_provider_ == nullptr) {
       local_endpoint_id_ = GenerateLocalEndpointId();
-      LOG(INFO) << __func__
-                << ": Locally generating endpoint id: " << local_endpoint_id_;
     } else {
       local_endpoint_id_ =
           external_device_provider_->GetLocalDevice()->GetEndpointId();
@@ -206,6 +204,8 @@ std::string ClientProxy::GenerateLocalEndpointId() {
   for (int i = 0; i < kEndpointIdLength; i++) {
     id += kEndpointIdChars[prng.NextUint32() % sizeof(kEndpointIdChars)];
   }
+  LOG(INFO) << "ClientProxy [Local Endpoint Generated]: client="
+            << GetClientId() << "; endpoint_id=" << id;
   return id;
 }
 
@@ -1149,16 +1149,15 @@ void ClientProxy::ExitHighVisibilityMode() {
 
 void ClientProxy::EnterStableEndpointIdMode() {
   MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [EnterStableEndpointIdMode]: client="
-            << GetClientId();
+  VLOG(1) << "ClientProxy [EnterStableEndpointIdMode]: client="
+          << GetClientId();
 
   stable_endpoint_id_mode_ = true;
 }
 
 void ClientProxy::ExitStableEndpointIdMode() {
   MutexLock lock(&mutex_);
-  LOG(INFO) << "ClientProxy [ExitStableEndpointIdMode]: client="
-            << GetClientId();
+  VLOG(1) << "ClientProxy [ExitStableEndpointIdMode]: client=" << GetClientId();
 
   stable_endpoint_id_mode_ = false;
   ScheduleClearCachedEndpointIdAlarm();
@@ -1299,11 +1298,10 @@ bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
 bool ClientProxy::GetWebRtcNonCellular() { return webrtc_non_cellular_; }
 
 void ClientProxy::SetWebRtcNonCellular(bool webrtc_non_cellular) {
-  std::string allow_webrtc_cellular_str =
-      webrtc_non_cellular ? "disallow" : "allow";
-  LOG(INFO) << "ClientProxy: client=" << GetClientId()
-            << allow_webrtc_cellular_str << " to use mobile data.",
-      webrtc_non_cellular_ = webrtc_non_cellular;
+  VLOG(1) << "ClientProxy: client=" << GetClientId()
+          << (webrtc_non_cellular ? " disallow" : " allow")
+          << " to use mobile data.";
+  webrtc_non_cellular_ = webrtc_non_cellular;
 }
 
 bool ClientProxy::IsDctEnabled() const { return is_dct_enabled_; }
