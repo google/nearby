@@ -113,11 +113,11 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
           platform::config_package_nearby::nearby_platform_feature::
               kWifiHotspotConnectionTimeoutMillis);
 
-  LOG(INFO) << "maximum connection retries="
-            << wifi_hotspot_max_connection_retries
-            << ", connection interval=" << wifi_hotspot_retry_interval_millis
-            << "ms, connection timeout="
-            << wifi_hotspot_client_socket_connect_timeout_millis << "ms";
+  VLOG(1) << "maximum connection retries="
+          << wifi_hotspot_max_connection_retries
+          << ", connection interval=" << wifi_hotspot_retry_interval_millis
+          << "ms, connection timeout="
+          << wifi_hotspot_client_socket_connect_timeout_millis << "ms";
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           nearby::platform::config_package_nearby::nearby_platform_feature::
@@ -273,7 +273,7 @@ WifiHotspotMedium::ListenForService(int port) {
 bool WifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials* hotspot_credentials) {
   absl::MutexLock lock(&mutex_);
-  LOG(INFO) << __func__ << ": Start to create WiFi Hotspot.";
+  VLOG(1) << __func__ << ": Start to create WiFi Hotspot.";
 
   if (IsBeaconing()) {
     LOG(WARNING) << "Cannot create WiFi Hotspot again when it is running.";
@@ -391,11 +391,11 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
       LOG(INFO) << "WiFi SoftAP SSID: "
                 << winrt::to_string(
                        publisher_.Advertisement().LegacySettings().Ssid());
-      LOG(INFO) << "WiFi SoftAP PW: "
-                << winrt::to_string(publisher_.Advertisement()
-                                        .LegacySettings()
-                                        .Passphrase()
-                                        .Password());
+      VLOG(1) << "WiFi SoftAP PW: "
+              << winrt::to_string(publisher_.Advertisement()
+                                      .LegacySettings()
+                                      .Passphrase()
+                                      .Password());
     }
     return winrt::fire_and_forget();
   } else if (event.Status() ==
@@ -544,9 +544,9 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
         NearbyFlags::GetInstance().GetInt64Flag(
             platform::config_package_nearby::nearby_platform_feature::
                 kWifiHotspotCheckIpIntervalMillis);
-    LOG(INFO) << "maximum IP check retries=" << ip_address_max_retries
-              << ", IP check interval=" << ip_address_retry_interval_millis
-              << "ms";
+    VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
+            << ", IP check interval=" << ip_address_retry_interval_millis
+            << "ms";
     for (int i = 0; i < ip_address_max_retries; i++) {
       LOG(INFO) << "Check IP address at attempt " << i;
       std::vector<std::string> ip_addresses = GetWifiIpv4Addresses();

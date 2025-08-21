@@ -507,15 +507,15 @@ void NearbyConnectionsManagerImpl::Send(
   }
 
   if (transfer_managers_.contains(endpoint_id) && payload->content.is_file()) {
-    LOG(INFO) << __func__ << ": Send payload " << payload->id << " to "
-              << endpoint_id << " to transfer manager. payload is file: "
-              << payload->content.is_file() << ", is bytes "
-              << payload->content.is_bytes();
+    VLOG(1) << __func__ << ": Send payload " << payload->id << " to "
+            << endpoint_id << " to transfer manager. payload is file: "
+            << payload->content.is_file() << ", is bytes "
+            << payload->content.is_bytes();
     transfer_managers_.at(endpoint_id)
         ->Send([&, endpoint_id = std::string(endpoint_id),
                 payload_copy = *payload]() {
-          LOG(INFO) << __func__ << ": Send payload " << payload_copy.id
-                    << " to " << endpoint_id;
+          VLOG(1) << __func__ << ": Send payload " << payload_copy.id << " to "
+                  << endpoint_id;
           auto sent_payload = std::make_unique<Payload>(payload_copy);
           SendWithoutDelay(endpoint_id, std::move(sent_payload));
         });
@@ -528,14 +528,14 @@ void NearbyConnectionsManagerImpl::Send(
 
 void NearbyConnectionsManagerImpl::SendWithoutDelay(
     absl::string_view endpoint_id, std::unique_ptr<Payload> payload) {
-  LOG(INFO) << __func__ << ": Send payload " << payload->id << " to "
-            << endpoint_id;
+  VLOG(1) << __func__ << ": Send payload " << payload->id << " to "
+          << endpoint_id;
   nearby_connections_service_->SendPayload(
       kServiceId, {std::string(endpoint_id)}, std::move(payload),
       [endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
-        LOG(INFO) << __func__ << ": Sending payload to endpoint " << endpoint_id
-                  << " attempted over Nearby Connections with result: "
-                  << ConnectionsStatusToString(status);
+        VLOG(1) << __func__ << ": Sending payload to endpoint " << endpoint_id
+                << " attempted over Nearby Connections with result: "
+                << ConnectionsStatusToString(status);
       });
 }
 
@@ -628,19 +628,19 @@ void NearbyConnectionsManagerImpl::OnEndpointFound(
     absl::string_view endpoint_id, const DiscoveredEndpointInfo& info) {
   MutexLock lock(&mutex_);
   if (!discovery_listener_) {
-    LOG(INFO) << "Ignoring discovered endpoint "
-              << nearby::utils::HexEncode(info.endpoint_info)
-              << " because we're no longer "
-                 "in discovery mode";
+    VLOG(1) << "Ignoring discovered endpoint "
+            << nearby::utils::HexEncode(info.endpoint_info)
+            << " because we're no longer "
+               "in discovery mode";
     return;
   }
 
   auto result = discovered_endpoints_.insert(std::string(endpoint_id));
   if (!result.second) {
-    LOG(INFO) << "Ignoring discovered endpoint "
-              << nearby::utils::HexEncode(info.endpoint_info)
-              << " because we've already "
-                 "reported this endpoint";
+    VLOG(1) << "Ignoring discovered endpoint "
+            << nearby::utils::HexEncode(info.endpoint_info)
+            << " because we've already "
+               "reported this endpoint";
     return;
   }
 
@@ -653,14 +653,14 @@ void NearbyConnectionsManagerImpl::OnEndpointLost(
     absl::string_view endpoint_id) {
   MutexLock lock(&mutex_);
   if (!discovered_endpoints_.erase(endpoint_id)) {
-    LOG(INFO) << "Ignoring lost endpoint " << endpoint_id
-              << " because we haven't reported this endpoint";
+    VLOG(1) << "Ignoring lost endpoint " << endpoint_id
+            << " because we haven't reported this endpoint";
     return;
   }
 
   if (!discovery_listener_) {
-    LOG(INFO) << "Ignoring lost endpoint " << endpoint_id
-              << " because we're no longer in discovery mode";
+    VLOG(1) << "Ignoring lost endpoint " << endpoint_id
+            << " because we're no longer in discovery mode";
     return;
   }
 
@@ -790,7 +790,7 @@ void NearbyConnectionsManagerImpl::OnBandwidthChanged(
 void NearbyConnectionsManagerImpl::OnPayloadReceived(
     absl::string_view endpoint_id, Payload& payload) {
   MutexLock lock(&mutex_);
-  LOG(INFO) << "Received payload id=" << payload.id;
+  VLOG(1) << "Received payload id=" << payload.id;
   if (NearbyFlags::GetInstance().GetBoolFlag(
           sharing::config_package_nearby::nearby_sharing_feature::
               kDeleteUnexpectedReceivedFileFix)) {
@@ -865,10 +865,10 @@ void NearbyConnectionsManagerImpl::RemoveStatusListenerForPayloadId(
 
 void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
     absl::string_view endpoint_id, const PayloadTransferUpdate& update) {
-  LOG(INFO) << "Received payload transfer update id=" << update.payload_id
-            << ",status=" << PayloadStatusToString(update.status)
-            << ",total=" << update.total_bytes
-            << ",bytes_transferred=" << update.bytes_transferred;
+  VLOG(1) << "Received payload transfer update id=" << update.payload_id
+          << ",status=" << PayloadStatusToString(update.status)
+          << ",total=" << update.total_bytes
+          << ",bytes_transferred=" << update.bytes_transferred;
 
   // If this is a payload we've registered for, then forward its status to
   // the PayloadStatusListener if it still exists. We don't need to do
@@ -919,7 +919,7 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
   NearbyConnectionImpl* connection = GetConnectionForId(endpoint_id);
   if (connection == nullptr) return;
 
-  LOG(INFO) << "Writing incoming byte message to NearbyConnection.";
+  VLOG(1) << "Writing incoming byte message to NearbyConnection.";
   connection->WriteMessage(payload->content.bytes_payload.bytes);
 }
 

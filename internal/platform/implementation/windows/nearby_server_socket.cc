@@ -43,7 +43,7 @@ NearbyServerSocket::~NearbyServerSocket() {
 }
 
 bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
-  LOG(INFO) << "Listen to socket at " << ip_address << ":" << port;
+  VLOG(1) << "Listen to socket at " << ip_address << ":" << port;
   if (!is_socket_initiated_) {
     LOG(ERROR) << "Windows socket is not initiated.";
     return false;
@@ -87,7 +87,7 @@ bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
   ip_address_ = ip_address;
   port_ = ntohs(local_address.sin_port);
 
-  LOG(INFO) << "Bound to " << ip_address_ << ":" << port_;
+  VLOG(1) << "Bound to " << ip_address_ << ":" << port_;
 
   if (::listen(/*s=*/socket_, /*backlog=*/SOMAXCONN) == SOCKET_ERROR) {
     LOG(ERROR) << "Failed to listen socket with error " << WSAGetLastError();
@@ -99,7 +99,7 @@ bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
 }
 
 std::unique_ptr<NearbyClientSocket> NearbyServerSocket::Accept() {
-  LOG(INFO) << "Accept is called on NearbyServerSocket.";
+  VLOG(1) << "Accept is called on NearbyServerSocket.";
   if (!is_socket_initiated_) {
     LOG(WARNING) << "Windows socket is not initiated";
     return nullptr;
@@ -120,7 +120,7 @@ std::unique_ptr<NearbyClientSocket> NearbyServerSocket::Accept() {
   inet_ntop(AF_INET, &(peer_address.sin_addr), client_ip, INET_ADDRSTRLEN);
   int client_port = ntohs(peer_address.sin_port);
 
-  LOG(INFO) << "Accepted emote device " << client_ip << ":" << client_port;
+  LOG(INFO) << "Accepted remote device " << client_ip << ":" << client_port;
   return std::make_unique<NearbyClientSocket>(client_socket);
 }
 

@@ -46,11 +46,11 @@ WifiLanSocket::WifiLanSocket(StreamSocket socket) {
       nearby::platform::config_package_nearby::nearby_platform_feature::
           kEnableBlockingSocket);
   stream_soket_ = socket;
-  LOG(INFO) << "Socket send buffer size: "
-            << socket.Control().OutboundBufferSizeInBytes();
+  VLOG(1) << "Socket send buffer size: "
+          << socket.Control().OutboundBufferSizeInBytes();
   socket.Control().OutboundBufferSizeInBytes(4 * 1024 * 1024);
-  LOG(INFO) << "Updated send buffer size to: "
-            << socket.Control().OutboundBufferSizeInBytes();
+  VLOG(1) << "Updated send buffer size to: "
+          << socket.Control().OutboundBufferSizeInBytes();
   input_stream_ = SocketInputStream(socket.InputStream());
   output_stream_ = SocketOutputStream(socket.OutputStream());
 }
