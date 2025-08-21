@@ -108,8 +108,8 @@ BluetoothAdapter::BluetoothAdapter() : windows_bluetooth_adapter_(nullptr) {
 // Synchronously sets the status of the BluetoothAdapter to 'status', and
 // returns true if the operation was a success.
 bool BluetoothAdapter::SetStatus(Status status) {
-  LOG(ERROR) << __func__ << ": Set Bluetooth radio status to "
-             << (status == Status::kEnabled ? "On" : "Off");
+  LOG(INFO) << __func__ << ": Set Bluetooth radio status to "
+            << (status == Status::kEnabled ? "On" : "Off");
   if (windows_bluetooth_radio_ == nullptr) {
     LOG(ERROR) << __func__ << ": No Bluetooth radio on this device.";
     return false;
@@ -120,23 +120,23 @@ bool BluetoothAdapter::SetStatus(Status status) {
   if (status == Status::kDisabled &&
       (radio_state == RadioState::Unknown || radio_state == RadioState::Off ||
        radio_state == RadioState::Disabled)) {
-    LOG(INFO) << __func__
-              << ": Skip set radio status kDisabled due to requested state is "
-                 "already kDisabled.";
+    VLOG(1) << __func__
+            << ": Skip set radio status kDisabled due to requested state is "
+               "already kDisabled.";
     return true;
   }
 
   if (status == Status::kEnabled && radio_state == RadioState::On) {
-    LOG(INFO) << __func__
-              << ": Skip set radio status kEnabled due to requested state is "
-                 "already kEnabled.";
+    VLOG(1) << __func__
+            << ": Skip set radio status kEnabled due to requested state is "
+               "already kEnabled.";
     return true;
   }
 
   if (!FeatureFlags::GetInstance().GetFlags().enable_set_radio_state) {
-    LOG(INFO) << __func__
-              << ": Attempt to set the radio state while "
-                 "FeatureFlags::enable_set_radio_state is false.";
+    VLOG(1) << __func__
+            << ": Attempt to set the radio state while "
+               "FeatureFlags::enable_set_radio_state is false.";
     return false;
   }
 
@@ -497,9 +497,9 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
   device_name_ = std::nullopt;
 
   if (registry_bluetooth_adapter_name_ == name) {
-    LOG(INFO) << __func__
-              << ": Tried to set name for bluetooth adapter to the "
-                 "same name again.";
+    VLOG(1) << __func__
+            << ": Tried to set name for bluetooth adapter to the "
+               "same name again.";
     return true;
   }
 
@@ -871,7 +871,8 @@ std::string BluetoothAdapter::GetNameFromRegistry(PHKEY hKey) const {
                           // parameter, in bytes.
   if (status != ERROR_SUCCESS) {
     LOG(ERROR) << __func__
-               << ": Failed to get the required size of the local name buffer";
+               << ": Failed to get the required size of the local name buffer: "
+               << status;
     return "";
   }
   unsigned char *local_name = new unsigned char[local_name_size];

@@ -51,8 +51,8 @@ BluetoothServerSocket::~BluetoothServerSocket() { Close(); }
 // Returns nullptr on error.
 // Once error is reported, it is permanent, and ServerSocket has to be closed.
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
-  LOG(INFO) << __func__ << ": Accept is called.";
+  absl::MutexLock lock(mutex_);
+  VLOG(1) << __func__ << ": Accept is called.";
 
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
@@ -74,8 +74,8 @@ void BluetoothServerSocket::SetCloseNotifier(
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception BluetoothServerSocket::Close() {
   try {
-    absl::MutexLock lock(&mutex_);
-    LOG(INFO) << __func__ << ": Close is called.";
+    absl::MutexLock lock(mutex_);
+    VLOG(1) << __func__ << ": Close is called.";
 
     if (closed_) {
       return {Exception::kSuccess};
@@ -155,7 +155,7 @@ bool BluetoothServerSocket::listen() {
 ::winrt::fire_and_forget BluetoothServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const& args) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {

@@ -62,7 +62,7 @@ IncomingFramesReader::IncomingFramesReader(TaskRunner& service_thread,
 }
 
 IncomingFramesReader::~IncomingFramesReader() {
-  LOG(INFO) << "~IncomingFramesReader is called";
+  VLOG(1) << "~IncomingFramesReader is called";
   CloseAllPendingReads();
 }
 

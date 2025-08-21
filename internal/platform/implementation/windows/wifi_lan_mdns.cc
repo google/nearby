@@ -195,7 +195,7 @@ std::optional<std::string> WifiLanMdns::GetComputerName() {
 
 void WifiLanMdns::DnsServiceRegisterComplete(DWORD Status, PVOID pQueryContext,
                                              PDNS_SERVICE_INSTANCE pInstance) {
-  LOG(INFO) << "DnsServiceRegisterComplete: " << Status;
+  VLOG(1) << "DnsServiceRegisterComplete: " << Status;
   WifiLanMdns* mdns = static_cast<WifiLanMdns*>(pQueryContext);
   mdns->NotifyStatusUpdated(Status);
 }

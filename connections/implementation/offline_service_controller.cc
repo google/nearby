@@ -41,11 +41,11 @@ namespace connections {
 OfflineServiceController::~OfflineServiceController() { Stop(); }
 
 void OfflineServiceController::Stop() {
-  LOG(INFO) << "Initiating shutdown of OfflineServiceController.";
+  VLOG(1) << "Initiating shutdown of OfflineServiceController.";
   if (stop_.Set(true)) return;
   payload_manager_.DisconnectFromEndpointManager();
   pcp_manager_.DisconnectFromEndpointManager();
-  LOG(INFO) << "OfflineServiceController has shut down.";
+  VLOG(1) << "OfflineServiceController has shut down.";
 }
 
 Status OfflineServiceController::StartAdvertising(
@@ -172,18 +172,18 @@ void OfflineServiceController::SendPayload(
     ClientProxy* client, const std::vector<std::string>& endpoint_ids,
     Payload payload) {
   if (stop_) return;
-  LOG(INFO) << "Client " << client->GetClientId()
-            << " is sending payload {id:" << payload.GetId()
-            << ", type:" << payload.GetType() << "} to endpoint_ids {"
-            << absl::StrJoin(endpoint_ids, ",") << "}";
+  VLOG(1) << "Client " << client->GetClientId()
+          << " is sending payload {id:" << payload.GetId()
+          << ", type:" << payload.GetType() << "} to endpoint_ids {"
+          << absl::StrJoin(endpoint_ids, ",") << "}";
   payload_manager_.SendPayload(client, endpoint_ids, std::move(payload));
 }
 
 Status OfflineServiceController::CancelPayload(ClientProxy* client,
                                                std::int64_t payload_id) {
   if (stop_) return {Status::kOutOfOrderApiCall};
-  LOG(INFO) << "Client " << client->GetClientId() << " cancelled payload "
-            << payload_id;
+  VLOG(1) << "Client " << client->GetClientId() << " cancelled payload "
+          << payload_id;
   return payload_manager_.CancelPayload(client, payload_id);
 }
 

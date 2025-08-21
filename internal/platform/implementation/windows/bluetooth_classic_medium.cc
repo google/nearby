@@ -117,7 +117,7 @@ BluetoothClassicMedium::~BluetoothClassicMedium() {}
 
 bool BluetoothClassicMedium::StartDiscovery(
     BluetoothClassicMedium::DiscoveryCallback discovery_callback) {
-  LOG(INFO) << "StartDiscovery is called.";
+  VLOG(1) << "StartDiscovery is called.";
 
   bool result = false;
   discovery_callback_ = std::move(discovery_callback);
@@ -130,7 +130,7 @@ bool BluetoothClassicMedium::StartDiscovery(
 }
 
 bool BluetoothClassicMedium::StopDiscovery() {
-  LOG(INFO) << "StopDiscovery is called.";
+  VLOG(1) << "StopDiscovery is called.";
 
   bool result = false;
 
@@ -251,8 +251,8 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
 std::unique_ptr<api::BluetoothServerSocket>
 BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
-  LOG(INFO) << "ListenForService is called with service name: " << service_name
-            << ".";
+  VLOG(1) << "ListenForService is called with service name: " << service_name
+          << ".";
   if (service_uuid.empty()) {
     LOG(ERROR) << __func__ << ": service_uuid was empty.";
     return nullptr;
@@ -268,7 +268,7 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
 
   scan_mode_ = bluetooth_adapter_.GetScanMode();
 
-  LOG(INFO) << __func__ << ": scan_mode: " << static_cast<int>(scan_mode_);
+  VLOG(1) << __func__ << ": scan_mode: " << static_cast<int>(scan_mode_);
   bool radio_discoverable =
       scan_mode_ == BluetoothAdapter::ScanMode::kConnectableDiscoverable;
 
@@ -284,7 +284,7 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
-  LOG(INFO) << "GetRemoteDevice is called with mac_address: " << mac_address;
+  VLOG(1) << "GetRemoteDevice is called with mac_address: " << mac_address;
   return GetRemoteDeviceInternal(mac_address);
 }
 
@@ -371,7 +371,7 @@ void BluetoothClassicMedium::OnScanModeChanged(
             << static_cast<int>(scan_mode);
 
   if (scan_mode == scan_mode_) {
-    LOG(INFO) << __func__ << ": No change of scan mode.";
+    VLOG(1) << __func__ << ": No change of scan mode.";
     return;
   }
 
@@ -387,7 +387,7 @@ void BluetoothClassicMedium::OnScanModeChanged(
   }
 
   if (is_radio_discoverable_ == radio_discoverable) {
-    LOG(INFO) << __func__ << ": No change of radio discovery.";
+    VLOG(1) << __func__ << ": No change of radio discovery.";
     return;
   }
 
@@ -918,7 +918,7 @@ bool BluetoothClassicMedium::StartAdvertising(bool radio_discoverable) {
 }
 
 bool BluetoothClassicMedium::StopAdvertising() {
-  LOG(INFO) << __func__ << ": StopAdvertising is called";
+  VLOG(1) << __func__ << ": StopAdvertising is called";
 
   try {
     if (rfcomm_provider_ == nullptr) {

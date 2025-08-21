@@ -1108,8 +1108,8 @@ void BleV2::ProcessFetchGattAdvertisementsRequest(
 
 bool BleV2::StopAdvertisementGattServerLocked() {
   if (!IsAdvertisementGattServerRunningLocked()) {
-    LOG(INFO) << "Unable to stop the advertisement GATT server because "
-                 "it's not running.";
+    VLOG(1) << "Unable to stop the advertisement GATT server because it's not "
+               "running.";
     return false;
   }
 
