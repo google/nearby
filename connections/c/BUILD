@@ -21,7 +21,14 @@ package(default_visibility = [
     "//connections:__subpackages__",
     "//googlemac/iPhone/Nearby:__subpackages__",
     "//location/nearby:__subpackages__",
+    "//third_party/beto_core/nearby/connections:__subpackages__",
 ])
+
+exports_files(
+    srcs = [
+        "nc.h",
+    ],
+)
 
 licenses(["notice"])
 
