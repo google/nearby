@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
-
 #import <CoreBluetooth/CoreBluetooth.h>
+
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralManager.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GNSCentralManager ()<CBCentralManagerDelegate>
+@class GNSCentralPeerManager;
+@class GNSFakePeripheral;
+
+// A fake implementation of GNSCentralManager for testing.
+@interface GNSFakeCentralManager : GNSCentralManager <CBCentralManagerDelegate>
+
+@property(nonatomic) CBUUID *socketServiceUUID;
+@property(nonatomic, assign) CBManagerState testCbManagerState;
+@property(nonatomic, nullable) CBPeripheral *connectedPeripheral;
+@property(nonatomic, nullable) GNSCentralPeerManager *connectingPeer;
+@property(nonatomic, strong) GNSCentralPeerManager *centralPeerManager;
+@property(nonatomic) BOOL failConnection;
+@property(nonatomic, nullable) NSArray<CBPeripheral *> *peripheralsToRetrieve;
 
 - (void)connectPeripheralForPeer:(GNSCentralPeerManager *)peer
                          options:(nullable NSDictionary<NSString *, id> *)options;
-
 - (void)cancelPeripheralConnectionForPeer:(GNSCentralPeerManager *)peer;
-
 - (void)centralPeerManagerDidDisconnect:(GNSCentralPeerManager *)peer;
-
-- (nullable GNSCentralPeerManager *)centralPeerForPeripheral:(CBPeripheral *)peripheral;
-
-@end
-
-@interface GNSCentralManager (VisibleForTesting)
-
-- (CBCentralManager *)testing_cbCentralManager;
 
 @end
 
