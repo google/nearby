@@ -158,6 +158,7 @@ class DiscoveredPeripheralTracker {
     BleV2Peripheral peripheral;
     BleAdvertisementHeader advertisement_header;
     AdvertisementFetcher advertisement_fetcher;
+    absl::Time scheduled_time;
   };
 
   // Clears stale data from any previous sessions.
@@ -309,6 +310,9 @@ class DiscoveredPeripheralTracker {
   bool is_read_gatt_for_extended_advertisement_enabled_ = true;
   bool is_extended_advertisement_available_;
 
+  absl::Time medium_start_scanning_time_ ABSL_GUARDED_BY(mutex_) =
+      absl::InfiniteFuture();
+
   // ------------ SERVICE ID MAPS ------------
   // Entries in these maps all follow the same lifecycle. Entries are added in
   // StartTracking, and removed in StopTracking.
@@ -351,10 +355,6 @@ class DiscoveredPeripheralTracker {
   absl::flat_hash_map<BleAdvertisement, GattAdvertisementInfo>
       gatt_advertisement_infos_ ABSL_GUARDED_BY(mutex_);
 
-  // Tracks the advertisements in GATT fetching.
-  absl::flat_hash_set<BleAdvertisementHeader> fetching_advertisements_
-      ABSL_GUARDED_BY(mutex_);
-
   std::unique_ptr<MultiThreadExecutor> executor_ ABSL_GUARDED_BY(mutex_) =
       nullptr;
 
@@ -362,6 +362,8 @@ class DiscoveredPeripheralTracker {
   AtomicBoolean shutting_down_{false};
   ConditionVariable cond_{&task_mutex_};
   std::deque<GattFetchTask> gatt_fetch_tasks_ ABSL_GUARDED_BY(task_mutex_);
+  std::deque<GattFetchTask> gatt_extended_fetch_tasks_
+      ABSL_GUARDED_BY(task_mutex_);
 
   // Maps an advertisement header's hash with the time it's reported lost.
   // Ignores subsequent discovery events for the same advertisement header.

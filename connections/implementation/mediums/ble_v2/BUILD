@@ -141,6 +141,7 @@ cc_test(
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
+        "//internal/test",
         "//proto/mediums:ble_frames_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
