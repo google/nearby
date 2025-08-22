@@ -340,6 +340,11 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   socket = _sockets[request.central.identifier];
 
   // Only an error packet can cause the socket to have been removed at this point.
+  if (!socket) {
+    // If the socket is nil, it means it was refused or disconnected. Don't proceed.
+    // We've already logged this earlier in the connection request handling.
+    return;
+  }
   NSAssert(socket || [packet isKindOfClass:[GNSWeaveErrorPacket class]],
            @"Socket missing after receiving non-error weave packet");
   [socket incrementReceivePacketCounter];
@@ -531,6 +536,12 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
               }
             }];
     });
+  } else {
+    GNCLoggerInfo(@"Socket connection refused for central: %@", socket.peerIdentifier);
+    // Notify the peripheral manager that this transient socket is gone.
+    [_peripheralManager socketDidDisconnect:socket];
+    // Optionally, inform the socket's delegate.
+    [socket didDisconnectWithError:GNSErrorWithCode(GNSErrorPeripheralDidRefuseConnection)];
   }
 }
 
