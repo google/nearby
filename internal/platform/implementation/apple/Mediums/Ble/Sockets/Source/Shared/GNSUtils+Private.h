@@ -44,4 +44,13 @@ NSError *GNSErrorWithCode(GNSError errorCode);
  */
 NSString *GNSCharacteristicName(NSString *uuid);
 
+/**
+ * Returns a human readable name based on a CBManagerState.
+ *
+ * @param state CBManagerState
+ *
+ * @return Name of the CBManagerState.
+ */
+NSString *CBManagerStateString(CBManagerState state);
+
 NS_ASSUME_NONNULL_END
