@@ -295,7 +295,7 @@ cc_library(
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/windows/generated:types",
         "//third_party/intel/pie",
-        "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
+        "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
         "//third_party/webrtc/files/stable/webrtc/api:scoped_refptr",
         "//third_party/webrtc/files/stable/webrtc/rtc_base:threading",
         "@com_google_absl//absl/base:core_headers",
