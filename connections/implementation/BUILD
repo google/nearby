@@ -310,6 +310,7 @@ cc_test(
         "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
@@ -550,6 +551,7 @@ cc_test(
     ],
     deps = [
         ":internal",
+        ":types",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:mac_address",

@@ -15,10 +15,16 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/status/statusor.h"
 #include "connections/implementation/bluetooth_device_name.h"
+#include "connections/implementation/pcp.h"
+#include "connections/implementation/webrtc_state.h"
+#include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/mac_address.h"
 
@@ -65,8 +71,8 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
 
   MacAddress remote_mac_address;
   if (!MacAddress::FromUint64(bluetooth_mac_address_bytes_uint64.value(),
-                              remote_mac_address)
-      || !remote_mac_address.IsSet()) {
+                              remote_mac_address) ||
+      !remote_mac_address.IsSet()) {
     return BluetoothDevice(/*device=*/nullptr);
   }
 
@@ -91,6 +97,16 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
   devices_.emplace_back(std::move(injected_device));
 
   return device_to_return;
+}
+
+bool InjectedBluetoothDeviceStore::IsInjectedDevice(
+    const std::string& mac_address) {
+  for (const auto& device : devices_) {
+    if (device->GetMacAddress() == mac_address) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace connections

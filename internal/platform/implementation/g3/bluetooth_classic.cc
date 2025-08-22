@@ -31,6 +31,7 @@
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
+#include "internal/platform/types.h"
 
 namespace nearby {
 namespace g3 {
@@ -173,10 +174,21 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   LOG(INFO) << "G3 ConnectToService [self]: medium=" << this
             << ", adapter=" << &GetAdapter()
             << ", device=" << &GetAdapter().GetDevice();
-  // First, find an instance of remote medium, that exposed this device.
-  auto& adapter = static_cast<BluetoothDevice&>(remote_device).GetAdapter();
+
+  // Find the device in the MediumEnvironment, so that injected devices are
+  // supported in tests.
+  api::BluetoothDevice* device =
+      MediumEnvironment::Instance().FindBluetoothDevice(
+          remote_device.GetMacAddress());
+  if (device == nullptr) {
+    LOG(ERROR) << "G3 ConnectToService [peer]: device=" << &remote_device
+               << " not found";
+    return {};
+  }
+
+  auto& adapter = down_cast<BluetoothDevice*>(device)->GetAdapter();
   auto* medium =
-      static_cast<BluetoothClassicMedium*>(adapter.GetBluetoothClassicMedium());
+      down_cast<BluetoothClassicMedium*>(adapter.GetBluetoothClassicMedium());
 
   if (!medium) return {};  // Adapter is not bound to medium. Bail out.
 

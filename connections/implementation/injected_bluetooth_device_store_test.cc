@@ -15,12 +15,14 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 
 #include <array>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "connections/implementation/bluetooth_device_name.h"
+#include "connections/implementation/pcp.h"
+#include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/bluetooth_adapter.h"
 
 namespace nearby {
 namespace connections {
@@ -49,6 +51,7 @@ TEST_F(InjectedBluetoothDeviceStoreTest, Success) {
       remote_bluetooth_mac_address, kTestEndpointId, endpoint_info,
       service_id_hash, Pcp::kP2pPointToPoint);
   EXPECT_TRUE(device.IsValid());
+  EXPECT_TRUE(store_.IsInjectedDevice(device.GetMacAddress()));
 
   EXPECT_EQ(BluetoothUtils::ToString(remote_bluetooth_mac_address),
             device.GetMacAddress());
@@ -71,6 +74,8 @@ TEST_F(InjectedBluetoothDeviceStoreTest, Fail_InvalidBluetoothMac) {
       remote_bluetooth_mac_address, kTestEndpointId, endpoint_info,
       service_id_hash, Pcp::kP2pPointToPoint);
   EXPECT_FALSE(device.IsValid());
+  EXPECT_FALSE(
+      store_.IsInjectedDevice(remote_bluetooth_mac_address.string_data()));
 }
 
 TEST_F(InjectedBluetoothDeviceStoreTest, Fail_InvalidEndpointId) {

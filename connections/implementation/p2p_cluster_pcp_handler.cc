@@ -435,7 +435,8 @@ void P2pClusterPcpHandler::BluetoothDeviceDiscoveredHandler(
         }
 
         // Make sure we are still discovering before proceeding.
-        if (!bluetooth_medium_.IsDiscovering(service_id)) {
+        if (!bluetooth_medium_.IsDiscovering(service_id) &&
+            !client->GetDiscoveryOptions().is_out_of_band_connection) {
           LOG(WARNING) << "Skipping discovered Bluetooth device due to "
                           "no longer discovering.";
           return;
@@ -483,7 +484,8 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
           return;
         }
 
-        if (!bluetooth_medium_.IsDiscovering(service_id)) {
+        if (!bluetooth_medium_.IsDiscovering(service_id) &&
+            !client->GetDiscoveryOptions().is_out_of_band_connection) {
           LOG(WARNING) << "Ignoring name changed Bluetooth device due to no "
                           "longer discovering.";
           return;
@@ -563,7 +565,8 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
       "p2p-bt-device-lost", [this, client, service_id,
                              device_name_string]() RUN_ON_PCP_HANDLER_THREAD() {
         // Make sure we are still discovering before proceeding.
-        if (!bluetooth_medium_.IsDiscovering(service_id)) {
+        if (!bluetooth_medium_.IsDiscovering(service_id) &&
+            !client->GetDiscoveryOptions().is_out_of_band_connection) {
           LOG(WARNING) << "Ignoring lost Bluetooth device due to no "
                           "longer discovering.";
           return;
@@ -1439,6 +1442,13 @@ Status P2pClusterPcpHandler::InjectEndpointImpl(
   // Bluetooth is the only supported out-of-band connection medium.
   if (metadata.medium != BLUETOOTH) {
     LOG(WARNING) << "InjectEndpointImpl: Only Bluetooth is supported.";
+    return {Status::kError};
+  }
+
+  // Make sure discovery is in out-of-band  mode from the API definition in
+  // core.h.
+  if (!client->GetDiscoveryOptions().is_out_of_band_connection) {
+    LOG(WARNING) << "InjectEndpointImpl: Discovery is not in out-of-band mode.";
     return {Status::kError};
   }
 
@@ -3123,8 +3133,7 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartAwdlAdvertising(
                  << ", endpoint_info="
                  << absl::BytesToHexString(local_endpoint_info.data()) << "}.";
     awdl_medium_.StopAcceptingConnections(service_id);
-    return {
-        Error(OperationResultCode::NEARBY_AWDL_ADVERTISE_TO_BYTES_FAILURE)};
+    return {Error(OperationResultCode::NEARBY_AWDL_ADVERTISE_TO_BYTES_FAILURE)};
   }
   LOG(INFO) << "In StartAwdlAdvertising("
             << absl::BytesToHexString(local_endpoint_info.data())
