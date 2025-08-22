@@ -47,6 +47,7 @@
 #include "connections/implementation/mediums/advertisements/dct_advertisement.h"
 #include "connections/implementation/mediums/ble_v2.h"
 #include "connections/implementation/mediums/ble_v2/ble_advertisement_header.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/utils.h"
@@ -2687,9 +2688,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
 
 void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(
     ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, BleV2Socket socket,
+    NearbyDevice::Type device_type, std::unique_ptr<mediums::BleSocket> socket,
     const std::string& service_id) {
-  if (!socket.IsValid()) {
+  if (socket == nullptr || !socket->IsValid()) {
     LOG(WARNING) << "Invalid socket in accept callback("
                  << absl::BytesToHexString(local_endpoint_info)
                  << "), client=" << client->GetClientId();
@@ -2699,9 +2700,10 @@ void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(
       "p2p-ble-on-incoming-connection",
       [this, client, service_id, device_type,
        socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        ByteArray remote_peripheral_info = socket.GetRemotePeripheral().GetId();
+        ByteArray remote_peripheral_info =
+            socket->GetRemotePeripheral().GetId();
         auto channel = std::make_unique<BleV2EndpointChannel>(
-            service_id, std::string(remote_peripheral_info), socket);
+            service_id, std::string(remote_peripheral_info), std::move(socket));
 
         OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
                              BLE, device_type);
@@ -2710,9 +2712,9 @@ void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(
 
 void P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler(
     ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, BleL2capSocket socket,
+    NearbyDevice::Type device_type, std::unique_ptr<mediums::BleSocket> socket,
     const std::string& service_id) {
-  if (!socket.IsValid()) {
+  if (socket == nullptr || !socket->IsValid()) {
     LOG(WARNING) << "Invalid socket in accept L2CAP callback("
                  << absl::BytesToHexString(local_endpoint_info)
                  << "), client=" << client->GetClientId();
@@ -2722,9 +2724,10 @@ void P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler(
       "p2p-ble-l2cap-on-incoming-connection",
       [this, client, service_id, device_type,
        socket = std::move(socket)]() RUN_ON_PCP_HANDLER_THREAD() mutable {
-        ByteArray remote_peripheral_info = socket.GetRemotePeripheral().GetId();
+        ByteArray remote_peripheral_info =
+            socket->GetRemotePeripheral().GetId();
         auto channel = std::make_unique<BleL2capEndpointChannel>(
-            service_id, std::string(remote_peripheral_info), socket);
+            service_id, std::string(remote_peripheral_info), std::move(socket));
 
         OnIncomingConnection(client, remote_peripheral_info, std::move(channel),
                              BLE, device_type);
@@ -2977,7 +2980,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
           config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
       peripheral.GetPsm() !=
           mediums::BleAdvertisementHeader::kDefaultPsmValue) {
-    ErrorOr<BleL2capSocket> ble_l2cap_socket_result =
+    ErrorOr<std::unique_ptr<mediums::BleSocket>> ble_l2cap_socket_result =
         ble_v2_medium_.ConnectOverL2cap(
             endpoint->service_id, peripheral,
             client->GetCancellationFlag(endpoint->endpoint_id));
@@ -2987,7 +2990,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
                 << " for endpoint(id=" << endpoint->endpoint_id << ").";
       auto channel = std::make_unique<BleL2capEndpointChannel>(
           endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-          ble_l2cap_socket_result.value());
+          std::move(ble_l2cap_socket_result.value()));
       return BasePcpHandler::ConnectImplResult{
           .medium = BLE,
           .status = {Status::kSuccess},
@@ -3002,9 +3005,10 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
     }
   }
 
-  ErrorOr<BleV2Socket> ble_socket_result = ble_v2_medium_.Connect(
-      endpoint->service_id, peripheral,
-      client->GetCancellationFlag(endpoint->endpoint_id));
+  ErrorOr<std::unique_ptr<mediums::BleSocket>> ble_socket_result =
+      ble_v2_medium_.Connect(
+          endpoint->service_id, peripheral,
+          client->GetCancellationFlag(endpoint->endpoint_id));
   if (ble_socket_result.has_error()) {
     LOG(ERROR) << "In BleV2ConnectImpl(), failed to connect to BLE device "
                << absl::BytesToHexString(peripheral.GetId().data())
@@ -3018,7 +3022,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleV2ConnectImpl(
 
   auto channel = std::make_unique<BleV2EndpointChannel>(
       endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-      ble_socket_result.value());
+      std::move(ble_socket_result.value()));
 
   return BasePcpHandler::ConnectImplResult{
       .medium = BLE,

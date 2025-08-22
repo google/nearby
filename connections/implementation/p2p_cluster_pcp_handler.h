@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,7 @@
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble_v2.h"
+#include "connections/implementation/mediums/ble_v2/ble_socket.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
@@ -261,16 +263,16 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                const ByteArray& advertisement_bytes,
                                bool fast_advertisement);
   void BleV2LegacyDeviceDiscoveredHandler();
-  void BleV2ConnectionAcceptedHandler(ClientProxy* client,
-                                      absl::string_view local_endpoint_info,
-                                      NearbyDevice::Type device_type,
-                                      BleV2Socket socket,
-                                      const std::string& service_id);
-  void BleL2capConnectionAcceptedHandler(ClientProxy* client,
-                                         absl::string_view local_endpoint_info,
-                                         NearbyDevice::Type device_type,
-                                         BleL2capSocket socket,
-                                         const std::string& service_id);
+  void BleV2ConnectionAcceptedHandler(
+      ClientProxy* client, absl::string_view local_endpoint_info,
+      NearbyDevice::Type device_type,
+      std::unique_ptr<mediums::BleSocket> socket,
+      const std::string& service_id);
+  void BleL2capConnectionAcceptedHandler(
+      ClientProxy* client, absl::string_view local_endpoint_info,
+      NearbyDevice::Type device_type,
+      std::unique_ptr<mediums::BleSocket> socket,
+      const std::string& service_id);
   ErrorOr<location::nearby::proto::connections::Medium> StartBleV2Advertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,
