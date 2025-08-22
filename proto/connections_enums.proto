@@ -1381,6 +1381,9 @@ enum SupportedService {
   SUPPORTED_SERVICE_DATA_MIGRATION = 2;
   SUPPORTED_SERVICE_DATA_TRANSFER = 3;
 }
+
+// Todo: add instant connection result and error stage codes
+
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
