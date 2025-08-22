@@ -612,8 +612,7 @@ void WebRtc::ReceiveAnswer(const WebrtcPeerId& remote_peer_id,
 
 void WebRtc::ReceiveIceCandidates(
     const WebrtcPeerId& remote_peer_id,
-    std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-        ice_candidates) {
+    std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates) {
   const auto& entry = connection_flows_.find(remote_peer_id.GetId());
   if (entry == connection_flows_.end()) {
     LOG(INFO) << "Unable to receive ice candidates. Failed to create a "
@@ -704,8 +703,8 @@ std::unique_ptr<ConnectionFlow> WebRtc::CreateConnectionFlow(
 
   return ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           {[this, service_id, remote_peer_id](
-                const webrtc::IceCandidateInterface* ice_candidate) {
+           {[this, service_id,
+             remote_peer_id](const webrtc::IceCandidate* ice_candidate) {
              // Note: We need to encode the ice candidate here, before we jump
              // off the thread. Otherwise, it gets destroyed and we can't read
              // it later.

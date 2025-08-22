@@ -47,8 +47,8 @@ class ConnectionFlowTest : public ::testing::Test {
   ~ConnectionFlowTest() override { MediumEnvironment::Instance().Stop(); }
 };
 
-std::unique_ptr<webrtc::IceCandidateInterface> CopyCandidate(
-    const webrtc::IceCandidateInterface* candidate) {
+std::unique_ptr<webrtc::IceCandidate> CopyCandidate(
+    const webrtc::IceCandidate* candidate) {
   return webrtc::CreateIceCandidate(candidate->sdp_mid(),
                                     candidate->sdp_mline_index(),
                                     candidate->candidate());
@@ -68,8 +68,8 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   // Send Ice Candidates immediately when you retrieve them
   offerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           [&answerer](const webrtc::IceCandidateInterface* candidate) {
-             std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> vec;
+           [&answerer](const webrtc::IceCandidate* candidate) {
+             std::vector<std::unique_ptr<webrtc::IceCandidate>> vec;
              vec.push_back(CopyCandidate(candidate));
              // The callback might be alive while the objects in test are
              // destroyed.
@@ -88,8 +88,8 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   ASSERT_NE(offerer, nullptr);
   answerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           [&offerer](const webrtc::IceCandidateInterface* candidate) {
-             std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> vec;
+           [&offerer](const webrtc::IceCandidate* candidate) {
+             std::vector<std::unique_ptr<webrtc::IceCandidate>> vec;
              vec.push_back(CopyCandidate(candidate));
              // The callback might be alive while the objects in test are
              // destroyed.
@@ -267,8 +267,8 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   // Send Ice Candidates immediately when you retrieve them
   offerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           [&answerer](const webrtc::IceCandidateInterface* candidate) {
-             std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> vec;
+           [&answerer](const webrtc::IceCandidate* candidate) {
+             std::vector<std::unique_ptr<webrtc::IceCandidate>> vec;
              vec.push_back(CopyCandidate(candidate));
              // The callback might be alive while the objects in test are
              // destroyed.
@@ -287,8 +287,8 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   ASSERT_NE(offerer, nullptr);
   answerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           [&offerer](const webrtc::IceCandidateInterface* candidate) {
-             std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> vec;
+           [&offerer](const webrtc::IceCandidate* candidate) {
+             std::vector<std::unique_ptr<webrtc::IceCandidate>> vec;
              vec.push_back(CopyCandidate(candidate));
              // The callback might be alive while the objects in test are
              // destroyed.
@@ -357,8 +357,8 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   // Send Ice Candidates immediately when you retrieve them
   offerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           [&answerer](const webrtc::IceCandidateInterface* candidate) {
-             std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> vec;
+           [&answerer](const webrtc::IceCandidate* candidate) {
+             std::vector<std::unique_ptr<webrtc::IceCandidate>> vec;
              vec.push_back(CopyCandidate(candidate));
              // The callback might be alive while the objects in test are
              // destroyed.
@@ -378,8 +378,8 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   ASSERT_NE(offerer, nullptr);
   answerer = ConnectionFlow::Create(
       {.local_ice_candidate_found_cb =
-           [&offerer](const webrtc::IceCandidateInterface* candidate) {
-             std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> vec;
+           [&offerer](const webrtc::IceCandidate* candidate) {
+             std::vector<std::unique_ptr<webrtc::IceCandidate>> vec;
              vec.push_back(CopyCandidate(candidate));
              // The callback might be alive while the objects in test are
              // destroyed.

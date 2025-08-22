@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "google/protobuf/text_format.h"
+#include "webrtc/api/jsep.h"
 
 namespace nearby {
 namespace connections {
@@ -149,7 +150,7 @@ TEST(SignalingFramesTest, EncodeValidIceCandidates) {
   WebrtcPeerId sender_id("abc");
   webrtc::SdpParseError error;
 
-  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;
+  std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates;
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp1, &error));
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
@@ -170,7 +171,7 @@ TEST(SignalingFramesTest, EncodeValidIceCandidates) {
 
 TEST(SignalingFramesTest, DecodeValidIceCandidates) {
   webrtc::SdpParseError error;
-  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;
+  std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates;
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
       kIceSdpMid, kIceSdpMLineIndex, kIceCandidateSdp1, &error));
   ice_candidates.emplace_back(webrtc::CreateIceCandidate(
@@ -178,8 +179,8 @@ TEST(SignalingFramesTest, DecodeValidIceCandidates) {
 
   WebRtcSignalingFrame frame;
   proto2::TextFormat::ParseFromString(kIceCandidatesProto, &frame);
-  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-      decoded_candidates = DecodeIceCandidates(frame);
+  std::vector<std::unique_ptr<webrtc::IceCandidate>> decoded_candidates =
+      DecodeIceCandidates(frame);
 
   ASSERT_EQ(2u, decoded_candidates.size());
   for (int i = 0; i < static_cast<int>(decoded_candidates.size()); i++) {

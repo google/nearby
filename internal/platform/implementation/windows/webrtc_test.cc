@@ -19,10 +19,9 @@
 #include <string>
 
 #include "gtest/gtest.h"
-
 #include "internal/platform/implementation/webrtc.h"
-#include "webrtc/api/jsep.h"
 #include "webrtc/api/data_channel_interface.h"
+#include "webrtc/api/jsep.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/scoped_refptr.h"
 
@@ -40,8 +39,7 @@ class MockPeerConnectionObserver : public webrtc::PeerConnectionObserver {
   void OnIceGatheringChange(
       webrtc::PeerConnectionInterface::IceGatheringState new_state) override {}
 
-  void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override {
-  }
+  void OnIceCandidate(const webrtc::IceCandidate* candidate) override {}
 };
 
 location::nearby::connections::LocationHint GetCountryCodeLocationHint(

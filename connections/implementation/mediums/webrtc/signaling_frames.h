@@ -40,14 +40,14 @@ ByteArray EncodeIceCandidates(
     const WebrtcPeerId& sender_id,
     const std::vector<location::nearby::mediums::IceCandidate>& ice_candidates);
 location::nearby::mediums::IceCandidate EncodeIceCandidate(
-    const webrtc::IceCandidateInterface& ice_candidate);
+    const webrtc::IceCandidate& ice_candidate);
 
 std::unique_ptr<webrtc::SessionDescriptionInterface> DecodeOffer(
     const location::nearby::mediums::WebRtcSignalingFrame& frame);
 std::unique_ptr<webrtc::SessionDescriptionInterface> DecodeAnswer(
     const location::nearby::mediums::WebRtcSignalingFrame& frame);
 
-std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
+std::vector<std::unique_ptr<webrtc::IceCandidate>> DecodeIceCandidates(
     const location::nearby::mediums::WebRtcSignalingFrame& frame);
 
 }  // namespace webrtc_frames

@@ -302,8 +302,7 @@ bool ConnectionFlow::OnAnswerReceived(SessionDescriptionWrapper answer) {
 }
 
 bool ConnectionFlow::OnRemoteIceCandidatesReceived(
-    std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-        ice_candidates) {
+    std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates) {
   CHECK(!IsRunningOnSignalingThread());
   // We can't call RunOnSignalingThread because C++ wants to copy ice_candidates
   // if we try. unique_ptr is not CopyConstructible and compilation fails.
@@ -325,8 +324,7 @@ bool ConnectionFlow::OnRemoteIceCandidatesReceived(
 }
 
 void ConnectionFlow::AddIceCandidatesOnSignalingThread(
-    std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-        ice_candidates) {
+    std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates) {
   CHECK(IsRunningOnSignalingThread());
   if (state_ == State::kEnded) {
     LOG(WARNING) << "You cannot add ice candidates to a disconnected session.";
@@ -436,8 +434,7 @@ void ConnectionFlow::CreateSocketFromDataChannel(
   socket_wrapper_ = WebRtcSocketWrapper(std::move(socket));
 }
 
-void ConnectionFlow::OnIceCandidate(
-    const webrtc::IceCandidateInterface* candidate) {
+void ConnectionFlow::OnIceCandidate(const webrtc::IceCandidate* candidate) {
   CHECK(IsRunningOnSignalingThread());
   local_ice_candidate_listener_.local_ice_candidate_found_cb(candidate);
 }

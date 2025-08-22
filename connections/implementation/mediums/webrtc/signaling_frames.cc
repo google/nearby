@@ -34,13 +34,12 @@ void SetSenderId(const WebrtcPeerId& sender_id, WebRtcSignalingFrame& frame) {
   frame.mutable_sender_id()->set_id(sender_id.GetId());
 }
 
-std::unique_ptr<webrtc::IceCandidateInterface> DecodeIceCandidate(
+std::unique_ptr<webrtc::IceCandidate> DecodeIceCandidate(
     location::nearby::mediums::IceCandidate ice_candidate_proto) {
   webrtc::SdpParseError error;
-  return std::unique_ptr<webrtc::IceCandidateInterface>(
-      webrtc::CreateIceCandidate(ice_candidate_proto.sdp_mid(),
-                                 ice_candidate_proto.sdp_m_line_index(),
-                                 ice_candidate_proto.sdp(), &error));
+  return std::unique_ptr<webrtc::IceCandidate>(webrtc::CreateIceCandidate(
+      ice_candidate_proto.sdp_mid(), ice_candidate_proto.sdp_m_line_index(),
+      ice_candidate_proto.sdp(), &error));
 }
 
 }  // namespace
@@ -108,9 +107,9 @@ std::unique_ptr<webrtc::SessionDescriptionInterface> DecodeAnswer(
       frame.answer().session_description().description());
 }
 
-std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
+std::vector<std::unique_ptr<webrtc::IceCandidate>> DecodeIceCandidates(
     const WebRtcSignalingFrame& frame) {
-  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> ice_candidates;
+  std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates;
   for (const auto& candidate : frame.ice_candidates().ice_candidates()) {
     ice_candidates.push_back(DecodeIceCandidate(candidate));
   }
@@ -118,7 +117,7 @@ std::vector<std::unique_ptr<webrtc::IceCandidateInterface>> DecodeIceCandidates(
 }
 
 location::nearby::mediums::IceCandidate EncodeIceCandidate(
-    const webrtc::IceCandidateInterface& ice_candidate) {
+    const webrtc::IceCandidate& ice_candidate) {
   std::string sdp;
   ice_candidate.ToString(&sdp);
   location::nearby::mediums::IceCandidate ice_candidate_proto;

@@ -195,8 +195,8 @@ class WebRtc {
   // Runs on |single_thread_executor_|.
   void ReceiveIceCandidates(
       const WebrtcPeerId& remote_peer_id,
-      std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-          ice_candidates) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Runs on |single_thread_executor_|.
   std::unique_ptr<ConnectionFlow> CreateConnectionFlow(

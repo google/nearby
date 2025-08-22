@@ -128,15 +128,15 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   // ice candidate to the peer connection if ready or cache it otherwise.
   // Can be called on any thread but never called on signaling thread.
   bool OnRemoteIceCandidatesReceived(
-      std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-          ice_candidates) ABSL_LOCKS_EXCLUDED(mutex_);
+      std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   // Close the peer connection and data channel if not connected.
   // Can be called on any thread but never called on signaling thread.
   bool CloseIfNotConnected() ABSL_LOCKS_EXCLUDED(mutex_);
 
   // webrtc::PeerConnectionObserver:
   // All methods called only on signaling thread.
-  void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override;
+  void OnIceCandidate(const webrtc::IceCandidate* candidate) override;
   void OnSignalingChange(
       webrtc::PeerConnectionInterface::SignalingState new_state) override;
   void OnDataChannel(webrtc::scoped_refptr<webrtc::DataChannelInterface>
@@ -165,8 +165,7 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   void CreateAnswerOnSignalingThread(
       Future<SessionDescriptionWrapper> success_future);
   void AddIceCandidatesOnSignalingThread(
-      std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
-          ice_candidates);
+      std::vector<std::unique_ptr<webrtc::IceCandidate>> ice_candidates);
   // Invoked when the peer connection indicates that signaling is stable.
   void OnSignalingStable() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -225,7 +224,7 @@ class ConnectionFlow : public webrtc::PeerConnectionObserver {
   // connecting.
   WebRtcSocketWrapper socket_wrapper_;
 
-  std::vector<std::unique_ptr<webrtc::IceCandidateInterface>>
+  std::vector<std::unique_ptr<webrtc::IceCandidate>>
       cached_remote_ice_candidates_;
   // This pointer is only for DCHECK() assertions.
   // It allows us to check if we are running on signaling thread even

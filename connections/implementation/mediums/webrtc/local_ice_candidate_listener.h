@@ -18,6 +18,7 @@
 #ifndef NO_WEBRTC
 
 #include "connections/listeners.h"
+#include "webrtc/api/jsep.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace nearby {
@@ -27,9 +28,9 @@ namespace mediums {
 // Callbacks from local ice candidate collection.
 struct LocalIceCandidateListener {
   // Called when a new local ice candidate has been found.
-  absl::AnyInvocable<void(const webrtc::IceCandidateInterface*)>
+  absl::AnyInvocable<void(const webrtc::IceCandidate*)>
       local_ice_candidate_found_cb =
-          nearby::DefaultCallback<const webrtc::IceCandidateInterface*>();
+          nearby::DefaultCallback<const webrtc::IceCandidate*>();
 };
 
 }  // namespace mediums
