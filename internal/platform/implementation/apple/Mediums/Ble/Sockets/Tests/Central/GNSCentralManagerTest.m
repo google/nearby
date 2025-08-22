@@ -18,25 +18,10 @@
 #import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
+@class GNSCentralManagerTest;
+
 @interface TestGNSCentralManager : GNSCentralManager
-@end
-
-@implementation TestGNSCentralManager
-
-+ (CBCentralManager *)centralManagerWithDelegate:(id<CBCentralManagerDelegate>)delegate
-                                           queue:(dispatch_queue_t)queue
-                                         options:(NSDictionary<NSString *, id> *)options {
-  CBCentralManager *mockManager = OCMStrictClassMock([CBCentralManager class]);
-  OCMStub([mockManager delegate]).andReturn(delegate);
-  return mockManager;
-}
-
-- (GNSCentralPeerManager *)createCentralPeerManagerWithPeripheral:(CBPeripheral *)peripheral {
-  GNSCentralPeerManager *mockPeerManager = OCMStrictClassMock([GNSCentralPeerManager class]);
-  OCMStub([mockPeerManager cbPeripheral]).andReturn(peripheral);
-  return mockPeerManager;
-}
-
+@property(nonatomic, weak) GNSCentralManagerTest *testInstance;
 @end
 
 @interface GNSCentralManagerTest : XCTestCase
@@ -57,6 +42,10 @@
   self.centralManager =
       [[TestGNSCentralManager alloc] initWithSocketServiceUUID:self.socketServiceUUID
                                                          queue:dispatch_get_main_queue()];
+  self.centralManager.testInstance = self;
+
+  // Reset scan mode ivars by calling stopScan
+  [self.centralManager stopScan];
 
   self.centralManagerDelegate = OCMStrictProtocolMock(@protocol(GNSCentralManagerDelegate));
   self.centralManager.delegate = self.centralManagerDelegate;
@@ -153,6 +142,42 @@
   OCMExpect([self.cbCentralManagerMock stopScan]);
   [self.centralManager stopScan];
   XCTAssertFalse(self.centralManager.scanning);
+}
+
+#pragma mark - No Scan Mode
+
+- (void)testNoScanMode_Discovery {
+  self.cbCentralManagerState = CBManagerStatePoweredOn;
+  NSArray<CBUUID *> *uuids = @[ self.socketServiceUUID, [CBUUID UUIDWithNSUUID:[NSUUID UUID]] ];
+  [self.centralManager startNoScanModeWithAdvertisedServiceUUIDs:uuids];
+  XCTAssertFalse(self.centralManager.scanning);  // No scan mode doesn't start scanning
+
+  NSUUID *peripheralID = [NSUUID UUID];
+  CBPeripheral *peripheral = OCMStrictClassMock([CBPeripheral class]);
+  OCMStub([peripheral identifier]).andReturn(peripheralID);
+
+  OCMExpect([self.cbCentralManagerMock retrievePeripheralsWithIdentifiers:@[ peripheralID ]])
+      .andReturn(@[ peripheral ]);
+
+  // Matching advertisement
+  NSDictionary<NSString *, id> *advertisementData = @{
+    CBAdvertisementDataServiceUUIDsKey : @[ self.socketServiceUUID ],
+  };
+  OCMExpect([self.centralManagerDelegate centralManager:self.centralManager
+                                        didDiscoverPeer:[OCMArg any]
+                                      advertisementData:advertisementData]);
+  [self.centralManager retrievePeripheralWithIdentifier:peripheralID
+                                      advertisementData:advertisementData];
+
+  OCMVerifyAll(peripheral);
+  OCMVerifyAll(self.cbCentralManagerMock);
+}
+
+- (void)testNoScanMode_Stop {
+  NSArray<CBUUID *> *uuids = @[ self.socketServiceUUID ];
+  [self.centralManager startNoScanModeWithAdvertisedServiceUUIDs:uuids];
+  // internal state check can be added if ivars were exposed, for now, just check no crash.
+  [self.centralManager stopNoScanMode];
 }
 
 #pragma mark - Scanning with no advertised name
@@ -331,6 +356,25 @@
   [self.centralManager centralManager:self.cbCentralManagerMock
            didFailToConnectPeripheral:peripheral
                                 error:error];
+}
+
+@end
+
+@implementation TestGNSCentralManager
+
++ (CBCentralManager *)centralManagerWithDelegate:(id<CBCentralManagerDelegate>)delegate
+                                           queue:(dispatch_queue_t)queue
+                                         options:(NSDictionary<NSString *, id> *)options {
+  CBCentralManager *mockManager = OCMStrictClassMock([CBCentralManager class]);
+  OCMStub([mockManager delegate]).andReturn(delegate);
+  return mockManager;
+}
+
+- (GNSCentralPeerManager *)createCentralPeerManagerWithPeripheral:(CBPeripheral *)peripheral {
+  GNSCentralPeerManager *mockPeerManager = OCMStrictClassMock([GNSCentralPeerManager class]);
+  OCMStub([mockPeerManager cbPeripheral]).andReturn(peripheral);
+  [self.testInstance.mockObjectsToVerify addObject:(OCMockObject *)mockPeerManager];
+  return mockPeerManager;
 }
 
 @end

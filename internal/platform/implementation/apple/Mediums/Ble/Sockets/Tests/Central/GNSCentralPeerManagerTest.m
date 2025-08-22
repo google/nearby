@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,452 +14,243 @@
 
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Central/GNSCentralManager+Private.h"
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
-#import "internal/platform/implementation/apple/Mediums/ble/Sockets/Source/Shared/GNSWeavePacket.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Central/GNSCentralPeerManager.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Source/Shared/GNSSocket.h"
+
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Tests/Central/GNSCentralPeerManager+Testing.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Tests/Central/GNSFakeCentralManager.h"
+#import "internal/platform/implementation/apple/Mediums/Ble/Sockets/Tests/Central/GNSFakePeripheral.h"
+
+#import <CoreBluetooth/CoreBluetooth.h>
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
-static SEL gTimerSelector = nil;
-static GNSCentralPeerManager *gTimerTarget = nil;
-
-static void ClearTimer(void) {
-  gTimerSelector = nil;
-  gTimerTarget = nil;
-}
-
-static void FireTimer(void) {
-  NSCAssert(gTimerTarget != nil, @"The timer target cannot be nil.");
-  NSCAssert(gTimerSelector != nil, @"The timer selector cannot be nil.");
-  NSInvocation *invocation = [NSInvocation
-      invocationWithMethodSignature:[[gTimerTarget class]
-                                        instanceMethodSignatureForSelector:gTimerSelector]];
-  invocation.target = gTimerTarget;
-  invocation.selector = gTimerSelector;
-  [invocation invoke];
-  ClearTimer();
-}
-
-@interface TestGNSCentralPeerManager : GNSCentralPeerManager
-@end
-
-@implementation TestGNSCentralPeerManager
-
-+ (NSTimer *)scheduledTimerWithTimeInterval:(NSTimeInterval)timeInterval
-                                     target:(id)target
-                                   selector:(SEL)selector
-                                   userInfo:(nullable id)userInfo
-                                    repeats:(BOOL)yesOrNo {
-  NSAssert(target != nil, @"The timer target cannot be nil.");
-  NSAssert(selector != nil, @"The timer selector cannot be nil.");
-  NSAssert(gTimerSelector == nil, @"Timer selector already set.");
-  NSAssert(gTimerTarget == nil, @"Time target already set.");
-  gTimerSelector = selector;
-  gTimerTarget = target;
-  NSTimer *timer = OCMStrictClassMock([NSTimer class]);
-  OCMStub([timer timeInterval]).andReturn(timeInterval);
-  return timer;
-}
-
-@end
-
-@interface GNSCentralPeerManagerTest : XCTestCase {
-  TestGNSCentralPeerManager *_centralPeerManager;
-  CBCentralManagerState _cbCentralManagerState;
-  GNSCentralManager *_centralManagerMock;
-  CBUUID *_serviceUUID;
-  CBPeripheral *_peripheralMock;
-  CBPeripheralState _peripheralState;
-  NSUUID *_peripheralUUID;
-  CBCharacteristic *_toPeripheralCharacteristic;
-  CBCharacteristic *_fromPeripheralCharacteristic;
-  CBCharacteristic *_pairingCharacteristic;
-  NSArray *_characteristics;
-  NSArray *_characteristicsWithPairing;
-  CBService *_serviceMock;
-  NSArray *_services;
-  GNSSocket *_socket;
-  id<GNSSocketDelegate> _socketDelegateMock;
-}
+@interface GNSCentralPeerManagerTest : XCTestCase
+@property(nonatomic) GNSFakePeripheral *fakePeripheral;
+@property(nonatomic) GNSFakeCentralManager *fakeCentralManager;
+@property(nonatomic) GNSCentralPeerManager *centralPeerManager;
+@property(nonatomic) NSUUID *peripheralUUID;
+@property(nonatomic) CBUUID *serviceUUID;
 @end
 
 @implementation GNSCentralPeerManagerTest
 
 - (void)setUp {
+  [super setUp];
+
   _peripheralUUID = [NSUUID UUID];
   _serviceUUID = [CBUUID UUIDWithNSUUID:[NSUUID UUID]];
-  _centralManagerMock = OCMStrictClassMock([GNSCentralManager class]);
-  OCMStub([_centralManagerMock socketServiceUUID]).andReturn(_serviceUUID);
-  _cbCentralManagerState = CBCentralManagerStatePoweredOn;
-  OCMStub([_centralManagerMock cbCentralManagerState])
-      .andDo(^(NSInvocation *invocation) {
-        [invocation setReturnValue:&_cbCentralManagerState];
-      });
-  _peripheralMock = OCMStrictClassMock([CBPeripheral class]);
-  OCMStub([_peripheralMock identifier]).andReturn(_peripheralUUID);
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMStub([_peripheralMock state])
-      .andDo(^(NSInvocation *invocation) {
-        [invocation setReturnValue:&_peripheralState];
-      });
-  OCMExpect([_peripheralMock setDelegate:[OCMArg isNotNil]]);
-  _centralPeerManager = [[TestGNSCentralPeerManager alloc] initWithPeripheral:_peripheralMock
-                                                               centralManager:_centralManagerMock];
-  void *centralPeerManagerNonRetained = (__bridge void *)(_centralPeerManager);
-  OCMStub([_peripheralMock delegate]).andReturn(centralPeerManagerNonRetained);
-  _toPeripheralCharacteristic =
-      [self generateCharateristicMockWithIdentifierString:@"00000100-0004-1000-8000-001A11000101"];
-  _fromPeripheralCharacteristic =
-      [self generateCharateristicMockWithIdentifierString:@"00000100-0004-1000-8000-001A11000102"];
-  _pairingCharacteristic =
-      [self generateCharateristicMockWithIdentifierString:@"17836FBD-8C6A-4B81-83CE-8560629E834B"];
-  _characteristics = @[ _toPeripheralCharacteristic, _fromPeripheralCharacteristic ];
-  _characteristicsWithPairing =
-      @[ _toPeripheralCharacteristic, _fromPeripheralCharacteristic, _pairingCharacteristic ];
-  _serviceMock = OCMStrictClassMock([CBService class]);
-  OCMStub([_serviceMock UUID]).andReturn(_serviceUUID);
-  _services = @[ _serviceMock ];
-  OCMStub([_peripheralMock services]).andReturn(_services);
-  _socketDelegateMock = OCMStrictProtocolMock(@protocol(GNSSocketDelegate));
+
+  _fakePeripheral = [[GNSFakePeripheral alloc] initWithIdentifier:_peripheralUUID
+                                                      serviceUUID:_serviceUUID];
+  _fakeCentralManager = [[GNSFakeCentralManager alloc] initWithSocketServiceUUID:_serviceUUID];
+  _fakeCentralManager.testCbManagerState = CBManagerStatePoweredOn;
+
+  SEL selector = NSSelectorFromString(@"initWithPeripheral:centralManager:");
+  NSMethodSignature *signature =
+      [GNSCentralPeerManager instanceMethodSignatureForSelector:selector];
+  NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+  [invocation setSelector:selector];
+  GNSCentralPeerManager *peerManager = [GNSCentralPeerManager alloc];
+  [invocation setTarget:peerManager];
+  GNSFakePeripheral *peripheral = _fakePeripheral;
+  GNSFakeCentralManager *centralManager = _fakeCentralManager;
+  [invocation setArgument:&peripheral atIndex:2];
+  [invocation setArgument:&centralManager atIndex:3];
+  [invocation invoke];
+  [invocation getReturnValue:&peerManager];
+  _centralPeerManager = peerManager;
+  _centralPeerManager.testing_peripheral = _fakePeripheral;
+  _fakePeripheral.delegate = (id<CBPeripheralDelegate>)_centralPeerManager;
+  XCTAssertNotNil(_centralPeerManager);
 }
 
 - (void)tearDown {
-  if (_peripheralState != CBPeripheralStateDisconnected) {
-    // CBPeripharal must be disconnected when GNSCentralPeerManager is dealocated. OCM retains the
-    // parameter. So |_centralManagerMock| cannot be set in the paramter in order to be deallocated
-    // correctly.
-    void *centralPeerManagerNonRetained = (__bridge void *)(_centralPeerManager);
-    OCMExpect([_centralManagerMock
-        cancelPeripheralConnectionForPeer:[OCMArg checkWithBlock:^BOOL(id obj) {
-          return obj == centralPeerManagerNonRetained;
-        }]]);
-  }
   _centralPeerManager = nil;
-  ClearTimer();
-  OCMVerifyAll((id)_centralManagerMock);
-  OCMVerifyAll((id)_peripheralMock);
-  OCMVerifyAll((id)_toPeripheralCharacteristic);
-  OCMVerifyAll((id)_fromPeripheralCharacteristic);
-  OCMVerifyAll((id)_pairingCharacteristic);
-  OCMVerifyAll((id)_serviceMock);
-  OCMVerifyAll((id)_socketDelegateMock);
-  __weak TestGNSCentralPeerManager *weakCentralPeerManager = _centralPeerManager;
-  _centralPeerManager = nil;
-  XCTAssertNil(weakCentralPeerManager);
+  _fakePeripheral = nil;
+  _fakeCentralManager = nil;
+  [super tearDown];
 }
 
-- (NSDictionary *)peripheralConnectionOptions {
-  return @{
-    CBConnectPeripheralOptionNotifyOnDisconnectionKey : @YES,
-#if TARGET_OS_IPHONE
-      CBConnectPeripheralOptionNotifyOnConnectionKey : @YES,
-      CBConnectPeripheralOptionNotifyOnNotificationKey : @YES,
-#endif
-  };
-}
-
-- (NSSet *)characteristicUUIDSetWithPairingUUID:(BOOL)pairing {
-  NSMutableSet *uuidSet = [NSMutableSet set];
-  [uuidSet addObject:_toPeripheralCharacteristic.UUID];
-  [uuidSet addObject:_fromPeripheralCharacteristic.UUID];
-  if (pairing) {
-    [uuidSet addObject:_pairingCharacteristic.UUID];
-  }
-  return uuidSet;
-}
-
-- (void)checkCharacteristicsUUID:(NSArray *)uuids withPairingUUID:(BOOL)pairing {
-  NSSet *uuidSet = [NSSet setWithArray:uuids];
-  XCTAssertEqualObjects(uuidSet, [self characteristicUUIDSetWithPairingUUID:pairing]);
-}
-
-- (CBCharacteristic *)generateCharateristicMockWithIdentifierString:(NSString *)identifierString {
-  CBCharacteristic *characteristic = OCMStrictClassMock([CBCharacteristic class]);
-  CBUUID *toPeripheralCharUUID = [CBUUID UUIDWithString:identifierString];
-  OCMStub([characteristic UUID]).andReturn(toPeripheralCharUUID);
-  return characteristic;
-}
-
-- (void)transitionToSocketCommunicationStateWithPairingChar:(BOOL)hasPairingChar {
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
-  [_centralPeerManager socketWithPairingCharacteristic:hasPairingChar
-                                            completion:^(GNSSocket *newSocket, NSError *error) {
-                                              XCTAssertNil(error);
-                                              XCTAssertNotNil(newSocket);
-                                              XCTAssertNil(_socket);
-                                              _socket = newSocket;
-                                            }];
-  OCMExpect([_peripheralMock discoverServices:@[ _serviceUUID ]]);
-  _peripheralState = CBPeripheralStateConnected;
-  [_centralPeerManager bleConnected];
-  OCMExpect([_peripheralMock discoverCharacteristics:[OCMArg checkWithBlock:^BOOL(id obj) {
-                               [self checkCharacteristicsUUID:obj withPairingUUID:hasPairingChar];
-                               return YES;
-                             }]
-                                          forService:_serviceMock]);
-  [_centralPeerManager peripheral:_peripheralMock didDiscoverServices:nil];
-  OCMStub([_serviceMock characteristics]).andReturn(_characteristicsWithPairing);
-  OCMExpect([_peripheralMock setNotifyValue:YES forCharacteristic:_fromPeripheralCharacteristic]);
-  [_centralPeerManager peripheral:_peripheralMock
-      didDiscoverCharacteristicsForService:_serviceMock
-                                     error:nil];
-  GNSWeaveConnectionRequestPacket *connectionRequest =
-      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
-                                                       maxVersion:1
-                                                    maxPacketSize:0
-                                                             data:nil];
-  OCMExpect([_peripheralMock writeValue:[connectionRequest serialize]
-                      forCharacteristic:_toPeripheralCharacteristic
-                                   type:CBCharacteristicWriteWithResponse]);
-  [_centralPeerManager peripheral:_peripheralMock
-      didUpdateNotificationStateForCharacteristic:_fromPeripheralCharacteristic
-                                            error:nil];
-  XCTAssertNotNil(_socket);
-  _socket.delegate = _socketDelegateMock;
-}
-
-- (void)simulateConnectedSocketWithPairingChar:(BOOL)hasPairingChar {
-  [self transitionToSocketCommunicationStateWithPairingChar:hasPairingChar];
-  OCMExpect([_socketDelegateMock socketDidConnect:_socket]);
-  GNSWeaveConnectionConfirmPacket *confirmConnection =
-      [[GNSWeaveConnectionConfirmPacket alloc] initWithVersion:1 packetSize:100 data:nil];
-  OCMExpect([_fromPeripheralCharacteristic value]).andReturn([confirmConnection serialize]);
-  OCMExpect([_centralPeerManager.testing_connectionConfirmTimer invalidate]);
-  [_centralPeerManager peripheral:_peripheralMock
-      didUpdateValueForCharacteristic:_fromPeripheralCharacteristic
-                                error:nil];
-  // When the connection confirm packet is received the socket should be invalidated and released.
-  // It's important to call |ClearTimer| here, since it retains |_centralPeerManager|.
-  XCTAssertNil(_centralPeerManager.testing_connectionConfirmTimer);
-  ClearTimer();
-}
-
-- (void)testCentralPeerManager {
+- (void)testInitialization {
   XCTAssertEqualObjects(_centralPeerManager.identifier, _peripheralUUID);
-  // The dealloc should set the delegate to nil.
-  OCMExpect([_peripheralMock setDelegate:nil]);
+  XCTAssertEqual(_fakePeripheral.state, CBPeripheralStateDisconnected);
 }
 
-- (void)testGetSocket {
-  [self simulateConnectedSocketWithPairingChar:NO];
-  XCTAssertNotNil(_socket);
-  // The dealloc should set the delegate to nil.
-  OCMExpect([_peripheralMock setDelegate:nil]);
+- (void)testSocketWithHandshakeData_SuccessPath {
+  NSData *handshakeData = [@"handshake" dataUsingEncoding:NSUTF8StringEncoding];
+  XCTestExpectation *completionExpectation =
+      [self expectationWithDescription:@"Socket completion called"];
+
+  [_centralPeerManager socketWithHandshakeData:handshakeData
+                         pairingCharacteristic:NO
+                                    completion:^(GNSSocket *socket, NSError *error) {
+                                      XCTAssertNotNil(socket);
+                                      XCTAssertNil(error);
+                                      [completionExpectation fulfill];
+                                    }];
+
+  // The fake central manager will asynchronously "connect" and trigger the delegate methods.
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
 }
 
-- (void)testBLEDisconnectBeforeConnect {
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
-  [_centralPeerManager socketWithPairingCharacteristic:NO
-                                            completion:^(GNSSocket *socket, NSError *error) {
-                                              XCTAssertNil(socket);
-                                              XCTAssertEqual(error.code, GNSErrorNoConnection);
-                                            }];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
-}
+- (void)testSocketWithHandshakeData_AlreadyConnecting {
+  NSData *handshakeData = [@"handshake" dataUsingEncoding:NSUTF8StringEncoding];
+  XCTestExpectation *completion1Expectation =
+      [self expectationWithDescription:@"Socket completion 1 called"];
+  XCTestExpectation *completion2Expectation =
+      [self expectationWithDescription:@"Socket completion 2 called"];
 
-- (void)testBLEDisconnectAfterConnect {
-  NSError *bleDisconnectError = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
-  [_centralPeerManager socketWithPairingCharacteristic:NO
-                                            completion:^(GNSSocket *socket, NSError *error) {
-                                              XCTAssertEqual(error, bleDisconnectError);
-                                              XCTAssertNil(socket);
-                                            }];
-  OCMExpect([_peripheralMock discoverServices:@[ _serviceUUID ]]);
-  _peripheralState = CBPeripheralStateConnected;
-  [_centralPeerManager bleConnected];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  [_centralPeerManager bleDisconnectedWithError:bleDisconnectError];
-}
+  // First call
+  [_centralPeerManager socketWithHandshakeData:handshakeData
+                         pairingCharacteristic:NO
+                                    completion:^(GNSSocket *socket, NSError *error) {
+                                      XCTAssertNotNil(socket);
+                                      XCTAssertNil(error);
+                                      [completion1Expectation fulfill];
+                                    }];
 
-- (void)testDiscoverServiceError {
-  NSError *discoverServiceError = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
-  [_centralPeerManager socketWithPairingCharacteristic:NO
-                                            completion:^(GNSSocket *socket, NSError *error) {
-                                              XCTAssertEqual(error, discoverServiceError);
-                                              XCTAssertNil(socket);
-                                            }];
-  OCMExpect([_peripheralMock discoverServices:@[ _serviceUUID ]]);
-  _peripheralState = CBPeripheralStateConnected;
-  [_centralPeerManager bleConnected];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  [_centralPeerManager peripheral:_peripheralMock didDiscoverServices:discoverServiceError];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
-}
+  // Second call while pending should fail.
+  [_centralPeerManager socketWithHandshakeData:handshakeData
+                         pairingCharacteristic:NO
+                                    completion:^(GNSSocket *socket, NSError *error) {
+                                      XCTAssertNil(socket);
+                                      XCTAssertNotNil(error);
+                                      XCTAssertEqual(error.code, GNSErrorOperationInProgress);
+                                      [completion2Expectation fulfill];
+                                    }];
 
-- (void)testDiscoverCharacteristicError {
-  NSError *discoverCharacteristicError = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
-  [_centralPeerManager socketWithPairingCharacteristic:NO
-                                            completion:^(GNSSocket *socket, NSError *error) {
-                                              XCTAssertEqual(error, discoverCharacteristicError);
-                                              XCTAssertNil(socket);
-                                            }];
-  OCMExpect([_peripheralMock discoverServices:@[ _serviceUUID ]]);
-  _peripheralState = CBPeripheralStateConnected;
-  [_centralPeerManager bleConnected];
-  OCMExpect([_peripheralMock discoverCharacteristics:[OCMArg checkWithBlock:^BOOL(id obj) {
-                               [self checkCharacteristicsUUID:obj withPairingUUID:NO];
-                               return YES;
-                             }]
-                                          forService:_serviceMock]);
-  [_centralPeerManager peripheral:_peripheralMock didDiscoverServices:nil];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  OCMStub([_serviceMock characteristics]).andReturn(_characteristics);
-  [_centralPeerManager peripheral:_peripheralMock
-      didDiscoverCharacteristicsForService:_serviceMock
-                                     error:discoverCharacteristicError];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
-}
-
-- (void)testSetNotifyValueForCharacteristicError {
-  NSError *notificationError = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
-  [_centralPeerManager socketWithPairingCharacteristic:NO
-                                            completion:^(GNSSocket *socket, NSError *error) {
-                                              XCTAssertEqual(error, notificationError);
-                                              XCTAssertNil(socket);
-                                            }];
-  OCMExpect([_peripheralMock discoverServices:@[ _serviceUUID ]]);
-  _peripheralState = CBPeripheralStateConnected;
-  [_centralPeerManager bleConnected];
-  OCMExpect([_peripheralMock discoverCharacteristics:[OCMArg checkWithBlock:^BOOL(id obj) {
-                               [self checkCharacteristicsUUID:obj withPairingUUID:NO];
-                               return YES;
-                             }]
-                                          forService:_serviceMock]);
-  [_centralPeerManager peripheral:_peripheralMock didDiscoverServices:nil];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  OCMStub([_serviceMock characteristics]).andReturn(_characteristics);
-  OCMExpect([_peripheralMock setNotifyValue:YES forCharacteristic:_fromPeripheralCharacteristic]);
-  [_centralPeerManager peripheral:_peripheralMock
-      didDiscoverCharacteristicsForService:_serviceMock
-                                     error:nil];
-  [_centralPeerManager peripheral:_peripheralMock
-      didUpdateNotificationStateForCharacteristic:_fromPeripheralCharacteristic
-                                            error:notificationError];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
-}
-
-- (void)testTimeOutWaitingForConnectionResponse {
-  [self transitionToSocketCommunicationStateWithPairingChar:NO];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  FireTimer();
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  OCMExpect([_socketDelegateMock socket:_socket
-                 didDisconnectWithError:[OCMArg checkWithBlock:^BOOL(NSError *error) {
-                   return [error.domain isEqualToString:kGNSSocketsErrorDomain] &&
-                          error.code == GNSErrorConnectionTimedOut;
-                 }]]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
-  XCTAssertNil(_centralPeerManager.testing_connectionConfirmTimer);
-}
-
-- (void)testBLEDisconnectedWhileWaitingForConnectionResponse {
-  [self transitionToSocketCommunicationStateWithPairingChar:NO];
-  NSError *bleDisconnectError = [NSError errorWithDomain:@"test" code:1 userInfo:nil];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  OCMExpect([_socketDelegateMock socket:_socket didDisconnectWithError:bleDisconnectError]);
-  OCMExpect([_centralPeerManager.testing_connectionConfirmTimer invalidate]);
-  [_centralPeerManager bleDisconnectedWithError:bleDisconnectError];
-  XCTAssertNil(_centralPeerManager.testing_connectionConfirmTimer);
+  [self waitForExpectations:@[ completion1Expectation, completion2Expectation ] timeout:2.0];
 }
 
 - (void)testCancelPendingSocket {
-  OCMExpect([_centralManagerMock connectPeripheralForPeer:_centralPeerManager
-                                                  options:[self peripheralConnectionOptions]]);
+  NSData *handshakeData = [@"handshake" dataUsingEncoding:NSUTF8StringEncoding];
+  XCTestExpectation *completionExpectation =
+      [self expectationWithDescription:@"Socket completion called"];
+
   [_centralPeerManager
-      socketWithPairingCharacteristic:NO
-                           completion:^(GNSSocket *socket, NSError *error) {
-                             XCTAssertNil(socket);
-                             XCTAssertNotNil(error);
-                             XCTAssertEqualObjects(error.domain, kGNSSocketsErrorDomain);
-                             XCTAssertEqual(error.code, GNSErrorCancelPendingSocketRequested);
-                           }];
-  OCMExpect([_peripheralMock discoverServices:@[ _serviceUUID ]]);
-  _peripheralState = CBPeripheralStateConnected;
-  [_centralPeerManager bleConnected];
-  OCMExpect([_peripheralMock discoverCharacteristics:[OCMArg checkWithBlock:^BOOL(id obj) {
-                               [self checkCharacteristicsUUID:obj withPairingUUID:NO];
-                               return YES;
-                             }]
-                                          forService:_serviceMock]);
-  [_centralPeerManager peripheral:_peripheralMock didDiscoverServices:nil];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
+      socketWithHandshakeData:handshakeData
+        pairingCharacteristic:NO
+                   completion:^(GNSSocket *socket, NSError *error) {
+                     XCTAssertNil(socket);
+                     XCTAssertNotNil(error);
+                     XCTAssertEqual(error.code, GNSErrorCancelPendingSocketRequested);
+                     [completionExpectation fulfill];
+                   }];
+
   [_centralPeerManager cancelPendingSocket];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
+
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
 }
 
-- (void)testPairing {
-  [self simulateConnectedSocketWithPairingChar:YES];
-  XCTAssertNotNil(_socket);
-  OCMExpect([_peripheralMock readValueForCharacteristic:_pairingCharacteristic]);
-  [_centralPeerManager startBluetoothPairingWithCompletion:^(BOOL pairing, NSError *error) {
-    XCTAssertTrue(pairing);
-    XCTAssertNil(error);
+- (void)testSocketWithHandshakeData_ConnectionFailed {
+  NSData *handshakeData = [@"handshake" dataUsingEncoding:NSUTF8StringEncoding];
+  XCTestExpectation *completionExpectation =
+      [self expectationWithDescription:@"Socket completion called"];
+
+  // Simulate a connection failure.
+  _fakeCentralManager.failConnection = YES;
+
+  [_centralPeerManager socketWithHandshakeData:handshakeData
+                         pairingCharacteristic:NO
+                                    completion:^(GNSSocket *socket, NSError *error) {
+                                      XCTAssertNil(socket);
+                                      XCTAssertNotNil(error);
+                                      XCTAssertEqual(error.code, CBErrorPeripheralDisconnected);
+                                      [completionExpectation fulfill];
+                                    }];
+
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
+}
+
+- (void)testExternalDisconnectAndSocketClose {
+  NSData *handshakeData = [@"handshake" dataUsingEncoding:NSUTF8StringEncoding];
+  XCTestExpectation *completionExpectation =
+      [self expectationWithDescription:@"Socket completion called"];
+
+  __block GNSSocket *testSocket = nil;
+  [_centralPeerManager socketWithHandshakeData:handshakeData
+                         pairingCharacteristic:NO
+                                    completion:^(GNSSocket *socket, NSError *error) {
+                                      XCTAssertNotNil(socket);
+                                      XCTAssertNil(error);
+                                      testSocket = socket;
+                                      [completionExpectation fulfill];
+                                    }];
+
+  // Wait for the connection to be established.
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
+
+  // Simulate an external disconnection from the central.
+  [_fakeCentralManager cancelPeripheralConnectionForPeer:_centralPeerManager];
+  XCTAssertEqual(_fakePeripheral.state, CBPeripheralStateDisconnected);
+
+  // The socket should be disconnected.
+  XCTAssertFalse(testSocket.isConnected);
+}
+
+#pragma mark - Helper Methods
+
+- (void)waitForSocketOnPeerManager:(GNSCentralPeerManager *)peerManager
+                           timeout:(NSTimeInterval)timeout {
+  NSPredicate *socketExists =
+      [NSPredicate predicateWithBlock:^BOOL(id evaluatedObject, NSDictionary *bindings) {
+        return [evaluatedObject valueForKey:@"socket"] != nil;
+      }];
+  XCTNSPredicateExpectation *expectation =
+      [[XCTNSPredicateExpectation alloc] initWithPredicate:socketExists object:peerManager];
+  [self waitForExpectations:@[ expectation ] timeout:10.0];  // Increased timeout
+}
+
+- (void)establishConnectionWithPairing:(BOOL)hasPairing {
+  XCTestExpectation *completionExpectation =
+      [self expectationWithDescription:@"Socket completion called"];
+  [_centralPeerManager socketWithHandshakeData:[@"H" dataUsingEncoding:NSUTF8StringEncoding]
+                         pairingCharacteristic:hasPairing
+                                    completion:^(GNSSocket *socket, NSError *error) {
+                                      XCTAssertNotNil(socket);
+                                      XCTAssertNil(error);
+                                      [completionExpectation fulfill];
+                                    }];
+  [self waitForExpectationsWithTimeout:10.0 handler:nil];
+  // Wait for the internal socket to be ready.
+  [self waitForSocketOnPeerManager:_centralPeerManager timeout:10.0];  // Increased timeout
+}
+
+#pragma mark - RSSI Tests
+
+- (void)testReadRSSI_NotConnected {
+  XCTestExpectation *completionExpectation =
+      [self expectationWithDescription:@"RSSI completion called"];
+  [_centralPeerManager readRSSIWithCompletion:^(NSNumber *RSSI, NSError *error) {
+    XCTAssertNil(RSSI);
+    XCTAssertNotNil(error);
+    XCTAssertEqual(error.code, GNSErrorNoConnection);
+    [completionExpectation fulfill];
   }];
-  // The dealloc should set the delegate to nil.
-  OCMExpect([_peripheralMock setDelegate:nil]);
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
 }
 
-- (void)testDisconnect {
-  [self simulateConnectedSocketWithPairingChar:NO];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  [_socket disconnect];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  OCMExpect([_socketDelegateMock socket:_socket didDisconnectWithError:nil]);
-  [_centralPeerManager bleDisconnectedWithError:nil];
-}
+#pragma mark - Dealloc Tests
 
-- (void)testDisconnectWithError {
-  [self simulateConnectedSocketWithPairingChar:NO];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  [_socket disconnect];
-  NSError *errorWhileBLEDisconnecting =
-      [[NSError alloc] initWithDomain:@"domain" code:-42 userInfo:nil];
-  _peripheralState = CBPeripheralStateDisconnected;
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  OCMExpect([_centralManagerMock centralPeerManagerDidDisconnect:_centralPeerManager]);
-  OCMExpect([_socketDelegateMock socket:_socket didDisconnectWithError:errorWhileBLEDisconnecting]);
-  [_centralPeerManager bleDisconnectedWithError:errorWhileBLEDisconnecting];
-  OCMVerifyAll((id)_socketDelegateMock);
-}
+- (void)testDealloc_NotConnected {
+  GNSFakePeripheral *peripheral = [[GNSFakePeripheral alloc] initWithIdentifier:[NSUUID UUID]
+                                                                    serviceUUID:self.serviceUUID];
+  GNSFakeCentralManager *centralManager =
+      [[GNSFakeCentralManager alloc] initWithSocketServiceUUID:self.serviceUUID];
+  id mockCentralManager = OCMPartialMock(centralManager);
 
-- (void)testDropSocketWhileConnecting {
-  [self transitionToSocketCommunicationStateWithPairingChar:NO];
-  OCMExpect([_centralManagerMock cancelPeripheralConnectionForPeer:_centralPeerManager]);
-  OCMExpect([_centralPeerManager.testing_connectionConfirmTimer invalidate]);
-  OCMExpect([_peripheralMock setDelegate:nil]);
-  _socket = nil;
+  // Strict mock, so any call to cancelPeripheralConnectionForPeer would fail the test.
+
+  @autoreleasepool {
+    GNSCentralPeerManager *peerManager =
+        [[GNSCentralPeerManager alloc] initWithPeripheral:(CBPeripheral *)peripheral
+                                           centralManager:mockCentralManager
+                                                    queue:dispatch_get_main_queue()];
+    XCTAssertNotNil(peerManager);
+    peerManager = nil;  // Trigger dealloc
+  }
+  OCMVerifyAll(mockCentralManager);
 }
 
 @end

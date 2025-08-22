@@ -429,7 +429,6 @@ let package = Package(
         "internal/platform/implementation/apple/Log/BUILD",
         "internal/platform/implementation/apple/Mediums/BUILD",
         "internal/platform/implementation/apple/Mediums/Ble/Sockets/BUILD",
-        "internal/platform/implementation/apple/Tests/BUILD",
         "internal/platform/implementation/apple/BUILD",
         "internal/platform/implementation/BUILD",
         "internal/platform/BUILD",

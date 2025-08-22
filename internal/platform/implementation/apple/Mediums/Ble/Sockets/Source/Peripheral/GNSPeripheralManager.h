@@ -75,7 +75,26 @@
  */
 - (instancetype)initWithAdvertisedName:(NSString *)advertisedName
                      restoreIdentifier:(NSString *)restoreIdentifier
-                                 queue:(dispatch_queue_t)queue NS_DESIGNATED_INITIALIZER;
+                                 queue:(dispatch_queue_t)queue;
+;
+
+/**
+ * Creates a CBPeripheralManager instance and sets itself as the delegate.  Pass nil to
+ * |advertisedName| to avoid setting the BLE advertised name; this is useful for avoiding a name
+ * collision with clients that use the name in a custom discovery algorithm.
+ *
+ * @param advertisedName     Display name used in the BLE advertisement
+ * @param restoreIdentifier  Value used for CBPeripheralManagerOptionRestoreIdentifierKey
+ * @param queue              The queue this object is called on and callbacks are made on.
+ * @param peripheralManager  The CBPeripheralManager instance to use.
+ *
+ * @return GNSPeripheralManager instance
+ */
+- (instancetype)initWithAdvertisedName:(NSString *)advertisedName
+                     restoreIdentifier:(NSString *)restoreIdentifier
+                                 queue:(dispatch_queue_t)queue
+                     peripheralManager:(CBPeripheralManager *)peripheralManager
+    NS_DESIGNATED_INITIALIZER;
 
 /**
  * Creates a CBPeripheralManager using the main queue for callbacks.
