@@ -440,14 +440,6 @@ void NearbySharingServiceImpl::RegisterSendSurface(
             discovery_callback, blocked_vendor_id, disable_wifi_hotspot);
 
         if (state == SendSurfaceState::kForeground) {
-          // Only check this error case for foreground senders
-          if (!HasAvailableConnectionMediums()) {
-            VLOG(1) << __func__ << ": No available connection medium.";
-            std::move(status_codes_callback)(
-                StatusCodes::kNoAvailableConnectionMedium);
-            return;
-          }
-
           foreground_send_surface_map_.insert(
               {transfer_callback, wrapped_callback});
         } else {
@@ -574,13 +566,6 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
                   << ", transfer_callback: " << transfer_callback
                   << ", vendor_id: " << static_cast<uint32_t>(vendor_id);
 
-        // Check available mediums.
-        if (!HasAvailableConnectionMediums()) {
-          VLOG(1) << __func__ << ": No available connection medium.";
-          std::move(status_codes_callback)(
-              StatusCodes::kNoAvailableConnectionMedium);
-          return;
-        }
         BlockedVendorId before_registration_vendor_id = GetReceivingVendorId();
 
         // We specifically allow re-registering without error, so it is clear to
