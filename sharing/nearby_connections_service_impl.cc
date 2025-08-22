@@ -129,6 +129,10 @@ void NearbyConnectionsServiceImpl::StartAdvertising(
                          BuildResultCallback(callback));
 }
 
+void NearbyConnectionsServiceImpl::RotateEndpointId() {
+  GetService(service_handle_)->RotateEndpointId();
+}
+
 void NearbyConnectionsServiceImpl::StopAdvertising(
     absl::string_view service_id, std::function<void(Status status)> callback) {
   GetService(service_handle_)->StopAdvertising(BuildResultCallback(callback));

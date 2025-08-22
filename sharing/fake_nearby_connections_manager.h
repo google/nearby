@@ -52,6 +52,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
                         PowerLevel power_level, proto::DataUsage data_usage,
                         bool use_stable_endpoint_id,
                         ConnectionsCallback callback) override;
+  void RotateEndpointId() override { ++rotate_endpoint_id_count_; }
   void StopAdvertising(ConnectionsCallback callback) override;
   void StartDiscovery(DiscoveryListener* listener, proto::DataUsage data_usage,
                       std::optional<uint16_t> alternate_service_uuid,
@@ -142,9 +143,12 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
                         absl::string_view endpoint_id,
                         NearbyConnection* connection);
 
+  int get_rotate_endpoint_id_count() const { return rotate_endpoint_id_count_; }
+
  private:
   void HandleStartAdvertisingCallback(ConnectionsStatus status);
   void HandleStopAdvertisingCallback(ConnectionsStatus status);
+  std::string Dump() const override;
 
   mutable absl::Mutex listener_mutex_;
   IncomingConnectionListener* advertising_listener_
@@ -183,7 +187,7 @@ class FakeNearbyConnectionsManager : public NearbyConnectionsManager {
   std::map<int64_t, std::unique_ptr<Payload>> incoming_payloads_
       ABSL_GUARDED_BY(incoming_payloads_mutex_);
   absl::flat_hash_set<FilePath> file_paths_to_delete_;
-  std::string Dump() const override;
+  int rotate_endpoint_id_count_ = 0;
 };
 
 }  // namespace sharing

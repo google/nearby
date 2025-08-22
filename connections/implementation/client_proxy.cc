@@ -1188,12 +1188,7 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
   cached_endpoint_id_alarm_ = std::make_unique<CancelableAlarm>(
       "clear_high_power_endpoint_id_cache",
       [this]() {
-        MutexLock lock(&mutex_);
-        LOG(INFO) << "ClientProxy [Cleared cached local high power advertising "
-                     "endpoint Id.]: client="
-                  << GetClientId()
-                  << "; cached_endpoint_id_=" << cached_endpoint_id_;
-        cached_endpoint_id_.clear();
+        ClearCachedLocalEndpointId();
       },
       kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
 }
@@ -1203,6 +1198,13 @@ void ClientProxy::CancelClearCachedEndpointIdAlarm() {
     cached_endpoint_id_alarm_->Cancel();
     cached_endpoint_id_alarm_.reset();
   }
+}
+
+void ClientProxy::ClearCachedLocalEndpointId() {
+  MutexLock lock(&mutex_);
+  LOG(INFO) << "ClientProxy [Cleared cached local endpoint Id.]: client="
+            << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
+  cached_endpoint_id_.clear();
 }
 
 OsInfo::OsType ClientProxy::OSNameToOsInfoType(api::OSName osName) {

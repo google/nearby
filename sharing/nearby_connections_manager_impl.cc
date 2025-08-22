@@ -265,6 +265,13 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
       std::move(connection_listener), std::move(callback));
 }
 
+void NearbyConnectionsManagerImpl::RotateEndpointId() {
+  if (!nearby_connections_service_) {
+    return;
+  }
+  nearby_connections_service_->RotateEndpointId();
+}
+
 void NearbyConnectionsManagerImpl::StopAdvertising(
     ConnectionsCallback callback) {
   incoming_connection_listener_ = nullptr;
