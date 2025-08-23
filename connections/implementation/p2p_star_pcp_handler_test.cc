@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 // #include
 // "third_party/nearby/connections/implementation/p2p_cluster_pcp_handler.h"
-#include "connections/implementation/p2p_point_to_point_pcp_handler.h"
+#include "connections/implementation/p2p_star_pcp_handler.h"
 
 #include <cstdint>
 #include <string>
@@ -55,9 +55,6 @@ constexpr BooleanMediumSelector kTestCases[] = {
         .bluetooth = true,
     },
     BooleanMediumSelector{
-        .awdl  = true,
-    },
-    BooleanMediumSelector{
         .wifi_lan = true,
     },
     BooleanMediumSelector{
@@ -76,32 +73,24 @@ constexpr BooleanMediumSelector kTestCases[] = {
         .bluetooth = true,
         .ble = true,
         .wifi_lan = true,
-    },
-    BooleanMediumSelector{
-        .bluetooth = true,
-        .ble = true,
-        .wifi_lan = true,
-        .wifi_hotspot = true,
+        .wifi_direct = true,
     },
     BooleanMediumSelector{
         .bluetooth = true,
         .ble = true,
         .web_rtc = true,
         .wifi_lan = true,
-        .wifi_direct = true,
-        .awdl = true,
+        .wifi_hotspot = true,
     },
 };
 
 // Combines the bool `kEnableBleV2` as param testing but should revert it back
 // if ble_v2 is done and ble will be replaced by ble_v2.
-class P2pPointToPointPcpHandlerTest
+class P2pStarPcpHandlerTest
     : public testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
  protected:
   void SetUp() override {
     LOG(INFO) << "SetUp: begin";
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableBleV2,
         std::get<1>(GetParam()));
@@ -115,16 +104,13 @@ class P2pPointToPointPcpHandlerTest
       LOG(INFO) << "SetUp: WifiLan enabled";
     }
     if (advertising_options_.allowed.wifi_hotspot) {
-      LOG(INFO) << "SetUp: WifiHotspot enabled";
+      LOG(INFO) << "SetUp: WifiLan enabled";
     }
     if (advertising_options_.allowed.wifi_direct) {
       LOG(INFO) << "SetUp: WifiDirect enabled";
     }
     if (advertising_options_.allowed.web_rtc) {
       LOG(INFO) << "SetUp: WebRTC enabled";
-    }
-    if (advertising_options_.allowed.awdl) {
-      LOG(INFO) << "SetUp: Awdl enabled";
     }
     LOG(INFO) << "SetUp: end";
   }
@@ -134,7 +120,7 @@ class P2pPointToPointPcpHandlerTest
   std::string service_id_{"service"};
   ConnectionOptions connection_options_{
       {
-          Strategy::kP2pPointToPoint,
+          Strategy::kP2pStar,
           std::get<0>(GetParam()),
       },
       false,  // auto_upgrade_bandwidth
@@ -142,7 +128,7 @@ class P2pPointToPointPcpHandlerTest
   };
   AdvertisingOptions advertising_options_{
       {
-          Strategy::kP2pPointToPoint,
+          Strategy::kP2pStar,
           std::get<0>(GetParam()),
       },
       false,  // auto_upgrade_bandwidth
@@ -150,25 +136,25 @@ class P2pPointToPointPcpHandlerTest
   };
   DiscoveryOptions discovery_options_{
       {
-          Strategy::kP2pPointToPoint,
+          Strategy::kP2pStar,
           std::get<0>(GetParam()),
       },
   };
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
-TEST_P(P2pPointToPointPcpHandlerTest, CanConstructOne) {
+TEST_P(P2pStarPcpHandlerTest, CanConstructOne) {
   env_.Start();
   Mediums mediums;
   EndpointChannelManager ecm;
   EndpointManager em(&ecm);
   BwuManager bwu(mediums, em, ecm, {}, {});
   InjectedBluetoothDeviceStore ibds;
-  P2pPointToPointPcpHandler handler(mediums, em, ecm, bwu, ibds);
+  P2pStarPcpHandler handler(mediums, em, ecm, bwu, ibds);
   env_.Stop();
 }
 
-TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
+TEST_P(P2pStarPcpHandlerTest, CanConnect) {
   env_.Start();
   std::string endpoint_name_a{"endpoint_name"};
   Mediums mediums_a;
@@ -187,8 +173,8 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
                    {.allow_upgrade_to = {.bluetooth = true}});
   InjectedBluetoothDeviceStore ibds_a;
   InjectedBluetoothDeviceStore ibds_b;
-  P2pPointToPointPcpHandler handler_a(mediums_a, em_a, ecm_a, bwu_a, ibds_a);
-  P2pPointToPointPcpHandler handler_b(mediums_b, em_b, ecm_b, bwu_b, ibds_b);
+  P2pStarPcpHandler handler_a(mediums_a, em_a, ecm_a, bwu_a, ibds_a);
+  P2pStarPcpHandler handler_b(mediums_b, em_b, ecm_b, bwu_b, ibds_b);
   CountDownLatch discover_latch(1);
   CountDownLatch connect_latch(2);
   struct DiscoveredInfo {
@@ -295,7 +281,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest,
-                         P2pPointToPointPcpHandlerTest,
+                         P2pStarPcpHandlerTest,
                          ::testing::Combine(::testing::ValuesIn(kTestCases),
                                             ::testing::Bool()));
 
