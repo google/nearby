@@ -293,6 +293,7 @@ cc_test(
         "base_pcp_handler_test.cc",
         "p2p_cluster_pcp_handler_test.cc",
         "p2p_point_to_point_pcp_handler_test.cc",
+        "p2p_star_pcp_handler_test.cc",
     ],
     shard_count = 8,
     deps = [
