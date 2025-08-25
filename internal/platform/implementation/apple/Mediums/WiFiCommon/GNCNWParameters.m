@@ -22,7 +22,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-BOOL GNCConfigureTLSOptions(sec_protocol_options_t options, NSData *PSK, NSData *identity) {
+BOOL GNCConfigureTLSOptions(sec_protocol_options_t _Nullable options, NSData *PSK,
+                            NSData *identity) {
   if (!options) {
     GNCLoggerError(@"[GNCNWParameters] Invalid parameter of options.");
     return NO;

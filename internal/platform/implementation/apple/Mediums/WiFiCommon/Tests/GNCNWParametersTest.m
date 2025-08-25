@@ -15,7 +15,12 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
 
 #import <Foundation/Foundation.h>
+#import <Network/Network.h>
 #import <XCTest/XCTest.h>
+
+// Declare the C function here to make it visible for testing.
+FOUNDATION_EXPORT BOOL GNCConfigureTLSOptions(sec_protocol_options_t _Nullable options, NSData *PSK,
+                                              NSData *identity);
 
 @interface GNCNWParametersTest : XCTestCase
 @end
@@ -25,6 +30,12 @@
 - (void)testNonTLSParameters {
   nw_parameters_t params = GNCBuildNonTLSParameters(YES);
   XCTAssertTrue(nw_parameters_get_include_peer_to_peer(params));
+}
+
+- (void)testConfigureTLSOptionsWithNilOptions {
+  BOOL result = GNCConfigureTLSOptions(nil, [@"12345678" dataUsingEncoding:NSUTF8StringEncoding],
+                                        [@"nearby" dataUsingEncoding:NSUTF8StringEncoding]);
+  XCTAssertFalse(result);
 }
 
 - (void)testTLSParametersWithEmptyPSK {

@@ -1,6 +1,6 @@
 load("@rules_cc//cc:objc_library.bzl", "objc_library")
 
-# Copyright 2020 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,13 +45,6 @@ objc_library(
         "GNCMConnection.m",
         "Hotspot/GNCHotspotMedium.m",
         "Hotspot/GNCHotspotSocket.m",
-        "WiFiCommon/GNCIPv4Address.m",
-        "WiFiCommon/GNCNWFramework.m",
-        "WiFiCommon/GNCNWFrameworkError.m",
-        "WiFiCommon/GNCNWFrameworkServerSocket.m",
-        "WiFiCommon/GNCNWFrameworkServerSocket+Internal.h",
-        "WiFiCommon/GNCNWFrameworkSocket.m",
-        "WiFiCommon/GNCNWParameters.m",
     ],
     hdrs = [
         "BLEv2/GNCBLEError.h",
@@ -73,12 +66,6 @@ objc_library(
         "GNCMConnection.h",
         "Hotspot/GNCHotspotMedium.h",
         "Hotspot/GNCHotspotSocket.h",
-        "WiFiCommon/GNCIPv4Address.h",
-        "WiFiCommon/GNCNWFramework.h",
-        "WiFiCommon/GNCNWFrameworkError.h",
-        "WiFiCommon/GNCNWFrameworkServerSocket.h",
-        "WiFiCommon/GNCNWFrameworkSocket.h",
-        "WiFiCommon/GNCNWParameters.h",
     ],
     deps = [
         "//internal/encoding:base85",
@@ -86,6 +73,7 @@ objc_library(
         "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:CoreLocation",

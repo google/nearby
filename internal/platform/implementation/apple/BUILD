@@ -101,6 +101,7 @@ objc_library(
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform:cancellation_flag",
@@ -190,7 +191,7 @@ objc_library(
         "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/apple/Log:GNCLogger",
-        "//internal/platform/implementation/apple/Mediums",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "@com_google_absl//absl/functional:any_invocable",
     ],
 )
