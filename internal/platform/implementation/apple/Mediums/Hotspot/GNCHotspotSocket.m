@@ -18,28 +18,38 @@
 #import <Network/Network.h>
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
+#import "internal/platform/implementation/apple/Mediums/Hotspot/GNCNWConnectionWrapping.h"
 
 @interface GNCHotspotSocket ()
 
-@property(nonatomic, readonly) nw_connection_t connection;
+@property(nonatomic, nullable) id<GNCNWConnectionWrapping> connectionWrapper;
 
 @end
 
 @implementation GNCHotspotSocket {
 }
 
-- (instancetype)initWithConnection:(nw_connection_t)connection {
+- (instancetype)initWithConnectionWrapper:(id<GNCNWConnectionWrapping>)connectionWrapper {
   self = [super init];
   if (self) {
-    _connection = connection;
+    _connectionWrapper = connectionWrapper;
   }
   return self;
 }
 
 - (NSData *)readMaxLength:(NSUInteger)length error:(NSError **)error {
-  __strong nw_connection_t connection = self.connection;
-  if (connection == nil) {
+  if (!self.connectionWrapper) {
+    if (error) {
+      *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:EBADF userInfo:nil];
+    }
     return nil;
+  }
+
+  if (length == 0) {
+    if (error) {
+      *error = nil;
+    }
+    return [NSData data];
   }
 
   NSCondition *condition = [[NSCondition alloc] init];
@@ -48,35 +58,37 @@
   __block NSData *blockResult = nil;
   __block NSError *blockError = nil;
 
-  nw_connection_receive(
-      connection, length, length,
-      ^(dispatch_data_t content, nw_content_context_t context, bool is_complete, nw_error_t error) {
-        [condition lock];
-        if (error != nil) {
-          blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-        }
-#if __LP64__
-        // This cast is only safe in a 64-bit runtime.
-        blockResult = [(NSData *)content copy];
-#else
-        blockResult = nil;
-#endif
-        [condition signal];
-        [condition unlock];
-      });
+  [self.connectionWrapper
+      receiveMessageWithMinLength:(uint32_t)length
+                        maxLength:(uint32_t)length
+                completionHandler:^(dispatch_data_t _Nullable content,
+                                    nw_content_context_t _Nullable context, bool isComplete,
+                                    nw_error_t _Nullable receiveError) {
+                  [condition lock];
+                  if (receiveError) {
+                    blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                  }
+                  if (content) {
+                    blockResult = (NSData *)content;
+                  }
+                  [condition signal];
+                  [condition unlock];
+                }];
 
   [condition wait];
   [condition unlock];
 
-  if (error != nil) {
+  if (error) {
     *error = blockError;
   }
   return blockResult;
 }
 
 - (BOOL)write:(NSData *)data error:(NSError **)error {
-  __strong nw_connection_t connection = self.connection;
-  if (connection == nil) {
+  if (!self.connectionWrapper) {
+    if (error) {
+      *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:EBADF userInfo:nil];
+    }
     return NO;
   }
 
@@ -97,33 +109,34 @@
         blockData = nil;
       });
 
-  nw_connection_send(connection, dispatchData, NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT, false,
-                     ^(nw_error_t error) {
-                       [condition lock];
-                       blockResult = error == nil;
-                       if (error != nil) {
-                         blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-                       }
-                       [condition signal];
-                       [condition unlock];
-                     });
+  [self.connectionWrapper sendData:dispatchData
+                           context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
+                        isComplete:NO
+                 completionHandler:^(nw_error_t _Nullable sendError) {
+                   [condition lock];
+                   blockResult = sendError == nil;
+                   if (sendError) {
+                     blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
+                   }
+                   [condition signal];
+                   [condition unlock];
+                 }];
 
   [condition wait];
   [condition unlock];
 
-  if (error != nil) {
+  if (error) {
     *error = blockError;
   }
   return blockResult;
 }
 
 - (void)close {
-  __strong nw_connection_t connection = self.connection;
-  if (connection == nil) {
+  if (!self.connectionWrapper) {
     return;
   }
-  nw_connection_cancel(connection);
-  _connection = nil;
+  [self.connectionWrapper cancel];
+  self.connectionWrapper = nil;
 }
 
 @end
