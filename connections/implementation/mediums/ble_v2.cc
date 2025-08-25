@@ -653,9 +653,11 @@ ErrorOr<bool> BleV2::StartAcceptingConnections(
           }
         });
   } else {
-    LOG(INFO)
+    LOG(ERROR)
         << "Failed to start accepting Ble GATT connections for service_id="
         << service_id;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLE_SERVER_SOCKET_CREATION_FAILURE)};
   }
   LOG(INFO) << "Start accepting Ble GATT connections for service_id="
             << service_id;
