@@ -152,7 +152,7 @@ std::unique_ptr<Advertisement> Advertisement::NewInstance(
 
   // Using `new` to access a non-public constructor.
   return std::make_unique<Advertisement>(
-      /* version= */ 0, std::move(salt), std::move(encrypted_metadata_key),
+      /* version= */ 1, std::move(salt), std::move(encrypted_metadata_key),
       device_type, std::move(device_name), vendor_id);
 }
 
