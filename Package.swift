@@ -449,6 +449,7 @@ let package = Package(
         "connections/implementation/encryption_runner_test.cc",
         "connections/implementation/p2p_cluster_pcp_handler_test.cc",
         "connections/implementation/p2p_point_to_point_pcp_handler_test.cc",
+        "connections/implementation/p2p_star_pcp_handler_test.cc",
         "connections/implementation/base_pcp_handler_test.cc",
         "connections/implementation/injected_bluetooth_device_store_test.cc",
         "connections/implementation/internal_payload_factory_test.cc",

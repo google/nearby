@@ -15,11 +15,16 @@
 #ifndef CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
 #define CORE_INTERNAL_P2P_POINT_TO_POINT_PCP_HANDLER_H_
 
+#include <vector>
+
+#include "connections/implementation/bwu_manager.h"
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
+#include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/p2p_star_pcp_handler.h"
 #include "connections/implementation/pcp.h"
-#include "connections/strategy.h"
 
 namespace nearby {
 namespace connections {

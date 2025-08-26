@@ -16,7 +16,15 @@
 
 #include <vector>
 
+#include "connections/implementation/bwu_manager.h"
+#include "connections/implementation/client_proxy.h"
+#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/injected_bluetooth_device_store.h"
+#include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/p2p_star_pcp_handler.h"
+#include "connections/implementation/pcp.h"
 #include "internal/flags/nearby_flags.h"
 
 namespace nearby {
