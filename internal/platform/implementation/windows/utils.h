@@ -51,6 +51,10 @@ std::vector<std::string> GetIpv4Addresses();
 std::vector<std::string> Get4BytesIpv4Addresses();
 std::vector<std::string> GetWifiIpv4Addresses();
 
+// Returns the connection state of the different network types.
+void GetConnectedNetworks(bool& is_wifi_connected, bool& is_ethernet_connected,
+                          bool& is_other_connected);
+
 // Help methods to convert between Uuid and winrt::guid
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid);
 winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid);

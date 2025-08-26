@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.h"
 #include "winrt/base.h"
@@ -178,6 +179,16 @@ TEST(UtilsTests, InspectableReader_ReadStringArray) {
   EXPECT_THROW(
       InspectableReader::ReadStringArray(PropertyValue::CreateBoolean(true)),
       std::invalid_argument);
+}
+
+TEST(UtilsTests, GetIpv4Addresses) {
+  LOG(ERROR) << "GetIpv4Addresses";
+  std::vector<std::string> addresses = GetIpv4Addresses();
+  EXPECT_FALSE(addresses.empty());
+  for (const auto& address : addresses) {
+    LOG(ERROR) << "address: " << address;
+  }
+  LOG(ERROR) << "GetIpv4Addresses done";
 }
 
 }  // namespace windows

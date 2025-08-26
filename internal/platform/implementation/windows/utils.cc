@@ -14,8 +14,12 @@
 
 #include "internal/platform/implementation/windows/utils.h"
 
+// clang-format off
 #include <windows.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+// clang-format on
 
 // Standard C/C++ headers
 #include <cstddef>
@@ -27,7 +31,9 @@
 
 // Nearby connections headers
 #include "absl/strings/string_view.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
@@ -45,6 +51,128 @@ using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Connectivity::NetworkAdapter;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 using ::winrt::Windows::Networking::Connectivity::NetworkTypes;
+
+void GetIpv4AddressesWinRT(std::vector<std::string>& wifi_addresses,
+                           std::vector<std::string>& ethernet_addresses,
+                           std::vector<std::string>& other_addresses) {
+  try {
+    auto host_names = NetworkInformation::GetHostNames();
+    for (const auto& host_name : host_names) {
+      VLOG(1) << "host_name: " << winrt::to_string(host_name.ToString());
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
+        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
+          // If we're not connected to a network, we don't want to add this
+          // address.
+          continue;
+        }
+        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
+          wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
+        } else if (adapter.IanaInterfaceType() ==
+                   Constants::kInterfaceTypeEthernet) {
+          ethernet_addresses.push_back(winrt::to_string(host_name.ToString()));
+        } else {
+          other_addresses.push_back(winrt::to_string(host_name.ToString()));
+        }
+      }
+    }
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
+               << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exception.";
+  }
+}
+
+void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
+                           std::vector<std::string>& addresses) {
+  std::string address;
+  while (unicast_addresses != nullptr) {
+    DWORD size = INET6_ADDRSTRLEN;  // Max IP address length.
+    address.resize(size);
+    if (WSAAddressToStringA(unicast_addresses->Address.lpSockaddr,
+                            unicast_addresses->Address.iSockaddrLength,
+                            /*lpProtocolInfo=*/nullptr, address.data(),
+                            &size) != 0) {
+      LOG(ERROR) << __func__ << ": Cannot convert address to string.";
+      continue;
+    }
+    address.resize(size);
+    addresses.push_back(address);
+    unicast_addresses = unicast_addresses->Next;
+  }
+}
+
+void GetIpAddressesNative(int family, std::vector<std::string>& wifi_addresses,
+                          std::vector<std::string>& ethernet_addresses,
+                          std::vector<std::string>& other_addresses) {
+  static constexpr int kDefaultBufferSize = 15 * 1024;  // default to 15K buffer
+  static constexpr int kMaxBufferSize =
+      45 * 1024;  // Try to increase buffer 2 times.
+  static constexpr ULONG kDefaultFlags =
+      GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+      GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+  ULONG buffer_size = 0;
+  // A string to own the memory for IP_ADAPTER_ADDRESSES.
+  std::string address_buffer;
+  ULONG error_code = ERROR_NO_DATA;
+  IP_ADAPTER_ADDRESSES* addresses = nullptr;
+  do {
+    buffer_size += kDefaultBufferSize;
+    address_buffer.reserve(buffer_size);
+    addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(address_buffer.data());
+    error_code = GetAdaptersAddresses(
+        family, kDefaultFlags, /*reserved=*/nullptr, addresses, &buffer_size);
+  } while (error_code == ERROR_BUFFER_OVERFLOW &&
+           buffer_size <= kMaxBufferSize);
+  if (error_code != ERROR_NO_DATA && error_code != NO_ERROR) {
+    LOG(ERROR) << __func__
+               << ": Cannot get adapter addresses. Error code: " << error_code;
+    return;
+  }
+  if (error_code == ERROR_NO_DATA) {
+    LOG(INFO) << __func__ << ": No IPv4 addresses found.";
+    return;
+  }
+  IP_ADAPTER_ADDRESSES* next_address = addresses;
+  while (next_address != nullptr) {
+    if (next_address->OperStatus == IfOperStatusUp) {
+      if (next_address->IfType == IF_TYPE_ETHERNET_CSMACD) {
+        VLOG(1) << "Found ethernet adater: " << next_address->AdapterName;
+        AddIpUnicastAddresses(next_address->FirstUnicastAddress,
+                              ethernet_addresses);
+      } else if (next_address->IfType == IF_TYPE_IEEE80211) {
+        VLOG(1) << "Found wifi adapter: " << next_address->AdapterName;
+        AddIpUnicastAddresses(next_address->FirstUnicastAddress,
+                              wifi_addresses);
+      } else if (next_address->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
+        // Skip loopback interfaces.
+        VLOG(1) << "Found other adapter: " << next_address->AdapterName;
+        AddIpUnicastAddresses(next_address->FirstUnicastAddress,
+                              other_addresses);
+      }
+    }
+    next_address = next_address->Next;
+  }
+}
+
+void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
+                      std::vector<std::string>& ethernet_addresses,
+                      std::vector<std::string>& other_addresses) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableIpAddressesNative)) {
+    GetIpAddressesNative(AF_INET, wifi_addresses, ethernet_addresses,
+                         other_addresses);
+  } else {
+    GetIpv4AddressesWinRT(wifi_addresses, ethernet_addresses, other_addresses);
+  }
+}
 
 }  // namespace
 
@@ -100,52 +228,6 @@ std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
   return std::string(ipv4_b, 4);
 }
 
-std::vector<std::string> GetIpv4Addresses() {
-  std::vector<std::string> result;
-  std::vector<std::string> wifi_addresses;
-  std::vector<std::string> ethernet_addresses;
-  std::vector<std::string> other_addresses;
-
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (const auto& host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
-        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
-          // If we're not connected to a network, we don't want to add this
-          // address.
-          continue;
-        }
-        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
-          wifi_addresses.push_back(winrt::to_string(host_name.ToString()));
-        } else if (adapter.IanaInterfaceType() ==
-                   Constants::kInterfaceTypeEthernet) {
-          ethernet_addresses.push_back(winrt::to_string(host_name.ToString()));
-        } else {
-          other_addresses.push_back(winrt::to_string(host_name.ToString()));
-        }
-      }
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
-
-  result.insert(result.end(), wifi_addresses.begin(), wifi_addresses.end());
-  result.insert(result.end(), ethernet_addresses.begin(),
-                ethernet_addresses.end());
-  result.insert(result.end(), other_addresses.begin(), other_addresses.end());
-
-  return result;
-}
-
 std::vector<std::string> Get4BytesIpv4Addresses() {
   std::vector<std::string> result;
   std::vector<std::string> ipv4_addresses = GetIpv4Addresses();
@@ -165,37 +247,29 @@ std::vector<std::string> Get4BytesIpv4Addresses() {
   return result;
 }
 
+std::vector<std::string> GetIpv4Addresses() {
+  std::vector<std::string> result;
+  GetIpv4Addresses(result, result, result);
+  return result;
+}
+
 std::vector<std::string> GetWifiIpv4Addresses() {
   std::vector<std::string> result;
-
-  try {
-    auto host_names = NetworkInformation::GetHostNames();
-    for (const auto& host_name : host_names) {
-      if (host_name.IPInformation() != nullptr &&
-          host_name.IPInformation().NetworkAdapter() != nullptr &&
-          host_name.Type() == HostNameType::Ipv4) {
-        NetworkAdapter adapter = host_name.IPInformation().NetworkAdapter();
-        if (adapter.NetworkItem().GetNetworkTypes() == NetworkTypes::None) {
-          // If we're not connected to a network, we don't want to add this
-          // address.
-          continue;
-        }
-        if (adapter.IanaInterfaceType() == Constants::kInterfaceTypeWifi) {
-          result.push_back(winrt::to_string(host_name.ToString()));
-        }
-      }
-    }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. Exception : "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Cannot get IPv4 addresses. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-  }
-
+  std::vector<std::string> ethernet_addresses;
+  std::vector<std::string> other_addresses;
+  GetIpv4Addresses(result, ethernet_addresses, other_addresses);
   return result;
+}
+
+void GetConnectedNetworks(bool& is_wifi_connected, bool& is_ethernet_connected,
+                          bool& is_other_connected) {
+  std::vector<std::string> wifi_addresses;
+  std::vector<std::string> ethernet_addresses;
+  std::vector<std::string> other_addresses;
+  GetIpv4Addresses(wifi_addresses, ethernet_addresses, other_addresses);
+  is_wifi_connected = !wifi_addresses.empty();
+  is_ethernet_connected = !ethernet_addresses.empty();
+  is_other_connected = !other_addresses.empty();
 }
 
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {
