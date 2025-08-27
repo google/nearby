@@ -26,6 +26,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
+#include "webrtc/api/create_modular_peer_connection_factory.h"
 #include "webrtc/api/peer_connection_interface.h"
 #include "webrtc/api/scoped_refptr.h"
 #include "webrtc/rtc_base/thread.h"
