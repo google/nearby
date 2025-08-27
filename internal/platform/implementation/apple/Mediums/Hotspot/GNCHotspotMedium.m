@@ -24,6 +24,7 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotSocket.h"
+#import "internal/platform/implementation/apple/Mediums/Hotspot/GNCNWConnectionImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 
@@ -42,6 +43,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
 @implementation GNCHotspotMedium {
   dispatch_queue_t _hotspot_queue;
+  id<GNCNWConnection> (^_connectionFactory)(nw_connection_t);
 }
 
 - (instancetype)init {
@@ -52,12 +54,28 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   self = [super init];
   if (self) {
     _hotspot_queue = queue;
+    _connectionFactory = ^id<GNCNWConnection>(nw_connection_t connection) {
+      return [[GNCNWConnectionImpl alloc] initWithNWConnection:connection];
+    };
   }
   return self;
 }
 
+// For testing purposes.
+- (void)setConnectionFactory:(id<GNCNWConnection> (^)(nw_connection_t))factory {
+  _connectionFactory = factory;
+}
+
 - (BOOL)connectToWifiNetworkWithSSID:(NSString *)ssid password:(NSString *)password {
 #if TARGET_OS_IOS
+  if (ssid.length == 0) {
+    GNCLoggerError(@"SSID cannot be empty.");
+    return NO;
+  }
+  if (password.length == 0) {
+    GNCLoggerError(@"Password cannot be empty.");
+    return NO;
+  }
   __block BOOL connected = NO;
   NEHotspotConfiguration *config = [[NEHotspotConfiguration alloc] initWithSSID:ssid
                                                                      passphrase:password
@@ -88,23 +106,24 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
       GNCLoggerError(@"Connecting to %@ timeout in %d seconds", ssid, kConnectionTimeoutInSeconds);
     }
-    if (connected) {
-      NSString *currentSSID = [self getCurrentWifiSSID];
-      if (currentSSID == nil) {
-        GNCLoggerInfo(@"Not able to get current SSID, assume connected");
-        break;
-      } else {
-        if ([currentSSID isEqualToString:ssid]) {
-          GNCLoggerDebug(@"Connected to %@ successfully", ssid);
-          break;
-        } else {
-          GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
-          connected = NO;
-        }
-      }
+  }
+
+  // After the loop, if we believe we are connected, verify the SSID.
+  if (connected) {
+    NSString *currentSSID = [self getCurrentWifiSSID];
+    if (currentSSID == nil) {
+      GNCLoggerInfo(@"Not able to get current SSID, assume connected");
+    } else if ([currentSSID isEqualToString:ssid]) {
+      GNCLoggerDebug(@"Connected to %@ successfully", ssid);
     } else {
-      [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
+      GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
+      connected = NO;  // Still not connected to the right SSID
     }
+  }
+
+  // If we failed to connect or connected to the wrong network, remove the configuration.
+  if (!connected) {
+    [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
   }
   return connected;
 #else
@@ -115,6 +134,10 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
 - (void)disconnectToWifiNetworkWithSSID:(NSString *)ssid {
 #if TARGET_OS_IOS
+  if (ssid.length == 0) {
+    GNCLoggerError(@"SSID cannot be empty.");
+    return;
+  }
   [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
 #else
   GNCLoggerError(@"Not implemented for macOS");
@@ -215,8 +238,10 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     case nw_connection_state_cancelled:
       GNCLoggerError(@"connectToEndpoint failed with result: %d", blockResult);
       return nil;
-    case nw_connection_state_ready:
-      return [[GNCHotspotSocket alloc] initWithConnection:connection];
+    case nw_connection_state_ready: {
+      id<GNCNWConnection> conn = _connectionFactory(connection);
+      return [[GNCHotspotSocket alloc] initWithConnection:conn];
+    }
   }
 }
 
