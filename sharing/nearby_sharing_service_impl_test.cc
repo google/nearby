@@ -78,7 +78,6 @@
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
-#include "sharing/internal/test/fake_wifi_adapter.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager_impl.h"
 #include "sharing/nearby_connection_impl.h"
@@ -508,20 +507,6 @@ class NearbySharingServiceImplTest : public testing::Test {
     FakeBluetoothAdapter& bluetooth_adapter =
         down_cast<FakeBluetoothAdapter&>(fake_context_.GetBluetoothAdapter());
     bluetooth_adapter.ReceivedAdapterPoweredChangedFromOs(powered);
-    FlushTesting();
-  }
-
-  void SetWifiIsPresent(bool present) {
-    FakeWifiAdapter& wifi_adapter =
-        down_cast<FakeWifiAdapter&>(fake_context_.GetWifiAdapter());
-    wifi_adapter.ReceivedAdapterPresentChangedFromOs(present);
-    FlushTesting();
-  }
-
-  void SetWifiIsPowered(bool powered) {
-    FakeWifiAdapter& wifi_adapter =
-        down_cast<FakeWifiAdapter&>(fake_context_.GetWifiAdapter());
-    wifi_adapter.ReceivedAdapterPoweredChangedFromOs(powered);
     FlushTesting();
   }
 
@@ -3830,8 +3815,6 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest, AddObserverSendsInitialAdapterState) {
   SetBluetoothIsPresent(true);
   SetBluetoothIsPowered(false);
-  SetWifiIsPresent(false);
-  SetWifiIsPowered(false);
   SetLanIsConnected(true);
 
   TestObserver observer(service_.get());
@@ -3849,8 +3832,6 @@ TEST_F(NearbySharingServiceImplTest, AddObserverSendsInitialAdapterState) {
 TEST_F(NearbySharingServiceImplTest, AddObserverBluetoothAdapterUpdate) {
   SetBluetoothIsPresent(false);
   SetBluetoothIsPowered(false);
-  SetWifiIsPresent(false);
-  SetWifiIsPowered(false);
   SetLanIsConnected(false);
 
   TestObserver observer(service_.get());
@@ -3880,8 +3861,6 @@ TEST_F(NearbySharingServiceImplTest, AddObserverBluetoothAdapterUpdate) {
 TEST_F(NearbySharingServiceImplTest, AddObserverLanAdapterUpdate) {
   SetBluetoothIsPresent(false);
   SetBluetoothIsPowered(false);
-  SetWifiIsPresent(false);
-  SetWifiIsPowered(false);
   SetLanIsConnected(false);
 
   TestObserver observer(service_.get());

@@ -31,7 +31,6 @@ cc_library(
         "fake_network_monitor.h",
         "fake_preference_manager.h",
         "fake_public_certificate_db.h",
-        "fake_wifi_adapter.h",
     ],
     visibility = ["//visibility:public"],
     deps = [
@@ -63,7 +62,6 @@ cc_test(
         "fake_connectivity_manager_test.cc",
         "fake_context_test.cc",
         "fake_fast_initiation_manager_test.cc",
-        "fake_wifi_adapter_test.cc",
     ],
     shard_count = 8,
     deps = [

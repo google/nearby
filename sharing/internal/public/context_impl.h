@@ -17,19 +17,14 @@
 
 #include <stdint.h>
 
-#include <functional>
 #include <memory>
 
-#include "absl/status/status.h"
-#include "absl/strings/string_view.h"
-#include "internal/network/url.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 
@@ -44,7 +39,6 @@ class ContextImpl : public Context {
   std::unique_ptr<Timer> CreateTimer() override;
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
-  sharing::api::WifiAdapter& GetWifiAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
   std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(

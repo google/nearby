@@ -72,7 +72,6 @@
 #include "sharing/incoming_share_session.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -1817,14 +1816,6 @@ bool NearbySharingServiceImpl::IsExtendedAdvertisingSupported() const {
 
 bool NearbySharingServiceImpl::IsLanConnected() const {
   return context_->GetConnectivityManager()->IsLanConnected();
-}
-
-bool NearbySharingServiceImpl::IsWifiPresent() const {
-  return context_->GetWifiAdapter().IsPresent();
-}
-
-bool NearbySharingServiceImpl::IsWifiPowered() const {
-  return context_->GetWifiAdapter().IsPowered();
 }
 
 bool NearbySharingServiceImpl::HasAvailableConnectionMediums() {

@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 
-#include <functional>
 #include <memory>
 
 #include "internal/platform/clock.h"
@@ -25,7 +24,6 @@
 #include "internal/platform/timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 
 namespace nearby {
@@ -44,7 +42,6 @@ class Context {
 
   virtual ConnectivityManager* GetConnectivityManager() const = 0;
   virtual sharing::api::BluetoothAdapter& GetBluetoothAdapter() const = 0;
-  virtual sharing::api::WifiAdapter& GetWifiAdapter() const = 0;
   virtual api::FastInitiationManager& GetFastInitiationManager() const = 0;
   virtual std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const = 0;
 

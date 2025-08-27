@@ -26,13 +26,11 @@
 #include "internal/test/fake_task_runner.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/test/fake_bluetooth_adapter.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_fast_initiation_manager.h"
-#include "sharing/internal/test/fake_wifi_adapter.h"
 
 namespace nearby {
 
@@ -45,7 +43,6 @@ class FakeContext : public Context {
   std::unique_ptr<Timer> CreateTimer() override;
   ConnectivityManager* GetConnectivityManager() const override;
   sharing::api::BluetoothAdapter& GetBluetoothAdapter() const override;
-  sharing::api::WifiAdapter& GetWifiAdapter() const override;
   api::FastInitiationManager& GetFastInitiationManager() const override;
   std::unique_ptr<TaskRunner> CreateSequencedTaskRunner() const override;
   std::unique_ptr<TaskRunner> CreateConcurrentTaskRunner(
@@ -58,9 +55,6 @@ class FakeContext : public Context {
   }
   FakeBluetoothAdapter* fake_bluetooth_adapter() const {
     return fake_bluetooth_adapter_.get();
-  }
-  FakeWifiAdapter* fake_wifi_adapter() const {
-    return fake_wifi_adapter_.get();
   }
   FakeFastInitiationManager* fake_fast_initiation_manager() const {
     return fake_fast_initiation_manager_.get();
@@ -77,7 +71,6 @@ class FakeContext : public Context {
   std::unique_ptr<FakeClock> fake_clock_;
   std::unique_ptr<FakeConnectivityManager> fake_connectivity_manager_;
   std::unique_ptr<FakeBluetoothAdapter> fake_bluetooth_adapter_;
-  std::unique_ptr<FakeWifiAdapter> fake_wifi_adapter_;
   std::unique_ptr<FakeFastInitiationManager> fake_fast_initiation_manager_;
   std::unique_ptr<FakeTaskRunner> executor_;
   mutable FakeTaskRunner* last_sequenced_task_runner_ = nullptr;

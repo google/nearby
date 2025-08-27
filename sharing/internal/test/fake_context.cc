@@ -26,12 +26,10 @@
 #include "internal/test/fake_timer.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/fast_initiation_manager.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/test/fake_bluetooth_adapter.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_fast_initiation_manager.h"
-#include "sharing/internal/test/fake_wifi_adapter.h"
 
 namespace nearby {
 
@@ -39,7 +37,6 @@ FakeContext::FakeContext()
     : fake_clock_(std::make_unique<FakeClock>()),
       fake_connectivity_manager_(std::make_unique<FakeConnectivityManager>()),
       fake_bluetooth_adapter_(std::make_unique<FakeBluetoothAdapter>()),
-      fake_wifi_adapter_(std::make_unique<FakeWifiAdapter>()),
       fake_fast_initiation_manager_(
           std::make_unique<FakeFastInitiationManager>()),
       executor_(std::make_unique<FakeTaskRunner>(fake_clock_.get(), 5)) {}
@@ -56,10 +53,6 @@ ConnectivityManager* FakeContext::GetConnectivityManager() const {
 
 sharing::api::BluetoothAdapter& FakeContext::GetBluetoothAdapter() const {
   return *fake_bluetooth_adapter_;
-}
-
-sharing::api::WifiAdapter& FakeContext::GetWifiAdapter() const {
-  return *fake_wifi_adapter_;
 }
 
 api::FastInitiationManager& FakeContext::GetFastInitiationManager() const {

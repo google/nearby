@@ -35,7 +35,6 @@
 #include "sharing/internal/api/public_certificate_database.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/api/system_info.h"
-#include "sharing/internal/api/wifi_adapter.h"
 
 namespace nearby::sharing::api {
 
@@ -54,8 +53,6 @@ class SharingPlatform {
           callback) = 0;
 
   virtual BluetoothAdapter& GetBluetoothAdapter() = 0;
-
-  virtual WifiAdapter& GetWifiAdapter() = 0;
 
   virtual nearby::api::FastInitBleBeacon& GetFastInitBleBeacon() = 0;
 

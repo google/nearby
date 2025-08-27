@@ -53,7 +53,6 @@
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/api/wifi_adapter.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
@@ -138,8 +137,6 @@ class NearbySharingServiceImpl
   bool IsBluetoothPowered() const override;
   bool IsExtendedAdvertisingSupported() const override;
   bool IsLanConnected() const override;
-  bool IsWifiPresent() const override;
-  bool IsWifiPowered() const override;
   std::string GetQrCodeUrl() const override;
   void SendAttachments(
       int64_t share_target_id,

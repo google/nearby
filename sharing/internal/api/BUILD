@@ -28,7 +28,6 @@ cc_library(
         "sharing_platform.h",
         "sharing_rpc_client.h",
         "system_info.h",
-        "wifi_adapter.h",
     ],
     visibility = [
         "//location/nearby/analytics/cpp/logging:__pkg__",
@@ -69,7 +68,6 @@ cc_library(
         "mock_public_certificate_db.h",
         "mock_sharing_platform.h",
         "mock_system_info.h",
-        "mock_wifi_adapter.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

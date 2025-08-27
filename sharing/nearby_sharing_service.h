@@ -184,12 +184,6 @@ class NearbySharingService {
   // Returns true if the PC is connected to LAN (wifi/ethernet).
   virtual bool IsLanConnected() const = 0;
 
-  // Returns true if the Wi-Fi adapter is present.
-  virtual bool IsWifiPresent() const = 0;
-
-  // Returns true if the Wi-Fi adapter is powered.
-  virtual bool IsWifiPowered() const = 0;
-
   // Returns the QR Code Url.
   virtual std::string GetQrCodeUrl() const = 0;
 
