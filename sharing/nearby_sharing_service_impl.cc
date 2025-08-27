@@ -1395,32 +1395,6 @@ void NearbySharingServiceImpl::AdapterPoweredChanged(
       });
 }
 
-void NearbySharingServiceImpl::AdapterPresentChanged(
-    sharing::api::WifiAdapter* adapter, bool present) {
-  RunOnNearbySharingServiceThread(
-      "wifi_adapter_present_changed", [this, adapter, present]() {
-        VLOG(1) << __func__ << ": Wifi adapter present state changed. ("
-                << present << ")";
-        NearbySharingService::Observer::AdapterState state =
-            MapAdapterState(present, adapter->IsPowered());
-        service_observers_.NotifyWifiStatusChanged(state);
-        InvalidateSurfaceState();
-      });
-}
-
-void NearbySharingServiceImpl::AdapterPoweredChanged(
-    sharing::api::WifiAdapter* adapter, bool powered) {
-  RunOnNearbySharingServiceThread(
-      "wifi_adapter_power_changed", [this, adapter, powered]() {
-        VLOG(1) << __func__ << ": Wifi adapter power state changed. ("
-                << powered << ")";
-        NearbySharingService::Observer::AdapterState state =
-            MapAdapterState(adapter->IsPresent(), powered);
-        service_observers_.NotifyWifiStatusChanged(state);
-        InvalidateSurfaceState();
-      });
-}
-
 void NearbySharingServiceImpl::HardwareErrorReported(
     NearbyFastInitiation* fast_init) {
   RunOnNearbySharingServiceThread("hardware_error_reported", [this]() {

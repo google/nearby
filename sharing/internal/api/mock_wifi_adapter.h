@@ -16,12 +16,8 @@
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_API_MOCK_WIFI_ADAPTER_H_
 
 #include <functional>
-#include <optional>
-#include <string>
 
 #include "gmock/gmock.h"
-#include "absl/status/status.h"
-#include "absl/strings/string_view.h"
 #include "sharing/internal/api/wifi_adapter.h"
 
 namespace nearby::sharing::api {
@@ -39,9 +35,6 @@ class MockWifiAdapter : public nearby::sharing::api::WifiAdapter {
               (bool powered, std::function<void()> success_callback,
                std::function<void()> error_callback),
               (override));
-  MOCK_METHOD(void, AddObserver, (Observer * observer), (override));
-  MOCK_METHOD(void, RemoveObserver, (Observer * observer), (override));
-  MOCK_METHOD(bool, HasObserver, (Observer * observer), (override));
 };
 
 }  // namespace nearby::sharing::api

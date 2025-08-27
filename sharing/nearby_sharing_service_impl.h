@@ -93,7 +93,6 @@ class NearbySharingServiceImpl
       public ::nearby::AccountManager::Observer,
       public NearbyFastInitiation::Observer,
       public sharing::api::BluetoothAdapter::Observer,
-      public sharing::api::WifiAdapter::Observer,
       public NearbyConnectionsManager::IncomingConnectionListener,
       public NearbyConnectionsManager::DiscoveryListener {
   FRIEND_TEST(NearbySharingServiceUnitTests::NearbySharingServiceImplTest,
@@ -222,12 +221,6 @@ class NearbySharingServiceImpl
   void AdapterPresentChanged(sharing::api::BluetoothAdapter* adapter,
                              bool present) override;
   void AdapterPoweredChanged(sharing::api::BluetoothAdapter* adapter,
-                             bool powered) override;
-
-  // Handle the state changes of Wi-Fi adapter.
-  void AdapterPresentChanged(sharing::api::WifiAdapter* adapter,
-                             bool present) override;
-  void AdapterPoweredChanged(sharing::api::WifiAdapter* adapter,
                              bool powered) override;
 
   // Handle the hardware error reported that requires PC restart.

@@ -48,8 +48,6 @@ class ServiceObservers {
   void NotifyStartDiscoveryResult(bool success);
   void NotifyBluetoothStatusChanged(
       NearbySharingService::Observer::AdapterState state);
-  void NotifyWifiStatusChanged(
-      NearbySharingService::Observer::AdapterState state);
   void NotifyLanStatusChanged(
       NearbySharingService::Observer::AdapterState state);
   void NotifyIrrecoverableHardwareErrorReported();

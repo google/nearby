@@ -32,7 +32,6 @@ cc_library(
         "fake_preference_manager.h",
         "fake_public_certificate_db.h",
         "fake_wifi_adapter.h",
-        "fake_wifi_adapter_observer.h",
     ],
     visibility = ["//visibility:public"],
     deps = [

@@ -110,7 +110,6 @@ class NearbySharingService {
     virtual void OnStartDiscoveryResult(bool success) {}
 
     virtual void OnBluetoothStatusChanged(AdapterState state) {}
-    virtual void OnWifiStatusChanged(AdapterState state) {}
     virtual void OnLanStatusChanged(AdapterState state) {}
     virtual void OnIrrecoverableHardwareErrorReported() {}
 

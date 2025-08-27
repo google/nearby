@@ -35,21 +35,6 @@ class WifiAdapter {
     kAllowed
   };
 
-  class Observer {
-   public:
-    virtual ~Observer() = default;
-
-    // Called when the presence of the adapter `adapter` changes. When `present`
-    // is true the adapter is now present, false means the adapter has been
-    // removed from the system.
-    virtual void AdapterPresentChanged(WifiAdapter* adapter, bool present) {}
-
-    // Called when the radio power state of the adapter `adapter` changes. When
-    // `powered` is true the adapter radio is powered, false means the adapter
-    // radio is off.
-    virtual void AdapterPoweredChanged(WifiAdapter* adapter, bool powered) {}
-  };
-
   virtual ~WifiAdapter() = default;
 
   // Indicates whether the adapter is actually present/not disabled by the
@@ -65,13 +50,6 @@ class WifiAdapter {
   // called.
   virtual void SetPowered(bool powered, std::function<void()> success_callback,
                           std::function<void()> error_callback) = 0;
-
-  // Adds and removes observers for events on this Wi-Fi adapter. If
-  // monitoring multiple adapters, check the `adapter` parameter of observer
-  // methods to determine which adapter is issuing the event.
-  virtual void AddObserver(Observer* observer) = 0;
-  virtual void RemoveObserver(Observer* observer) = 0;
-  virtual bool HasObserver(Observer* observer) = 0;
 };
 
 }  // namespace api

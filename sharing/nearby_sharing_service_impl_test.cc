@@ -1369,8 +1369,6 @@ class TestObserver : public NearbySharingService::Observer {
     bluetooth_state_ = state;
   }
 
-  void OnWifiStatusChanged(AdapterState state) override { wifi_state_ = state; }
-
   void OnLanStatusChanged(AdapterState state) override { lan_state_ = state; }
 
   void OnCredentialError() override { credential_error_called_ = true; }
@@ -1380,7 +1378,6 @@ class TestObserver : public NearbySharingService::Observer {
   bool credential_error_called_ = false;
   NearbySharingService* service_;
   AdapterState bluetooth_state_ = AdapterState::INVALID;
-  AdapterState wifi_state_ = AdapterState::INVALID;
   AdapterState lan_state_ = AdapterState::INVALID;
 };
 

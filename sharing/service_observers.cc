@@ -107,14 +107,6 @@ void ServiceObservers::NotifyBluetoothStatusChanged(
   }
 }
 
-void ServiceObservers::NotifyWifiStatusChanged(
-    NearbySharingService::Observer::AdapterState state) {
-  ObserverNotifyTracker notify_tracker(*this);
-  for (auto& observer : observers_.GetObservers()) {
-    observer->OnWifiStatusChanged(state);
-  }
-}
-
 void ServiceObservers::NotifyLanStatusChanged(
     NearbySharingService::Observer::AdapterState state) {
   ObserverNotifyTracker notify_tracker(*this);

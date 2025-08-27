@@ -16,12 +16,7 @@
 #define THIRD_PARTY_NEARBY_SHARING_INTERNAL_TEST_FAKE_WIFI_ADAPTER_H_
 
 #include <functional>
-#include <optional>
-#include <string>
 
-#include "absl/status/status.h"
-#include "absl/strings/string_view.h"
-#include "internal/base/observer_list.h"
 #include "sharing/internal/api/wifi_adapter.h"
 
 namespace nearby {
@@ -51,16 +46,6 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
     success_callback();
   }
 
-  void AddObserver(Observer* observer) override {
-    observer_list_.AddObserver(observer);
-  }
-  void RemoveObserver(Observer* observer) override {
-    observer_list_.RemoveObserver(observer);
-  }
-  bool HasObserver(Observer* observer) override {
-    return observer_list_.HasObserver(observer);
-  }
-
   // Mock OS Wi-Fi adapter presence state changed events
   void ReceivedAdapterPresentChangedFromOs(bool present) {
     num_present_received_ += 1;
@@ -71,11 +56,6 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
     // Only trigger when state of presence changes values
     if (was_present != is_present) {
       is_present_ = is_present;
-      for (Observer* observer : observer_list_.GetObservers()) {
-        if (observer != nullptr) {
-          observer->AdapterPresentChanged(this, is_present_);
-        }
-      }
     }
   }
 
@@ -89,11 +69,6 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
     // Only trigger when state of power changes values
     if (was_powered != is_powered) {
       is_powered_ = is_powered;
-      for (Observer* observer : observer_list_.GetObservers()) {
-        if (observer != nullptr) {
-          observer->AdapterPoweredChanged(this, is_powered_);
-        }
-      }
     }
   }
 
@@ -101,7 +76,6 @@ class FakeWifiAdapter : public sharing::api::WifiAdapter {
   int GetNumPoweredReceivedFromOS() { return num_powered_received_; }
 
  private:
-  ObserverList<sharing::api::WifiAdapter::Observer> observer_list_;
   bool is_present_ = true;
   bool is_powered_ = true;
   int num_present_received_;
