@@ -43,8 +43,6 @@ objc_library(
         "GNCLeaks.h",
         "GNCLeaks.m",
         "GNCMConnection.m",
-        "Hotspot/GNCHotspotMedium.m",
-        "Hotspot/GNCHotspotSocket.m",
     ],
     hdrs = [
         "BLEv2/GNCBLEError.h",
@@ -64,8 +62,6 @@ objc_library(
         "Ble/GNCMBleConnection.h",
         "Ble/GNCMBleUtils.h",
         "GNCMConnection.h",
-        "Hotspot/GNCHotspotMedium.h",
-        "Hotspot/GNCHotspotSocket.h",
     ],
     deps = [
         "//internal/encoding:base85",
@@ -73,6 +69,7 @@ objc_library(
         "//internal/platform/implementation/apple/Flags",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform/implementation/apple/Mediums/Ble/Sockets:Shared",
+        "//internal/platform/implementation/apple/Mediums/Hotspot",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//proto/mediums:ble_frames_cc_proto",
         "//third_party/apple_frameworks:CoreBluetooth",
