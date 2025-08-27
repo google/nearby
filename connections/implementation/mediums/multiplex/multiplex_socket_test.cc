@@ -19,8 +19,6 @@
 #include <string>
 #include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
@@ -78,7 +76,9 @@ class FakeSocket : public MediumSocket {
    * OutputStream} and {@link InputStream}.
    */
   explicit FakeSocket(Medium medium, OutputStream* virtualOutputStream)
-      : MediumSocket(medium), is_virtual_socket_(true) {
+      : MediumSocket(medium),
+        is_virtual_socket_(true),
+        virtual_output_stream_(virtualOutputStream) {
     pipe_1_ = CreatePipe();
     reader_1_ = std::move(pipe_1_.first);
     writer_1_ = std::move(pipe_1_.second);
@@ -88,8 +88,10 @@ class FakeSocket : public MediumSocket {
   }
 
   InputStream& GetInputStream() override { return *reader_1_; }
-  OutputStream& GetOutputStream() override { return *writer_2_; }
-  Exception Close() override {
+  OutputStream& GetOutputStream() override {
+    return IsVirtualSocket() ? *virtual_output_stream_
+                             : *writer_2_;
+  }  Exception Close() override {
     if (IsVirtualSocket()) {
       LOG(INFO) << "Multiplex: Closing virtual socket: " << this;
       CloseLocal();
@@ -150,6 +152,7 @@ class FakeSocket : public MediumSocket {
   Future<ByteArray> bytes_read_future_;
   absl::flat_hash_map<std::string, std::shared_ptr<MediumSocket>>*
       virtual_sockets_ptr_ = nullptr;
+  OutputStream* virtual_output_stream_ = nullptr;
 };
 
 TEST(MultiplexSocketTest, CreateIncomingSocketSuccess) {
@@ -211,7 +214,6 @@ TEST(MultiplexSocketTest, CreateIncomingSocketSuccess) {
   EXPECT_NE(data.size(), 0);
   absl::SleepFor(absl::Milliseconds(100));
 
-  socket->reader_1_->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 1);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 0);
@@ -274,7 +276,6 @@ TEST(MultiplexSocketTest, CreateIncomingVirtualSocketSuccess) {
   });
   absl::SleepFor(absl::Milliseconds(100));
 
-  socket->reader_1_->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 2);
   virtual_socket->Close();
   EXPECT_EQ(multiplex_socket_incoming->GetVirtualSocketCount(), 1);
