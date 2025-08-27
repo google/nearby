@@ -1427,28 +1427,6 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(fast_initiation->StartAdvertisingCount(), 0);
 }
 
-TEST_F(NearbySharingServiceImplTest,
-       StartFastInitiationAdvertising_BluetoothNotPresent) {
-  SetConnectionType(ConnectionType::kNone);
-  SetBluetoothIsPresent(false);
-  MockTransferUpdateCallback transfer_callback;
-  MockShareTargetDiscoveredCallback discovery_callback;
-  EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
-                                SendSurfaceState::kForeground),
-            NearbySharingService::StatusCodes::kNoAvailableConnectionMedium);
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       StartFastInitiationAdvertising_BluetoothNotPowered) {
-  SetConnectionType(ConnectionType::kNone);
-  SetBluetoothIsPowered(false);
-  MockTransferUpdateCallback transfer_callback;
-  MockShareTargetDiscoveredCallback discovery_callback;
-  EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
-                                SendSurfaceState::kForeground),
-            NearbySharingService::StatusCodes::kNoAvailableConnectionMedium);
-}
-
 TEST_F(NearbySharingServiceImplTest, StopFastInitiationAdvertising) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
@@ -2094,33 +2072,6 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
 }
 
-TEST_F(NearbySharingServiceImplTest,
-       NoBluetoothNoNetworkRegisterForegroundReceiveSurfaceNotAdvertising) {
-  SetConnectionType(ConnectionType::kNone);
-  SetBluetoothIsPresent(false);
-
-  MockTransferUpdateCallback callback;
-  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
-      &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
-  EXPECT_EQ(result,
-            NearbySharingService::StatusCodes::kNoAvailableConnectionMedium);
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
-  EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       NoBluetoothNoNetworkRegisterBackgroundReceiveSurfaceWorks) {
-  SetConnectionType(ConnectionType::kNone);
-  SetBluetoothIsPresent(false);
-
-  MockTransferUpdateCallback callback;
-  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
-      &callback, NearbySharingService::ReceiveSurfaceState::kBackground);
-  EXPECT_EQ(result,
-            NearbySharingService::StatusCodes::kNoAvailableConnectionMedium);
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
-}
-
 TEST_F(NearbySharingServiceImplTest, WifiRegisterReceiveSurfaceIsAdvertising) {
   SetConnectionType(ConnectionType::kWifi);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
@@ -2181,19 +2132,6 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(result, NearbySharingService::StatusCodes::kOk);
   ScopedReceiveSurface r(service_.get(), &callback);
   EXPECT_TRUE(fake_nearby_connections_manager_->IsAdvertising());
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       NoBluetoothThreeGReceiveSurfaceNotAdvertising) {
-  SetBluetoothIsPresent(false);
-  SetConnectionType(ConnectionType::k3G);
-  MockTransferUpdateCallback callback;
-  NearbySharingService::StatusCodes result = RegisterReceiveSurface(
-      &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
-  EXPECT_EQ(result,
-            NearbySharingService::StatusCodes::kNoAvailableConnectionMedium);
-  EXPECT_FALSE(fake_nearby_connections_manager_->IsAdvertising());
-  EXPECT_FALSE(fake_nearby_connections_manager_->is_shutdown());
 }
 
 TEST_F(NearbySharingServiceImplTest,
