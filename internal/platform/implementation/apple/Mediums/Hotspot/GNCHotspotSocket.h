@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import <Foundation/Foundation.h> // NOLINT
-#import <Network/Network.h>
+#import <Foundation/Foundation.h>  // NOLINT
+
+@protocol GNCNWConnection;
 
 @interface GNCHotspotSocket : NSObject
 
@@ -23,13 +24,11 @@
 - (nonnull instancetype)init NS_UNAVAILABLE;
 
 /**
- * Creates a socket that allows reading/writing for a given connection.
+ * Creates a socket that allows reading/writing for a given connection wrapper.
  *
- * @param connection A bidirectional data connection between a local and remote endpoint. This class
- *                   will take ownership of connection and manage its lifetime. The connection
- *                   should not be shared or reused.
+ * @param connection A wrapper around the underlying network connection.
  */
-- (nonnull instancetype)initWithConnection:(nonnull nw_connection_t)connection
+- (nonnull instancetype)initWithConnection:(nonnull id<GNCNWConnection>)connection
     NS_DESIGNATED_INITIALIZER;
 
 /**
