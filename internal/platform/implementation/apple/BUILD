@@ -96,6 +96,7 @@ objc_library(
         "//third_party/apple_frameworks:Network",
         "@nlohmann_json//:json",
         "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",

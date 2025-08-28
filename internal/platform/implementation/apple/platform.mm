@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "absl/strings/string_view.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
@@ -27,6 +28,7 @@
 #include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
 #include "internal/platform/implementation/apple/preferences_manager.h"
@@ -134,6 +136,15 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(PayloadId p
 }
 
 std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(const std::string& file_path) {
+  FilePath path{file_path};
+  FilePath folder_path = path.GetParentPath();
+  // Verifies that a path is a valid directory.
+  if (!Files::DirectoryExists(folder_path)) {
+    if (!Files::CreateDirectories(folder_path)) {
+      GNCLoggerError(@"Failed to create directory: %@", @(folder_path.ToString().c_str()));
+      return nullptr;
+    }
+  }
   return shared::IOFile::CreateOutputFile(file_path);
 }
 
