@@ -22,6 +22,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/attributes.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
@@ -37,6 +38,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
@@ -346,7 +348,12 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium::Observer {
 
   api::BluetoothClassicMedium& GetImpl() { return *impl_; }
   BluetoothAdapter& GetAdapter() { return adapter_; }
-  std::string GetMacAddress() const { return adapter_.GetMacAddress(); }
+
+  ABSL_DEPRECATED("Use GetAddress() instead.")
+  std::string GetMacAddress() const {
+    return GetAddress().IsSet() ? GetAddress().ToString() : "";
+  }
+  MacAddress GetAddress() const { return adapter_.GetAddress(); }
   BluetoothDevice GetRemoteDevice(const std::string& mac_address) {
     return BluetoothDevice(impl_->GetRemoteDevice(mac_address));
   }

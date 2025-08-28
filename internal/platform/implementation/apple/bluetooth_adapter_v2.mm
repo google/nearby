@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace apple {
@@ -65,6 +66,10 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
 // TODO(b/290385712): Implement.
 std::string BluetoothAdapter::GetMacAddress() const {
   return "";
+}
+
+MacAddress BluetoothAdapter::GetAddress() const {
+  return MacAddress();
 }
 
 }  // namespace apple

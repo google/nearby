@@ -821,7 +821,7 @@ BluetoothAdapter::GetGenericBluetoothAdapterInstanceID() const {
 }
 
 // Returns BT MAC address assigned to this adapter.
-MacAddress BluetoothAdapter::mac_address() const {
+MacAddress BluetoothAdapter::GetAddress() const {
   if (windows_bluetooth_adapter_ == nullptr) {
     LOG(ERROR) << __func__ << ": No Bluetooth adapter on this device.";
     return MacAddress();
@@ -842,7 +842,7 @@ MacAddress BluetoothAdapter::mac_address() const {
 }
 
 std::string BluetoothAdapter::GetMacAddress() const {
-  MacAddress address = mac_address();
+  MacAddress address = GetAddress();
   if (!address.IsSet()) {
     return "";
   }

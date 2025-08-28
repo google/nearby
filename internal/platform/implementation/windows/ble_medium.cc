@@ -25,14 +25,13 @@
 
 #include "absl/strings/escaping.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_peripheral.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -594,8 +593,9 @@ void BleMedium::AdvertisementReceivedHandler(
               << absl::BytesToHexString(advertisement_data.AsStringView())
               << "(" << advertisement_data.size() << ")";
 
-      std::string peripheral_name =
-          uint64_to_mac_address_string(args.BluetoothAddress());
+      MacAddress mac_address;
+      MacAddress::FromUint64(args.BluetoothAddress(), mac_address);
+      std::string peripheral_name = mac_address.ToString();
 
       BlePeripheral* peripheral_ptr = nullptr;
 

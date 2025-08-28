@@ -19,6 +19,7 @@
 #include <optional>
 #include <string>
 
+#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
@@ -26,6 +27,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby {
@@ -40,7 +42,20 @@ class BluetoothDevice {
   virtual std::string GetName() const = 0;
 
   // Returns BT MAC address assigned to this device.
+  ABSL_DEPRECATED("Use GetAddress() instead.")
   virtual std::string GetMacAddress() const = 0;
+
+  // Implementation for migration only.  Once subclasses implement this, the
+  // above GetMacAddress() can be removed.
+  virtual MacAddress GetAddress() const {
+    std::string mac_address = GetMacAddress();
+    if (mac_address.empty()) {
+      return MacAddress();
+    }
+    MacAddress address;
+    MacAddress::FromString(mac_address, address);
+    return address;
+  }
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.

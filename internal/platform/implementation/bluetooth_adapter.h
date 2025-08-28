@@ -17,7 +17,9 @@
 
 #include <string>
 
+#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace api {
@@ -65,7 +67,20 @@ class BluetoothAdapter {
   virtual bool SetName(absl::string_view name, bool persist) = 0;
 
   // Returns BT MAC address assigned to this adapter.
+  ABSL_DEPRECATED("Use GetAddress() instead.")
   virtual std::string GetMacAddress() const = 0;
+
+  // Implementation for migration only.  Once subclasses implement this, the
+  // above GetMacAddress() can be removed.
+  virtual MacAddress GetAddress() const {
+    std::string mac_address = GetMacAddress();
+    if (mac_address.empty()) {
+      return MacAddress();
+    }
+    MacAddress address;
+    MacAddress::FromString(mac_address, address);
+    return address;
+  }
 };
 
 }  // namespace api

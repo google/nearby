@@ -192,6 +192,7 @@ cc_library(
     ],
     deps = [
         ":logging",
+        ":mac_address",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -338,6 +339,7 @@ cc_library(
     deps = [
         ":base",
         ":cancellation_flag",
+        ":mac_address",
         ":types",
         ":uuid",
         "//internal/base",
@@ -387,6 +389,7 @@ cc_library(
     ],
     deps = [
         ":base",
+        ":mac_address",
         ":types",
         ":uuid",
         "//internal/base",

@@ -41,6 +41,7 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace windows {
@@ -172,7 +173,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     }
 
     BluetoothDevice* remote_device_to_connect_ =
-        GetRemoteDeviceInternal(remote_device.GetMacAddress());
+        GetRemoteDeviceInternal(remote_device.GetAddress());
 
     if (remote_device_to_connect_ == nullptr ||
         remote_device_to_connect_->GetId().empty()) {
@@ -285,7 +286,9 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
   VLOG(1) << "GetRemoteDevice is called with mac_address: " << mac_address;
-  return GetRemoteDeviceInternal(mac_address);
+  MacAddress address;
+  MacAddress::FromString(mac_address, address);
+  return GetRemoteDeviceInternal(address);
 }
 
 std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
@@ -295,8 +298,7 @@ std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
   try {
     winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device =
         winrt::Windows::Devices::Bluetooth::BluetoothDevice::
-            FromBluetoothAddressAsync(
-                mac_address_string_to_uint64(remote_device.GetMacAddress()))
+            FromBluetoothAddressAsync(remote_device.GetAddress().address())
                 .get();
     winrt::Windows::Devices::Enumeration::DeviceInformationCustomPairing
         custom_pairing =
@@ -483,7 +485,7 @@ bool BluetoothClassicMedium::CheckSdp(RfcommDeviceService requested_service) {
   }
 }
 
-bool BluetoothClassicMedium::HasRemoteDevice(const std::string& mac_address) {
+bool BluetoothClassicMedium::HasRemoteDevice(MacAddress mac_address) {
   absl::MutexLock lock(&devices_map_mutex_);
   if (IsWatcherStarted()) {
     return mac_address_to_bluetooth_device_map_.contains(mac_address);
@@ -492,8 +494,7 @@ bool BluetoothClassicMedium::HasRemoteDevice(const std::string& mac_address) {
   }
 }
 
-bool BluetoothClassicMedium::RemoveRemoteDevice(
-    const std::string& mac_address) {
+bool BluetoothClassicMedium::RemoveRemoteDevice(MacAddress mac_address) {
   absl::MutexLock lock(&devices_map_mutex_);
 
   auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
@@ -507,7 +508,7 @@ bool BluetoothClassicMedium::RemoveRemoteDevice(
 }
 
 bool BluetoothClassicMedium::AssignRemoteDevice(
-    const std::string& mac_address, std::unique_ptr<BluetoothDevice> device) {
+    MacAddress mac_address, std::unique_ptr<BluetoothDevice> device) {
   absl::MutexLock lock(&devices_map_mutex_);
   auto result = mac_address_to_bluetooth_device_map_.insert_or_assign(
       mac_address, std::move(device));
@@ -515,14 +516,14 @@ bool BluetoothClassicMedium::AssignRemoteDevice(
 }
 
 BluetoothDevice* BluetoothClassicMedium::GetRemoteDeviceInternal(
-    const std::string& mac_address) {
+    MacAddress mac_address) {
   absl::MutexLock lock(&devices_map_mutex_);
   if (IsWatcherStarted()) {
     auto it = mac_address_to_bluetooth_device_map_.find(mac_address);
 
     if (it == mac_address_to_bluetooth_device_map_.end()) {
-      LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
-                   << " is not in list. create it";
+      LOG(WARNING) << __func__ << ": Bluetooth device "
+                   << mac_address.ToString() << " is not in list. create it";
       auto bluetooth_device = std::make_unique<BluetoothDevice>(mac_address);
       auto result = mac_address_to_bluetooth_device_map_.insert_or_assign(
           mac_address, std::move(bluetooth_device));
@@ -536,7 +537,8 @@ BluetoothDevice* BluetoothClassicMedium::GetRemoteDeviceInternal(
     auto it = cached_bluetooth_devices_map_.find(mac_address);
 
     if (it == cached_bluetooth_devices_map_.end()) {
-      LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
+      LOG(WARNING) << __func__ << ": Bluetooth device "
+                   << mac_address.ToString()
                    << " is not in cache list. create it";
       auto bluetooth_device = std::make_unique<BluetoothDevice>(mac_address);
       auto result = cached_bluetooth_devices_map_.insert_or_assign(
@@ -648,12 +650,12 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
           device_info.Id())
           .get();
 
-  std::string mac_address =
-      uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
-
+  MacAddress mac_address;
+  MacAddress::FromUint64(native_bluetooth_device.BluetoothAddress(),
+                         mac_address);
   if (HasRemoteDevice(mac_address)) {
     // We're already tracking this one
-    LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
+    LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address.ToString()
                  << " is alreay added.";
     return winrt::fire_and_forget();
   }
@@ -669,8 +671,8 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Added(
     return winrt::fire_and_forget();
   }
 
-  LOG(INFO) << __func__ << ": Notifying bluetooth device " << mac_address
-            << " added";
+  LOG(INFO) << __func__ << ": Notifying bluetooth device "
+            << mac_address.ToString() << " added";
   if (discovery_callback_.device_discovered_cb != nullptr) {
     discovery_callback_.device_discovered_cb(*device);
   }
@@ -694,11 +696,12 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
       ::winrt::Windows::Devices::Bluetooth::BluetoothDevice::FromIdAsync(
           device_update_info.Id())
           .get();
-  std::string mac_address =
-      uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
+  MacAddress mac_address;
+  MacAddress::FromUint64(native_bluetooth_device.BluetoothAddress(),
+                         mac_address);
 
   if (!HasRemoteDevice(mac_address)) {
-    LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
+    LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address.ToString()
                  << " is not in list.";
     return winrt::fire_and_forget();
   }
@@ -710,7 +713,7 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Updated(
   }
 
   LOG(INFO) << "Device updated name: " << device->GetName() << " ("
-            << mac_address << ")";
+            << mac_address.ToString() << ")";
   IMapView<winrt::hstring, IInspectable> properties =
       device_update_info.Properties();
   DumpDeviceInformation(properties);
@@ -769,11 +772,11 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     return winrt::fire_and_forget();
   }
 
-  std::string mac_address =
-      uint64_to_mac_address_string(native_bluetooth_device.BluetoothAddress());
-
+  MacAddress mac_address;
+  MacAddress::FromUint64(native_bluetooth_device.BluetoothAddress(),
+                         mac_address);
   if (!HasRemoteDevice(mac_address)) {
-    LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address
+    LOG(WARNING) << __func__ << ": Bluetooth device " << mac_address.ToString()
                  << " is not in list.";
     return winrt::fire_and_forget();
   }
@@ -785,8 +788,8 @@ winrt::fire_and_forget BluetoothClassicMedium::DeviceWatcher_Removed(
     return winrt::fire_and_forget();
   }
 
-  LOG(INFO) << __func__ << ": Notifying bluetooth device (" << mac_address
-            << ") removed";
+  LOG(INFO) << __func__ << ": Notifying bluetooth device ("
+            << mac_address.ToString() << ") removed";
   if (discovery_callback_.device_lost_cb != nullptr) {
     discovery_callback_.device_lost_cb(*device);
   }

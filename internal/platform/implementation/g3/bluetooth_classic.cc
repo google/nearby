@@ -30,6 +30,7 @@
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/types.h"
 
@@ -179,7 +180,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   // supported in tests.
   api::BluetoothDevice* device =
       MediumEnvironment::Instance().FindBluetoothDevice(
-          remote_device.GetMacAddress());
+          remote_device.GetAddress());
   if (device == nullptr) {
     LOG(ERROR) << "G3 ConnectToService [peer]: device=" << &remote_device
                << " not found";
@@ -260,7 +261,9 @@ std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
     const std::string& mac_address) {
-  return MediumEnvironment::Instance().FindBluetoothDevice(mac_address);
+  MacAddress address;
+  MacAddress::FromString(mac_address, address);
+  return MediumEnvironment::Instance().FindBluetoothDevice(address);
 }
 
 void BluetoothClassicMedium::AddObserver(

@@ -33,6 +33,7 @@
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/uuid.h"
 #include "internal/test/fake_clock.h"
@@ -160,7 +161,7 @@ class MediumEnvironment {
   void UnregisterBluetoothMedium(api::BluetoothClassicMedium& medium);
 
   // Returns a Bluetooth Device object matching given mac address to nullptr.
-  api::BluetoothDevice* FindBluetoothDevice(const std::string& mac_address);
+  api::BluetoothDevice* FindBluetoothDevice(MacAddress mac_address);
 
   const EnvironmentConfig& GetEnvironmentConfig();
 #ifndef NO_WEBRTC

@@ -118,6 +118,7 @@ cc_library(
         "//internal/base:file_path",
         "//internal/crypto_cros",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation/shared:crypto",  # Non-chromium impl
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/functional:any_invocable",
@@ -183,6 +184,7 @@ cc_library(
         "//internal/proto:credential_cc_proto",
         "//internal/proto:local_credential_cc_proto",
         # TODO: Support WebRTC
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",

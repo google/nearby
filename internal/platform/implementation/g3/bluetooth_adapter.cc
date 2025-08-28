@@ -29,7 +29,9 @@ constexpr std::uint64_t kMacAddressMask = 0x0000FFFFFFFFFFFF;
 
 BlePeripheral::BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
 
-std::string BlePeripheral::GetName() const { return adapter_.GetMacAddress(); }
+std::string BlePeripheral::GetName() const {
+  return adapter_.GetAddress().ToString();
+}
 
 ByteArray BlePeripheral::GetAdvertisementBytes(
     const std::string& service_id) const {
@@ -47,7 +49,11 @@ BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
 std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
 
 std::string BluetoothDevice::GetMacAddress() const {
-  return adapter_.GetMacAddress();
+  return GetAddress().ToString();
+}
+
+MacAddress BluetoothDevice::GetAddress() const {
+  return adapter_.GetAddress();
 }
 
 BluetoothAdapter::BluetoothAdapter() {

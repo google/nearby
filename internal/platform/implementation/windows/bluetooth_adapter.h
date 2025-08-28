@@ -85,7 +85,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
 
-  MacAddress mac_address() const;
+  MacAddress GetAddress() const override;
 
   // Returns bluetooth device name from registry
   std::string GetNameFromRegistry(PHKEY hKey) const;

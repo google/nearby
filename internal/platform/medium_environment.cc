@@ -41,6 +41,7 @@
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/prng.h"
@@ -223,16 +224,16 @@ void MediumEnvironment::OnBluetoothDeviceStateChanged(
 }
 
 api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
-    const std::string& mac_address) {
+    MacAddress mac_address) {
   api::BluetoothDevice* device = nullptr;
   CountDownLatch latch(1);
   RunOnMediumEnvironmentThread([this, &device, &latch, &mac_address]() {
-    LOG(INFO) << " Looking for: " << mac_address;
+    LOG(INFO) << " Looking for: " << mac_address.ToString();
     for (auto& item : bluetooth_mediums_) {
       auto* adapter = item.second.adapter;
       if (!adapter) continue;
-      LOG(INFO) << " Adapter: " << adapter->GetMacAddress();
-      if (adapter->GetMacAddress() == mac_address) {
+      LOG(INFO) << " Adapter: " << adapter->GetAddress().ToString();
+      if (adapter->GetAddress() == mac_address) {
         device = bluetooth_adapters_[adapter];
         break;
       }

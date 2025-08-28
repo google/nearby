@@ -37,7 +37,6 @@
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Networking.Connectivity.h"
@@ -175,22 +174,6 @@ void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
 }
 
 }  // namespace
-
-std::string uint64_to_mac_address_string(uint64_t bluetoothAddress) {
-  MacAddress mac_address;
-  if (!MacAddress::FromUint64(bluetoothAddress, mac_address)) {
-    return "";
-  }
-  return mac_address.ToString();
-}
-
-uint64_t mac_address_string_to_uint64(absl::string_view mac_address) {
-  MacAddress address;
-  if (!MacAddress::FromString(mac_address, address)) {
-    return 0;
-  }
-  return address.address();
-}
 
 std::string ipaddr_4bytes_to_dotdecimal_string(
     absl::string_view ipaddr_4bytes) {

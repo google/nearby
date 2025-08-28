@@ -41,32 +41,6 @@ constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37};
 
 }  // namespace
 
-TEST(UtilsTests, MacAddressToString) {
-  const uint64_t input = 0x000034363bc70c71;
-  std::string expected = "34:36:3B:C7:0C:71";
-  std::string result = uint64_to_mac_address_string(input);
-  EXPECT_EQ(result, expected);
-}
-
-TEST(UtilsTests, MacAddressToStringInvalid) {
-  const uint64_t input = 0x1234567890ABCDEF;  // Invalid MAC address
-  std::string result = uint64_to_mac_address_string(input);
-  EXPECT_TRUE(result.empty());
-}
-
-TEST(UtilsTests, StringToMacAddress) {
-  std::string input = "34:36:3B:C7:8C:71";
-  const uint64_t expected = 0x000034363bc78c71;
-  uint64_t result = mac_address_string_to_uint64(input);
-  EXPECT_EQ(result, expected);
-}
-
-TEST(UtilsTests, StringToMacAddressInvalid) {
-  std::string input = "34:36:3B:C7:8C:7Z";  // Invalid hex character
-  uint64_t result = mac_address_string_to_uint64(input);
-  EXPECT_EQ(result, 0);
-}
-
 TEST(UtilsTests, Ip4BytesToDotdecimal) {
   std::string result =
       ipaddr_4bytes_to_dotdecimal_string(absl::string_view(kIp4Bytes, 4));

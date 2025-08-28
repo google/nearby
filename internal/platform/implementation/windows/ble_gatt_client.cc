@@ -40,6 +40,7 @@
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.GenericAttributeProfile.h"
 #include "winrt/Windows.Devices.Bluetooth.h"
@@ -105,8 +106,10 @@ BleGattClient::BleGattClient(BluetoothLEDevice ble_device)
   if (ble_device_ == nullptr) {
     LOG(WARNING) << __func__ << ": ble_device is null.";
   } else {
+    MacAddress mac_address;
+    MacAddress::FromUint64(ble_device_.BluetoothAddress(), mac_address);
     LOG(INFO) << __func__ << ": GATT client is created, address: "
-              << uint64_to_mac_address_string(ble_device_.BluetoothAddress());
+              << mac_address.ToString();
   }
 }
 

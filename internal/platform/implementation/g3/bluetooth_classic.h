@@ -22,13 +22,12 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/listeners.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby {

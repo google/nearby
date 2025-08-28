@@ -149,6 +149,7 @@ objc_library(
         ":comm",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:mac_address",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",

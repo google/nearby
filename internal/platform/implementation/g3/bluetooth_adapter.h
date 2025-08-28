@@ -63,6 +63,7 @@ class BluetoothDevice : public api::BluetoothDevice {
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const override;
   std::string GetMacAddress() const override;
+  MacAddress GetAddress() const override;
   BluetoothAdapter& GetAdapter() { return adapter_; }
 
  private:
@@ -111,7 +112,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override { return mac_address_.ToString(); }
-  MacAddress mac_address() const { return mac_address_; }
+  MacAddress GetAddress() const  override { return mac_address_; }
 
   BluetoothDevice& GetDevice() { return device_; }
 

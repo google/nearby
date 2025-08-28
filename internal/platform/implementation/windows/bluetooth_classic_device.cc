@@ -34,6 +34,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "winrt/Windows.Foundation.h"
 
 namespace nearby {
@@ -48,12 +49,11 @@ constexpr absl::Duration kCheckBluetoothServiceInterval = absl::Seconds(1);
 
 BluetoothDevice::~BluetoothDevice() {}
 
-BluetoothDevice::BluetoothDevice(absl::string_view mac_address)
-    : windows_bluetooth_device_(nullptr) {
-  mac_address_ = std::string(mac_address);
+BluetoothDevice::BluetoothDevice(MacAddress mac_address)
+    : windows_bluetooth_device_(nullptr), mac_address_(mac_address) {
   windows_bluetooth_device_ =
       winrt::Windows::Devices::Bluetooth::BluetoothDevice::
-          FromBluetoothAddressAsync(mac_address_string_to_uint64(mac_address))
+          FromBluetoothAddressAsync(mac_address.address())
               .get();
   if (windows_bluetooth_device_ != nullptr) {
     id_ = winrt::to_string(windows_bluetooth_device_.DeviceId());
@@ -67,14 +67,16 @@ BluetoothDevice::BluetoothDevice(
   id_ = winrt::to_string(bluetoothDevice.DeviceId());
 
   // Get the device address.
-  auto bluetoothAddress = bluetoothDevice.BluetoothAddress();
-
-  mac_address_ = uint64_to_mac_address_string(bluetoothAddress);
+  MacAddress::FromUint64(bluetoothDevice.BluetoothAddress(), mac_address_);
   name_ = winrt::to_string(windows_bluetooth_device_.Name());
 }
 
 // Returns BT MAC address assigned to this device.
-std::string BluetoothDevice::GetMacAddress() const { return mac_address_; }
+std::string BluetoothDevice::GetMacAddress() const {
+  return mac_address_.ToString();
+}
+
+MacAddress BluetoothDevice::GetAddress() const { return mac_address_; }
 
 // Checks cache first, will check uncached if no result.
 RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(

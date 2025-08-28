@@ -25,6 +25,7 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace apple {
@@ -84,6 +85,8 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override;
+
+  MacAddress GetAddress() const override;
 };
 
 }  // namespace apple
