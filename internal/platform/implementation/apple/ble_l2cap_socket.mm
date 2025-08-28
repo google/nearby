@@ -15,7 +15,7 @@
 #import "internal/platform/implementation/apple/ble_l2cap_socket.h"
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLEv2/GNCBLEL2CAPConnection.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPConnection.h"
 #import "internal/platform/implementation/apple/utils.h"
 #include "internal/platform/implementation/ble_v2.h"
 
