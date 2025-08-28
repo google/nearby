@@ -480,7 +480,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   IInspectable inspectable =
       properties.TryLookup(L"System.Devices.Dnssd.InstanceName");
   if (inspectable == nullptr) {
-    LOG(WARNING) << "no service name information in device information.";
+    VLOG(1) << "no service name information in device information.";
     return Exception{Exception::kFailed};
   }
   nsd_service_info.SetServiceName(InspectableReader::ReadString(inspectable));
@@ -488,7 +488,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   // Read service type information
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.ServiceName");
   if (inspectable == nullptr) {
-    LOG(WARNING) << "no service type information in device information.";
+    VLOG(1) << "no service type information in device information.";
     return Exception{Exception::kFailed};
   }
 
@@ -502,7 +502,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   // Read text records
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.TextAttributes");
   if (inspectable == nullptr) {
-    LOG(WARNING) << "No text attributes information in device information.";
+    VLOG(1) << "No text attributes information in device information.";
     return Exception{Exception::kFailed};
   }
 
@@ -511,7 +511,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
     // text attribute in format key=value
     int pos = text_attribute.find("=");
     if (pos <= 0 || pos == text_attribute.size() - 1) {
-      LOG(WARNING) << "found invalid text attribute " << text_attribute;
+      VLOG(1) << "found invalid text attribute " << text_attribute;
       continue;
     }
 
@@ -538,14 +538,14 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   } else {
     inspectable = properties.TryLookup(L"System.Devices.IPAddress");
     if (inspectable == nullptr) {
-      LOG(WARNING) << "No IP address property in device information.";
+      VLOG(1) << "No IP address property in device information.";
       return Exception{Exception::kFailed};
     }
     ip_address_candidates = InspectableReader::ReadStringArray(inspectable);
   }
 
   if (ip_address_candidates.empty()) {
-    LOG(WARNING) << "No IP address information in device information.";
+    VLOG(1) << "No IP address information in device information.";
     return Exception{Exception::kFailed};
   }
 
@@ -570,7 +570,7 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   // Read IP port
   inspectable = properties.TryLookup(L"System.Devices.Dnssd.PortNumber");
   if (inspectable == nullptr) {
-    LOG(WARNING) << "no IP port property in device information.";
+    VLOG(1) << "no IP port property in device information.";
     return Exception{Exception::kFailed};
   }
 
@@ -588,8 +588,8 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
                                /*is_device_found*/ true);
 
   if (!nsd_service_info_except.ok()) {
-    LOG(WARNING) << "NSD information is incompleted or has error! "
-                    "Don't add WIFI_LAN device.";
+    VLOG(1) << "NSD information is incompleted or has error!  Don't add "
+               "WIFI_LAN device.";
     return fire_and_forget{};
   }
 
@@ -597,18 +597,17 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
   std::string endpoint =
       nsd_service_info.GetTxtRecord(kDeviceEndpointInfo.data());
   if (endpoint.empty()) {
-    LOG(WARNING) << "No endpoint information! "
-                    "Don't add WIFI_LAN device.";
+    VLOG(1) << "No endpoint information!  Don't add WIFI_LAN device.";
     return fire_and_forget{};
   }
 
   // Don't discover itself
   if (nsd_service_info.GetServiceName() == service_name_) {
-    LOG(WARNING) << "Don't add WIFI_LAN device for itself";
+    VLOG(1) << "Don't add WIFI_LAN device for itself";
     return fire_and_forget{};
   }
 
-  LOG(INFO) << "device added for service name "
+  LOG(INFO) << "device found for service name "
             << nsd_service_info.GetServiceName() << ", address: "
             << ipaddr_4bytes_to_dotdecimal_string(
                    nsd_service_info.GetIPAddress())
@@ -617,7 +616,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
   if (!IsConnectableIpAddress(
           ipaddr_4bytes_to_dotdecimal_string(nsd_service_info.GetIPAddress()),
           nsd_service_info.GetPort(), kConnectTimeout)) {
-    LOG(WARNING) << "Don't add WIFI_LAN device due to it is not reachable.";
+    LOG(WARNING) << "Don't add WIFI_LAN device since it is not reachable.";
     return fire_and_forget{};
   }
 
@@ -634,7 +633,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
                                /*is_device_found*/ true);
 
   if (!nsd_service_info_except.ok()) {
-    LOG(WARNING) << "NSD information is incompleted or has error!";
+    VLOG(1) << "NSD information is incompleted or has error!";
     return fire_and_forget{};
   }
 
@@ -642,7 +641,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
 
   // Don't discover itself
   if (nsd_service_info.GetServiceName() == service_name_) {
-    LOG(WARNING) << "Don't update WIFI_LAN device for itself.";
+    VLOG(1) << "Don't update WIFI_LAN device for itself.";
     return fire_and_forget{};
   }
 
@@ -650,24 +649,23 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
   std::optional<NsdServiceInfo> last_nsd_service_info =
       GetDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()));
   if (!last_nsd_service_info.has_value()) {
+    LOG(INFO) << "device updated for service name "
+              << nsd_service_info.GetServiceName() << ", address: "
+              << ipaddr_4bytes_to_dotdecimal_string(
+                     nsd_service_info.GetIPAddress())
+              << ":" << nsd_service_info.GetPort();
     if (IsConnectableIpAddress(
             ipaddr_4bytes_to_dotdecimal_string(nsd_service_info.GetIPAddress()),
             nsd_service_info.GetPort(), kConnectTimeout)) {
       // If the device is not in the discovered service list, but it is
       // connectable during update, we add it to the discovered service list.
-      LOG(INFO) << "device added for service name "
-                << nsd_service_info.GetServiceName() << ", address: "
-                << ipaddr_4bytes_to_dotdecimal_string(
-                       nsd_service_info.GetIPAddress())
-                << ":" << nsd_service_info.GetPort();
       UpdateDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()),
                               nsd_service_info);
       discovered_service_callback_.service_discovered_cb(nsd_service_info);
       return fire_and_forget{};
     }
 
-    LOG(WARNING)
-        << "Don't update WIFI_LAN device due to it is not in device list.";
+    LOG(WARNING) << "Don't update WIFI_LAN device since it is not reachable.";
     return fire_and_forget{};
   }
 
@@ -678,7 +676,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
       (last_nsd_service_info->GetIPAddress() ==
        nsd_service_info.GetIPAddress()) &&
       (last_nsd_service_info->GetPort() == nsd_service_info.GetPort())) {
-    LOG(INFO) << "Don't update WIFI_LAN device due to no change.";
+    VLOG(1) << "Don't update WIFI_LAN device since there is no change.";
     return fire_and_forget{};
   }
 
@@ -714,7 +712,7 @@ fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
                                /*is_device_found*/ false);
 
   if (!nsd_service_info_except.ok()) {
-    LOG(WARNING) << "NSD information is incompleted or has error! Ignore";
+    VLOG(1) << "NSD information is incompleted or has error! Ignore";
     return fire_and_forget{};
   }
 

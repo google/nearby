@@ -91,7 +91,7 @@ bool TransferManager::StartTransfer() {
   absl::MutexLock lock(&mutex_);
 
   if (!is_waiting_for_high_quality_medium_) {
-    LOG(WARNING) << "No need to wait for high quality medium.";
+    VLOG(1) << "No need to wait for high quality medium.";
     return false;
   }
 

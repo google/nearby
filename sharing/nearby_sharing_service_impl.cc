@@ -2795,7 +2795,8 @@ void NearbySharingServiceImpl::OnFrameRead(
       break;
 
     default:
-      LOG(ERROR) << __func__ << ": Discarding unknown frame of type";
+      LOG(ERROR) << __func__ << ": Discarding unknown frame of type: "
+                 << static_cast<int>(frame->type());
       break;
   }
 
