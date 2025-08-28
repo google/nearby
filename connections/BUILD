@@ -93,6 +93,7 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:authentication_status",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:util",
         "//proto:connections_enums_cc_proto",

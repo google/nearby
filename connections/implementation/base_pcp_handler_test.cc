@@ -63,6 +63,7 @@
 #include "internal/platform/future.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
@@ -433,6 +434,7 @@ class BasePcpHandlerTest
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
         false);
+    MacAddress::FromString("12:34:56:78:9a:bc", remote_mac_address_);
   }
 
   void StartAdvertising(ClientProxy* client, MockPcpHandler* pcp_handler,
@@ -626,8 +628,7 @@ class BasePcpHandlerTest
         .listener = connection_listener_,
     };
     ConnectionOptions connection_options{
-        .remote_bluetooth_mac_address =
-            ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
+        .remote_bluetooth_mac_address = remote_mac_address_,
         .keep_alive_interval_millis =
             FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
         .keep_alive_timeout_millis =
@@ -700,7 +701,7 @@ class BasePcpHandlerTest
         .listener = connection_listener_,
     };
     ConnectionOptions connection_options{
-        .remote_bluetooth_mac_address = ByteArray{"\x12\x34\x56\x78\x9a\xbc"},
+        .remote_bluetooth_mac_address = remote_mac_address_,
         .keep_alive_interval_millis =
             FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
         .keep_alive_timeout_millis =
@@ -775,8 +776,7 @@ class BasePcpHandlerTest
         .listener = connection_listener_,
     };
     ConnectionOptions connection_options{
-        .remote_bluetooth_mac_address =
-            ByteArray{std::string("\x12\x34\x56\x78\x9a\xbc")},
+        .remote_bluetooth_mac_address = remote_mac_address_,
         .keep_alive_interval_millis =
             FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
         .keep_alive_timeout_millis =
@@ -878,6 +878,7 @@ class BasePcpHandlerTest
   SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   NiceMock<MockNearbyDevice> mock_device_;
+  MacAddress remote_mac_address_;
 };
 
 TEST_P(BasePcpHandlerTest, ConstructorDestructorWorks) {
@@ -1323,7 +1324,7 @@ TEST_P(BasePcpHandlerTest, RequestConnectionV3_ConnectImplFailure) {
       .listener = connection_listener_,
   };
   ConnectionOptions connection_options{
-      .remote_bluetooth_mac_address = ByteArray{"\x12\x34\x56\x78\x9a\xbc"},
+      .remote_bluetooth_mac_address = remote_mac_address_,
       .keep_alive_interval_millis =
           FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
       .keep_alive_timeout_millis =
@@ -1399,7 +1400,7 @@ TEST_P(BasePcpHandlerTest, RequestConnection_ConnectImplFailure) {
       .listener = connection_listener_,
   };
   ConnectionOptions connection_options{
-      .remote_bluetooth_mac_address = ByteArray{"\x12\x34\x56\x78\x9a\xbc"},
+      .remote_bluetooth_mac_address = remote_mac_address_,
       .keep_alive_interval_millis =
           FeatureFlags::GetInstance().GetFlags().keep_alive_interval_millis,
       .keep_alive_timeout_millis =
