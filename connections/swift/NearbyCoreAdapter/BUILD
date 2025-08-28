@@ -37,9 +37,11 @@ objc_library(
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//third_party/apple_frameworks:Foundation",
+        "@com_google_absl//absl/types:span",
     ],
 )
 

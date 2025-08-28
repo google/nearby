@@ -45,7 +45,6 @@
 #include "internal/flags/flag.h"
 #include "internal/flags/flag_reader.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/file.h"
 #include "internal/platform/logging.h"
@@ -554,21 +553,11 @@ void NcRequestConnection(
   cpp_connection_options.low_power = connection_options->low_power;
   if (connection_options->remote_bluetooth_mac_address.size > 0) {
     nearby::MacAddress mac_address;
-    if (!nearby::MacAddress::FromString(
-            std::string(connection_options->remote_bluetooth_mac_address.data,
-                        connection_options->remote_bluetooth_mac_address.size),
-            mac_address) ||
-        !mac_address.IsSet()) {
-      cpp_connection_options.remote_bluetooth_mac_address = nearby::ByteArray();
-    } else {
-      nearby::ByteArray address_bytes(
-          nearby::BluetoothUtils::kBluetoothMacAddressLength);
-      mac_address.ToBytes(
-          absl::MakeSpan(reinterpret_cast<uint8_t*>(address_bytes.data()),
-                         address_bytes.size()));
-      cpp_connection_options.remote_bluetooth_mac_address =
-          std::move(address_bytes);
-    }
+    nearby::MacAddress::FromString(
+        std::string(connection_options->remote_bluetooth_mac_address.data,
+                    connection_options->remote_bluetooth_mac_address.size),
+        mac_address);
+    cpp_connection_options.remote_bluetooth_mac_address = mac_address;
   }
   if (connection_options->common_options.strategy.type == NC_STRATEGY_TYPE_NONE)
     cpp_connection_options.strategy = ::nearby::connections::Strategy::kNone;

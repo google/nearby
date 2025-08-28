@@ -859,19 +859,14 @@ Status BasePcpHandler::RequestConnection(
           return;
         }
 
-        MacAddress remote_bluetooth_mac_address;
-        MacAddress::FromBytes(
-            absl::MakeSpan(
-                reinterpret_cast<const uint8_t*>(
-                    connection_options.remote_bluetooth_mac_address.data()),
-                connection_options.remote_bluetooth_mac_address.size()),
-            remote_bluetooth_mac_address);
-        if (remote_bluetooth_mac_address.IsSet()) {
+        if (connection_options.remote_bluetooth_mac_address.IsSet()) {
           if (AppendRemoteBluetoothMacAddressEndpoint(
-                  endpoint_id, remote_bluetooth_mac_address,
+                  endpoint_id, connection_options.remote_bluetooth_mac_address,
                   client->GetDiscoveryOptions()))
-            LOG(INFO) << "Appended remote Bluetooth MAC Address endpoint ["
-                      << remote_bluetooth_mac_address.ToString() << "]";
+            LOG(INFO)
+                << "Appended remote Bluetooth MAC Address endpoint ["
+                << connection_options.remote_bluetooth_mac_address.ToString()
+                << "]";
         }
 
         if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
@@ -1004,19 +999,14 @@ Status BasePcpHandler::RequestConnectionV3(
           return;
         }
 
-        MacAddress remote_bluetooth_mac_address;
-        MacAddress::FromBytes(
-            absl::MakeSpan(
-                reinterpret_cast<const uint8_t*>(
-                    connection_options.remote_bluetooth_mac_address.data()),
-                connection_options.remote_bluetooth_mac_address.size()),
-            remote_bluetooth_mac_address);
-        if (remote_bluetooth_mac_address.IsSet()) {
+        if (connection_options.remote_bluetooth_mac_address.IsSet()) {
           if (AppendRemoteBluetoothMacAddressEndpoint(
-                  endpoint_id, remote_bluetooth_mac_address,
+                  endpoint_id, connection_options.remote_bluetooth_mac_address,
                   client->GetDiscoveryOptions()))
-            LOG(INFO) << "Appended remote Bluetooth MAC Address endpoint ["
-                      << remote_bluetooth_mac_address.ToString() << "]";
+            LOG(INFO)
+                << "Appended remote Bluetooth MAC Address endpoint ["
+                << connection_options.remote_bluetooth_mac_address.ToString()
+                << "]";
         }
 
         if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
