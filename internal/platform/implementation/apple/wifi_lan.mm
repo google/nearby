@@ -124,6 +124,8 @@ Exception WifiLanServerSocket::Close() {
 
 WifiLanMedium::WifiLanMedium() { medium_ = [[GNCNWFramework alloc] init]; }
 
+WifiLanMedium::WifiLanMedium(GNCNWFramework* medium) : medium_(medium) {}
+
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   return network_utils::StartAdvertising(medium_, nsd_service_info);
 }
