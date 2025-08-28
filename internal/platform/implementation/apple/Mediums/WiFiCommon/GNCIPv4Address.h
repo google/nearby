@@ -39,6 +39,8 @@
 
 + (nonnull instancetype)addressFromData:(nonnull NSData *)address;
 
++ (nullable instancetype)addressWithDottedRepresentation:(nonnull NSString *)address;
+
 /** The first byte of the IP address. */
 @property(nonatomic, readonly) uint8_t byte1;
 
