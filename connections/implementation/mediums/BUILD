@@ -65,6 +65,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",

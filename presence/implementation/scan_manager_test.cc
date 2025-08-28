@@ -198,10 +198,8 @@ TEST_F(ScanManagerTest, PresenceMetadataIsRetained) {
   Ble ble2(server_adapter);
   std::unique_ptr<AdvertisingSession> advertising_session =
       StartAdvertisingOn(ble2);
-  MacAddress mac_address;
-  EXPECT_TRUE(
-      MacAddress::FromString(server_adapter.GetMacAddress(), mac_address));
-  std::string address = absl::StrCat(absl::Hex(mac_address.address()));
+  std::string address =
+      absl::StrCat(absl::Hex(server_adapter.GetAddress().address()));
   ScanCallback callback = {
       .start_scan_cb =
           [this](absl::Status status) {

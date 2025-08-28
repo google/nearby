@@ -22,7 +22,6 @@
 #include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -299,7 +298,7 @@ class BluetoothClassicMedium {
   virtual std::unique_ptr<BluetoothPairing> CreatePairing(
       BluetoothDevice& remote_device) = 0;
 
-  virtual BluetoothDevice* GetRemoteDevice(const std::string& mac_address) = 0;
+  virtual BluetoothDevice* GetRemoteDevice(MacAddress mac_address) = 0;
 
   virtual void AddObserver(Observer* observer) = 0;
   virtual void RemoveObserver(Observer* observer) = 0;

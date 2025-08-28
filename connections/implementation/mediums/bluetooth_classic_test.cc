@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -677,19 +678,18 @@ TEST_F(BluetoothClassicTest, CheckDiscoveryingStatus) {
 }
 
 TEST_F(BluetoothClassicTest, GetMacAddress) {
-  EXPECT_NE(bt_a_->GetMacAddress(), "");
+  EXPECT_TRUE(bt_a_->GetAddress().IsSet());
   radio_a_->Disable();
-  EXPECT_EQ(bt_a_->GetMacAddress(), "");
+  EXPECT_FALSE(bt_a_->GetAddress().IsSet());
 }
 
 TEST_F(BluetoothClassicTest, GetRemoteDevice) {
-  EXPECT_EQ(
-      bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetMacAddress())
-          .GetMacAddress(),
-      radio_b_->GetBluetoothAdapter().GetMacAddress());
+  EXPECT_EQ(bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetAddress())
+                .GetAddress(),
+            radio_b_->GetBluetoothAdapter().GetAddress());
   radio_a_->Disable();
   EXPECT_FALSE(
-      bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetMacAddress())
+      bt_a_->GetRemoteDevice(radio_b_->GetBluetoothAdapter().GetAddress())
           .IsValid());
 }
 

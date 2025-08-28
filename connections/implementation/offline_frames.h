@@ -24,6 +24,7 @@
 #include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -97,7 +98,7 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         bool supports_disabling_encryption,
                                         const std::string& gateway);
 ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
-                                       const std::string& mac_address);
+                                       MacAddress mac_address);
 ByteArray ForBwuWebrtcPathAvailable(
     const std::string& peer_id,
     const location::nearby::connections::LocationHint& location_hint_a);

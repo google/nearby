@@ -23,6 +23,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -57,7 +58,7 @@ class InjectedBluetoothDeviceStore {
 
   // Returns true if the provided MAC address(format as "A0:12:34:56:78:90") is
   // associated with an injected BluetoothDevice.
-  bool IsInjectedDevice(const std::string& mac_address);
+  bool IsInjectedDevice(MacAddress mac_address);
 
  private:
   // Devices created by this class. BluetoothDevice objects returned by

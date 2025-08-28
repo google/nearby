@@ -29,6 +29,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -387,7 +388,7 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
 }
 
 ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
-                                       const std::string& mac_address) {
+                                       MacAddress mac_address) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -401,7 +402,7 @@ ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
   upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* bluetooth_credentials =
       upgrade_path_info->mutable_bluetooth_credentials();
-  bluetooth_credentials->set_mac_address(mac_address);
+  bluetooth_credentials->set_mac_address(mac_address.ToString());
   bluetooth_credentials->set_service_name(service_id);
 
   return ToBytes(std::move(frame));

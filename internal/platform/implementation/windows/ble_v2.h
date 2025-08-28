@@ -29,7 +29,6 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/ble_gatt_server.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
-#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Devices.Bluetooth.Advertisement.h"
 

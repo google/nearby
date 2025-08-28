@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/types/span.h"
 #include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/webrtc_state.h"
@@ -63,15 +64,12 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
     const std::string& endpoint_id, const ByteArray& endpoint_info,
     const ByteArray& service_id_hash, Pcp pcp) {
   // Valid MAC address is required.
-  absl::StatusOr<uint64_t> bluetooth_mac_address_bytes_uint64 =
-      remote_bluetooth_mac_address.Read6BytesAsUint64();
-  if (!bluetooth_mac_address_bytes_uint64.ok()) {
-    return BluetoothDevice(/*device=*/nullptr);
-  }
-
   MacAddress remote_mac_address;
-  if (!MacAddress::FromUint64(bluetooth_mac_address_bytes_uint64.value(),
-                              remote_mac_address) ||
+  if (!MacAddress::FromBytes(
+          absl::MakeSpan(reinterpret_cast<const uint8_t*>(
+                             remote_bluetooth_mac_address.data()),
+                         remote_bluetooth_mac_address.size()),
+          remote_mac_address) ||
       !remote_mac_address.IsSet()) {
     return BluetoothDevice(/*device=*/nullptr);
   }
@@ -99,10 +97,9 @@ BluetoothDevice InjectedBluetoothDeviceStore::CreateInjectedBluetoothDevice(
   return device_to_return;
 }
 
-bool InjectedBluetoothDeviceStore::IsInjectedDevice(
-    const std::string& mac_address) {
+bool InjectedBluetoothDeviceStore::IsInjectedDevice(MacAddress mac_address) {
   for (const auto& device : devices_) {
-    if (device->GetMacAddress() == mac_address) {
+    if (device->GetAddress() == mac_address) {
       return true;
     }
   }

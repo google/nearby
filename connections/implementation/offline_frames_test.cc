@@ -28,6 +28,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -68,9 +69,9 @@ TEST(OfflineFramesTest, CanParseMessageFromBytes) {
 
     v1_frame->set_type(V1Frame::CONNECTION_REQUEST);
     // OSS matchers don't like implicitly comparing string_views to strings.
-    sub_frame->set_endpoint_id(std::string(kEndpointId));
-    sub_frame->set_endpoint_name(std::string(kEndpointName));
-    sub_frame->set_endpoint_info(std::string(kEndpointName));
+    sub_frame->set_endpoint_id(kEndpointId);
+    sub_frame->set_endpoint_name(kEndpointName);
+    sub_frame->set_endpoint_info(kEndpointName);
     sub_frame->set_nonce(kNonce);
     sub_frame->set_keep_alive_interval_millis(kKeepAliveIntervalMillis);
     sub_frame->set_keep_alive_timeout_millis(kKeepAliveTimeoutMillis);
@@ -529,14 +530,15 @@ TEST(OfflineFramesTest, CanGenerateBwuBluetoothPathAvailable) {
           medium: BLUETOOTH
           bluetooth_credentials: <
             service_name: "service"
-            mac_address: "\x11\x22\x33\x44\x55\x66"
+            mac_address: "11:22:33:44:55:66"
           >
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes =
-      ForBwuBluetoothPathAvailable("service", "\x11\x22\x33\x44\x55\x66");
+  MacAddress mac_address;
+  MacAddress::FromString("11:22:33:44:55:66", mac_address);
+  ByteArray bytes = ForBwuBluetoothPathAvailable("service", mac_address);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

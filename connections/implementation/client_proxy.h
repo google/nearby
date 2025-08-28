@@ -45,6 +45,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
 // efficient: implementation is using open-addressing hash tables.
@@ -82,10 +83,10 @@ class ClientProxy final {
   }
 
   std::string GetConnectionToken(const std::string& endpoint_id);
-  std::optional<std::string> GetBluetoothMacAddress(
+  std::optional<MacAddress> GetBluetoothMacAddress(
       const std::string& endpoint_id);
   void SetBluetoothMacAddress(const std::string& endpoint_id,
-                              const std::string& bluetooth_mac_address);
+                              MacAddress bluetooth_mac_address);
   const NearbyDevice* GetLocalDevice();
   NearbyDeviceProvider* GetLocalDeviceProvider() {
     if (external_device_provider_ != nullptr) {
@@ -512,7 +513,7 @@ class ClientProxy final {
   absl::flat_hash_map<std::string, ConnectionPair> connections_;
 
   // Maps endpoint_id to Bluetooth Mac Addresses.
-  absl::flat_hash_map<std::string, std::string> bluetooth_mac_addresses_;
+  absl::flat_hash_map<std::string, MacAddress> bluetooth_mac_addresses_;
 
   // A cache of endpoint ids that we've already notified the discoverer of. We
   // check this cache before calling onEndpointFound() so that we don't notify

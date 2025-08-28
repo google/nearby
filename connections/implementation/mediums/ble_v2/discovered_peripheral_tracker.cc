@@ -715,7 +715,7 @@ DiscoveredPeripheralTracker::HandleDctAdvertisement(
   connections::BleAdvertisement connections_advertisement(
       connections::BleAdvertisement::Version::kV1, service_id_info.pcp,
       /*service_id_hash=*/service_id_hash, *endpoint_id,
-      ByteArray(endpoint_info), /*bluetooth_mac_address=*/"",
+      ByteArray(endpoint_info), /*bluetooth_mac_address=*/{},
       /*uwb_address=*/ByteArray(),
       /*web_rtc_state=*/WebRtcState::kUnconnectable);
   BleAdvertisement medium_advertisement = {

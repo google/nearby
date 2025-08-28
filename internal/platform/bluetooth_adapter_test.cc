@@ -15,13 +15,9 @@
 #include "internal/platform/bluetooth_adapter.h"
 
 #include <string>
-#include <utility>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/platform/bluetooth_utils.h"
-#include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace {
@@ -61,10 +57,9 @@ TEST(BluetoothAdapterTest, CanSetMode) {
 TEST(BluetoothAdapterTest, CanGetMacAddress) {
   BluetoothAdapter adapter;
 
-  std::string canonical_address = adapter.GetMacAddress();
+  MacAddress canonical_address = adapter.GetAddress();
 
-  EXPECT_NE(canonical_address, "");
-  EXPECT_NE(BluetoothUtils::FromString(canonical_address), ByteArray());
+  EXPECT_TRUE(canonical_address.IsSet());
 }
 
 }  // namespace

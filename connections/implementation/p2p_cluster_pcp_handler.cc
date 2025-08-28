@@ -71,6 +71,7 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/types.h"
@@ -516,16 +517,17 @@ void P2pClusterPcpHandler::BluetoothNameChangedHandler(
         for (auto endpoint : GetDiscoveredEndpoints(Medium::BLUETOOTH)) {
           BluetoothEndpoint* bluetoothEndpoint =
               static_cast<BluetoothEndpoint*>(endpoint);
-          LOG(INFO) << "BT discovery handler (CHANGED) [client_id="
-                    << client->GetClientId() << ", service_id=" << service_id
-                    << "]: comparing MAC addresses with existing endpoint "
-                    << bluetoothEndpoint->bluetooth_device.GetName()
-                    << ". They have MAC address "
-                    << bluetoothEndpoint->bluetooth_device.GetMacAddress()
-                    << " and the new endpoint has MAC address "
-                    << device.GetMacAddress();
-          if (bluetoothEndpoint->bluetooth_device.GetMacAddress() ==
-              device.GetMacAddress()) {
+          LOG(INFO)
+              << "BT discovery handler (CHANGED) [client_id="
+              << client->GetClientId() << ", service_id=" << service_id
+              << "]: comparing MAC addresses with existing endpoint "
+              << bluetoothEndpoint->bluetooth_device.GetName()
+              << ". They have MAC address "
+              << bluetoothEndpoint->bluetooth_device.GetAddress().ToString()
+              << " and the new endpoint has MAC address "
+              << device.GetAddress().ToString();
+          if (bluetoothEndpoint->bluetooth_device.GetAddress() ==
+              device.GetAddress()) {
             // Report the BluetoothEndpoint as lost to the client.
             VLOG(1) << "Reporting lost BluetoothDevice "
                     << bluetoothEndpoint->bluetooth_device.GetName()
@@ -675,9 +677,9 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
             }));
 
         // Make sure we can connect to this device via Classic Bluetooth.
-        std::string remote_bluetooth_mac_address =
+        MacAddress remote_bluetooth_mac_address =
             advertisement.GetBluetoothMacAddress();
-        if (remote_bluetooth_mac_address.empty()) {
+        if (!remote_bluetooth_mac_address.IsSet()) {
           LOG(INFO)
               << "No Bluetooth Classic MAC address found in advertisement.";
           return;
@@ -689,7 +691,7 @@ void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
           LOG(INFO)
               << "A valid Bluetooth device could not be derived from the MAC "
                  "address "
-              << remote_bluetooth_mac_address;
+              << remote_bluetooth_mac_address.ToString();
           return;
         }
 
@@ -849,9 +851,9 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
             }));
 
         // Make sure we can connect to this device via Classic Bluetooth.
-        std::string remote_bluetooth_mac_address =
+        MacAddress remote_bluetooth_mac_address =
             advertisement.GetBluetoothMacAddress();
-        if (remote_bluetooth_mac_address.empty()) {
+        if (!remote_bluetooth_mac_address.IsSet()) {
           LOG(INFO)
               << "No Bluetooth Classic MAC address found in advertisement.";
           return;
@@ -863,7 +865,7 @@ void P2pClusterPcpHandler::BleV2PeripheralDiscoveredHandler(
           LOG(ERROR)
               << "A valid Bluetooth device could not be derived from the MAC "
                  "address "
-              << remote_bluetooth_mac_address;
+              << remote_bluetooth_mac_address.ToString();
           return;
         }
 
@@ -2426,7 +2428,7 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
   VLOG(1) << "Client" << client->GetClientId()
           << " created Bluetooth endpoint channel to endpoint(id="
           << endpoint->endpoint_id << ").";
-  client->SetBluetoothMacAddress(endpoint->endpoint_id, device.GetMacAddress());
+  client->SetBluetoothMacAddress(endpoint->endpoint_id, device.GetAddress());
   return BasePcpHandler::ConnectImplResult{
       .medium = BLUETOOTH,
       .status = {Status::kSuccess},
@@ -2572,10 +2574,10 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
   } else {
     const ByteArray service_id_hash =
         GenerateHash(service_id, BleAdvertisement::kServiceIdHashLength);
-    std::string bluetooth_mac_address;
+    MacAddress bluetooth_mac_address;
     if (bluetooth_medium_.IsAvailable() &&
         ShouldAdvertiseBluetoothMacOverBle(power_level))
-      bluetooth_mac_address = bluetooth_medium_.GetMacAddress();
+      bluetooth_mac_address = bluetooth_medium_.GetAddress();
 
     advertisement_bytes = ByteArray(
         BleAdvertisement(kBleAdvertisementVersion, GetPcp(), service_id_hash,
@@ -2854,10 +2856,10 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleV2Advertising(
   } else {
     const ByteArray service_id_hash =
         GenerateHash(service_id, BleAdvertisement::kServiceIdHashLength);
-    std::string bluetooth_mac_address;
+    MacAddress bluetooth_mac_address;
     if (bluetooth_medium_.IsAvailable() &&
         ShouldAdvertiseBluetoothMacOverBle(power_level))
-      bluetooth_mac_address = bluetooth_medium_.GetMacAddress();
+      bluetooth_mac_address = bluetooth_medium_.GetAddress();
 
     advertisement_bytes = ByteArray(BleAdvertisement(
         kBleAdvertisementVersion, GetPcp(), service_id_hash, local_endpoint_id,

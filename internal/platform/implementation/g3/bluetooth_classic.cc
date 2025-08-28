@@ -260,10 +260,8 @@ std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
 }
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
-    const std::string& mac_address) {
-  MacAddress address;
-  MacAddress::FromString(mac_address, address);
-  return MediumEnvironment::Instance().FindBluetoothDevice(address);
+    MacAddress mac_address) {
+  return MediumEnvironment::Instance().FindBluetoothDevice(mac_address);
 }
 
 void BluetoothClassicMedium::AddObserver(

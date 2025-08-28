@@ -226,9 +226,8 @@ class DiscoveredPeripheralTrackerTest
   }
 
   BleV2Peripheral CreateBlePeripheral() {
-    MacAddress mac_address;
-    MacAddress::FromString(adapter_peripheral_->GetMacAddress(), mac_address);
-    return BleV2Peripheral(*ble_central_, mac_address.address());
+    return BleV2Peripheral(*ble_central_,
+                           adapter_peripheral_->GetAddress().address());
   }
 
   // Simulates to see a fast advertisement.

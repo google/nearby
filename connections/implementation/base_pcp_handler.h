@@ -63,6 +63,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/future.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/runnable.h"
@@ -289,7 +290,7 @@ class BasePcpHandler : public PcpHandler,
   void RunOnPcpHandlerThread(const std::string& name, Runnable runnable);
 
   BluetoothDevice GetRemoteBluetoothDevice(
-      const std::string& remote_bluetooth_mac_address);
+      MacAddress remote_bluetooth_mac_address);
 
   void OnEndpointFound(ClientProxy* client,
                        std::shared_ptr<DiscoveredEndpoint> endpoint)
@@ -569,7 +570,7 @@ class BasePcpHandler : public PcpHandler,
   // endpoint_id.
   bool AppendRemoteBluetoothMacAddressEndpoint(
       const std::string& endpoint_id,
-      const std::string& remote_bluetooth_mac_address,
+      MacAddress remote_bluetooth_mac_address,
       const DiscoveryOptions& local_discovery_options)
       ABSL_LOCKS_EXCLUDED(discovered_endpoint_mutex_);
 

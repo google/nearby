@@ -65,7 +65,6 @@
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_connection_info.h"
-#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/connection_info.h"
@@ -76,6 +75,7 @@
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
@@ -187,7 +187,7 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
   for (const auto& medium : result.mediums) {
     if (medium == location::nearby::proto::connections::BLUETOOTH) {
       BluetoothConnectionInfo info(
-          mediums_->GetBluetoothClassic().GetMacAddress(), "", {});
+          mediums_->GetBluetoothClassic().GetAddress(), "", {});
       connection_infos.push_back(info);
     } else if (medium == location::nearby::proto::connections::BLE) {
       // TODO(b/284311319): Add relevant information.
@@ -859,14 +859,19 @@ Status BasePcpHandler::RequestConnection(
           return;
         }
 
-        auto remote_bluetooth_mac_address = BluetoothUtils::ToString(
-            connection_options.remote_bluetooth_mac_address);
-        if (!remote_bluetooth_mac_address.empty()) {
+        MacAddress remote_bluetooth_mac_address;
+        MacAddress::FromBytes(
+            absl::MakeSpan(
+                reinterpret_cast<const uint8_t*>(
+                    connection_options.remote_bluetooth_mac_address.data()),
+                connection_options.remote_bluetooth_mac_address.size()),
+            remote_bluetooth_mac_address);
+        if (remote_bluetooth_mac_address.IsSet()) {
           if (AppendRemoteBluetoothMacAddressEndpoint(
                   endpoint_id, remote_bluetooth_mac_address,
                   client->GetDiscoveryOptions()))
             LOG(INFO) << "Appended remote Bluetooth MAC Address endpoint ["
-                      << remote_bluetooth_mac_address << "]";
+                      << remote_bluetooth_mac_address.ToString() << "]";
         }
 
         if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
@@ -999,14 +1004,19 @@ Status BasePcpHandler::RequestConnectionV3(
           return;
         }
 
-        auto remote_bluetooth_mac_address = BluetoothUtils::ToString(
-            connection_options.remote_bluetooth_mac_address);
-        if (!remote_bluetooth_mac_address.empty()) {
+        MacAddress remote_bluetooth_mac_address;
+        MacAddress::FromBytes(
+            absl::MakeSpan(
+                reinterpret_cast<const uint8_t*>(
+                    connection_options.remote_bluetooth_mac_address.data()),
+                connection_options.remote_bluetooth_mac_address.size()),
+            remote_bluetooth_mac_address);
+        if (remote_bluetooth_mac_address.IsSet()) {
           if (AppendRemoteBluetoothMacAddressEndpoint(
                   endpoint_id, remote_bluetooth_mac_address,
                   client->GetDiscoveryOptions()))
             LOG(INFO) << "Appended remote Bluetooth MAC Address endpoint ["
-                      << remote_bluetooth_mac_address << "]";
+                      << remote_bluetooth_mac_address.ToString() << "]";
         }
 
         if (AppendWebRTCEndpoint(endpoint_id, client->GetDiscoveryOptions()))
@@ -1642,7 +1652,7 @@ void BasePcpHandler::OnEndpointDisconnect(ClientProxy* client,
 }
 
 BluetoothDevice BasePcpHandler::GetRemoteBluetoothDevice(
-    const std::string& remote_bluetooth_mac_address) {
+    MacAddress remote_bluetooth_mac_address) {
   return mediums_->GetBluetoothClassic().GetRemoteDevice(
       remote_bluetooth_mac_address);
 }
@@ -2184,7 +2194,7 @@ void BasePcpHandler::ProcessTieBreakLoss(
 
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
     const std::string& endpoint_id,
-    const std::string& remote_bluetooth_mac_address,
+    MacAddress remote_bluetooth_mac_address,
     const DiscoveryOptions& local_discovery_options) {
   if (!local_discovery_options.allowed.bluetooth) {
     return false;
@@ -2202,7 +2212,7 @@ bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
       LOG(INFO)
           << "Cannot append remote Bluetooth MAC Address endpoint, because "
              "the endpoint has already been found over Bluetooth ["
-          << remote_bluetooth_mac_address << "]";
+          << remote_bluetooth_mac_address.ToString() << "]";
       return false;
     }
   }
@@ -2213,7 +2223,7 @@ bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
     LOG(INFO)
         << "Cannot append remote Bluetooth MAC Address endpoint, because a "
            "valid Bluetooth device could not be derived ["
-        << remote_bluetooth_mac_address << "]";
+        << remote_bluetooth_mac_address.ToString() << "]";
     return false;
   }
 

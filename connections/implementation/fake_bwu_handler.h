@@ -32,6 +32,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -136,10 +137,13 @@ class FakeBwuHandler : public BaseBwuHandler {
                                         .service_id = upgrade_service_id,
                                         .endpoint_id = endpoint_id});
     switch (medium_) {
-      case location::nearby::proto::connections::BLUETOOTH:
+      case location::nearby::proto::connections::BLUETOOTH: {
+        MacAddress mac_address;
+        MacAddress::FromString("01:02:03:04:05:06", mac_address);
         return parser::ForBwuBluetoothPathAvailable(
             upgrade_service_id,
-            /*mac_address=*/"mac-address");
+            /*mac_address=*/mac_address);
+      }
       case location::nearby::proto::connections::WIFI_LAN:
         return parser::ForBwuWifiLanPathAvailable(/*ip_address=*/"ABCD",
                                                   /*port=*/1234);

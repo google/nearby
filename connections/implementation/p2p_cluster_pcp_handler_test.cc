@@ -21,6 +21,7 @@
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
@@ -147,11 +148,9 @@ class P2pClusterPcpHandlerTest : public testing::Test {
 
   // Returns a 6 bytes mac address from a given address.
   // address: it is in format of "01:02:03:04:05:06".
-  ByteArray GetSixBytesMacAddress(std::string address) {
-    MacAddress mac_address;
-    MacAddress::FromString(address, mac_address);
+  ByteArray GetSixBytesMacAddress(MacAddress address) {
     uint8_t bytes[6];
-    mac_address.ToBytes(bytes);
+    address.ToBytes(bytes);
     return ByteArray(reinterpret_cast<char*>(bytes), 6);
   }
 
@@ -1042,7 +1041,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
   connection_options_.connection_info.bssid = kBssid;
   connection_options_.connection_info.ap_frequency = kFreq;
   connection_options_.connection_info.ip_address.resize(4);
-  connection_options_.connection_info.ip_address = std::string(kIp4Bytes);
+  connection_options_.connection_info.ip_address = kIp4Bytes;
 
   client_b_.AddCancellationFlag(discovered.endpoint_id);
   handler_b.RequestConnection(
@@ -1363,17 +1362,23 @@ TEST_F(P2pClusterPcpHandlerTest, FailedToInjectEndpointWithoutDiscovery) {
   InjectedBluetoothDeviceStore ibds_a;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
 
+  ByteArray remote_bluetooth_mac_address("\x01\x02\x03\x04\x05\x06");
+  MacAddress mac_address;
+  MacAddress::FromBytes(absl::MakeSpan(reinterpret_cast<const uint8_t*>(
+                                           remote_bluetooth_mac_address.data()),
+                                       remote_bluetooth_mac_address.size()),
+                        mac_address);
   OutOfBandConnectionMetadata metadata = {
       .medium = location::nearby::proto::connections::Medium::BLUETOOTH,
       .endpoint_id = "ABCD",
       .endpoint_info = ByteArray("endpoint_info"),
-      .remote_bluetooth_mac_address = ByteArray("\x01\x02\x03\x04\x05\x06"),
+      .remote_bluetooth_mac_address = remote_bluetooth_mac_address,
   };
 
   handler_a.InjectEndpoint(&client_a_, service_id_, metadata);
   env_.Sync();
 
-  EXPECT_FALSE(ibds_a.IsInjectedDevice("01:02:03:04:05:06"));
+  EXPECT_FALSE(ibds_a.IsInjectedDevice(mac_address));
   env_.Stop();
 }
 
@@ -1421,7 +1426,7 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectEndpoint) {
       .endpoint_id = endpoint_id,
       .endpoint_info = endpoint_info,
       .remote_bluetooth_mac_address = GetSixBytesMacAddress(
-          mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetMacAddress()),
+          mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetAddress()),
   };
 
   handler_a.InjectEndpoint(&client_a_, service_id_, metadata);
@@ -1429,7 +1434,7 @@ TEST_F(P2pClusterPcpHandlerTest, CanInjectEndpoint) {
   EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
   EXPECT_EQ(found_endpoint_id, endpoint_id);
   EXPECT_TRUE(ibds_a.IsInjectedDevice(
-      mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetMacAddress()));
+      mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetAddress()));
 
   handler_a.StopDiscovery(&client_a_);
   env_.Stop();
@@ -1509,7 +1514,7 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
       .endpoint_id = client_a_.GetLocalEndpointId(),
       .endpoint_info = ByteArray{endpoint_info_name},
       .remote_bluetooth_mac_address = GetSixBytesMacAddress(
-          mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetMacAddress()),
+          mediums_a.GetBluetoothRadio().GetBluetoothAdapter().GetAddress()),
   };
 
   handler_b.InjectEndpoint(&client_b_, service_id_, metadata);

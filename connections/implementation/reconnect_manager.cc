@@ -45,6 +45,7 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "proto/connections_enums.pb.h"
@@ -907,7 +908,7 @@ void ReconnectManager::BluetoothImpl::StopListeningForIncomingConnections() {
 }
 
 bool ReconnectManager::BluetoothImpl::ConnectOverMedium() {
-  std::optional<std::string> remote_mac_address =
+  std::optional<MacAddress> remote_mac_address =
       client_->GetBluetoothMacAddress(endpoint_id_);
   if (!remote_mac_address.has_value()) {
     LOG(INFO)
@@ -920,7 +921,7 @@ bool ReconnectManager::BluetoothImpl::ConnectOverMedium() {
   if (!remote_bluetooth_device.IsValid()) {
     LOG(INFO)
         << "ReconnectBluetooth failed since remoteBluetoothDevice is null: "
-        << remote_mac_address.value();
+        << remote_mac_address.value().ToString();
     return false;
   }
 

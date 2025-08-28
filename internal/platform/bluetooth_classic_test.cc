@@ -28,7 +28,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
-#include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -600,7 +599,8 @@ TEST_F(BluetoothClassicMediumTest, CancelBluetoothPairing) {
   bt_a_->StartDiscovery(
       DiscoveryCallback{.device_discovered_cb = [&](BluetoothDevice& device) {
         LOG(INFO) << "Device discovered: " << device.GetName();
-        LOG(INFO) << "Device discovered address: " << device.GetMacAddress();
+        LOG(INFO) << "Device discovered address: "
+                  << device.GetAddress().ToString();
         EXPECT_EQ(device.GetName(), adapter_b_->GetName());
         discovered_device = &device;
         found_latch.CountDown();

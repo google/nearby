@@ -62,6 +62,7 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/prng.h"
@@ -164,7 +165,7 @@ std::string ClientProxy::GetConnectionToken(const std::string& endpoint_id) {
   return {};
 }
 
-std::optional<std::string> ClientProxy::GetBluetoothMacAddress(
+std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
     const std::string& endpoint_id) {
   auto item = bluetooth_mac_addresses_.find(endpoint_id);
   if (item != bluetooth_mac_addresses_.end()) return item->second;
@@ -172,7 +173,7 @@ std::optional<std::string> ClientProxy::GetBluetoothMacAddress(
 }
 
 void ClientProxy::SetBluetoothMacAddress(
-    const std::string& endpoint_id, const std::string& bluetooth_mac_address) {
+    const std::string& endpoint_id, MacAddress bluetooth_mac_address) {
   bluetooth_mac_addresses_[endpoint_id] = bluetooth_mac_address;
 }
 

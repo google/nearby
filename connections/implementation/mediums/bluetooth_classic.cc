@@ -28,6 +28,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/socket.h"
 #include "internal/platform/types.h"
@@ -423,7 +424,7 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
           if (multiplex_socket != nullptr &&
               multiplex_socket->GetVirtualSocket(service_id)) {
             multiplex_sockets_.emplace(
-                client_socket.GetRemoteDevice().GetMacAddress(),
+                client_socket.GetRemoteDevice().GetAddress(),
                 multiplex_socket);
             MultiplexSocket::StopListeningForIncomingConnection(
                 service_id, Medium::BLUETOOTH);
@@ -510,7 +511,7 @@ ErrorOr<BluetoothSocket> BluetoothClassic::Connect(
     MutexLock lock(&mutex_);
     if (is_multiplex_enabled_) {
       LOG(INFO) << "multiplex_sockets_ size:" << multiplex_sockets_.size();
-      auto it = multiplex_sockets_.find(bluetooth_device.GetMacAddress());
+      auto it = multiplex_sockets_.find(bluetooth_device.GetAddress());
       if (it != multiplex_sockets_.end()) {
         MultiplexSocket* multiplex_socket = it->second;
         if (multiplex_socket->IsEnabled()) {
@@ -622,7 +623,7 @@ ErrorOr<BluetoothSocket> BluetoothClassic::AttemptToConnect(
           OperationResultCode::NEARBY_BT_VIRTUAL_SOCKET_CREATION_FAILURE)};
     }
     LOG(INFO) << "Multiplex socket created for " << bluetooth_device.GetName();
-    multiplex_sockets_.emplace(bluetooth_device.GetMacAddress(),
+    multiplex_sockets_.emplace(bluetooth_device.GetAddress(),
                                multiplex_socket);
     return *bluetooth_socket;
   }
@@ -653,7 +654,7 @@ void BluetoothClassic::RemoveAllDiscoveryCallbacks() {
 }
 
 BluetoothDevice BluetoothClassic::GetRemoteDevice(
-    const std::string& mac_address) {
+    MacAddress mac_address) {
   MutexLock lock(&mutex_);
 
   if (!IsAvailableLocked()) {
@@ -669,14 +670,14 @@ bool BluetoothClassic::IsDiscovering(const std::string& serviceId) const {
   ;
 }
 
-std::string BluetoothClassic::GetMacAddress() const {
+MacAddress BluetoothClassic::GetAddress() const {
   MutexLock lock(&mutex_);
 
   if (!IsAvailableLocked()) {
     return {};
   }
 
-  return medium_->GetMacAddress();
+  return medium_->GetAddress();
 }
 
 std::string BluetoothClassic::GenerateUuidFromString(const std::string& data) {

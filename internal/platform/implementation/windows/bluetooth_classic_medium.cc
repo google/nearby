@@ -284,11 +284,10 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
 }
 
 api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
-    const std::string& mac_address) {
-  VLOG(1) << "GetRemoteDevice is called with mac_address: " << mac_address;
-  MacAddress address;
-  MacAddress::FromString(mac_address, address);
-  return GetRemoteDeviceInternal(address);
+    MacAddress mac_address) {
+  VLOG(1) << "GetRemoteDevice is called with mac_address: "
+          << mac_address.ToString();
+  return GetRemoteDeviceInternal(mac_address);
 }
 
 std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(

@@ -122,7 +122,7 @@ TEST_F(BluetoothBwuTest, SoftAPBWUInit_STACreateEndpointChannel) {
           OperationResultCode::CONNECTIVITY_BLUETOOTH_DEVICE_OBTAIN_FAILURE);
       accept_latch.CountDown();
     }
-    EXPECT_FALSE(mediums_2.GetBluetoothClassic().GetMacAddress().empty());
+    EXPECT_TRUE(mediums_2.GetBluetoothClassic().GetAddress().IsSet());
     handler_2->RevertResponderState(/*service_id=*/"A");
     end_latch.CountDown();
   });

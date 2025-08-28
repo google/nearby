@@ -30,6 +30,7 @@
 #include "internal/platform/bluetooth_classic.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 
@@ -120,9 +121,9 @@ class BluetoothClassic {
                                    CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  std::string GetMacAddress() const ABSL_LOCKS_EXCLUDED(mutex_);
+  MacAddress GetAddress() const ABSL_LOCKS_EXCLUDED(mutex_);
 
-  BluetoothDevice GetRemoteDevice(const std::string& mac_address)
+  BluetoothDevice GetRemoteDevice(MacAddress mac_address)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsDiscovering(const std::string& serviceId) const
@@ -239,7 +240,7 @@ class BluetoothClassic {
       config_package_nearby::nearby_connections_feature::kEnableMultiplex);
 
   // A map of Bluetooth MacAddress -> MultiplexSocket.
-  absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
+  absl::flat_hash_map<MacAddress, mediums::multiplex::MultiplexSocket*>
       multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
 };
 

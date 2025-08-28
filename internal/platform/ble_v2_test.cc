@@ -625,8 +625,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToGattServerWorks) {
       gatt_server->UpdateCharacteristic(*server_characteristic, server_value));
 
   // Start GattClient
-  MacAddress mac_address;
-  EXPECT_TRUE(MacAddress::FromString(adapter_a.GetMacAddress(), mac_address));
+  MacAddress mac_address = adapter_a.GetAddress();
   EXPECT_TRUE(mac_address.IsSet());
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BleV2Peripheral(ble_b, mac_address.address()), kTxPowerLevel,
@@ -661,8 +660,7 @@ TEST_F(BleV2MediumTest, GattClientConnectToStoppedGattServerFails) {
   std::unique_ptr<GattServer> gatt_server =
       ble_a.StartGattServer(/*ServerGattConnectionCallback=*/{});
   ASSERT_NE(gatt_server, nullptr);
-  MacAddress mac_address;
-  EXPECT_TRUE(MacAddress::FromString(adapter_a.GetMacAddress(), mac_address));
+  MacAddress mac_address = adapter_a.GetAddress();
 
   gatt_server->Stop();
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
@@ -685,8 +683,7 @@ TEST_F(BleV2MediumTest, GattClientNotifiedWhenServerDisconnects) {
   ASSERT_NE(gatt_server, nullptr);
   CountDownLatch disconnected_latch(1);
   // Start GattClient
-  MacAddress mac_address;
-  EXPECT_TRUE(MacAddress::FromString(adapter_a.GetMacAddress(), mac_address));
+  MacAddress mac_address = adapter_a.GetAddress();
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BleV2Peripheral(ble_b, mac_address.address()), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{.disconnected_cb = [&]() {
@@ -724,8 +721,7 @@ TEST_F(BleV2MediumTest, GattClientOperatiosOnCharacteristic) {
   ASSERT_NE(gatt_server, nullptr);
 
   // Start GattClient.
-  MacAddress mac_address;
-  EXPECT_TRUE(MacAddress::FromString(adapter_a.GetMacAddress(), mac_address));
+  MacAddress mac_address = adapter_a.GetAddress();
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BleV2Peripheral(ble_b, mac_address.address()), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{});
@@ -806,8 +802,7 @@ TEST_F(BleV2MediumTest, GattClientSubscribeNotificationGattServerCanNotify) {
                                                 ByteArray("any")));
 
   // Start GattClient
-  MacAddress mac_address;
-  EXPECT_TRUE(MacAddress::FromString(adapter_a.GetMacAddress(), mac_address));
+  MacAddress mac_address = adapter_a.GetAddress();
   std::unique_ptr<GattClient> gatt_client = ble_b.ConnectToGattServer(
       BleV2Peripheral(ble_b, mac_address.address()), kTxPowerLevel,
       /*ClientGattConnectionCallback=*/{});

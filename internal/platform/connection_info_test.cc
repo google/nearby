@@ -23,9 +23,11 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "absl/types/variant.h"
 #include "internal/platform/ble_connection_info.h"
 #include "internal/platform/bluetooth_connection_info.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 
 namespace nearby {
@@ -61,7 +63,13 @@ TEST(ConnectionInfoTest, TestRestoreBle) {
 }
 
 TEST(ConnectionInfoTest, TestRestoreBluetooth) {
-  BluetoothConnectionInfo info(kMacAddr, kBluetoothUuid, GetDefaultActions());
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
+  BluetoothConnectionInfo info(mac_address, kBluetoothUuid,
+                               GetDefaultActions());
   auto serialized = info.ToDataElementBytes();
   auto connection_info = ConnectionInfo::FromDataElementBytes(serialized);
   ASSERT_TRUE(
@@ -80,9 +88,14 @@ TEST(ConnectionInfoTest, TestRestoreMdns) {
 }
 
 TEST(ConnectionInfoTest, TestMonostate) {
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
   WifiLanConnectionInfo wifi_info(kIpv4Addr, kPort, kBssid,
                                   GetDefaultActions());
-  BluetoothConnectionInfo bt_info(kMacAddr, kBluetoothUuid,
+  BluetoothConnectionInfo bt_info(mac_address, kBluetoothUuid,
                                   GetDefaultActions());
   BleConnectionInfo ble_info(kMacAddr, kGattCharacteristic, kPsm,
                              GetDefaultActions());
@@ -96,9 +109,14 @@ TEST(ConnectionInfoTest, TestMonostate) {
 }
 
 TEST(ConnectionInfoTest, TestCannotRestoreAsOtherInfos) {
+  MacAddress mac_address;
+  MacAddress::FromBytes(
+      absl::MakeSpan(reinterpret_cast<const uint8_t*>(kMacAddr.data()),
+                     kMacAddr.size()),
+      mac_address);
   WifiLanConnectionInfo wifi_info(kIpv4Addr, kPort, kBssid,
                                   GetDefaultActions());
-  BluetoothConnectionInfo bt_info(kMacAddr, kBluetoothUuid,
+  BluetoothConnectionInfo bt_info(mac_address, kBluetoothUuid,
                                   GetDefaultActions());
   BleConnectionInfo ble_info(kMacAddr, kGattCharacteristic, kPsm,
                              GetDefaultActions());

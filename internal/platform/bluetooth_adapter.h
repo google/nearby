@@ -15,11 +15,12 @@
 #ifndef PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
 #define PLATFORM_PUBLIC_BLUETOOTH_ADAPTER_H_
 
+#include <memory>
 #include <string>
-#include <utility>
 
-#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/platform.h"
@@ -60,11 +61,6 @@ class BluetoothDevice final {
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const { return impl_->GetName(); }
-
-  ABSL_DEPRECATED("Use GetAddress() instead.")
-  std::string GetMacAddress() const {
-    return GetAddress().IsSet() ? GetAddress().ToString() : "";
-  }
   MacAddress GetAddress() const { return impl_->GetAddress(); }
 
   api::BluetoothDevice& GetImpl() { return *impl_; }
@@ -108,10 +104,6 @@ class BluetoothAdapter final {
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
   std::string GetName() const { return impl_->GetName(); }
-  ABSL_DEPRECATED("Use GetAddress() instead.")
-  std::string GetMacAddress() const {
-    return GetAddress().IsSet() ? GetAddress().ToString() : "";
-  }
   MacAddress GetAddress() const { return impl_->GetAddress(); }
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)

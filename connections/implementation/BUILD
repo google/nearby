@@ -44,6 +44,7 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -230,6 +231,7 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
@@ -320,6 +322,7 @@ cc_test(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -355,6 +358,7 @@ cc_test(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
@@ -558,6 +562,7 @@ cc_test(
         "//internal/platform:mac_address",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )

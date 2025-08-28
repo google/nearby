@@ -14,13 +14,16 @@
 
 #include "internal/platform/bluetooth_connection_info.h"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "internal/platform/connection_info.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace {
@@ -31,13 +34,18 @@ constexpr int kBluetoothUuidMask = 0b00100000;
 std::string BluetoothConnectionInfo::ToDataElementBytes() const {
   std::string payload_data;
   payload_data.push_back(kBluetoothMediumType);
-  bool has_mac = mac_address_.size() == kMacAddressLength;
+  bool has_mac = mac_address_.IsSet();
   bool has_bluetooth_uuid = !bluetooth_uuid_.empty();
   char mask = has_mac ? kMacAddressMask : 0;
   mask |= has_bluetooth_uuid ? kBluetoothUuidMask : 0;
   payload_data.push_back(mask);
   if (has_mac) {
-    payload_data.append(mac_address_.begin(), mac_address_.end());
+    int current_len = payload_data.size();
+    // Preallocate space for the MAC address.
+    payload_data.resize(current_len + kMacAddressLength);
+    mac_address_.ToBytes(absl::MakeSpan(
+        reinterpret_cast<uint8_t*>(payload_data.data()) + current_len,
+        kMacAddressLength));
   }
   if (has_bluetooth_uuid) {
     payload_data.append(bluetooth_uuid_.begin(), bluetooth_uuid_.end());
@@ -67,14 +75,18 @@ BluetoothConnectionInfo::FromDataElementBytes(absl::string_view bytes) {
     return absl::InvalidArgumentError("Not a Bluetooth data element");
   }
   char mask = bytes[++position];
-  std::string address = "";
   ++position;
+  MacAddress mac_address;
   if ((mask & kMacAddressMask) == kMacAddressMask) {
     if (bytes.size() - position < kMacAddressLength) {
       return absl::InvalidArgumentError(
           "Insufficient remaining bytes to read MAC address.");
     }
-    address = std::string(bytes.substr(position, kMacAddressLength));
+    MacAddress::FromBytes(
+        absl::MakeSpan(reinterpret_cast<const uint8_t*>(bytes.data()) +
+                           position,
+                       kMacAddressLength),
+        mac_address);
     position += kMacAddressLength;
   }
   std::string uuid = "";
@@ -92,7 +104,7 @@ BluetoothConnectionInfo::FromDataElementBytes(absl::string_view bytes) {
   }
   auto action_str = bytes.substr(position);
   return BluetoothConnectionInfo(
-      address, uuid,
+      mac_address, uuid,
       std::vector<uint8_t>(action_str.begin(), action_str.end()));
 }
 }  // namespace nearby

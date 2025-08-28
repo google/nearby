@@ -15,14 +15,16 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 
 #include <array>
+#include <cstdint>
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/types/span.h"
 #include "connections/implementation/bluetooth_device_name.h"
 #include "connections/implementation/pcp.h"
 #include "internal/platform/bluetooth_adapter.h"
-#include "internal/platform/bluetooth_utils.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 
 namespace nearby {
 namespace connections {
@@ -46,15 +48,19 @@ TEST_F(InjectedBluetoothDeviceStoreTest, Success) {
   ByteArray remote_bluetooth_mac_address(kTestRemoteBluetoothMacAddress);
   ByteArray endpoint_info(kTestEndpointInfo);
   ByteArray service_id_hash(kTestServiceIdHash);
+  MacAddress mac_address;
+  MacAddress::FromBytes(absl::MakeSpan(reinterpret_cast<const uint8_t*>(
+                                           remote_bluetooth_mac_address.data()),
+                                       remote_bluetooth_mac_address.size()),
+                        mac_address);
 
   BluetoothDevice device = store_.CreateInjectedBluetoothDevice(
       remote_bluetooth_mac_address, kTestEndpointId, endpoint_info,
       service_id_hash, Pcp::kP2pPointToPoint);
   EXPECT_TRUE(device.IsValid());
-  EXPECT_TRUE(store_.IsInjectedDevice(device.GetMacAddress()));
+  EXPECT_TRUE(store_.IsInjectedDevice(device.GetAddress()));
 
-  EXPECT_EQ(BluetoothUtils::ToString(remote_bluetooth_mac_address),
-            device.GetMacAddress());
+  EXPECT_EQ(mac_address, device.GetAddress());
 
   BluetoothDeviceName name(device.GetName());
   EXPECT_TRUE(name.IsValid());
@@ -69,13 +75,17 @@ TEST_F(InjectedBluetoothDeviceStoreTest, Fail_InvalidBluetoothMac) {
   ByteArray remote_bluetooth_mac_address(std::array<char, 1>{0x00});
   ByteArray endpoint_info(kTestEndpointInfo);
   ByteArray service_id_hash(kTestServiceIdHash);
+  MacAddress mac_address;
+  MacAddress::FromBytes(absl::MakeSpan(reinterpret_cast<const uint8_t*>(
+                                           remote_bluetooth_mac_address.data()),
+                                       remote_bluetooth_mac_address.size()),
+                        mac_address);
 
   BluetoothDevice device = store_.CreateInjectedBluetoothDevice(
       remote_bluetooth_mac_address, kTestEndpointId, endpoint_info,
       service_id_hash, Pcp::kP2pPointToPoint);
   EXPECT_FALSE(device.IsValid());
-  EXPECT_FALSE(
-      store_.IsInjectedDevice(remote_bluetooth_mac_address.string_data()));
+  EXPECT_FALSE(store_.IsInjectedDevice(mac_address));
 }
 
 TEST_F(InjectedBluetoothDeviceStoreTest, Fail_InvalidEndpointId) {

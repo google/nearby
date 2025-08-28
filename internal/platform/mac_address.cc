@@ -48,7 +48,6 @@ bool MacAddress::FromString(absl::string_view address,
   return true;
 }
 
-
 bool MacAddress::FromUint64(uint64_t address, MacAddress& mac_address) {
   if ((address & 0xffff000000000000L) != 0) {
     return false;
