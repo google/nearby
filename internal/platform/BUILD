@@ -39,7 +39,6 @@ cc_library(
     name = "base",
     srcs = [
         "base64_utils.cc",
-        "bluetooth_utils.cc",
         "input_stream.cc",
         "prng.cc",
     ],
@@ -409,7 +408,6 @@ cc_library(
 cc_test(
     name = "platform_base_test",
     srcs = [
-        "bluetooth_utils_test.cc",
         "byte_array_test.cc",
         "feature_flags_test.cc",
         "input_stream_test.cc",

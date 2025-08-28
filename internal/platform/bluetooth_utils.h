@@ -15,30 +15,11 @@
 #ifndef PLATFORM_BASE_BLUETOOTH_UTILS_H_
 #define PLATFORM_BASE_BLUETOOTH_UTILS_H_
 
-#include <cstdint>
-#include <string>
-
-#include "absl/base/attributes.h"
-#include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
-
 namespace nearby {
 
 class BluetoothUtils {
  public:
   static constexpr int kBluetoothMacAddressLength = 6;
-
-  // Converts a Bluetooth MAC address from byte array to String format. Returns
-  // empty if input byte array is not of correct format.
-  // e.g. {-84, 55, 67, -68, -87, 40} -> "AC:37:43:BC:A9:28".
-  ABSL_DEPRECATED("Use MacAddress class instead.")
-  static std::string ToString(const ByteArray& bluetooth_mac_address);
-
-  // Converts a Bluetooth MAC address from String format to byte array. Returns
-  // empty if input string is not of correct format.
-  // e.g. "AC:37:43:BC:A9:28" -> {-84, 55, 67, -68, -87, 40}.
-  ABSL_DEPRECATED("Use MacAddress class instead.")
-  static ByteArray FromString(absl::string_view bluetooth_mac_address);
 };
 
 }  // namespace nearby

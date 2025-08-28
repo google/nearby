@@ -55,6 +55,7 @@ cc_library(
         "//internal/flags:flag_reader",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:mac_address",
         "//internal/platform:types",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
