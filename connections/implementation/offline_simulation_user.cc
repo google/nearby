@@ -13,15 +13,26 @@
 // limitations under the License.
 
 #include "connections/implementation/offline_simulation_user.h"
+#include <functional>
+#include <string>
+#include <utility>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
+#include "connections/advertising_options.h"
+#include "connections/discovery_options.h"
 #include "connections/listeners.h"
+#include "connections/out_of_band_connection_metadata.h"
+#include "connections/payload.h"
+#include "connections/status.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/future.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/system_clock.h"
+#include "internal/platform/mutex_lock.h"
 
 namespace nearby {
 namespace connections {

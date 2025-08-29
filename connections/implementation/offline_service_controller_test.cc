@@ -33,6 +33,8 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "connections/v3/connection_listening_options.h"
+#include "connections/v3/listeners.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
@@ -508,6 +510,63 @@ TEST_P(OfflineServiceControllerTest, TestNoUpdateDiscoveryOptionsAfterStop) {
   EXPECT_THAT(user_a.UpdateDiscoveryOptions(kServiceId, new_options),
               Eq(Status{Status::kOutOfOrderApiCall}));
   EXPECT_FALSE(user_a.IsDiscovering());
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest,
+       StartAndStopListeningForIncomingConnections) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  v3::ConnectionListener listener;
+  v3::ConnectionListeningOptions options;
+
+  // Test StartListeningForIncomingConnections
+  auto result = user_a.StartListeningForIncomingConnections(
+      std::string(kServiceId), listener, options);
+  EXPECT_EQ(result.first.Ok(), Status::kSuccess);
+  // In a real scenario, we'd verify that listening has started.
+  // Here, we just ensure the call doesn't fail.
+
+  // Test StopListeningForIncomingConnections
+  user_a.StopListeningForIncomingConnections();
+  // Verify that calling Stop after Start works.
+
+  user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, InitiateBandwidthUpgrade) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  std::string endpoint_id = "test_endpoint";
+  // Verify that calling InitiateBandwidthUpgrade does not cause issues.
+  user_a.InitiateBandwidthUpgrade(endpoint_id);
+  // The effect of InitiateBwuForEndpoint is internal to BwuManager,
+  // so we primarily test that the call completes without error.
+  user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, SetCustomSavePath) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  std::string test_path = "/tmp/nearby_test_path";
+  // Verify that calling SetCustomSavePath does not cause issues.
+  user_a.SetCustomSavePath(test_path);
+  // In a real scenario, we would verify that payloads are saved to this path,
+  // but OfflineSimulationUser doesn't expose this. The test ensures the call
+  // is handled.
+  user_a.Stop();
+  env_.Stop();
+}
+
+TEST_P(OfflineServiceControllerTest, ShutdownBwuManagerExecutors) {
+  env_.Start();
+  OfflineSimulationUser user_a(kDeviceA, GetParam());
+  // Verify that calling ShutdownBwuManagerExecutors does not cause issues.
+  user_a.ShutdownBwuManagerExecutors();
+  // This method is primarily for internal cleanup; we ensure it can be called.
+  user_a.Stop();
   env_.Stop();
 }
 

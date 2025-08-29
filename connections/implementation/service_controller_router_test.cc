@@ -16,35 +16,48 @@
 
 
 #include <array>
-#include <cinttypes>
+#include <cstdint>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "connections/advertising_options.h"
+#include "connections/connection_options.h"
+#include "connections/discovery_options.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mock_service_controller.h"
 #include "connections/implementation/offline_service_controller.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
+#include "connections/out_of_band_connection_metadata.h"
 #include "connections/params.h"
+#include "connections/payload.h"
+#include "connections/status.h"
+#include "connections/strategy.h"
 #include "connections/v3/bandwidth_info.h"
 #include "connections/v3/connection_listening_options.h"
 #include "connections/v3/connection_result.h"
 #include "connections/v3/connections_device.h"
+#include "connections/v3/listeners.h"
 #include "connections/v3/listening_result.h"
 #include "connections/v3/params.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/authentication_status.h"
+#include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/condition_variable.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 
@@ -466,6 +479,11 @@ class ServiceControllerRouterTest : public testing::Test {
       while (!complete_) cond_.Wait();
       EXPECT_TRUE(client->IsListeningForIncomingConnections());
     }
+  }
+
+  void StopListeningForIncomingConnectionsV3(ClientProxy* client) {
+    EXPECT_CALL(*mock_, StopListeningForIncomingConnections).Times(1);
+    router_.StopListeningForIncomingConnectionsV3(client);
   }
 
  protected:
@@ -1307,6 +1325,8 @@ TEST_F(ServiceControllerRouterTest,
         }
         cond_.Notify();
       });
+
+  StopListeningForIncomingConnectionsV3(&client_);
 }
 
 TEST_F(ServiceControllerRouterTest,
@@ -1333,6 +1353,91 @@ TEST_F(ServiceControllerRouterTest,
         cond_.Notify();
       },
       /*expecting_call=*/false);
+}
+
+TEST_F(ServiceControllerRouterTest, UpdateAdvertisingOptionsV3Called) {
+  EXPECT_CALL(*mock_, UpdateAdvertisingOptions)
+      .WillOnce(Return(Status{Status::kSuccess}));
+  router_.UpdateAdvertisingOptionsV3(
+      &client_, kServiceId, kAdvertisingOptions, [this](Status status) {
+        MutexLock lock(&mutex_);
+        result_ = status;
+        cond_.Notify();
+      });
+  {
+    MutexLock lock(&mutex_);
+    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
+      EXPECT_EQ(result_, Status{Status::kSuccess});
+    }
+  }
+}
+
+TEST_F(ServiceControllerRouterTest, UpdateDiscoveryOptionsV3Called) {
+  EXPECT_CALL(*mock_, UpdateDiscoveryOptions)
+      .WillOnce(Return(Status{Status::kSuccess}));
+  router_.UpdateDiscoveryOptionsV3(
+      &client_, kServiceId, kDiscoveryOptions, [this](Status status) {
+        MutexLock lock(&mutex_);
+        result_ = status;
+        cond_.Notify();
+      });
+  {
+    MutexLock lock(&mutex_);
+    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
+      EXPECT_EQ(result_, Status{Status::kSuccess});
+    }
+  }
+}
+
+TEST_F(ServiceControllerRouterTest, StopAllEndpointsCalled) {
+  // Set up some state on the client to be cleared.
+  client_.StartedAdvertising(kServiceId, Strategy::kP2pPointToPoint, {}, {},
+                             {});
+  client_.StartedDiscovery(kServiceId, Strategy::kP2pPointToPoint, {}, {}, {});
+  client_.OnConnectionInitiated(kRemoteEndpointId, {}, kConnectionOptions, {},
+                                "token");
+  client_.OnConnectionAccepted(kRemoteEndpointId);
+
+  EXPECT_CALL(*mock_, DisconnectFromEndpoint).Times(1);
+  EXPECT_CALL(*mock_, StopAdvertising).Times(1);
+  EXPECT_CALL(*mock_, StopDiscovery).Times(1);
+  EXPECT_CALL(*mock_, ShutdownBwuManagerExecutors).Times(1);
+
+  router_.StopAllEndpoints(&client_, [this](Status status) {
+    MutexLock lock(&mutex_);
+    result_ = status;
+    cond_.Notify();
+  });
+  {
+    MutexLock lock(&mutex_);
+    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
+      EXPECT_EQ(result_, Status{Status::kSuccess});
+    }
+  }
+
+  // Verify client state is reset.
+  EXPECT_FALSE(client_.IsAdvertising());
+  EXPECT_FALSE(client_.IsDiscovering());
+  EXPECT_FALSE(client_.IsConnectedToEndpoint(kRemoteEndpointId));
+  EXPECT_TRUE(client_.GetConnectedEndpoints().empty());
+  EXPECT_TRUE(client_.GetPendingConnectedEndpoints().empty());
+}
+
+TEST_F(ServiceControllerRouterTest, SetCustomSavePathCalled) {
+  std::string test_path = "/tmp/custom_path";
+  EXPECT_CALL(*mock_, SetCustomSavePath(&client_, test_path)).Times(1);
+
+  router_.SetCustomSavePath(&client_, test_path, [this](Status status) {
+    MutexLock lock(&mutex_);
+    result_ = status;
+    cond_.Notify();
+  });
+  {
+    MutexLock lock(&mutex_);
+    if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
+      EXPECT_EQ(result_, Status{Status::kSuccess});
+    }
+  }
 }
 
 TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
