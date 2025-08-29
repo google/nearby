@@ -33,6 +33,7 @@ objc_library(
     ],
     deps = [
         "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//internal/platform/implementation/apple/Mediums/BLE",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//third_party/apple_frameworks:CoreLocation",
         "//third_party/apple_frameworks:Foundation",
