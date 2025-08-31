@@ -47,7 +47,7 @@ BluetoothDevice* BluetoothSocket::GetRemoteDevice() {
 }
 
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -64,7 +64,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
 }
 
 bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(ERROR) << "Failed to connect to BT server socket: already connected";
@@ -82,17 +82,17 @@ bool BluetoothServerSocket::Connect(BluetoothSocket& socket) {
 
 void BluetoothServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 BluetoothServerSocket::~BluetoothServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception BluetoothServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -103,11 +103,11 @@ Exception BluetoothServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -199,7 +199,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
             << ", uuid=" << service_uuid;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&medium->mutex_);
+    absl::MutexLock medium_lock(medium->mutex_);
     auto item = medium->sockets_.find(service_uuid);
     server_socket = item != medium->sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
@@ -245,11 +245,11 @@ BluetoothClassicMedium::ListenForService(const std::string& service_name,
                                          const std::string& service_uuid) {
   auto socket = std::make_unique<BluetoothServerSocket>(GetAdapter());
   socket->SetCloseNotifier([this, uuid = service_uuid]() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     sockets_.erase(uuid);
   });
   LOG(INFO) << "Adding service: medium=" << this << ", uuid=" << service_uuid;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   sockets_.emplace(service_uuid, socket.get());
   return socket;
 }

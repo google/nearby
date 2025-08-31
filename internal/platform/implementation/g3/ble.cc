@@ -38,13 +38,13 @@ namespace nearby {
 namespace g3 {
 
 BlePeripheral* BleSocket::GetRemotePeripheral() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return peripheral_;
 }
 
 std::unique_ptr<api::BleSocket> BleServerSocket::Accept(
     BlePeripheral* peripheral) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return {};
   while (pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
@@ -62,7 +62,7 @@ std::unique_ptr<api::BleSocket> BleServerSocket::Accept(
 }
 
 bool BleServerSocket::Connect(BleSocket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(ERROR) << "Failed to connect to Ble server socket: already connected";
@@ -79,17 +79,17 @@ bool BleServerSocket::Connect(BleSocket& socket) {
 }
 
 void BleServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 BleServerSocket::~BleServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception BleServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -100,11 +100,11 @@ Exception BleServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -154,7 +154,7 @@ bool BleMedium::StartAdvertising(
   env.UpdateBleMediumForAdvertising(*this, peripheral, service_id,
                                     fast_advertisement, true);
 
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (server_socket_ != nullptr) server_socket_.release();
   server_socket_ = std::make_unique<BleServerSocket>();
 
@@ -177,7 +177,7 @@ bool BleMedium::StartAdvertising(
 bool BleMedium::StopAdvertising(const std::string& service_id) {
   LOG(INFO) << "G3 Ble StopAdvertising: service_id=" << service_id;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (advertising_info_.Empty()) {
       LOG(INFO) << "G3 Ble StopAdvertising: Can't stop advertising "
                    "because we never started advertising.";
@@ -218,7 +218,7 @@ bool BleMedium::StartScanning(
                                  fast_advertisement_service_uuid,
                                  std::move(callback), true);
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     scanning_info_.service_id = service_id;
   }
   return true;
@@ -227,7 +227,7 @@ bool BleMedium::StartScanning(
 bool BleMedium::StopScanning(const std::string& service_id) {
   LOG(INFO) << "G3 Ble StopScanning: service_id=" << service_id;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (scanning_info_.Empty()) {
       LOG(INFO) << "G3 Ble StopDiscovery: Can't stop scanning because "
                    "we never started scanning.";
@@ -276,7 +276,7 @@ std::unique_ptr<api::BleSocket> BleMedium::Connect(
             << ", service_id=" << service_id;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&medium->mutex_);
+    absl::MutexLock medium_lock(medium->mutex_);
     remote_server_socket = medium->server_socket_.get();
     if (remote_server_socket == nullptr) {
       LOG(ERROR)

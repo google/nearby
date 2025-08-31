@@ -49,7 +49,7 @@ std::string WifiLanServerSocket::GetName(const std::string& ip_address,
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -67,7 +67,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
 }
 
 bool WifiLanServerSocket::Connect(WifiLanSocket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(ERROR)
@@ -86,17 +86,17 @@ bool WifiLanServerSocket::Connect(WifiLanSocket& socket) {
 
 void WifiLanServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 WifiLanServerSocket::~WifiLanServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception WifiLanServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -107,11 +107,11 @@ Exception WifiLanServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -134,7 +134,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
             << ", service_name=" << nsd_service_info.GetServiceName()
             << ", service_type=" << service_type;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (advertising_info_.Existed(service_type)) {
       LOG(INFO)
           << "G3 WifiLan StartAdvertising: Can't start advertising because "
@@ -147,7 +147,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info,
                                         /*enabled=*/true);
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     advertising_info_.Add(service_type);
   }
   return true;
@@ -160,7 +160,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
             << ", service_name=" << nsd_service_info.GetServiceName()
             << ", service_type=" << service_type;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!advertising_info_.Existed(service_type)) {
       LOG(INFO) << "G3 WifiLan StopAdvertising: Can't stop advertising because "
                    "we never started advertising for service_type="
@@ -179,7 +179,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
                                    DiscoveredServiceCallback callback) {
   LOG(INFO) << "G3 WifiLan StartDiscovery: service_type=" << service_type;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (discovering_info_.Existed(service_type)) {
       LOG(INFO) << "G3 WifiLan StartDiscovery: Can't start discovery because "
                    "service_type="
@@ -191,7 +191,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
   env.UpdateWifiLanMediumForDiscovery(*this, std::move(callback), service_type,
                                       true);
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     discovering_info_.Add(service_type);
   }
   return true;
@@ -200,7 +200,7 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_type,
 bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
   LOG(INFO) << "G3 WifiLan StopDiscovery: service_type=" << service_type;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!discovering_info_.Existed(service_type)) {
       LOG(INFO)
           << "G3 WifiLan StopDiscovery: Can't stop discovering because we "
@@ -243,7 +243,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
             << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&remote_medium->mutex_);
+    absl::MutexLock medium_lock(remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(socket_name);
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
@@ -290,12 +290,12 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
   std::string socket_name = WifiLanServerSocket::GetName(
       server_socket->GetIPAddress(), server_socket->GetPort());
   server_socket->SetCloseNotifier([this, socket_name]() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     server_sockets_.erase(socket_name);
   });
   LOG(INFO) << "G3 WifiLan Adding server socket: medium=" << this
             << ", socket_name=" << socket_name;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   server_sockets_.insert({socket_name, server_socket.get()});
   return server_socket;
 }

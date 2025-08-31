@@ -100,7 +100,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
       MediumEnvironment::Instance().GetSimulatedClock();
   if (fake_clock.has_value()) {
     absl::Time trigger_time = (*fake_clock)->Now() + delay;
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     tasks_.insert(std::pair<absl::Time, std::unique_ptr<Runnable>>(
         trigger_time, std::make_unique<Runnable>(std::move(task))));
   } else {
@@ -119,7 +119,7 @@ void ScheduledExecutor::RunReadyTasks() {
     return;
   }
   absl::Time current_time = (*fake_clock)->Now();
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   for (auto it = tasks_.begin(); it != tasks_.end();) {
     if (it->first <= current_time) {
       executor_.Execute(

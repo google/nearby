@@ -42,7 +42,7 @@ std::string WifiDirectServerSocket::GetName(absl::string_view ip_address,
 }
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -60,7 +60,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
 }
 
 bool WifiDirectServerSocket::Connect(WifiDirectSocket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(ERROR)
@@ -79,17 +79,17 @@ bool WifiDirectServerSocket::Connect(WifiDirectSocket& socket) {
 
 void WifiDirectServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 WifiDirectServerSocket::~WifiDirectServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception WifiDirectServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -100,11 +100,11 @@ Exception WifiDirectServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -123,7 +123,7 @@ WifiDirectMedium::~WifiDirectMedium() {
 
 bool WifiDirectMedium::StartWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   std::string ssid = absl::StrCat("DIRECT-", Prng().NextUint32());
   wifi_direct_credentials->SetSSID(ssid);
@@ -141,7 +141,7 @@ bool WifiDirectMedium::StartWifiDirect(
 }
 
 bool WifiDirectMedium::StopWifiDirect() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "G3 StopWifiDirect GO";
 
   auto& env = MediumEnvironment::Instance();
@@ -153,7 +153,7 @@ bool WifiDirectMedium::StopWifiDirect() {
 
 bool WifiDirectMedium::ConnectWifiDirect(
     WifiDirectCredentials* wifi_direct_credentials) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   LOG(INFO) << "G3 ConnectWifiDirect : ssid="
             << wifi_direct_credentials->GetSSID()
@@ -176,7 +176,7 @@ bool WifiDirectMedium::ConnectWifiDirect(
 }
 
 bool WifiDirectMedium::DisconnectWifiDirect() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   LOG(INFO) << "G3 DisconnectWifiDirect";
 
@@ -206,7 +206,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
             << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&remote_medium->mutex_);
+    absl::MutexLock medium_lock(remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(socket_name);
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
@@ -251,12 +251,12 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
   std::string socket_name = WifiDirectServerSocket::GetName(
       server_socket->GetIPAddress(), server_socket->GetPort());
   server_socket->SetCloseNotifier([this, socket_name]() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     server_sockets_.erase(socket_name);
   });
   LOG(INFO) << "G3 WifiDirect GO Adding server socket: medium=" << this
             << ", socket_name=" << socket_name;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   server_sockets_.insert({socket_name, server_socket.get()});
   return server_socket;
 }

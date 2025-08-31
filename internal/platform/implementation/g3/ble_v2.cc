@@ -82,7 +82,7 @@ api::ble_v2::BlePeripheral::UniqueId BleV2Socket::GetRemotePeripheralId() {
 }
 
 std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -100,7 +100,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2ServerSocket::Accept() {
 }
 
 bool BleV2ServerSocket::Connect(BleV2Socket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(WARNING) << "Failed to connect to Ble server socket: already connected";
@@ -117,17 +117,17 @@ bool BleV2ServerSocket::Connect(BleV2Socket& socket) {
 }
 
 void BleV2ServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 BleV2ServerSocket::~BleV2ServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception BleV2ServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -138,11 +138,11 @@ Exception BleV2ServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -180,7 +180,7 @@ bool BleV2Medium::StartAdvertising(
     return false;
   }
 
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
       /*enabled=*/true, *this, adapter_.GetUniqueId(), advertising_data);
   return true;
@@ -188,7 +188,7 @@ bool BleV2Medium::StartAdvertising(
 
 bool BleV2Medium::StopAdvertising() {
   LOG(INFO) << "G3 Ble StopAdvertising";
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   BleAdvertisementData empty_advertisement_data = {};
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
@@ -218,7 +218,7 @@ std::unique_ptr<BleV2Medium::AdvertisingSession> BleV2Medium::StartAdvertising(
   if (callback.start_advertising_result) {
     callback.start_advertising_result(absl::OkStatus());
   }
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForAdvertising(
       /*enabled=*/true, *this, adapter_.GetUniqueId(), advertising_data);
   return std::make_unique<AdvertisingSession>(
@@ -234,7 +234,7 @@ bool BleV2Medium::StartScanning(const Uuid& service_uuid,
                                 ScanCallback callback) {
   LOG(INFO) << "G3 Ble StartScanning";
   auto internal_session_id = Prng().NextUint32();
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
       /*enabled=*/true, service_uuid, internal_session_id,
       {.advertisement_found_cb = std::move(callback.advertisement_found_cb)},
@@ -248,7 +248,7 @@ bool BleV2Medium::StartMultipleServicesScanning(
     api::ble_v2::TxPowerLevel tx_power_level, ScanCallback callback) {
   LOG(INFO) << "G3 Ble StartMultipleServicesScanning";
 
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   scan_callback_ = std::move(callback);
   for (const auto& service_uuid : service_uuids) {
     auto internal_session_id = Prng().NextUint32();
@@ -273,7 +273,7 @@ bool BleV2Medium::StartMultipleServicesScanning(
 
 bool BleV2Medium::StopScanning() {
   LOG(INFO) << "G3 Ble StopScanning";
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   for (auto element : scanning_internal_session_ids_) {
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
         /*enabled=*/false,
@@ -291,7 +291,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
   auto internal_session_id = Prng().NextUint32();
 
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
 
     MediumEnvironment::Instance().UpdateBleV2MediumForScanning(
         /*enabled=*/true, service_uuid, internal_session_id,
@@ -302,7 +302,7 @@ std::unique_ptr<BleV2Medium::ScanningSession> BleV2Medium::StartScanning(
       .stop_scanning =
           [this, service_uuid = service_uuid,
            internal_session_id = internal_session_id]() {
-            absl::MutexLock lock(&mutex_);
+            absl::MutexLock lock(mutex_);
             if (scanning_internal_session_ids_.find(
                     {service_uuid, internal_session_id}) ==
                 scanning_internal_session_ids_.end()) {
@@ -370,7 +370,7 @@ BleV2Medium::GattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
     api::ble_v2::GattCharacteristic::Permission permission,
     api::ble_v2::GattCharacteristic::Property property) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   api::ble_v2::GattCharacteristic characteristic = {
       .uuid = characteristic_uuid, .service_uuid = service_uuid};
   characteristics_[characteristic] = absl::NotFoundError("value not set");
@@ -379,7 +379,7 @@ BleV2Medium::GattServer::CreateCharacteristic(
 
 bool BleV2Medium::GattServer::DiscoverBleV2MediumGattCharacteristics(
     const Uuid& service_uuid, const std::vector<Uuid>& characteristic_uuids) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto contains = [&](const Uuid& characteristic_uuid) {
     return std::find(characteristic_uuids.begin(), characteristic_uuids.end(),
                      characteristic_uuid) != characteristic_uuids.end();
@@ -397,7 +397,7 @@ bool BleV2Medium::GattServer::DiscoverBleV2MediumGattCharacteristics(
 bool BleV2Medium::GattServer::UpdateCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     const nearby::ByteArray& value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "G3 Ble GattServer UpdateCharacteristic, characteristic=("
             << characteristic.service_uuid.Get16BitAsString() << ","
             << std::string(characteristic.uuid)
@@ -409,7 +409,7 @@ bool BleV2Medium::GattServer::UpdateCharacteristic(
 absl::Status BleV2Medium::GattServer::NotifyCharacteristicChanged(
     const api::ble_v2::GattCharacteristic& characteristic, bool confirm,
     const ByteArray& new_value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "G3 Ble GattServer NotifyCharacteristicChanged, characteristic=("
             << characteristic.service_uuid.Get16BitAsString() << ","
             << std::string(characteristic.uuid)
@@ -430,7 +430,7 @@ absl::StatusOr<ByteArray> BleV2Medium::GattServer::ReadCharacteristic(
     const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic, int offset) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     const auto it = characteristics_.find(characteristic);
     if (it == characteristics_.end()) {
       return absl::FailedPreconditionError(
@@ -479,7 +479,7 @@ bool BleV2Medium::GattServer::AddCharacteristicSubscription(
     const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic,
     absl::AnyInvocable<void(absl::string_view value)> callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   const auto it = characteristics_.find(characteristic);
   if (it != characteristics_.end()) {
     subscribers_[SubscriberKey(remote_device_id, characteristic)] =
@@ -492,7 +492,7 @@ bool BleV2Medium::GattServer::AddCharacteristicSubscription(
 bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
     const api::ble_v2::BlePeripheral::UniqueId remote_device_id,
     const api::ble_v2::GattCharacteristic& characteristic) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   const auto it = characteristics_.find(characteristic);
   if (it != characteristics_.end()) {
     subscribers_.erase(SubscriberKey(remote_device_id, characteristic));
@@ -503,17 +503,17 @@ bool BleV2Medium::GattServer::RemoveCharacteristicSubscription(
 
 bool BleV2Medium::GattServer::HasCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return characteristics_.find(characteristic) != characteristics_.end();
 }
 
 void BleV2Medium::GattServer::Connect(GattClient* client) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   connected_clients_.push_back(client);
 }
 
 void BleV2Medium::GattServer::Disconnect(GattClient* client) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   connected_clients_.erase(
       std::remove(connected_clients_.begin(), connected_clients_.end(), client),
       connected_clients_.end());
@@ -521,7 +521,7 @@ void BleV2Medium::GattServer::Disconnect(GattClient* client) {
 
 void BleV2Medium::GattServer::Stop() {
   if (stopped_) return;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   stopped_ = true;
   for (auto& client : connected_clients_) {
     client->OnServerDisconnected();
@@ -558,7 +558,7 @@ bool BleV2Medium::GattClient::DiscoverServiceAndCharacteristics(
   LOG(INFO)
       << "G3 Ble GattClient DiscoverServiceAndCharacteristics, service_uuid="
       << service_uuid.Get16BitAsString();
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_connection_alive_) {
     return false;
   }
@@ -575,7 +575,7 @@ bool BleV2Medium::GattClient::DiscoverServiceAndCharacteristics(
 std::optional<api::ble_v2::GattCharacteristic>
 BleV2Medium::GattClient::GetCharacteristic(const Uuid& service_uuid,
                                            const Uuid& characteristic_uuid) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "G3 Ble GattClient GetCharacteristic, service_uuid="
             << service_uuid.Get16BitAsString()
             << ", characteristic_uuid=" << std::string(characteristic_uuid);
@@ -609,7 +609,7 @@ BleV2Medium::GattClient::GetCharacteristic(const Uuid& service_uuid,
 
 std::optional<std::string> BleV2Medium::GattClient::ReadCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_connection_alive_) {
     return std::nullopt;
   }
@@ -638,7 +638,7 @@ std::optional<std::string> BleV2Medium::GattClient::ReadCharacteristic(
 bool BleV2Medium::GattClient::WriteCharacteristic(
     const api::ble_v2::GattCharacteristic& characteristic,
     absl::string_view value, api::ble_v2::GattClient::WriteType write_type) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_connection_alive_) {
     return false;
   }
@@ -665,7 +665,7 @@ bool BleV2Medium::GattClient::SetCharacteristicSubscription(
     const api::ble_v2::GattCharacteristic& characteristic, bool enable,
     absl::AnyInvocable<void(absl::string_view value)>
         on_characteristic_changed_cb) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!is_connection_alive_) {
     return false;
   }
@@ -713,12 +713,12 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
     const std::string& service_id) {
   auto server_socket = std::make_unique<BleV2ServerSocket>(&GetAdapter());
   server_socket->SetCloseNotifier([this, service_id]() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     server_sockets_.erase(service_id);
   });
   LOG(INFO) << "G3 Ble Adding server socket: medium=" << this
             << ", service_id=" << service_id;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   server_sockets_.insert({service_id, server_socket.get()});
   return server_socket;
 }
@@ -751,7 +751,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
             << ", service_id=" << service_id;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&remote_medium->mutex_);
+    absl::MutexLock medium_lock(remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(service_id);
     remote_server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;

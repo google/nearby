@@ -86,7 +86,7 @@ bool BluetoothAdapter::SetStatus(Status status) {
   bool enabled = status == Status::kEnabled;
   std::string name;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     enabled_ = enabled;
     name = name_;
     mode = mode_;
@@ -97,12 +97,12 @@ bool BluetoothAdapter::SetStatus(Status status) {
 }
 
 bool BluetoothAdapter::IsEnabled() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return enabled_;
 }
 
 BluetoothAdapter::ScanMode BluetoothAdapter::GetScanMode() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return mode_;
 }
 
@@ -110,7 +110,7 @@ bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
   bool enabled;
   std::string name;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     mode_ = mode;
     name = name_;
     enabled = enabled_;
@@ -122,7 +122,7 @@ bool BluetoothAdapter::SetScanMode(BluetoothAdapter::ScanMode mode) {
 }
 
 std::string BluetoothAdapter::GetName() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return name_;
 }
 
@@ -136,7 +136,7 @@ bool BluetoothAdapter::SetName(absl::string_view name,
   BluetoothAdapter::ScanMode mode;
   bool enabled;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     name_ = std::string(name);
     enabled = enabled_;
     mode = mode_;

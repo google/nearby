@@ -43,7 +43,7 @@ std::string WifiHotspotServerSocket::GetName(absl::string_view ip_address,
 }
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);
   }
@@ -61,7 +61,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
 }
 
 bool WifiHotspotServerSocket::Connect(WifiHotspotSocket& socket) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) return false;
   if (socket.IsConnected()) {
     LOG(ERROR)
@@ -80,17 +80,17 @@ bool WifiHotspotServerSocket::Connect(WifiHotspotSocket& socket) {
 
 void WifiHotspotServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 WifiHotspotServerSocket::~WifiHotspotServerSocket() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   DoClose();
 }
 
 Exception WifiHotspotServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return DoClose();
 }
 
@@ -101,11 +101,11 @@ Exception WifiHotspotServerSocket::DoClose() {
     cond_.SignalAll();
     if (close_notifier_) {
       auto notifier = std::move(close_notifier_);
-      mutex_.Unlock();
+      mutex_.unlock();
       // Notifier may contain calls to public API, and may cause deadlock, if
       // mutex_ is held during the call.
       notifier();
-      mutex_.Lock();
+      mutex_.lock();
     }
   }
   return {Exception::kSuccess};
@@ -124,7 +124,7 @@ WifiHotspotMedium::~WifiHotspotMedium() {
 
 bool WifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials* hotspot_credentials) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsInterfaceValid()) return false;
 
@@ -145,7 +145,7 @@ bool WifiHotspotMedium::StartWifiHotspot(
 }
 
 bool WifiHotspotMedium::StopWifiHotspot() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "G3 StopWifiHotspot";
 
   if (!IsInterfaceValid()) return false;
@@ -159,7 +159,7 @@ bool WifiHotspotMedium::StopWifiHotspot() {
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
     HotspotCredentials* hotspot_credentials) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   LOG(INFO) << "G3 ConnectWifiHotspot: ssid=" << hotspot_credentials->GetSSID()
             << ",  password:" << hotspot_credentials->GetPassword();
@@ -181,7 +181,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 }
 
 bool WifiHotspotMedium::DisconnectWifiHotspot() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   LOG(INFO) << "G3 DisconnectWifiHotspot";
 
@@ -211,7 +211,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
             << remote_medium << ", remote ip address + port=" << socket_name;
   // Then, find our server socket context in this medium.
   {
-    absl::MutexLock medium_lock(&remote_medium->mutex_);
+    absl::MutexLock medium_lock(remote_medium->mutex_);
     auto item = remote_medium->server_sockets_.find(socket_name);
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
@@ -268,12 +268,12 @@ WifiHotspotMedium::ListenForService(int port) {
   std::string socket_name = WifiHotspotServerSocket::GetName(
       server_socket->GetIPAddress(), server_socket->GetPort());
   server_socket->SetCloseNotifier([this, socket_name]() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     server_sockets_.erase(socket_name);
   });
   LOG(INFO) << "G3 WifiHotspot Adding server socket: medium=" << this
             << ", socket_name=" << socket_name;
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   server_sockets_.insert({socket_name, server_socket.get()});
   return server_socket;
 }
