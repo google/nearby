@@ -34,7 +34,7 @@ using ::nearby::sharing::api::PrivateCertificateData;
 template <typename T>
 void FakePreferenceManager::SetValue(absl::string_view key, T value) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (values_.contains(key)) {
       const Data& data = values_.at(key);
       if (std::holds_alternative<T>(data)) {
@@ -52,7 +52,7 @@ void FakePreferenceManager::SetValue(absl::string_view key, T value) {
 template <typename T>
 T FakePreferenceManager::GetValue(absl::string_view key,
                                   const T& default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (values_.contains(key)) {
     const Data& data = values_.at(key);
     if (std::holds_alternative<T>(data)) {
@@ -71,7 +71,7 @@ void FakePreferenceManager::SetArray(absl::string_view key,
     data.push_back(value);
   }
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (arrays_.contains(key)) {
       if (data == arrays_.at(key)) {
         return;
@@ -86,7 +86,7 @@ void FakePreferenceManager::SetArray(absl::string_view key,
 template <typename T>
 std::vector<T> FakePreferenceManager::GetArray(
     absl::string_view key, absl::Span<const T> default_value) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (arrays_.contains(key)) {
     const std::vector<Data>& data = arrays_.at(key);
     std::vector<T> result;
@@ -105,7 +105,7 @@ template <typename T>
 void FakePreferenceManager::SetDictionaryValue(
     absl::string_view key, absl::string_view dictionary_item, T value) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     auto& dictionary = dictionaries_[key];
     if (dictionary.contains(dictionary_item)) {
       const Data& data = dictionary.at(dictionary_item);
@@ -124,7 +124,7 @@ void FakePreferenceManager::SetDictionaryValue(
 template <typename T>
 std::optional<T> FakePreferenceManager::GetDictionaryValue(
     absl::string_view key, absl::string_view dictionary_item) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!dictionaries_.contains(key)) {
     return std::nullopt;
   }
@@ -182,7 +182,7 @@ void FakePreferenceManager::SetStringArray(
 void FakePreferenceManager::SetPrivateCertificateArray(
     absl::string_view key,
     absl::Span<const PrivateCertificateData> value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (certs_.contains(key)) {
     certs_.erase(key);
   }
@@ -193,7 +193,7 @@ void FakePreferenceManager::SetPrivateCertificateArray(
 void FakePreferenceManager::SetCertificateExpirationArray(
     absl::string_view key,
     absl::Span<const std::pair<std::string, int64_t>> value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (cert_expirations_.contains(key)) {
     cert_expirations_.erase(key);
   }
@@ -225,7 +225,7 @@ void FakePreferenceManager::SetDictionaryStringValue(
 void FakePreferenceManager::RemoveDictionaryItem(
     absl::string_view key, absl::string_view dictionary_item) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!dictionaries_.contains(key)) {
       return;
     }
@@ -283,7 +283,7 @@ std::vector<std::string> FakePreferenceManager::GetStringArray(
 
 std::vector<PrivateCertificateData>
 FakePreferenceManager::GetPrivateCertificateArray(absl::string_view key) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (certs_.contains(key)) {
     return certs_.at(key);
   }
@@ -293,7 +293,7 @@ FakePreferenceManager::GetPrivateCertificateArray(absl::string_view key) const {
 std::vector<std::pair<std::string, int64_t>>
 FakePreferenceManager::GetCertificateExpirationArray(
     absl::string_view key) const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (cert_expirations_.contains(key)) {
     return cert_expirations_.at(key);
   }
@@ -322,7 +322,7 @@ std::optional<std::string> FakePreferenceManager::GetDictionaryStringValue(
 
 void FakePreferenceManager::Remove(absl::string_view key) {
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     values_.erase(key);
     arrays_.erase(key);
     dictionaries_.erase(key);
@@ -334,7 +334,7 @@ void FakePreferenceManager::NotifyPreferenceChanged(absl::string_view key) {
   absl::flat_hash_map<std::string, std::function<void(absl::string_view)>>
       observers;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     observers = observers_;
   }
   for (const auto& observer : observers) {
@@ -345,12 +345,12 @@ void FakePreferenceManager::NotifyPreferenceChanged(absl::string_view key) {
 void FakePreferenceManager::AddObserver(
     absl::string_view name,
     std::function<void(absl::string_view pref_name)> observer) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   observers_.emplace(name, observer);
 }
 
 void FakePreferenceManager::RemoveObserver(absl::string_view name) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   observers_.erase(name);
 }
 
