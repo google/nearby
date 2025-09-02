@@ -43,6 +43,9 @@ ByteArray Sha256(absl::string_view input, size_t size);
 std::vector<std::string> GetIpv4Addresses();
 std::vector<std::string> Get4BytesIpv4Addresses();
 std::vector<std::string> GetWifiIpv4Addresses();
+void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
+                      std::vector<std::string>& ethernet_addresses,
+                      std::vector<std::string>& other_addresses);
 
 // Returns the connection state of the different network types.
 void GetConnectedNetworks(bool& is_wifi_connected, bool& is_ethernet_connected,

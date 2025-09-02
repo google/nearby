@@ -160,19 +160,6 @@ void GetIpAddressesNative(int family, std::vector<std::string>& wifi_addresses,
   }
 }
 
-void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
-                      std::vector<std::string>& ethernet_addresses,
-                      std::vector<std::string>& other_addresses) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableIpAddressesNative)) {
-    GetIpAddressesNative(AF_INET, wifi_addresses, ethernet_addresses,
-                         other_addresses);
-  } else {
-    GetIpv4AddressesWinRT(wifi_addresses, ethernet_addresses, other_addresses);
-  }
-}
-
 }  // namespace
 
 std::string ipaddr_4bytes_to_dotdecimal_string(
@@ -228,6 +215,19 @@ std::vector<std::string> Get4BytesIpv4Addresses() {
   }
 
   return result;
+}
+
+void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
+                      std::vector<std::string>& ethernet_addresses,
+                      std::vector<std::string>& other_addresses) {
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableIpAddressesNative)) {
+    GetIpAddressesNative(AF_INET, wifi_addresses, ethernet_addresses,
+                         other_addresses);
+  } else {
+    GetIpv4AddressesWinRT(wifi_addresses, ethernet_addresses, other_addresses);
+  }
 }
 
 std::vector<std::string> GetIpv4Addresses() {
