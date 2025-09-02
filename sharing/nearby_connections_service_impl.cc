@@ -32,6 +32,7 @@
 #include "connections/strategy.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/nearby_connections_service.h"
 #include "sharing/nearby_connections_types.h"
@@ -214,9 +215,11 @@ void NearbyConnectionsServiceImpl::RequestConnection(
         *connection_options.keep_alive_timeout / absl::Milliseconds(1);
   }
   if (connection_options.remote_bluetooth_mac_address.has_value()) {
-    auto mac_address = *connection_options.remote_bluetooth_mac_address;
-    options.remote_bluetooth_mac_address =
-        NcByteArray(std::string(mac_address.begin(), mac_address.end()));
+    MacAddress mac_address;
+    MacAddress::FromBytes(
+        absl::MakeConstSpan(*connection_options.remote_bluetooth_mac_address),
+        mac_address);
+    options.remote_bluetooth_mac_address = mac_address;
   }
   options.non_disruptive_hotspot_mode =
       connection_options.non_disruptive_hotspot_mode;

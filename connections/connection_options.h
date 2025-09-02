@@ -19,6 +19,7 @@
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/options_base.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/mac_address.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
@@ -49,7 +50,7 @@ struct ConnectionOptions : public OptionsBase {
 
   // Whether this is intended to be used in conjunction with InjectEndpoint().
   bool is_out_of_band_connection = false;
-  ByteArray remote_bluetooth_mac_address;
+  MacAddress remote_bluetooth_mac_address;
   std::string fast_advertisement_service_uuid;
   int keep_alive_interval_millis = 0;
   int keep_alive_timeout_millis = 0;
