@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 83
+// Next Tag: 85
 // LINT.IfChange
 message SharingLog {
   /* justification = {
@@ -221,6 +221,15 @@ message SharingLog {
   optional HatsJointEvent hats_joint_event = 81;
 
   optional ReceivePreviews receive_previews = 82;
+
+  // Two types of QR code sharing: P2P and Cloud-based
+  // P2P QR code flow re-uses a lot of the existing events from scan to send.
+  // Cloud-based QR code flow has the following new events.
+  // QR code events for sender side.
+  optional CloudCreateSharingRequest cloud_create_sharing_request = 83;
+
+  // QR code CLOUD_REGISTER_RECEIVER event for receiver side.
+  optional CloudRegisterReceiver cloud_register_receiver = 84;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -454,6 +463,14 @@ message SharingLog {
     // reconstruct particular user's activity pattern.
     optional int64 session_id = 6 /* type = ST_SESSION_ID */;
     optional int32 vendor_id = 7 /* type = ST_PARTNER_ID */;
+
+    // The cloud_sharing_id: used by both sender and receiver during QR code
+    // cloud sharing flow to join sender and receiver events.
+    optional string cloud_sharing_id = 8
+        /* type = ST_SESSION_ID */;
+    // receiver session id: used by QR code cloud receiver.
+    optional string cloud_receiver_session_id = 9
+        /* type = ST_SESSION_ID */;
   }
 
   // TODO(fdi): may consider adding a field about decipherability later.
@@ -472,6 +489,10 @@ message SharingLog {
     // directly engage with NS to send.
     optional int64 latency_since_activity_start_millis = 6 [default = -1];
     optional location.nearby.proto.sharing.ScanType scan_type = 7;
+
+    // receiver session id: used by QR code cloud receiver.
+    optional string cloud_receiver_session_id = 8
+        /* type = ST_SESSION_ID */;
   }
 
   // EventType: PARSING_FAILED_ENDPOINT_ID
@@ -987,5 +1008,12 @@ message SharingLog {
   message ReceivePreviews {
     optional int32 num_previews = 1;
   }
+
+  // EventType: CLOUD_CREATE_SHARING_REQUEST
+  message CloudCreateSharingRequest {
+    optional AttachmentsInfo attachments_info = 1;
+  }
+  // EventType: CLOUD_REGISTER_RECEIVER used by QR code cloud web receiver
+  message CloudRegisterReceiver {}
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
