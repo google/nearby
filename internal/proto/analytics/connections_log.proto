@@ -342,6 +342,9 @@ message ConnectionsLog {
     // The supported service.
     optional location.nearby.proto.connections.SupportedService
         supported_service = 12;
+
+    // The latency of the wifi connection in milliseconds.
+    optional int64 wifi_connection_latency_millis = 13;
   }
 
   message DeviceInfo {
