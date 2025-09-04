@@ -19,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -58,6 +59,9 @@ winrt::guid nearby_uuid_to_winrt_guid(Uuid uuid);
 // Check whether Uuid and guid is the same value.
 bool is_nearby_uuid_equal_to_winrt_guid(const Uuid& uuid,
                                         const ::winrt::guid& guid);
+
+// Returns the DNS host name of the computer or std::nullopt if it fails.
+std::optional<std::wstring> GetDnsHostName();
 
 namespace Constants {
 // The Id of the Service Name SDP attribute

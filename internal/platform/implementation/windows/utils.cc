@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -142,11 +143,15 @@ void GetIpAddressesNative(int family, std::vector<std::string>& wifi_addresses,
   while (next_address != nullptr) {
     if (next_address->OperStatus == IfOperStatusUp) {
       if (next_address->IfType == IF_TYPE_ETHERNET_CSMACD) {
-        VLOG(1) << "Found ethernet adater: " << next_address->AdapterName;
+        VLOG(1) << "Found ethernet adater: " << next_address->AdapterName
+                << " index: " << next_address->IfIndex
+                << " v6 index: " << next_address->Ipv6IfIndex;
         AddIpUnicastAddresses(next_address->FirstUnicastAddress,
                               ethernet_addresses);
       } else if (next_address->IfType == IF_TYPE_IEEE80211) {
-        VLOG(1) << "Found wifi adapter: " << next_address->AdapterName;
+        VLOG(1) << "Found wifi adapter: " << next_address->AdapterName
+                << " index: " << next_address->IfIndex
+                << " v6 index: " << next_address->Ipv6IfIndex;
         AddIpUnicastAddresses(next_address->FirstUnicastAddress,
                               wifi_addresses);
       } else if (next_address->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
@@ -400,6 +405,30 @@ std::vector<std::string> InspectableReader::ReadStringArray(
     result.push_back(winrt::to_string(str));
   }
   return result;
+}
+
+std::optional<std::wstring> GetDnsHostName() {
+  DWORD size = 0;
+
+  // Get length of the computer name.
+  if (GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size) == 0) {
+    if (GetLastError() != ERROR_MORE_DATA) {
+      LOG(ERROR) << ": Failed to get device dns name size, error:"
+                 << GetLastError();
+      return std::nullopt;
+    }
+  }
+  std::wstring device_name(size, L' ');
+  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size) !=
+      0) {
+    // On input size includes null termination.
+    // On output size excludes null termination.
+    device_name.resize(size);
+    return device_name;
+  }
+
+  LOG(ERROR) << ": Failed to get device dns name, error:" << GetLastError();
+  return std::nullopt;
 }
 
 }  // namespace windows

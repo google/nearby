@@ -30,6 +30,7 @@
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
@@ -66,22 +67,20 @@ bool WifiLanMdns::StartMdnsService(
   // Composite the service request.
   std::string instance_name =
       absl::StrFormat(kMdnsInstanceNameFormat, service_name, service_type);
-  dns_service_instance_name_ = std::make_unique<std::wstring>(
-      string_utils::StringToWideString(instance_name));
+  dns_service_instance_name_ = string_utils::StringToWideString(instance_name);
 
-  std::optional<std::string> computer_name = GetComputerName();
+  std::optional<std::wstring> computer_name = GetDnsHostName();
   if (!computer_name.has_value()) {
     LOG(ERROR) << "Failed to get computer name.";
     return false;
   }
+  computer_name->append(L".local");
+  host_name_ = computer_name.value();
 
-  std::string host_name = absl::StrFormat(kMdnsHostName, *computer_name);
-  host_name_ = std::make_unique<std::wstring>(
-      string_utils::StringToWideString(host_name));
-
-  dns_service_instance_.pszInstanceName =
-      (LPWSTR)dns_service_instance_name_->c_str();
-  dns_service_instance_.pszHostName = (LPWSTR)host_name_->c_str();
+  dns_service_instance_.pszInstanceName = dns_service_instance_name_.data();
+  // Hostname must match the host's DNS name, otherwise A/AAAA records cannot be
+  // resolved.
+  dns_service_instance_.pszHostName = host_name_.data();
   dns_service_instance_.wPort = port;
 
   // Allocate memory for filling text records, it should be freed in
@@ -178,18 +177,6 @@ void WifiLanMdns::NotifyStatusUpdated(DWORD status) {
   VLOG(1) << "NotifyStatusUpdated: " << status;
   if (dns_service_notification_ != nullptr) {
     dns_service_notification_->Notify();
-  }
-}
-
-std::optional<std::string> WifiLanMdns::GetComputerName() {
-  char computer_name[MAX_COMPUTERNAME_LENGTH + 1];
-  DWORD size = sizeof(computer_name);
-
-  // Get the computer name.
-  if (::GetComputerNameA(computer_name, &size)) {
-    return std::string(computer_name, size);
-  } else {
-    return std::nullopt;
   }
 }
 

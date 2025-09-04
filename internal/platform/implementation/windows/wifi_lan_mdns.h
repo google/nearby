@@ -21,7 +21,6 @@
 // clang-format on
 
 #include <memory>
-#include <optional>
 #include <string>
 
 #include "absl/base/thread_annotations.h"
@@ -48,15 +47,13 @@ class WifiLanMdns {
  private:
   static void DnsServiceRegisterComplete(DWORD Status, PVOID pQueryContext,
                                          PDNS_SERVICE_INSTANCE pInstance);
-  std::optional<std::string> GetComputerName();
   void CleanUp() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   absl::Mutex mutex_;
   std::unique_ptr<absl::Notification> dns_service_notification_ = nullptr;
   bool is_service_started_ ABSL_GUARDED_BY(mutex_) = false;
-  std::unique_ptr<std::wstring> dns_service_instance_name_
-      ABSL_GUARDED_BY(mutex_);
-  std::unique_ptr<std::wstring> host_name_ ABSL_GUARDED_BY(mutex_);
+  std::wstring dns_service_instance_name_ ABSL_GUARDED_BY(mutex_);
+  std::wstring host_name_ ABSL_GUARDED_BY(mutex_);
   DNS_SERVICE_INSTANCE
   dns_service_instance_ ABSL_GUARDED_BY(mutex_);
   DNS_SERVICE_REGISTER_REQUEST dns_service_register_request_

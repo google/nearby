@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,6 +26,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/uuid.h"
 #include "winrt/Windows.Foundation.h"
@@ -163,6 +165,13 @@ TEST(UtilsTests, GetIpv4Addresses) {
     LOG(ERROR) << "address: " << address;
   }
   LOG(ERROR) << "GetIpv4Addresses done";
+}
+
+TEST(UtilsTests, GetDnsHostName) {
+  std::optional<std::wstring> host_name = GetDnsHostName();
+  ASSERT_TRUE(host_name.has_value());
+  LOG(ERROR) << "host_name: "
+             << nearby::windows::string_utils::WideStringToString(*host_name);
 }
 
 }  // namespace windows

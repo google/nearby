@@ -29,7 +29,7 @@
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/windows/device_paths.h"
 #include "internal/platform/implementation/windows/string_utils.h"
-#include "internal/platform/logging.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "winrt/Windows.Foundation.Collections.h"
 #include "winrt/Windows.Foundation.h"
 #include "winrt/Windows.System.h"
@@ -52,26 +52,10 @@ template <typename T>
 using IAsyncOperation = winrt::Windows::Foundation::IAsyncOperation<T>;
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
-  DWORD size = 0;
-
-  // Get length of the computer name.
-  if (GetComputerNameExW(ComputerNameDnsHostname, nullptr, &size) == 0) {
-    if (GetLastError() != ERROR_MORE_DATA) {
-      LOG(ERROR) << ": Failed to get device name size, error:"
-                 << GetLastError();
-      return std::nullopt;
-    }
+  std::optional<std::wstring> device_name = GetDnsHostName();
+  if (device_name.has_value()) {
+    return WideStringToString(*device_name);
   }
-  std::wstring device_name(size, L' ');
-  if (GetComputerNameExW(ComputerNameDnsHostname, device_name.data(), &size) !=
-      0) {
-    // On input size includes null termination.
-    // On output size excludes null termination.
-    device_name.resize(size);
-    return WideStringToString(device_name);
-  }
-
-  LOG(ERROR) << ": Failed to get device name, error:" << GetLastError();
   return std::nullopt;
 }
 
