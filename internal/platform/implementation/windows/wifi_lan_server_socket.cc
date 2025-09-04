@@ -190,9 +190,9 @@ bool WifiLanServerSocket::listen() {
       return false;
     }
 
-    if (!server_socket_.Listen(ip_addresses_.front(), port_)) {
-      LOG(ERROR) << "Failed to listen socket at " << ip_addresses_.front()
-                 << ":" << port_;
+    // Listen on all interfaces.
+    if (!server_socket_.Listen("", port_)) {
+      LOG(ERROR) << "Failed to listen socket at port:" << port_;
       return false;
     }
 

@@ -120,15 +120,6 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   absl::flat_hash_map<std::string, std::string> text_records =
       nsd_service_info.GetTxtRecords();
 
-  // Add IPv4 address in text attributes.
-  std::vector<std::string> ipv4_addresses = GetIpv4Addresses();
-  if (!ipv4_addresses.empty()) {
-    if (ipv4_addresses.size() > 1) {
-      LOG(WARNING) << "The device has multiple IPv4 addresses.";
-    }
-    text_records.insert_or_assign(std::string(kDeviceIpv4), ipv4_addresses[0]);
-  }
-
   if (NearbyFlags::GetInstance().GetBoolFlag(
           nearby::platform::config_package_nearby::nearby_platform_feature::
               kEnableBlockingSocket)) {
@@ -525,23 +516,18 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   }
 
   // Read IP Address information
-  std::string ip_address;
-  ip_address.resize(4);
-
-  // Find it from text first
+  // Use the mDNS resolved IP addresses first.  If not available, use the IP
+  // addresses from TXT record.
   std::vector<std::string> ip_address_candidates;
 
+  inspectable = properties.TryLookup(L"System.Devices.IPAddress");
+  if (inspectable != nullptr) {
+    ip_address_candidates = InspectableReader::ReadStringArray(inspectable);
+  }
   std::string ipv4_address =
       nsd_service_info.GetTxtRecord(std::string(kDeviceIpv4));
   if (!ipv4_address.empty()) {
     ip_address_candidates.push_back(ipv4_address);
-  } else {
-    inspectable = properties.TryLookup(L"System.Devices.IPAddress");
-    if (inspectable == nullptr) {
-      VLOG(1) << "No IP address property in device information.";
-      return Exception{Exception::kFailed};
-    }
-    ip_address_candidates = InspectableReader::ReadStringArray(inspectable);
   }
 
   if (ip_address_candidates.empty()) {
@@ -550,6 +536,8 @@ ExceptionOr<NsdServiceInfo> WifiLanMedium::GetNsdServiceInformation(
   }
 
   // Gets 4 bytes string
+  std::string ip_address;
+  ip_address.resize(4);
   for (std::string& address : ip_address_candidates) {
     uint32_t addr = inet_addr(address.data());
     if (addr == INADDR_NONE) {

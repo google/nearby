@@ -66,7 +66,11 @@ bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(port);
-  serv_addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
+  if (ip_address.empty()) {
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+  } else {
+    serv_addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
+  }
 
   if (bind(/*s=*/socket_, /*addr=*/(struct sockaddr*)&serv_addr,
            /*namelen=*/sizeof(serv_addr)) == SOCKET_ERROR) {
