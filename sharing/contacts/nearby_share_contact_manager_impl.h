@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
@@ -91,8 +92,12 @@ class NearbyShareContactManagerImpl : public NearbyShareContactManager {
     // |download_callback_| is invoked with all downloaded contacts.
     void FetchNextPage();
 
+    // Waits for the contacts download to complete.
+    void WaitForCompletion();
+
    private:
     nearby::sharing::api::SharingRpcClient* const nearby_share_client_;
+    absl::Notification notification_;
     std::optional<std::string> next_page_token_;
     int page_number_ = 1;
     std::vector<nearby::sharing::proto::ContactRecord> contacts_;
