@@ -111,4 +111,32 @@
   XCTAssertEqual(bytes[3], 171);
 }
 
+- (void)testAddressWithDottedRepresentationWithValidAddress {
+  GNCIPv4Address *address =
+      [GNCIPv4Address addressWithDottedRepresentation:@"192.168.1.1"];
+  XCTAssertNotNil(address);
+  XCTAssertEqual(address.byte1, 192);
+  XCTAssertEqual(address.byte2, 168);
+  XCTAssertEqual(address.byte3, 1);
+  XCTAssertEqual(address.byte4, 1);
+}
+
+- (void)testAddressWithDottedRepresentationWithOutOfRangeAddress {
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"256.1.1.1"]);
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"-1.1.1.1"]);
+}
+
+- (void)testAddressWithDottedRepresentationWithNonNumericAddress {
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"foo.1.1.1"]);
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"1.foo.1.1"]);
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"1.1.foo.1"]);
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"1.1.1.foo"]);
+}
+
+- (void)testAddressWithDottedRepresentationWithInvalidFormatAddress {
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"1.1.1"]);
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@"1.1.1.1.1"]);
+  XCTAssertNil([GNCIPv4Address addressWithDottedRepresentation:@""]);
+}
+
 @end

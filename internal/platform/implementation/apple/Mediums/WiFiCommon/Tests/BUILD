@@ -21,6 +21,25 @@ licenses(["notice"])
 package(default_visibility = ["//:__subpackages__"])
 
 objc_library(
+    name = "FakeNWFramework",
+    testonly = True,
+    srcs = [
+        "GNCFakeNWFramework.m",
+        "GNCFakeNWFrameworkServerSocket.m",
+        "GNCFakeNWFrameworkSocket.m",
+    ],
+    hdrs = [
+        "GNCFakeNWFramework.h",
+        "GNCFakeNWFrameworkServerSocket.h",
+        "GNCFakeNWFrameworkSocket.h",
+    ],
+    deps = [
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
+        "//third_party/apple_frameworks:Foundation",
+    ],
+)
+
+objc_library(
     name = "WiFiCommonTestsLib",
     testonly = True,
     srcs = [

@@ -31,6 +31,7 @@ objc_library(
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
         "GNCUtilsTest.m",
+        "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
     ],
     deps = [
@@ -40,6 +41,8 @@ objc_library(
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple:ble_v2",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
+        "//internal/platform/implementation/apple/Mediums/WiFiCommon/Tests:FakeNWFramework",
         "//third_party/apple_frameworks:CommonCrypto",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",

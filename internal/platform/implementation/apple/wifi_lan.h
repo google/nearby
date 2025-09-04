@@ -103,6 +103,8 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
 class WifiLanMedium : public api::WifiLanMedium {
  public:
   WifiLanMedium();
+  // For testing only.
+  explicit WifiLanMedium(GNCNWFramework* medium);
   ~WifiLanMedium() override = default;
 
   WifiLanMedium(const WifiLanMedium&) = delete;
