@@ -617,46 +617,46 @@ ErrorOr<bool> BleV2::StartAcceptingConnections(
   }
 
   BleV2ServerSocket server_socket = medium_.OpenServerSocket(service_id);
-  if (server_socket.IsValid()) {
-    // Mark the fact that there's an in-progress Ble server accepting
-    // connections.
-    auto owned_server_socket =
-        server_sockets_.insert({service_id, std::move(server_socket)})
-            .first->second;
-    // Start the accept loop on a dedicated thread - this stays alive and
-    // listening for new incoming connections until
-    // StopAcceptingL2capConnections() is invoked.
-    accept_loops_runner_.Execute(
-        "ble-accept",
-        [this, service_id, callback = std::move(callback),
-         server_socket = std::move(owned_server_socket)]() mutable {
-          while (true) {
-            BleV2Socket client_socket = server_socket.Accept();
-            if (!client_socket.IsValid()) {
-              LOG(WARNING) << "The client socket to accept is invalid.";
-              server_socket.Close();
-              break;
-            } else {
-              LOG(INFO) << "The client Ble GATT socket has been accepted.";
-            }
-            {
-              MutexLock lock(&mutex_);
-              client_socket.SetCloseNotifier([this, service_id]() {
-                MutexLock lock(&mutex_);
-                incoming_sockets_.erase(service_id);
-              });
-              incoming_sockets_.insert({service_id, client_socket});
-            }
-            if (callback) {
-              callback(std::move(client_socket), service_id);
-            }
-          }
-        });
-  } else {
-    LOG(INFO)
+  if (!server_socket.IsValid()) {
+    LOG(ERROR)
         << "Failed to start accepting Ble GATT connections for service_id="
         << service_id;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLE_SERVER_SOCKET_CREATION_FAILURE)};
   }
+  // Mark the fact that there's an in-progress Ble server accepting
+  // connections.
+  auto owned_server_socket =
+      server_sockets_.insert({service_id, std::move(server_socket)})
+          .first->second;
+  // Start the accept loop on a dedicated thread - this stays alive and
+  // listening for new incoming connections until
+  // StopAcceptingL2capConnections() is invoked.
+  accept_loops_runner_.Execute(
+      "ble-accept",
+      [this, service_id, callback = std::move(callback),
+       server_socket = std::move(owned_server_socket)]() mutable {
+        while (true) {
+          BleV2Socket client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            LOG(WARNING) << "The client Ble GATT socket to accept is invalid.";
+            server_socket.Close();
+            break;
+          }
+          LOG(INFO) << "The client Ble GATT socket has been accepted.";
+          {
+            MutexLock lock(&mutex_);
+            client_socket.SetCloseNotifier([this, service_id]() {
+              MutexLock lock(&mutex_);
+              incoming_sockets_.erase(service_id);
+            });
+            incoming_sockets_.insert({service_id, client_socket});
+          }
+          if (callback) {
+            callback(std::move(client_socket), service_id);
+          }
+        }
+      });
   LOG(INFO) << "Start accepting Ble GATT connections for service_id="
             << service_id;
   return {true};
@@ -724,9 +724,8 @@ ErrorOr<int> BleV2::StartAcceptingL2capConnections(
             LOG(WARNING) << "The client L2CAP socket to accept is invalid.";
             server_socket.Close();
             break;
-          } else {
-            LOG(INFO) << "The client L2CAP socket has been accepted.";
           }
+          LOG(INFO) << "The client L2CAP socket has been accepted.";
           {
             MutexLock lock(&mutex_);
             client_socket.SetCloseNotifier([this, service_id]() {
