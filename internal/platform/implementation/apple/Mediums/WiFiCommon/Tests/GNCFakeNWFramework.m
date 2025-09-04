@@ -28,9 +28,9 @@
 }
 
 - (void)startAdvertisingPort:(NSInteger)port
-                 serviceName:(NSString*)serviceName
-                 serviceType:(NSString*)serviceType
-                  txtRecords:(NSDictionary<NSString*, NSString*>*)txtRecords {
+                 serviceName:(NSString *)serviceName
+                 serviceType:(NSString *)serviceType
+                  txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
   self.startedAdvertisingPort = @(port);
   self.startedAdvertisingServiceName = serviceName;
   self.startedAdvertisingServiceType = serviceType;
@@ -40,52 +40,79 @@
   self.stoppedAdvertisingPort = @(port);
 }
 
-- (BOOL)startDiscoveryForServiceType:(NSString*)serviceType
+- (BOOL)startDiscoveryForServiceType:(NSString *)serviceType
                  serviceFoundHandler:(nonnull ServiceUpdateHandler)serviceFoundHandler
                   serviceLostHandler:(nonnull ServiceUpdateHandler)serviceLostHandler
                    includePeerToPeer:(BOOL)includePeerToPeer
-                               error:(NSError**)error {
+                               error:(NSError **)error {
   self.startedDiscoveryServiceType = serviceType;
   self.startedDiscoveryIncludePeerToPeer = includePeerToPeer;
   return YES;
 }
 
-- (void)stopDiscoveryForServiceType:(NSString*)serviceType {
+- (void)stopDiscoveryForServiceType:(NSString *)serviceType {
   self.stoppedDiscoveryServiceType = serviceType;
 }
 
-- (GNCNWFrameworkSocket*)connectToServiceName:(NSString*)serviceName
-                                  serviceType:(NSString*)serviceType
-                                        error:(NSError**)error {
+- (GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
+                                   serviceType:(NSString *)serviceType
+                                         error:(NSError **)error {
   self.connectedToServiceName = serviceName;
   self.connectedToServiceType = serviceType;
   nw_connection_t connection = (nw_connection_t) @"mock connection";
-  GNCFakeNWFrameworkSocket* socket =
+  GNCFakeNWFrameworkSocket *socket =
       [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
   [self.sockets addObject:socket];
   return socket;
 }
 
-- (GNCNWFrameworkSocket*)connectToHost:(GNCIPv4Address*)host
-                                  port:(NSInteger)port
-                     includePeerToPeer:(BOOL)includePeerToPeer
-                                 error:(NSError**)error {
+- (nullable GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
+                                            serviceType:(NSString *)serviceType
+                                            PSKIdentity:(NSData *)pskIdentity
+                                        PSKSharedSecret:(NSData *)pskSharedSecret
+                                                  error:(NSError **)error {
+  self.connectedToServiceName = serviceName;
+  self.connectedToServiceType = serviceType;
+  nw_connection_t connection = (nw_connection_t) @"mock connection";
+  GNCFakeNWFrameworkSocket *socket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  [self.sockets addObject:socket];
+  return socket;
+}
+
+- (GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
+                                   port:(NSInteger)port
+                      includePeerToPeer:(BOOL)includePeerToPeer
+                                  error:(NSError **)error {
   self.connectedToHost = host;
   self.connectedToPort = port;
   self.connectedToIncludePeerToPeer = includePeerToPeer;
   nw_connection_t connection = (nw_connection_t) @"mock connection";
-  GNCFakeNWFrameworkSocket* socket =
+  GNCFakeNWFrameworkSocket *socket =
       [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
   [self.sockets addObject:socket];
   return socket;
 }
 
-- (GNCNWFrameworkServerSocket*)listenForServiceOnPort:(NSInteger)port
-                                    includePeerToPeer:(BOOL)includePeerToPeer
-                                                error:(NSError**)error {
+- (GNCNWFrameworkServerSocket *)listenForServiceOnPort:(NSInteger)port
+                                     includePeerToPeer:(BOOL)includePeerToPeer
+                                                 error:(NSError **)error {
   self.listenedForServiceOnPort = port;
   self.listenedForServiceIncludePeerToPeer = includePeerToPeer;
-  GNCFakeNWFrameworkServerSocket* serverSocket =
+  GNCFakeNWFrameworkServerSocket *serverSocket =
+      [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
+  [self.serverSockets addObject:serverSocket];
+  return serverSocket;
+}
+
+- (nullable GNCNWFrameworkServerSocket *)listenForServiceWithPSKIdentity:(NSData *)pskIdentity
+                                                         PSKSharedSecret:(NSData *)pskSharedSecret
+                                                                    port:(NSInteger)port
+                                                       includePeerToPeer:(BOOL)includePeerToPeer
+                                                                   error:(NSError **)error {
+  self.listenedForServiceOnPort = port;
+  self.listenedForServiceIncludePeerToPeer = includePeerToPeer;
+  GNCFakeNWFrameworkServerSocket *serverSocket =
       [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
   [self.serverSockets addObject:serverSocket];
   return serverSocket;

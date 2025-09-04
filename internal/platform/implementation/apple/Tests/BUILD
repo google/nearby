@@ -24,6 +24,7 @@ objc_library(
     name = "PlatformTestslib",
     testonly = True,
     srcs = [
+        "GNCAwdlMediumTest.mm",
         "GNCCryptoTest.mm",
         "GNCDeviceInfoTest.mm",
         "GNCMultiThreadExecutorTest.mm",
