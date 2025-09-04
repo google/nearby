@@ -33,8 +33,7 @@ class IdentityRpcClient {
   virtual ~IdentityRpcClient() = default;
 
   virtual void QuerySharedCredentials(
-      const google::nearby::identity::v1::QuerySharedCredentialsRequest&
-          request,
+      google::nearby::identity::v1::QuerySharedCredentialsRequest request,
       absl::AnyInvocable<
           void(const absl::StatusOr<
                google::nearby::identity::v1::QuerySharedCredentialsResponse>&
@@ -42,18 +41,17 @@ class IdentityRpcClient {
           callback) = 0;
 
   virtual void PublishDevice(
-      const google::nearby::identity::v1::PublishDeviceRequest& request,
+      google::nearby::identity::v1::PublishDeviceRequest request,
       absl::AnyInvocable<
           void(const absl::StatusOr<google::nearby::identity::v1::
                                         PublishDeviceResponse>& response) &&>
           callback) = 0;
 
   virtual void GetAccountInfo(
-      const google::nearby::identity::v1::GetAccountInfoRequest& request,
+      google::nearby::identity::v1::GetAccountInfoRequest request,
       absl::AnyInvocable<
-          void(const absl::StatusOr<
-               google::nearby::identity::v1::GetAccountInfoResponse>& response)
-              &&>
+          void(const absl::StatusOr<google::nearby::identity::v1::
+                                        GetAccountInfoResponse>& response) &&>
           callback) = 0;
 };
 
@@ -65,9 +63,9 @@ class SharingRpcClient {
 
   // NearbyShareService v1: ListContactPeople
   virtual void ListContactPeople(
-      const proto::ListContactPeopleRequest& request,
-      absl::AnyInvocable<void(const absl::StatusOr<
-                              proto::ListContactPeopleResponse>& response) &&>
+      proto::ListContactPeopleRequest request,
+      absl::AnyInvocable<void(
+          const absl::StatusOr<proto::ListContactPeopleResponse>& response) &&>
           callback) = 0;
 };
 
