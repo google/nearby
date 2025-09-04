@@ -46,6 +46,7 @@ objc_library(
     testonly = 1,
     srcs = [
         "Shared/GNSSocketTest.m",
+        "Shared/GNSUtilsTest.m",
         "Shared/GNSWeavePacketTest.m",
     ],
     deps = [

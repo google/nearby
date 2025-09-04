@@ -17,29 +17,11 @@
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket+Private.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils+Private.h"
 
 #if TARGET_OS_IPHONE
 #import <UIKit/UIKit.h>
 #endif
-
-static NSString *CBManagerStateString(CBManagerState state) {
-  switch (state) {
-    case CBManagerStateUnknown:
-      return @"CBManagerStateUnknown";
-    case CBManagerStateResetting:
-      return @"CBManagerStateResetting";
-    case CBManagerStateUnsupported:
-      return @"CBManagerStateUnsupported";
-    case CBManagerStateUnauthorized:
-      return @"CBManagerStateUnauthorized";
-    case CBManagerStatePoweredOff:
-      return @"CBManagerStatePoweredOff";
-    case CBManagerStatePoweredOn:
-      return @"CBManagerStatePoweredOn";
-  }
-  return @"CBManagerState Unknown";
-}
-
 // http://b/28875581 On iOS, under some misterious conditions, the Bluetooth daemon (BTServer
 // process) continously crashes when attempting to register Bluetooth services. In fact, if the
 // BTServer process is killed, the OS spins a new instace of this process after 10 seconds.

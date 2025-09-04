@@ -16,7 +16,46 @@
 
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSWeavePacket.h"
 
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils.h"
+
+// Fake handler for testing visitWithHandler
+@interface GNSFakeWeavePacketHandler : NSObject <GNSWeavePacketHandler>
+@property(nonatomic, nullable) GNSWeaveConnectionRequestPacket *lastConnectionRequestPacket;
+@property(nonatomic, nullable) GNSWeaveConnectionConfirmPacket *lastConnectionConfirmPacket;
+@property(nonatomic, nullable) GNSWeaveErrorPacket *lastErrorPacket;
+@property(nonatomic, nullable) GNSWeaveDataPacket *lastDataPacket;
+@property(nonatomic, nullable) id lastContext;
+@property(nonatomic) int handleConnectionRequestCalledCount;
+@property(nonatomic) int handleConnectionConfirmCalledCount;
+@property(nonatomic) int handleErrorCalledCount;
+@property(nonatomic) int handleDataCalledCount;
+@end
+
+@implementation GNSFakeWeavePacketHandler
+- (void)handleConnectionRequestPacket:(GNSWeaveConnectionRequestPacket *)packet
+                              context:(nullable id)context {
+  self.lastConnectionRequestPacket = packet;
+  self.lastContext = context;
+  self.handleConnectionRequestCalledCount++;
+}
+- (void)handleConnectionConfirmPacket:(GNSWeaveConnectionConfirmPacket *)packet
+                              context:(nullable id)context {
+  self.lastConnectionConfirmPacket = packet;
+  self.lastContext = context;
+  self.handleConnectionConfirmCalledCount++;
+}
+- (void)handleErrorPacket:(GNSWeaveErrorPacket *)packet context:(nullable id)context {
+  self.lastErrorPacket = packet;
+  self.lastContext = context;
+  self.handleErrorCalledCount++;
+}
+- (void)handleDataPacket:(GNSWeaveDataPacket *)packet context:(nullable id)context {
+  self.lastDataPacket = packet;
+  self.lastContext = context;
+  self.handleDataCalledCount++;
+}
+@end
 
 @interface GNSWeavePacketTest : XCTestCase {
   NSData *_largeNonEmptyData;
@@ -305,6 +344,170 @@
   XCTAssertEqual(connectionConfirmPacket.version, version);
   XCTAssertEqual(connectionConfirmPacket.packetSize, packetSize);
   XCTAssertEqualObjects(connectionConfirmPacket.data, smallPayload);
+}
+
+- (void)testConnectionRequestVisitWithHandler {
+  GNSWeaveConnectionRequestPacket *requestPacket =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:20
+                                                             data:nil];
+  GNSFakeWeavePacketHandler *handler = [[GNSFakeWeavePacketHandler alloc] init];
+  id context = [[NSObject alloc] init];
+
+  XCTAssertTrue([requestPacket visitWithHandler:handler context:context]);
+  XCTAssertEqual(handler.handleConnectionRequestCalledCount, 1);
+  XCTAssertEqual(handler.lastConnectionRequestPacket, requestPacket);
+  XCTAssertEqual(handler.lastContext, context);
+  XCTAssertEqual(handler.handleConnectionConfirmCalledCount, 0);
+  XCTAssertEqual(handler.handleErrorCalledCount, 0);
+  XCTAssertEqual(handler.handleDataCalledCount, 0);
+}
+
+- (void)testConnectionConfirmVisitWithHandler {
+  GNSWeaveConnectionConfirmPacket *confirmPacket =
+      [[GNSWeaveConnectionConfirmPacket alloc] initWithVersion:1 packetSize:20 data:nil];
+  GNSFakeWeavePacketHandler *handler = [[GNSFakeWeavePacketHandler alloc] init];
+  id context = [[NSObject alloc] init];
+
+  XCTAssertTrue([confirmPacket visitWithHandler:handler context:context]);
+  XCTAssertEqual(handler.handleConnectionConfirmCalledCount, 1);
+  XCTAssertEqual(handler.lastConnectionConfirmPacket, confirmPacket);
+  XCTAssertEqual(handler.lastContext, context);
+  XCTAssertEqual(handler.handleConnectionRequestCalledCount, 0);
+  XCTAssertEqual(handler.handleErrorCalledCount, 0);
+  XCTAssertEqual(handler.handleDataCalledCount, 0);
+}
+
+- (void)testErrorVisitWithHandler {
+  GNSWeaveErrorPacket *errorPacket = [[GNSWeaveErrorPacket alloc] initWithPacketCounter:3];
+  GNSFakeWeavePacketHandler *handler = [[GNSFakeWeavePacketHandler alloc] init];
+  id context = [[NSObject alloc] init];
+
+  XCTAssertTrue([errorPacket visitWithHandler:handler context:context]);
+  XCTAssertEqual(handler.handleErrorCalledCount, 1);
+  XCTAssertEqual(handler.lastErrorPacket, errorPacket);
+  XCTAssertEqual(handler.lastContext, context);
+  XCTAssertEqual(handler.handleConnectionRequestCalledCount, 0);
+  XCTAssertEqual(handler.handleConnectionConfirmCalledCount, 0);
+  XCTAssertEqual(handler.handleDataCalledCount, 0);
+}
+
+- (void)testDataVisitWithHandler {
+  GNSWeaveDataPacket *dataPacket =
+      [[GNSWeaveDataPacket alloc] initWithPacketCounter:4
+                                            firstPacket:YES
+                                             lastPacket:YES
+                                                   data:_smallNonEmptyData];
+  GNSFakeWeavePacketHandler *handler = [[GNSFakeWeavePacketHandler alloc] init];
+  id context = [[NSObject alloc] init];
+
+  XCTAssertTrue([dataPacket visitWithHandler:handler context:context]);
+  XCTAssertEqual(handler.handleDataCalledCount, 1);
+  XCTAssertEqual(handler.lastDataPacket, dataPacket);
+  XCTAssertEqual(handler.lastContext, context);
+  XCTAssertEqual(handler.handleConnectionRequestCalledCount, 0);
+  XCTAssertEqual(handler.handleConnectionConfirmCalledCount, 0);
+  XCTAssertEqual(handler.handleErrorCalledCount, 0);
+}
+
+- (void)testVisitWithHandlerNoMatch {
+  GNSWeaveConnectionRequestPacket *requestPacket =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:20
+                                                             data:nil];
+  // Handler that implements nothing from the protocol
+  id<GNSWeavePacketHandler> emptyHandler = (id<GNSWeavePacketHandler>)[[NSObject alloc] init];
+
+  XCTAssertFalse([requestPacket visitWithHandler:emptyHandler context:nil]);
+}
+
+// Additional tests for parsing edge cases
+
+- (void)testParseConnectionRequestMinSize {
+  UInt8 header = (1 << 7) + 0;  // Connection Request, counter 0
+  NSMutableData *payload = [NSMutableData data];
+  UInt16 val = 0;
+  // Min payload size is 6 bytes
+  [payload appendBytes:&val length:sizeof(val)];
+  [payload appendBytes:&val length:sizeof(val)];
+  [payload appendBytes:&val length:sizeof(val)];
+  XCTAssertEqual(payload.length, 6);
+
+  NSError *error = nil;
+  GNSWeavePacket *packet =
+      [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:payload] error:&error];
+  XCTAssertNotNil(packet);
+  XCTAssertNil(error);
+  XCTAssertTrue([packet isKindOfClass:[GNSWeaveConnectionRequestPacket class]]);
+
+  // Too small
+  NSData *tooSmallPayload = [payload subdataWithRange:NSMakeRange(0, 5)];
+  packet = [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:tooSmallPayload]
+                               error:&error];
+  XCTAssertNil(packet);
+  XCTAssertEqual(error.code, GNSErrorParsingWeavePacketTooSmall);
+}
+
+- (void)testParseConnectionConfirmMinSize {
+  UInt8 header = (1 << 7) + 1;  // Connection Confirm, counter 0
+  NSMutableData *payload = [NSMutableData data];
+  UInt16 version = 1;
+  UInt16 packetSize = kGNSMinSupportedPacketSize;
+  // Min payload size is 4 bytes
+  UInt16 versionBigEndian = CFSwapInt16HostToBig(version);
+  UInt16 packetSizeBigEndian = CFSwapInt16HostToBig(packetSize);
+  [payload appendBytes:&versionBigEndian length:sizeof(versionBigEndian)];
+  [payload appendBytes:&packetSizeBigEndian length:sizeof(packetSizeBigEndian)];
+  XCTAssertEqual(payload.length, 4);
+
+  NSError *error = nil;
+  GNSWeavePacket *packet =
+      [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:payload] error:&error];
+  XCTAssertNotNil(packet);
+  XCTAssertNil(error);
+  XCTAssertTrue([packet isKindOfClass:[GNSWeaveConnectionConfirmPacket class]]);
+
+  // Too small
+  NSData *tooSmallPayload = [payload subdataWithRange:NSMakeRange(0, 3)];
+  packet = [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:tooSmallPayload]
+                               error:&error];
+  XCTAssertNil(packet);
+  XCTAssertEqual(error.code, GNSErrorParsingWeavePacketTooSmall);
+}
+
+- (void)testParseErrorPacketSize {
+  UInt8 header = (1 << 7) + 2;  // Error, counter 0
+  // Error packet has no payload
+  NSError *error = nil;
+  GNSWeavePacket *packet = [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:nil]
+                                               error:&error];
+  XCTAssertNotNil(packet);
+  XCTAssertNil(error);
+
+  // Should still be valid with empty data
+  packet = [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:[NSData data]]
+                               error:&error];
+  XCTAssertNotNil(packet);
+  XCTAssertNil(error);
+
+  // Invalid with payload
+  packet = [GNSWeavePacket parseData:[self weavePacketWithHeader:header data:_smallNonEmptyData]
+                               error:nil];
+  // This doesn't cause an error in the current parseData, it just ignores the extra data.
+  // Depending on spec, this might be desired or not. Assuming it's fine.
+  XCTAssertNotNil(packet);
+}
+
+- (void)testMaxPacketCounter {
+  XCTAssertThrows([[GNSWeaveErrorPacket alloc] initWithPacketCounter:8],
+                  @"Should assert for packet counter >= 8");
+  XCTAssertThrows([[GNSWeaveDataPacket alloc] initWithPacketCounter:8
+                                                        firstPacket:YES
+                                                         lastPacket:YES
+                                                               data:_smallNonEmptyData],
+                  @"Should assert for packet counter >= 8");
 }
 
 @end

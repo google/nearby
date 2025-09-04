@@ -18,26 +18,9 @@
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralPeerManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils+Private.h"
 
 NS_ASSUME_NONNULL_BEGIN
-
-static NSString *CBManagerStateString(CBManagerState state) {
-  switch (state) {
-    case CBManagerStateUnknown:
-      return @"CBManagerStateUnknown";
-    case CBManagerStateResetting:
-      return @"CBManagerStateResetting";
-    case CBManagerStateUnsupported:
-      return @"CBManagerStateUnsupported";
-    case CBManagerStateUnauthorized:
-      return @"CBManagerStateUnauthorized";
-    case CBManagerStatePoweredOff:
-      return @"CBManagerStatePoweredOff";
-    case CBManagerStatePoweredOn:
-      return @"CBManagerStatePoweredOn";
-  }
-  return [NSString stringWithFormat:@"CBManagerState Unknown(%ld)", (long)state];
-}
 
 @interface GNSCentralManager () {
   NSString *_advertisedName;
