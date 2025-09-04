@@ -23,9 +23,9 @@
 #import <SystemConfiguration/CaptiveNetwork.h>
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -40,6 +40,10 @@ static const UInt8 kConnectionTimeoutInSeconds = 18;
 // An arbitrary timeout that should be pretty lenient.
 static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
+@interface GNCHotspotMedium ()
+@property(nonatomic) CLLocationManager *locationManager;
+@end
+
 @implementation GNCHotspotMedium {
   dispatch_queue_t _hotspot_queue;
 }
@@ -52,12 +56,21 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   self = [super init];
   if (self) {
     _hotspot_queue = queue;
+    _locationManager = [[CLLocationManager alloc] init];
   }
   return self;
 }
 
 - (BOOL)connectToWifiNetworkWithSSID:(NSString *)ssid password:(NSString *)password {
 #if TARGET_OS_IOS
+  if (ssid.length == 0) {
+    GNCLoggerError(@"SSID cannot be empty.");
+    return NO;
+  }
+  if (password.length == 0) {
+    GNCLoggerError(@"Password cannot be empty.");
+    return NO;
+  }
   __block BOOL connected = NO;
   NEHotspotConfiguration *config = [[NEHotspotConfiguration alloc] initWithSSID:ssid
                                                                      passphrase:password
@@ -88,23 +101,24 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
       GNCLoggerError(@"Connecting to %@ timeout in %d seconds", ssid, kConnectionTimeoutInSeconds);
     }
-    if (connected) {
-      NSString *currentSSID = [self getCurrentWifiSSID];
-      if (currentSSID == nil) {
-        GNCLoggerInfo(@"Not able to get current SSID, assume connected");
-        break;
-      } else {
-        if ([currentSSID isEqualToString:ssid]) {
-          GNCLoggerDebug(@"Connected to %@ successfully", ssid);
-          break;
-        } else {
-          GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
-          connected = NO;
-        }
-      }
+  }
+
+  // After the loop, if we believe we are connected, verify the SSID.
+  if (connected) {
+    NSString *currentSSID = [self getCurrentWifiSSID];
+    if (currentSSID == nil) {
+      GNCLoggerInfo(@"Not able to get current SSID, assume connected");
+    } else if ([currentSSID isEqualToString:ssid]) {
+      GNCLoggerDebug(@"Connected to %@ successfully", ssid);
     } else {
-      [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
+      GNCLoggerError(@"Connected to wrong SSID: %@", currentSSID);
+      connected = NO;  // Still not connected to the right SSID
     }
+  }
+
+  // If we failed to connect or connected to the wrong network, remove the configuration.
+  if (!connected) {
+    [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
   }
   return connected;
 #else
@@ -115,16 +129,20 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
 - (void)disconnectToWifiNetworkWithSSID:(NSString *)ssid {
 #if TARGET_OS_IOS
+  if (ssid.length == 0) {
+    GNCLoggerError(@"SSID cannot be empty.");
+    return;
+  }
   [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
 #else
   GNCLoggerError(@"Not implemented for macOS");
 #endif  // TARGET_OS_IOS
 }
 
-- (nullable GNCHotspotSocket *)connectToHost:(GNCIPv4Address *)host
-                                        port:(NSInteger)port
-                                cancelSource:(nullable dispatch_source_t)cancelSource
-                                       error:(NSError *_Nullable *_Nullable)error {
+- (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
+                                            port:(NSInteger)port
+                                    cancelSource:(nullable dispatch_source_t)cancelSource
+                                           error:(NSError *_Nullable *_Nullable)error {
   // Validate host address
   if (!host.dottedRepresentation.UTF8String) {
     if (error) {
@@ -144,10 +162,10 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
                            error:error];
 }
 
-- (nullable GNCHotspotSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
-                               includePeerToPeer:(BOOL)includePeerToPeer
-                                    cancelSource:(nullable dispatch_source_t)cancelSource
-                                           error:(NSError *_Nullable *_Nullable)error {
+- (nullable GNCNWFrameworkSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
+                                   includePeerToPeer:(BOOL)includePeerToPeer
+                                        cancelSource:(nullable dispatch_source_t)cancelSource
+                                               error:(NSError *_Nullable *_Nullable)error {
   GNCLoggerInfo(@"connectToEndpoint: %@ includePeerToPeer: %d", endpoint.debugDescription,
                 includePeerToPeer);
 
@@ -215,8 +233,9 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     case nw_connection_state_cancelled:
       GNCLoggerError(@"connectToEndpoint failed with result: %d", blockResult);
       return nil;
-    case nw_connection_state_ready:
-      return [[GNCHotspotSocket alloc] initWithConnection:connection];
+    case nw_connection_state_ready: {
+      return [[GNCNWFrameworkSocket alloc] initWithConnection:connection];
+    }
   }
 }
 
@@ -228,10 +247,9 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
   // Request permission
   GNCLoggerDebug(@"Request Location permission");
-  CLLocationManager *locationManager = [[CLLocationManager alloc] init];
 
   if (@available(iOS 14.0, *)) {
-    status = locationManager.authorizationStatus;
+    status = _locationManager.authorizationStatus;
   } else {
     status = [CLLocationManager authorizationStatus];
   }

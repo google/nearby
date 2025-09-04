@@ -19,6 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class GNCIPv4Address;
 @class GNCHotspotSocket;
+@class GNCNWFrameworkSocket;
 
 /**
  * The main Hotspot medium used inside of Nearby. This class is responsible for managing the
@@ -67,10 +68,10 @@ NS_ASSUME_NONNULL_BEGIN
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occurred.
  */
-- (nullable GNCHotspotSocket *)connectToHost:(GNCIPv4Address *)host
-                                        port:(NSInteger)port
-                                cancelSource:(nullable dispatch_source_t)cancelSource
-                                       error:(NSError *_Nullable *_Nullable)error;
+- (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
+                                            port:(NSInteger)port
+                                    cancelSource:(nullable dispatch_source_t)cancelSource
+                                           error:(NSError *_Nullable *_Nullable)error;
 
 @end
 

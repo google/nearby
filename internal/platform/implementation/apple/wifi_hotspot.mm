@@ -24,8 +24,8 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
-#import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 
 namespace nearby {
 namespace apple {
@@ -35,7 +35,7 @@ constexpr char kHotspotQueueLabel[] = "com.google.nearby.wifi_hotspot";
 
 #pragma mark - WifiHotspotInputStream
 
-WifiHotspotInputStream::WifiHotspotInputStream(GNCHotspotSocket* socket) : socket_(socket) {}
+WifiHotspotInputStream::WifiHotspotInputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
 ExceptionOr<ByteArray> WifiHotspotInputStream::Read(std::int64_t size) {
   NSError* error = nil;
@@ -55,7 +55,7 @@ Exception WifiHotspotInputStream::Close() {
 
 #pragma mark - WifiHotspotOutputStream
 
-WifiHotspotOutputStream::WifiHotspotOutputStream(GNCHotspotSocket* socket) : socket_(socket) {}
+WifiHotspotOutputStream::WifiHotspotOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
 Exception WifiHotspotOutputStream::Write(const ByteArray& data) {
   NSError* error = nil;
@@ -81,7 +81,7 @@ Exception WifiHotspotOutputStream::Close() {
 
 #pragma mark - WifiHotspotSocket
 
-WifiHotspotSocket::WifiHotspotSocket(GNCHotspotSocket* socket)
+WifiHotspotSocket::WifiHotspotSocket(GNCNWFrameworkSocket* socket)
     : socket_(socket),
       input_stream_(std::make_unique<WifiHotspotInputStream>(socket)),
       output_stream_(std::make_unique<WifiHotspotOutputStream>(socket)) {}
@@ -173,7 +173,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
         });
   }
 
-  GNCHotspotSocket* socket = [medium_ connectToHost:host
+  GNCNWFrameworkSocket* socket = [medium_ connectToHost:host
                                                port:port
                                        cancelSource:cancellation_source
                                               error:&error];

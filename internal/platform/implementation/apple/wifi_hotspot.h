@@ -26,7 +26,7 @@
 @class GNCMBonjourBrowser;
 @class GNCMBonjourService;
 @class GNCHotspotMedium;
-@class GNCHotspotSocket;
+@class GNCNWFrameworkSocket;
 
 namespace nearby {
 namespace apple {
@@ -36,14 +36,14 @@ namespace apple {
  */
 class WifiHotspotInputStream : public InputStream {
  public:
-  explicit WifiHotspotInputStream(GNCHotspotSocket* socket);
+  explicit WifiHotspotInputStream(GNCNWFrameworkSocket* socket);
   ~WifiHotspotInputStream() override = default;
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
   Exception Close() override;
 
  private:
-  GNCHotspotSocket* socket_;
+  GNCNWFrameworkSocket* socket_;
 };
 
 /**
@@ -51,7 +51,7 @@ class WifiHotspotInputStream : public InputStream {
  */
 class WifiHotspotOutputStream : public OutputStream {
  public:
-  explicit WifiHotspotOutputStream(GNCHotspotSocket* socket);
+  explicit WifiHotspotOutputStream(GNCNWFrameworkSocket* socket);
   ~WifiHotspotOutputStream() override = default;
 
   Exception Write(const ByteArray& data) override;
@@ -59,7 +59,7 @@ class WifiHotspotOutputStream : public OutputStream {
   Exception Close() override;
 
  private:
-  GNCHotspotSocket* socket_;
+  GNCNWFrameworkSocket* socket_;
 };
 
 /**
@@ -67,7 +67,7 @@ class WifiHotspotOutputStream : public OutputStream {
  */
 class WifiHotspotSocket : public api::WifiHotspotSocket {
  public:
-  explicit WifiHotspotSocket(GNCHotspotSocket* socket);
+  explicit WifiHotspotSocket(GNCNWFrameworkSocket* socket);
   explicit WifiHotspotSocket() = default;
   ~WifiHotspotSocket() override = default;
   InputStream& GetInputStream() override;
@@ -75,7 +75,7 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   Exception Close() override;
 
  private:
-  GNCHotspotSocket* const socket_;
+  GNCNWFrameworkSocket* const socket_;
   std::unique_ptr<WifiHotspotInputStream> input_stream_;
   std::unique_ptr<WifiHotspotOutputStream> output_stream_;
 };

@@ -1,5 +1,3 @@
-load("@rules_cc//cc:objc_library.bzl", "objc_library")
-
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +11,32 @@ load("@rules_cc//cc:objc_library.bzl", "objc_library")
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-licenses(["notice"])
 
-package(default_visibility = [
-    "//connections:__subpackages__",
-    "//googlemac/iPhone/Nearby:__subpackages__",
-    "//internal/platform/implementation/apple:__subpackages__",
-])
+load("@rules_apple//apple:ios.bzl", "ios_unit_test")
+load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS")
+
+package(default_visibility = ["//:__subpackages__"])
 
 objc_library(
-    name = "Mediums",
+    name = "HotspotTestslib",
+    testonly = True,
+    srcs = [
+        "GNCHotspotMediumTest.m",
+    ],
     deps = [
-        "//internal/platform/implementation/apple/Mediums/BLE",
         "//internal/platform/implementation/apple/Mediums/Hotspot",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
+        "//third_party/apple_frameworks:CoreLocation",
+        "//third_party/apple_frameworks:NetworkExtension",
+        "//third_party/apple_frameworks:XCTest",
+    ],
+)
+
+ios_unit_test(
+    name = "HotspotTests",
+    minimum_os_version = IOS_MINIMUM_OS,
+    runner = "//testing/utp/ios:IOS_LATEST",
+    deps = [
+        ":HotspotTestslib",
     ],
 )
