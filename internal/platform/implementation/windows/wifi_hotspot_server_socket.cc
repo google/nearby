@@ -31,6 +31,8 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
@@ -39,102 +41,31 @@
 namespace nearby {
 namespace windows {
 namespace {
+using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
+using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
 }  // namespace
 
-WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {
-  enable_blocking_socket_ = NearbyFlags::GetInstance().GetBoolFlag(
-      nearby::platform::config_package_nearby::nearby_platform_feature::
-          kEnableBlockingSocket);
-  if (!enable_blocking_socket_) {
-    for (auto &it : socket_events_) {
-      it = WSA_INVALID_EVENT;
-    }
-  }
-}
+WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
 
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
 
 std::string WifiHotspotServerSocket::GetIPAddress() const {
-  if (enable_blocking_socket_) {
-    return server_socket_.GetIPAddress();
-  } else {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            platform::config_package_nearby::nearby_platform_feature::
-                kEnableHotspotWin32Socket)) {
-      if (listen_socket_ == INVALID_SOCKET) {
-        return {};
-      }
-    } else {
-      if (stream_socket_listener_ == nullptr) {
-        return {};
-      }
-    }
-
-    return GetHotspotIpAddress();
-  }
+  return server_socket_.GetIPAddress();
 }
 
 int WifiHotspotServerSocket::GetPort() const {
-  if (enable_blocking_socket_) {
-    return server_socket_.GetPort();
-  } else {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            platform::config_package_nearby::nearby_platform_feature::
-                kEnableHotspotWin32Socket)) {
-      if (listen_socket_ == INVALID_SOCKET) {
-        LOG(WARNING) << __func__ << ": listen_socket_ is invalid.";
-        return 0;
-      }
-      return port_;
-    } else {
-      if (stream_socket_listener_ == nullptr) {
-        return 0;
-      }
-      return std::stoi(
-          stream_socket_listener_.Information().LocalPort().c_str());
-    }
-  }
+  return server_socket_.GetPort();
 }
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
-  if (enable_blocking_socket_) {
-    auto client_socket = server_socket_.Accept();
-    if (client_socket == nullptr) {
-      return nullptr;
-    }
-
-    LOG(INFO) << __func__ << ": Accepted a remote connection.";
-    return std::make_unique<WifiHotspotSocket>(std::move(client_socket));
-  } else {
-    absl::MutexLock lock(&mutex_);
-    VLOG(1) << __func__ << ": Accept is called.";
-
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            platform::config_package_nearby::nearby_platform_feature::
-                kEnableHotspotWin32Socket)) {
-      while (!closed_ && pending_client_sockets_.empty()) {
-        cond_.Wait(&mutex_);
-      }
-      if (closed_) return {};
-
-      SOCKET wifi_hotspot_socket = pending_client_sockets_.front();
-      pending_client_sockets_.pop_front();
-      LOG(INFO) << __func__ << ": Accepted a remote connection.";
-      return std::make_unique<WifiHotspotSocket>(wifi_hotspot_socket);
-    }
-
-    // Code when using WinRT API
-    while (!closed_ && pending_sockets_.empty()) {
-      cond_.Wait(&mutex_);
-    }
-    if (closed_) return {};
-
-    StreamSocket wifi_hotspot_socket = pending_sockets_.front();
-    pending_sockets_.pop_front();
-    LOG(INFO) << __func__ << ": Accepted a remote connection.";
-    return std::make_unique<WifiHotspotSocket>(wifi_hotspot_socket);
+  auto client_socket = server_socket_.Accept();
+  if (client_socket == nullptr) {
+    return nullptr;
   }
+
+  LOG(INFO) << __func__ << ": Accepted a remote connection.";
+  return std::make_unique<WifiHotspotSocket>(std::move(client_socket));
 }
 
 void WifiHotspotServerSocket::SetCloseNotifier(
@@ -145,304 +76,33 @@ void WifiHotspotServerSocket::SetCloseNotifier(
 Exception WifiHotspotServerSocket::Close() {
   try {
     absl::MutexLock lock(&mutex_);
-    if (enable_blocking_socket_) {
-      if (closed_) {
-        return {Exception::kSuccess};
-      }
+    if (closed_) {
+      return {Exception::kSuccess};
+    }
 
-      server_socket_.Close();
-      closed_ = true;
+    server_socket_.Close();
+    closed_ = true;
 
-      if (close_notifier_ != nullptr) {
-        close_notifier_();
-      }
-    } else {
-      VLOG(1) << __func__ << ": Close is called.";
-
-      if (closed_) {
-        return {Exception::kSuccess};
-      }
-
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              platform::config_package_nearby::nearby_platform_feature::
-                  kEnableHotspotWin32Socket)) {
-        if (listen_socket_ != INVALID_SOCKET) {
-          LOG(INFO) << ": Close listen_socket_: " << listen_socket_;
-          // Trigger close event manually
-          WSASetEvent(socket_events_[kSocketEventClose]);
-          shutdown(listen_socket_, 2);
-          shutdown(client_socket_, 2);
-          closesocket(listen_socket_);
-          closesocket(client_socket_);
-          for (const auto &pending_socket : pending_client_sockets_) {
-            if (pending_socket != INVALID_SOCKET) closesocket(pending_socket);
-          }
-          submittable_executor_.Shutdown();
-          listen_socket_ = INVALID_SOCKET;
-          client_socket_ = INVALID_SOCKET;
-          for (auto &it : socket_events_) {
-            WSACloseEvent(it);
-            it = WSA_INVALID_EVENT;
-          }
-          WSACleanup();
-
-          pending_client_sockets_ = {};
-        }
-      } else {
-        if (stream_socket_listener_ != nullptr) {
-          stream_socket_listener_.ConnectionReceived(listener_event_token_);
-          stream_socket_listener_.Close();
-          stream_socket_listener_ = nullptr;
-
-          for (const auto &pending_socket : pending_sockets_) {
-            pending_socket.Close();
-          }
-
-          pending_sockets_ = {};
-        }
-      }
-
-      closed_ = true;
-      cond_.SignalAll();
-      if (close_notifier_ != nullptr) {
-        close_notifier_();
-      }
+    if (close_notifier_ != nullptr) {
+      close_notifier_();
     }
 
     LOG(INFO) << __func__ << ": Close completed succesfully.";
     return {Exception::kSuccess};
   } catch (std::exception exception) {
     closed_ = true;
-    cond_.SignalAll();
     LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {Exception::kIo};
   } catch (const winrt::hresult_error &error) {
     closed_ = true;
-    cond_.SignalAll();
     LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
                << winrt::to_string(error.message());
     return {Exception::kIo};
   } catch (...) {
     closed_ = true;
-    cond_.SignalAll();
     LOG(ERROR) << __func__ << ": Unknown exception.";
     return {Exception::kIo};
   }
-}
-
-fire_and_forget WifiHotspotServerSocket::Listener_ConnectionReceived(
-    StreamSocketListener listener,
-    StreamSocketListenerConnectionReceivedEventArgs const &args) {
-  absl::MutexLock lock(&mutex_);
-  LOG(INFO) << __func__ << ": Received connection.";
-
-  if (closed_) {
-    return fire_and_forget{};
-  }
-
-  pending_sockets_.push_back(args.Socket());
-  cond_.SignalAll();
-  return fire_and_forget{};
-}
-
-bool WifiHotspotServerSocket::SetupServerSocketWinRT() {
-  // Setup stream socket listener.
-  stream_socket_listener_ = StreamSocketListener();
-
-  stream_socket_listener_.Control().QualityOfService(
-      SocketQualityOfService::LowLatency);
-
-  stream_socket_listener_.Control().KeepAlive(true);
-
-  // Setup socket event of ConnectionReceived.
-  listener_event_token_ = stream_socket_listener_.ConnectionReceived(
-      {this, &WifiHotspotServerSocket::Listener_ConnectionReceived});
-
-  try {
-    HostName host_name{winrt::to_hstring(hotspot_ipaddr_)};
-    stream_socket_listener_
-        .BindEndpointAsync(host_name, winrt::to_hstring(port_))
-        .get();
-    if (port_ == 0) {
-      port_ =
-          std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
-    }
-
-    return true;
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-               << ": Cannot accept connection on preferred port. Exception: "
-               << exception.what();
-  } catch (const winrt::hresult_error &error) {
-    LOG(ERROR)
-        << __func__
-        << ":Cannot accept connection on preferred port.  WinRT exception: "
-        << error.code() << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
-  }
-
-  try {
-    stream_socket_listener_.BindServiceNameAsync({}).get();
-    // need to save the port information.
-    port_ =
-        std::stoi(stream_socket_listener_.Information().LocalPort().c_str());
-    LOG(INFO) << "Server Socket port: " << port_;
-    return true;
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__
-               << ": Cannot bind to any port. Exception: " << exception.what();
-  } catch (const winrt::hresult_error &error) {
-    LOG(ERROR) << __func__
-               << ": Cannot bind to any port. WinRT exception: " << error.code()
-               << ": " << winrt::to_string(error.message());
-  } catch (...) {
-    LOG(ERROR) << __func__ << ": Unknown exception.";
-  }
-
-  return false;
-}
-
-void WifiHotspotServerSocket::SocketErrorNotice(absl::string_view reason) {
-  LOG(WARNING) << "socket error. " << reason
-               << " failed with error: " << WSAGetLastError();
-  for (auto &it : socket_events_) {
-    if (it != WSA_INVALID_EVENT) {
-      WSACloseEvent(it);
-      it = WSA_INVALID_EVENT;
-    }
-  }
-  closesocket(listen_socket_);
-  WSACleanup();
-}
-
-bool WifiHotspotServerSocket::SetupServerSocketWinSock() {
-  WSADATA wsa_data;
-  int flag = 1;
-
-  int result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
-  if (result != 0) {
-    LOG(WARNING) << "WSAStartup failed with error:" << result;
-    return false;
-  }
-
-  listen_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (listen_socket_ == INVALID_SOCKET) {
-    LOG(WARNING) << "Failed to get socket";
-    WSACleanup();
-    return false;
-  }
-  struct sockaddr_in serv_addr;
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(port_);
-  serv_addr.sin_addr.s_addr = inet_addr(hotspot_ipaddr_.c_str());
-
-  unsigned long qos = 1;  // NOLINT
-  ioctlsocket(listen_socket_, SIO_SET_QOS, &qos);
-  setsockopt(listen_socket_, SOL_SOCKET, SO_KEEPALIVE, (const char *)&flag,
-             sizeof(flag));
-  if (bind(listen_socket_, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) ==
-      SOCKET_ERROR) {
-    SocketErrorNotice("Bind");
-    return false;
-  }
-  VLOG(1) << "Bind socket successful";
-
-  int size = sizeof(serv_addr);
-  memset(&serv_addr, 0, size);
-  if (getsockname(listen_socket_, (struct sockaddr *)&serv_addr, &size) ==
-      SOCKET_ERROR) {
-    SocketErrorNotice("Getsockname");
-    return false;
-  }
-  port_ = ntohs(serv_addr.sin_port);
-
-  socket_events_[kSocketEventListen] = WSACreateEvent();
-  if (socket_events_[kSocketEventListen] == WSA_INVALID_EVENT) {
-    SocketErrorNotice("WSACreateEvent");
-    return false;
-  }
-
-  socket_events_[kSocketEventClose] = WSACreateEvent();
-  if (socket_events_[kSocketEventClose] == WSA_INVALID_EVENT) {
-    SocketErrorNotice("WSACreateEvent");
-    return false;
-  }
-
-  // Associate event types FD_ACCEPT and FD_CLOSE with the listen_socket_ and
-  // socket_event
-  if (WSAEventSelect(listen_socket_, socket_events_[kSocketEventListen],
-                     FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR) {
-    SocketErrorNotice("WSAEventSelect");
-    return false;
-  }
-
-  if (::listen(listen_socket_, SOMAXCONN) == SOCKET_ERROR) {
-    SocketErrorNotice("Listen");
-    return false;
-  }
-  LOG(INFO) << "Hotspot Server Socket " << listen_socket_
-            << " started to listen on port: " << port_;
-
-  submittable_executor_.Execute([this]() {
-    DWORD index;
-    WSANETWORKEVENTS network_events;
-    // Wait for network events on all sockets
-    index = WSAWaitForMultipleEvents(kSocketEventsCount, socket_events_, FALSE,
-                                     WSA_INFINITE, FALSE);
-
-    VLOG(1) << "Hotspot Server Socket " << listen_socket_
-            << " received event index: " << index;
-    if (index == WSA_WAIT_TIMEOUT || index == WSA_WAIT_FAILED) {
-      LOG(INFO) << "Hotspot Server Socket timout or failed ";
-      return false;
-    }
-
-    index = index - WSA_WAIT_EVENT_0;
-    if (index == kSocketEventClose) {
-      // the socket is closed by SDK
-      LOG(INFO) << "listner socket is closed.";
-      return false;
-    }
-
-    // Iterate through all events and enumerate
-    if (WSAEnumNetworkEvents(listen_socket_, socket_events_[index],
-                             &network_events) == SOCKET_ERROR) {
-      LOG(INFO) << "Iterate through all events failed";
-      return false;
-    }
-    if (network_events.lNetworkEvents & FD_CLOSE) {
-      LOG(INFO) << "Reveived FD_CLOSE event";
-      return false;
-    }
-    if (network_events.lNetworkEvents & FD_ACCEPT) {
-      client_socket_ = accept(listen_socket_, nullptr, nullptr);
-      VLOG(1) << "Reveived FD_ACCEPT event.";
-
-      if (client_socket_ == INVALID_SOCKET) {
-        return false;
-      }
-
-      if (WSAEventSelect(listen_socket_, socket_events_[kSocketEventListen],
-                         0) == SOCKET_ERROR) {
-        LOG(WARNING)
-            << "Remove association between listen_socket_ and event failed: "
-            << WSAGetLastError();
-      }
-
-      LOG(INFO) << "Hotspot Server Client Socket created: " << client_socket_;
-      if (closed_) {
-        return false;
-      }
-      {
-        absl::MutexLock lock(&mutex_);
-        pending_client_sockets_.push_back(client_socket_);
-        cond_.SignalAll();
-      }
-    }
-    return true;
-  });
-  return true;
 }
 
 bool WifiHotspotServerSocket::listen() {
@@ -473,22 +133,12 @@ bool WifiHotspotServerSocket::listen() {
     return false;
   }
 
-  if (enable_blocking_socket_) {
-    if (!server_socket_.Listen(hotspot_ipaddr_, port_)) {
-      LOG(ERROR) << "Failed to listen socket.";
-      return false;
-    }
-
-    return true;
-  } else {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            platform::config_package_nearby::nearby_platform_feature::
-                kEnableHotspotWin32Socket)) {
-      return SetupServerSocketWinSock();
-    } else {
-      return SetupServerSocketWinRT();
-    }
+  if (!server_socket_.Listen(hotspot_ipaddr_, port_)) {
+    LOG(ERROR) << "Failed to listen socket.";
+    return false;
   }
+
+  return true;
 }
 
 std::string WifiHotspotServerSocket::GetHotspotIpAddress() const {

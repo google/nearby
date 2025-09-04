@@ -19,7 +19,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -32,6 +31,8 @@
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_utils.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Credentials.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
@@ -42,8 +43,13 @@
 namespace nearby {
 namespace windows {
 namespace {
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectAdvertisementPublisherStatus;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
+using ::winrt::Windows::Security::Credentials::PasswordCredential;
+
 constexpr absl::string_view kHotspotSsidFileName = "ssid.txt";
-}
+}  // namespace
 
 WifiHotspotMedium::WifiHotspotMedium() {
   std::string ssid = GetStoredHotspotSsid();
@@ -119,119 +125,41 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
           << "ms, connection timeout="
           << wifi_hotspot_client_socket_connect_timeout_millis << "ms";
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          nearby::platform::config_package_nearby::nearby_platform_feature::
-              kEnableBlockingSocket)) {
-    LOG(INFO) << "Connect to service " << ipv4_address << ":" << port;
-    for (int i = 0; i < wifi_hotspot_max_connection_retries; ++i) {
-      auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>();
+  LOG(INFO) << "Connect to service " << ipv4_address << ":" << port;
+  for (int i = 0; i < wifi_hotspot_max_connection_retries; ++i) {
+    auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>();
 
-      // setup cancel listener
-      std::unique_ptr<CancellationFlagListener>
-          connection_cancellation_listener = nullptr;
-      if (cancellation_flag != nullptr) {
-        if (cancellation_flag->Cancelled()) {
-          LOG(INFO) << "connect has been cancelled to service " << ipv4_address
-                    << ":" << port;
-          return nullptr;
-        }
-
-        connection_cancellation_listener =
-            std::make_unique<nearby::CancellationFlagListener>(
-                cancellation_flag, [socket = wifi_hotspot_socket.get()]() {
-                  LOG(WARNING) << "connect is closed due to it is cancelled.";
-                  socket->Close();
-                });
+    // setup cancel listener
+    std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
+        nullptr;
+    if (cancellation_flag != nullptr) {
+      if (cancellation_flag->Cancelled()) {
+        LOG(INFO) << "connect has been cancelled to service " << ipv4_address
+                  << ":" << port;
+        return nullptr;
       }
 
-      bool result = wifi_hotspot_socket->Connect(ipv4_address, port);
-      if (!result) {
-        LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
-        Sleep(wifi_hotspot_retry_interval_millis);
-        continue;
-      }
-
-      LOG(INFO) << "connected to remote service " << ipv4_address << ":"
-                << port;
-      return wifi_hotspot_socket;
+      connection_cancellation_listener =
+          std::make_unique<nearby::CancellationFlagListener>(
+              cancellation_flag, [socket = wifi_hotspot_socket.get()]() {
+                LOG(WARNING) << "connect is closed due to it is cancelled.";
+                socket->Close();
+              });
     }
 
-    LOG(ERROR) << "Failed to connect to service " << ipv4_address << ":"
-               << port;
-    return nullptr;
-  } else {
-    HostName host_name{winrt::to_hstring(ipv4_address)};
-    winrt::hstring service_name{winrt::to_hstring(port)};
-
-    for (int i = 0; i < wifi_hotspot_max_connection_retries; i++) {
-      try {
-        StreamSocket socket{};
-        // Listener to connect cancellation.
-        std::unique_ptr<CancellationFlagListener>
-            connection_cancellation_listener = nullptr;
-
-        // setup cancel listener
-        if (cancellation_flag != nullptr) {
-          if (cancellation_flag->Cancelled()) {
-            LOG(INFO) << "connect has been cancelled to service "
-                      << ipv4_address << ":" << port;
-            return nullptr;
-          }
-
-          connection_cancellation_listener =
-              std::make_unique<nearby::CancellationFlagListener>(
-                  cancellation_flag, [socket]() {
-                    LOG(WARNING) << "connect is closed due to it is cancelled.";
-                    socket.Close();
-                  });
-        }
-
-        if (FeatureFlags::GetInstance().GetFlags().enable_connection_timeout) {
-          connection_timeout_ = scheduled_executor_.Schedule(
-              [socket]() {
-                LOG(WARNING) << "connect is closed due to timeout.";
-                socket.Close();
-              },
-              absl::Milliseconds(
-                  wifi_hotspot_client_socket_connect_timeout_millis));
-        }
-
-        socket.ConnectAsync(host_name, service_name).get();
-
-        if (connection_timeout_ != nullptr) {
-          connection_timeout_->Cancel();
-          connection_timeout_ = nullptr;
-        }
-
-        auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>(socket);
-
-        LOG(INFO) << "connected to remote service " << ipv4_address << ":"
-                  << port;
-        return wifi_hotspot_socket;
-      } catch (std::exception exception) {
-        LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
-                   << port << " for the " << i + 1
-                   << " time. Exception: " << exception.what();
-      } catch (const winrt::hresult_error& error) {
-        LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
-                   << port << " for the " << i + 1
-                   << " time. WinRT exception: " << error.code() << ": "
-                   << winrt::to_string(error.message());
-      } catch (...) {
-        LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
-                   << port << " for the " << i + 1
-                   << " time due to unknown reason.";
-      }
-
-      if (connection_timeout_ != nullptr) {
-        connection_timeout_->Cancel();
-        connection_timeout_ = nullptr;
-      }
-
+    bool result = wifi_hotspot_socket->Connect(ipv4_address, port);
+    if (!result) {
+      LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
       Sleep(wifi_hotspot_retry_interval_millis);
+      continue;
     }
-    return nullptr;
+
+    LOG(INFO) << "connected to remote service " << ipv4_address << ":" << port;
+    return wifi_hotspot_socket;
   }
+
+  LOG(ERROR) << "Failed to connect to service " << ipv4_address << ":" << port;
+  return nullptr;
 }
 
 std::unique_ptr<api::WifiHotspotServerSocket>

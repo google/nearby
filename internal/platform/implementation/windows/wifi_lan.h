@@ -142,7 +142,6 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
-    bool enable_blocking_socket_ = false;
     IInputStream input_stream_{nullptr};
     Buffer read_buffer_{nullptr};
     NearbyClientSocket* client_socket_{nullptr};
@@ -160,7 +159,6 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
-    bool enable_blocking_socket_ = false;
     IOutputStream output_stream_{nullptr};
     NearbyClientSocket* client_socket_{nullptr};
   };
@@ -170,7 +168,6 @@ class WifiLanSocket : public api::WifiLanSocket {
   SocketInputStream input_stream_{nullptr};
   SocketOutputStream output_stream_{nullptr};
 
-  bool enable_blocking_socket_ = false;
   std::unique_ptr<NearbyClientSocket> client_socket_;
 };
 
@@ -239,8 +236,6 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   int port_ = 0;
   bool closed_ = false;
 
-  // Flag to enable blocking socket.
-  bool enable_blocking_socket_ = false;
   NearbyServerSocket server_socket_;
 };
 

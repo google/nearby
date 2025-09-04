@@ -22,7 +22,6 @@
 
 // Standard C/C++ headers
 #include <cstdint>
-#include <deque>
 #include <exception>
 #include <memory>
 #include <optional>
@@ -37,26 +36,16 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
-#include "internal/platform/implementation/windows/submittable_executor.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_native.h"
 
 // WinRT headers
 #include "absl/types/optional.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFi.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Credentials.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Cryptography.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
@@ -66,58 +55,23 @@ namespace nearby {
 namespace windows {
 
 using ::winrt::fire_and_forget;
-using ::winrt::Windows::Devices::WiFiDirect::
-    WiFiDirectAdvertisementListenStateDiscoverability;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher;
-using ::winrt::Windows::Devices::WiFiDirect::
-    WiFiDirectAdvertisementPublisherStatus;
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectAdvertisementPublisherStatusChangedEventArgs;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener;
-using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectConnectionRequestedEventArgs;
-using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionStatus;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
-
-using ::winrt::Windows::Devices::WiFi::WiFiAccessStatus;
-using ::winrt::Windows::Devices::WiFi::WiFiAdapter;
-using ::winrt::Windows::Devices::WiFi::WiFiAvailableNetwork;
-using ::winrt::Windows::Devices::WiFi::WiFiConnectionStatus;
-using ::winrt::Windows::Devices::WiFi::WiFiReconnectionKind;
-
-using ::winrt::Windows::Devices::Enumeration::DeviceInformation;
-using ::winrt::Windows::Devices::Enumeration::DeviceInformationPairing;
-
-using ::winrt::Windows::Storage::Streams::Buffer;
-using ::winrt::Windows::Storage::Streams::IInputStream;
-using ::winrt::Windows::Storage::Streams::InputStreamOptions;
-using ::winrt::Windows::Storage::Streams::IOutputStream;
-
-using ::winrt::Windows::Security::Credentials::PasswordCredential;
-using ::winrt::Windows::Security::Cryptography::CryptographicBuffer;
-
-using ::winrt::Windows::Networking::HostName;
-using ::winrt::Windows::Networking::HostNameType;
-using ::winrt::Windows::Networking::Connectivity::ConnectionProfile;
-using ::winrt::Windows::Networking::Connectivity::ConnectionProfileDeleteStatus;
-using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
-using ::winrt::Windows::Networking::Sockets::StreamSocket;
-using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
-using ::winrt::Windows::Networking::Sockets::
-    StreamSocketListenerConnectionReceivedEventArgs;
 
 // WifiHotspotSocket wraps the socket functions to read and write stream.
 // In WiFi HOTSPOT, A WifiHotspotSocket will be passed to
-// StartAcceptingConnections's callback when Winsock Server Socket(or
-// StreamSocketListener) receives a new connection. When call API to connect to
-// remote WiFi Hotspot service, also will return a WifiHotspotSocket to caller.
+// StartAcceptingConnections's callback when Winsock Server Socket receives a
+// new connection. When call API to connect to remote WiFi Hotspot service, also
+// will return a WifiHotspotSocket to caller.
 class WifiHotspotSocket : public api::WifiHotspotSocket {
  public:
   WifiHotspotSocket();
   explicit WifiHotspotSocket(std::unique_ptr<NearbyClientSocket> socket);
-  explicit WifiHotspotSocket(StreamSocket socket);
-  explicit WifiHotspotSocket(SOCKET socket);
   WifiHotspotSocket(const WifiHotspotSocket&) = default;
   WifiHotspotSocket(WifiHotspotSocket&&) = default;
   ~WifiHotspotSocket() override;
@@ -144,12 +98,9 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   bool Connect(const std::string& ip_address, int port);
 
  private:
-  enum class SocketType { kWinRTSocket = 0, kWin32Socket };
   // A simple wrapper to handle input stream of socket
   class SocketInputStream : public InputStream {
    public:
-    explicit SocketInputStream(IInputStream input_stream);
-    explicit SocketInputStream(SOCKET socket);
     explicit SocketInputStream(NearbyClientSocket* client_socket);
     ~SocketInputStream() override = default;
 
@@ -158,19 +109,12 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
     Exception Close() override;
 
    private:
-    bool enable_blocking_socket_ = false;
-    IInputStream input_stream_{nullptr};
-    SOCKET socket_ = INVALID_SOCKET;
-    SocketType socket_type_ = SocketType::kWinRTSocket;
-    ByteArray read_buffer_;
     NearbyClientSocket* client_socket_{nullptr};
   };
 
   // A simple wrapper to handle output stream of socket
   class SocketOutputStream : public OutputStream {
    public:
-    explicit SocketOutputStream(IOutputStream output_stream);
-    explicit SocketOutputStream(SOCKET socket);
     explicit SocketOutputStream(NearbyClientSocket* client_socket);
     ~SocketOutputStream() override = default;
 
@@ -179,20 +123,13 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
     Exception Close() override;
 
    private:
-    bool enable_blocking_socket_ = false;
-    IOutputStream output_stream_{nullptr};
-    SOCKET socket_ = INVALID_SOCKET;
-    SocketType socket_type_ = SocketType::kWinRTSocket;
     NearbyClientSocket* client_socket_{nullptr};
   };
 
   // Internal properties
-  SOCKET stream_soket_winsock_ = INVALID_SOCKET;
-  StreamSocket stream_soket_{nullptr};
   SocketInputStream input_stream_{nullptr};
   SocketOutputStream output_stream_{nullptr};
 
-  bool enable_blocking_socket_ = false;
   std::unique_ptr<NearbyClientSocket> client_socket_;
 };
 
@@ -210,10 +147,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   std::string GetIPAddress() const override;
   int GetPort() const override;
   void SetPort(int port) { port_ = port; }
-
-  StreamSocketListener GetSocketListener() const {
-    return stream_socket_listener_;
-  }
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -234,8 +167,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Binds to local port
   bool listen();
 
-  // Flag to enable blocking socket.
-  bool enable_blocking_socket_ = false;
   NearbyServerSocket server_socket_;
 
  private:
@@ -243,36 +174,11 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   static constexpr int kSocketEventListen = 0;
   static constexpr int kSocketEventClose = 1;
 
-  // The listener is accepting incoming connections
-  fire_and_forget Listener_ConnectionReceived(
-      StreamSocketListener listener,
-      StreamSocketListenerConnectionReceivedEventArgs const& args);
-  bool SetupServerSocketWinRT();
-  bool SetupServerSocketWinSock();
-
   // Retrieves hotspot IP address from local machine
   std::string GetHotspotIpAddress() const;
 
-  void SocketErrorNotice(absl::string_view reason);
-
   mutable absl::Mutex mutex_;
-  absl::CondVar cond_;
-  SubmittableExecutor submittable_executor_;
 
-  std::deque<StreamSocket> pending_sockets_ ABSL_GUARDED_BY(mutex_);
-  StreamSocketListener stream_socket_listener_{nullptr};
-  winrt::event_token listener_event_token_{};
-
-  std::deque<SOCKET> pending_client_sockets_ ABSL_GUARDED_BY(mutex_);
-  SOCKET listen_socket_ = INVALID_SOCKET;
-  SOCKET client_socket_ = INVALID_SOCKET;
-
-  // closesocket cannot trigger FD_CLOSE on listener socket. In order to avoid
-  // blocking in WSAWaitForMultipleEvents, we use a socket event to trigger
-  // WSAWaitForMultipleEvents safely.
-  // The socket_events_ has 2 events, the first one is to handle normal socket
-  // event, and the second one is to handle event to close the socket manually.
-  WSAEVENT socket_events_[kSocketEventsCount];
   // Close notifier
   absl::AnyInvocable<void()> close_notifier_ = nullptr;
 
@@ -368,9 +274,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Scheduler for timeout.
   ScheduledExecutor scheduled_executor_;
-
-  // Scheduled task for connection timeout.
-  std::shared_ptr<api::Cancelable> connection_timeout_ = nullptr;
 
   // connects Wi-Fi hotspot using native API.
   WifiHotspotNative wifi_hotspot_native_;

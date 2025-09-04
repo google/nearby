@@ -29,10 +29,6 @@ constexpr absl::string_view kConfigPackage = "nearby";
 // The Nearby Platform features.
 namespace nearby_platform_feature {
 
-// Disable/Enable win32 socket implementation for Wi-Fi hotspot.
-constexpr auto kEnableHotspotWin32Socket =
-    flags::Flag<bool>(kConfigPackage, "45401992", true);
-
 // The maximum scanning times for available hotspots.
 constexpr auto kWifiHotspotScanMaxRetries =
     flags::Flag<int64_t>(kConfigPackage, "45415883", 3);
@@ -68,10 +64,6 @@ constexpr auto kEnableNewBluetoothRefactor =
 // Enable/Disable Wi-Fi hotspot scan in native
 constexpr auto kEnableWifiHotspotNativeScan =
     flags::Flag<bool>(kConfigPackage, "45670001", false);
-
-// Enable/Disable blocking socket
-constexpr auto kEnableBlockingSocket =
-    flags::Flag<bool>(kConfigPackage, "45672381", false);
 
 // The send buffer size of blocking socket
 constexpr auto kSocketSendBufferSize =

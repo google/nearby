@@ -120,75 +120,18 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
   absl::flat_hash_map<std::string, std::string> text_records =
       nsd_service_info.GetTxtRecords();
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          nearby::platform::config_package_nearby::nearby_platform_feature::
-              kEnableBlockingSocket)) {
-    bool result = wifi_lan_mdns_.StartMdnsService(
-        service_name_, nsd_service_info.GetServiceType(),
-        nsd_service_info.GetPort(), text_records);
+  bool result = wifi_lan_mdns_.StartMdnsService(
+      service_name_, nsd_service_info.GetServiceType(),
+      nsd_service_info.GetPort(), text_records);
 
-    if (result) {
-      LOG(INFO) << "started to mDNS advertising.";
-      medium_status_ |= kMediumStatusAdvertising;
-      return true;
-    }
-
-    LOG(ERROR) << "failed to start mDNS advertising.";
-    return false;
-
-  } else {
-    std::string instance_name =
-        absl::StrFormat(kMdnsInstanceNameFormat, service_name_,
-                        nsd_service_info.GetServiceType());
-
-    LOG(INFO) << "mDNS instance name is " << instance_name;
-
-    dnssd_service_instance_ = DnssdServiceInstance{
-        string_utils::StringToWideString(instance_name),
-        nullptr,  // let windows use default computer's local name
-        (uint16_t)nsd_service_info.GetPort()};
-
-    // Add TextRecords from NsdServiceInfo
-    auto text_attributes = dnssd_service_instance_.TextAttributes();
-
-    auto it = text_records.begin();
-    while (it != text_records.end()) {
-      text_attributes.Insert(string_utils::StringToWideString(it->first),
-                             string_utils::StringToWideString(it->second));
-      it++;
-    }
-
-    if (server_socket_ptr == nullptr) {
-      LOG(ERROR) << "server socket is null.";
-      return false;
-    }
-
-    dnssd_regirstraion_result_ = dnssd_service_instance_
-                                     .RegisterStreamSocketListenerAsync(
-                                         server_socket_ptr->GetSocketListener())
-                                     .get();
-
-    if (dnssd_regirstraion_result_.HasInstanceNameChanged()) {
-      LOG(WARNING) << "advertising instance name was changed due to have "
-                      "same name instance was running.";
-      // stop the service and return false
-      StopAdvertising(nsd_service_info);
-      return false;
-    }
-
-    if (dnssd_regirstraion_result_.Status() ==
-        DnssdRegistrationStatus::Success) {
-      LOG(INFO) << "started to advertising.";
-      medium_status_ |= kMediumStatusAdvertising;
-      return true;
-    }
-
-    // Clean up
-    LOG(ERROR) << "failed to start advertising due to registration failure.";
-    dnssd_service_instance_ = nullptr;
-    dnssd_regirstraion_result_ = nullptr;
-    return false;
+  if (result) {
+    LOG(INFO) << "started to mDNS advertising.";
+    medium_status_ |= kMediumStatusAdvertising;
+    return true;
   }
+
+  LOG(ERROR) << "failed to start mDNS advertising.";
+  return false;
 }
 
 bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
@@ -199,33 +142,19 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
     return false;
   }
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          nearby::platform::config_package_nearby::nearby_platform_feature::
-              kEnableBlockingSocket)) {
-    // The service may be running under WinRT when the flag is enabled.
-    dnssd_service_instance_ = nullptr;
+  // The service may be running under WinRT when the flag is enabled.
+  dnssd_service_instance_ = nullptr;
 
-    bool result = wifi_lan_mdns_.StopMdnsService();
+  bool result = wifi_lan_mdns_.StopMdnsService();
 
-    if (result) {
-      medium_status_ &= (~kMediumStatusAdvertising);
-      return true;
-    }
-
-    LOG(ERROR) << "failed to stop mDNS advertising.";
-    medium_status_ &= (~kMediumStatusAdvertising);
-    return false;
-  } else {
-    // The service may be running under Win32 when the flag is disabled.
-    wifi_lan_mdns_.StopMdnsService();
-
-    dnssd_service_instance_ = nullptr;
-
-    LOG(INFO) << "succeeded to stop mDNS advertising for service type ="
-              << nsd_service_info.GetServiceType();
+  if (result) {
     medium_status_ &= (~kMediumStatusAdvertising);
     return true;
   }
+
+  LOG(ERROR) << "failed to stop mDNS advertising.";
+  medium_status_ &= (~kMediumStatusAdvertising);
+  return false;
 }
 
 // Returns true once the WifiLan discovery has been initiated.
@@ -337,88 +266,28 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
       nullptr;
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          nearby::platform::config_package_nearby::nearby_platform_feature::
-              kEnableBlockingSocket)) {
-    auto wifi_lan_socket = std::make_unique<WifiLanSocket>();
+  auto wifi_lan_socket = std::make_unique<WifiLanSocket>();
 
-    // setup cancel listener
-    if (cancellation_flag != nullptr) {
-      connection_cancellation_listener =
-          std::make_unique<nearby::CancellationFlagListener>(
-              cancellation_flag, [socket = wifi_lan_socket.get()]() {
-                LOG(WARNING) << "connect is closed due to it is cancelled.";
-                socket->Close();
-              });
-    }
+  // setup cancel listener
+  if (cancellation_flag != nullptr) {
+    connection_cancellation_listener =
+        std::make_unique<nearby::CancellationFlagListener>(
+            cancellation_flag, [socket = wifi_lan_socket.get()]() {
+              LOG(WARNING) << "connect is closed due to it is cancelled.";
+              socket->Close();
+            });
+  }
 
-    bool result = wifi_lan_socket->Connect(ipv4_address, port);
-    if (!result) {
-      LOG(ERROR) << "failed to connect to service " << ipv4_address << ":"
-                 << port;
-      return nullptr;
-    }
-
-    LOG(INFO) << "connected to remote service " << ipv4_address << ":" << port;
-
-    return wifi_lan_socket;
-
-  } else {
-    HostName host_name{
-        string_utils::StringToWideString(std::string(ipv4_address))};
-    winrt::hstring service_name{winrt::to_hstring(port)};
-
-    StreamSocket socket{};
-
-    // setup cancel listener
-    if (cancellation_flag != nullptr) {
-      connection_cancellation_listener =
-          std::make_unique<nearby::CancellationFlagListener>(
-              cancellation_flag, [socket]() {
-                LOG(WARNING) << "connect is closed due to it is cancelled.";
-                socket.Close();
-              });
-    }
-
-    // connection to the service
-    try {
-      if (FeatureFlags::GetInstance().GetFlags().enable_connection_timeout) {
-        connection_timeout_ = scheduled_executor_.Schedule(
-            [socket]() {
-              LOG(WARNING) << "connect is closed due to timeout.";
-              socket.Close();
-            },
-            kConnectServiceTimeout);
-      }
-
-      socket.ConnectAsync(host_name, service_name).get();
-
-      if (connection_timeout_ != nullptr) {
-        connection_timeout_->Cancel();
-        connection_timeout_ = nullptr;
-      }
-
-      auto wifi_lan_socket = std::make_unique<WifiLanSocket>(socket);
-
-      std::string local_address =
-          winrt::to_string(socket.Information().LocalAddress().DisplayName());
-      std::string local_port =
-          winrt::to_string(socket.Information().LocalPort());
-
-      LOG(INFO) << "connected to remote service " << ipv4_address << ":" << port
-                << " with local address " << local_address << ":" << local_port;
-      return wifi_lan_socket;
-    } catch (...) {
-      LOG(ERROR) << "failed to connect remote service " << ipv4_address << ":"
-                 << port;
-    }
-    if (connection_timeout_ != nullptr) {
-      connection_timeout_->Cancel();
-      connection_timeout_ = nullptr;
-    }
-
+  bool result = wifi_lan_socket->Connect(ipv4_address, port);
+  if (!result) {
+    LOG(ERROR) << "failed to connect to service " << ipv4_address << ":"
+                << port;
     return nullptr;
   }
+
+  LOG(INFO) << "connected to remote service " << ipv4_address << ":" << port;
+
+  return wifi_lan_socket;
 }
 
 std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
