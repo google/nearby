@@ -28,6 +28,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
+static const int kMaxAdvertisementLengthOnMacOS = 20;
+static const int kMaxAdvertisementLengthOnIOS = 23;
 
 @interface GNCBLEGATTServer () <GNCPeripheralManagerDelegate>
 @end
@@ -208,12 +210,19 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
     NSString *encoded = GNCFeatureFlags.dctEnabled ? [value base85EncodedString]
                                                    : [value webSafeBase64EncodedString];
 
-    // 23 bytes is the standard length which we used in the NC protocol with PSM. The BLE v2
-    // advertisement header is default with psm value included so the length is always 23 bytes.
-    // The IOS can advertise with more data than that, but we would still like to return
-    // fail early here since extra bytes are not expected in current NC protocol. This is not a
-    // hardware limit.
-    if (encoded.length > 23) {
+    // The BLE advertisement header in Nearby Connections, including the PSM, is typically
+    // 23 bytes. MacOS has a maximum advertisement payload of 22 bytes in practice. To prevent
+    // potential parsing issues from unexpected data, we will fail early if the advertisement
+    // length exceeds platform limits. This limitation is specific to our protocol, not a
+    // hardware constraint.
+#if TARGET_OS_OSX
+    // omission the PSM data for NC advertisement header, so that Android can still parse the
+    // advertisement header.
+    if (encoded.length > kMaxAdvertisementLengthOnMacOS) {
+      encoded = [encoded substringToIndex:kMaxAdvertisementLengthOnMacOS];
+    }
+#else
+    if (encoded.length > kMaxAdvertisementLengthOnIOS) {
       if (completionHandler) {
         completionHandler([NSError
             errorWithDomain:GNCBLEErrorDomain
@@ -225,6 +234,7 @@ static char *const kGNCBLEGATTServerQueueLabel = "com.nearby.GNCBLEGATTServer";
       }
       return;
     }
+#endif  // TARGET_OS_OSX
     _advertisementData = @{
       CBAdvertisementDataLocalNameKey : encoded,
       CBAdvertisementDataServiceUUIDsKey : @[ serviceUUID ]
