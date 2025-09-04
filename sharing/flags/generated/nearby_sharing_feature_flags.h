@@ -113,6 +113,9 @@ constexpr auto kEnableUiExperiments =
 // When true, enables use of Flutter hooks.
 constexpr auto kEnableFlutterHooks =
     flags::Flag<bool>(kConfigPackage, "45720206", false);
+// When true, enables the mini pulse animation.
+constexpr auto kEnableMiniPulse =
+    flags::Flag<bool>(kConfigPackage, "45724244", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -137,6 +140,7 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45661130, kEnableConflictBanner},
       {45678202, kEnableUiExperiments},
       {45720206, kEnableFlutterHooks},
+      {45724244, kEnableMiniPulse},
   };
 }
 
