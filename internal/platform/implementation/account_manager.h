@@ -22,6 +22,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/account_info.h"
 #include "internal/platform/implementation/signin_attempt.h"
@@ -64,14 +65,11 @@ class AccountManager {
       absl::AnyInvocable<void(absl::Status)> logout_callback) = 0;
 
   // Gets access token for the active account.
-  // |success_callback| is called when an access token is fetched successfully.
-  // |failure_callback| is called when fetching an access token failed.
+  // |callback| is called with the access token or error status.
   //
-  // Returns false if account_id is empty or callback is null.
+  // Returns false if callback is null.
   virtual bool GetAccessToken(
-      absl::string_view account_id,
-      absl::AnyInvocable<void(absl::string_view)> success_callback,
-      absl::AnyInvocable<void(absl::Status)> failure_callback) = 0;
+      absl::AnyInvocable<void(absl::StatusOr<std::string>)> callback) = 0;
 
   // Returns a pair containing the client id and client secret used in the most
   // recent Login request.

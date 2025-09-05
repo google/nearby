@@ -21,6 +21,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/signin_attempt.h"
@@ -52,14 +53,15 @@ void FakeAccountManager::Logout(
 }
 
 bool FakeAccountManager::GetAccessToken(
-    absl::string_view account_id,
-    absl::AnyInvocable<void(absl::string_view)> success_callback,
-    absl::AnyInvocable<void(absl::Status)> failure_callback) {
-  if (!account_.has_value()) {
-    failure_callback(absl::UnavailableError("No current user."));
+    absl::AnyInvocable<void(absl::StatusOr<std::string>)> callback) {
+  if (!callback) {
     return false;
   }
-  success_callback(account_id);
+  if (!account_.has_value()) {
+    callback(absl::UnavailableError("No current user."));
+    return true;
+  }
+  callback("FAKE_ACCESS_TOKEN");
   return true;
 }
 

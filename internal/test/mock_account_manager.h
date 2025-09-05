@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/signin_attempt.h"
@@ -39,9 +40,7 @@ class MockAccountManager : public AccountManager {
               (absl::AnyInvocable<void(absl::Status)> logout_callback),
               (override));
   MOCK_METHOD(bool, GetAccessToken,
-              (absl::string_view account_id,
-               absl::AnyInvocable<void(absl::string_view)> success_callback,
-               absl::AnyInvocable<void(absl::Status)> failure_callback),
+              (absl::AnyInvocable<void(absl::StatusOr<std::string>)> callback),
               (override));
   MOCK_METHOD((std::pair<std::string, std::string>), GetOAuthClientCredential,
               (), (override));

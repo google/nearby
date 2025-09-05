@@ -22,6 +22,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -44,9 +45,7 @@ class FakeAccountManager : public AccountManager {
   void Logout(absl::AnyInvocable<void(absl::Status)> logout_callback) override;
 
   bool GetAccessToken(
-      absl::string_view account_id,
-      absl::AnyInvocable<void(absl::string_view)> success_callback,
-      absl::AnyInvocable<void(absl::Status)> failure_callback) override;
+      absl::AnyInvocable<void(absl::StatusOr<std::string>)> callback) override;
   std::pair<std::string, std::string> GetOAuthClientCredential() override;
   void AddObserver(Observer* observer) override;
   void RemoveObserver(Observer* observer) override;
