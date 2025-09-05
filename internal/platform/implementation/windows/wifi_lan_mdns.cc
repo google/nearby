@@ -51,8 +51,8 @@ WifiLanMdns::~WifiLanMdns() {
 
 bool WifiLanMdns::StartMdnsService(
     const std::string& service_name, const std::string& service_type, int port,
-    absl::flat_hash_map<std::string, std::string> text_records) {
-  absl::MutexLock lock(&mutex_);
+    const absl::flat_hash_map<std::string, std::string>& text_records) {
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "StartMdnsService: " << service_name << " " << service_type
             << " " << port;
   if (is_service_started_) {
@@ -93,16 +93,13 @@ bool WifiLanMdns::StartMdnsService(
       text_values_.push_back(string_utils::StringToWideString(value));
     }
 
-    keys_ = new PWSTR[text_records.size()];
-    values_ = new PWSTR[text_records.size()];
+    dns_service_instance_.keys = new PWSTR[text_records.size()];
+    dns_service_instance_.values = new PWSTR[text_records.size()];
 
     for (int i = 0; i < text_records.size(); ++i) {
-      keys_[i] = text_keys_[i].data();
-      values_[i] = text_values_[i].data();
+      dns_service_instance_.keys[i] = text_keys_[i].data();
+      dns_service_instance_.values[i] = text_values_[i].data();
     }
-
-    dns_service_instance_.keys = keys_;
-    dns_service_instance_.values = values_;
   }
 
   // Init DNS service register request
@@ -143,7 +140,7 @@ bool WifiLanMdns::StartMdnsService(
 }
 
 bool WifiLanMdns::StopMdnsService() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "StopMdnsService is called";
   if (!is_service_started_) {
     LOG(WARNING) << "The mDNS service is not started.";
@@ -192,10 +189,14 @@ void WifiLanMdns::CleanUp() {
   dns_service_notification_ = nullptr;
   if (dns_service_instance_.keys != nullptr) {
     delete[] dns_service_instance_.keys;
-    delete[] dns_service_instance_.values;
     dns_service_instance_.keys = nullptr;
+  }
+  if (dns_service_instance_.values != nullptr) {
+    delete[] dns_service_instance_.values;
     dns_service_instance_.values = nullptr;
   }
+  text_keys_.clear();
+  text_values_.clear();
 }
 
 }  // namespace nearby::windows

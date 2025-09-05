@@ -229,9 +229,6 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   // Close notifier
   absl::AnyInvocable<void()> close_notifier_ = nullptr;
 
-  // IP addresses of the computer. mDNS uses them to advertise.
-  std::vector<std::string> ip_addresses_{};
-
   // Cache socket not be picked by upper layer
   int port_ = 0;
   bool closed_ = false;
@@ -356,7 +353,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
 
-  // Used to keep the service name is advertising.
+  // The mDNS service name we are currently advertising.
   std::string service_name_;
 
   // mDNS service
