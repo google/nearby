@@ -20,80 +20,8 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
-
-// A mock GNCNWFrameworkServerSocket used to test the advertising/listening methods on
-// GNCNWFramework.
-@interface GNCMockNWFrameworkServerSocket : GNCNWFrameworkServerSocket
-@property(nonatomic) BOOL startListeningResult;
-@property(nonatomic, nullable) NSError *startListeningError;
-@property(nonatomic, nullable, copy) NSData *startListeningPSKIdentity;
-@property(nonatomic, nullable, copy) NSData *startListeningPSKSharedSecret;
-@property(nonatomic) BOOL startListeningIncludePeerToPeer;
-@property(nonatomic) BOOL startAdvertisingCalled;
-@property(nonatomic, nullable, copy) NSString *startAdvertisingServiceName;
-@property(nonatomic, nullable, copy) NSString *startAdvertisingServiceType;
-@property(nonatomic, nullable, copy) NSDictionary<NSString *, NSString *> *startAdvertisingTXTRecords;
-@property(nonatomic) BOOL stopAdvertisingCalled;
-
-- (instancetype)initWithPort:(NSInteger)port NS_DESIGNATED_INITIALIZER;
-@end
-
-@implementation GNCMockNWFrameworkServerSocket
-@synthesize startListeningResult;
-@synthesize startListeningError;
-@synthesize startListeningPSKIdentity;
-@synthesize startListeningPSKSharedSecret;
-@synthesize startListeningIncludePeerToPeer;
-@synthesize startAdvertisingCalled;
-@synthesize startAdvertisingServiceName;
-@synthesize startAdvertisingServiceType;
-@synthesize startAdvertisingTXTRecords;
-@synthesize stopAdvertisingCalled;
-
-- (instancetype)initWithPort:(NSInteger)port {
-  self = [super initWithPort:port];
-  if (self) {
-    self.startListeningResult = YES;
-  }
-  return self;
-}
-
-- (BOOL)startListeningWithError:(NSError **)error
-              includePeerToPeer:(BOOL)includePeerToPeer {
-  self.startListeningIncludePeerToPeer = includePeerToPeer;
-  if (!self.startListeningResult && error != nil) {
-    *error = self.startListeningError;
-  }
-  return self.startListeningResult;
-}
-
-- (BOOL)startListeningWithPSKIdentity:(NSData *)PSKIdentity
-                      PSKSharedSecret:(NSData *)PSKSharedSecret
-                    includePeerToPeer:(BOOL)includePeerToPeer
-                                error:(NSError **)error {
-  self.startListeningPSKIdentity = PSKIdentity;
-  self.startListeningPSKSharedSecret = PSKSharedSecret;
-  self.startListeningIncludePeerToPeer = includePeerToPeer;
-  if (!self.startListeningResult && error != nil) {
-    *error = self.startListeningError;
-  }
-  return self.startListeningResult;
-}
-
-- (void)startAdvertisingServiceName:(NSString *)serviceName
-                        serviceType:(NSString *)serviceType
-                         txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
-  self.startAdvertisingCalled = YES;
-  self.startAdvertisingServiceName = serviceName;
-  self.startAdvertisingServiceType = serviceType;
-  self.startAdvertisingTXTRecords = txtRecords;
-}
-
-- (void)stopAdvertising {
-  self.stopAdvertisingCalled = YES;
-}
-
-@end
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkServerSocket.h"
 
 @interface GNCNWFrameworkTest : XCTestCase
 @end
@@ -116,13 +44,13 @@
   id mockServerSocketAlloc = OCMClassMock([GNCNWFrameworkServerSocket class]);
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
   OCMStub([mockServerSocketAlloc initWithPort:1234]).andReturn(mockServerSocket);
-  OCMStub([mockServerSocket startListeningWithError:[OCMArg anyObjectRef]
-                                includePeerToPeer:NO])
+  OCMStub([mockServerSocket startListeningWithError:[OCMArg anyObjectRef] includePeerToPeer:NO])
       .andReturn(YES);
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket =
-      [framework listenForServiceOnPort:1234 includePeerToPeer:NO error:&error];
+  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:1234
+                                                             includePeerToPeer:NO
+                                                                         error:&error];
   XCTAssertNotNil(serverSocket);
   XCTAssertNil(error);
   XCTAssertTrue([framework isListeningForAnyService]);
@@ -134,8 +62,7 @@
   id mockServerSocketAlloc = OCMClassMock([GNCNWFrameworkServerSocket class]);
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
   OCMStub([mockServerSocketAlloc initWithPort:1234]).andReturn(mockServerSocket);
-  OCMStub([mockServerSocket startListeningWithError:[OCMArg anyObjectRef]
-                                includePeerToPeer:NO])
+  OCMStub([mockServerSocket startListeningWithError:[OCMArg anyObjectRef] includePeerToPeer:NO])
       .andDo(^(id localSelf, NSError **error, BOOL includePeerToPeer) {
         if (error) {
           *error = [NSError errorWithDomain:NSPOSIXErrorDomain code:EACCES userInfo:nil];
@@ -144,8 +71,9 @@
       });
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket =
-      [framework listenForServiceOnPort:1234 includePeerToPeer:NO error:&error];
+  GNCNWFrameworkServerSocket *serverSocket = [framework listenForServiceOnPort:1234
+                                                             includePeerToPeer:NO
+                                                                         error:&error];
   XCTAssertNil(serverSocket);
   XCTAssertNotNil(error);
   XCTAssertFalse([framework isListeningForAnyService]);
@@ -161,18 +89,18 @@
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
   OCMStub([mockServerSocketAlloc initWithPort:1234]).andReturn(mockServerSocket);
   OCMStub([mockServerSocket startListeningWithPSKIdentity:pskIdentity
-                                         PSKSharedSecret:pskSharedSecret
-                                       includePeerToPeer:YES
-                                                   error:[OCMArg anyObjectRef]])
+                                          PSKSharedSecret:pskSharedSecret
+                                        includePeerToPeer:YES
+                                                    error:[OCMArg anyObjectRef]])
       .andReturn(YES);
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket = [framework
-      listenForServiceWithPSKIdentity:pskIdentity
-                      PSKSharedSecret:pskSharedSecret
-                                 port:1234
-                    includePeerToPeer:YES
-                                error:&error];
+  GNCNWFrameworkServerSocket *serverSocket =
+      [framework listenForServiceWithPSKIdentity:pskIdentity
+                                 PSKSharedSecret:pskSharedSecret
+                                            port:1234
+                               includePeerToPeer:YES
+                                           error:&error];
   XCTAssertNotNil(serverSocket);
   XCTAssertNil(error);
   XCTAssertTrue([framework isListeningForAnyService]);
@@ -188,9 +116,9 @@
   OCMStub([mockServerSocketAlloc alloc]).andReturn(mockServerSocketAlloc);
   OCMStub([mockServerSocketAlloc initWithPort:1234]).andReturn(mockServerSocket);
   OCMStub([mockServerSocket startListeningWithPSKIdentity:pskIdentity
-                                         PSKSharedSecret:pskSharedSecret
-                                       includePeerToPeer:NO
-                                                   error:[OCMArg anyObjectRef]])
+                                          PSKSharedSecret:pskSharedSecret
+                                        includePeerToPeer:NO
+                                                    error:[OCMArg anyObjectRef]])
       .andDo(^(id localSelf, NSData *PSKIdentity, NSData *PSKSharedSecret, BOOL includePeerToPeer,
                NSError **error) {
         if (error) {
@@ -200,12 +128,12 @@
       });
 
   NSError *error = nil;
-  GNCNWFrameworkServerSocket *serverSocket = [framework
-      listenForServiceWithPSKIdentity:pskIdentity
-                      PSKSharedSecret:pskSharedSecret
-                                 port:1234
-                    includePeerToPeer:NO
-                                error:&error];
+  GNCNWFrameworkServerSocket *serverSocket =
+      [framework listenForServiceWithPSKIdentity:pskIdentity
+                                 PSKSharedSecret:pskSharedSecret
+                                            port:1234
+                               includePeerToPeer:NO
+                                           error:&error];
   XCTAssertNil(serverSocket);
   XCTAssertNotNil(error);
   XCTAssertFalse([framework isListeningForAnyService]);
@@ -215,43 +143,43 @@
   NSInteger port = 1234;
   NSString *serviceName = @"TestService";
   NSString *serviceType = @"_test._tcp.";
-  NSDictionary<NSString *, NSString *> *txtRecords = @{@"key": @"value"};
+  NSDictionary<NSString *, NSString *> *txtRecords = @{@"key" : @"value"};
 
-  GNCMockNWFrameworkServerSocket *mockServerSocket =
-      [[GNCMockNWFrameworkServerSocket alloc] initWithPort:port];
+  GNCFakeNWFrameworkServerSocket *fakeServerSocket =
+      [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
 
   GNCNWFramework *framework = [[GNCNWFramework alloc] init];
   NSMapTable<NSNumber *, GNCNWFrameworkServerSocket *> *serverSockets =
       [framework valueForKey:@"_serverSockets"];
-  [serverSockets setObject:mockServerSocket forKey:@(port)];
+  [serverSockets setObject:fakeServerSocket forKey:@(port)];
 
   [framework startAdvertisingPort:port
                       serviceName:serviceName
                       serviceType:serviceType
                        txtRecords:txtRecords];
 
-  XCTAssertTrue(mockServerSocket.startAdvertisingCalled);
-  XCTAssertEqualObjects(mockServerSocket.startAdvertisingServiceName, serviceName);
-  XCTAssertEqualObjects(mockServerSocket.startAdvertisingServiceType, serviceType);
-  XCTAssertEqualObjects(mockServerSocket.startAdvertisingTXTRecords, txtRecords);
+  XCTAssertTrue(fakeServerSocket.startAdvertisingCalled);
+  XCTAssertEqualObjects(fakeServerSocket.startAdvertisingServiceName, serviceName);
+  XCTAssertEqualObjects(fakeServerSocket.startAdvertisingServiceType, serviceType);
+  XCTAssertEqualObjects(fakeServerSocket.startAdvertisingTXTRecords, txtRecords);
 }
 
 - (void)testStopAdvertisingPort {
   NSInteger port = 1234;
-  GNCMockNWFrameworkServerSocket *mockServerSocket =
-      [[GNCMockNWFrameworkServerSocket alloc] initWithPort:port];
+  GNCFakeNWFrameworkServerSocket *fakeServerSocket =
+      [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
 
   GNCNWFramework *framework = [[GNCNWFramework alloc] init];
   NSMapTable<NSNumber *, GNCNWFrameworkServerSocket *> *serverSockets =
       [framework valueForKey:@"_serverSockets"];
-  [serverSockets setObject:mockServerSocket forKey:@(port)];
+  [serverSockets setObject:fakeServerSocket forKey:@(port)];
 
   XCTAssertTrue([[[serverSockets keyEnumerator] allObjects] containsObject:@(port)]);
 
   [framework stopAdvertisingPort:port];
 
-  XCTAssertTrue(mockServerSocket.stopAdvertisingCalled);
-  XCTAssertFalse([[[serverSockets keyEnumerator] allObjects] containsObject:@(port)]);
+  XCTAssertTrue(fakeServerSocket.stopAdvertisingCalled);
+  XCTAssertNil([serverSockets objectForKey:@(port)]);
 }
 
 - (void)testIsDiscoveringAnyServiceWhenNoServicesAreDiscovering {

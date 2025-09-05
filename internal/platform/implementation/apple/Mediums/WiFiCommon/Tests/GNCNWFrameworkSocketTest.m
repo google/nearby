@@ -12,30 +12,101 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import <XCTest/XCTest.h>
-#import <os/availability.h>
-#import <Network/Network.h>
-
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
-#import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
-@interface GNCNWFrameworkSocketTest : XCTestCase
+#import <Network/Network.h>
+#import <XCTest/XCTest.h>
+
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface GNCNWFrameworkSocketTests : XCTestCase
 @end
 
-@implementation GNCNWFrameworkSocketTest {
-  id _mockConnection;
+@implementation GNCNWFrameworkSocketTests {
+  GNCFakeNWConnection *_fakeConnection;
+  GNCNWFrameworkSocket *_socket;
 }
 
 - (void)setUp {
   [super setUp];
-  if (@available(iOS 13.0, *)) {
-    _mockConnection = OCMProtocolMock(@protocol(OS_nw_connection));
-  }
+  _fakeConnection = [[GNCFakeNWConnection alloc] init];
+  _socket = [[GNCNWFrameworkSocket alloc] initWithConnection:_fakeConnection];
 }
 
-- (void)testInitWithConnection API_AVAILABLE(ios(13.0)) {
-  GNCNWFrameworkSocket *socket = [[GNCNWFrameworkSocket alloc] initWithConnection:_mockConnection];
-  XCTAssertNotNil(socket);
+- (void)tearDown {
+  _socket = nil;
+  _fakeConnection = nil;
+  [super tearDown];
+}
+
+- (void)testInit {
+  XCTAssertNotNil(_socket);
+}
+
+- (void)testReadMaxLength_Success {
+  NSError *error = nil;
+  NSString *testString = @"testData";
+  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
+  _fakeConnection.dataToReceive = (dispatch_data_t)testData;
+
+  NSData *receivedData = [_socket readMaxLength:testData.length error:&error];
+
+  XCTAssertEqualObjects(receivedData, testData);
+  XCTAssertNil(error);
+}
+
+- (void)testReadMaxLength_Error {
+  NSError *error = nil;
+  _fakeConnection.simulateReceiveFailure = YES;
+
+  NSData *receivedData = [_socket readMaxLength:10 error:&error];
+
+  XCTAssertNil(receivedData);
+  XCTAssertNil(error);  // Fake doesn't produce an NSError
+}
+
+- (void)testReadMaxLength_Zero {
+  NSError *error = nil;
+  NSData *receivedData = [_socket readMaxLength:0 error:&error];
+
+  XCTAssertNil(receivedData);
+  XCTAssertNil(error);
+}
+
+- (void)testWrite_Success {
+  NSError *error = nil;
+  NSString *testString = @"testData";
+  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
+
+  BOOL result = [_socket write:testData error:&error];
+
+  XCTAssertTrue(result);
+  XCTAssertNil(error);
+}
+
+- (void)testWrite_Error {
+  NSError *error = nil;
+  NSString *testString = @"testData";
+  NSData *testData = [testString dataUsingEncoding:NSUTF8StringEncoding];
+  _fakeConnection.simulateSendFailure = YES;
+
+  BOOL result = [_socket write:testData error:&error];
+
+  XCTAssertFalse(result);
+}
+
+- (void)testClose {
+  XCTAssertFalse(_fakeConnection.cancelCalled);
+  [_socket close];
+  XCTAssertTrue(_fakeConnection.cancelCalled);
+  // Also test that subsequent operations fail
+  NSError *error = nil;
+  XCTAssertNil([_socket readMaxLength:10 error:&error]);
+  XCTAssertFalse([_socket write:[NSData data] error:&error]);
 }
 
 @end
+
+NS_ASSUME_NONNULL_END

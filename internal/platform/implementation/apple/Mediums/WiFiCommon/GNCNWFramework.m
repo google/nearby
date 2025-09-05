@@ -19,6 +19,7 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnectionImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
@@ -421,7 +422,8 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     case nw_connection_state_cancelled:
       return nil;
     case nw_connection_state_ready:
-      return [[GNCNWFrameworkSocket alloc] initWithConnection:connection];
+      return [[GNCNWFrameworkSocket alloc]
+          initWithConnection:[[GNCNWConnectionImpl alloc] initWithNWConnection:connection]];
   }
 }
 

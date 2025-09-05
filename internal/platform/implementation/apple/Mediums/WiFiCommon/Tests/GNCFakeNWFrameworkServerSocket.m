@@ -15,6 +15,7 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkServerSocket.h"
 
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkSocket.h"
 
 @implementation GNCFakeNWFrameworkServerSocket {
@@ -43,12 +44,27 @@
   if (self.socketToReturnOnAccept) {
     return self.socketToReturnOnAccept;
   }
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
-  return [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  return [[GNCFakeNWFrameworkSocket alloc]
+      initWithConnection:[[GNCFakeNWConnection alloc] init]];
 }
 
 - (void)close {
   self.isClosed = YES;
+}
+
+#pragma mark - GNCNWFrameworkServerSocket+Internal.h
+
+- (void)startAdvertisingServiceName:(NSString *)serviceName
+                        serviceType:(NSString *)serviceType
+                         txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+  self.startAdvertisingCalled = YES;
+  self.startAdvertisingServiceName = serviceName;
+  self.startAdvertisingServiceType = serviceType;
+  self.startAdvertisingTXTRecords = txtRecords;
+}
+
+- (void)stopAdvertising {
+  self.stopAdvertisingCalled = YES;
 }
 
 @end

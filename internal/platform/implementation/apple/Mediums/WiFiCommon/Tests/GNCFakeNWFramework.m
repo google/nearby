@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFramework.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkSocket.h"
 
@@ -59,9 +60,8 @@
                                          error:(NSError **)error {
   self.connectedToServiceName = serviceName;
   self.connectedToServiceType = serviceType;
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
-  GNCFakeNWFrameworkSocket *socket =
-      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  GNCFakeNWFrameworkSocket *socket = [[GNCFakeNWFrameworkSocket alloc]
+      initWithConnection:[[GNCFakeNWConnection alloc] init]];
   [self.sockets addObject:socket];
   return socket;
 }
@@ -73,9 +73,8 @@
                                                   error:(NSError **)error {
   self.connectedToServiceName = serviceName;
   self.connectedToServiceType = serviceType;
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
-  GNCFakeNWFrameworkSocket *socket =
-      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  GNCFakeNWFrameworkSocket *socket = [[GNCFakeNWFrameworkSocket alloc]
+      initWithConnection:[[GNCFakeNWConnection alloc] init]];
   [self.sockets addObject:socket];
   return socket;
 }
@@ -87,9 +86,8 @@
   self.connectedToHost = host;
   self.connectedToPort = port;
   self.connectedToIncludePeerToPeer = includePeerToPeer;
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
-  GNCFakeNWFrameworkSocket *socket =
-      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
+  GNCFakeNWFrameworkSocket *socket = [[GNCFakeNWFrameworkSocket alloc]
+      initWithConnection:[[GNCFakeNWConnection alloc] init]];
   [self.sockets addObject:socket];
   return socket;
 }

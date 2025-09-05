@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkSocket.h"
 
 @implementation GNCFakeNWFrameworkSocket
 
-- (instancetype)initWithConnection:(nw_connection_t)connection {
+- (instancetype)initWithConnection:(id<GNCNWConnection>)connection {
   self = [super initWithConnection:connection];
   if (self) {
     _writtenData = [NSMutableData data];

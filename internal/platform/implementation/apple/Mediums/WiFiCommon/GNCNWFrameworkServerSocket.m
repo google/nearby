@@ -24,6 +24,7 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnectionImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
@@ -109,7 +110,8 @@ NS_ASSUME_NONNULL_BEGIN
   if (connection == nil) {
     return nil;
   }
-  return [[GNCNWFrameworkSocket alloc] initWithConnection:connection];
+  return [[GNCNWFrameworkSocket alloc]
+      initWithConnection:[[GNCNWConnectionImpl alloc] initWithNWConnection:connection]];
 }
 
 - (void)close {

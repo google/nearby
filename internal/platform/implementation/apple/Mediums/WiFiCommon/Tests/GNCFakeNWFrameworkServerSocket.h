@@ -24,8 +24,14 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GNCFakeNWFrameworkServerSocket : GNCNWFrameworkServerSocket
 
 @property(nonatomic) BOOL isClosed;
-@property(nonatomic, nullable) NSError* acceptError;
-@property(nonatomic, nullable) GNCFakeNWFrameworkSocket* socketToReturnOnAccept;
+@property(nonatomic, nullable) NSError *acceptError;
+@property(nonatomic, nullable) GNCFakeNWFrameworkSocket *socketToReturnOnAccept;
+@property(nonatomic) BOOL startAdvertisingCalled;
+@property(nonatomic, nullable, copy) NSString *startAdvertisingServiceName;
+@property(nonatomic, nullable, copy) NSString *startAdvertisingServiceType;
+@property(nonatomic, nullable, copy)
+    NSDictionary<NSString *, NSString *> *startAdvertisingTXTRecords;
+@property(nonatomic) BOOL stopAdvertisingCalled;
 
 @end
 

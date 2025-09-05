@@ -12,24 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
 
 #import <Foundation/Foundation.h>
-
-@protocol GNCNWConnection;
+#import <Network/Network.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-/** A fake implementation of @c GNCNWFrameworkSocket to inject for testing. */
-@interface GNCFakeNWFrameworkSocket : GNCNWFrameworkSocket
+/**
+ * The default implementation of GNCNWConnection that calls the real Network.framework C
+ * functions.
+ */
+@interface GNCNWConnectionImpl : NSObject <GNCNWConnection>
 
-- (instancetype)initWithConnection:(id<GNCNWConnection>)connection NS_DESIGNATED_INITIALIZER;
-
-@property(nonatomic, nullable) NSData* dataToRead;
-@property(nonatomic, readonly) NSMutableData* writtenData;
-@property(nonatomic) BOOL isClosed;
-@property(nonatomic, nullable) NSError* readError;
-@property(nonatomic, nullable) NSError* writeError;
+- (instancetype)initWithNWConnection:(nw_connection_t)connection NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 
 @end
 

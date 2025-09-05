@@ -24,6 +24,7 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnectionImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 
@@ -234,7 +235,8 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
       GNCLoggerError(@"connectToEndpoint failed with result: %d", blockResult);
       return nil;
     case nw_connection_state_ready: {
-      return [[GNCNWFrameworkSocket alloc] initWithConnection:connection];
+      return [[GNCNWFrameworkSocket alloc]
+          initWithConnection:[[GNCNWConnectionImpl alloc] initWithNWConnection:connection]];
     }
   }
 }

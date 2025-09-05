@@ -18,17 +18,21 @@
 #import <Network/Network.h>
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
+
+static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
 
 @interface GNCNWFrameworkSocket ()
 
-@property(nonatomic, readonly) nw_connection_t connection;
+@property(nonatomic, readonly) id<GNCNWConnection> connection;
 
 @end
 
 @implementation GNCNWFrameworkSocket {
 }
 
-- (instancetype)initWithConnection:(nw_connection_t)connection {
+- (instancetype)initWithConnection:(nonnull id<GNCNWConnection>)connection {
   self = [super init];
   if (self) {
     _connection = connection;
@@ -37,8 +41,12 @@
 }
 
 - (NSData *)readMaxLength:(NSUInteger)length error:(NSError **)error {
-  __strong nw_connection_t connection = self.connection;
-  if (connection == nil) {
+  if (!self.connection) {
+    if (error) {
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorUnknown
+                               userInfo:nil];
+    }
     return nil;
   }
 
@@ -48,22 +56,25 @@
   __block NSData *blockResult = nil;
   __block NSError *blockError = nil;
 
-  nw_connection_receive(
-      connection, length, length,
-      ^(dispatch_data_t content, nw_content_context_t context, bool is_complete, nw_error_t error) {
-        [condition lock];
-        if (error != nil) {
-          blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-        }
+  [self.connection
+      receiveMessageWithMinLength:(uint32_t)length
+                        maxLength:(uint32_t)length
+                completionHandler:^(dispatch_data_t _Nullable content,
+                                    nw_content_context_t _Nullable context, bool isComplete,
+                                    nw_error_t _Nullable receiveError) {
+                  [condition lock];
+                  if (receiveError) {
+                    blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(receiveError);
+                  }
 #if __LP64__
-        // This cast is only safe in a 64-bit runtime.
-        blockResult = [(NSData *)content copy];
+                  // This cast is only safe in a 64-bit runtime.
+                  blockResult = [(NSData *)content copy];
 #else
         blockResult = nil;
 #endif
-        [condition signal];
-        [condition unlock];
-      });
+                  [condition signal];
+                  [condition unlock];
+                }];
 
   [condition wait];
   [condition unlock];
@@ -75,15 +86,19 @@
 }
 
 - (BOOL)write:(NSData *)data error:(NSError **)error {
-  __strong nw_connection_t connection = self.connection;
-  if (connection == nil) {
+  if (!self.connection) {
+    if (error) {
+      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                   code:GNCNWFrameworkErrorUnknown
+                               userInfo:nil];
+    }
     return NO;
   }
 
   NSCondition *condition = [[NSCondition alloc] init];
   [condition lock];
 
-  __block BOOL blockResult = NO;
+  __block BOOL blockSuccess = NO;
   __block NSError *blockError = nil;
 
   __block NSData *blockData = [data copy];
@@ -97,32 +112,32 @@
         blockData = nil;
       });
 
-  nw_connection_send(connection, dispatchData, NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT, false,
-                     ^(nw_error_t error) {
-                       [condition lock];
-                       blockResult = error == nil;
-                       if (error != nil) {
-                         blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-                       }
-                       [condition signal];
-                       [condition unlock];
-                     });
+  [self.connection sendData:dispatchData
+                    context:NW_CONNECTION_DEFAULT_MESSAGE_CONTEXT
+                 isComplete:false
+          completionHandler:^(nw_error_t _Nullable sendError) {
+            [condition lock];
+            blockSuccess = sendError == nil;
+            if (sendError) {
+              blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(sendError);
+            }
+            [condition signal];
+            [condition unlock];
+          }];
 
-  [condition wait];
+  // Wait until the condition is signaled or 5 seconds pass
+  BOOL signaled =
+      [condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:kConnectionWriteTimeout]];
   [condition unlock];
 
   if (error != nil) {
     *error = blockError;
   }
-  return blockResult;
+  return signaled && blockSuccess;
 }
 
 - (void)close {
-  __strong nw_connection_t connection = self.connection;
-  if (connection == nil) {
-    return;
-  }
-  nw_connection_cancel(connection);
+  [self.connection cancel];
   _connection = nil;
 }
 

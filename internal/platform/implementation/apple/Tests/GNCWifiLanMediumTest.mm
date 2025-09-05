@@ -20,6 +20,7 @@
 
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkSocket.h"
@@ -122,7 +123,7 @@
 
   GNCFakeNWFrameworkServerSocket* fakeServerSocket =
       (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
   GNCFakeNWFrameworkSocket* fakeSocket =
       [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
   fakeServerSocket.socketToReturnOnAccept = fakeSocket;
@@ -188,7 +189,7 @@
       _wifiLanMedium->ListenForService(1234);
   GNCFakeNWFrameworkServerSocket* fakeServerSocket =
       (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
   GNCFakeNWFrameworkSocket* fakeSocket =
       [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
   fakeServerSocket.socketToReturnOnAccept = fakeSocket;
@@ -212,7 +213,7 @@
       _wifiLanMedium->ListenForService(1234);
   GNCFakeNWFrameworkServerSocket* fakeServerSocket =
       (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
   GNCFakeNWFrameworkSocket* fakeSocket =
       [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
   fakeServerSocket.socketToReturnOnAccept = fakeSocket;
@@ -236,7 +237,7 @@
       _wifiLanMedium->ListenForService(1234);
   GNCFakeNWFrameworkServerSocket* fakeServerSocket =
       (GNCFakeNWFrameworkServerSocket*)_fakeNWFramework.serverSockets[0];
-  nw_connection_t connection = (nw_connection_t) @"mock connection";
+  GNCFakeNWConnection* connection = [[GNCFakeNWConnection alloc] init];
   GNCFakeNWFrameworkSocket* fakeSocket =
       [[GNCFakeNWFrameworkSocket alloc] initWithConnection:connection];
   fakeServerSocket.socketToReturnOnAccept = fakeSocket;

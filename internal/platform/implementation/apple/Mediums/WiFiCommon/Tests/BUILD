@@ -24,11 +24,13 @@ objc_library(
     name = "FakeNWFramework",
     testonly = True,
     srcs = [
+        "GNCFakeNWConnection.m",
         "GNCFakeNWFramework.m",
         "GNCFakeNWFrameworkServerSocket.m",
         "GNCFakeNWFrameworkSocket.m",
     ],
     hdrs = [
+        "GNCFakeNWConnection.h",
         "GNCFakeNWFramework.h",
         "GNCFakeNWFrameworkServerSocket.h",
         "GNCFakeNWFrameworkSocket.h",
@@ -36,6 +38,7 @@ objc_library(
     deps = [
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:Network",
     ],
 )
 
@@ -44,13 +47,17 @@ objc_library(
     testonly = True,
     srcs = [
         "GNCIPAddressTest.mm",
+        "GNCNWConnectionImplTest.m",
         "GNCNWFrameworkServerSocketTest.m",
         "GNCNWFrameworkSocketTest.m",
         "GNCNWFrameworkTest.m",
         "GNCNWParametersTest.m",
     ],
     deps = [
+        ":FakeNWFramework",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
+        "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:Network",
         "//third_party/apple_frameworks:XCTest",
         "//third_party/objective_c/ocmock/v3:OCMock",
     ],
