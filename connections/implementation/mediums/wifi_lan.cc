@@ -229,7 +229,8 @@ bool WifiLan::IsDiscoveringLocked(const std::string& service_id) {
 }
 
 ErrorOr<bool> WifiLan::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
+    const std::string& service_id, const std::string& mdns_service_name,
+    AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
 
   if (service_id.empty()) {
@@ -257,6 +258,11 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
   // Generate an exact port here on server socket; if platform doesn't provide
   // range of port then assign 0 to let platform decide it.
   int port = 0;
+  if (!mdns_service_name.empty() &&
+      mdns_service_name == last_mdns_service_name_) {
+    VLOG(1) << __func__ << " reusing server port number: " << last_server_port_;
+    port = last_server_port_;
+  }
   if (port_range.has_value() &&
       (port_range->first > 0 && port_range->first <= 65535 &&
        port_range->second > 0 && port_range->second <= 65535 &&
@@ -264,6 +270,8 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
     port = GeneratePort(service_id, port_range.value());
   }
   WifiLanServerSocket server_socket = medium_.ListenForService(port);
+  last_server_port_ = server_socket.GetPort();
+  last_mdns_service_name_ = mdns_service_name;
   if (!server_socket.IsValid()) {
     LOG(INFO) << "Failed to start accepting WifiLan connections for service_id="
               << service_id;

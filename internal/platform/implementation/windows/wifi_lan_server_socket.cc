@@ -46,7 +46,16 @@ WifiLanServerSocket::~WifiLanServerSocket() { Close(); }
 
 // Returns the first IP address.
 std::string WifiLanServerSocket::GetIPAddress() const {
-  return ipaddr_dotdecimal_to_4bytes_string(server_socket_.GetIPAddress());
+  // The result of this function is used in BWU to let the remote side know
+  // which IP to connect to.
+  // server_socket_ is not bound to any addresses.  So we need to pick an
+  // IP address from the list of available addresses.
+  std::vector<std::string> ip_addresses = GetIpv4Addresses();
+  if (ip_addresses.empty()) {
+    LOG(ERROR) << "No IP addresses found.";
+    return "";
+  }
+  return ipaddr_dotdecimal_to_4bytes_string(ip_addresses.front());
 }
 
 // Returns socket port.
@@ -79,7 +88,7 @@ void WifiLanServerSocket::SetCloseNotifier(
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception WifiLanServerSocket::Close() {
   try {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     VLOG(1) << __func__ << ": Close is called.";
     if (closed_) {
       return {Exception::kSuccess};
@@ -116,27 +125,18 @@ Exception WifiLanServerSocket::Close() {
 }
 
 bool WifiLanServerSocket::listen() {
-  ip_addresses_ = GetIpv4Addresses();
-
-  if (ip_addresses_.empty()) {
-    LOG(ERROR) << "failed to start accepting connection without IP "
-                  "addresses configured on computer.";
+  // Listen on all interfaces.
+  if (!server_socket_.Listen("", port_)) {
+    LOG(ERROR) << "Failed to listen socket at port:" << port_;
     return false;
   }
-
-    // Listen on all interfaces.
-    if (!server_socket_.Listen("", port_)) {
-      LOG(ERROR) << "Failed to listen socket at port:" << port_;
-      return false;
-    }
-
   return true;
 }
 
 fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
     StreamSocketListener listener,
     StreamSocketListenerConnectionReceivedEventArgs const& args) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": Received connection.";
 
   if (closed_) {

@@ -71,6 +71,15 @@ bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
   } else {
     serv_addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
   }
+  // Set REUSEADDR if a specific port is needed.
+  if (port != 0) {
+    BOOL flag = TRUE;
+    if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char*)&flag,
+                   sizeof(flag)) == SOCKET_ERROR) {
+      LOG(WARNING) << "Failed to set SO_REUSEADDR with error "
+                   << WSAGetLastError();
+    }
+  }
 
   if (bind(/*s=*/socket_, /*addr=*/(struct sockaddr*)&serv_addr,
            /*namelen=*/sizeof(serv_addr)) == SOCKET_ERROR) {

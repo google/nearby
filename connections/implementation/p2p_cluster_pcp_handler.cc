@@ -1623,7 +1623,7 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
   if (options.enable_wlan_listening &&
       !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
     ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAcceptingConnections(
-        std::string(service_id),
+        std::string(service_id), /*mdns_service_name=*/"",
         absl::bind_front(
             &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
             client_proxy, local_endpoint_id, "",
@@ -3171,9 +3171,21 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
   // request comes in very quickly.
   LOG(INFO) << "P2pClusterPcpHandler::StartWifiLanAdvertising: service="
             << service_id << ": start";
+  // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
+  // TODO(b/169550050): Implement UWBAddress.
+  const ByteArray service_id_hash =
+      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
+  WifiLanServiceInfo service_info{kWifiLanServiceInfoVersion,
+                                  GetPcp(),
+                                  local_endpoint_id,
+                                  service_id_hash,
+                                  local_endpoint_info,
+                                  ByteArray{},
+                                  web_rtc_state};
+  NsdServiceInfo nsd_service_info(service_info);
   if (!wifi_lan_medium_.IsAcceptingConnections(service_id)) {
     ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAcceptingConnections(
-        service_id,
+        service_id, nsd_service_info.GetServiceName(),
         absl::bind_front(
             &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
             client, local_endpoint_id, local_endpoint_info.AsStringView(),
@@ -3196,18 +3208,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
             << service_id;
   }
 
-  // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
-  // TODO(b/169550050): Implement UWBAddress.
-  const ByteArray service_id_hash =
-      GenerateHash(service_id, WifiLanServiceInfo::kServiceIdHashLength);
-  WifiLanServiceInfo service_info{kWifiLanServiceInfoVersion,
-                                  GetPcp(),
-                                  local_endpoint_id,
-                                  service_id_hash,
-                                  local_endpoint_info,
-                                  ByteArray{},
-                                  web_rtc_state};
-  NsdServiceInfo nsd_service_info(service_info);
   if (!nsd_service_info.IsValid()) {
     LOG(WARNING) << "In StartWifiLanAdvertising("
                  << absl::BytesToHexString(local_endpoint_info.data())

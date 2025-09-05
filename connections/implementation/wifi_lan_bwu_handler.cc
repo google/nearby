@@ -105,7 +105,7 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
     const std::string& endpoint_id) {
   if (!wifi_lan_medium_.IsAcceptingConnections(upgrade_service_id)) {
     if (!wifi_lan_medium_.StartAcceptingConnections(
-            upgrade_service_id,
+            upgrade_service_id, /*mdns_service_name=*/"",
             absl::bind_front(&WifiLanBwuHandler::OnIncomingWifiLanConnection,
                              this, client))) {
       LOG(ERROR)

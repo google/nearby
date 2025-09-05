@@ -75,7 +75,8 @@ TEST_P(WifiLanTest, CanConnect) {
 
   WifiLanSocket socket_for_server;
   EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
-      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+      service_id, /*mdns_service_name=*/"",
+      [&](const std::string& service_id, WifiLanSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
@@ -139,7 +140,8 @@ TEST_P(WifiLanTest, CanConnectWithMultiplex) {
 
   WifiLanSocket socket_for_server;
   EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
-      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+      service_id, /*mdns_service_name=*/"",
+      [&](const std::string& service_id, WifiLanSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
@@ -205,7 +207,8 @@ TEST_P(WifiLanTest, CanCancelConnect) {
 
   WifiLanSocket socket_for_server;
   EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
-      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+      service_id, /*mdns_service_name=*/"",
+      [&](const std::string& service_id, WifiLanSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
@@ -263,7 +266,8 @@ TEST_P(WifiLanTest, CanConnectWithIpAddressAndPort) {
 
   WifiLanSocket socket_for_server;
   EXPECT_TRUE(wifi_lan_server.StartAcceptingConnections(
-      service_id, [&](const std::string& service_id, WifiLanSocket socket) {
+      service_id, /*mdns_service_name=*/"",
+      [&](const std::string& service_id, WifiLanSocket socket) {
         socket_for_server = std::move(socket);
         accept_latch.CountDown();
       }));
@@ -309,7 +313,8 @@ TEST_F(WifiLanTest, CanStartAdvertising) {
   std::string service_info_name(kServiceInfoName);
   std::string endpoint_info_name(kEndpointName);
 
-  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(
+      service_id, /*mdns_service_name=*/"", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -329,8 +334,10 @@ TEST_F(WifiLanTest, CanStartMultipleAdvertising) {
   std::string service_info_name_2("ServiceInfoName_1");
   std::string endpoint_info_name(kEndpointName);
 
-  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(service_id_1, {}));
-  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(service_id_2, {}));
+  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(
+      service_id_1, /*mdns_service_name=*/"", {}));
+  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(
+      service_id_2, /*mdns_service_name=*/"", {}));
 
   NsdServiceInfo nsd_service_info_1;
   nsd_service_info_1.SetServiceName(service_info_name_1);
@@ -400,7 +407,8 @@ TEST_F(WifiLanTest, CanAdvertiseThatOtherMediumDiscover) {
                           },
                   });
 
-  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(wifi_lan_a.StartAcceptingConnections(
+      service_id, /*mdns_service_name=*/"", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
@@ -424,7 +432,8 @@ TEST_F(WifiLanTest, CanDiscoverThatOtherMediumAdvertise) {
   CountDownLatch discovered_latch(1);
   CountDownLatch lost_latch(1);
 
-  EXPECT_TRUE(wifi_lan_b.StartAcceptingConnections(service_id, {}));
+  EXPECT_TRUE(wifi_lan_b.StartAcceptingConnections(
+      service_id, /*mdns_service_name=*/"", {}));
 
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(service_info_name);
