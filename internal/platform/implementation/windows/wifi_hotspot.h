@@ -21,6 +21,7 @@
 #include <wlanapi.h>
 
 // Standard C/C++ headers
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -29,6 +30,7 @@
 #include <utility>
 
 // Nearby connections headers
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
@@ -71,11 +73,10 @@ using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
 class WifiHotspotSocket : public api::WifiHotspotSocket {
  public:
   WifiHotspotSocket();
-  explicit WifiHotspotSocket(std::unique_ptr<NearbyClientSocket> socket);
-  WifiHotspotSocket(const WifiHotspotSocket&) = default;
+  explicit WifiHotspotSocket(
+      absl_nonnull std::unique_ptr<NearbyClientSocket> socket);
   WifiHotspotSocket(WifiHotspotSocket&&) = default;
   ~WifiHotspotSocket() override;
-  WifiHotspotSocket& operator=(const WifiHotspotSocket&) = default;
   WifiHotspotSocket& operator=(WifiHotspotSocket&&) = default;
 
   // Returns the InputStream of the WifiHotspotSocket.
@@ -83,54 +84,62 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  InputStream& GetInputStream() override;
+  InputStream& GetInputStream() override { return input_stream_; }
 
   // Returns the OutputStream of the WifiHotspotSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiHotspotSocket object is destroyed.
-  OutputStream& GetOutputStream() override;
+  OutputStream& GetOutputStream() override { return output_stream_; }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
+  Exception Close() override { return client_socket_->Close(); }
 
-  bool Connect(const std::string& ip_address, int port);
+  bool Connect(const std::string& ip_address, int port) {
+    return client_socket_->Connect(ip_address, port);
+  }
 
  private:
   // A simple wrapper to handle input stream of socket
   class SocketInputStream : public InputStream {
    public:
-    explicit SocketInputStream(NearbyClientSocket* client_socket);
+    explicit SocketInputStream(NearbyClientSocket* absl_nonnull client_socket)
+        : client_socket_(client_socket) {}
     ~SocketInputStream() override = default;
 
-    ExceptionOr<ByteArray> Read(std::int64_t size) override;
-    ExceptionOr<size_t> Skip(size_t offset) override;
-    Exception Close() override;
+    ExceptionOr<ByteArray> Read(std::int64_t size) override {
+      return client_socket_->Read(size);
+    }
+    ExceptionOr<size_t> Skip(size_t offset) override {
+      return client_socket_->Skip(offset);
+    }
+    Exception Close() override { return client_socket_->Close(); }
 
    private:
-    NearbyClientSocket* client_socket_{nullptr};
+    NearbyClientSocket* absl_nonnull const client_socket_;
   };
 
   // A simple wrapper to handle output stream of socket
   class SocketOutputStream : public OutputStream {
    public:
-    explicit SocketOutputStream(NearbyClientSocket* client_socket);
+    explicit SocketOutputStream(NearbyClientSocket* absl_nonnull client_socket)
+        : client_socket_(client_socket) {}
     ~SocketOutputStream() override = default;
 
-    Exception Write(const ByteArray& data) override;
-    Exception Flush() override;
-    Exception Close() override;
+    Exception Write(const ByteArray& data) override {
+      return client_socket_->Write(data);
+    }
+    Exception Flush() override { return client_socket_->Flush(); }
+    Exception Close() override { return client_socket_->Close(); }
 
    private:
-    NearbyClientSocket* client_socket_{nullptr};
+    NearbyClientSocket* absl_nonnull const client_socket_;
   };
 
-  // Internal properties
-  SocketInputStream input_stream_{nullptr};
-  SocketOutputStream output_stream_{nullptr};
-
-  std::unique_ptr<NearbyClientSocket> client_socket_;
+  absl_nonnull std::unique_ptr<NearbyClientSocket> client_socket_;
+  SocketInputStream input_stream_;
+  SocketOutputStream output_stream_;
 };
 
 // WifiHotspotServerSocket provides the support to server socket, this server
@@ -146,7 +155,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 
   std::string GetIPAddress() const override;
   int GetPort() const override;
-  void SetPort(int port) { port_ = port; }
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -170,13 +178,10 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   NearbyServerSocket server_socket_;
 
  private:
-  static constexpr int kSocketEventsCount = 2;
-  static constexpr int kSocketEventListen = 0;
-  static constexpr int kSocketEventClose = 1;
-
   // Retrieves hotspot IP address from local machine
   std::string GetHotspotIpAddress() const;
 
+  const int port_;
   mutable absl::Mutex mutex_;
 
   // Close notifier
@@ -187,7 +192,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 
   // Cache socket not be picked by upper layer
   std::string hotspot_ipaddr_ = {};
-  int port_ = 0;
   bool closed_ = false;
 };
 

@@ -74,35 +74,20 @@ void WifiHotspotServerSocket::SetCloseNotifier(
 }
 
 Exception WifiHotspotServerSocket::Close() {
-  try {
-    absl::MutexLock lock(&mutex_);
-    if (closed_) {
-      return {Exception::kSuccess};
-    }
-
-    server_socket_.Close();
-    closed_ = true;
-
-    if (close_notifier_ != nullptr) {
-      close_notifier_();
-    }
-
-    LOG(INFO) << __func__ << ": Close completed succesfully.";
+  absl::MutexLock lock(&mutex_);
+  if (closed_) {
     return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    closed_ = true;
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error &error) {
-    closed_ = true;
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    closed_ = true;
-    LOG(ERROR) << __func__ << ": Unknown exception.";
-    return {Exception::kIo};
   }
+
+  server_socket_.Close();
+  closed_ = true;
+
+  if (close_notifier_ != nullptr) {
+    close_notifier_();
+  }
+
+  LOG(INFO) << __func__ << ": Close completed succesfully.";
+  return {Exception::kSuccess};
 }
 
 bool WifiHotspotServerSocket::listen() {
