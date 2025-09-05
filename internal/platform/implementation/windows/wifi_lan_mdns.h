@@ -37,7 +37,8 @@ class WifiLanMdns {
 
   bool StartMdnsService(
       const std::string& service_name, const std::string& service_type,
-      int port, absl::flat_hash_map<std::string, std::string> text_records)
+      int port,
+      const absl::flat_hash_map<std::string, std::string>& text_records)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool StopMdnsService() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -60,8 +61,6 @@ class WifiLanMdns {
       ABSL_GUARDED_BY(mutex_);
   std::vector<std::wstring> text_keys_ ABSL_GUARDED_BY(mutex_);
   std::vector<std::wstring> text_values_ ABSL_GUARDED_BY(mutex_);
-  PWSTR* keys_ ABSL_GUARDED_BY(mutex_) = nullptr;
-  PWSTR* values_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
 }  // namespace nearby::windows

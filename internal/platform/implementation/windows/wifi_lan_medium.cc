@@ -26,6 +26,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // ABSL headers
@@ -80,57 +81,34 @@ bool WifiLanMedium::IsNetworkConnected() const {
 }
 
 bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
-  bool socket_found = false;
-  WifiLanServerSocket* server_socket_ptr = nullptr;
-  for (const auto& server_socket : port_to_server_socket_map_) {
-    if ((server_socket.second->GetIPAddress() ==
-         nsd_service_info.GetIPAddress()) &&
-        (server_socket.second->GetPort() == nsd_service_info.GetPort())) {
-      VLOG(1) << "Found the server socket." << " IP: "
-              << ipaddr_4bytes_to_dotdecimal_string(
-                     nsd_service_info.GetIPAddress())
-              << "; port: " << nsd_service_info.GetPort();
-      server_socket_ptr = server_socket.second;
-      socket_found = true;
-      break;
-    }
-  }
-  if (!socket_found) {
-    LOG(WARNING) << "cannot start advertising without accepting connetions.";
+  if (nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo)).empty()) {
+    LOG(ERROR) << "Cannot start advertising without endpoint info.";
     return false;
   }
-
-  if (IsAdvertising()) {
-    LOG(WARNING) << "cannot start advertising again when it is running.";
-    return false;
-  }
-
-  if (nsd_service_info.GetTxtRecord(kDeviceEndpointInfo.data()).empty()) {
-    LOG(ERROR) << "cannot start advertising without endpoint info.";
-    return false;
-  }
-
   if (nsd_service_info.GetServiceName().empty()) {
-    LOG(ERROR) << "cannot start advertising without service name.";
+    LOG(ERROR) << "Cannot start advertising without service name.";
+    return false;
+  }
+  if (IsAdvertising()) {
+    LOG(WARNING) << "Cannot start advertising again when it is running.";
     return false;
   }
 
-  service_name_ = nsd_service_info.GetServiceName();
-
-  absl::flat_hash_map<std::string, std::string> text_records =
-      nsd_service_info.GetTxtRecords();
-
-  bool result = wifi_lan_mdns_.StartMdnsService(
-      service_name_, nsd_service_info.GetServiceType(),
-      nsd_service_info.GetPort(), text_records);
-
-  if (result) {
-    LOG(INFO) << "started to mDNS advertising.";
+  if (!port_to_server_socket_map_.contains(nsd_service_info.GetPort())) {
+    LOG(WARNING) << "Cannot start advertising without a listening socket.";
+    return false;
+  }
+  std::string service_name = nsd_service_info.GetServiceName();
+  if (wifi_lan_mdns_.StartMdnsService(
+      service_name, nsd_service_info.GetServiceType(),
+      nsd_service_info.GetPort(), nsd_service_info.GetTxtRecords())) {
+    service_name_ = std::move(service_name);
+    LOG(INFO) << "started mDNS advertising for: " << service_name_
+              << " on port " << nsd_service_info.GetPort();
     medium_status_ |= kMediumStatusAdvertising;
     return true;
   }
-
-  LOG(ERROR) << "failed to start mDNS advertising.";
+  LOG(ERROR) << "failed to start mDNS advertising for: " << service_name;
   return false;
 }
 
@@ -149,6 +127,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   if (result) {
     medium_status_ &= (~kMediumStatusAdvertising);
+    service_name_.clear();
     return true;
   }
 
@@ -590,13 +569,13 @@ fire_and_forget WifiLanMedium::Watcher_DeviceRemoved(
 }
 
 void WifiLanMedium::ClearDiscoveredServices() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   discovered_services_map_.clear();
 }
 
 std::optional<NsdServiceInfo> WifiLanMedium::GetDiscoveredService(
     absl::string_view id) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto it = discovered_services_map_.find(id);
   if (it == discovered_services_map_.end()) {
     return std::nullopt;
@@ -607,12 +586,12 @@ std::optional<NsdServiceInfo> WifiLanMedium::GetDiscoveredService(
 
 void WifiLanMedium::UpdateDiscoveredService(
     absl::string_view id, const NsdServiceInfo& nsd_service_info) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   discovered_services_map_[id] = nsd_service_info;
 }
 
 void WifiLanMedium::RemoveDiscoveredService(absl::string_view id) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto it = discovered_services_map_.find(id);
   if (it != discovered_services_map_.end()) {
     discovered_services_map_.erase(it);
