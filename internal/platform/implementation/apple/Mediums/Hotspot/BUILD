@@ -38,7 +38,12 @@ objc_library(
         "//third_party/apple_frameworks:Network",
         "//third_party/apple_frameworks:NetworkExtension",
         "//third_party/apple_frameworks:SystemConfiguration",
-    ],
+    ] + select({
+        "@platforms//os:platform_macos": [
+            "//third_party/apple_frameworks:CoreWLAN",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 swift_explicit_module_build_test(

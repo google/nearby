@@ -19,6 +19,8 @@
 #import <Network/Network.h>
 #if TARGET_OS_IOS
 #import <NetworkExtension/NetworkExtension.h>
+#elif TARGET_OS_OSX
+#import <CoreWLAN/CoreWLAN.h>
 #endif  // TARGET_OS_IOS
 #import <SystemConfiguration/CaptiveNetwork.h>
 
@@ -36,6 +38,12 @@ static const UInt8 kMaxRetryCount = 3;
 // Timeout after 18s for connection attempt. From the stability test, connection take between 8-14s
 // on iOS
 static const UInt8 kConnectionTimeoutInSeconds = 18;
+#elif TARGET_OS_OSX
+// The maximum number of retries for connecting to the hotspot on MacOS.
+static const UInt8 kMaxRetryCount = 3;
+
+// Timeout for connection attempt.
+static const UInt8 kConnectionTimeoutInSeconds = 2;
 #endif  // TARGET_OS_IOS
 
 // An arbitrary timeout that should be pretty lenient.
@@ -63,7 +71,6 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 }
 
 - (BOOL)connectToWifiNetworkWithSSID:(NSString *)ssid password:(NSString *)password {
-#if TARGET_OS_IOS
   if (ssid.length == 0) {
     GNCLoggerError(@"SSID cannot be empty.");
     return NO;
@@ -72,6 +79,8 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     GNCLoggerError(@"Password cannot be empty.");
     return NO;
   }
+
+#if TARGET_OS_IOS
   __block BOOL connected = NO;
   NEHotspotConfiguration *config = [[NEHotspotConfiguration alloc] initWithSSID:ssid
                                                                      passphrase:password
@@ -122,8 +131,68 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
   }
   return connected;
+#elif TARGET_OS_OSX
+  // MacOS treats access to Wi-Fi SSIDs and BSSIDs as location-sensitive information, so need to
+  // make sure location authorization is granted before joining a Wi-Fi network using CoreWLAN.
+  CLAuthorizationStatus status;
+  if (@available(macOS 11.0, *)) {
+    status = _locationManager.authorizationStatus;
+  } else {
+    status = [CLLocationManager authorizationStatus];
+  }
+
+  if (status != kCLAuthorizationStatusAuthorizedAlways) {
+    GNCLoggerError(@"Location access permission is not granted, skipping to connect to Hotspot.");
+    return NO;
+  }
+
+  CWInterface *wifiInterface = [CWWiFiClient sharedWiFiClient].interface;
+  if (!wifiInterface) {
+    GNCLoggerError(@"Wi-Fi interface not found.");
+    return NO;
+  }
+
+  NSError *error = nil;
+  NSSet<CWNetwork *> *networks =
+      [wifiInterface scanForNetworksWithSSID:[ssid dataUsingEncoding:NSUTF8StringEncoding]
+                                       error:&error];
+
+  if (!networks) {
+    GNCLoggerError(@"Failed to scan for networks: %@", error);
+    return NO;
+  }
+
+  CWNetwork *bestNetwork = nil;
+  for (CWNetwork *network in networks) {
+    if (bestNetwork == nil) {
+      bestNetwork = network;
+    } else {
+      if (network.rssiValue > bestNetwork.rssiValue) {
+        bestNetwork = network;
+      }
+    }
+  }
+
+  if (!bestNetwork) {
+    GNCLoggerError(@"Failed to find network: %@", ssid);
+    return NO;
+  }
+
+  for (int i = 0; i < kMaxRetryCount; ++i) {
+    BOOL success = [wifiInterface associateToNetwork:bestNetwork password:password error:&error];
+
+    if (success) {
+      GNCLoggerInfo(@"Successfully connected to %@", ssid);
+      return YES;
+    } else {
+      GNCLoggerError(@"Failed to connect to %@ at attempt %d. Error: %@", ssid, i, error);
+      [NSThread sleepForTimeInterval:kConnectionTimeoutInSeconds];
+    }
+  }
+
+  return NO;
 #else
-  GNCLoggerError(@"Not implemented for macOS");
+  GNCLoggerError(@"Not implemented");
   return NO;
 #endif  // TARGET_OS_IOS
 }
@@ -135,8 +204,13 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     return;
   }
   [[NEHotspotConfigurationManager sharedManager] removeConfigurationForSSID:ssid];
+#elif TARGET_OS_OSX
+  CWInterface *wifiInterface = [CWWiFiClient sharedWiFiClient].interface;
+  if (wifiInterface && [wifiInterface.ssid isEqualToString:ssid]) {
+    [wifiInterface disassociate];
+  }
 #else
-  GNCLoggerError(@"Not implemented for macOS");
+  GNCLoggerError(@"Not implemented");
 #endif  // TARGET_OS_IOS
 }
 
@@ -290,8 +364,10 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
   }
 
   return networkSSID;
+#elif TARGET_OS_OSX
+  return [CWWiFiClient sharedWiFiClient].interface.ssid;
 #else
-  GNCLoggerError(@"Not implemented for macOS");
+  GNCLoggerError(@"Not implemented");
   return nil;
 #endif  // TARGET_OS_IOS
 }
