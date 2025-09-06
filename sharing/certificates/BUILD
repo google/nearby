@@ -122,7 +122,7 @@ cc_test(
         ":test_support",
         "//internal/platform:mac_address",
         "//internal/platform/implementation:account_manager",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",  # fixdeps: keep
         "//internal/test",
         "//proto/identity/v1:resources_cc_proto",
         "//proto/identity/v1:rpcs_cc_proto",

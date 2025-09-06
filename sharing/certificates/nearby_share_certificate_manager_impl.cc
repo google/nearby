@@ -309,9 +309,9 @@ std::string NearbyShareCertificateManagerImpl::GetId() {
 
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
     QuerySharedCredentialsFetchNextPage() {
-  page_number_++;
   LOG(INFO) << __func__
             << ": Downloading public certificates page=" << page_number_;
+  page_number_++;
   QuerySharedCredentialsRequest request;
   request.set_name(absl::StrCat("devices/", device_id_));
   if (next_page_token_.has_value()) {
@@ -324,7 +324,7 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
           LOG(WARNING) << __func__
                        << ": Failed to download public certificates: "
                        << response.status();
-          std::move(download_failure_callback_)();
+          std::move(download_callback_)(response.status());
           return;
         }
         for (const auto& credential : response->shared_credentials()) {
@@ -353,7 +353,7 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
         if (response->next_page_token().empty()) {
           LOG(INFO) << __func__ << ": Completed download of "
                     << certificates_.size() << " certificates";
-          std::move(download_success_callback_)(certificates_);
+          std::move(download_callback_)(std::move(certificates_));
           return;
         }
         next_page_token_ = response->next_page_token();
@@ -407,11 +407,19 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
   bool download_succeeded = false;
   // Currently certificates download is synchronous.  It completes after
   // QuerySharedCredentialsFetchNextPage() returns.
+  absl::Notification notification;
   auto context = std::make_unique<CertificateDownloadContext>(
       nearby_identity_client_.get(), std::move(device_id),
-      [&download_succeeded]() { download_succeeded = false; },
-      [this, &download_succeeded](
-          const std::vector<PublicCertificate>& certificates) {
+      [this, &download_succeeded, &notification](
+          absl::StatusOr<std::vector<PublicCertificate>> certificates_status) {
+        if (!certificates_status.ok()) {
+          download_succeeded = false;
+          LOG(WARNING) << "Failed to download public certificates: "
+                       << certificates_status.status();
+          notification.Notify();
+          return;
+        }
+        auto certificates = certificates_status.value();
         if (VLOG_IS_ON(1)) {
           for (const auto& certificate : certificates) {
             VLOG(1) << "Downloaded certificate id: "
@@ -419,8 +427,10 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
           }
         }
         download_succeeded = UpdatePublicCertificates(certificates);
+        notification.Notify();
       });
   context->QuerySharedCredentialsFetchNextPage();
+  notification.WaitForNotification();
   LOG(INFO) << "Public certificates downloadws, success: "
             << download_succeeded;
   return download_succeeded;

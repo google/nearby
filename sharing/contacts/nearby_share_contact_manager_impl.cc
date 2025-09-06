@@ -101,6 +101,7 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
           LOG(WARNING) << "Failed to download contacts: " << response.status();
           std::move(download_callback_)(
               response.status(), /*num_unreachable_contacts_filtered_out=*/0);
+          notification_.Notify();
           return;
         }
 
@@ -116,12 +117,18 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
               contacts_size - contacts_.size();
           std::move(download_callback_)(std::move(contacts_),
                                         num_unreachable_contacts_filtered_out);
+          notification_.Notify();
           return;
         }
         // Continue with next page.
         next_page_token_ = response->next_page_token();
         FetchNextPage();
       });
+}
+
+void NearbyShareContactManagerImpl::ContactDownloadContext::
+    WaitForCompletion() {
+  notification_.WaitForNotification();
 }
 
 void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
@@ -140,6 +147,7 @@ void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
     auto context = std::make_unique<ContactDownloadContext>(
         nearby_share_client_.get(), std::move(callback));
     context->FetchNextPage();
+    context->WaitForCompletion();
   });
 }
 
