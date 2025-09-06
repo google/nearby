@@ -21,7 +21,7 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 objc_library(
-    name = "PlatformTestslib",
+    name = "PlatformTestsLibrary",
     testonly = True,
     srcs = [
         "GNCAwdlMediumTest.mm",
@@ -29,8 +29,10 @@ objc_library(
         "GNCDeviceInfoTest.mm",
         "GNCMultiThreadExecutorTest.mm",
         "GNCPlatformTest.mm",
+        "GNCPreferencesManagerTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
+        "GNCTimerTest.mm",
         "GNCUtilsTest.m",
         "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
@@ -48,14 +50,30 @@ objc_library(
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "@com_google_absl//absl/time",
+        "@nlohmann_json//:json",
+    ],
+)
+
+objc_library(
+    name = "BluetoothAdapterV2TestLibrary",
+    testonly = True,
+    srcs = ["bluetooth_adapter_v2_test.mm"],
+    tags = ["nozapfhahn"],
+    deps = [
+        "//internal/platform:mac_address",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple:bluetooth_adapter_v2",
+        "//third_party/apple_frameworks:XCTest",
+        "@com_google_googletest//:gtest",
     ],
 )
 
 ios_unit_test(
-    name = "PlatformTests",
+    name = "PlatformTest",
     minimum_os_version = IOS_MINIMUM_OS,
     runner = IOS_LATEST_TEST_RUNNER,
     deps = [
-        ":PlatformTestslib",
+        ":BluetoothAdapterV2TestLibrary",
+        ":PlatformTestsLibrary",
     ],
 )
