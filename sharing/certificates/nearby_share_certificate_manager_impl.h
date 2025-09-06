@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/status/statusor.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -101,15 +102,13 @@ class NearbyShareCertificateManagerImpl
     CertificateDownloadContext(
         nearby::sharing::api::IdentityRpcClient* nearby_identity_client,
         std::string device_id,
-        absl::AnyInvocable<void() &&> download_failure_callback,
-        absl::AnyInvocable<
-            void(const std::vector<nearby::sharing::proto::PublicCertificate>&
-                     certificates) &&>
-            download_success_callback)
+        absl::AnyInvocable<void(absl::StatusOr<std::vector<
+                                    nearby::sharing::proto::PublicCertificate>>
+                                    certificates_status) &&>
+            download_callback)
         : nearby_identity_client_(nearby_identity_client),
           device_id_(std::move(device_id)),
-          download_failure_callback_(std::move(download_failure_callback)),
-          download_success_callback_(std::move(download_success_callback)) {}
+          download_callback_(std::move(download_callback)) {}
 
     // Fetches the next page of certificates by calling Identity API
     // QuerySharedCredentials.
@@ -124,11 +123,10 @@ class NearbyShareCertificateManagerImpl
     std::optional<std::string> next_page_token_;
     int page_number_ = 1;
     std::vector<nearby::sharing::proto::PublicCertificate> certificates_;
-    absl::AnyInvocable<void() &&> download_failure_callback_;
-    absl::AnyInvocable<
-        void(const std::vector<nearby::sharing::proto::PublicCertificate>&
-                 certificates) &&>
-        download_success_callback_;
+    absl::AnyInvocable<void(
+        absl::StatusOr<std::vector<nearby::sharing::proto::PublicCertificate>>
+            certificates_status) &&>
+        download_callback_;
   };
 
   NearbyShareCertificateManagerImpl(
@@ -138,7 +136,7 @@ class NearbyShareCertificateManagerImpl
       std::unique_ptr<nearby::sharing::api::PublicCertificateDatabase>
           public_certificate_database,
       NearbyShareLocalDeviceDataManager* local_device_data_manager,
-       nearby::sharing::api::SharingRpcClientFactory* client_factory);
+      nearby::sharing::api::SharingRpcClientFactory* client_factory);
 
   // NearbyShareCertificateManager:
   void OnStart() override;
@@ -190,13 +188,12 @@ class NearbyShareCertificateManagerImpl
   // Returns the device id use to identify the local device in BE.
   std::string GetId();
 
-
   Context* const context_;
   AccountManager& account_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
   nearby::sharing::api::PreferenceManager& preference_manager_;
   int32_t vendor_id_ = 0;  // Defaults to GOOGLE.
-  std::unique_ptr< nearby::sharing::api::SharingRpcClient> nearby_client_;
+  std::unique_ptr<nearby::sharing::api::SharingRpcClient> nearby_client_;
   std::unique_ptr<nearby::sharing::api::IdentityRpcClient>
       nearby_identity_client_;
 
