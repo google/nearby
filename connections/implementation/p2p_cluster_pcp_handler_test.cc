@@ -62,6 +62,9 @@ constexpr BooleanMediumSelector kTestCases[] = {
         .wifi_lan = true,
     },
     BooleanMediumSelector{
+        .awdl = true,
+    },
+    BooleanMediumSelector{
         .bluetooth = true,
         .ble = true,
     },
@@ -76,6 +79,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
         .bluetooth = true,
         .ble = true,
+        .web_rtc = true,
         .wifi_lan = true,
     },
 };
@@ -264,6 +268,8 @@ class P2pClusterPcpHandlerTestWithParam
         config_package_nearby::nearby_connections_feature::
             kDisableBluetoothClassicScanning,
         is_disable_bluetooth_scanning);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableDct, true);
     if (advertising_options_.allowed.ble) {
       LOG(INFO) << "SetUp: BLE enabled";
     }
@@ -275,6 +281,9 @@ class P2pClusterPcpHandlerTestWithParam
     }
     if (advertising_options_.allowed.web_rtc) {
       LOG(INFO) << "SetUp: WebRTC enabled";
+    }
+    if (advertising_options_.allowed.awdl) {
+      LOG(INFO) << "SetUp: Awdl enabled";
     }
     LOG(INFO) << "SetUp: ble v2 enabled: " << ble_v2_enabled;
     LOG(INFO) << "SetUp: is_disable_bluetooth_scanning: "
@@ -1081,7 +1090,138 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnect) {
               mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
   }
 
+  handler_a.StopAdvertising(&client_a_);
   handler_b.StopDiscovery(&client_b_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanConnectWithDctEnabled) {
+  env_.Start();
+  ByteArray endpoint_info_a{
+      "\x22\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0b"
+      "\x54\x65\x73\x74\x20\x64\x65\x76\x69\x63\x65",
+      29};
+  ClientProxy client_a;
+  ClientProxy client_b;
+
+  Mediums mediums_a;
+  Mediums mediums_b;
+  BluetoothRadio& radio_a = mediums_a.GetBluetoothRadio();
+  BluetoothRadio& radio_b = mediums_b.GetBluetoothRadio();
+  radio_a.GetBluetoothAdapter().SetName("BT Device A");
+  radio_b.GetBluetoothAdapter().SetName("BT Device B");
+  EndpointChannelManager ecm_a;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_a(&ecm_a);
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+  CountDownLatch discover_latch(1);
+  CountDownLatch connect_latch(2);
+  struct DiscoveredInfo {
+    std::string endpoint_id;
+    ByteArray endpoint_info;
+    std::string service_id;
+  } discovered;
+  EXPECT_EQ(
+      handler_a.StartAdvertising(
+          &client_a, service_id_, advertising_options_,
+          {
+              .endpoint_info = endpoint_info_a,
+              .listener =
+                  {
+                      .initiated_cb =
+                          [&connect_latch](const std::string& endpoint_id,
+                                           const ConnectionResponseInfo& info) {
+                            LOG(INFO)
+                                << "StartAdvertising: initiated_cb called";
+                            connect_latch.CountDown();
+                          },
+                  },
+          }),
+      Status{Status::kSuccess});
+  EXPECT_EQ(handler_b.StartDiscovery(
+                &client_b, service_id_, discovery_options_,
+                {
+                    .endpoint_found_cb =
+                        [&discover_latch, &discovered](
+                            const std::string& endpoint_id,
+                            const ByteArray& endpoint_info,
+                            const std::string& service_id) {
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id
+                                    << ", endpoint_info="
+                                    << std::string{endpoint_info};
+                          discovered = {
+                              .endpoint_id = endpoint_id,
+                              .endpoint_info = endpoint_info,
+                              .service_id = service_id,
+                          };
+                          discover_latch.CountDown();
+                        },
+                }),
+            Status{Status::kSuccess});
+
+  EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(endpoint_info_a, discovered.endpoint_info);
+
+  const std::string kBssid = "34:36:3B:C7:8C:71";
+  const std::int32_t kFreq = 5200;
+  constexpr char kIp4Bytes[] = {(char)192, (char)168, (char)1, (char)37, 0};
+
+  connection_options_.connection_info.supports_5_ghz = true;
+  connection_options_.connection_info.bssid = kBssid;
+  connection_options_.connection_info.ap_frequency = kFreq;
+  connection_options_.connection_info.ip_address.resize(4);
+  connection_options_.connection_info.ip_address = kIp4Bytes;
+
+  client_b.AddCancellationFlag(discovered.endpoint_id);
+  handler_b.RequestConnection(
+      &client_b, discovered.endpoint_id,
+      {.endpoint_info = discovered.endpoint_info,
+       .listener =
+           {
+               .initiated_cb =
+                   [&connect_latch](const std::string& endpoint_id,
+                                    const ConnectionResponseInfo& info) {
+                     LOG(INFO) << "RequestConnection: initiated_cb called";
+                     connect_latch.CountDown();
+                   },
+           }},
+      connection_options_);
+  std::string client_b_local_endpoint = client_b.GetLocalEndpointId();
+
+  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_TRUE(client_b.Is5GHzSupported(discovered.endpoint_id));
+  EXPECT_EQ(client_b.GetBssid(discovered.endpoint_id), kBssid);
+  EXPECT_EQ(client_b.GetApFrequency(discovered.endpoint_id), kFreq);
+  EXPECT_EQ(client_b.GetIPAddress(discovered.endpoint_id),
+            std::string(kIp4Bytes));
+  // When connection is established, EndpointManager will setup KeepAliveManager
+  // loop. When it fails, the connection will be dismantled. Since this a unit
+  // test, KeepAliveManager won't be really up. The disconnection may happen
+  // before the following check, which cause the check fail. So we check the
+  // connection status first.
+  if (client_b.IsConnectedToEndpoint(discovered.endpoint_id)) {
+    EXPECT_EQ(client_a.Is5GHzSupported(client_b_local_endpoint),
+              mediums_b.GetWifi().GetCapability().supports_5_ghz);
+    EXPECT_EQ(client_a.GetBssid(client_b_local_endpoint),
+              mediums_b.GetWifi().GetInformation().bssid);
+    EXPECT_EQ(client_a.GetApFrequency(client_b_local_endpoint),
+              mediums_b.GetWifi().GetInformation().ap_frequency);
+    EXPECT_EQ(client_a.GetIPAddress(client_b_local_endpoint),
+              mediums_b.GetWifi().GetInformation().ip_address_4_bytes);
+  }
+
+  handler_a.StopAdvertising(&client_a);
+  handler_b.StopDiscovery(&client_b);
   bwu_a.Shutdown();
   bwu_b.Shutdown();
   env_.Stop();
@@ -1324,7 +1464,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAwdlDiscoveryOptions) {
   env_.Stop();
 }
 
-TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAwdlAdvertisingOptions) {
+TEST_F(P2pClusterPcpHandlerTest, CanUpdateAwdlAdvertisingOptions) {
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -1333,18 +1473,19 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAwdlAdvertisingOptions) {
   BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
   InjectedBluetoothDeviceStore ibds_a;
   P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
-  advertising_options_.allowed.wifi_lan = true;
+  AdvertisingOptions advertising_options{
+      {Strategy::kP2pCluster, BooleanMediumSelector{}}};
+  advertising_options.allowed.wifi_lan = true;
   EXPECT_EQ(
-      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options,
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
-  // EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
   EXPECT_TRUE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
   EXPECT_FALSE(mediums_a.GetAwdl().IsAdvertising(service_id_));
-  advertising_options_.allowed.wifi_lan = false;
-  advertising_options_.allowed.awdl = true;
+  advertising_options.allowed.wifi_lan = false;
+  advertising_options.allowed.awdl = true;
   EXPECT_EQ(handler_a.UpdateAdvertisingOptions(&client_a_, service_id_,
-                                               advertising_options_),
+                                               advertising_options),
             Status{Status::kSuccess});
   EXPECT_FALSE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
   EXPECT_TRUE(mediums_a.GetAwdl().IsAdvertising(service_id_));
@@ -1544,11 +1685,168 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
   env_.Stop();
 }
 
+class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
+ protected:
+  void SetUp() override {
+    LOG(INFO) << "SetUp: begin";
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
+    env_.SetBleExtendedAdvertisementsAvailable(true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kDisableBluetoothClassicScanning,
+        false);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleV2,
+        true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
+        GetParam());
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::
+            kEnableAdvertisingForInstantOnLost,
+        true);
+  }
+
+  AdvertisingOptions GetBleOnlyAdvertisingOptions() {
+    return AdvertisingOptions{
+        {Strategy::kP2pCluster,
+         BooleanMediumSelector{
+             .ble = true,
+         }},
+    };
+  }
+
+  DiscoveryOptions GetBleOnlyDiscoveryOptions() {
+    return DiscoveryOptions{
+        {Strategy::kP2pCluster,
+         BooleanMediumSelector{
+             .ble = true,
+         }},
+    };
+  }
+
+  ClientProxy client_a_;
+  ClientProxy client_b_;
+  std::string service_id_{"service"};
+  MediumEnvironment& env_{MediumEnvironment::Instance()};
+};
+
+
+TEST_P(P2pLostHandlerTestWithParam, CanConnectWithInstantLostEnabled) {
+  env_.Start();
+
+  std::string endpoint_name_a{"endpoint_name"};
+  Mediums mediums_a;
+  Mediums mediums_b;
+  BluetoothRadio& radio_a = mediums_a.GetBluetoothRadio();
+  BluetoothRadio& radio_b = mediums_b.GetBluetoothRadio();
+  radio_a.GetBluetoothAdapter().SetName("BT Device A");
+  radio_b.GetBluetoothAdapter().SetName("BT Device B");
+  EndpointChannelManager ecm_a;
+  EndpointChannelManager ecm_b;
+  EndpointManager em_a(&ecm_a);
+  EndpointManager em_b(&ecm_b);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  BwuManager bwu_b(mediums_b, em_b, ecm_b, {},
+                   {.allow_upgrade_to = {.bluetooth = true}});
+  InjectedBluetoothDeviceStore ibds_a;
+  InjectedBluetoothDeviceStore ibds_b;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  P2pClusterPcpHandler handler_b(&mediums_b, &em_b, &ecm_b, &bwu_b, ibds_b);
+
+  CountDownLatch discover_latch(1);
+  CountDownLatch connect_latch(2);
+  CountDownLatch lost_latch(1);
+
+  struct DiscoveredInfo {
+    std::string endpoint_id;
+    ByteArray endpoint_info;
+    std::string service_id;
+  } discovered;
+
+  EXPECT_EQ(handler_b.StartDiscovery(
+                &client_b_, service_id_, GetBleOnlyDiscoveryOptions(),
+                {
+                    .endpoint_found_cb =
+                        [&discover_latch, &discovered](
+                            const std::string& endpoint_id,
+                            const ByteArray& endpoint_info,
+                            const std::string& service_id) {
+                          LOG(INFO) << "Device discovered: id=" << endpoint_id
+                                    << ", endpoint_info="
+                                    << std::string{endpoint_info};
+                          discovered = {
+                              .endpoint_id = endpoint_id,
+                              .endpoint_info = endpoint_info,
+                              .service_id = service_id,
+                          };
+                          discover_latch.CountDown();
+                        },
+                    .endpoint_lost_cb =
+                        [&lost_latch](const std::string& endpoint_id) {
+                          LOG(INFO) << "Device lost: id=" << endpoint_id;
+                          lost_latch.CountDown();
+                        },
+                }),
+            Status{Status::kSuccess});
+
+  EXPECT_EQ(
+      handler_a.StartAdvertising(
+          &client_a_, service_id_, GetBleOnlyAdvertisingOptions(),
+          {
+              .endpoint_info = ByteArray{endpoint_name_a},
+              .listener =
+                  {
+                      .initiated_cb =
+                          [&connect_latch](const std::string& endpoint_id,
+                                           const ConnectionResponseInfo& info) {
+                            LOG(INFO)
+                                << "StartAdvertising: initiated_cb called";
+                            connect_latch.CountDown();
+                          },
+                  },
+          }),
+      Status{Status::kSuccess});
+
+  EXPECT_TRUE(discover_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(endpoint_name_a, std::string{discovered.endpoint_info});
+
+  client_b_.AddCancellationFlag(discovered.endpoint_id);
+  handler_b.RequestConnection(
+      &client_b_, discovered.endpoint_id,
+      {.endpoint_info = discovered.endpoint_info,
+       .listener =
+           {
+               .initiated_cb =
+                   [&connect_latch](const std::string& endpoint_id,
+                                    const ConnectionResponseInfo& info) {
+                     LOG(INFO) << "RequestConnection: initiated_cb called";
+                     connect_latch.CountDown();
+                   },
+           }},
+      {});
+  std::string client_b_local_endpoint = client_b_.GetLocalEndpointId();
+
+  EXPECT_TRUE(connect_latch.Await(absl::Milliseconds(1000)).result());
+
+  handler_a.StopAdvertising(&client_a_);
+  EXPECT_TRUE(lost_latch.Await(absl::Milliseconds(3000)).result());
+  handler_b.StopDiscovery(&client_b_);
+  bwu_a.Shutdown();
+  bwu_b.Shutdown();
+  env_.Stop();
+  env_.SetBleExtendedAdvertisementsAvailable(false);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTestWithParam,
     ::testing::Combine(/*mediums=*/::testing::ValuesIn(kTestCases),
                        /*ble_v2_enabled=*/::testing::Bool(),
                        /*disable_bluetooth_scanning=*/::testing::Bool()));
+INSTANTIATE_TEST_SUITE_P(ParametrisedP2pLostHandlerTest,
+                         P2pLostHandlerTestWithParam, testing::Bool());
 
 }  // namespace
 }  // namespace connections
