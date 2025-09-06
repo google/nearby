@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPLEMENTATION_APPLE_PREFERENCES_MANAGER_H_
 #define PLATFORM_IMPLEMENTATION_APPLE_PREFERENCES_MANAGER_H_
 
+#import <Foundation/Foundation.h>
+
 #include <string>
 #include <vector>
 
@@ -55,28 +57,28 @@ class PreferencesManager : public nearby::api::PreferencesManager {
 
   // bool array
   bool SetBooleanArray(absl::string_view key,
-                         absl::Span<const bool> value) override;
+                       absl::Span<const bool> value) override;
   std::vector<bool> GetBooleanArray(
       absl::string_view key,
       absl::Span<const bool> default_value) const override;
 
   // int array
   bool SetIntegerArray(absl::string_view key,
-                         absl::Span<const int> value) override;
+                       absl::Span<const int> value) override;
   std::vector<int> GetIntegerArray(
       absl::string_view key,
       absl::Span<const int> default_value) const override;
 
   // int64 array
   bool SetInt64Array(absl::string_view key,
-                         absl::Span<const int64_t> value) override;
+                     absl::Span<const int64_t> value) override;
   std::vector<int64_t> GetInt64Array(
       absl::string_view key,
       absl::Span<const int64_t> default_value) const override;
 
   // string array
   bool SetStringArray(absl::string_view key,
-                          absl::Span<const std::string> value) override;
+                      absl::Span<const std::string> value) override;
   std::vector<std::string> GetStringArray(
       absl::string_view key,
       absl::Span<const std::string> default_value) const override;
