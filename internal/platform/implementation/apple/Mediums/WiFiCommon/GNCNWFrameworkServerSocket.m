@@ -28,11 +28,16 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWListenerImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface GNCNWFrameworkServerSocket ()
+
+// Properties for testing
+@property(nonatomic) nw_listener_state_t listenerState;
+@property(nonatomic, nullable) NSError *listenerError;
 
 @property(nonatomic, readonly) NSMutableArray<nw_connection_t> *pendingConnections;
 @property(nonatomic, readonly) NSMutableArray<nw_connection_t> *readyConnections;
@@ -42,14 +47,28 @@ NS_ASSUME_NONNULL_BEGIN
                             includePeerToPeer:(BOOL)includePeerToPeer
                                         error:(NSError **_Nullable)error;
 
+/**
+ * Handles a new incoming connection from the listener.
+ *
+ * @param connection The new connection object.
+ */
+- (void)handleNewConnection:(nw_connection_t)connection;
+
+/**
+ * Handles a state change from the listener.
+ *
+ * @param state The new state.
+ * @param error An error object if the state is `failed`, otherwise `nil`.
+ */
+- (void)handleListenerStateChanged:(nw_listener_state_t)state error:(nullable nw_error_t)error;
+
 @end
 
 @implementation GNCNWFrameworkServerSocket {
+  NSInteger _port;
   NSCondition *_condition;
-  nw_listener_t _listener;
-  nw_listener_state_t _listenerState;
-  NSError *_listenerError;
   dispatch_queue_t _dispatchQueue;
+  id<GNCNWListener> _listener;
 }
 
 - (instancetype)initWithPort:(NSInteger)port {
@@ -61,6 +80,15 @@ NS_ASSUME_NONNULL_BEGIN
     _dispatchQueue = dispatch_queue_create("GNCNWFrameworkServerSocket", DISPATCH_QUEUE_SERIAL);
   }
   return self;
+}
+
+- (void)setTestingListener:(nullable id<GNCNWListener>)testingListener {
+  // This is a dynamic property for testing, so we don't need a backing ivar.
+  _listener = testingListener;
+}
+
+- (nullable id<GNCNWListener>)testingListener {
+  return _listener;
 }
 
 @synthesize pendingConnections = _pendingConnections;
@@ -115,10 +143,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)close {
-  if (_listener == nil) {
-    return;
-  }
-  nw_listener_cancel(_listener);
+  [_listener cancel];
   _listener = nil;
 }
 
@@ -163,11 +188,11 @@ NS_ASSUME_NONNULL_BEGIN
                    key, recordValue);
   }
   nw_advertise_descriptor_set_txt_record_object(advertiseDescriptor, txtRecord);
-  nw_listener_set_advertise_descriptor(_listener, advertiseDescriptor);
+  [_listener setAdvertiseDescriptor:advertiseDescriptor];
 }
 
 - (void)stopAdvertising {
-  nw_listener_set_advertise_descriptor(_listener, nil);
+  [_listener setAdvertiseDescriptor:nil];
 }
 
 /**
@@ -212,79 +237,54 @@ NS_ASSUME_NONNULL_BEGIN
                               PSKSharedSecret:(nullable NSData *)PSKSharedSecret
                             includePeerToPeer:(BOOL)includePeerToPeer
                                         error:(NSError **_Nullable)error {
-  nw_parameters_t parameters =
-      (PSKIdentify == nil || PSKSharedSecret == nil)
-          ? GNCBuildNonTLSParameters(/*includePeerToPeer=*/includePeerToPeer)
-          : GNCBuildTLSParameters(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentify,
-                                  /*includePeerToPeer=*/includePeerToPeer);
-  if (!parameters) {
-    GNCLoggerError(@"[GNCNWFrameworkServerSocket] Failed to create NW parameters.");
+  if (self.testingListener) {
+    _listener = self.testingListener;
+  } else {
+    nw_parameters_t parameters =
+        (PSKIdentify == nil || PSKSharedSecret == nil)
+            ? GNCBuildNonTLSParameters(/*includePeerToPeer=*/includePeerToPeer)
+            : GNCBuildTLSParameters(/*PSK=*/PSKSharedSecret, /*identity=*/PSKIdentify,
+                                    /*includePeerToPeer=*/includePeerToPeer);
+    if (!parameters) {
+      GNCLoggerError(@"[GNCNWFrameworkServerSocket] Failed to create NW parameters.");
+      return NO;
+    }
+
+    // If the server socket port is zero, a random port will be selected. The server socket port
+    // will be updated to reflect the port it's listening on, once the listener transitions to the
+    // ready state.
+    if (_port == 0) {
+      _listener = [[GNCNWListenerImpl alloc] initWithParameters:parameters];
+    } else {
+      _listener = [[GNCNWListenerImpl alloc] initWithPort:[[@(_port) stringValue] UTF8String]
+                                               parameters:parameters];
+    }
+  }
+  if (!_listener) {
+    GNCLoggerError(@"[GNCNWFrameworkServerSocket] Failed to create NW listener.");
     return NO;
   }
 
-  // If the server socket port is zero, a random port will be selected. The server socket port
-  // will be updated to reflect the port it's listening on, once the listener transitions to the
-  // ready state.
-  if (self.port == 0) {
-    _listener = nw_listener_create(parameters);
-  } else {
-    _listener = nw_listener_create_with_port([[@(self.port) stringValue] UTF8String], parameters);
-  }
-
   // Register to listen for incoming connections.
-  nw_listener_set_queue(_listener, _dispatchQueue);
-  nw_listener_set_new_connection_handler(_listener, ^(nw_connection_t connection) {
-    // Keep track of any incoming connections. We must keep a reference otherwise the connection
-    // will be dropped.
-    [self.pendingConnections addObject:connection];
-    // Register for state changes so we can clean up any failed/canceled connections and inform
-    // Nearby of any ready connections when asked.
-    nw_connection_set_queue(connection, _dispatchQueue);
-    nw_connection_set_state_changed_handler(connection,
-                                            ^(nw_connection_state_t state, nw_error_t error) {
-                                              [_condition lock];
-                                              switch (state) {
-                                                case nw_connection_state_cancelled:
-                                                case nw_connection_state_invalid:
-                                                case nw_connection_state_failed:
-                                                  [self.pendingConnections removeObject:connection];
-                                                  break;
-                                                case nw_connection_state_waiting:
-                                                  // A connection couldn't be opened, but could be
-                                                  // retried when conditions are more favorable. We
-                                                  // choose to just drop the connection, but we
-                                                  // could add retry logic here in the future.
-                                                  [self.pendingConnections removeObject:connection];
-                                                  break;
-                                                case nw_connection_state_preparing:
-                                                  // ignore.
-                                                  break;
-                                                case nw_connection_state_ready:
-                                                  // Move the connection from "pending" to "ready".
-                                                  [self.readyConnections addObject:connection];
-                                                  [self.pendingConnections removeObject:connection];
-                                                  [_condition signal];
-                                                  break;
-                                              }
-                                              [_condition unlock];
-                                            });
-    nw_connection_start(connection);
-  });
+  [_listener setQueue:_dispatchQueue];
+  __weak __typeof__(self) weakSelf = self;
+  [_listener setNewConnectionHandler:^(nw_connection_t connection) {
+    __strong __typeof__(self) strongSelf = weakSelf;
+    if (strongSelf) {
+      [strongSelf handleNewConnection:connection];
+    }
+  }];
 
   // Register for state changes for the listener so we can block until we have an initial status.
   [_condition lock];
-  nw_listener_set_state_changed_handler(_listener, ^(nw_listener_state_t state, nw_error_t error) {
-    [_condition lock];
-
-    _listenerState = state;
-    if (error != nil) {
-      _listenerError = (__bridge NSError *)nw_error_copy_cf_error(error);
+  [_listener setStateChangedHandler:^(nw_listener_state_t state, nw_error_t _Nullable error) {
+    __strong __typeof__(self) strongSelf = weakSelf;
+    if (strongSelf) {
+      [strongSelf handleListenerStateChanged:state error:error];
     }
-    [_condition signal];
-    [_condition unlock];
-  });
+  }];
 
-  nw_listener_start(_listener);
+  [_listener start];
 
   // This doesn't start flaking until 0.0005 seconds, so 0.5 should be plenty of time.
   BOOL didSignal = [_condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.5]];
@@ -307,14 +307,85 @@ NS_ASSUME_NONNULL_BEGIN
     case nw_listener_state_waiting:
     case nw_listener_state_failed:
     case nw_listener_state_cancelled:
-      GNCLoggerError(@"[GNCNWFrameworkServerSocket] Listen state: %u", _listenerState);
+      GNCLoggerError(@"[GNCNWFrameworkServerSocket] Listen state: %u",
+                     (unsigned int)_listenerState);
       [self close];
       return NO;
     case nw_listener_state_ready:
-      _port = nw_listener_get_port(_listener);
+      _port = _listener.port;
       GNCLoggerInfo(@"[GNCNWFrameworkServerSocket] Listen on port: %ld", (long)_port);
       return YES;
   }
+}
+
+- (void)handleNewConnection:(nw_connection_t)connection {
+  // Keep track of any incoming connections. We must keep a reference otherwise the connection will
+  // be dropped.
+  [self.pendingConnections addObject:connection];
+
+  // Register for state changes so we can clean up any failed/canceled connections and inform Nearby
+  // of any ready connections when asked.
+  nw_connection_set_queue(connection, _dispatchQueue);
+  __weak __typeof__(self) weakSelf = self;
+  nw_connection_set_state_changed_handler(
+      connection, ^(nw_connection_state_t state, nw_error_t _Nullable error) {
+        __strong __typeof__(self) strongSelf = weakSelf;
+        if (strongSelf) {
+          [strongSelf handleConnectionStateChange:connection state:state error:error];
+        }
+      });
+  nw_connection_start(connection);
+}
+
+- (void)handleConnectionStateChange:(nw_connection_t)connection
+                              state:(nw_connection_state_t)state
+                              error:(nullable nw_error_t)error {
+  [_condition lock];
+  switch (state) {
+    case nw_connection_state_cancelled:
+    case nw_connection_state_invalid:
+    case nw_connection_state_failed:
+      [self.pendingConnections removeObject:connection];
+      break;
+    case nw_connection_state_waiting:
+      // A connection couldn't be opened, but could be retried when conditions are more
+      // favorable. We choose to just drop the connection, but we could add retry logic
+      // here in the future.
+      [self.pendingConnections removeObject:connection];
+      break;
+    case nw_connection_state_preparing:
+      // ignore.
+      break;
+    case nw_connection_state_ready:
+      // Move the connection from "pending" to "ready".
+      [self.readyConnections addObject:connection];
+      [self.pendingConnections removeObject:connection];
+      [_condition signal];
+      break;
+  }
+  [_condition unlock];
+}
+
+- (void)handleListenerStateChanged:(nw_listener_state_t)state error:(nullable nw_error_t)error {
+  [_condition lock];
+  _listenerState = state;
+  if (error != nil) {
+    _listenerError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
+  }
+  [_condition signal];
+  [_condition unlock];
+}
+
+// MARK: - Testing Methods
+
+- (void)addFakeConnection:(id<GNCNWConnection>)connection {
+  [_condition lock];
+  [self.pendingConnections addObject:(nw_connection_t)connection];
+  // Simulate the connection becoming ready.
+  [self.readyConnections addObject:(nw_connection_t)connection];
+  [self.pendingConnections removeObject:(nw_connection_t)connection];
+  [_condition signal];
+  [_condition unlock];
 }
 
 @end

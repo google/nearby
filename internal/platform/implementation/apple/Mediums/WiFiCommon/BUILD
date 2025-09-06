@@ -31,6 +31,7 @@ objc_library(
         "GNCNWFrameworkError.m",
         "GNCNWFrameworkServerSocket.m",
         "GNCNWFrameworkSocket.m",
+        "GNCNWListenerImpl.m",
         "GNCNWParameters.m",
     ],
     hdrs = [
@@ -42,6 +43,8 @@ objc_library(
         "GNCNWFrameworkServerSocket.h",
         "GNCNWFrameworkServerSocket+Internal.h",
         "GNCNWFrameworkSocket.h",
+        "GNCNWListener.h",
+        "GNCNWListenerImpl.h",
         "GNCNWParameters.h",
     ],
     deps = [

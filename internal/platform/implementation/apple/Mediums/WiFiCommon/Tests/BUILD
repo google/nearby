@@ -28,12 +28,14 @@ objc_library(
         "GNCFakeNWFramework.m",
         "GNCFakeNWFrameworkServerSocket.m",
         "GNCFakeNWFrameworkSocket.m",
+        "GNCFakeNWListener.m",
     ],
     hdrs = [
         "GNCFakeNWConnection.h",
         "GNCFakeNWFramework.h",
         "GNCFakeNWFrameworkServerSocket.h",
         "GNCFakeNWFrameworkSocket.h",
+        "GNCFakeNWListener.h",
     ],
     deps = [
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
@@ -51,6 +53,7 @@ objc_library(
         "GNCNWFrameworkServerSocketTest.m",
         "GNCNWFrameworkSocketTest.m",
         "GNCNWFrameworkTest.m",
+        "GNCNWListenerImplTest.m",
         "GNCNWParametersTest.m",
     ],
     deps = [
