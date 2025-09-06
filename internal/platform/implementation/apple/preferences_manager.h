@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPLEMENTATION_APPLE_PREFERENCES_MANAGER_H_
 #define PLATFORM_IMPLEMENTATION_APPLE_PREFERENCES_MANAGER_H_
 
+#import <Foundation/Foundation.h>
+
 #include <string>
 #include <vector>
 
@@ -88,6 +90,9 @@ class PreferencesManager : public nearby::api::PreferencesManager {
 
   // Removes preferences
   void Remove(absl::string_view key) override;
+
+  // For testing only.
+  NSUserDefaults* GetUserDefaults() const;
 };
 
 }  // namespace nearby::apple
