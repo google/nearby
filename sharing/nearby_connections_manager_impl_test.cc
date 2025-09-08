@@ -17,7 +17,9 @@
 #include <stdint.h>
 
 #include <cstdio>
+#include <fstream>
 #include <functional>
+#include <ios>
 #include <memory>
 #include <optional>
 #include <string>
@@ -88,11 +90,13 @@ constexpr char kInvalidBluetoothMacAddress[] = {0x07, 0x07, 0x07};
 constexpr absl::Duration kSynchronizationTimeOut = absl::Milliseconds(200);
 
 void InitializeTemporaryFile(FilePath& file) {
-  std::FILE* output_fp = std::fopen(file.GetPath().c_str(), "wb+");
-  ASSERT_NE(output_fp, nullptr);
-  EXPECT_EQ(std::fwrite(kPayload, 1, sizeof(kPayload), output_fp),
-            sizeof(kPayload));
-  std::fclose(output_fp);
+  std::ofstream stream(file.GetPath(), std::ios_base::out |
+                                           std::ios_base::trunc |
+                                           std::ios_base::binary);
+  if (stream.good()) {
+    stream.write(reinterpret_cast<const char*>(kPayload), sizeof(kPayload));
+  }
+  stream.close();
 }
 
 }  // namespace
@@ -404,14 +408,14 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
 
           FilePayload file_payload = std::move(payload->content.file_payload);
           std::vector<uint8_t> payload_bytes(file_payload.size);
-          std::FILE* payload_fp =
-              std::fopen(file_payload.file.path.GetPath().c_str(), "rb");
-          ASSERT_NE(payload_fp, nullptr);
-          EXPECT_EQ(std::fread(payload_bytes.data(), 1, file_payload.size,
-                               payload_fp),
-                    file_payload.size);
+          std::ifstream payload_stream(file_payload.file.path.GetPath(),
+                                       std::ios::in | std::ios::binary);
+          ASSERT_TRUE(payload_stream.good());
+          payload_stream.read(reinterpret_cast<char*>(payload_bytes.data()),
+                              file_payload.size);
+          ASSERT_EQ(payload_stream.gcount(), file_payload.size);
           EXPECT_EQ(expected_payload, payload_bytes);
-          std::fclose(payload_fp);
+          payload_stream.close();
 
           std::move(callback)(Status::kSuccess);
           notification.Notify();
@@ -1542,13 +1546,14 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
   ASSERT_NE(payload, nullptr);
   ASSERT_TRUE(payload->content.is_file());
   std::vector<uint8_t> payload_bytes(payload->content.file_payload.size);
-  std::FILE* payload_fp = std::fopen(
-      payload->content.file_payload.file.path.GetPath().c_str(), "rb");
-  ASSERT_NE(payload_fp, nullptr);
-  EXPECT_EQ(std::fread(payload_bytes.data(), 1,
-                       payload->content.file_payload.size, payload_fp),
-            payload->content.file_payload.size);
-  std::fclose(payload_fp);
+  std::ifstream payload_stream(
+      payload->content.file_payload.file.path.GetPath(),
+      std::ios::in | std::ios::binary);
+  ASSERT_TRUE(payload_stream.good());
+  payload_stream.read(reinterpret_cast<char*>(payload_bytes.data()),
+                      payload->content.file_payload.size);
+  ASSERT_EQ(payload_stream.gcount(), payload->content.file_payload.size);
+  payload_stream.close();
   EXPECT_EQ(payload_bytes, expected_payload);
 }
 

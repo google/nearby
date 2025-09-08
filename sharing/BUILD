@@ -457,6 +457,7 @@ cc_test(
         ":test_support",
         ":types",
         "//internal/platform:types",
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//proto:sharing_enums_cc_proto",
         "//sharing/certificates",
@@ -470,14 +471,7 @@ cc_test(
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
-    ] + select({
-        "@platforms//os:windows": [
-            "//internal/platform/implementation/windows",
-        ],
-        "//conditions:default": [
-            "//internal/platform/implementation/g3",
-        ],
-    }),
+    ],
 )
 
 cc_test(
@@ -487,7 +481,7 @@ cc_test(
     ],
     deps = [
         ":nearby_sharing_service",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -500,7 +494,7 @@ cc_test(
         ":incoming_frame_reader",
         ":nearby_connection_impl",
         ":test_support",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/internal/public:logging",
         "//sharing/proto:wire_format_cc_proto",
@@ -520,7 +514,7 @@ cc_test(
         ":test_support",
         "//internal/base:file_path",
         "//internal/base:files",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/proto:wire_format_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -543,7 +537,7 @@ cc_test(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/common:enum",
         "//sharing/flags/generated:generated_flags",
@@ -580,8 +574,8 @@ cc_test(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/flags:nearby_flags",
+        "//internal/platform/implementation:platform_impl",
         "//internal/platform/implementation:signin_attempt",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
         "//internal/test",
         "//internal/test:mocks",
         "//sharing/analytics",
@@ -621,7 +615,7 @@ cc_test(
     srcs = ["nearby_connections_stream_buffer_manager_test.cc"],
     deps = [
         ":nearby_sharing_service",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -635,7 +629,7 @@ cc_test(
         ":nearby_sharing_service",
         ":types",
         "//connections:core_types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -648,7 +642,7 @@ cc_test(
         ":share_session",
         "//internal/base:file_path",
         "//internal/base:files",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//sharing/internal/api:mock_sharing_platform",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
@@ -663,7 +657,7 @@ cc_test(
     deps = [
         ":attachments",
         ":nearby_sharing_service",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/internal/test:nearby_test",
         "//sharing/local_device_data:test_support",
@@ -679,7 +673,7 @@ cc_test(
     deps = [
         ":nearby_sharing_service",
         "//internal/base:files",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/common",
         "//sharing/common:enum",
@@ -704,7 +698,7 @@ cc_test(
         ":connection_types",
         ":share_session",
         ":transfer_metadata",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/proto:wire_format_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -744,7 +738,7 @@ cc_test(
     deps = [
         ":connection_types",
         ":nearby_sharing_service",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/internal/test:nearby_test",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -779,7 +773,7 @@ cc_test(
         ":types",
         "//internal/analytics:mock_event_logger",
         "//internal/base:file_path",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/analytics",
         "//sharing/certificates:test_support",
@@ -810,7 +804,7 @@ cc_test(
     deps = [
         ":nearby_sharing_service",
         ":types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -832,7 +826,7 @@ cc_test(
         "//internal/analytics:mock_event_logger",
         "//internal/base:file_path",
         "//internal/network:url",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/analytics",
         "//sharing/certificates:test_support",
@@ -861,7 +855,7 @@ cc_test(
         ":types",
         "//internal/analytics:mock_event_logger",
         "//internal/base:file_path",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//proto:sharing_enums_cc_proto",
         "//sharing/analytics",
@@ -881,7 +875,7 @@ cc_test(
     srcs = ["thread_timer_test.cc"],
     deps = [
         ":thread_timer",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",
@@ -897,7 +891,7 @@ cc_test(
         ":connection_types",
         ":nearby_sharing_service",
         "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -908,7 +902,7 @@ cc_test(
     srcs = ["worker_queue_test.cc"],
     deps = [
         ":worker_queue",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",

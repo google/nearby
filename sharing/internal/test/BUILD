@@ -71,8 +71,8 @@ cc_test(
         ":nearby_test",
         "//internal/platform:mac_address",
         "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
-        "//sharing/internal/api:platform",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
+        "//sharing/internal/api:platform",
         "//sharing/internal/public:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",

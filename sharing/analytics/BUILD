@@ -49,7 +49,7 @@ cc_test(
     deps = [
         ":analytics",
         "//internal/analytics:mock_event_logger",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//proto:sharing_enums_cc_proto",
         "//sharing:attachments",
         "//sharing:types",

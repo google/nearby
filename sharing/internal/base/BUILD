@@ -52,10 +52,9 @@ cc_test(
         "encode_test.cc",
         "mime_test.cc",
     ],
-    shard_count = 8,
     deps = [
         ":base",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

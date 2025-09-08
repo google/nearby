@@ -63,7 +63,7 @@ cc_test(
     deps = [
         ":nearby_fast_initiation",
         ":test_support",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//sharing/internal/api:platform",
         "//sharing/internal/test:nearby_test",
         "@com_github_protobuf_matchers//protobuf-matchers",

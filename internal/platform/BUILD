@@ -416,7 +416,7 @@ cc_test(
     deps = [
         ":base",
         ":test_util",
-        "//internal/platform/implementation:platform_impl",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status",
@@ -451,7 +451,7 @@ cc_test(
         ":base",
         ":cancellation_flag",
         ":test_util",
-        "//internal/platform/implementation:platform_impl",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -476,7 +476,7 @@ cc_test(
     deps = [
         ":error_code_recorder",
         ":test_util",
-        "//internal/platform/implementation:platform_impl",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -513,7 +513,7 @@ cc_test(
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:platform_impl",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
@@ -530,7 +530,7 @@ cc_test(
     deps = [
         ":comm",
         "//internal/platform/implementation:comm",
-        "//internal/platform/implementation:platform_impl",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/proto:credential_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/status",
@@ -575,7 +575,7 @@ cc_test(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/crypto_cros",
-        "//internal/platform/implementation:platform_impl",  # build_cleaner: keep
+        "//internal/platform/implementation:platform_impl",
         "//internal/platform/implementation:types",
         "//internal/test",
         "@com_github_protobuf_matchers//protobuf-matchers",

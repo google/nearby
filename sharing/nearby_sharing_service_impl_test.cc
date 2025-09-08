@@ -15,12 +15,13 @@
 #include "sharing/nearby_sharing_service_impl.h"
 
 #include <stdint.h>
-#include <unistd.h>
 
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <functional>
+#include <ios>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -1241,9 +1242,12 @@ class NearbySharingServiceImplTest : public testing::Test {
   FilePath CreateTestFile(absl::string_view name,
                                        const std::vector<uint8_t>& content) {
     FilePath path = Files::GetTemporaryDirectory().append(FilePath(name));
-    std::FILE* file = std::fopen(path.GetPath().c_str(), "w+");
-    std::fwrite(content.data(), 1, content.size(), file);
-    std::fclose(file);
+    std::ofstream file(path.GetPath(),
+                      std::ios_base::out | std::ios_base::trunc);
+    if (file.good()) {
+      file.write(reinterpret_cast<const char*>(content.data()), content.size());
+    }
+    file.close();
     return path;
   }
 

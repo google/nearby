@@ -16,6 +16,8 @@
 
 #include <atomic>
 #include <cstdio>
+#include <fstream>
+#include <ios>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -32,11 +34,12 @@ namespace {
 using ::nearby::sharing::api::MockSharingPlatform;
 
 bool CreateFile(FilePath& file_path) {
-  std::FILE* file = std::fopen(file_path.GetPath().c_str(), "w+");
-  if (file == nullptr) {
+  std::ofstream file(file_path.GetPath(),
+                     std::ios_base::out | std::ios_base::trunc);
+  if (!file.good()) {
     return false;
   }
-  std::fclose(file);
+  file.close();
   return true;
 }
 

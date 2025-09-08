@@ -65,11 +65,10 @@ cc_test(
     srcs = [
         "connectivity_manager_impl_test.cc",
     ],
-    shard_count = 8,
     deps = [
         ":nearby_context",
         ":types",
-        "//internal/platform/implementation/g3",  # fixdeps: keep
+        "//internal/platform/implementation:platform_impl",
         "//sharing/internal/api:mock_sharing_platform",
         "//sharing/internal/api:platform",
         "@com_github_protobuf_matchers//protobuf-matchers",

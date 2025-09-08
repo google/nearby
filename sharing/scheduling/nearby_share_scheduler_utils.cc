@@ -39,23 +39,21 @@ std::string ConvertToReadableSchedule(PreferenceManager& preference_manager,
       preference_manager.GetDictionaryInt64Value(
           schedule_preference, SchedulerFields::kLastAttemptTimeKeyName);
   if (attempt_time.has_value()) {
-    std::time_t local_t =
-        absl::ToTimeT(absl::FromUnixNanos(attempt_time.value()));
-    std::tm* local_time = std::localtime(&local_t);
-    std::stringstream buffer;
-    buffer << std::put_time(local_time, "%Y-%m-%d %H:%M:%S");
-    absl::StrAppendFormat(&result, "attempt_time:%s, ", buffer.str());
+    absl::StrAppend(&result, "attempt_time:",
+                    absl::FormatTime(absl::RFC3339_sec,
+                                     absl::FromUnixNanos(attempt_time.value()),
+                                     absl::UTCTimeZone()),
+                    ", ");
   }
   std::optional<int64_t> success_time =
       preference_manager.GetDictionaryInt64Value(
           schedule_preference, SchedulerFields::kLastSuccessTimeKeyName);
   if (success_time.has_value()) {
-    std::time_t local_t =
-        absl::ToTimeT(absl::FromUnixNanos(success_time.value()));
-    std::tm* local_time = std::localtime(&local_t);
-    std::stringstream buffer;
-    buffer << std::put_time(local_time, "%Y-%m-%d %H:%M:%S");
-    absl::StrAppendFormat(&result, "success_time:%s, ", buffer.str());
+    absl::StrAppend(&result, "success_time:",
+                    absl::FormatTime(absl::RFC3339_sec,
+                                     absl::FromUnixNanos(success_time.value()),
+                                     absl::UTCTimeZone()),
+                    ", ");
   }
   std::optional<int64_t> failed_count =
       preference_manager.GetDictionaryInt64Value(
