@@ -845,6 +845,8 @@ Status BasePcpHandler::RequestConnection(
     const ConnectionRequestInfo& info,
     const ConnectionOptions& connection_options) {
   auto result = std::make_shared<Future<Status>>();
+  LOG(INFO) << "RequestConnection with supported mediums: "
+            << GetStringValueOfSupportedMediums(connection_options);
   RunOnPcpHandlerThread(
       "request-connection",
       [this, client, &info, connection_options, endpoint_id,

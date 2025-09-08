@@ -25,6 +25,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -41,10 +42,12 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mock_device.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/pcp.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/implementation/webrtc_state.h"
 #include "connections/listeners.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
@@ -114,6 +117,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
         .bluetooth = true,
         .ble = true,
+        .web_rtc = true,
         .wifi_lan = true,
     },
 };
@@ -202,17 +206,10 @@ class MockPcpHandler : public BasePcpHandler {
 
   MOCK_METHOD(Strategy, GetStrategy, (), (const, override));
   MOCK_METHOD(Pcp, GetPcp, (), (const, override));
-
-  MOCK_METHOD(bool, HasOutgoingConnections, (ClientProxy * client),
-              (const, override));
-  MOCK_METHOD(bool, HasIncomingConnections, (ClientProxy * client),
-              (const, override));
-
   MOCK_METHOD(bool, CanSendOutgoingConnection, (ClientProxy * client),
               (const, override));
   MOCK_METHOD(bool, CanReceiveIncomingConnection, (ClientProxy * client),
               (const, override));
-
   MOCK_METHOD(StartOperationResult, StartAdvertisingImpl,
               (ClientProxy * client, const std::string& service_id,
                const std::string& local_endpoint_id,
@@ -361,6 +358,24 @@ class MockPcpHandler : public BasePcpHandler {
       const DiscoveryOptions& new_options) {
     return BasePcpHandler::NeedsToTurnOffDiscoveryMedium(medium, old_options,
                                                          new_options);
+  }
+  void StripOutWifiHotspotMedium(ConnectionInfo& connection_info) {
+    BasePcpHandler::StripOutWifiHotspotMedium(connection_info);
+  }
+
+  mediums::WebrtcPeerId CreatePeerIdFromAdvertisement(
+      const std::string& service_id, const std::string& endpoint_id,
+      const ByteArray& endpoint_info) {
+    return BasePcpHandler::CreatePeerIdFromAdvertisement(
+        service_id, endpoint_id, endpoint_info);
+  }
+
+  bool HasOutgoingConnections(ClientProxy* client) const override {
+    return BasePcpHandler::HasOutgoingConnections(client);
+  }
+
+  bool HasIncomingConnections(ClientProxy* client) const override {
+    return BasePcpHandler::HasIncomingConnections(client);
   }
 };
 
@@ -894,6 +909,8 @@ TEST_P(BasePcpHandlerTest, ConstructorDestructorWorks) {
 }
 
 TEST_P(BasePcpHandlerTest, StartAdvertisingChangesState) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableDct, true);
   env_.Start();
   ClientProxy client;
   Mediums m;
@@ -1153,6 +1170,8 @@ TEST_P(BasePcpHandlerTest, RequestConnectionChangesState) {
   RequestConnection("1234", std::move(channel_a), channel_b.get(), &client,
                     &pcp_handler, connect_medium);
   LOG(INFO) << "RequestConnection complete";
+  EXPECT_TRUE(pcp_handler.HasOutgoingConnections(&client));
+  EXPECT_FALSE(pcp_handler.HasIncomingConnections(&client));
   channel_b->Close();
   bwu.Shutdown();
   pcp_handler.DisconnectFromEndpointManager();
@@ -1697,6 +1716,55 @@ TEST_P(BasePcpHandlerTest, MultipleMediumsProduceSingleEndpointLostEvent) {
 INSTANTIATE_TEST_SUITE_P(ParameterizedBasePcpHandlerTest, BasePcpHandlerTest,
                          ::testing::ValuesIn(kTestCases));
 
+TEST_F(BasePcpHandlerTest, StripOutWifiHotspotMedium) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+
+  ConnectionInfo connection_info;
+  connection_info.supported_mediums = {Medium::WIFI_LAN, Medium::WIFI_HOTSPOT,
+                                       Medium::BLUETOOTH};
+  pcp_handler.StripOutWifiHotspotMedium(connection_info);
+  EXPECT_THAT(
+      connection_info.supported_mediums,
+      ::testing::UnorderedElementsAre(Medium::WIFI_LAN, Medium::BLUETOOTH));
+
+  ConnectionInfo connection_info2;
+  connection_info2.supported_mediums = {Medium::WIFI_HOTSPOT,
+                                        Medium::BLUETOOTH};
+  pcp_handler.StripOutWifiHotspotMedium(connection_info2);
+  EXPECT_THAT(
+      connection_info2.supported_mediums,
+      ::testing::UnorderedElementsAre(Medium::WIFI_HOTSPOT, Medium::BLUETOOTH));
+  bwu.Shutdown();
+  env_.Stop();
+}
+
+TEST_F(BasePcpHandlerTest, CreatePeerIdFromAdvertisement) {
+  env_.Start();
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  std::string service_id = "service";
+  std::string endpoint_id = "endpoint";
+  ByteArray endpoint_info("info");
+
+  mediums::WebrtcPeerId peer_id = pcp_handler.CreatePeerIdFromAdvertisement(
+      service_id, endpoint_id, endpoint_info);
+  std::string seed =
+      absl::StrCat(service_id, endpoint_id, std::string(endpoint_info));
+  mediums::WebrtcPeerId expected_peer_id =
+      mediums::WebrtcPeerId::FromSeed(ByteArray(std::move(seed)));
+  EXPECT_EQ(peer_id.GetId(), expected_peer_id.GetId());
+  bwu.Shutdown();
+  env_.Stop();
+}
+
 TEST_F(BasePcpHandlerTest, InjectEndpoint) {
   env_.Start();
   std::string service_id{"service"};
@@ -2239,6 +2307,8 @@ TEST_F(BasePcpHandlerTest, TestDeviceFilterForConnectionsWithUnknown) {
                                         Medium::BLUETOOTH,
                                         NearbyDevice::Type::kConnectionsDevice)
                   .Ok());
+  EXPECT_TRUE(pcp_handler.HasIncomingConnections(&client));
+  EXPECT_FALSE(pcp_handler.HasOutgoingConnections(&client));
   env_.Stop();
 }
 
@@ -2573,6 +2643,9 @@ TEST_F(BasePcpHandlerTest, TestNeedsToTurnOffAdvertisingMedium) {
 
 TEST_F(BasePcpHandlerTest, TestUpdateAdvertisingOptionsWorks) {
   env_.Start();
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
+      true);
   AdvertisingOptions old_options{
       {},
       true,   // auto_upgrade_bandwidth
