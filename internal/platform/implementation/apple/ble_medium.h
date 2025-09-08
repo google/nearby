@@ -235,6 +235,8 @@ class BleMedium : public api::ble_v2::BleMedium {
 
   absl::Mutex l2cap_server_socket_mutex_;
   BleL2capServerSocket *l2cap_server_socket_ptr_ = nullptr;
+
+  dispatch_queue_t connection_callback_queue_ = nullptr;
 };
 
 }  // namespace apple

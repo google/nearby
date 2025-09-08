@@ -201,11 +201,21 @@ Exception BleSocket::Close() {
   return {Exception::kSuccess};
 }
 
+void BleSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+  absl::MutexLock lock(&mutex_);
+  close_notifier_ = std::move(notifier);
+}
+
 void BleSocket::DoClose() {
   if (!closed_) {
     input_stream_->Close();
     output_stream_->Close();
     closed_ = true;
+
+    if (close_notifier_) {
+      close_notifier_();
+      close_notifier_ = nullptr;
+    }
   }
 }
 

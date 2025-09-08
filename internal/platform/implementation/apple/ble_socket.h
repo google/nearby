@@ -120,6 +120,8 @@ class BleSocket : public api::ble_v2::BleSocket {
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) ABSL_LOCKS_EXCLUDED(mutex_);
+
  private:
   void DoClose() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -128,6 +130,7 @@ class BleSocket : public api::ble_v2::BleSocket {
   std::unique_ptr<BleInputStream> input_stream_;
   std::unique_ptr<BleOutputStream> output_stream_;
   api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
+  absl::AnyInvocable<void()> close_notifier_;
 };
 
 }  // namespace apple

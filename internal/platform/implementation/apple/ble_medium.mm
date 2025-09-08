@@ -54,6 +54,8 @@
 #import "internal/platform/implementation/apple/utils.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
+static const char *const kConnectionCallbackQueueLabel =
+    "com.google.nearby.ble_medium.connection_callback_queue";
 
 // Timeout for BLE operations that are initiated by a call to a public API.
 static const UInt8 kApiTimeoutInSeconds = 12;
@@ -82,7 +84,10 @@ NSString *ConvertDataToHexString(NSData *data) {
 
 }  // namespace
 
-BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {}
+BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {
+  connection_callback_queue_ =
+      dispatch_queue_create(kConnectionCallbackQueueLabel, DISPATCH_QUEUE_SERIAL);
+}
 
 // ble_medium.mm
 BleMedium::~BleMedium() { [medium_ stop]; }
@@ -115,8 +120,6 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
   NSMutableDictionary<CBUUID *, NSData *> *serviceData =
       ObjCServiceDataFromCPP(advertising_data.service_data);
 
-  [socketPeripheralManager_ start];
-
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
   [medium_ startAdvertisingData:serviceData
@@ -136,8 +139,6 @@ bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advert
 }
 
 bool BleMedium::StopAdvertising() {
-  [socketPeripheralManager_ stop];
-
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
   [medium_ stopAdvertisingWithCompletionHandler:^(NSError *error) {
@@ -443,6 +444,14 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
     const std::string &service_id) {
   auto server_socket = std::make_unique<BleServerSocket>();
   __block auto server_socket_ptr = server_socket.get();
+
+  if (socketPeripheralManager_) {
+    [socketPeripheralManager_ stop];
+  }
+
+  socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
+                                                                restoreIdentifier:nil];
+
   socketPeripheralServiceManager_ = [[GNSPeripheralServiceManager alloc]
          initWithBleServiceUUID:[CBUUID UUIDWithString:kWeaveServiceUUID]
        addPairingCharacteristic:NO
@@ -454,18 +463,27 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
                                             // have a service ID available to us.
                                             serviceID:nil
                                   expectedIntroPacket:YES
-                                        callbackQueue:dispatch_get_main_queue()];
+                                        callbackQueue:connection_callback_queue_];
 
           auto socket = std::make_unique<BleSocket>(connection);
+          socket->SetCloseNotifier([socketPeripheralManager = socketPeripheralManager_,
+                                    serviceUUID = socketPeripheralServiceManager_.serviceUUID]() {
+            [socketPeripheralManager
+                removePeripheralServiceManagerForServiceUUID:serviceUUID
+                                 bleServiceRemovedCompletion:^(NSError *_Nullable error) {
+                                   GNCLoggerInfo(@"BleSocket is removed peripheral manager.");
+                                 }];
+          });
+
           connection.connectionHandlers = socket->GetInputStream().GetConnectionHandlers();
           if (server_socket_ptr) {
             server_socket_ptr->Connect(std::move(socket));
           }
+
+          GNCLoggerInfo(@"BleServerSocket is created with connection");
         });
         return YES;
       }];
-  socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
-                                                                restoreIdentifier:nil];
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockError = nil;
@@ -528,7 +546,7 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
             [GNCBLEL2CAPConnection connectionWithStream:stream
                                               serviceID:@(service_id_str.c_str())
                                      incomingConnection:YES
-                                          callbackQueue:dispatch_get_main_queue()];
+                                          callbackQueue:connection_callback_queue_];
         auto socket = std::make_unique<BleL2capSocket>(connection);
         {
           absl::MutexLock lock(&l2cap_server_socket_mutex_);
@@ -586,7 +604,7 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
                                    connectionWithSocket:nssocket
                                               serviceID:@(service_id.c_str())
                                     expectedIntroPacket:NO
-                                          callbackQueue:dispatch_get_main_queue()];
+                                          callbackQueue:connection_callback_queue_];
                                socket = std::make_unique<BleSocket>(connection, peripheral_id);
                                connection.connectionHandlers =
                                    socket->GetInputStream().GetConnectionHandlers();
@@ -631,7 +649,7 @@ std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
                        [GNCBLEL2CAPConnection connectionWithStream:stream
                                                          serviceID:@(service_id_str.c_str())
                                                 incomingConnection:NO
-                                                     callbackQueue:dispatch_get_main_queue()];
+                                                     callbackQueue:connection_callback_queue_];
                    // Blocked call to wait for the packet validation result.
                    // TODO: b/419654808 - Remove this once the packet validation is moved to the
                    // Connections layer.
