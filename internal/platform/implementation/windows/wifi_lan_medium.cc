@@ -98,17 +98,16 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     LOG(WARNING) << "Cannot start advertising without a listening socket.";
     return false;
   }
-  std::string service_name = nsd_service_info.GetServiceName();
+  service_name_ = nsd_service_info.GetServiceName();
   if (wifi_lan_mdns_.StartMdnsService(
-      service_name, nsd_service_info.GetServiceType(),
-      nsd_service_info.GetPort(), nsd_service_info.GetTxtRecords())) {
-    service_name_ = std::move(service_name);
+          service_name_, nsd_service_info.GetServiceType(),
+          nsd_service_info.GetPort(), nsd_service_info.GetTxtRecords())) {
     LOG(INFO) << "started mDNS advertising for: " << service_name_
               << " on port " << nsd_service_info.GetPort();
     medium_status_ |= kMediumStatusAdvertising;
     return true;
   }
-  LOG(ERROR) << "failed to start mDNS advertising for: " << service_name;
+  LOG(ERROR) << "failed to start mDNS advertising for: " << service_name_;
   return false;
 }
 
@@ -260,7 +259,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   bool result = wifi_lan_socket->Connect(ipv4_address, port);
   if (!result) {
     LOG(ERROR) << "failed to connect to service " << ipv4_address << ":"
-                << port;
+               << port;
     return nullptr;
   }
 
