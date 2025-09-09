@@ -318,8 +318,9 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
     request.set_page_token(*next_page_token_);
   }
   nearby_identity_client_->QuerySharedCredentials(
-      request, [this](const absl::StatusOr<QuerySharedCredentialsResponse>&
-                          response) mutable {
+      std::move(request),
+      [this](const absl::StatusOr<QuerySharedCredentialsResponse>&
+                 response) mutable {
         if (!response.ok()) {
           LOG(WARNING) << __func__
                        << ": Failed to download public certificates: "
@@ -527,7 +528,7 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
   bool regenerate_certificates = false;
   absl::Notification notification;
   nearby_identity_client_->PublishDevice(
-      request,
+      std::move(request),
       [&upload_certificates_succeeded, &regenerate_certificates,
        &notification](const absl::StatusOr<PublishDeviceResponse>& response) {
         upload_certificates_succeeded = response.ok();
