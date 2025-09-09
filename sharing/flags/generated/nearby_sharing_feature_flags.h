@@ -79,9 +79,6 @@ constexpr auto kDiscoveryCacheLostExpiryMs =
 // When true, enable wifi hotspot medium for HP Realtek devices.
 constexpr auto kEnableWifiHotspotForHpRealtekDevices =
     flags::Flag<bool>(kConfigPackage, "45673628", false);
-// When true, honor 3P client_id & client_secret in the gRPC request
-constexpr auto kHonor3PClientIdAndSecret =
-    flags::Flag<bool>(kConfigPackage, "45665616", true);
 // The amount of time in milliseconds a share target stays in discovery cache in
 // receive disabled state after a transfer.
 constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
@@ -107,15 +104,15 @@ constexpr auto kEnableBetaLabel =
 // Enable the info banner to display duplicate Quick Share apps.
 constexpr auto kEnableConflictBanner =
     flags::Flag<bool>(kConfigPackage, "45661130", false);
-// When true, enables UI experiments.
-constexpr auto kEnableUiExperiments =
-    flags::Flag<bool>(kConfigPackage, "45678202", false);
 // When true, enables use of Flutter hooks.
 constexpr auto kEnableFlutterHooks =
     flags::Flag<bool>(kConfigPackage, "45720206", false);
 // When true, enables the mini pulse animation.
 constexpr auto kEnableMiniPulse =
     flags::Flag<bool>(kConfigPackage, "45724244", false);
+// When true, enables UI experiments.
+constexpr auto kEnableUiExperiments =
+    flags::Flag<bool>(kConfigPackage, "45678202", false);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
@@ -132,15 +129,14 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45630055, kUseGrpcClient},
       {45657036, kDeleteUnexpectedReceivedFileFix},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
-      {45665616, kHonor3PClientIdAndSecret},
       {45683539, kUseAlternateServiceUuidForDiscovery},
       {45417647, kEnableQrCodeUi},
       {45410558, kShowAdminModeWarning},
       {45662570, kEnableBetaLabel},
       {45661130, kEnableConflictBanner},
-      {45678202, kEnableUiExperiments},
       {45720206, kEnableFlutterHooks},
       {45724244, kEnableMiniPulse},
+      {45678202, kEnableUiExperiments},
   };
 }
 
