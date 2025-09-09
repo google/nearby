@@ -94,7 +94,7 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
     request.set_page_token(*next_page_token_);
   }
   nearby_share_client_->ListContactPeople(
-      request,
+      std::move(request),
       [this](
           const absl::StatusOr<ListContactPeopleResponse>& response) mutable {
         if (!response.ok()) {
