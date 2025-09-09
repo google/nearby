@@ -38,7 +38,7 @@ using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
 using ::google::nearby::identity::v1::QuerySharedCredentialsResponse;
 
 void FakeNearbyShareClient::ListContactPeople(
-    const proto::ListContactPeopleRequest& request,
+    proto::ListContactPeopleRequest request,
     absl::AnyInvocable<void(
         const absl::StatusOr<proto::ListContactPeopleResponse>& response) &&>
         callback) {
@@ -53,7 +53,7 @@ void FakeNearbyShareClient::ListContactPeople(
 }
 
 void FakeNearbyIdentityClient::QuerySharedCredentials(
-    const QuerySharedCredentialsRequest& request,
+    QuerySharedCredentialsRequest request,
     absl::AnyInvocable<
         void(const absl::StatusOr<QuerySharedCredentialsResponse>& response) &&>
         callback) {
@@ -72,7 +72,7 @@ void FakeNearbyIdentityClient::QuerySharedCredentials(
 }
 
 void FakeNearbyIdentityClient::PublishDevice(
-    const PublishDeviceRequest& request,
+    PublishDeviceRequest request,
     absl::AnyInvocable<
         void(const absl::StatusOr<PublishDeviceResponse>& response) &&>
         callback) {
@@ -89,7 +89,7 @@ void FakeNearbyIdentityClient::PublishDevice(
 }
 
 void FakeNearbyIdentityClient::GetAccountInfo(
-    const GetAccountInfoRequest& request,
+    GetAccountInfoRequest request,
     absl::AnyInvocable<
         void(const absl::StatusOr<GetAccountInfoResponse>& response) &&>
         callback) {
