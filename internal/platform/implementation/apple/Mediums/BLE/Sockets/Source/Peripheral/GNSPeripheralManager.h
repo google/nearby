@@ -97,6 +97,18 @@
           bleServiceAddedCompletion:(GNSErrorHandler)completion;
 
 /**
+ * Removes a peripheral service manager from the managed services. It is safe to call this method
+ * even if the service is not added to the BLE service database. If the GNSPeripheralManager
+ * is started, the peripheral service manager will be removed right away from BLE service
+ * database. |completion| is called when the method is done.
+ *
+ * @param serviceUUID The service UUID to remove.
+ * @param completion  Callback called when the service was removed.
+ */
+- (void)removePeripheralServiceManagerForServiceUUID:(CBUUID *)serviceUUID
+                         bleServiceRemovedCompletion:(GNSErrorHandler)completion;
+
+/**
  * If the bluetooth is on, all CB services will be added, and the services will be advertised
  * (according to -[GNSPeripheralServiceManager advertising]. Otherwise, it will be done as soon as
  * the bluetooth is turned on.

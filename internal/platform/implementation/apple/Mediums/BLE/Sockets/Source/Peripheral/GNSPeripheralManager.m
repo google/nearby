@@ -143,11 +143,13 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     GNCLoggerInfo(@"Peripheral manager already stopped.");
     return;
   }
-  GNCLoggerInfo(@"Peripheral manager stopped.");
   _started = NO;
-  [self removeAllBleServicesAndStopAdvertising];
+
+  [self removeAllBleServices];
   _cbPeripheralManager.delegate = nil;
   _cbPeripheralManager = nil;
+
+  GNCLoggerInfo(@"Peripheral manager stopped.");
 }
 
 - (NSString *)description {
@@ -199,8 +201,23 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
   [self updateAdvertisedServices];
 }
 
-- (void)removeAllBleServicesAndStopAdvertising {
-  [_cbPeripheralManager stopAdvertising];
+- (void)removePeripheralServiceManagerForServiceUUID:(CBUUID *)serviceUUID
+                         bleServiceRemovedCompletion:(GNSErrorHandler)completion {
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [_peripheralServiceManagers objectForKey:serviceUUID];
+  if (peripheralServiceManager == nil) {
+    completion(nil);
+    return;
+  }
+  [_cbPeripheralManager removeService:peripheralServiceManager.cbService];
+  [_peripheralServiceManagers removeObjectForKey:serviceUUID];
+  [peripheralServiceManager didRemoveCBService];
+
+  [self updateAdvertisedServices];
+  completion(nil);
+}
+
+- (void)removeAllBleServices {
   _advertisementInProgressData = nil;
   _advertisementData = nil;
 
@@ -395,15 +412,15 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
       // As instructed by Apple enginners, clean-up all internal state when CoreBluetooth is
       // resetting.
       [self updateBTCrashLoopHeuristic];
-      [self removeAllBleServicesAndStopAdvertising];
+      [self removeAllBleServices];
       break;
     case CBManagerStateUnknown:
       // Clean-up all internal state when the CoreBluetooth state is unknown.
-      [self removeAllBleServicesAndStopAdvertising];
+      [self removeAllBleServices];
       break;
     case CBManagerStateUnauthorized:
       // Clean-up all internal state if the application is not authorized to use Bluetooth.
-      [self removeAllBleServicesAndStopAdvertising];
+      [self removeAllBleServices];
       break;
     case CBManagerStateUnsupported:
       // The application should have never attempted to start advertising if Bluetooth Low Energy

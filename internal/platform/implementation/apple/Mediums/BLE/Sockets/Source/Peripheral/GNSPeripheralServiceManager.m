@@ -381,17 +381,25 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
                        __typeof__(weakSelf) strongSelf = weakSelf;
                        if (!strongSelf || (checkConnected && !socket.isConnected)) {
                          // Socket is gone or disconnected; don't reschedule.
+                         if (completion) {
+                           completion();
+                         }
                          return YES;
                        }
+                       if (self.cbServiceState == GNSBluetoothServiceStateNotAdded) {
+                         if (completion) {
+                           dispatch_async(_queue, completion);
+                         }
+                         return YES;
+                       }
+
                        if (![strongSelf.peripheralManager updateOutgoingCharacteristic:data
                                                                               onSocket:socket]) {
                          GNCLoggerInfo(@"Failed to update characteristic value; reschedule");
                          return NO;
                        }
                        if (completion) {
-                         dispatch_async(_queue, ^{
-                           completion();
-                         });
+                         dispatch_async(_queue, completion);
                        }
                        return YES;
                      }];
@@ -445,6 +453,15 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   [_peripheralManager
       updateOutgoingCharOnSocket:socket
                      withHandler:^{
+                       if (self.cbServiceState == GNSBluetoothServiceStateNotAdded) {
+                         if (completion) {
+                           dispatch_async(_queue, ^{
+                             completion(nil);
+                           });
+                         }
+                         return YES;
+                       }
+
                        BOOL wasSent = [_peripheralManager updateOutgoingCharacteristic:data
                                                                               onSocket:socket];
                        if (wasSent) {
