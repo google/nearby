@@ -78,7 +78,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     return {Error(socket_result.error().operation_result_code().value())};
   }
 
-  VLOG(1) << "WifiLanBwuHandler successfully connected to WifiLan service ("
+  LOG(INFO) << "WifiLanBwuHandler successfully connected to WifiLan service ("
           << ip_address << ":" << port << ") while upgrading endpoint "
           << endpoint_id;
 
