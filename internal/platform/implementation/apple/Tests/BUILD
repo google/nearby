@@ -21,7 +21,7 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 objc_library(
-    name = "PlatformTestslib",
+    name = "PlatformTestsLibrary",
     testonly = True,
     srcs = [
         "GNCAwdlMediumTest.mm",
@@ -29,6 +29,7 @@ objc_library(
         "GNCDeviceInfoTest.mm",
         "GNCMultiThreadExecutorTest.mm",
         "GNCPlatformTest.mm",
+        "GNCPreferencesManagerTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
         "GNCUtilsTest.m",
@@ -48,14 +49,15 @@ objc_library(
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "@com_google_absl//absl/time",
+        "@nlohmann_json//:json",
     ],
 )
 
 ios_unit_test(
-    name = "PlatformTests",
+    name = "PlatformTest",
     minimum_os_version = IOS_MINIMUM_OS,
     runner = IOS_LATEST_TEST_RUNNER,
     deps = [
-        ":PlatformTestslib",
+        ":PlatformTestsLibrary",
     ],
 )
