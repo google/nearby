@@ -102,6 +102,7 @@ bool IsKnownDeviceValue(int32_t value) {
     case 4:
     case 5:
     case 6:
+    case 7:
       return true;
     default:
       return false;
