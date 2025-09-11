@@ -46,6 +46,7 @@ class NearbyConnectionsServiceImpl : public NearbyConnectionsService {
                         const AdvertisingOptions& advertising_options,
                         ConnectionListener advertising_listener,
                         std::function<void(Status status)> callback) override;
+  void RotateEndpointId() override;
   void StopAdvertising(absl::string_view service_id,
                        std::function<void(Status status)> callback) override;
 

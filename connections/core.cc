@@ -93,6 +93,10 @@ void Core::StartAdvertising(absl::string_view service_id,
                             std::move(callback));
 }
 
+void Core::RotateEndpointId() {
+  client_.ClearCachedLocalEndpointId();
+}
+
 void Core::StopAdvertising(ResultCallback callback) {
   router_->StopAdvertising(&client_, std::move(callback));
 }

@@ -14,10 +14,7 @@
 
 #include "sharing/nearby_connections_manager.h"
 
-#include <memory>
 #include <string>
-
-#include "sharing/nearby_connections_types.h"
 
 namespace nearby {
 namespace sharing {

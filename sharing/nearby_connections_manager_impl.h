@@ -63,6 +63,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
                         PowerLevel power_level, proto::DataUsage data_usage,
                         bool use_stable_endpoint_id,
                         ConnectionsCallback callback) override;
+  void RotateEndpointId() override;
   void StopAdvertising(ConnectionsCallback callback) override;
   void StartDiscovery(DiscoveryListener* listener, proto::DataUsage data_usage,
                       std::optional<uint16_t> alternate_service_uuid,

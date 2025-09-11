@@ -125,6 +125,8 @@ class NearbyConnectionsService {
       const AdvertisingOptions& advertising_options,
       ConnectionListener advertising_listener,
       std::function<void(Status status)> callback) = 0;
+  // Reset the cached endpoint ID so that a new one will be generated.
+  virtual void RotateEndpointId() = 0;
   virtual void StopAdvertising(absl::string_view service_id,
                                std::function<void(Status status)> callback) = 0;
 
