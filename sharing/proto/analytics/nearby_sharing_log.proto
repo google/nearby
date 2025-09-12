@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 85
+// Next Tag: 89
 // LINT.IfChange
 message SharingLog {
   /* justification = {
@@ -230,6 +230,14 @@ message SharingLog {
 
   // QR code CLOUD_REGISTER_RECEIVER event for receiver side.
   optional CloudRegisterReceiver cloud_register_receiver = 84;
+
+  optional CloudUploadStart cloud_upload_start = 85;
+
+  optional CloudUploadEnd cloud_upload_end = 86;
+
+  optional CloudDownloadStart cloud_download_start = 87;
+
+  optional CloudDownloadEnd cloud_download_end = 88;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -1015,5 +1023,61 @@ message SharingLog {
   }
   // EventType: CLOUD_REGISTER_RECEIVER used by QR code cloud web receiver
   message CloudRegisterReceiver {}
+
+  // EventType: CLOUD_UPLOAD_START used by QR code cloud web sender
+  // The cloud_sharing_id and flow_id are logged in the event metadata.
+  message CloudUploadStart {
+    optional AttachmentsInfo attachments_info = 1;
+  }
+
+  // EventType: CLOUD_UPLOAD_END used by QR code cloud web sender
+  // The cloud_sharing_id and flow_id are logged in the event metadata.
+  message CloudUploadEnd {
+    message CloudUploadInfo {
+      optional location.nearby.proto.sharing.AttachmentTransmissionStatus
+          status = 1;
+      oneof CloudAttachment {
+        TextAttachment text_attachment = 2;
+        FileAttachment file_attachment = 3;
+        WifiCredentialsAttachment wifi_credentials_attachment = 4;
+        AppAttachment app_attachment = 5;
+        StreamAttachment stream_attachment = 6;
+      }
+      // The total bytes sent.
+      optional int64 sent_bytes = 7;
+      // The duration from upload start to upload end.
+      optional int64 duration_millis = 8;
+    }
+    repeated CloudUploadInfo upload_infos = 1;
+  }
+
+  // EventType: CLOUD_DOWNLOAD_START used by QR code cloud web receiver
+  // The cloud_sharing_id and cloud_receiver_session_id are logged in the
+  // event_metadata into the anonymous logs.
+  message CloudDownloadStart {
+    optional AttachmentsInfo attachments_info = 1;
+  }
+
+  // EventType: CLOUD_DOWNLOAD_END used by QR code cloud web receiver
+  // The cloud_sharing_id and cloud_receiver_session_id are logged in the
+  // event_metadata into the anonymous logs.
+  message CloudDownloadEnd {
+    message CloudDownloadInfo {
+      optional location.nearby.proto.sharing.AttachmentTransmissionStatus
+          status = 1;
+      oneof CloudAttachment {
+        TextAttachment text_attachment = 2;
+        FileAttachment file_attachment = 3;
+        WifiCredentialsAttachment wifi_credentials_attachment = 4;
+        AppAttachment app_attachment = 5;
+        StreamAttachment stream_attachment = 6;
+      }
+      // The total bytes received.
+      optional int64 received_bytes = 7;
+      // The duration from download start to download end.
+      optional int64 duration_millis = 8;
+    }
+    repeated CloudDownloadInfo download_infos = 1;
+  }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
