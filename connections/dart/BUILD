@@ -13,7 +13,7 @@
 # limitations under the License.
 
 load("@rules_cc//cc:objc_library.bzl", "objc_library")
-load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
+load("//third_party/cpptoolchains/portable_llvm/build_defs:windows.bzl", "windows")
 
 package(default_visibility = ["//location/nearby:__subpackages__"])
 

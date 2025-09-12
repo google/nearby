@@ -15,7 +15,7 @@
 load("@rules_apple//apple:apple.bzl", "apple_static_xcframework")
 load("@rules_apple//apple:macos.bzl", "macos_dylib")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("//third_party/cpptoolchains/windows_llvm/build_defs:windows.bzl", "windows")
+load("//third_party/cpptoolchains/portable_llvm/build_defs:windows.bzl", "windows")
 
 package(default_visibility = [
     "//connections:__subpackages__",
