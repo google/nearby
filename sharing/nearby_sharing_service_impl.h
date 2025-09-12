@@ -112,7 +112,6 @@ class NearbySharingServiceImpl
   void RemoveObserver(NearbySharingService::Observer* observer) override;
   void Shutdown(
       std::function<void(StatusCodes)> status_codes_callback) override;
-  ABSL_DEPRECATED("Use the variant with vendor ID instead.")
   void RegisterSendSurface(
       TransferUpdateCallback* transfer_callback,
       ShareTargetDiscoveredCallback* discovery_callback, SendSurfaceState state,
