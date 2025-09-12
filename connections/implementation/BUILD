@@ -249,6 +249,7 @@ cc_test(
         "bwu_manager_test.cc",
         "wifi_direct_bwu_test.cc",
         "wifi_hotspot_bwu_test.cc",
+        "wifi_lan_bwu_test.cc",
     ],
     deps = [
         ":internal",
