@@ -406,11 +406,10 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
   }
 
   bool download_succeeded = false;
-  // Currently certificates download is synchronous.  It completes after
-  // QuerySharedCredentialsFetchNextPage() returns.
+  absl::Notification notification;
   auto context = std::make_unique<CertificateDownloadContext>(
       nearby_identity_client_.get(), std::move(device_id),
-      [this, &download_succeeded](
+      [this, &download_succeeded, &notification](
           absl::StatusOr<std::vector<PublicCertificate>> certificates_status) {
         if (!certificates_status.ok()) {
           download_succeeded = false;
@@ -426,8 +425,13 @@ bool NearbyShareCertificateManagerImpl::DownloadPublicCertificatesInExecutor() {
           }
           download_succeeded = UpdatePublicCertificates(certificates);
         }
+        notification.Notify();
       });
   context->QuerySharedCredentialsFetchNextPage();
+  // Wait for all pages of certificates to be downloaded.
+  // MUST not terminate early, otherwise notification will go out of scope, and
+  // the callback will call Notify on a destroyed object.
+  notification.WaitForNotification();
   LOG(INFO) << "Public certificates downloadws, success: "
             << download_succeeded;
   return download_succeeded;
@@ -551,6 +555,8 @@ bool NearbyShareCertificateManagerImpl::UploadDeviceCertificatesInExecutor(
         }
         notification.Notify();
       });
+  // MUST not terminate early, otherwise notification will go out of scope, and
+  // the callback will call Notify on a destroyed object.
   notification.WaitForNotification();
   // check whether the manager is still running
   if (!is_running()) {
