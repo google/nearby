@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
+#include "absl/synchronization/mutex.h"
 
 namespace nearby {
 namespace shared {
@@ -24,7 +25,7 @@ namespace shared {
 CountDownLatch::CountDownLatch(int count) : count_(count) {}
 
 ExceptionOr<bool> CountDownLatch::Await(absl::Duration timeout) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   absl::Time deadline = absl::Now() + timeout;
   while (count_ > 0) {
     if (cond_.WaitWithDeadline(&mutex_, deadline)) {
@@ -35,14 +36,14 @@ ExceptionOr<bool> CountDownLatch::Await(absl::Duration timeout) {
 }
 
 Exception CountDownLatch::Await() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   while (count_ > 0) {
     cond_.Wait(&mutex_);
   }
   return {Exception::kSuccess};
 }
 void CountDownLatch::CountDown() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (count_ > 0 && --count_ == 0) {
     cond_.SignalAll();
   }
