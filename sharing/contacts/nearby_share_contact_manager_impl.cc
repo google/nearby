@@ -25,6 +25,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
@@ -135,11 +136,22 @@ void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
       return;
     }
 
-    // Currently Contacts download is synchronous.  It completes after
-    // FetchNextPage() returns.
+    absl::Notification notification;
     auto context = std::make_unique<ContactDownloadContext>(
-        nearby_share_client_.get(), std::move(callback));
+        nearby_share_client_.get(),
+        [&notification, callback = std::move(callback)](
+            absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>
+                contacts,
+            uint32_t num_unreachable_contacts_filtered_out) mutable {
+          std::move(callback)(std::move(contacts),
+                              num_unreachable_contacts_filtered_out);
+          notification.Notify();
+        });
     context->FetchNextPage();
+    // Wait for all pages of contacts to be downloaded.
+    // MUST not terminate early, otherwise notification will go out of scope,
+    // and the callback will call Notify on a destroyed object.
+    notification.WaitForNotification();
   });
 }
 
