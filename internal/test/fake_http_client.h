@@ -27,6 +27,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/network/http_client.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
@@ -39,6 +40,7 @@ class FakeHttpClient : public HttpClient {
  public:
   struct RequestInfo {
     HttpRequest request;
+    absl::Duration timeout;
     absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback;
   };
 
@@ -52,27 +54,29 @@ class FakeHttpClient : public HttpClient {
   FakeHttpClient& operator=(FakeHttpClient&&) = default;
 
   void StartRequest(
-      const HttpRequest& request,
+      const HttpRequest& request, absl::Duration timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override {
     RequestInfo request_info;
     request_info.request = request;
+    request_info.timeout = timeout;
     request_info.callback = std::move(callback);
     request_infos_.push_back(std::move(request_info));
   }
 
   void StartCancellableRequest(
-      std::unique_ptr<CancellableRequest> request,
+      std::unique_ptr<CancellableRequest> request, absl::Duration timeout,
       absl::AnyInvocable<void(const absl::StatusOr<HttpResponse>&)> callback)
       override {
     RequestInfo request_info;
     request_info.request = request->http_request();
+    request_info.timeout = timeout;
     request_info.callback = std::move(callback);
     request_infos_.push_back(std::move(request_info));
   }
 
   absl::StatusOr<HttpResponse> GetResponse(
-      const HttpRequest& request) override {
+      const HttpRequest& request, absl::Duration timeout) override {
     if (sync_responses_.empty()) {
       return absl::FailedPreconditionError("No response.");
     }

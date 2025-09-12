@@ -18,6 +18,8 @@
 #include <map>
 #include <string>
 
+#include "absl/time/time.h"
+
 namespace nearby {
 namespace api {
 
@@ -26,6 +28,7 @@ struct WebRequest {
   std::string method;
   std::multimap<std::string, std::string> headers;
   std::string body;
+  absl::Duration timeout;
 };
 
 struct WebResponse {

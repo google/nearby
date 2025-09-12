@@ -26,6 +26,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "internal/network/http_request.h"
 #include "internal/network/http_response.h"
 #include "internal/network/http_status_code.h"
@@ -34,6 +35,8 @@
 namespace nearby {
 namespace network {
 namespace {
+
+constexpr absl::Duration kRequestTimeout = absl::Seconds(30);
 
 class FakekHttpClientTest : public ::testing::Test {
  public:
@@ -46,7 +49,7 @@ class FakekHttpClientTest : public ::testing::Test {
     request.SetUrl(url);
     request.SetMethod(HttpRequestMethod::kPost);
     request.SetBody("request body");
-    client_.StartRequest(request, callback);
+    client_.StartRequest(request, kRequestTimeout, callback);
   }
 
   void CompleteRequest(
@@ -112,7 +115,8 @@ TEST_F(FakekHttpClientTest, TestGetResponse) {
   response.SetStatusCode(HttpStatusCode::kHttpOk);
   client_.SetResponseForSyncRequest(response);
   // Sync GetResponse
-  absl::StatusOr<HttpResponse> result = client_.GetResponse(request);
+  absl::StatusOr<HttpResponse> result =
+      client_.GetResponse(request, kRequestTimeout);
 
   ASSERT_OK(result);
   EXPECT_EQ(result->GetStatusCode(), HttpStatusCode::kHttpOk);
