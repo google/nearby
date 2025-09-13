@@ -48,13 +48,13 @@ TransferManager::TransferManager(Context* context,
     : context_(context), endpoint_id_(endpoint_id) {}
 
 TransferManager::~TransferManager() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   timeout_timer_.reset();
   pending_tasks_.clear();
 }
 
 void TransferManager::Send(std::function<void()> task) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (is_waiting_for_high_quality_medium_) {
     LOG(INFO)
@@ -68,7 +68,7 @@ void TransferManager::Send(std::function<void()> task) {
 }
 
 void TransferManager::OnMediumQualityChanged(Medium current_medium) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!is_waiting_for_high_quality_medium_) {
     LOG(WARNING) << "It is not waiting for high quality medium.";
@@ -88,7 +88,7 @@ void TransferManager::OnMediumQualityChanged(Medium current_medium) {
 }
 
 bool TransferManager::StartTransfer() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!is_waiting_for_high_quality_medium_) {
     VLOG(1) << "No need to wait for high quality medium.";
@@ -103,7 +103,7 @@ bool TransferManager::StartTransfer() {
   timeout_timer_ = std::make_unique<ThreadTimer>(
       *context_->GetTaskRunner(), "transfer_manager_timeout_timer",
       kMediumUpgradeTimeout, [this]() {
-        absl::MutexLock lock(&mutex_);
+        absl::MutexLock lock(mutex_);
 
         LOG(INFO) << "Timed out for endpoint " << endpoint_id_ << " after "
                   << kMediumUpgradeTimeout;
@@ -119,7 +119,7 @@ bool TransferManager::StartTransfer() {
 }
 
 bool TransferManager::CancelTransfer() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (timeout_timer_ == nullptr) {
     LOG(WARNING) << "No running transfer.";

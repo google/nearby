@@ -48,7 +48,7 @@ constexpr char kDefaultDeviceName[] = "Josh's Chromebook";
 class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
  public:
   void OnSettingChanged(absl::string_view key, const Data& data) override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (key == prefs::kNearbySharingFastInitiationNotificationStateName) {
       fast_initiation_notification_state_ =
           static_cast<FastInitiationNotificationState>(data.value.as_int64);
@@ -64,37 +64,37 @@ class FakeNearbyShareSettingsObserver : public NearbyShareSettings::Observer {
   }
 
   void OnIsFastInitiationHardwareSupportedChanged(bool is_supported) override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     is_fast_initiation_notification_hardware_supported_ = is_supported;
   }
 
   FastInitiationNotificationState fast_initiation_notification_state() const {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return fast_initiation_notification_state_;
   }
 
   bool is_fast_initiation_notification_hardware_supported() const {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return is_fast_initiation_notification_hardware_supported_;
   }
 
   std::string device_name() const {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return device_name_;
   }
 
   std::string custom_save_path() const {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return custom_save_path_;
   }
 
   DataUsage data_usage() const {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return data_usage_;
   }
 
   DeviceVisibility visibility() const {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return visibility_;
   }
 

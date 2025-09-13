@@ -438,10 +438,10 @@ class NearbySharingServiceImplTest : public testing::Test {
             std::vector<uint8_t> data =
                 std::move(payload->content.bytes_payload.bytes);
             frame->ParseFromArray(data.data(), data.size());
-            absl::MutexLock lock(&connection_output_mutex_);
+            absl::MutexLock lock(connection_output_mutex_);
             frames_data_.push(std::move(frame));
           } else {
-            absl::MutexLock lock(&connection_output_mutex_);
+            absl::MutexLock lock(connection_output_mutex_);
             written_payloads_.push(PayloadInfo(std::move(payload), listener));
           }
         });
@@ -880,7 +880,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   std::unique_ptr<Frame> GetWrittenFrame() {
     EXPECT_TRUE(
         sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-    absl::MutexLock lock(&connection_output_mutex_);
+    absl::MutexLock lock(connection_output_mutex_);
     std::unique_ptr<Frame> frame = std::move(frames_data_.front());
     frames_data_.pop();
     return frame;
@@ -889,7 +889,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   PayloadInfo GetWrittenPayload() {
     EXPECT_TRUE(
         sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-    absl::MutexLock lock(&connection_output_mutex_);
+    absl::MutexLock lock(connection_output_mutex_);
     PayloadInfo info = std::move(written_payloads_.front());
     written_payloads_.pop();
     return info;

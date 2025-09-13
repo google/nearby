@@ -38,7 +38,7 @@ NearbyConnectionImpl::~NearbyConnectionImpl() {
   std::function<void()> disconnect_listener;
   std::function<void(std::optional<std::vector<uint8_t>> bytes)> read_callback;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!device_info_.AllowSleep()) {
       LOG(ERROR) << __func__ << ":Failed to allow device sleep.";
     }
@@ -58,7 +58,7 @@ void NearbyConnectionImpl::Read(
     std::function<void(std::optional<std::vector<uint8_t>> bytes)> callback) {
   std::vector<uint8_t> bytes;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (reads_.empty()) {
       read_callback_ = std::move(callback);
       return;
@@ -72,14 +72,14 @@ void NearbyConnectionImpl::Read(
 
 void NearbyConnectionImpl::SetDisconnectionListener(
     std::function<void()> listener) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   disconnect_listener_ = std::move(listener);
 }
 
 void NearbyConnectionImpl::WriteMessage(std::vector<uint8_t> bytes) {
   std::function<void(std::optional<std::vector<uint8_t>> bytes)> read_callback;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!read_callback_) {
       reads_.push(std::move(bytes));
       return;
