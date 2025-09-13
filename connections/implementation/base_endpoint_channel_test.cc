@@ -94,7 +94,7 @@ std::function<void(const ByteArray&)> MakeDataMonitor(const std::string& label,
   return [label, capture, mutex](const ByteArray& input) mutable {
     std::string s = std::string(input);
     {
-      absl::MutexLock lock(mutex);
+      absl::MutexLock lock(*mutex);
       *capture += s;
     }
     LOG(INFO) << "source='" << label << "'"
@@ -271,7 +271,7 @@ TEST(BaseEndpointChannelTest, NotEncryptedReadWriteCanBeIntercepted) {
   // Verify expectations.
   EXPECT_EQ(rx_message, tx_message);
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     std::string message{tx_message};
     EXPECT_TRUE(capture_a.find(message) != std::string::npos ||
                 capture_b.find(message) != std::string::npos);
@@ -335,7 +335,7 @@ TEST(BaseEndpointChannelTest, EncryptedReadWriteCanNotBeIntercepted) {
   // Verify expectations.
   EXPECT_EQ(rx_message, tx_message);
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     std::string message{tx_message};
     EXPECT_TRUE(capture_a.find(message) == std::string::npos &&
                 capture_b.find(message) == std::string::npos);

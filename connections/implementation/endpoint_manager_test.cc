@@ -107,11 +107,11 @@ class MockEndpointChannel : public EndpointChannel {
               (analytics::AnalyticsRecorder*, const std::string&), (override));
 
   bool IsClosed() const override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return closed_;
   }
   void DoClose() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     closed_ = true;
   }
 
