@@ -643,6 +643,7 @@ cc_test(
         "//internal/base:file_path",
         "//internal/base:files",
         "//internal/platform/implementation:platform_impl",
+        "//internal/test",
         "//sharing/internal/api:mock_sharing_platform",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",

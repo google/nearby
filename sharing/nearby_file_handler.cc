@@ -27,6 +27,7 @@
 #include "absl/types/span.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
+#include "internal/platform/task_runner.h"
 #include "internal/platform/task_runner_impl.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/logging.h"
@@ -55,9 +56,14 @@ std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
 
 }  // namespace
 
-NearbyFileHandler::NearbyFileHandler(SharingPlatform& platform)
+NearbyFileHandler::NearbyFileHandler(SharingPlatform& platform,
+                                     std::unique_ptr<TaskRunner> runner)
     : platform_(platform) {
-  sequenced_task_runner_ = std::make_unique<TaskRunnerImpl>(1);
+  if (runner) {
+    sequenced_task_runner_ = std::move(runner);
+  } else {
+    sequenced_task_runner_ = std::make_unique<TaskRunnerImpl>(1);
+  }
 }
 
 NearbyFileHandler::~NearbyFileHandler() = default;

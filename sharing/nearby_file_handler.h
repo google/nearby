@@ -41,7 +41,9 @@ class NearbyFileHandler {
   using OpenFilesCallback = std::function<void(std::vector<FileInfo>)>;
   using DeleteFilesFromDiskCallback = std::function<void()>;
 
-  explicit NearbyFileHandler(nearby::sharing::api::SharingPlatform& platform);
+  // Pass in a TaskRunner to use for testing.
+  explicit NearbyFileHandler(nearby::sharing::api::SharingPlatform& platform,
+                             std::unique_ptr<TaskRunner> runner = nullptr);
   ~NearbyFileHandler();
 
   // Open the files given in |file_paths| and return the opened files sizes via
