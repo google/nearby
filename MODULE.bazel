@@ -46,32 +46,6 @@ http_archive(
     name = "com_google_ukey2",
     strip_prefix = "ukey2-master",
     urls = ["https://github.com/google/ukey2/archive/master.zip"],
-    build_file_content = """
-load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
-
-package(default_visibility = ["//visibility:public"])
-
-alias(
-    name = "ukey2",
-    actual = "//src/main/cpp",
-)
-
-proto_library(
-    name = "proto",
-    srcs = [
-        "src/main/proto/device_to_device_messages.proto",
-        "src/main/proto/securegcm.proto",
-        "src/main/proto/securemessage.proto",
-        "src/main/proto/ukey.proto",
-    ],
-    strip_import_prefix = 'src/main/proto/'
-)
-
-cc_proto_library(
-    name = "cc_proto",
-    deps = [":proto"],
-    visibility = ["//src:__subpackages__"],
-)""",
 )
 
 http_archive(
