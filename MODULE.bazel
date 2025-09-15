@@ -1,13 +1,13 @@
-bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_apple", version = "3.19.0")
-bazel_dep(name = "rules_cc", version = "0.0.16")
+bazel_dep(name = "rules_cc", version = "0.2.0")
 bazel_dep(name = "rules_rust", version = "0.54.1")
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "abseil-cpp", version = "20250127.0", repo_name = "com_google_absl")
+bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "abseil-cpp", version = "20250814.0", repo_name = "com_google_absl")
 
 # version of prebuilt protoc in com_github_protobuf_prebuilt must match this.
-bazel_dep(name = "protobuf", version = "29.0", repo_name = "com_google_protobuf")
-bazel_dep(name = "googletest", version = "1.14.0", repo_name = "com_google_googletest")
+bazel_dep(name = "protobuf", version = "32.0", repo_name = "com_google_protobuf")
+bazel_dep(name = "googletest", version = "1.17.0", repo_name = "com_google_googletest")
 bazel_dep(name = "boringssl", version = "0.0.0-20240126-22d349c")
 
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
@@ -46,6 +46,32 @@ http_archive(
     name = "com_google_ukey2",
     strip_prefix = "ukey2-master",
     urls = ["https://github.com/google/ukey2/archive/master.zip"],
+    build_file_content = """
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
+
+package(default_visibility = ["//visibility:public"])
+
+alias(
+    name = "ukey2",
+    actual = "//src/main/cpp",
+)
+
+proto_library(
+    name = "proto",
+    srcs = [
+        "src/main/proto/device_to_device_messages.proto",
+        "src/main/proto/securegcm.proto",
+        "src/main/proto/securemessage.proto",
+        "src/main/proto/ukey.proto",
+    ],
+    strip_import_prefix = 'src/main/proto/'
+)
+
+cc_proto_library(
+    name = "cc_proto",
+    deps = [":proto"],
+    visibility = ["//src:__subpackages__"],
+)""",
 )
 
 http_archive(
@@ -111,6 +137,6 @@ filegroup(
     visibility = ["//visibility:public"],
 )""",
     urls = [
-        "https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protoc-29.0-linux-x86_64.zip",
+        "https://github.com/protocolbuffers/protobuf/releases/download/v32.0/protoc-32.0-linux-x86_64.zip",
     ],
 )
