@@ -341,6 +341,15 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
                     service_id, Medium::WIFI_LAN);
                 LOG(INFO) << "Multiplex virtaul socket created for "
                           << server_socket.GetIPAddress();
+                // server_sockets_ is the ground truth for whether or not we
+                // should be accepting connections, so we need to check if the
+                // service_id is still there before we can invoke the callback.
+                if (!server_sockets_.contains(service_id)) {
+                  LOG(INFO)
+                      << "server_sockets_ does not contain the service_id: "
+                      << service_id << "any more. Discard the connection.";
+                  continue;
+                }
                 if (callback) {
                   callback(
                       service_id,
@@ -353,6 +362,17 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
           }
           if (callback && !callback_called) {
             LOG(INFO) << "Call back triggered for physical socket.";
+            {
+              MutexLock lock(&mutex_);
+              // server_sockets_ is the ground truth for whether or not we
+              // should be accepting connections, so we need to check if the
+              // service_id is still there before we can invoke the callback.
+              if (!server_sockets_.contains(service_id)) {
+                LOG(INFO) << "server_sockets_ does not contain the service_id: "
+                          << service_id << "any more. Discard the connection.";
+                continue;
+              }
+            }
             callback(service_id, std::move(client_socket));
           }
         }
