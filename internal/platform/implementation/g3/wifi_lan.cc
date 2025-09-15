@@ -14,15 +14,14 @@
 
 #include "internal/platform/implementation/g3/wifi_lan.h"
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 
-#include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
@@ -34,13 +33,6 @@
 
 namespace nearby {
 namespace g3 {
-
-namespace {
-constexpr absl::string_view kServiceInfoName{"DEFAULT_SERVICE_INFO_NAME"};
-constexpr absl::string_view kServiceType{"_default._tcp.local"};
-constexpr absl::string_view kEndpointName{"DEFAULT_ENDPOINT_NAME"};
-constexpr absl::string_view kEndpointInfoKey{"n"};
-}  // namespace
 
 std::string WifiLanServerSocket::GetName(const std::string& ip_address,
                                          int port) {
@@ -128,10 +120,6 @@ Exception WifiLanServerSocket::DoClose() {
 WifiLanMedium::WifiLanMedium() {
   auto& env = MediumEnvironment::Instance();
   env.RegisterWifiLanMedium(*this);
-  default_nsd_service_info_.SetServiceName(std::string(kServiceInfoName));
-  default_nsd_service_info_.SetServiceType(std::string(kServiceType));
-  default_nsd_service_info_.SetTxtRecord(std::string(kEndpointInfoKey),
-                                         std::string(kEndpointName));
 }
 
 WifiLanMedium::~WifiLanMedium() {
@@ -156,11 +144,6 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     }
   }
   auto& env = MediumEnvironment::Instance();
-  // Delete the default_nsd_service_info_ that added in ListenForService stage
-  // as we will have a real service info to advertise.
-  env.UpdateWifiLanMediumForAdvertising(*this, default_nsd_service_info_,
-                                        /*enabled=*/false);
-
   env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info,
                                         /*enabled=*/true);
   {
@@ -247,21 +230,12 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   std::string socket_name = WifiLanServerSocket::GetName(ip_address, port);
   LOG(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
             << ", ip address + port=" << socket_name;
-
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium =
       static_cast<WifiLanMedium*>(env.GetWifiLanMedium(ip_address, port));
   if (!remote_medium) {
-    // In case of WLAN BWU, here's no discovery phase, so we need to
-    // update the discovery state with default_nsd_service_info_.
-    env.UpdateWifiLanMediumForDiscovery(
-        *this, {}, default_nsd_service_info_.GetServiceType(), true);
-    remote_medium =
-        static_cast<WifiLanMedium*>(env.GetWifiLanMedium(ip_address, port));
-    if (!remote_medium) {
-      return {};
-    }
+    return {};
   }
 
   WifiLanServerSocket* server_socket = nullptr;
@@ -311,10 +285,8 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     int port) {
   auto& env = MediumEnvironment::Instance();
   auto server_socket = std::make_unique<WifiLanServerSocket>();
-  std::string ip_address = env.GetFakeIPAddress();
-  int fake_port = port == 0 ? env.GetFakePort() : port;
-  server_socket->SetIPAddress(ip_address);
-  server_socket->SetPort(fake_port);
+  server_socket->SetIPAddress(env.GetFakeIPAddress());
+  server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
   std::string socket_name = WifiLanServerSocket::GetName(
       server_socket->GetIPAddress(), server_socket->GetPort());
   server_socket->SetCloseNotifier([this, socket_name]() {
@@ -323,13 +295,6 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
   });
   LOG(INFO) << "G3 WifiLan Adding server socket: medium=" << this
             << ", socket_name=" << socket_name;
-  default_nsd_service_info_.SetIPAddress(ip_address);
-  default_nsd_service_info_.SetPort(fake_port);
-
-  // In case of WLAN BWU, here's no advertisement phase, so we need to update
-  // the advertising state with default_nsd_service_info_ in advance.
-  env.UpdateWifiLanMediumForAdvertising(*this, default_nsd_service_info_,
-                                        /*enabled=*/true);
   absl::MutexLock lock(mutex_);
   server_sockets_.insert({socket_name, server_socket.get()});
   return server_socket;

@@ -65,8 +65,9 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   const std::string& ip_address = upgrade_path_info_socket.ip_address();
   std::int32_t port = upgrade_path_info_socket.wifi_port();
 
-  VLOG(1) << "WifiLanBwuHandler is attempting to connect to WifiLan service ("
-          << ip_address << ":" << port << ") for endpoint " << endpoint_id;
+  VLOG(1) << "WifiLanBwuHandler is attempting to connect to "
+          << "available WifiLan service (" << ip_address << ":" << port
+          << ") for endpoint " << endpoint_id;
 
   ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
       service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
@@ -77,7 +78,7 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     return {Error(socket_result.error().operation_result_code().value())};
   }
 
-  LOG(INFO) << "WifiLanBwuHandler successfully connected to WifiLan service ("
+  VLOG(1) << "WifiLanBwuHandler successfully connected to WifiLan service ("
           << ip_address << ":" << port << ") while upgrading endpoint "
           << endpoint_id;
 
@@ -85,8 +86,9 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   auto channel = std::make_unique<WifiLanEndpointChannel>(
       service_id, /*channel_name=*/service_id, socket_result.value());
   if (channel == nullptr) {
-    LOG(ERROR) << "WifiLanBwuHandler failed to create endpoint channel for ("
-               << ip_address << ":" << port << ") for endpoint " << endpoint_id;
+    LOG(ERROR) << "WifiLanBwuHandler failed to create WifiLan endpoint "
+               << "channel to the WifiLan service (" << ip_address << ":"
+               << port << ") for endpoint " << endpoint_id;
     socket_result.value().Close();
     return {Error(
         OperationResultCode::NEARBY_LAN_ENDPOINT_CHANNEL_CREATION_FAILURE)};
@@ -107,9 +109,10 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
             absl::bind_front(&WifiLanBwuHandler::OnIncomingWifiLanConnection,
                              this, client))) {
       LOG(ERROR)
-          << "WifiLanBwuHandler couldn't init the WifiLan upgrade for "
+          << "WifiLanBwuHandler couldn't initiate the WifiLan upgrade for "
           << "service " << upgrade_service_id << " and endpoint " << endpoint_id
-          << " because it failed to start listening for incoming connections.";
+          << " because it failed to start listening for incoming WifiLan "
+             "connections.";
       return {};
     }
     LOG(INFO)
@@ -127,7 +130,8 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (ip_address.empty()) {
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
-              << endpoint_id << " because wifi_lan ip address is empty.";
+              << endpoint_id
+              << " because the wifi_lan ip address were unable to be obtained.";
     return {};
   }
 

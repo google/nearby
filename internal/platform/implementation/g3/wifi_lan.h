@@ -15,19 +15,15 @@
 #ifndef PLATFORM_IMPL_G3_WIFI_LAN_H_
 #define PLATFORM_IMPL_G3_WIFI_LAN_H_
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
-#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/types/optional.h"
-#include "internal/platform/cancellation_flag.h"
-#include "internal/platform/exception.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
@@ -245,7 +241,6 @@ class WifiLanMedium : public api::WifiLanMedium {
     absl::flat_hash_set<std::string> service_types;
   };
 
-  NsdServiceInfo default_nsd_service_info_;
   absl::Mutex mutex_;
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
