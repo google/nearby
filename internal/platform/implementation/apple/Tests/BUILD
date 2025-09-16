@@ -32,6 +32,7 @@ objc_library(
         "GNCPreferencesManagerTest.mm",
         "GNCScheduledExecutorTest.mm",
         "GNCSingleThreadExecutorTest.mm",
+        "GNCTimerTest.mm",
         "GNCUtilsTest.m",
         "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
