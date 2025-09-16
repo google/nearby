@@ -255,6 +255,7 @@ typedef struct NC_FILE_PAYLOAD {
   int64_t offset;
   char* file_name;
   char* parent_folder;
+  int64_t size;
 } NC_FILE_PAYLOAD;
 
 typedef union NC_PAYLOAD_CONTENT {
@@ -268,6 +269,7 @@ typedef struct NC_PAYLOAD {
   NC_PAYLOAD_TYPE type;
   NC_PAYLOAD_DIRECTION direction;
   NC_PAYLOAD_CONTENT content;
+  bool is_sensitive;
 } NC_PAYLOAD;
 
 typedef enum NC_PAYLOAD_PROGRESS_INFO_STATUS {

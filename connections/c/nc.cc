@@ -599,6 +599,7 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
         nc_payload.id = payload.GetId();
         nc_payload.direction = NC_PAYLOAD_DIRECTION_INCOMING;
         nc_payload.type = static_cast<NC_PAYLOAD_TYPE>(payload.GetType());
+        nc_payload.is_sensitive = payload.IsSensitive();
         if (nc_payload.type == NC_PAYLOAD_TYPE_BYTES) {
           const nearby::ByteArray& bytes = payload.AsBytes();
           nc_payload.content.bytes.content.data =
@@ -610,6 +611,7 @@ void NcAcceptConnection(NC_INSTANCE instance, int endpoint_id,
           nc_payload.content.file.parent_folder =
               (char*)payload.GetParentFolder().c_str();
           nc_payload.content.file.offset = payload.GetOffset();
+          nc_payload.content.file.size = payload.AsFile()->GetTotalSize();
         } else if (nc_payload.type == NC_PAYLOAD_TYPE_STREAM) {
           // TODO(guogang): support stream later.
         }
