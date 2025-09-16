@@ -471,6 +471,14 @@ message SharingLog {
     // receiver session id: used by QR code cloud receiver.
     optional string cloud_receiver_session_id = 9
         /* type = ST_SESSION_ID */;
+
+    // The name of the external provider, it will not be set if the provider is
+    // not external.
+    optional string external_provider_name = 10;
+    // The service id of the external provider, it will not be set if the
+    // provider is not external.
+    optional string external_provider_id = 11
+        /* type = ST_SESSION_ID */;
   }
 
   // TODO(fdi): may consider adding a field about decipherability later.
