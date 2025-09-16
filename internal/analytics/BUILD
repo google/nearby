@@ -28,7 +28,6 @@ cc_library(
     ],
     deps = [
         "//internal/proto/analytics:connections_log_cc_proto",
-        "//internal/proto/analytics:fast_pair_log_cc_proto",
         "//sharing/proto/analytics:sharing_log_cc_proto",
     ],
 )
