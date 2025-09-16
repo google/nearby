@@ -54,11 +54,26 @@ objc_library(
     ],
 )
 
+objc_library(
+    name = "BluetoothAdapterV2TestLibrary",
+    testonly = True,
+    srcs = ["bluetooth_adapter_v2_test.mm"],
+    tags = ["nozapfhahn"],
+    deps = [
+        "//internal/platform:mac_address",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple:bluetooth_adapter_v2",
+        "//third_party/apple_frameworks:XCTest",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
 ios_unit_test(
     name = "PlatformTest",
     minimum_os_version = IOS_MINIMUM_OS,
     runner = IOS_LATEST_TEST_RUNNER,
     deps = [
+        ":BluetoothAdapterV2TestLibrary",
         ":PlatformTestsLibrary",
     ],
 )

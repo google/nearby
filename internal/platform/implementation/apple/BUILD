@@ -126,7 +126,6 @@ objc_library(
         "ble_server_socket.mm",
         "ble_socket.mm",
         "ble_utils.mm",
-        "bluetooth_adapter_v2.mm",
         "utils.mm",
     ],
     hdrs = [
@@ -140,12 +139,12 @@ objc_library(
         "ble_server_socket.h",
         "ble_socket.h",
         "ble_utils.h",
-        "bluetooth_adapter_v2.h",
         "utils.h",
     ],
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
+        ":bluetooth_adapter_v2",
         ":comm",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
@@ -161,6 +160,24 @@ objc_library(
         "//third_party/apple_frameworks:Foundation",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+objc_library(
+    name = "bluetooth_adapter_v2",
+    srcs = [
+        "bluetooth_adapter_v2.mm",
+    ],
+    hdrs = [
+        "bluetooth_adapter_v2.h",
+    ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        "//internal/platform:mac_address",
+        "//internal/platform/implementation:comm",
+        "//third_party/apple_frameworks:Foundation",
         "@com_google_absl//absl/strings",
     ],
 )
