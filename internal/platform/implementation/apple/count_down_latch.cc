@@ -26,9 +26,9 @@ Exception CountDownLatch::Await() {
 }
 
 ExceptionOr<bool> CountDownLatch::Await(absl::Duration timeout) {
-  bool condition = mutex_.LockWhenWithTimeout(
+  absl::MutexLock lock(&mutex_);
+  bool condition = mutex_.AwaitWithTimeout(
       absl::Condition(IsZeroOrNegative, &count_), timeout);
-  mutex_.Unlock();
   return ExceptionOr<bool>(condition);
 }
 
