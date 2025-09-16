@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "connections/implementation/internal_payload.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
@@ -67,8 +68,10 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   Payload::Id payload_id = Payload::GenerateId();
   InputFile inputFile(payload_id, 512);
+  Payload out_payload = Payload{payload_id, std::move(inputFile)};
+  out_payload.SetIsSensitive(true);
   ErrorOr<std::unique_ptr<InternalPayload>> result =
-      CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
+      CreateOutgoingInternalPayload(std::move(out_payload));
   ASSERT_FALSE(result.has_error());
   std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
   EXPECT_NE(internal_payload, nullptr);
@@ -77,6 +80,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
   EXPECT_EQ(payload.GetId(), payload_id);
+  EXPECT_TRUE(payload.IsSensitive());
 }
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromByteMessage) {
@@ -148,6 +152,34 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFileMessage) {
   EXPECT_EQ(payload.AsStream(), nullptr);
   EXPECT_EQ(payload.AsBytes(), ByteArray());
   EXPECT_EQ(payload.GetType(), PayloadType::kFile);
+  // Extra slashes are inconsequential.
+  EXPECT_EQ(payload.AsFile()->GetFilePath(),
+            absl::StrCat("/tmp/Downloads//", payload.GetId()));
+}
+
+TEST(InternalPayloadFactoryTest, SensitiveFilePayloadSavesInInternalDirectory) {
+  PayloadTransferFrame frame;
+  std::string path = "/tmp/Downloads";
+  frame.set_packet_type(PayloadTransferFrame::DATA);
+  auto& header = *frame.mutable_payload_header();
+  header.set_type(PayloadTransferFrame::PayloadHeader::FILE);
+  header.set_id(12345);
+  header.set_total_size(512);
+  header.set_is_sensitive(true);
+  ErrorOr<std::unique_ptr<InternalPayload>> result =
+      CreateIncomingInternalPayload(frame, path);
+  ASSERT_FALSE(result.has_error());
+  std::unique_ptr<InternalPayload> internal_payload = std::move(result.value());
+  EXPECT_NE(internal_payload, nullptr);
+  Payload payload = internal_payload->ReleasePayload();
+  EXPECT_NE(payload.AsFile(), nullptr);
+  EXPECT_EQ(payload.AsStream(), nullptr);
+  EXPECT_EQ(payload.AsBytes(), ByteArray());
+  EXPECT_EQ(payload.GetType(), PayloadType::kFile);
+  EXPECT_TRUE(payload.IsSensitive());
+  // Extra slashes are inconsequential.
+  EXPECT_EQ(payload.AsFile()->GetFilePath(),
+            absl::StrCat("/tmp/Downloads/.nearby//", payload.GetId()));
 }
 
 TEST(InternalPayloadFactoryTest,

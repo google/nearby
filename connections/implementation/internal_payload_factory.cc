@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/internal_payload.h"
@@ -44,6 +45,8 @@ namespace connections {
 namespace {
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
+
+constexpr absl::string_view kNearbySensitiveFileParentFolder = ".nearby";
 
 class BytesInternalPayload : public InternalPayload {
  public:
@@ -349,11 +352,23 @@ std::string make_path(const std::string& custom_save_path,
 
 // if custom_save_path is empty, default download path is used
 std::string make_path(const std::string& custom_save_path,
-                      std::string& parent_folder, int64_t id) {
+                      std::string& parent_folder, int64_t id,
+                      bool is_sensitive) {
   std::string file_name(std::to_string(id));
   if (!custom_save_path.empty()) {
-    std::string path = absl::StrCat(custom_save_path, "/", parent_folder);
+    std::string path;
+    if (is_sensitive) {
+      path = absl::StrCat(custom_save_path, "/",
+                          kNearbySensitiveFileParentFolder, "/", parent_folder);
+    } else {
+      path = absl::StrCat(custom_save_path, "/", parent_folder);
+    }
     return api::ImplementationPlatform::GetCustomSavePath(path, file_name);
+  }
+  if (is_sensitive) {
+    return absl::StrCat(
+        api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name),
+        "/", kNearbySensitiveFileParentFolder);
   }
   return api::ImplementationPlatform::GetDownloadPath(parent_folder, file_name);
 }
@@ -392,7 +407,8 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
         parent_folder = frame.payload_header().parent_folder();
       }
 
-      if (frame.payload_header().has_file_name()) {
+      if (frame.payload_header().has_file_name() &&
+          !frame.payload_header().is_sensitive()) {
         file_name = frame.payload_header().file_name();
         // if custom_save_path is empty, default download path is used
         file_path = make_path(custom_save_path, parent_folder, file_name);
@@ -400,7 +416,9 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
         if (frame.payload_header().has_id()) {
           file_name = std::to_string(frame.payload_header().id());
           // if custom_save_path is empty, default download path is used
-          file_path = make_path(custom_save_path, parent_folder, file_name);
+          file_path = make_path(custom_save_path, parent_folder,
+                                frame.payload_header().id(),
+                                frame.payload_header().is_sensitive());
         } else {
           // This is an error condition, we don't have any way to generate a
           // file name for the output file.
@@ -439,10 +457,12 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
           LOG(ERROR) << "Output file payload path is not valid: " << file_path;
           return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
         }
+        Payload payload(payload_id, parent_folder, file_name,
+                        InputFile(file_path, total_size));
+        payload.SetIsSensitive(frame.payload_header().is_sensitive());
         return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, parent_folder, file_name,
-                    InputFile(file_path, total_size)),
-            std::move(output_file), last_modified_time, total_size)};
+            std::move(payload), std::move(output_file), last_modified_time,
+            total_size)};
       }
     }
     default:

@@ -104,6 +104,11 @@ class Payload {
   // Generate Payload Id; to be passed to outgoing file constructor.
   static Id GenerateId();
 
+  // Sets whether the payload is sensitive.
+  void SetIsSensitive(bool is_sensitive) { is_sensitive_ = is_sensitive; }
+  // Whether the payload is sensitive.
+  bool IsSensitive() const { return is_sensitive_; }
+
   const std::string& GetFileName() const;
   const std::string& GetParentFolder() const;
   absl::Time GetLastModifiedTime() const { return last_modified_time_; }
@@ -122,6 +127,8 @@ class Payload {
 
   PayloadType type_{FindType()};
   Content content_;
+
+  bool is_sensitive_ = false;
 };
 
 }  // namespace connections

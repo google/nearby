@@ -50,6 +50,7 @@ class InternalPayload {
   absl::Time GetLastModifiedTime() const {
     return payload_.GetLastModifiedTime();
   }
+  bool IsSensitive() const { return payload_.IsSensitive(); }
 
   // Returns the PayloadType of the Payload to which this object is bound.
   //

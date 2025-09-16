@@ -764,6 +764,7 @@ PayloadTransferFrame::PayloadHeader PayloadManager::CreatePayloadHeader(
     payload_header.set_parent_folder(internal_payload.GetParentFolder());
     payload_header.set_last_modified_timestamp_millis(
         absl::ToUnixMillis(internal_payload.GetLastModifiedTime()));
+    payload_header.set_is_sensitive(internal_payload.IsSensitive());
   }
   payload_header.set_total_size(payload_size ==
                                         InternalPayload::kIndeterminateSize
