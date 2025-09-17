@@ -36,6 +36,7 @@ objc_library(
         "GNCUtilsTest.m",
         "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
+        "ble_peripheral_test.mm",
     ],
     deps = [
         "//internal/platform:base",
@@ -44,12 +45,14 @@ objc_library(
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple:ble_v2",
+        "//internal/platform/implementation/apple/Mediums/BLE",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon/Tests:FakeNWFramework",
         "//third_party/apple_frameworks:CommonCrypto",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest",
         "@nlohmann_json//:json",
     ],
 )
