@@ -25,6 +25,7 @@ objc_library(
     testonly = True,
     srcs = [
         "GNCAwdlMediumTest.mm",
+        "GNCBLEUtilsTest.mm",
         "GNCCryptoTest.mm",
         "GNCDeviceInfoTest.mm",
         "GNCMultiThreadExecutorTest.mm",
@@ -40,6 +41,7 @@ objc_library(
     ],
     deps = [
         "//internal/platform:base",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",  # buildcleaner: keep

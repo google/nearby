@@ -74,7 +74,7 @@ NSData *GNCMGenerateBLEFramesIntroductionPacket(NSData *serviceIDHash);
  * Parses the packet for Ble SocketControlFrame introduction packet and returns
  * serviceIdHash if succeed.
  */
-NSData *GNCMParseBLEFramesIntroductionPacket(NSData *data);
+NSData *_Nullable GNCMParseBLEFramesIntroductionPacket(NSData *_Nullable data);
 
 /** Creates the disconnection packet for Ble SocketControlFrame. */
 NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash);
@@ -83,7 +83,7 @@ NSData *GNCMGenerateBLEFramesDisconnectionPacket(NSData *serviceIDHash);
 NSData *GNCMGenerateBLEFramesPacketAcknowledgementPacket(NSData *serviceIDHash, int receivedSize);
 
 /** Parses the BLE L2CAP packet from the data. */
-GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data);
+GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *_Nullable data);
 
 /** Creates the BLE L2CAP packet from the command and data. */
 NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData *_Nullable data);
