@@ -53,21 +53,6 @@ proto_library(
     srcs = ["sharing_enums.proto"],
 )
 
-proto_library(
-    name = "fast_pair_enums_proto",
-    srcs = ["fast_pair_enums.proto"],
-)
-
-cc_proto_library(
-    name = "fast_pair_enums_cc_proto",
-    deps = [":fast_pair_enums_proto"],
-)
-
-java_proto_library(
-    name = "fast_pair_enums_java_proto",
-    deps = [":fast_pair_enums_proto"],
-)
-
 cc_proto_library(
     name = "sharing_enums_cc_proto",
     deps = [":sharing_enums_proto"],
