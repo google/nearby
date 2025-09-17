@@ -204,9 +204,8 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
           notification.Notify();
         };
 
-    nearby_connections_manager_->StartDiscovery(&discovery_listener, data_usage,
-                                                std::nullopt,
-                                                std::move(callback));
+    nearby_connections_manager_->StartDiscovery(
+        &discovery_listener, data_usage, std::nullopt, std::move(callback));
 
     EXPECT_TRUE(
         notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
@@ -1740,9 +1739,21 @@ TEST_F(NearbyConnectionsManagerImplTest, ShutdownAdvertising) {
       incoming_connection_listener;
   StartAdvertising(connection_listener_remote, incoming_connection_listener);
 
+  NearbyConnectionsService::PayloadListener payload_listener_remote;
+  NearbyConnection* connection = OnIncomingConnection(
+      connection_listener_remote, incoming_connection_listener,
+      payload_listener_remote);
+  EXPECT_NE(connection, nullptr);
+
+  auto payload_listener =
+      std::make_shared<testing::NiceMock<MockPayloadStatusListener>>();
+  nearby_connections_manager_->RegisterPayloadStatusListener(
+      kPayloadId, payload_listener->GetWeakPtr());
+
   absl::Notification notification;
-  EXPECT_CALL(*nearby_connections_, StopAllEndpoints)
-      .WillOnce([&](std::function<void(Status status)> callback) {
+  EXPECT_CALL(*nearby_connections_, DisconnectFromEndpoint)
+      .WillOnce([&](absl::string_view service_id, absl::string_view endpoint_id,
+                    std::function<void(Status status)> callback) {
         std::move(callback)(Status::kSuccess);
         notification.Notify();
       });

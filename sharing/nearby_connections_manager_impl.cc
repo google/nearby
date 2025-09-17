@@ -823,8 +823,7 @@ void NearbyConnectionsManagerImpl::DeleteUnknownFilePayloadAndCancel(
 }
 
 void NearbyConnectionsManagerImpl::ProcessUnknownFilePathsToDelete(
-    PayloadStatus status, PayloadContent::Type type,
-    const FilePath& path) {
+    PayloadStatus status, PayloadContent::Type type, const FilePath& path) {
   // Unknown payload comes as kInProgress and kCanceled status with kFile type
   // from NearbyConnections. Delete it.
   if ((status == PayloadStatus::kCanceled ||
@@ -925,12 +924,17 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
 
 void NearbyConnectionsManagerImpl::Reset() {
   MutexLock lock(&mutex_);
-  nearby_connections_service_->StopAllEndpoints([](ConnectionsStatus status) {
-    VLOG(1) << __func__
-            << ": Stop all endpoints attempted over Nearby "
-               "Connections with result: "
-            << ConnectionsStatusToString(status);
-  });
+
+  for (auto& [endpoint_id, connection] : connections_) {
+    nearby_connections_service_->DisconnectFromEndpoint(
+        kServiceId, endpoint_id,
+        [endpoint_id = std::string(endpoint_id)](ConnectionsStatus status) {
+          VLOG(1) << __func__
+                  << ": Disconnect from endpoint attempted over Nearby "
+                     "Connections with result: "
+                  << ConnectionsStatusToString(status);
+        });
+  }
 
   discovered_endpoints_.clear();
   payload_status_listeners_.clear();
