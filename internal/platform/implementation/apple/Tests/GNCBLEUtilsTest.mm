@@ -92,8 +92,7 @@ using ByteArray = ::nearby::ByteArray;
 
 - (void)testCBAttributePermissionsFromCPPSinglePermission {
   CBAttributePermissions expected = CBAttributePermissionsReadable;
-  CBAttributePermissions actual =
-      ::nearby::apple::CBAttributePermissionsFromCPP(Permission::kRead);
+  CBAttributePermissions actual = ::nearby::apple::CBAttributePermissionsFromCPP(Permission::kRead);
   XCTAssertEqual(actual, expected);
 }
 
