@@ -163,6 +163,12 @@ class OutgoingShareSession : public ShareSession {
 
   std::optional<TransferMetadata> ProcessPayloadTransferUpdates();
 
+  void SetAdvancedProtectionStatus(bool advanced_protection_enabled,
+                                   bool advanced_protection_mismatch) {
+    advanced_protection_enabled_ = advanced_protection_enabled;
+    advanced_protection_mismatch_ = advanced_protection_mismatch;
+  }
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;
@@ -191,6 +197,8 @@ class OutgoingShareSession : public ShareSession {
   absl::Time connection_start_time_;
   // Timeout waiting for remote disconnect in order to complete transfer.
   std::unique_ptr<ThreadTimer> disconnection_timeout_;
+  bool advanced_protection_enabled_ = false;
+  bool advanced_protection_mismatch_ = false;
 };
 
 }  // namespace nearby::sharing

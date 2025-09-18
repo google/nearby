@@ -616,10 +616,14 @@ TEST_F(AnalyticsRecorderTest, NewSendAttachmentsStart) {
                   0);
         EXPECT_EQ(log.send_attachments_start().transfer_position(), 100);
         EXPECT_EQ(log.send_attachments_start().concurrent_connections(), 200);
+        EXPECT_EQ(log.send_attachments_start().advanced_protection_enabled(),
+                  true);
+        EXPECT_EQ(log.send_attachments_start().advanced_protection_mismatch(),
+                  true);
       });
 
   analytics_recoder().NewSendAttachmentsStart(1, AttachmentContainer(), 100,
-                                              200);
+                                              200, true, true);
 }
 
 TEST_F(AnalyticsRecorderTest, NewSendFastInitialization) {

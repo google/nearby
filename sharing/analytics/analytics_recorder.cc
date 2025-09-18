@@ -588,7 +588,8 @@ void AnalyticsRecorder::NewSendAttachmentsEnd(
 
 void AnalyticsRecorder::NewSendAttachmentsStart(
     int64_t session_id, const AttachmentContainer& attachments,
-    int transfer_position, int concurrent_connections) {
+    int transfer_position, int concurrent_connections,
+    bool advanced_protection_enabled, bool advanced_protection_mismatch) {
   std::unique_ptr<SharingLog> sharing_log = CreateSharingLog(
       EventCategory::SENDING_EVENT, EventType::SEND_ATTACHMENTS_START);
 
@@ -598,6 +599,10 @@ void AnalyticsRecorder::NewSendAttachmentsStart(
                     attachments);
   send_attachments_start->set_transfer_position(transfer_position);
   send_attachments_start->set_concurrent_connections(concurrent_connections);
+  send_attachments_start->set_advanced_protection_enabled(
+      advanced_protection_enabled);
+  send_attachments_start->set_advanced_protection_mismatch(
+      advanced_protection_mismatch);
 
   LogEvent(*sharing_log);
 }

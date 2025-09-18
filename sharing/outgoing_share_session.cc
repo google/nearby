@@ -198,7 +198,7 @@ void OutgoingShareSession::CreateWifiCredentialsPayloads() {
   wifi_credentials_payloads_.reserve(attachments.size());
   for (const WifiCredentialsAttachment& attachment : attachments) {
     nearby::sharing::service::proto::WifiCredentials wifi_credentials;
-    wifi_credentials.set_password(std::string(attachment.password()));
+    wifi_credentials.set_password(attachment.password());
     wifi_credentials.set_hidden_ssid(attachment.is_hidden());
 
     std::vector<uint8_t> bytes(wifi_credentials.ByteSizeLong());
@@ -255,12 +255,12 @@ bool OutgoingShareSession::FillIntroductionFrame(
     const FileAttachment& file = file_attachments[i];
     auto* file_metadata = introduction->add_file_metadata();
     file_metadata->set_id(file.id());
-    file_metadata->set_name(std::string(file.file_name()));
+    file_metadata->set_name(file.file_name());
     file_metadata->set_payload_id(file_payloads_[i].id);
     file_metadata->set_type(file.type());
-    file_metadata->set_mime_type(std::string(file.mime_type()));
+    file_metadata->set_mime_type(file.mime_type());
     file_metadata->set_size(file.size());
-    file_metadata->set_parent_folder(std::string(file.parent_folder()));
+    file_metadata->set_parent_folder(file.parent_folder());
   }
 
   // Write introduction of text payloads.
@@ -270,7 +270,7 @@ bool OutgoingShareSession::FillIntroductionFrame(
     const TextAttachment& text = text_attachments[i];
     auto* text_metadata = introduction->add_text_metadata();
     text_metadata->set_id(text.id());
-    text_metadata->set_text_title(std::string(text.text_title()));
+    text_metadata->set_text_title(text.text_title());
     text_metadata->set_type(text.type());
     text_metadata->set_size(text.size());
     text_metadata->set_payload_id(text_payloads_[i].id);
@@ -285,7 +285,7 @@ bool OutgoingShareSession::FillIntroductionFrame(
     auto* wifi_credentials_metadata =
         introduction->add_wifi_credentials_metadata();
     wifi_credentials_metadata->set_id(wifi_credentials.id());
-    wifi_credentials_metadata->set_ssid(std::string(wifi_credentials.ssid()));
+    wifi_credentials_metadata->set_ssid(wifi_credentials.ssid());
     wifi_credentials_metadata->set_security_type(
         wifi_credentials.security_type());
     wifi_credentials_metadata->set_payload_id(wifi_credentials_payloads_[i].id);
@@ -337,10 +337,11 @@ void OutgoingShareSession::SendPayloads(
   frames_reader()->ReadFrame(std::move(frame_read_callback));
 
   // Log analytics event of sending attachment start.
-  analytics_recorder().NewSendAttachmentsStart(session_id(),
-                                               attachment_container(),
-                                               /*transfer_position=*/1,
-                                               /*concurrent_connections=*/1);
+  analytics_recorder().NewSendAttachmentsStart(
+      session_id(), attachment_container(),
+      /*transfer_position=*/1,
+      /*concurrent_connections=*/1, advanced_protection_enabled_,
+      advanced_protection_mismatch_);
   VLOG(1) << "The connection was accepted. Payloads are now being sent.";
   InitializePayloadTracker(std::move(payload_transder_update_callback));
   SendNextPayload();

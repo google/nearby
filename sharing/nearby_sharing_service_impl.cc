@@ -76,6 +76,7 @@
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager_impl.h"
 #include "sharing/nearby_connection.h"
@@ -154,9 +155,9 @@ constexpr size_t kDeviceIdLength = 10;
 // Possible characters used in a randomly generated device ID. This agrees with
 // the GmsCore implementation.
 constexpr std::array<char, 36> kAlphaNumericChars = {
-  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-  'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-  'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
 
 bool ShouldBlockSurfaceRegistration(BlockedVendorId registering_vendor_id,
                                     BlockedVendorId blocked_vendor_id) {
@@ -620,9 +621,8 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           } else if (!IsBluetoothPowered()) {
             LOG(WARNING) << __func__ << ": Bluetooth is not powered.";
           } else {
-            VLOG(1)
-                << __func__ << ": This device's MAC address is: "
-                << context_->GetBluetoothAdapter().GetAddress().ToString();
+            VLOG(1) << __func__ << ": This device's MAC address is: "
+                    << context_->GetBluetoothAdapter().GetAddress().ToString();
           }
         }
 
@@ -1183,23 +1183,23 @@ std::string NearbySharingServiceImpl::Dump() const {
   sstream << " Download public certificates: "
           << ConvertToReadableSchedule(
                  preference_manager_,
-                 prefs::kNearbySharingSchedulerDownloadPublicCertificatesName)
+                 PrefNames::kSchedulerDownloadPublicCertificates)
           << std::endl;
   sstream
       << " Upload local device certificates: "
       << ConvertToReadableSchedule(
              preference_manager_,
-             prefs::kNearbySharingSchedulerUploadLocalDeviceCertificatesName)
+             PrefNames::kSchedulerUploadLocalDeviceCertificates)
       << std::endl;
   sstream << " Private certificates expiration: "
           << ConvertToReadableSchedule(
                  preference_manager_,
-                 prefs::kNearbySharingSchedulerPrivateCertificateExpirationName)
+                 PrefNames::kSchedulerPrivateCertificateExpiration)
           << std::endl;
   sstream << " Public certificates expiration: "
           << ConvertToReadableSchedule(
                  preference_manager_,
-                 prefs::kNearbySharingSchedulerPublicCertificateExpirationName)
+                 PrefNames::kSchedulerPublicCertificateExpiration)
           << std::endl;
 
   // Dump certificates information.
@@ -1218,13 +1218,13 @@ std::string NearbySharingServiceImpl::Dump() const {
 // Private methods for NearbyShareSettings::Observer.
 void NearbySharingServiceImpl::OnSettingChanged(absl::string_view key,
                                                 const Data& data) {
-  if (key == prefs::kNearbySharingDataUsageName) {
+  if (key == PrefNames::kDataUsage) {
     DataUsage data_usage = static_cast<DataUsage>(data.value.as_int64);
     OnDataUsageChanged(data_usage);
-  } else if (key == prefs::kNearbySharingCustomSavePath) {
+  } else if (key == PrefNames::kCustomSavePath) {
     absl::string_view custom_save_path = data.value.as_string;
     OnCustomSavePathChanged(custom_save_path);
-  } else if (key == prefs::kNearbySharingBackgroundVisibilityName) {
+  } else if (key == PrefNames::kVisibility) {
     DeviceVisibility visibility =
         static_cast<DeviceVisibility>(data.value.as_int64);
     OnVisibilityChanged(visibility);
@@ -1649,15 +1649,15 @@ void NearbySharingServiceImpl::FinishEndpointDiscoveryEvent() {
 void NearbySharingServiceImpl::LogShareTargetDiscovered(
     const ShareTarget& share_target) {
   analytics_recorder_.NewDiscoverShareTarget(
-    share_target, scanning_session_id_,
-    absl::ToInt64Milliseconds(context_->GetClock()->Now() -
-                              scanning_start_timestamp_),
-    /*flow_id=*/1, /*referrer_package=*/std::nullopt,
-    share_foreground_send_surface_start_timestamp_ == absl::InfinitePast()
-        ? -1
-        : absl::ToInt64Milliseconds(
-              context_->GetClock()->Now() -
-              share_foreground_send_surface_start_timestamp_));
+      share_target, scanning_session_id_,
+      absl::ToInt64Milliseconds(context_->GetClock()->Now() -
+                                scanning_start_timestamp_),
+      /*flow_id=*/1, /*referrer_package=*/std::nullopt,
+      share_foreground_send_surface_start_timestamp_ == absl::InfinitePast()
+          ? -1
+          : absl::ToInt64Milliseconds(
+                context_->GetClock()->Now() -
+                share_foreground_send_surface_start_timestamp_));
 }
 
 void NearbySharingServiceImpl::NotifyShareTargetDiscovered(
@@ -2649,10 +2649,21 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
     return;
   }
   // Auto Accept if key verification is successful or skip sender confirmation.
-  if (session->token().empty() ||
-      NearbyFlags::GetInstance().GetBoolFlag(
+  bool be_advanced_protection_enabled =
+      preference_manager_.GetBoolean(PrefNames::kAdvancedProtectionEnabled,
+                                     /*default_value=*/false);
+  bool mendel_advanced_protection_enabled =
+      !NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
-              kSenderSkipsConfirmation)) {
+              kSenderSkipsConfirmation);
+  bool advanced_protection_mismatch =
+      (be_advanced_protection_enabled != mendel_advanced_protection_enabled);
+  // Continue to use mendel flag until we have confidence that the Nearby BE
+  // flag has the same value.
+  session->SetAdvancedProtectionStatus(mendel_advanced_protection_enabled,
+                                       advanced_protection_mismatch);
+  if (session->token().empty() || !mendel_advanced_protection_enabled) {
+    // Auto accept if no token or if advanced protection is disabled.
     OutgoingSessionAccept(*session);
   } else {
     session->UpdateTransferMetadata(
@@ -3202,8 +3213,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
         VLOG(1) << "discovery_cache entry: " << endpoint_id << " timeout after "
                 << expiry_ms << "ms"
                 << ": [Dedupped] NotifyShareTargetLost to all surfaces for "
-                << "share_target: "
-                << share_target.ToString();
+                << "share_target: " << share_target.ToString();
       });
   // Send ShareTarget update to set receive disabled to true.
   NotifyShareTargetUpdated(cache_entry.share_target);
@@ -3457,7 +3467,7 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   } else {
     // on login generate a new device id
     std::string device_id = GenerateDeviceId();
-    preference_manager_.SetString(prefs::kNearbySharingDeviceIdName, device_id);
+    preference_manager_.SetString(PrefNames::kDeviceId, device_id);
 
     // should clear scheduled task to make it works immediately
     settings_->RemoveSettingsObserver(this);

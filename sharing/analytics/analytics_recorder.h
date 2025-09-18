@@ -140,7 +140,9 @@ class AnalyticsRecorder {
   void NewSendAttachmentsStart(int64_t session_id,
                                const AttachmentContainer& attachments,
                                int transfer_position,
-                               int concurrent_connections);
+                               int concurrent_connections,
+                               bool advanced_protection_enabled,
+                               bool advanced_protection_mismatch);
 
   void NewSendFastInitialization();
 
