@@ -568,6 +568,12 @@ message SharingLog {
     // Deprecated. Use share_target_info.has_matching_qr_code instead.
     optional bool qr_code_flow = 5 [deprecated = true];
     optional ShareTargetInfo share_target_info = 6;
+    // True if the advanced protection is enabled and the sender needed to
+    // confirm the transfer.
+    optional bool advanced_protection_enabled = 7;
+    // True if the advanced protection flag from NearbyService BE is different
+    // from the mendel flag.
+    optional bool advanced_protection_mismatch = 8;
   }
 
   // EventType: SEND_ATTACHMENTS_END
