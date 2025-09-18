@@ -23,18 +23,15 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
-#include "sharing/scheduling/fake_nearby_share_scheduler.h"
 #include "sharing/scheduling/fake_nearby_share_scheduler_factory.h"
 #include "sharing/scheduling/nearby_share_scheduler_factory.h"
 
@@ -46,9 +43,6 @@ using ::nearby::sharing::proto::ContactRecord;
 constexpr char kTestDefaultDeviceName[] = "Josh's Chromebook";
 constexpr char kTestProfileUserName[] = "test@google.com";
 constexpr char kTestAccountId[] = "test_account_id";
-
-// From nearby_share_contact_manager_impl.cc.
-constexpr absl::Duration kContactDownloadPeriod = absl::Hours(12);
 
 class NearbyShareContactManagerImplTest
     : public ::testing::Test {
@@ -75,8 +69,6 @@ class NearbyShareContactManagerImplTest
 
     manager_ = NearbyShareContactManagerImpl::Factory::Create(
         &fake_context_, fake_account_manager_, &nearby_client_factory_);
-
-    VerifySchedulerInitialization();
   }
 
   void TearDown() override {
@@ -99,25 +91,6 @@ class NearbyShareContactManagerImplTest
  private:
   FakeNearbyShareClient* client() {
     return nearby_client_factory_.instances().back();
-  }
-
-  FakeNearbyShareScheduler* download_and_upload_scheduler() {
-    return scheduler_factory_.pref_name_to_periodic_instance()
-        .at(prefs::kNearbySharingSchedulerContactDownloadAndUploadName)
-        .fake_scheduler;
-  }
-
-  // Verify scheduler input parameters.
-  void VerifySchedulerInitialization() {
-    FakeNearbyShareSchedulerFactory::PeriodicInstance
-        download_and_upload_scheduler_instance =
-            scheduler_factory_.pref_name_to_periodic_instance().at(
-                prefs::kNearbySharingSchedulerContactDownloadAndUploadName);
-    EXPECT_TRUE(download_and_upload_scheduler_instance.fake_scheduler);
-    EXPECT_EQ(download_and_upload_scheduler_instance.request_period,
-              kContactDownloadPeriod);
-    EXPECT_TRUE(download_and_upload_scheduler_instance.retry_failures);
-    EXPECT_TRUE(download_and_upload_scheduler_instance.require_connectivity);
   }
 
   FakeAccountManager fake_account_manager_;

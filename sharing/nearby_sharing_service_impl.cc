@@ -1180,11 +1180,6 @@ std::string NearbySharingServiceImpl::Dump() const {
 
   // Dump scheduled tasks
   sstream << "Nearby Tasks/Certificates State" << std::endl;
-  sstream << " Download & upload contacts: "
-          << ConvertToReadableSchedule(
-                 preference_manager_,
-                 prefs::kNearbySharingSchedulerContactDownloadAndUploadName)
-          << std::endl;
   sstream << " Download public certificates: "
           << ConvertToReadableSchedule(
                  preference_manager_,
@@ -1196,11 +1191,6 @@ std::string NearbySharingServiceImpl::Dump() const {
              preference_manager_,
              prefs::kNearbySharingSchedulerUploadLocalDeviceCertificatesName)
       << std::endl;
-  sstream << " Upload device name: "
-          << ConvertToReadableSchedule(
-                 preference_manager_,
-                 prefs::kNearbySharingSchedulerUploadDeviceNameName)
-          << std::endl;
   sstream << " Private certificates expiration: "
           << ConvertToReadableSchedule(
                  preference_manager_,

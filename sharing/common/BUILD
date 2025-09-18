@@ -29,10 +29,9 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//sharing/internal/api:platform",
+        "//sharing/internal/public:pref_names",
         "//sharing/proto:enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/time",
     ],
 )
 

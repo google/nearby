@@ -23,36 +23,32 @@ namespace nearby {
 namespace sharing {
 namespace prefs {
 
-ABSL_CONST_INIT extern const char kNearbySharingBackgroundVisibilityName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingBackgroundFallbackVisibilityName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingBackgroundVisibilityExpirationSeconds[];
-ABSL_CONST_INIT extern const char kNearbySharingContactUploadHashName[];
-ABSL_CONST_INIT extern const char kNearbySharingContactUploadTimeName[];
-ABSL_CONST_INIT extern const char kNearbySharingCustomSavePath[];
-ABSL_CONST_INIT extern const char kNearbySharingDataUsageName[];
-ABSL_CONST_INIT extern const char kNearbySharingDeviceIdName[];
-ABSL_CONST_INIT extern const char kNearbySharingDeviceNameName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingFastInitiationNotificationStateName[];
-ABSL_CONST_INIT extern const char kNearbySharingPrivateCertificateListName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingPublicCertificateExpirationDictName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingSchedulerContactDownloadAndUploadName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingSchedulerDownloadPublicCertificatesName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingSchedulerPrivateCertificateExpirationName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingSchedulerPublicCertificateExpirationName[];
-ABSL_CONST_INIT extern const char kNearbySharingSchedulerUploadDeviceNameName[];
-ABSL_CONST_INIT extern const char
-    kNearbySharingSchedulerUploadLocalDeviceCertificatesName[];
-ABSL_CONST_INIT extern const char kNearbySharingUsersName[];
-ABSL_CONST_INIT extern const char kNearbySharingIsAnalyticsEnabledName[];
-ABSL_CONST_INIT extern const char kNearbySharingAutoAppStartEnabledName[];
+// These are for backward compatibility only. New code should use the
+// nearby::sharing::api::PrefNames class instead.
+ABSL_CONST_INIT extern const char* kNearbySharingBackgroundVisibilityName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingBackgroundFallbackVisibilityName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingBackgroundVisibilityExpirationSeconds;
+ABSL_CONST_INIT extern const char* kNearbySharingCustomSavePath;
+ABSL_CONST_INIT extern const char* kNearbySharingDataUsageName;
+ABSL_CONST_INIT extern const char* kNearbySharingDeviceIdName;
+ABSL_CONST_INIT extern const char* kNearbySharingDeviceNameName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingFastInitiationNotificationStateName;
+ABSL_CONST_INIT extern const char* kNearbySharingPrivateCertificateListName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingPublicCertificateExpirationDictName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingSchedulerDownloadPublicCertificatesName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingSchedulerPrivateCertificateExpirationName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingSchedulerPublicCertificateExpirationName;
+ABSL_CONST_INIT extern const char*
+    kNearbySharingSchedulerUploadLocalDeviceCertificatesName;
+ABSL_CONST_INIT extern const char* kNearbySharingUsersName;
+ABSL_CONST_INIT extern const char* kNearbySharingIsAnalyticsEnabledName;
 
 ABSL_CONST_INIT const proto::DeviceVisibility kDefaultVisibility =
     proto::DeviceVisibility::DEVICE_VISIBILITY_HIDDEN;

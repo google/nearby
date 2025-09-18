@@ -15,17 +15,17 @@
 #include "sharing/common/nearby_share_prefs.h"
 
 #include <string>
-#include <vector>
 
 #include "absl/base/attributes.h"
-#include "absl/time/clock.h"
 #include "sharing/internal/api/preference_manager.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/proto/enums.pb.h"
 
 namespace nearby {
 namespace sharing {
 namespace prefs {
 namespace {
+using ::nearby::sharing::PrefNames;
 using ::nearby::sharing::api::PreferenceManager;
 
 using DataUsage = ::nearby::sharing::proto::DataUsage;
@@ -33,55 +33,42 @@ using FastInitiationNotificationState =
     ::nearby::sharing::proto::FastInitiationNotificationState;
 }  // namespace
 
-ABSL_CONST_INIT const char kNearbySharingAllowedContactsName[] =
-    "nearby_sharing.allowed_contacts";
-ABSL_CONST_INIT const char kNearbySharingBackgroundVisibilityName[] =
-    "nearby_sharing.background_visibility";
-ABSL_CONST_INIT const char kNearbySharingBackgroundFallbackVisibilityName[] =
-    "nearby_sharing.background_fallback_visibility";
-ABSL_CONST_INIT const char
-    kNearbySharingBackgroundVisibilityExpirationSeconds[] =
-        "nearby_sharing.background_visibility_expiration_seconds";
-ABSL_CONST_INIT const char kNearbySharingContactUploadHashName[] =
-    "nearby_sharing.contact_upload_hash";
-ABSL_CONST_INIT const char kNearbySharingContactUploadTimeName[] =
-    "nearby_sharing.contact_upload_time";
-ABSL_CONST_INIT const char kNearbySharingCustomSavePath[] =
-    "nearby_sharing.custom_save_path";
-ABSL_CONST_INIT const char kNearbySharingDataUsageName[] =
-    "nearby_sharing.data_usage";
-ABSL_CONST_INIT const char kNearbySharingDeviceIdName[] =
-    "nearby_sharing.device_id";
-ABSL_CONST_INIT const char kNearbySharingDeviceNameName[] =
-    "nearby_sharing.device_name";
-ABSL_CONST_INIT const char kNearbySharingFastInitiationNotificationStateName[] =
-    "nearby_sharing.fast_initiation_notification_state";
-ABSL_CONST_INIT const char kNearbySharingPublicCertificateExpirationDictName[] =
-    "nearbyshare.public_certificate_expiration_dict";
-ABSL_CONST_INIT const char kNearbySharingPrivateCertificateListName[] =
-    "nearbyshare.private_certificate_list";
-ABSL_CONST_INIT const char
-    kNearbySharingSchedulerContactDownloadAndUploadName[] =
-        "nearby_sharing.scheduler.contact_download_and_upload";
-ABSL_CONST_INIT const char
-    kNearbySharingSchedulerDownloadPublicCertificatesName[] =
-        "nearby_sharing.scheduler.download_public_certificates";
-ABSL_CONST_INIT const char
-    kNearbySharingSchedulerPrivateCertificateExpirationName[] =
-        "nearby_sharing.scheduler.private_certificate_expiration";
-ABSL_CONST_INIT const char
-    kNearbySharingSchedulerPublicCertificateExpirationName[] =
-        "nearby_sharing.scheduler.public_certificate_expiration";
-ABSL_CONST_INIT const char kNearbySharingSchedulerUploadDeviceNameName[] =
-    "nearby_sharing.scheduler.upload_device_name";
-ABSL_CONST_INIT const char
-    kNearbySharingSchedulerUploadLocalDeviceCertificatesName[] =
-        "nearby_sharing.scheduler.upload_local_device_certificates";
-ABSL_CONST_INIT const char kNearbySharingUsersName[] = "nearby_sharing.users";
-ABSL_CONST_INIT const char kNearbySharingIsAnalyticsEnabledName[] =
-    "nearby_sharing.is_analytics_enabled";
-ABSL_CONST_INIT const char kNearbySharingIsAllContactsEnabledName[] =
-    "nearby_sharing.is_all_contacts_enabled";
+ABSL_CONST_INIT const char* kNearbySharingBackgroundVisibilityName =
+    PrefNames::kVisibility.data();
+ABSL_CONST_INIT const char* kNearbySharingBackgroundFallbackVisibilityName =
+    PrefNames::kFallbackVisibility.data();
+ABSL_CONST_INIT const char*
+    kNearbySharingBackgroundVisibilityExpirationSeconds =
+        PrefNames::kVisibilityExpirationSeconds.data();
+ABSL_CONST_INIT const char* kNearbySharingCustomSavePath =
+    PrefNames::kCustomSavePath.data();
+ABSL_CONST_INIT const char* kNearbySharingDataUsageName =
+    PrefNames::kDataUsage.data();
+ABSL_CONST_INIT const char* kNearbySharingDeviceIdName =
+    PrefNames::kDeviceId.data();
+ABSL_CONST_INIT const char* kNearbySharingDeviceNameName =
+    PrefNames::kDeviceName.data();
+ABSL_CONST_INIT const char* kNearbySharingFastInitiationNotificationStateName =
+    PrefNames::kFastInitiationNotificationState.data();
+ABSL_CONST_INIT const char* kNearbySharingPrivateCertificateListName =
+    PrefNames::kPrivateCertificateList.data();
+ABSL_CONST_INIT const char* kNearbySharingPublicCertificateExpirationDictName =
+    PrefNames::kPublicCertificateExpirationDict.data();
+ABSL_CONST_INIT const char*
+    kNearbySharingSchedulerDownloadPublicCertificatesName =
+        PrefNames::kSchedulerDownloadPublicCertificates.data();
+ABSL_CONST_INIT const char*
+    kNearbySharingSchedulerPrivateCertificateExpirationName =
+        PrefNames::kSchedulerPrivateCertificateExpiration.data();
+ABSL_CONST_INIT const char*
+    kNearbySharingSchedulerPublicCertificateExpirationName =
+        PrefNames::kSchedulerPublicCertificateExpiration.data();
+ABSL_CONST_INIT const char*
+    kNearbySharingSchedulerUploadLocalDeviceCertificatesName =
+        PrefNames::kSchedulerUploadLocalDeviceCertificates.data();
+ABSL_CONST_INIT const char* kNearbySharingUsersName = PrefNames::kUsers.data();
+ABSL_CONST_INIT const char* kNearbySharingIsAnalyticsEnabledName =
+    PrefNames::kIsAnalyticsEnabled.data();
 
 void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
                                 bool skip_persistent_ones) {
@@ -91,64 +78,41 @@ void RegisterNearbySharingPrefs(PreferenceManager& preference_manager,
     // During logging out, we reset all settings and set these settings to new
     // values. To avoid setting them twice, we skip them here if
     // skip_persistent_ones is set to true.
-    preference_manager.SetString(kNearbySharingCustomSavePath, std::string());
-    preference_manager.SetInteger(kNearbySharingBackgroundVisibilityName,
+    preference_manager.SetString(PrefNames::kCustomSavePath, std::string());
+    preference_manager.SetInteger(PrefNames::kVisibility,
                                   static_cast<int>(kDefaultVisibility));
-    preference_manager.SetInteger(
-        kNearbySharingBackgroundFallbackVisibilityName,
-        static_cast<int>(kDefaultFallbackVisibility));
-    preference_manager.SetBoolean(kNearbySharingIsAnalyticsEnabledName, false);
+    preference_manager.SetInteger(PrefNames::kFallbackVisibility,
+                                  static_cast<int>(kDefaultFallbackVisibility));
+    preference_manager.SetBoolean(PrefNames::kIsAnalyticsEnabled, false);
   }
 
   preference_manager.SetInteger(
-      kNearbySharingFastInitiationNotificationStateName,
+      PrefNames::kFastInitiationNotificationState,
       /*value=*/static_cast<int>(
           FastInitiationNotificationState::ENABLED_FAST_INIT));
 
   preference_manager.SetInteger(
-      kNearbySharingDataUsageName,
-      static_cast<int>(DataUsage::WIFI_ONLY_DATA_USAGE));
+      PrefNames::kDataUsage, static_cast<int>(DataUsage::WIFI_ONLY_DATA_USAGE));
 
-  preference_manager.SetString(kNearbySharingContactUploadHashName,
-                               std::string());
+  preference_manager.SetString(PrefNames::kDeviceId, std::string());
 
-  preference_manager.SetString(kNearbySharingDeviceIdName, std::string());
+  preference_manager.SetString(PrefNames::kDeviceName, std::string());
 
-  preference_manager.SetString(kNearbySharingDeviceNameName, std::string());
-
-  preference_manager.SetStringArray(kNearbySharingAllowedContactsName,
-                                    std::vector<std::string>());
-
-  preference_manager.Remove(kNearbySharingPublicCertificateExpirationDictName);
-  preference_manager.Remove(kNearbySharingPrivateCertificateListName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerContactDownloadAndUploadName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerDownloadPublicCertificatesName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerPrivateCertificateExpirationName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerPublicCertificateExpirationName);
-  preference_manager.Remove(kNearbySharingSchedulerUploadDeviceNameName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerUploadLocalDeviceCertificatesName);
-  preference_manager.Remove(kNearbySharingUsersName);
-
-  preference_manager.SetBoolean(kNearbySharingIsAllContactsEnabledName, true);
+  preference_manager.Remove(PrefNames::kPublicCertificateExpirationDict);
+  preference_manager.Remove(PrefNames::kPrivateCertificateList);
+  preference_manager.Remove(PrefNames::kSchedulerDownloadPublicCertificates);
+  preference_manager.Remove(PrefNames::kSchedulerPrivateCertificateExpiration);
+  preference_manager.Remove(PrefNames::kSchedulerPublicCertificateExpiration);
+  preference_manager.Remove(PrefNames::kSchedulerUploadLocalDeviceCertificates);
+  preference_manager.Remove(PrefNames::kUsers);
+  preference_manager.SetBoolean(PrefNames::kAdvancedProtectionEnabled, false);
 }
 
 void ResetSchedulers(PreferenceManager& preference_manager) {
-  preference_manager.Remove(
-      kNearbySharingSchedulerContactDownloadAndUploadName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerDownloadPublicCertificatesName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerPrivateCertificateExpirationName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerPublicCertificateExpirationName);
-  preference_manager.Remove(kNearbySharingSchedulerUploadDeviceNameName);
-  preference_manager.Remove(
-      kNearbySharingSchedulerUploadLocalDeviceCertificatesName);
+  preference_manager.Remove(PrefNames::kSchedulerDownloadPublicCertificates);
+  preference_manager.Remove(PrefNames::kSchedulerPrivateCertificateExpiration);
+  preference_manager.Remove(PrefNames::kSchedulerPublicCertificateExpiration);
+  preference_manager.Remove(PrefNames::kSchedulerUploadLocalDeviceCertificates);
 }
 
 }  // namespace prefs

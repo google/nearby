@@ -18,6 +18,18 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 licenses(["notice"])
 
 cc_library(
+    name = "pref_names",
+    hdrs = [
+        "pref_names.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "types",
     hdrs = [
         "connectivity_manager.h",
