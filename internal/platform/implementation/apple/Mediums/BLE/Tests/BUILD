@@ -37,6 +37,7 @@ objc_library(
         "GNCFakeCentralManager.m",
         "GNCFakePeripheral.m",
         "GNCFakePeripheralManager.m",
+        "GNCMFakeConnection.mm",
         "NSData+GNCBase85Test.m",
         "NSData+GNCWebSafeBase64Test.m",
     ],
@@ -49,6 +50,7 @@ objc_library(
         "GNCFakeCentralManager.h",
         "GNCFakePeripheral.h",
         "GNCFakePeripheralManager.h",
+        "GNCMFakeConnection.h",
     ],
     deps = [
         "//internal/platform/implementation:comm",

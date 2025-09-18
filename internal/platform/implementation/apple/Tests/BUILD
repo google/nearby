@@ -37,6 +37,7 @@ objc_library(
         "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
         "ble_peripheral_test.mm",
+        "ble_socket_test.mm",
     ],
     deps = [
         "//internal/platform:base",
@@ -46,6 +47,7 @@ objc_library(
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple:ble_v2",
         "//internal/platform/implementation/apple/Mediums/BLE",
+        "//internal/platform/implementation/apple/Mediums/BLE/Tests:BLETestsLib",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon/Tests:FakeNWFramework",
         "//third_party/apple_frameworks:CommonCrypto",
