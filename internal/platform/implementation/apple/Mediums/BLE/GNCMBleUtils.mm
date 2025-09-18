@@ -63,9 +63,11 @@ NSData *GNCMGenerateBLEFramesIntroductionPacket(NSData *serviceIDHash) {
   return packet;
 }
 
-NSData *_Nullable GNCMParseBLEFramesIntroductionPacket(NSData *data) {
+NSData *_Nullable GNCMParseBLEFramesIntroductionPacket(NSData *_Nullable data) {
+  if (!data) return nil;
   ::location::nearby::mediums::SocketControlFrame socket_control_frame;
   NSUInteger prefixLength = sizeof(kGNCMControlPacketServiceIDHash);
+  if (data.length <= prefixLength) return nil;
   NSData *packet = [data subdataWithRange:NSMakeRange(prefixLength, data.length - prefixLength)];
   if (socket_control_frame.ParseFromArray(packet.bytes, (int)packet.length)) {
     if (socket_control_frame.type() ==
@@ -132,9 +134,12 @@ NSData *GNCMGenerateBLEFramesPacketAcknowledgementPacket(NSData *serviceIDHash, 
 
 @end
 
-// TODO: b/399815436 - Add unit tests for this function.
-GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data) {
-  if (data.length < 1) {
+GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *_Nullable data) {
+  const NSUInteger kCommandLength = 1;
+  const NSUInteger kLengthFieldLength = 2;
+  const NSUInteger kHeaderLength = kCommandLength + kLengthFieldLength;
+
+  if (!data || data.length < kCommandLength) {
     return nil;
   }
 
@@ -148,26 +153,29 @@ GNCMBLEL2CAPPacket *_Nullable GNCMParseBLEL2CAPPacket(NSData *data) {
 
   // Extract data
   NSData *packetData = nil;
-  if (receivedDataLength > 3) {
+  if (receivedDataLength > kHeaderLength) {
     // Extract data length (2 bytes, big endian)
     int dataLength = (bytes[1] << 8) | bytes[2];
 
     // Validate data length
-    if (dataLength != (int)(receivedDataLength - 3)) {
+    if (dataLength != (int)(receivedDataLength - kHeaderLength)) {
       GNCLoggerError(@"[NEARBY] Data length mismatch. Expected: %d, Actual: %lu", dataLength,
-                     receivedDataLength - 3);
+                     receivedDataLength - kHeaderLength);
       return nil;
     }
     if (dataLength > 0) {
-      packetData = [NSData dataWithBytes:&bytes[3] length:dataLength];
+      packetData = [NSData dataWithBytes:&bytes[kHeaderLength] length:dataLength];
     } else {
       packetData = nil;
     }
+  } else if (receivedDataLength > kCommandLength) {
+    // Header is incomplete
+    GNCLoggerError(@"[NEARBY] Incomplete L2CAP packet header.");
+    return nil;
   }
   return [[GNCMBLEL2CAPPacket alloc] initWithCommand:command data:packetData];
 }
 
-// TODO: b/399815436 - Add unit tests for this function.
 NSData *_Nullable GNCMGenerateBLEL2CAPPacket(GNCMBLEL2CAPCommand command, NSData *_Nullable data) {
   if (!IsSupportedCommand(command)) {
     GNCLoggerError(@"[NEARBY] Invalid command to generate packet: %lu", command);

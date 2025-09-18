@@ -33,10 +33,11 @@ objc_library(
         "GNCBLEL2CAPServerTest.m",
         "GNCBLEL2CAPStreamTest.m",
         "GNCBLEMediumTest.m",
-        "GNCBLEUtilsTest.mm",
         "GNCFakeCentralManager.m",
         "GNCFakePeripheral.m",
         "GNCFakePeripheralManager.m",
+        "GNCFakeSocket.m",
+        "GNCMBleUtilsTest.m",
         "GNCMFakeConnection.mm",
         "NSData+GNCBase85Test.m",
         "NSData+GNCWebSafeBase64Test.m",
@@ -50,6 +51,7 @@ objc_library(
         "GNCFakeCentralManager.h",
         "GNCFakePeripheral.h",
         "GNCFakePeripheralManager.h",
+        "GNCFakeSocket.h",
         "GNCMFakeConnection.h",
     ],
     deps = [
@@ -58,9 +60,11 @@ objc_library(
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple:ble_v2",
         "//internal/platform/implementation/apple/Mediums/BLE",
+        "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Shared",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
+        "//third_party/objective_c/ocmock/v3:OCMock",
     ],
 )
 
