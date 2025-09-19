@@ -30,12 +30,12 @@ namespace nearby {
 FakeTaskRunner::~FakeTaskRunner() { Shutdown(); }
 
 void FakeTaskRunner::Shutdown() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   task_executor_->Shutdown();
 }
 
 bool FakeTaskRunner::PostTask(absl::AnyInvocable<void()> task) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   task_executor_->Execute([task = std::move(task)]() mutable {
     task();
   });
@@ -44,7 +44,7 @@ bool FakeTaskRunner::PostTask(absl::AnyInvocable<void()> task) {
 
 bool FakeTaskRunner::PostDelayedTask(absl::Duration delay,
                                      absl::AnyInvocable<void()> task) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   std::unique_ptr<Timer> timer = std::make_unique<FakeTimer>(clock_);
   Timer* timer_ptr = timer.get();
   timers_.push_back(std::move(timer));
