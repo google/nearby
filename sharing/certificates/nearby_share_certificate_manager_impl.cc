@@ -594,14 +594,14 @@ void NearbyShareCertificateManagerImpl::ClearPublicCertificates(
   certificate_storage_->ClearPublicCertificates(std::move(callback));
 }
 
-void NearbyShareCertificateManagerImpl::OnStart() {
+void NearbyShareCertificateManagerImpl::OnStartScheduledTasks() {
   private_certificate_expiration_scheduler_->Start();
   public_certificate_expiration_scheduler_->Start();
   force_contacts_update_scheduler_->Start();
   download_public_certificates_scheduler_->Start();
 }
 
-void NearbyShareCertificateManagerImpl::OnStop() {
+void NearbyShareCertificateManagerImpl::OnStopScheduledTasks() {
   private_certificate_expiration_scheduler_->Stop();
   public_certificate_expiration_scheduler_->Stop();
   force_contacts_update_scheduler_->Stop();

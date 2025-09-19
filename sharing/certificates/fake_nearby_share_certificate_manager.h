@@ -123,8 +123,8 @@ class FakeNearbyShareCertificateManager : public NearbyShareCertificateManager {
 
  private:
   // NearbyShareCertificateManager:
-  void OnStart() override;
-  void OnStop() override;
+  void OnStartScheduledTasks() override {}
+  void OnStopScheduledTasks() override {}
   std::optional<NearbySharePrivateCertificate> GetValidPrivateCertificate(
       proto::DeviceVisibility visibility) const override;
   void UpdatePrivateCertificateInStorage(

@@ -175,7 +175,7 @@ class NearbyShareCertificateManagerImplTest
 
     PopulatePrivateCertificates();
     PopulatePublicCertificates();
-    cert_manager_->Start();
+    cert_manager_->StartScheduledTasks();
   }
 
   // NearbyShareCertificateManager::Observer:
@@ -762,7 +762,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_OnLocalDeviceMetadataChanged) {
   Initialize();
-  cert_manager_->Start();
+  cert_manager_->StartScheduledTasks();
 
   // Destroy and recreate private certificates if any metadata fields change.
   for (bool did_device_name_change : {true, false}) {
@@ -800,7 +800,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_PublishDevice_OnVendorIdChanged) {
   Initialize();
   cert_store_->ReplacePrivateCertificates(private_certificates_);
-  cert_manager_->Start();
+  cert_manager_->StartScheduledTasks();
 
   cert_manager_->SetVendorId(12345);
 
@@ -825,7 +825,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
        SetVendorId_WhenNoPrivateCertificates) {
   Initialize();
   cert_store_->ReplacePrivateCertificates({});
-  cert_manager_->Start();
+  cert_manager_->StartScheduledTasks();
 
   cert_manager_->SetVendorId(12345);
 
@@ -853,7 +853,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   FastForward(kNearbyShareCertificateValidityPeriod * 1.5);
   cert_store_->ReplacePrivateCertificates(private_certificates_);
 
-  cert_manager_->Start();
+  cert_manager_->StartScheduledTasks();
   InvokePrivateCertificateRefresh(/*expected_success=*/true);
 
   VerifyPrivateCertificates(/*expected_metadata=*/GetNearbyShareTestMetadata());
@@ -866,7 +866,7 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 
   SetBluetoothAdapterIsPresent(false);
 
-  cert_manager_->Start();
+  cert_manager_->StartScheduledTasks();
 
   // Bluetooth MAC address is optional, so the refresh should still succeed.
   InvokePrivateCertificateRefresh(/*expected_success=*/true);

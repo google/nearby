@@ -98,10 +98,6 @@ void FakeNearbyShareCertificateManager::ClearPublicCertificates(
   callback(true);
 }
 
-void FakeNearbyShareCertificateManager::OnStart() {}
-
-void FakeNearbyShareCertificateManager::OnStop() {}
-
 std::optional<NearbySharePrivateCertificate>
 FakeNearbyShareCertificateManager::GetValidPrivateCertificate(
     DeviceVisibility visibility) const {

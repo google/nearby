@@ -69,8 +69,8 @@ class NearbyShareCertificateManager {
   void RemoveObserver(Observer* observer);
 
   // Starts/Stops certificate task scheduling.
-  void Start();
-  void Stop();
+  void StartScheduledTasks();
+  void StopScheduledTasks();
   bool is_running() { return is_running_; }
 
   // Encrypts the metadata encryption key of the currently valid private
@@ -123,8 +123,8 @@ class NearbyShareCertificateManager {
   virtual std::string Dump() const = 0;
 
  protected:
-  virtual void OnStart() = 0;
-  virtual void OnStop() = 0;
+  virtual void OnStartScheduledTasks() = 0;
+  virtual void OnStopScheduledTasks() = 0;
 
   // Returns the currently valid private certificate with |visibility|, or
   // returns std::nullopt if one does not exist.

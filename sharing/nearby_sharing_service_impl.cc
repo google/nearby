@@ -273,7 +273,9 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
   LOG(INFO) << __func__ << ": Set custom save path: " << custom_save_path;
   nearby_connections_manager_->SetCustomSavePath(custom_save_path);
 
-  certificate_manager_->Start();
+  if (account_manager_.GetCurrentAccount().has_value()) {
+    certificate_manager_->StartScheduledTasks();
+  }
   update_file_paths_in_progress_ = false;
 
   SetupBluetoothAdapter();
@@ -313,7 +315,7 @@ void NearbySharingServiceImpl::Shutdown(
 
         settings_->RemoveSettingsObserver(this);
 
-        certificate_manager_->Stop();
+        certificate_manager_->StopScheduledTasks();
 
         is_shutting_down_ = nullptr;
         std::move(status_codes_callback)(StatusCodes::kOk);
@@ -3438,7 +3440,7 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
   StopAdvertising();
   StopScanning();
   nearby_connections_manager_->Shutdown();
-  certificate_manager_->Stop();
+  certificate_manager_->StopScheduledTasks();
 
   // Reset preferences for logout.
   if (logout) {
@@ -3479,10 +3481,10 @@ void NearbySharingServiceImpl::ResetAllSettings(bool logout) {
     // Set contacts visibility when logging in so the user is ready to share
     // immediately. Notify observers as well.
     settings_->SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
-  }
 
-  // Start services again.
-  certificate_manager_->Start();
+    // Start services again on login.
+    certificate_manager_->StartScheduledTasks();
+  }
 
   InvalidateSurfaceState();
 }

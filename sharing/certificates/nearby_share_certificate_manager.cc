@@ -41,18 +41,18 @@ void NearbyShareCertificateManager::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
 }
 
-void NearbyShareCertificateManager::Start() {
+void NearbyShareCertificateManager::StartScheduledTasks() {
   if (is_running_) return;
 
   is_running_ = true;
-  OnStart();
+  OnStartScheduledTasks();
 }
 
-void NearbyShareCertificateManager::Stop() {
+void NearbyShareCertificateManager::StopScheduledTasks() {
   if (!is_running_) return;
 
   is_running_ = false;
-  OnStop();
+  OnStopScheduledTasks();
 }
 
 std::optional<NearbyShareEncryptedMetadataKey>
