@@ -52,6 +52,8 @@ class PrefNames {
       "nearby_sharing.is_analytics_enabled";
   static constexpr absl::string_view kAdvancedProtectionEnabled =
       "nearby_sharing.advanced_protection_enabled";
+  static constexpr absl::string_view kSchedulerGetAccountInfo =
+      "nearby_sharing.scheduler.get_account_info";
 };
 
 }  // namespace nearby::sharing

@@ -48,10 +48,10 @@
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/certificates/test_util.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/contacts/fake_nearby_share_contact_manager.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/internal/test/fake_bluetooth_adapter.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/internal/test/fake_preference_manager.h"
@@ -67,7 +67,9 @@
 namespace nearby {
 namespace sharing {
 namespace {
+using ::google::nearby::identity::v1::AccountInfo;
 using ::google::nearby::identity::v1::Device;
+using ::google::nearby::identity::v1::GetAccountInfoResponse;
 using ::google::nearby::identity::v1::PublishDeviceRequest;
 using ::google::nearby::identity::v1::PublishDeviceResponse;
 using ::google::nearby::identity::v1::QuerySharedCredentialsRequest;
@@ -108,7 +110,7 @@ class NearbyShareCertificateManagerImplTest
         .WillByDefault(ReturnRef(fake_account_manager_));
     // Set time to t0.
     FastForward(t0 - fake_context_.GetClock()->Now());
-    preference_manager_.SetString(prefs::kNearbySharingDeviceIdName, kDeviceId);
+    preference_manager_.SetString(PrefNames::kDeviceId, kDeviceId);
     local_device_data_manager_ =
         std::make_unique<FakeNearbyShareLocalDeviceDataManager>(
             kDefaultDeviceName);
@@ -156,26 +158,33 @@ class NearbyShareCertificateManagerImplTest
 
     private_cert_exp_scheduler_ =
         scheduler_factory_.pref_name_to_expiration_instance()
-            .find(
-                prefs::kNearbySharingSchedulerPrivateCertificateExpirationName)
+            .find(PrefNames::kSchedulerPrivateCertificateExpiration)
             ->second.fake_scheduler;
     public_cert_exp_scheduler_ =
         scheduler_factory_.pref_name_to_expiration_instance()
-            .find(prefs::kNearbySharingSchedulerPublicCertificateExpirationName)
+            .find(PrefNames::kSchedulerPublicCertificateExpiration)
             ->second.fake_scheduler;
     upload_scheduler_ =
         scheduler_factory_.pref_name_to_periodic_instance()
-            .find(
-                prefs::kNearbySharingSchedulerUploadLocalDeviceCertificatesName)
+            .find(PrefNames::kSchedulerUploadLocalDeviceCertificates)
             ->second.fake_scheduler;
     download_scheduler_ =
         scheduler_factory_.pref_name_to_periodic_instance()
-            .find(prefs::kNearbySharingSchedulerDownloadPublicCertificatesName)
+            .find(PrefNames::kSchedulerDownloadPublicCertificates)
+            ->second.fake_scheduler;
+    account_info_update_scheduler_ =
+        scheduler_factory_.pref_name_to_periodic_instance()
+            .find(PrefNames::kSchedulerGetAccountInfo)
             ->second.fake_scheduler;
 
     PopulatePrivateCertificates();
     PopulatePublicCertificates();
     cert_manager_->StartScheduledTasks();
+    EXPECT_TRUE(private_cert_exp_scheduler_->is_running());
+    EXPECT_TRUE(public_cert_exp_scheduler_->is_running());
+    EXPECT_TRUE(upload_scheduler_->is_running());
+    EXPECT_TRUE(download_scheduler_->is_running());
+    EXPECT_TRUE(account_info_update_scheduler_->is_running());
   }
 
   // NearbyShareCertificateManager::Observer:
@@ -333,8 +342,7 @@ class NearbyShareCertificateManagerImplTest
       responses.push_back(response);
     }
     PublishDeviceResponse response;
-    response.add_contact_updates(
-                         PublishDeviceResponse::CONTACT_UPDATE_ADDED);
+    response.add_contact_updates(PublishDeviceResponse::CONTACT_UPDATE_ADDED);
     responses.push_back(response);
     identity_client->SetPublishDeviceResponses(std::move(responses));
 
@@ -479,6 +487,7 @@ class NearbyShareCertificateManagerImplTest
   FakeNearbyShareScheduler* public_cert_exp_scheduler_ = nullptr;
   FakeNearbyShareScheduler* upload_scheduler_ = nullptr;
   FakeNearbyShareScheduler* download_scheduler_ = nullptr;
+  FakeNearbyShareScheduler* account_info_update_scheduler_ = nullptr;
   MacAddress bluetooth_mac_address_;
   size_t num_public_certs_downloaded_notifications_ = 0;
   size_t num_private_certs_changed_notifications_ = 0;
@@ -762,7 +771,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
 TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_OnLocalDeviceMetadataChanged) {
   Initialize();
-  cert_manager_->StartScheduledTasks();
 
   // Destroy and recreate private certificates if any metadata fields change.
   for (bool did_device_name_change : {true, false}) {
@@ -800,7 +808,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
        RefreshPrivateCertificates_PublishDevice_OnVendorIdChanged) {
   Initialize();
   cert_store_->ReplacePrivateCertificates(private_certificates_);
-  cert_manager_->StartScheduledTasks();
 
   cert_manager_->SetVendorId(12345);
 
@@ -825,7 +832,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
        SetVendorId_WhenNoPrivateCertificates) {
   Initialize();
   cert_store_->ReplacePrivateCertificates({});
-  cert_manager_->StartScheduledTasks();
 
   cert_manager_->SetVendorId(12345);
 
@@ -853,7 +859,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   FastForward(kNearbyShareCertificateValidityPeriod * 1.5);
   cert_store_->ReplacePrivateCertificates(private_certificates_);
 
-  cert_manager_->StartScheduledTasks();
   InvokePrivateCertificateRefresh(/*expected_success=*/true);
 
   VerifyPrivateCertificates(/*expected_metadata=*/GetNearbyShareTestMetadata());
@@ -865,8 +870,6 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   cert_store_->ReplacePrivateCertificates({});
 
   SetBluetoothAdapterIsPresent(false);
-
-  cert_manager_->StartScheduledTasks();
 
   // Bluetooth MAC address is optional, so the refresh should still succeed.
   InvokePrivateCertificateRefresh(/*expected_success=*/true);
@@ -921,7 +924,7 @@ TEST_F(
   EXPECT_EQ(0, upload_scheduler_->num_immediate_requests());
   absl::Time next_schedule_time =
       scheduler_factory_.pref_name_to_expiration_instance()
-          .find(prefs::kNearbySharingSchedulerPrivateCertificateExpirationName)
+          .find(PrefNames::kSchedulerPrivateCertificateExpiration)
           ->second.expiration_time_functor();
 
   // Next expiration time is set to InfiniteFuture to disable the timer.
@@ -947,6 +950,81 @@ TEST_F(NearbyShareCertificateManagerImplTest,
   cert_manager_->DownloadPublicCertificates();
 
   EXPECT_EQ(download_scheduler_->num_immediate_requests(), 1);
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest, StopScheduledTasks) {
+  Initialize();
+  cert_manager_->StopScheduledTasks();
+  EXPECT_FALSE(private_cert_exp_scheduler_->is_running());
+  EXPECT_FALSE(public_cert_exp_scheduler_->is_running());
+  EXPECT_FALSE(upload_scheduler_->is_running());
+  EXPECT_FALSE(download_scheduler_->is_running());
+  EXPECT_FALSE(account_info_update_scheduler_->is_running());
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       UpdateAccountInfo_TitanumEnabled) {
+  Initialize();
+  FakeNearbyIdentityClient* identity_client = GetIdentityClient();
+  GetAccountInfoResponse response;
+  response.mutable_account_info()->mutable_capabilities()->Add(
+      AccountInfo::CAPABILITY_TITANIUM);
+  identity_client->SetGetAccountInfoResponse(response);
+
+  account_info_update_scheduler_->InvokeRequestCallback();
+  Sync();
+
+  EXPECT_FALSE(GetIdentityClient()->get_account_info_requests().empty());
+  EXPECT_TRUE(preference_manager_.GetBoolean(
+      PrefNames::kAdvancedProtectionEnabled, /*default_value=*/false));
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       UpdateAccountInfo_TitanumDisabled) {
+  Initialize();
+  preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled, true);
+  FakeNearbyIdentityClient* identity_client = GetIdentityClient();
+  GetAccountInfoResponse response;
+  identity_client->SetGetAccountInfoResponse(response);
+
+  account_info_update_scheduler_->InvokeRequestCallback();
+  Sync();
+
+  EXPECT_FALSE(GetIdentityClient()->get_account_info_requests().empty());
+  EXPECT_FALSE(preference_manager_.GetBoolean(
+      PrefNames::kAdvancedProtectionEnabled, /*default_value=*/false));
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       UpdateAccountInfo_TitanumUnspecified) {
+  Initialize();
+  preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled, true);
+  FakeNearbyIdentityClient* identity_client = GetIdentityClient();
+  GetAccountInfoResponse response;
+  response.mutable_account_info()->mutable_capabilities()->Add(
+      AccountInfo::CAPABILITY_UNSPECIFIED);
+  identity_client->SetGetAccountInfoResponse(response);
+
+  account_info_update_scheduler_->InvokeRequestCallback();
+  Sync();
+
+  EXPECT_FALSE(GetIdentityClient()->get_account_info_requests().empty());
+  EXPECT_FALSE(preference_manager_.GetBoolean(
+      PrefNames::kAdvancedProtectionEnabled, /*default_value=*/false));
+}
+
+TEST_F(NearbyShareCertificateManagerImplTest,
+       UpdateAccountInfo_RpcFailed) {
+  Initialize();
+  preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled, true);
+
+  account_info_update_scheduler_->InvokeRequestCallback();
+  Sync();
+
+  // Identity client by default return Status::NotFound.
+  EXPECT_FALSE(GetIdentityClient()->get_account_info_requests().empty());
+  EXPECT_TRUE(preference_manager_.GetBoolean(
+      PrefNames::kAdvancedProtectionEnabled, /*default_value=*/false));
 }
 
 }  // namespace sharing

@@ -51,7 +51,6 @@
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
-#include "sharing/common/nearby_share_prefs.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/public_certificate_database.h"
@@ -60,6 +59,7 @@
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/internal/public/logging.h"
+#include "sharing/internal/public/pref_names.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/proto/certificate_rpc.pb.h"
 #include "sharing/proto/encrypted_metadata.pb.h"
@@ -74,6 +74,9 @@ namespace nearby {
 namespace sharing {
 namespace {
 
+using ::google::nearby::identity::v1::AccountInfo;
+using ::google::nearby::identity::v1::GetAccountInfoRequest;
+using ::google::nearby::identity::v1::GetAccountInfoResponse;
 using ::google::nearby::identity::v1::PerVisibilitySharedCredentials;
 using ::google::nearby::identity::v1::PublishDeviceRequest;
 using ::google::nearby::identity::v1::PublishDeviceResponse;
@@ -86,6 +89,8 @@ using ::nearby::sharing::api::SharingPlatform;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::proto::EncryptedMetadata;
 using ::nearby::sharing::proto::PublicCertificate;
+
+constexpr absl::Duration kGetAccountInfoPeriod = absl::Hours(1);
 
 constexpr std::array<DeviceVisibility, 2> kVisibilities = {
     DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
@@ -238,7 +243,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [&] { return NextPrivateCertificateExpirationTime(); },
               /*retry_failures=*/true,
               /*require_connectivity=*/false,
-              prefs::kNearbySharingSchedulerPrivateCertificateExpirationName,
+              PrefNames::kSchedulerPrivateCertificateExpiration,
               [this]() {
                 VLOG(1)
                     << "Private certificate expiration scheduler is called.";
@@ -254,7 +259,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               [&] { return NextPublicCertificateExpirationTime(); },
               /*retry_failures=*/true,
               /*require_connectivity=*/false,
-              prefs::kNearbySharingSchedulerPublicCertificateExpirationName,
+              PrefNames::kSchedulerPublicCertificateExpiration,
               [this]() {
                 VLOG(1)
                     << ": Public certificate expiration scheduler is called.";
@@ -269,7 +274,7 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               kNearbyShareLocalCertificateUploadPeriod,
               /*retry_failures=*/true,
               /*require_connectivity=*/true,
-              prefs::kNearbySharingSchedulerUploadLocalDeviceCertificatesName,
+              PrefNames::kSchedulerUploadLocalDeviceCertificates,
               [this]() {
                 VLOG(1)
                     << "Upload local device certificates scheduler is called.";
@@ -286,13 +291,26 @@ NearbyShareCertificateManagerImpl::NearbyShareCertificateManagerImpl(
               kNearbySharePublicCertificateDownloadPeriod,
               /*retry_failures=*/true,
               /*require_connectivity=*/true,
-              prefs::kNearbySharingSchedulerDownloadPublicCertificatesName,
+              PrefNames::kSchedulerDownloadPublicCertificates,
               [this]() {
                 LOG(INFO)
                     << "Download public certificates scheduler is called.";
                 executor_->PostTask([this]() {
                   download_public_certificates_scheduler_->HandleResult(
                       DownloadPublicCertificatesInExecutor());
+                });
+              })),
+      account_info_update_scheduler_(
+          NearbyShareSchedulerFactory::CreatePeriodicScheduler(
+              context_, preference_manager_, kGetAccountInfoPeriod,
+              /*retry_failures=*/true,
+              /*require_connectivity=*/true,
+              PrefNames::kSchedulerGetAccountInfo,
+              [this]() {
+                LOG(INFO) << "Get account info scheduler is called.";
+                executor_->PostTask([this]() {
+                  account_info_update_scheduler_->HandleResult(
+                      UpdateAccountInfoInExecutor());
                 });
               })),
       executor_(context->CreateSequencedTaskRunner()) {
@@ -304,7 +322,7 @@ NearbyShareCertificateManagerImpl::~NearbyShareCertificateManagerImpl() {
 }
 
 std::string NearbyShareCertificateManagerImpl::GetId() {
-  return preference_manager_.GetString(prefs::kNearbySharingDeviceIdName, "");
+  return preference_manager_.GetString(PrefNames::kDeviceId, "");
 }
 
 void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
@@ -322,8 +340,7 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
       [this](const absl::StatusOr<QuerySharedCredentialsResponse>&
                  response) mutable {
         if (!response.ok()) {
-          LOG(WARNING) << __func__
-                       << ": Failed to download public certificates: "
+          LOG(WARNING) << "Failed to download public certificates: "
                        << response.status();
           std::move(download_callback_)(response.status());
           return;
@@ -331,29 +348,22 @@ void NearbyShareCertificateManagerImpl::CertificateDownloadContext::
         for (const auto& credential : response->shared_credentials()) {
           if (credential.data_type() !=
               SharedCredential::DATA_TYPE_PUBLIC_CERTIFICATE) {
-            VLOG(1) << __func__
-                    << ": skipping non "
-                       "DATA_TYPE_PUBLIC_CERTIFICATE, credential.id: "
-                    << credential.id();
             continue;
           }
           PublicCertificate certificate;
           if (!certificate.ParseFromString(credential.data())) {
-            LOG(ERROR)
-                << __func__
-                << ": Failed parsing to PublicCertificate, credential.id: "
-                << credential.id()
-                << " data: " << absl::BytesToHexString(credential.data());
+            LOG(ERROR) << "Failed parsing to PublicCertificate, credential.id: "
+                       << credential.id() << " data: "
+                       << absl::BytesToHexString(credential.data());
             continue;
           }
-          VLOG(1) << __func__
-                  << ": Successfully parsed credential: " << credential.id();
+          VLOG(1) << "Successfully parsed credential: " << credential.id();
           certificates_.push_back(certificate);
         }
 
         if (response->next_page_token().empty()) {
-          LOG(INFO) << __func__ << ": Completed download of "
-                    << certificates_.size() << " certificates";
+          LOG(INFO) << "Completed download of " << certificates_.size()
+                    << " certificates";
           std::move(download_callback_)(std::move(certificates_));
           return;
         }
@@ -599,6 +609,7 @@ void NearbyShareCertificateManagerImpl::OnStartScheduledTasks() {
   public_certificate_expiration_scheduler_->Start();
   force_contacts_update_scheduler_->Start();
   download_public_certificates_scheduler_->Start();
+  account_info_update_scheduler_->Start();
 }
 
 void NearbyShareCertificateManagerImpl::OnStopScheduledTasks() {
@@ -606,6 +617,7 @@ void NearbyShareCertificateManagerImpl::OnStopScheduledTasks() {
   public_certificate_expiration_scheduler_->Stop();
   force_contacts_update_scheduler_->Stop();
   download_public_certificates_scheduler_->Stop();
+  account_info_update_scheduler_->Stop();
 }
 
 std::optional<NearbySharePrivateCertificate>
@@ -855,6 +867,36 @@ bool NearbyShareCertificateManagerImpl::
     LOG(ERROR) << "Failed to remove expired public certificates.";
   }
   return result;
+}
+
+bool NearbyShareCertificateManagerImpl::UpdateAccountInfoInExecutor() {
+  GetAccountInfoRequest request;
+  bool get_account_info_succeeded = false;
+  absl::Notification notification;
+  nearby_identity_client_->GetAccountInfo(
+      std::move(request),
+      [this, &get_account_info_succeeded, &notification](
+          const absl::StatusOr<GetAccountInfoResponse>& response) mutable {
+        if (!response.ok()) {
+          LOG(WARNING) << "GetAccountInfo failed: " << response.status();
+        } else {
+          get_account_info_succeeded = true;
+          const auto& capabilities = response->account_info().capabilities();
+          bool has_titanium_capability =
+              (std::find(capabilities.begin(), capabilities.end(),
+                         AccountInfo::CAPABILITY_TITANIUM) !=
+               capabilities.end());
+          preference_manager_.SetBoolean(PrefNames::kAdvancedProtectionEnabled,
+                                         has_titanium_capability);
+          LOG(INFO) << "GetAccountInfo succeeded, advanced protection enabled: "
+                    << has_titanium_capability;
+        }
+        notification.Notify();
+      });
+  // MUST not terminate early, otherwise notification will go out of scope, and
+  // the callback will call Notify on a destroyed object.
+  notification.WaitForNotification();
+  return get_account_info_succeeded;
 }
 
 }  // namespace sharing

@@ -68,13 +68,13 @@ class FakeNearbyIdentityClient
   ~FakeNearbyIdentityClient() override = default;
 
   std::vector<google::nearby::identity::v1::PublishDeviceRequest>&
-  publish_device_requests() {
+  publish_device_requests() ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
     return publish_device_requests_;
   }
 
   std::vector<google::nearby::identity::v1::QuerySharedCredentialsRequest>&
-  query_shared_credentials_requests() {
+  query_shared_credentials_requests() ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
     return query_shared_credentials_requests_;
   }
@@ -84,12 +84,12 @@ class FakeNearbyIdentityClient
       absl::AnyInvocable<
           void(const absl::StatusOr<google::nearby::identity::v1::
                                         PublishDeviceResponse>& response) &&>
-          callback) override;
+          callback) ABSL_LOCKS_EXCLUDED(mutex_) override;
 
   void SetPublishDeviceResponses(
       std::vector<
           absl::StatusOr<google::nearby::identity::v1::PublishDeviceResponse>>
-          responses) {
+          responses) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
     publish_device_responses_ = responses;
   }
@@ -100,14 +100,20 @@ class FakeNearbyIdentityClient
           void(const absl::StatusOr<
                google::nearby::identity::v1::QuerySharedCredentialsResponse>&
                    response) &&>
-          callback) override;
+          callback) ABSL_LOCKS_EXCLUDED(mutex_) override;
 
   void SetQuerySharedCredentialsResponses(
       std::vector<absl::StatusOr<
           google::nearby::identity::v1::QuerySharedCredentialsResponse>>
-          responses) {
+          responses) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
     query_shared_credentials_responses_ = responses;
+  }
+
+  std::vector<google::nearby::identity::v1::GetAccountInfoRequest>&
+  get_account_info_requests() ABSL_LOCKS_EXCLUDED(mutex_) {
+    absl::MutexLock lock(mutex_);
+    return get_account_info_requests_;
   }
 
   void GetAccountInfo(
@@ -115,11 +121,11 @@ class FakeNearbyIdentityClient
       absl::AnyInvocable<
           void(const absl::StatusOr<google::nearby::identity::v1::
                                         GetAccountInfoResponse>& response) &&>
-          callback) override;
+          callback) ABSL_LOCKS_EXCLUDED(mutex_) override;
 
   void SetGetAccountInfoResponse(
       absl::StatusOr<google::nearby::identity::v1::GetAccountInfoResponse>
-          response) {
+          response) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(mutex_);
     get_account_info_response_ = response;
   }

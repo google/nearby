@@ -113,6 +113,7 @@ void ResetSchedulers(PreferenceManager& preference_manager) {
   preference_manager.Remove(PrefNames::kSchedulerPrivateCertificateExpiration);
   preference_manager.Remove(PrefNames::kSchedulerPublicCertificateExpiration);
   preference_manager.Remove(PrefNames::kSchedulerUploadLocalDeviceCertificates);
+  preference_manager.Remove(PrefNames::kSchedulerGetAccountInfo);
 }
 
 }  // namespace prefs

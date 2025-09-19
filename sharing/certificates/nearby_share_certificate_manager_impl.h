@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "absl/time/time.h"
@@ -188,6 +189,9 @@ class NearbyShareCertificateManagerImpl
   // Returns the device id use to identify the local device in BE.
   std::string GetId();
 
+  // Calls the GetAccountInfo RPC to update the account info.
+  bool UpdateAccountInfoInExecutor();
+
   Context* const context_;
   AccountManager& account_manager_;
   NearbyShareLocalDeviceDataManager* const local_device_data_manager_;
@@ -198,12 +202,19 @@ class NearbyShareCertificateManagerImpl
       nearby_identity_client_;
 
   std::shared_ptr<NearbyShareCertificateStorage> certificate_storage_;
-  std::unique_ptr<NearbyShareScheduler>
+  absl_nonnull std::unique_ptr<NearbyShareScheduler>
       private_certificate_expiration_scheduler_;
-  std::unique_ptr<NearbyShareScheduler>
+  absl_nonnull std::unique_ptr<NearbyShareScheduler>
       public_certificate_expiration_scheduler_;
-  std::unique_ptr<NearbyShareScheduler> force_contacts_update_scheduler_;
-  std::unique_ptr<NearbyShareScheduler> download_public_certificates_scheduler_;
+  absl_nonnull std::unique_ptr<NearbyShareScheduler>
+      force_contacts_update_scheduler_;
+  absl_nonnull std::unique_ptr<NearbyShareScheduler>
+      download_public_certificates_scheduler_;
+  // Scheduled task that updates the account info from BE.
+  // Specifically, it will keep fetch the Titanium enrollment state and store in
+  // preferences.
+  absl_nonnull std::unique_ptr<NearbyShareScheduler>
+      account_info_update_scheduler_;
 
   std::unique_ptr<TaskRunner> executor_;
 };
