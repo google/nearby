@@ -27,7 +27,7 @@ namespace {
 class MutexTest : public testing::Test {
  public:
   void VerifyStepReached(int expected) {
-    absl::MutexLock lock(&step_mutex_);
+    absl::MutexLock lock(step_mutex_);
     absl::Time deadline = absl::Now() + kTimeToWait;
     while (step_ != expected) {
       if (step_cond_.WaitWithDeadline(&step_mutex_, deadline)) break;
