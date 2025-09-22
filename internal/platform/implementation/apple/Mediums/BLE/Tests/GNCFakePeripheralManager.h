@@ -24,6 +24,12 @@ NS_ASSUME_NONNULL_BEGIN
 /** A fake implementation of @c GNCPeripheralManager to inject for testing. */
 @interface GNCFakePeripheralManager : NSObject <GNCPeripheralManager>
 
+/** The delegate to receive peripheral role events. */
+@property(nonatomic, weak) id<GNCPeripheralManagerDelegate> peripheralDelegate;
+
+/** Alias for peripheralDelegate to match CBPeripheralManager property. */
+@property(nonatomic, weak) id<CBPeripheralManagerDelegate> delegate;
+
 /**
  * The list of services added.
  *
