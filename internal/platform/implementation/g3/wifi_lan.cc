@@ -14,14 +14,11 @@
 
 #include "internal/platform/implementation/g3/wifi_lan.h"
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 
 #include "absl/log/check.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
@@ -33,20 +30,6 @@
 
 namespace nearby {
 namespace g3 {
-
-std::string WifiLanServerSocket::GetName(const std::string& ip_address,
-                                         int port) {
-  std::string dot_delimited_string;
-  if (!ip_address.empty()) {
-    for (auto byte : ip_address) {
-      if (!dot_delimited_string.empty())
-        absl::StrAppend(&dot_delimited_string, ".");
-      absl::StrAppend(&dot_delimited_string, absl::StrFormat("%d", byte));
-    }
-  }
-  std::string out = absl::StrCat(dot_delimited_string, ":", port);
-  return out;
-}
 
 std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
   absl::MutexLock lock(mutex_);
@@ -144,7 +127,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     }
   }
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info,
+  env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info, ip_address_,
                                         /*enabled=*/true);
   {
     absl::MutexLock lock(mutex_);
@@ -170,7 +153,7 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
     advertising_info_.Remove(service_type);
   }
   auto& env = MediumEnvironment::Instance();
-  env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info,
+  env.UpdateWifiLanMediumForAdvertising(*this, nsd_service_info, ip_address_,
                                         /*enabled=*/false);
   return true;
 }
@@ -227,9 +210,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
-  std::string socket_name = WifiLanServerSocket::GetName(ip_address, port);
   LOG(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
-            << ", ip address + port=" << socket_name;
+            << ", port=" << port;
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium =
@@ -240,24 +222,24 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
   WifiLanServerSocket* server_socket = nullptr;
   LOG(INFO) << "G3 WifiLan ConnectToService [peer]: medium=" << remote_medium
-            << ", remote ip address + port=" << socket_name;
+            << ", port=" << port;
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(remote_medium->mutex_);
-    auto item = remote_medium->server_sockets_.find(socket_name);
+    auto item = remote_medium->server_sockets_.find(port);
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
       LOG(ERROR)
-          << "G3 WifiLan Failed to find WifiLan Server socket: socket_name="
-          << socket_name;
+          << "G3 WifiLan Failed to find WifiLan Server socket: port="
+          << port;
       return {};
     }
   }
 
   if (cancellation_flag->Cancelled()) {
-    LOG(ERROR) << "G3 WifiLan Connect: Has been cancelled: socket_name="
-               << socket_name;
+    LOG(ERROR) << "G3 WifiLan Connect: Has been cancelled: port="
+               << port;
     return {};
   }
 
@@ -272,8 +254,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   // Finally, Request to connect to this socket.
   if (!server_socket->Connect(*socket)) {
     LOG(ERROR) << "G3 WifiLan Failed to connect to existing WifiLan "
-                  "Server socket: name="
-               << socket_name;
+                  "Server socket: port="
+               << port;
     return {};
   }
   LOG(INFO) << "G3 WifiLan ConnectToService: connected: socket="
@@ -285,18 +267,17 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     int port) {
   auto& env = MediumEnvironment::Instance();
   auto server_socket = std::make_unique<WifiLanServerSocket>();
-  server_socket->SetIPAddress(env.GetFakeIPAddress());
+  server_socket->SetIPAddress(ip_address_);
   server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
-  std::string socket_name = WifiLanServerSocket::GetName(
-      server_socket->GetIPAddress(), server_socket->GetPort());
-  server_socket->SetCloseNotifier([this, socket_name]() {
+  int server_port = server_socket->GetPort();
+  server_socket->SetCloseNotifier([this, server_port]() {
     absl::MutexLock lock(mutex_);
-    server_sockets_.erase(socket_name);
+    server_sockets_.erase(server_port);
   });
   LOG(INFO) << "G3 WifiLan Adding server socket: medium=" << this
-            << ", socket_name=" << socket_name;
+            << ", port=" << server_port;
   absl::MutexLock lock(mutex_);
-  server_sockets_.insert({socket_name, server_socket.get()});
+  server_sockets_.insert({server_port, server_socket.get()});
   return server_socket;
 }
 

@@ -40,6 +40,7 @@
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
@@ -898,15 +899,20 @@ void MediumEnvironment::RegisterAwdlMedium(api::AwdlMedium& medium) {
 
 void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
     api::WifiLanMedium& medium, const NsdServiceInfo& service_info,
+    const std::string& ip_address,
     bool enabled) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium, service_info = service_info,
-                                enabled]() {
+                                ip_address, enabled]() mutable {
     std::string service_name = service_info.GetServiceName();
     std::string service_type = service_info.GetServiceType();
+    service_info.SetIPAddress(ip_address);
     LOG(INFO) << "Update WifiLan medium for advertising: this=" << this
               << "; medium=" << &medium << "; service_name=" << service_name
-              << "; service_type=" << service_type << ", enabled=" << enabled;
+              << "; service_type=" << service_type << ", ip_address="
+              << WifiUtils::GetHumanReadableIpAddress(
+                     service_info.GetIPAddress())
+              << ", enabled=" << enabled;
     for (auto& medium_info : wifi_lan_mediums_) {
       auto& local_medium = medium_info.first;
       auto& info = medium_info.second;

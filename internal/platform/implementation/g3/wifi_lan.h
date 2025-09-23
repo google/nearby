@@ -22,11 +22,10 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 
@@ -59,31 +58,29 @@ class WifiLanSocket : public api::WifiLanSocket, public SocketBase {
 
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  static std::string GetName(const std::string& ip_address, int port);
-
   ~WifiLanServerSocket() override;
 
   // Gets ip address.
   std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return ip_address_;
   }
 
   // Sets the ip address.
   void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ip_address_ = ip_address;
   }
 
   // Gets the port.
   int GetPort() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return port_;
   }
 
   // Sets the port.
   void SetPort(int port) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     port_ = port;
   }
 
@@ -242,9 +239,12 @@ class WifiLanMedium : public api::WifiLanMedium {
   };
 
   absl::Mutex mutex_;
+  const std::string ip_address_ =
+      MediumEnvironment::Instance().GetFakeIPAddress();
   AdvertisingInfo advertising_info_ ABSL_GUARDED_BY(mutex_);
   DiscoveringInfo discovering_info_ ABSL_GUARDED_BY(mutex_);
-  absl::flat_hash_map<std::string, WifiLanServerSocket*> server_sockets_
+  // server sockets keyed by port number.
+  absl::flat_hash_map<int, WifiLanServerSocket*> server_sockets_
       ABSL_GUARDED_BY(mutex_);
 };
 

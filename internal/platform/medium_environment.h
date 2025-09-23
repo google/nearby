@@ -284,6 +284,7 @@ class MediumEnvironment {
   // advertising event.
   void UpdateWifiLanMediumForAdvertising(api::WifiLanMedium& medium,
                                          const NsdServiceInfo& nsd_service_info,
+                                         const std::string& ip_address,
                                          bool enabled);
   // Updates advertising info to indicate the current medium is exposing
   // advertising event.

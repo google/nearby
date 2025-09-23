@@ -72,7 +72,9 @@ class NsdServiceInfo {
   // Gets IP Address, which is in byte sequence, in network order.
   std::string GetIPAddress() const { return ip_address_; }
 
-  // Sets IP Address.
+  // Sets IP Address.  Not used in advertising.
+  // mDNS system should advertise IP address based on the interface used to
+  // start advertising.
   void SetIPAddress(const std::string& ip_address) { ip_address_ = ip_address; }
 
   // Gets the port number

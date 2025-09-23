@@ -502,7 +502,8 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
   socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
   if (!socket.IsValid()) {
     LOG(INFO) << "Failed to Connect via WifiLan [service_id=" << service_id
-              << "]";
+              << "], [ip_address="
+              << WifiUtils::GetHumanReadableIpAddress(ip_address) << "]";
     return {Error(
         OperationResultCode::CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE)};
   } else {
