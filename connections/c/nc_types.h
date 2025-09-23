@@ -344,6 +344,17 @@ typedef struct NC_PHENOTYPE_FLAG_READER {
   const void (*free_string_value)(const NC_DATA* value);
 } NC_PHENOTYPE_FLAG_READER;
 
+// Defines the minimal function interface for logging events. Callbacks
+// will be implemented by the client.
+// event_data - a serialized proto message of type
+// nearby.connections.ConnectionsLog.
+typedef void (*NcLogConnectionsEvent)(const NC_DATA* event_data);
+
+// Defines the struct for logging Nearby Connections events.
+typedef struct NC_EVENT_LOGGER {
+  NcLogConnectionsEvent log_connections_event;
+} NC_EVENT_LOGGER;
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

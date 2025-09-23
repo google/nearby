@@ -42,6 +42,7 @@
 #include "connections/payload.h"
 #include "connections/status.h"
 #include "connections/strategy.h"
+#include "internal/analytics/event_logger.h"
 #include "internal/flags/flag.h"
 #include "internal/flags/flag_reader.h"
 #include "internal/flags/nearby_flags.h"
@@ -49,6 +50,8 @@
 #include "internal/platform/file.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "internal/proto/analytics/connections_log.pb.h"
+#include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #if TARGET_OS_IOS
 #include "internal/platform/implementation/apple/nearby_logger.h"
 #endif  // TARGET_OS_IOS
@@ -115,11 +118,40 @@ class FlagReaderWrapper : public nearby::flags::FlagReader {
   READER_CONTEXT context_;
   NC_PHENOTYPE_FLAG_READER phenotype_flag_reader_;
 };
+
+// This is a bridging class between the C API and the C++ EventLogger interface.
+class NcEventLogger : public ::nearby::analytics::EventLogger {
+ public:
+  explicit NcEventLogger(const NC_EVENT_LOGGER* event_logger)
+      : event_logger_(event_logger) {}
+
+  void Log(const location::nearby::analytics::proto::ConnectionsLog& message)
+      override {
+    if (event_logger_ == nullptr ||
+        event_logger_->log_connections_event == nullptr) {
+      return;
+    }
+
+    std::string serialized_message = message.SerializeAsString();
+    NC_DATA message_data =
+        NC_DATA{serialized_message.size(), serialized_message.data()};
+    event_logger_->log_connections_event(&message_data);
+  }
+
+  void Log(
+      const nearby::sharing::analytics::proto::SharingLog& message) override {
+    // Do nothing for Nearby Sharing.
+  }
+
+ private:
+  const NC_EVENT_LOGGER* event_logger_;
+};
 }  // namespace
 
 typedef struct NcContext {
   ::nearby::connections::ServiceControllerRouter* router = nullptr;
   ::nearby::connections::Core* core = nullptr;
+  NcEventLogger* event_logger = nullptr;
 } NcContext;
 
 absl::NoDestructor<absl::flat_hash_map<NC_INSTANCE, NcContext>> kNcContextMap;
@@ -223,6 +255,11 @@ NcContext* GetContext(NC_INSTANCE instance) {
 }
 
 NC_INSTANCE NcCreateService() {
+  return NcCreateServiceWithEventLogger(nullptr);
+}
+
+NC_INSTANCE
+NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
   NcContext nc_context;
 #if TARGET_OS_IOS
   absl::SetGlobalVLogLevel(1);  // OS_LOG_TYPE_DEBUG
@@ -269,7 +306,10 @@ NC_INSTANCE NcCreateService() {
 #endif
 
   nc_context.router = new ::nearby::connections::ServiceControllerRouter();
-  nc_context.core = new ::nearby::connections::Core(nc_context.router);
+  nc_context.event_logger =
+      event_logger == nullptr ? nullptr : new NcEventLogger(event_logger);
+  nc_context.core = new ::nearby::connections::Core(nc_context.event_logger,
+                                                    nc_context.router);
 
   kNcContextMap->insert({nc_context.core, nc_context});
   return nc_context.core;
@@ -289,6 +329,9 @@ void NcCloseService(NC_INSTANCE instance) {
   kNcContextMap->erase(nc_context->core);
   delete nc_context->router;
   delete nc_context->core;
+  if (nc_context->event_logger != nullptr) {
+    delete nc_context->event_logger;
+  }
 }
 
 void NcStartAdvertising(

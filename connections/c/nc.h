@@ -26,6 +26,14 @@ extern "C" {
 
 // Creates a new Nearby Connections service.
 NC_API NC_INSTANCE NcCreateService();
+
+// Creates a new Nearby Connections service with an event logger.
+// The passed-in |event_logger| must remain valid until NcCloseService() is
+// called.
+NC_API NC_INSTANCE
+NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger);
+
+// Closes a Nearby Connections service.
 NC_API void NcCloseService(NC_INSTANCE instance);
 
 // Starts adververtising an endpoint using Nearby Connections.
