@@ -83,7 +83,8 @@ bool WifiLan::IsAvailable() const {
 bool WifiLan::IsAvailableLocked() const { return medium_.IsValid(); }
 
 ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
-                                        NsdServiceInfo& nsd_service_info) {
+                                        NsdServiceInfo& nsd_service_info,
+                                        AcceptedConnectionCallback callback) {
   MutexLock lock(&mutex_);
 
   if (!IsAvailableLocked()) {
@@ -103,28 +104,25 @@ ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
         << "Failed to WifiLan advertise because we're already advertising.";
     return {Error(OperationResultCode::CLIENT_WIFI_LAN_DUPLICATE_ADVERTISING)};
   }
-
-  if (!IsAcceptingConnectionsLocked(service_id)) {
-    LOG(INFO) << "Failed to turn on WifiLan advertising with nsd_service_info="
-              << &nsd_service_info
-              << ", service_name=" << nsd_service_info.GetServiceName()
-              << ", service_id=" << service_id
-              << ". Should accept connections before advertising.";
-    return {Error(OperationResultCode::
-                      CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
-  }
-
   nsd_service_info.SetServiceType(GenerateServiceType(service_id));
   const auto& it = server_sockets_.find(service_id);
   if (it != server_sockets_.end()) {
-    nsd_service_info.SetIPAddress(it->second.GetIPAddress());
     nsd_service_info.SetPort(it->second.GetPort());
+  } else {
+    int port = 0;
+    ErrorOr<int> port_result = StartAcceptingConnectionsLocked(
+        service_id, port, std::move(callback));
+    if (port_result.has_error()) {
+      return {port_result.error()};
+    }
+    nsd_service_info.SetPort(port_result.value());
   }
   if (!medium_.StartAdvertising(nsd_service_info)) {
     LOG(INFO) << "Failed to turn on WifiLan advertising with nsd_service_info="
               << &nsd_service_info
               << ", service_name=" << nsd_service_info.GetServiceName()
               << ", service_id=" << service_id;
+    StopAcceptingConnectionsLocked(service_id);
     return {Error(
         OperationResultCode::CONNECTIVITY_WIFI_LAN_START_ADVERTISING_FAILURE)};
   }
@@ -228,35 +226,12 @@ bool WifiLan::IsDiscoveringLocked(const std::string& service_id) {
   return discovering_info_.Existed(service_id);
 }
 
-ErrorOr<bool> WifiLan::StartAcceptingConnections(
-    const std::string& service_id, AcceptedConnectionCallback callback) {
-  MutexLock lock(&mutex_);
-
-  if (service_id.empty()) {
-    LOG(INFO) << "Refusing to start accepting WifiLan connections; "
-                 "service_id is empty.";
-    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
-  }
-
-  if (!IsAvailableLocked()) {
-    LOG(INFO) << "Can't start accepting WifiLan connections [service_id="
-              << service_id << "]; WifiLan not available.";
-    return {Error(
-        OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
-  }
-
-  if (IsAcceptingConnectionsLocked(service_id)) {
-    LOG(INFO) << "Refusing to start accepting WifiLan connections [service="
-              << service_id
-              << "]; WifiLan server is already in-progress with the same name.";
-    return {Error(OperationResultCode::
-                      CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
-  }
-
+ErrorOr<int> WifiLan::StartAcceptingConnectionsLocked(
+    const std::string& service_id, int port,
+    AcceptedConnectionCallback callback) {
   auto port_range = medium_.GetDynamicPortRange();
   // Generate an exact port here on server socket; if platform doesn't provide
   // range of port then assign 0 to let platform decide it.
-  int port = 0;
   if (port_range.has_value() &&
       (port_range->first > 0 && port_range->first <= 65535 &&
        port_range->second > 0 && port_range->second <= 65535 &&
@@ -289,6 +264,7 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
           }
         });
   }
+  port = owned_server_socket.GetPort();
   // Start the accept loop on a dedicated thread - this stays alive and
   // listening for new incoming connections until StopAcceptingConnections() is
   // invoked.
@@ -358,12 +334,49 @@ ErrorOr<bool> WifiLan::StartAcceptingConnections(
         }
       });
 
+  return {port};
+}
+
+ErrorOr<bool> WifiLan::StartAcceptingConnections(
+    const std::string& service_id, AcceptedConnectionCallback callback) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    LOG(INFO) << "Refusing to start accepting WifiLan connections; "
+                 "service_id is empty.";
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't start accepting WifiLan connections [service_id="
+              << service_id << "]; WifiLan not available.";
+    return {Error(
+        OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_AWARE_NOT_AVAILABLE)};
+  }
+
+  if (IsAcceptingConnectionsLocked(service_id)) {
+    LOG(INFO) << "Refusing to start accepting WifiLan connections [service="
+              << service_id
+              << "]; WifiLan server is already in-progress with the same name.";
+    return {Error(OperationResultCode::
+                      CLIENT_DUPLICATE_ACCEPTING_LAN_CONNECTION_REQUEST)};
+  }
+  ErrorOr<int> port = StartAcceptingConnectionsLocked(service_id, /*port=*/0,
+                                                      std::move(callback))
+                          .has_error();
+  if (port.has_error()) {
+    return {port.error()};
+  }
   return {true};
 }
 
 bool WifiLan::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
+  return StopAcceptingConnectionsLocked(service_id);
+}
+
+bool WifiLan::StopAcceptingConnectionsLocked(const std::string& service_id) {
   if (service_id.empty()) {
     LOG(INFO) << "Unable to stop accepting WifiLan connections because "
                  "the service_id is empty.";

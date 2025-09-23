@@ -3171,31 +3171,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
   // request comes in very quickly.
   LOG(INFO) << "P2pClusterPcpHandler::StartWifiLanAdvertising: service="
             << service_id << ": start";
-  if (!wifi_lan_medium_.IsAcceptingConnections(service_id)) {
-    ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAcceptingConnections(
-        service_id,
-        absl::bind_front(
-            &P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler, this,
-            client, local_endpoint_id, local_endpoint_info.AsStringView(),
-            NearbyDevice::Type::kConnectionsDevice));
-    if (wifi_lan_result.has_error()) {
-      LOG(WARNING)
-          << "In StartWifiLanAdvertising("
-          << absl::BytesToHexString(local_endpoint_info.data())
-          << "), client=" << client->GetClientId()
-          << " failed to start listening for incoming WifiLan connections "
-             "to service_id="
-          << service_id;
-      return {Error(wifi_lan_result.error().operation_result_code().value())};
-    }
-    VLOG(1) << "In StartWifiLanAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << "), client=" << client->GetClientId()
-            << " started listening for incoming WifiLan connections "
-               "to service_id = "
-            << service_id;
-  }
-
   // Generate a WifiLanServiceInfo with which to become WifiLan discoverable.
   // TODO(b/169550050): Implement UWBAddress.
   const ByteArray service_id_hash =
@@ -3220,7 +3195,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
                  << absl::BytesToHexString(service_id_hash.data())
                  << ", endpoint_info="
                  << absl::BytesToHexString(local_endpoint_info.data()) << "}.";
-    wifi_lan_medium_.StopAcceptingConnections(service_id);
     return {
         Error(OperationResultCode::NEARBY_WIFI_LAN_ADVERTISE_TO_BYTES_FAILURE)};
   }
@@ -3231,15 +3205,18 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartWifiLanAdvertising(
             << nsd_service_info.GetServiceName()
             << " with service_id=" << service_id;
 
-  ErrorOr<bool> wifi_lan_result =
-      wifi_lan_medium_.StartAdvertising(service_id, nsd_service_info);
+  ErrorOr<bool> wifi_lan_result = wifi_lan_medium_.StartAdvertising(
+      service_id, nsd_service_info,
+      absl::bind_front(&P2pClusterPcpHandler::WifiLanConnectionAcceptedHandler,
+                       this, client, local_endpoint_id,
+                       local_endpoint_info.AsStringView(),
+                       NearbyDevice::Type::kConnectionsDevice));
   if (wifi_lan_result.has_error()) {
-    LOG(INFO) << "In StartWifiLanAdvertising("
+    LOG(WARNING) << "In StartWifiLanAdvertising("
               << absl::BytesToHexString(local_endpoint_info.data())
               << "), client=" << client->GetClientId()
               << " couldn't advertise with WifiLanServiceInfo "
               << nsd_service_info.GetServiceName();
-    wifi_lan_medium_.StopAcceptingConnections(service_id);
     return {Error(wifi_lan_result.error().operation_result_code().value())};
   }
   VLOG(1) << "In StartWifiLanAdvertising("

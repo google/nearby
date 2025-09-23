@@ -55,7 +55,8 @@ class WifiLan {
   // then enables WifiLan advertising.
   // Returns true, if NsdServiceInfo is successfully set, and false otherwise.
   ErrorOr<bool> StartAdvertising(const std::string& service_id,
-                                 NsdServiceInfo& nsd_service_info)
+                                 NsdServiceInfo& nsd_service_info,
+                                 AcceptedConnectionCallback callback)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Disables WifiLan advertising.
@@ -181,6 +182,15 @@ class WifiLan {
 
   // Same as IsAcceptingConnections(), but must be called with mutex_ held.
   bool IsAcceptingConnectionsLocked(const std::string& service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  // Returns the port number of the server socket if successful, otherwise
+  // returns an error.
+  ErrorOr<int> StartAcceptingConnectionsLocked(
+      const std::string& service_id, int port,
+      AcceptedConnectionCallback callback)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool StopAcceptingConnectionsLocked(const std::string& service_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   // Generates mDNS type.
