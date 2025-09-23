@@ -203,7 +203,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   // Returns the port range as a pair of min and max port.
   absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
       override {
-    return std::make_pair(49152, 65535);
+    return std::nullopt;
   }
 
  private:

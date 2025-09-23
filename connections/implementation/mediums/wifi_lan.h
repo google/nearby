@@ -226,6 +226,9 @@ class WifiLan {
   // A map of IpAddress -> MultiplexSocket.
   absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
       multiplex_sockets_ ABSL_GUARDED_BY(mutex_);
+
+  std::string last_mdns_service_name_ ABSL_GUARDED_BY(mutex_);
+  int last_server_port_ ABSL_GUARDED_BY(mutex_) = 0;
 };
 
 }  // namespace connections

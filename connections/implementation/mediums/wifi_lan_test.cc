@@ -61,6 +61,51 @@ class WifiLanTest : public ::testing::TestWithParam<FeatureFlags> {
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
 
+TEST_P(WifiLanTest, AdvertiseSameServiceNameReusesPort) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  WifiLan wifi_lan_server;
+  std::string service_id(kServiceID);
+  std::string endpoint_info_name(kEndpointName);
+
+  WifiLanSocket socket_for_server;
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(std::string(kServiceInfoName));
+  wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
+  auto [address, port] = wifi_lan_server.GetCredentials(service_id);
+  wifi_lan_server.StopAdvertising(service_id);
+  wifi_lan_server.StopAcceptingConnections(service_id);
+
+  wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
+  auto [address2, port2] = wifi_lan_server.GetCredentials(service_id);
+  EXPECT_EQ(port, port2);
+  env_.Stop();
+}
+
+TEST_P(WifiLanTest, AdvertiseDifferentServiceNameUsesDifferentPort) {
+  FeatureFlags feature_flags = GetParam();
+  env_.SetFeatureFlags(feature_flags);
+  env_.Start();
+  WifiLan wifi_lan_server;
+  std::string service_id(kServiceID);
+  std::string endpoint_info_name(kEndpointName);
+
+  WifiLanSocket socket_for_server;
+  NsdServiceInfo nsd_service_info;
+  nsd_service_info.SetServiceName(std::string(kServiceInfoName));
+  wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
+  auto [address, port] = wifi_lan_server.GetCredentials(service_id);
+  wifi_lan_server.StopAdvertising(service_id);
+  wifi_lan_server.StopAcceptingConnections(service_id);
+
+  nsd_service_info.SetServiceName("ServiceInfoName2");
+  wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
+  auto [address2, port2] = wifi_lan_server.GetCredentials(service_id);
+  EXPECT_NE(port, port2);
+  env_.Stop();
+}
+
 TEST_P(WifiLanTest, CanConnect) {
   FeatureFlags feature_flags = GetParam();
   env_.SetFeatureFlags(feature_flags);

@@ -106,17 +106,25 @@ ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
   }
   nsd_service_info.SetServiceType(GenerateServiceType(service_id));
   const auto& it = server_sockets_.find(service_id);
+  std::string mdns_service_name = nsd_service_info.GetServiceName();
+  int port = 0;
   if (it != server_sockets_.end()) {
-    nsd_service_info.SetPort(it->second.GetPort());
+    port = it->second.GetPort();
   } else {
-    int port = 0;
+    if (!mdns_service_name.empty() &&
+        mdns_service_name == last_mdns_service_name_) {
+      VLOG(1) << __func__
+              << " reusing server port number: " << last_server_port_;
+      port = last_server_port_;
+    }
     ErrorOr<int> port_result = StartAcceptingConnectionsLocked(
         service_id, port, std::move(callback));
     if (port_result.has_error()) {
       return {port_result.error()};
     }
-    nsd_service_info.SetPort(port_result.value());
+    port = port_result.value();
   }
+  nsd_service_info.SetPort(port);
   if (!medium_.StartAdvertising(nsd_service_info)) {
     LOG(INFO) << "Failed to turn on WifiLan advertising with nsd_service_info="
               << &nsd_service_info
@@ -126,6 +134,8 @@ ErrorOr<bool> WifiLan::StartAdvertising(const std::string& service_id,
     return {Error(
         OperationResultCode::CONNECTIVITY_WIFI_LAN_START_ADVERTISING_FAILURE)};
   }
+  last_mdns_service_name_ = std::move(mdns_service_name);
+  last_server_port_ = port;
 
   LOG(INFO) << "Turned on WifiLan advertising with nsd_service_info="
             << &nsd_service_info
