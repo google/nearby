@@ -16,6 +16,7 @@
 
 #import <XCTest/XCTest.h>
 
+#include <atomic>
 #include <memory>
 
 @interface GNCTimerTest : XCTestCase
@@ -34,8 +35,12 @@
 
   bool fired = false;
   XCTAssertTrue(timer->Create(10, 0, [&]() {
-    fired = true;
-    [expectation fulfill];
+    dispatch_async(dispatch_get_main_queue(), ^{ 
+      if (!fired) {
+        fired = true;
+        [expectation fulfill];
+      }
+    });
   }));
 
   [self waitForExpectationsWithTimeout:1.0 handler:nil];
@@ -59,17 +64,18 @@
   XCTestExpectation* expectation = [self expectationWithDescription:@"Timer fired twice"];
   auto timer = std::make_unique<nearby::apple::Timer>();
 
-  int fireCount = 0;
+  std::atomic<int> fireCount = 0;
   XCTAssertTrue(timer->Create(10, 10, [&]() {
-    fireCount++;
-    if (fireCount == 2) {
-      [expectation fulfill];
+    if (fireCount.fetch_add(1) == 1) {
+      dispatch_async(dispatch_get_main_queue(), ^{
+        [expectation fulfill];
+      });
     }
   }));
 
   [self waitForExpectationsWithTimeout:1.0 handler:nil];
-  XCTAssertEqual(fireCount, 2);
   XCTAssertTrue(timer->Stop());
+  XCTAssertEqual(fireCount.load(), 2);
 }
 
 - (void)testRestart {
@@ -102,9 +108,11 @@
   auto timer = std::make_unique<nearby::apple::Timer>();
 
   bool fired = false;
-  XCTAssertTrue(timer->Create(1000, 0, [&]() {
-    fired = true;
-    [expectation fulfill];
+  XCTAssertTrue(timer->Create(1000,  0, [&]() {
+    dispatch_async(dispatch_get_main_queue(), ^{ 
+      fired = true;
+      [expectation fulfill];
+    });
   }));
 
   XCTAssertTrue(timer->FireNow());
