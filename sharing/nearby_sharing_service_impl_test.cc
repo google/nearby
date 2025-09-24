@@ -4065,9 +4065,6 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
-  // On shutdown update the share target to receive_disabled.
-  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_));
-
   Shutdown();
 }
 
@@ -4124,8 +4121,6 @@ TEST_F(NearbySharingServiceImplTest,
               static_cast<uint8_t>(Advertisement::BlockedVendorId::kSamsung));
     EXPECT_TRUE(notification.WaitForNotificationWithTimeout(kWaitTimeout));
   }
-  // On shutdown update the share target to receive_disabled.
-  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_));
   Shutdown();
 }
 
@@ -4333,9 +4328,6 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
               fake_nearby_connections_manager_
                   ->connection_endpoint_info(/*endpoint_id=*/"2")
                   .has_value());
-
-  // On shutdown update the share target to receive_disabled.
-  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_));
   Shutdown();
 }
 

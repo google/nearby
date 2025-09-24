@@ -45,6 +45,7 @@
 #include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/network/url.h"
+#include "internal/platform/clock.h"
 #include "internal/platform/device_info.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/device_info.h"
@@ -235,7 +236,14 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
           local_device_data_manager_.get(), &analytics_recorder_)),
       service_extension_(std::make_unique<NearbySharingServiceExtension>()),
       file_handler_(sharing_platform),
-      app_info_(sharing_platform.CreateAppInfo()) {
+      app_info_(sharing_platform.CreateAppInfo()),
+      outgoing_targets_manager_(
+          context->GetClock(), service_thread_.get(),
+          nearby_connections_manager_.get(), &analytics_recorder_,
+          absl::bind_front(&NearbySharingServiceImpl::NotifyShareTargetUpdated,
+                           this),
+          absl::bind_front(&NearbySharingServiceImpl::NotifyShareTargetLost,
+                           this)) {
   CHECK(nearby_connections_manager_);
   CHECK(analytics_recorder);
 
@@ -331,8 +339,7 @@ void NearbySharingServiceImpl::Cleanup() {
 
   endpoint_discovery_events_ = {};
 
-  DisableAllOutgoingShareTargets();
-  discovery_cache_.clear();
+  outgoing_targets_manager_.Cleanup();
   for (auto& it : incoming_share_session_map_) {
     it.second.OnDisconnect();
   }
@@ -456,14 +463,12 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           return;
         }
 
-        // All share targets in discovery_cache have received_disabled set to
-        // true, send them to new send send surface in discovered events..
-        for (const auto& item : discovery_cache_) {
-          LOG(INFO) << "Reporting receive_disabled discovery cache target "
-                    << item.second.share_target.ToString()
-                    << " when registering send surface";
-          wrapped_callback.OnShareTargetDiscovered(item.second.share_target);
-        }
+        // Let newly registered send surface catch up with discovered share
+        // targets from current scanning session.
+        outgoing_targets_manager_.ForEachShareTarget(
+            [&wrapped_callback](const ShareTarget& share_target) {
+              wrapped_callback.OnShareTargetDiscovered(share_target);
+            });
 
         // If the share sheet to be registered is a foreground surface, let it
         // catch up with most recent transfer metadata immediately.
@@ -491,14 +496,6 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           VLOG(1) << "Downloading public certificates from Nearby server at "
                      "start of sending flow.";
           certificate_manager_->DownloadPublicCertificates();
-        }
-
-        // Let newly registered send surface catch up with discovered share
-        // targets from current scanning session.
-        for (const auto& item : outgoing_share_target_map_) {
-          LOG(INFO) << "Reporting discovered target " << item.second.ToString()
-                    << " when registering send surface";
-          wrapped_callback.OnShareTargetDiscovered(item.second);
         }
 
         // Set Share Start time for Foreground Send Surfaces
@@ -726,7 +723,7 @@ void NearbySharingServiceImpl::SendAttachments(
         }
 
         OutgoingShareSession* session =
-            GetOutgoingShareSession(share_target_id);
+            outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
         if (!session) {
           LOG(WARNING) << "Failed to send attachments. Unknown ShareTarget.";
           std::move(status_codes_callback)(StatusCodes::kInvalidArgument);
@@ -786,7 +783,7 @@ void NearbySharingServiceImpl::Accept(
           return;
         }
         OutgoingShareSession* outgoing_session =
-            GetOutgoingShareSession(share_target_id);
+            outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
         if (outgoing_session != nullptr) {
           // Outgoing session.
           bool accept_success = OutgoingSessionAccept(*outgoing_session);
@@ -1052,11 +1049,7 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
     LOG(INFO) << __func__ << ": Last send surface has been unregistered";
     // Clear outgoing_share_targets, outgoing_share_sessions and
     // discovery_cache.
-    while (!outgoing_share_target_map_.empty()) {
-      RemoveOutgoingShareTargetWithEndpointId(
-          outgoing_share_target_map_.begin()->first);
-    }
-    discovery_cache_.clear();
+    outgoing_targets_manager_.Cleanup();
   }
 
   VLOG(1) << __func__ << ": A SendSurface has been unregistered: "
@@ -1616,7 +1609,7 @@ void NearbySharingServiceImpl::HandleEndpointLost(
 
   discovered_advertisements_to_retry_map_.erase(endpoint_id);
   discovered_advertisements_retried_set_.erase(endpoint_id);
-  MoveToDiscoveryCache(std::string(endpoint_id),
+  outgoing_targets_manager_.MoveToDiscoveryCache(std::string(endpoint_id),
                        NearbyFlags::GetInstance().GetInt64Flag(
                            config_package_nearby::nearby_sharing_feature::
                                kDiscoveryCacheLostExpiryMs));
@@ -1711,24 +1704,34 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     return;
   }
   LogShareTargetDiscovered(*share_target);
-  if (FindDuplicateInOutgoingShareTargets(endpoint_id, *share_target)) {
-    DeduplicateInOutgoingShareTarget(*share_target, endpoint_id,
-                                     std::move(certificate));
+  if (outgoing_targets_manager_.FindDuplicateInOutgoingShareTargets(
+          endpoint_id, *share_target)) {
+    outgoing_targets_manager_.DeduplicateInOutgoingShareTarget(
+        *share_target, endpoint_id, std::move(certificate));
     FinishEndpointDiscoveryEvent();
     return;
   }
-  if (FindDuplicateInDiscoveryCache(endpoint_id, *share_target)) {
-    DeDuplicateInDiscoveryCache(*share_target, endpoint_id,
-                                std::move(certificate));
-    FinishEndpointDiscoveryEvent();
-    return;
-  }
-
+  bool in_discovery_cache =
+      outgoing_targets_manager_.FindDuplicateInDiscoveryCache(endpoint_id,
+                                                              *share_target);
   VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
           << ", share_target_id=" << share_target->id
           << ") to outgoing share target map";
-  CreateOutgoingShareSession(*share_target, endpoint_id,
-                             std::move(certificate));
+  outgoing_targets_manager_.CreateOutgoingShareSession(
+      *share_target, endpoint_id, std::move(certificate),
+      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
+                       this));
+  if (in_discovery_cache) {
+    NotifyShareTargetUpdated(*share_target);
+
+    LOG(INFO)
+        << __func__
+        << ": [Dedupped] Reported NotifyShareTargetUpdated to all surfaces "
+           "for share_target: "
+        << share_target->ToString();
+    FinishEndpointDiscoveryEvent();
+    return;
+  }
 
   // Update the endpoint id for the share target.
   LOG(INFO) << __func__ << ": An endpoint: " << endpoint_id
@@ -2068,7 +2071,7 @@ void NearbySharingServiceImpl::StartScanning() {
   is_scanning_ = true;
   InvalidateReceiveSurfaceState();
 
-  DisableAllOutgoingShareTargets();
+  outgoing_targets_manager_.DisableAllOutgoingShareTargets();
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
@@ -2278,7 +2281,8 @@ void NearbySharingServiceImpl::OnTransferStarted(bool is_incoming) {
 void NearbySharingServiceImpl::OnOutgoingConnection(
     int64_t share_target_id, absl::string_view endpoint_id,
     NearbyConnection* connection, Status status) {
-  OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
   if (session == nullptr) {
     LOG(WARNING) << "Nearby connection connected, but share target "
                  << share_target_id << " already disconnected.";
@@ -2327,7 +2331,8 @@ void NearbySharingServiceImpl::CreatePayloads(
             [this, share_target_id, callback = std::move(callback),
              file_infos = std::move(file_infos)]() {
               OutgoingShareSession* session =
-                  GetOutgoingShareSession(share_target_id);
+                  outgoing_targets_manager_.GetOutgoingShareSession(
+                      share_target_id);
               if (session == nullptr) {
                 return;
               }
@@ -2612,7 +2617,8 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
     int64_t share_target_id,
     PairedKeyVerificationRunner::PairedKeyVerificationResult result,
     OSType share_target_os_type) {
-  OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
   if (!session || !session->IsConnected()) {
     return;
   }
@@ -2629,7 +2635,7 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
             << "Outgoing mutual acceptance timed out, closing connection for "
             << share_target_id;
         OutgoingShareSession* session =
-            GetOutgoingShareSession(share_target_id);
+            outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
         if (session == nullptr) {
           return;
         }
@@ -2710,7 +2716,8 @@ void NearbySharingServiceImpl::OnReceivedIntroduction(
 
 void NearbySharingServiceImpl::OnReceiveConnectionResponse(
     int64_t share_target_id, std::optional<ConnectionResponseFrame> frame) {
-  OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
   if (!session || !session->IsConnected()) {
     LOG(WARNING) << __func__
                  << ": Ignore received connection response, due to no "
@@ -2949,7 +2956,8 @@ void NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated(
 
 void NearbySharingServiceImpl::OnOutgoingPayloadTransferUpdates(
     int64_t share_target_id) {
-  OutgoingShareSession* session = GetOutgoingShareSession(share_target_id);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
   if (!session) {
     // ShareTarget already disconnected.
     LOG(WARNING) << "Received payload update after share target disconnected: "
@@ -3028,7 +3036,7 @@ IncomingShareSession& NearbySharingServiceImpl::CreateIncomingShareSession(
   return it->second;
 }
 
-void NearbySharingServiceImpl::DeduplicateInOutgoingShareTarget(
+void OutgoingTargetsManager::DeduplicateInOutgoingShareTarget(
     const ShareTarget& share_target, absl::string_view endpoint_id,
     std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
   // TODO(b/343764269): may need to update last_outgoing_metadata_ if the
@@ -3050,7 +3058,7 @@ void NearbySharingServiceImpl::DeduplicateInOutgoingShareTarget(
   session_it->second.UpdateSessionForDedup(share_target, std::move(certificate),
                                            endpoint_id);
 
-  NotifyShareTargetUpdated(share_target);
+  share_target_updated_callback_(share_target);
 
   LOG(INFO) << __func__
             << ": [Dedupped] NotifyShareTargetUpdated to all surfaces "
@@ -3058,19 +3066,7 @@ void NearbySharingServiceImpl::DeduplicateInOutgoingShareTarget(
             << share_target.ToString();
 }
 
-void NearbySharingServiceImpl::DeDuplicateInDiscoveryCache(
-    const ShareTarget& share_target, absl::string_view endpoint_id,
-    std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
-  CreateOutgoingShareSession(share_target, endpoint_id, std::move(certificate));
-  NotifyShareTargetUpdated(share_target);
-
-  LOG(INFO) << __func__
-            << ": [Dedupped] Reported NotifyShareTargetUpdated to all surfaces "
-               "for share_target: "
-            << share_target.ToString();
-}
-
-bool NearbySharingServiceImpl::FindDuplicateInDiscoveryCache(
+bool OutgoingTargetsManager::FindDuplicateInDiscoveryCache(
     absl::string_view endpoint_id, ShareTarget& share_target) {
   auto it = discovery_cache_.find(endpoint_id);
   if (it != discovery_cache_.end()) {
@@ -3102,7 +3098,7 @@ bool NearbySharingServiceImpl::FindDuplicateInDiscoveryCache(
   return false;
 }
 
-bool NearbySharingServiceImpl::FindDuplicateInOutgoingShareTargets(
+bool OutgoingTargetsManager::FindDuplicateInOutgoingShareTargets(
     absl::string_view endpoint_id, ShareTarget& share_target) {
   // If the duplicate is found, share_target.id needs to be updated to the old
   // "discovered" share_target_id so NotifyShareTargetUpdated matches a target
@@ -3141,7 +3137,7 @@ bool NearbySharingServiceImpl::FindDuplicateInOutgoingShareTargets(
 }
 
 std::optional<ShareTarget>
-NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
+OutgoingTargetsManager::RemoveOutgoingShareTargetWithEndpointId(
     absl::string_view endpoint_id) {
   VLOG(1) << __func__ << ":Outgoing connection to " << endpoint_id
           << " disconnected";
@@ -3174,7 +3170,7 @@ NearbySharingServiceImpl::RemoveOutgoingShareTargetWithEndpointId(
 // outgoing_share_target_map_ in this function, and some callers like
 // DisableAllOutgoingShareTargets pass the map item key as the endpoint_id.
 // This prevents the endpoint_id from being invalidated in this function.
-void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
+void OutgoingTargetsManager::MoveToDiscoveryCache(std::string endpoint_id,
                                                     uint64_t expiry_ms) {
   std::optional<ShareTarget> share_target_opt =
       RemoveOutgoingShareTargetWithEndpointId(endpoint_id);
@@ -3186,7 +3182,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
   // Entries in Discovery Cache are all receive disabled.
   cache_entry.share_target.receive_disabled = true;
   cache_entry.expiry_timer = std::make_unique<ThreadTimer>(
-      *service_thread_, absl::StrCat("discovery_cache_timeout_", endpoint_id),
+      service_thread_, absl::StrCat("discovery_cache_timeout_", endpoint_id),
       absl::Milliseconds(expiry_ms),
       [this, expiry_ms, endpoint_id = std::string(endpoint_id)]() {
         auto cache_node = discovery_cache_.extract(endpoint_id);
@@ -3200,7 +3196,7 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
                   << ", share_target.id=" << share_target.id
                   << ") from discovery_cache after " << expiry_ms << "ms";
 
-        NotifyShareTargetLost(share_target);
+        share_target_lost_callback_(share_target);
 
         VLOG(1) << "discovery_cache entry: " << endpoint_id << " timeout after "
                 << expiry_ms << "ms"
@@ -3208,23 +3204,24 @@ void NearbySharingServiceImpl::MoveToDiscoveryCache(std::string endpoint_id,
                 << "share_target: " << share_target.ToString();
       });
   // Send ShareTarget update to set receive disabled to true.
-  NotifyShareTargetUpdated(cache_entry.share_target);
+  share_target_updated_callback_(cache_entry.share_target);
   auto [it, inserted] =
       discovery_cache_.insert_or_assign(endpoint_id, std::move(cache_entry));
   LOG(INFO) << "[Dedupped] added to discovery_cache: " << endpoint_id << " by "
             << (inserted ? "insert" : "assign");
 }
 
-void NearbySharingServiceImpl::CreateOutgoingShareSession(
+void OutgoingTargetsManager::CreateOutgoingShareSession(
     const ShareTarget& share_target, absl::string_view endpoint_id,
-    std::optional<NearbyShareDecryptedPublicCertificate> certificate) {
+    std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+    absl::AnyInvocable<void(OutgoingShareSession& session,
+                            const TransferMetadata& metadata)>
+        transfer_update_callback) {
   outgoing_share_target_map_.insert_or_assign(endpoint_id, share_target);
   auto [it_out, inserted] = outgoing_share_session_map_.try_emplace(
-      share_target.id, context_->GetClock(), *service_thread_,
-      nearby_connections_manager_.get(), analytics_recorder_,
-      std::string(endpoint_id), share_target,
-      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
-                       this));
+      share_target.id, &clock_, service_thread_, &connections_manager_,
+      analytics_recorder_, std::string(endpoint_id), share_target,
+      std::move(transfer_update_callback));
   if (!inserted) {
     LOG(WARNING) << __func__ << ": share_target.id=" << share_target.id
                  << " already exists in outgoing share session map. This "
@@ -3243,7 +3240,7 @@ ShareSession* NearbySharingServiceImpl::GetShareSession(
   if (result != nullptr) {
     return result;
   }
-  return GetOutgoingShareSession(share_target_id);
+  return outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
 }
 
 IncomingShareSession* NearbySharingServiceImpl::GetIncomingShareSession(
@@ -3256,7 +3253,7 @@ IncomingShareSession* NearbySharingServiceImpl::GetIncomingShareSession(
   return &it->second;
 }
 
-OutgoingShareSession* NearbySharingServiceImpl::GetOutgoingShareSession(
+OutgoingShareSession* OutgoingTargetsManager::GetOutgoingShareSession(
     int64_t share_target_id) {
   auto it = outgoing_share_session_map_.find(share_target_id);
   if (it == outgoing_share_session_map_.end()) {
@@ -3280,7 +3277,7 @@ NearbySharingServiceImpl::GetBluetoothMacAddressForShareTarget(
   return GetBluetoothMacAddressFromCertificate(*certificate);
 }
 
-void NearbySharingServiceImpl::DisableAllOutgoingShareTargets() {
+void OutgoingTargetsManager::DisableAllOutgoingShareTargets() {
   VLOG(1) << "Move all outgoing share targets to discovery cache.";
   while (!outgoing_share_target_map_.empty()) {
     MoveToDiscoveryCache(outgoing_share_target_map_.begin()->first,
@@ -3315,12 +3312,13 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
       last_outgoing_metadata_.reset();
     }
     // Find the endpoint id that matches the given share target.
-    auto it = outgoing_share_session_map_.find(share_target_id);
-    if (it != outgoing_share_session_map_.end()) {
+    OutgoingShareSession* session =
+        outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
+    if (session != nullptr) {
       LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
-                << it->second.endpoint_id() << " to discovery_cache.";
-      MoveToDiscoveryCache(
-          it->second.endpoint_id(),
+                << session->endpoint_id() << " to discovery_cache.";
+      outgoing_targets_manager_.MoveToDiscoveryCache(
+          session->endpoint_id(),
           NearbyFlags::GetInstance().GetInt64Flag(
               config_package_nearby::nearby_sharing_feature::
                   kUnregisterTargetDiscoveryCacheLostExpiryMs));
@@ -3330,7 +3328,7 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
       if (!is_scanning_ && !is_transferring_) {
         LOG(INFO) << "Cannot find session for target " << share_target_id
                   << " clearing all outgoing sessions.";
-        DisableAllOutgoingShareTargets();
+        outgoing_targets_manager_.DisableAllOutgoingShareTargets();
       }
     }
 
@@ -3544,6 +3542,39 @@ void NearbySharingServiceImpl::UpdateFilePathsInProgress(
   update_file_paths_in_progress_ = update_file_paths;
   VLOG(1) << __func__
           << ": Update file paths in progress: " << update_file_paths;
+}
+
+OutgoingTargetsManager::OutgoingTargetsManager(
+    Clock* clock, TaskRunner* service_thread,
+    NearbyConnectionsManager* connections_manager,
+    analytics::AnalyticsRecorder* analytics_recorder,
+    absl::AnyInvocable<void(const ShareTarget&)> share_target_updated_callback,
+    absl::AnyInvocable<void(const ShareTarget&)> share_target_lost_callback)
+    : clock_(*clock),
+      service_thread_(*service_thread),
+      connections_manager_(*connections_manager),
+      analytics_recorder_(*analytics_recorder),
+      share_target_updated_callback_(std::move(share_target_updated_callback)),
+      share_target_lost_callback_(std::move(share_target_lost_callback)) {}
+
+void OutgoingTargetsManager::Cleanup() {
+  while (!outgoing_share_target_map_.empty()) {
+    RemoveOutgoingShareTargetWithEndpointId(
+        outgoing_share_target_map_.begin()->first);
+  }
+  discovery_cache_.clear();
+}
+
+void OutgoingTargetsManager::ForEachShareTarget(
+    absl::AnyInvocable<void(const ShareTarget&)> callback) {
+  // All share targets in discovery_cache have received_disabled set to true,
+  // send them to new send surface in discovered events..
+  for (const auto& [endpoint_id, discovery_cache_entry] : discovery_cache_) {
+    callback(discovery_cache_entry.share_target);
+  }
+  for (const auto& [endpoint_id, share_target] : outgoing_share_target_map_) {
+    callback(share_target);
+  }
 }
 
 }  // namespace nearby::sharing

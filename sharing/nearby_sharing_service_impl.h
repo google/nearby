@@ -27,7 +27,6 @@
 #include <tuple>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -83,6 +82,89 @@ namespace NearbySharingServiceUnitTests {
 class NearbySharingServiceImplTest_CreateShareTarget_Test;
 class NearbySharingServiceImplTest_RemoveIncomingPayloads_Test;
 };  // namespace NearbySharingServiceUnitTests
+
+class OutgoingTargetsManager {
+ public:
+  OutgoingTargetsManager(
+      Clock* clock, TaskRunner* service_thread,
+      NearbyConnectionsManager* connections_manager,
+      analytics::AnalyticsRecorder* analytics_recorder,
+      absl::AnyInvocable<void(const ShareTarget&)>
+          share_target_updated_callback,
+      absl::AnyInvocable<void(const ShareTarget&)> share_target_lost_callback);
+
+  void Cleanup();
+
+  OutgoingShareSession* GetOutgoingShareSession(int64_t share_target_id);
+
+  // Update the entry in outgoing_share_session_map_ with the new share target
+  // and OnShareTargetUpdated is called.
+  void DeduplicateInOutgoingShareTarget(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+
+      // Looks for a duplicate of the share target in the discovery cache.
+  // If found, the share target is removed from the discovery cache and its
+  // id is copied into `share_target`.
+  // Returns true if the duplicate is found.
+  bool FindDuplicateInDiscoveryCache(absl::string_view endpoint_id,
+                                     ShareTarget& share_target);
+
+  // Looks for a duplicate of the share target in the outgoing share
+  // target map. The share target's id is changed to match an existing target if
+  // available. Returns true if the duplicate is found.
+  bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
+                                           ShareTarget& share_target);
+
+  // Returns the share target if it has been removed, std::nullopt otherwise.
+  std::optional<ShareTarget> RemoveOutgoingShareTargetWithEndpointId(
+      absl::string_view endpoint_id);
+
+  // Move the endpoint to the discovery cache with the given expiry time.
+  void MoveToDiscoveryCache(std::string endpoint_id, uint64_t expiry_ms);
+
+  // Move all outgoing share targets to the discovery cache so that they will be
+  // reported as receive_disabled.
+  void DisableAllOutgoingShareTargets();
+
+  void CreateOutgoingShareSession(
+      const ShareTarget& share_target, absl::string_view endpoint_id,
+      std::optional<NearbyShareDecryptedPublicCertificate> certificate,
+      absl::AnyInvocable<void(OutgoingShareSession& session,
+                              const TransferMetadata& metadata)>
+          transfer_update_callback);
+
+  void ForEachShareTarget(
+      absl::AnyInvocable<void(const ShareTarget&)> callback);
+
+ private:
+  // Cache a recently lost share target to be re-discovered.
+  // Purged after expiry_timer.
+  struct DiscoveryCacheEntry {
+    // If needed, we can add "state" field to model "Tomb" state.
+    std::unique_ptr<ThreadTimer> expiry_timer;
+    ShareTarget share_target;
+  };
+
+  Clock& clock_;
+  TaskRunner& service_thread_;
+  NearbyConnectionsManager& connections_manager_;
+  analytics::AnalyticsRecorder& analytics_recorder_;
+  absl::AnyInvocable<void(const ShareTarget&)> share_target_updated_callback_;
+  absl::AnyInvocable<void(const ShareTarget&)> share_target_lost_callback_;
+
+  // A map of endpoint id to ShareTarget, where each ShareTarget entry
+  // directly corresponds to a OutgoingShareSession entry in
+  // outgoing_share_target_info_map_;
+  absl::flat_hash_map<std::string, ShareTarget> outgoing_share_target_map_;
+  // A map of ShareTarget id to OutgoingShareSession. This lets us know which
+  // endpoint and public certificate are related to the outgoing share target.
+  absl::flat_hash_map<int64_t, OutgoingShareSession>
+      outgoing_share_session_map_;
+  // A map of Endpoint id to DiscoveryCacheEntry.
+  // All ShareTargets in discovery cache have received_disabled set to true.
+  absl::flat_hash_map<std::string, DiscoveryCacheEntry> discovery_cache_;
+};
 
 // All methods should be called from the same sequence that created the service.
 class NearbySharingServiceImpl
@@ -174,13 +256,6 @@ class NearbySharingServiceImpl
   void UpdateFilePathsInProgress(bool update) override;
 
  private:
-  // Cache a recently lost share target to be re-discovered.
-  // Purged after expiry_timer.
-  struct DiscoveryCacheEntry {
-    // If needed, we can add "state" field to model "Tomb" state.
-    std::unique_ptr<ThreadTimer> expiry_timer;
-    ShareTarget share_target;
-  };
   // Internal implementation of methods to avoid using recursive mutex.
   StatusCodes InternalUnregisterSendSurface(
       TransferUpdateCallback* transfer_callback);
@@ -289,9 +364,6 @@ class NearbySharingServiceImpl
 
   void ScheduleRotateBackgroundAdvertisementTimer();
   void OnRotateBackgroundAdvertisementTimerFired();
-  // Returns the share target if it has been removed, std::nullopt otherwise.
-  std::optional<ShareTarget> RemoveOutgoingShareTargetWithEndpointId(
-      absl::string_view endpoint_id);
 
   void OnTransferComplete();
   void OnTransferStarted(bool is_incoming);
@@ -356,48 +428,13 @@ class NearbySharingServiceImpl
   IncomingShareSession& CreateIncomingShareSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
-  void CreateOutgoingShareSession(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
-      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
-
-  // Move the endpoint to the discovery cache with the given expiry time.
-  void MoveToDiscoveryCache(std::string endpoint_id, uint64_t expiry_ms);
-
-  // Update the entry in outgoing_share_session_map_ with the new share target
-  // and OnShareTargetUpdated is called.
-  void DeduplicateInOutgoingShareTarget(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
-      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
-
-  // Add an entry to the outgoing_share_session_map_ and
-  // outgoing_share_target_map_ and OnShareTargetUpdated is called.
-  void DeDuplicateInDiscoveryCache(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
-      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
-
-  // Looks for a duplicate of the share target in the outgoing share
-  // target map. The share target's id is changed to match an existing target if
-  // available. Returns true if the duplicate is found.
-  bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
-                                           ShareTarget& share_target);
-
-  // Looks for a duplicate of the share target in the discovery cache.
-  // If found, the share target is removed from the discovery cache and its
-  // id is copied into `share_target`.
-  // Returns true if the duplicate is found.
-  bool FindDuplicateInDiscoveryCache(absl::string_view endpoint_id,
-                                     ShareTarget& share_target);
 
   ShareSession* GetShareSession(int64_t share_target_id);
   IncomingShareSession* GetIncomingShareSession(int64_t share_target_id);
-  OutgoingShareSession* GetOutgoingShareSession(int64_t share_target_id);
 
   std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
       OutgoingShareSession& session);
 
-  // Move all outgoing share targets to the discovery cache so that they will be
-  // reported as receive_disabled.
-  void DisableAllOutgoingShareTargets();
   void UnregisterShareTarget(int64_t share_target_id);
 
   void OnStartAdvertisingResult(bool used_device_name, Status status);
@@ -510,17 +547,6 @@ class NearbySharingServiceImpl
   // incoming share target.
   absl::flat_hash_map<int64_t, IncomingShareSession>
       incoming_share_session_map_;
-  // A map of endpoint id to ShareTarget, where each ShareTarget entry
-  // directly corresponds to a OutgoingShareSession entry in
-  // outgoing_share_target_info_map_;
-  absl::flat_hash_map<std::string, ShareTarget> outgoing_share_target_map_;
-  // A map of ShareTarget id to OutgoingShareSession. This lets us know which
-  // endpoint and public certificate are related to the outgoing share target.
-  absl::flat_hash_map<int64_t, OutgoingShareSession>
-      outgoing_share_session_map_;
-  // A map of Endpoint id to DiscoveryCacheEntry.
-  // All ShareTargets in discovery cache have received_disabled set to true.
-  absl::flat_hash_map<std::string, DiscoveryCacheEntry> discovery_cache_;
   // A map from endpoint ID to endpoint info from discovered, contact-based
   // advertisements that could not decrypt any available public certificates.
   // During discovery, if certificates are downloaded, we revisit this map and
@@ -587,6 +613,7 @@ class NearbySharingServiceImpl
   std::optional<uint16_t> alternate_service_uuid_;
   // If true, a new endpoint id will be generated at the next advertisement.
   bool force_new_endpoint_id_ = false;
+  OutgoingTargetsManager outgoing_targets_manager_;
 };
 
 }  // namespace nearby::sharing
