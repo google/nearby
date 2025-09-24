@@ -16,19 +16,39 @@
 
 #import <Foundation/Foundation.h>
 
+#import <XCTest/XCTest.h>
+
 NS_ASSUME_NONNULL_BEGIN
 
 /** A fake implementation of @c GNSSocket to inject for testing. */
 @interface GNCFakeSocket : NSObject
 
+/** An expectation to fulfill when -sendData:progressHandler:completion: is called. */
+@property(nonatomic, nullable) XCTestExpectation *sendDataExpectation;
+
 /** The socket's delegate. */
 @property(nonatomic, weak) id<GNSSocketDelegate> delegate;
+
+/** The last data that was sent to the socket. */
+@property(nonatomic, copy, nullable) NSData *sentData;
+
+/** The completion handler for the last sent data. */
+@property(nonatomic, nullable) GNSErrorHandler sentDataCompletion;
 
 /** Simulates a socket connection event. */
 - (void)simulateSocketDidConnect;
 
 /** Simulates a socket disconnection event. */
 - (void)simulateSocketDidDisconnectWithError:(nullable NSError *)error;
+
+/** Simulates a socket receiving data event. */
+- (void)simulateSocketDidReceiveData:(NSData *)data;
+
+- (void)sendData:(NSData *)data
+    progressHandler:(GNSProgressHandler)progressHandler
+         completion:(GNSErrorHandler)completion;
+
+- (void)disconnect;
 
 @end
 

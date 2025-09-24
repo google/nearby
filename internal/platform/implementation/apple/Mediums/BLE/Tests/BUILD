@@ -37,6 +37,7 @@ objc_library(
         "GNCFakePeripheral.m",
         "GNCFakePeripheralManager.m",
         "GNCFakeSocket.m",
+        "GNCMBleConnectionTest.m",
         "GNCMBleUtilsTest.m",
         "GNCMConnectionsTest.m",
         "GNCMFakeConnection.mm",

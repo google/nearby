@@ -18,7 +18,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation GNCFakeSocket
 
-@synthesize delegate = _delegate;
+- (void)sendData:(NSData *)data
+    progressHandler:(GNSProgressHandler)progressHandler
+         completion:(GNSErrorHandler)completion {
+  self.sentData = data;
+  self.sentDataCompletion = completion;
+  [self.sendDataExpectation fulfill];
+}
+
+- (void)disconnect {
+  // No-op for fake.
+}
 
 - (void)simulateSocketDidConnect {
   [self.delegate socketDidConnect:(GNSSocket *)self];
@@ -26,6 +36,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)simulateSocketDidDisconnectWithError:(nullable NSError *)error {
   [self.delegate socket:(GNSSocket *)self didDisconnectWithError:error];
+}
+
+- (void)simulateSocketDidReceiveData:(NSData *)data {
+  [self.delegate socket:(GNSSocket *)self didReceiveData:data];
 }
 
 @end
