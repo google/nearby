@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 85
+// Next Tag: 87
 // LINT.IfChange
 message SharingLog {
   /* justification = {
@@ -230,6 +230,10 @@ message SharingLog {
 
   // QR code CLOUD_REGISTER_RECEIVER event for receiver side.
   optional CloudRegisterReceiver cloud_register_receiver = 84;
+
+  optional CloudUploadStart cloud_upload_start = 85;
+
+  optional CloudUploadEnd cloud_upload_end = 86;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -936,6 +940,22 @@ message SharingLog {
     optional location.nearby.proto.sharing.AttachmentSourceType source_type = 3;
   }
 
+  message CloudAttachmentInfo {
+    optional location.nearby.proto.sharing.AttachmentTransmissionStatus status =
+        1;
+    oneof CloudAttachment {
+      TextAttachment text_attachment = 2;
+      FileAttachment file_attachment = 3;
+      WifiCredentialsAttachment wifi_credentials_attachment = 4;
+      AppAttachment app_attachment = 5;
+      StreamAttachment stream_attachment = 6;
+    }
+    // The total bytes of all attachments transferred.
+    optional int64 transferred_bytes = 7;
+    // The duration from transfer start to transfer end.
+    optional int64 duration_millis = 8;
+  }
+
   // EventType: APP_CRASH
   // Used only for Nearby Share Windows App now
   message AppCrash {
@@ -1029,5 +1049,17 @@ message SharingLog {
   }
   // EventType: CLOUD_REGISTER_RECEIVER used by QR code cloud web receiver
   message CloudRegisterReceiver {}
+
+  // EventType: CLOUD_UPLOAD_START used by QR code cloud web sender
+  // The cloud_sharing_id and flow_id are logged in the event metadata.
+  message CloudUploadStart {
+    optional AttachmentsInfo attachments_info = 1;
+  }
+
+  // EventType: CLOUD_UPLOAD_END used by QR code cloud web sender
+  // The cloud_sharing_id and flow_id are logged in the event metadata.
+  message CloudUploadEnd {
+    repeated CloudAttachmentInfo upload_infos = 1;
+  }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
