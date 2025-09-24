@@ -1274,6 +1274,9 @@ void NearbySharingServiceImpl::OnLoginSucceeded(absl::string_view account_id) {
   RunOnNearbySharingServiceThread("on_login_succeeded", [this]() {
     LOG(INFO) << "Account login.";
 
+    // Reset endpoint id after login.  Needs to happen before ResetAllSettings
+    // which starts advertising.
+    force_new_endpoint_id_ = true;
     ResetAllSettings(/*logout=*/false);
   });
 }
@@ -1284,6 +1287,9 @@ void NearbySharingServiceImpl::OnLogoutSucceeded(absl::string_view account_id,
       "on_logout_succeeded", [this, credential_error]() {
         LOG(INFO) << "Account logout.";
 
+        // Reset endpoint id after logout.  Needs to happen before
+        // ResetAllSettings which starts advertising.
+        force_new_endpoint_id_ = true;
         // Reset all settings.
         ResetAllSettings(/*logout=*/true);
         if (credential_error) {
@@ -1998,6 +2004,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
       *endpoint_info,
       /*listener=*/this, power_level, data_usage,
       visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
+      force_new_endpoint_id_,
       [this, visibility, data_usage](Status status) {
         // Log analytics event of advertising start.
         analytics_recorder_.NewAdvertiseDevicePresenceStart(
@@ -2009,6 +2016,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
         OnStartAdvertisingResult(
             visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE, status);
       });
+  force_new_endpoint_id_ = false;
 
   advertising_power_level_ = power_level;
   VLOG(1) << __func__

@@ -368,6 +368,9 @@ class ClientProxy final {
     kWifiLanMultiplexEnabled = 1 << 3,
   };
 
+  // Forces client to regenerate a new local endpoint id.
+  void ClearCachedLocalEndpointId();
+
  private:
   struct Connection {
     // Status: may be either:

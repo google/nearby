@@ -53,7 +53,7 @@ void FakeNearbyConnectionsManager::Shutdown() {
 void FakeNearbyConnectionsManager::StartAdvertising(
     std::vector<uint8_t> endpoint_info, IncomingConnectionListener* listener,
     PowerLevel power_level, DataUsage data_usage, bool use_stable_endpoint_id,
-    ConnectionsCallback callback) {
+    bool force_new_endpoint_id, ConnectionsCallback callback) {
   DCHECK(!IsAdvertising());
   is_shutdown_ = false;
   {

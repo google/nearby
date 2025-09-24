@@ -585,6 +585,8 @@ class NearbySharingServiceImpl
   absl::Time share_foreground_send_surface_start_timestamp_;
   std::unique_ptr<nearby::api::AppInfo> app_info_;
   std::optional<uint16_t> alternate_service_uuid_;
+  // If true, a new endpoint id will be generated at the next advertisement.
+  bool force_new_endpoint_id_ = false;
 };
 
 }  // namespace nearby::sharing

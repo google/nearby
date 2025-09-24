@@ -61,7 +61,7 @@ class NearbyConnectionsManagerImpl : public NearbyConnectionsManager {
   void StartAdvertising(std::vector<uint8_t> endpoint_info,
                         IncomingConnectionListener* listener,
                         PowerLevel power_level, proto::DataUsage data_usage,
-                        bool use_stable_endpoint_id,
+                        bool use_stable_endpoint_id, bool force_new_endpoint_id,
                         ConnectionsCallback callback) override;
   void StopAdvertising(ConnectionsCallback callback) override;
   void StartDiscovery(DiscoveryListener* listener, proto::DataUsage data_usage,

@@ -225,6 +225,8 @@ struct AdvertisingOptions {
   // Indicates whether the endpoint id should be stable. When visibility is
   // everyone mode, we should set this to true to avoid duplicated endpoint ids.
   bool use_stable_endpoint_id = false;
+  // If true, a new endpoint id will be generated.
+  bool force_new_endpoint_id = false;
   // Optional. If set, BLE advertisements will be in their "fast advertisement"
   // form, use this UUID, and non-connectable; if empty, BLE advertisements
   // will otherwise be normal and connectable.

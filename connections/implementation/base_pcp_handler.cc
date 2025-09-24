@@ -233,6 +233,9 @@ Status BasePcpHandler::StartAdvertising(
       "start-advertising",
       [this, client, &service_id, &info, &compatible_advertising_options,
        &response]() RUN_ON_PCP_HANDLER_THREAD() {
+        if (compatible_advertising_options.force_new_endpoint_id) {
+          client->ClearCachedLocalEndpointId();
+        }
         if (NearbyFlags::GetInstance().GetBoolFlag(
                 connections::config_package_nearby::nearby_connections_feature::
                     kUseStableEndpointId)) {

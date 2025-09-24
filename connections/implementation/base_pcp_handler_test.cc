@@ -2875,6 +2875,44 @@ TEST_F(BasePcpHandlerTest, TestUpdateDiscoveryOptionsFailsWithBadStatus) {
   env_.Stop();
 }
 
+TEST_F(BasePcpHandlerTest, TestForceUpdateEndpointIdAdvertisingOption) {
+  env_.Start();
+  AdvertisingOptions use_old_endpoint_id_options{
+      .auto_upgrade_bandwidth = true,
+      .enforce_topology_constraints = true,
+      .low_power = true,
+      .enable_bluetooth_listening = false,
+      .force_new_endpoint_id = false,
+  };
+  AdvertisingOptions use_new_endpoint_id_options{
+      .auto_upgrade_bandwidth = true,
+      .enforce_topology_constraints = true,
+      .low_power = true,
+      .enable_bluetooth_listening = false,
+      .force_new_endpoint_id = true,
+  };
+  ClientProxy client;
+  Mediums m;
+  EndpointChannelManager ecm;
+  EndpointManager em(&ecm);
+  BwuManager bwu(m, em, ecm, {}, {});
+  std::string old_endpoint_id = client.GetLocalEndpointId();
+  MockPcpHandler pcp_handler(&m, &em, &ecm, &bwu);
+  StartAdvertisingWithOptions(&client, &pcp_handler,
+                              use_old_endpoint_id_options);
+  EXPECT_TRUE(client.IsAdvertising());
+  EXPECT_EQ(client.GetLocalEndpointId(), old_endpoint_id);
+
+  pcp_handler.StopAdvertising(&client);
+  EXPECT_FALSE(client.IsAdvertising());
+
+  StartAdvertisingWithOptions(&client, &pcp_handler,
+                              use_new_endpoint_id_options);
+  EXPECT_TRUE(client.IsAdvertising());
+  EXPECT_NE(client.GetLocalEndpointId(), old_endpoint_id);
+  env_.Stop();
+}
+
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

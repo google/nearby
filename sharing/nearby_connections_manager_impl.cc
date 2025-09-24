@@ -176,7 +176,7 @@ void NearbyConnectionsManagerImpl::Shutdown() { Reset(); }
 void NearbyConnectionsManagerImpl::StartAdvertising(
     std::vector<uint8_t> endpoint_info, IncomingConnectionListener* listener,
     PowerLevel power_level, DataUsage data_usage, bool use_stable_endpoint_id,
-    ConnectionsCallback callback) {
+    bool force_new_endpoint_id, ConnectionsCallback callback) {
   DCHECK(listener);
   DCHECK(!incoming_connection_listener_);
 
@@ -260,6 +260,7 @@ void NearbyConnectionsManagerImpl::StartAdvertising(
           .enable_webrtc_listening = ShouldEnableWebRtc(
               connectivity_manager_, data_usage, power_level),
           .use_stable_endpoint_id = use_stable_endpoint_id,
+          .force_new_endpoint_id = force_new_endpoint_id,
           .fast_advertisement_service_uuid = fast_advertisement_service_uuid,
       },
       std::move(connection_listener), std::move(callback));

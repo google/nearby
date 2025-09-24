@@ -286,6 +286,7 @@ void Core::StartAdvertisingV3(absl::string_view service_id,
       /*enable_webrtc_listening=*/
       advertising_options.advertising_mediums.web_rtc,
       /*use_stable_endpoint_id=*/advertising_options.use_stable_endpoint_id,
+      /*force_new_endpoint_id=*/false,
       /*is_out_of_band_connection=*/false,
       /*fast_advertisement_service_uuid=*/
       advertising_options.fast_advertisement_service_uuid,
@@ -522,6 +523,7 @@ void Core::UpdateAdvertisingOptionsV3(
       /*enable_webrtc_listening=*/
       advertising_options.advertising_mediums.web_rtc,
       /*use_stable_endpoint_id=*/advertising_options.use_stable_endpoint_id,
+      /*force_new_endpoint_id=*/false,
       /*is_out_of_band_connection=*/false,
       /*fast_advertisement_service_uuid=*/
       advertising_options.fast_advertisement_service_uuid,
