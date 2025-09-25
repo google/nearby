@@ -55,7 +55,7 @@ constexpr BooleanMediumSelector kTestCases[] = {
         .bluetooth = true,
     },
     BooleanMediumSelector{
-        .awdl  = true,
+        .awdl = true,
     },
     BooleanMediumSelector{
         .wifi_lan = true,
@@ -93,18 +93,13 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
 };
 
-// Combines the bool `kEnableBleV2` as param testing but should revert it back
-// if ble_v2 is done and ble will be replaced by ble_v2.
 class P2pPointToPointPcpHandlerTest
-    : public testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
+    : public testing::TestWithParam<std::tuple<BooleanMediumSelector>> {
  protected:
   void SetUp() override {
     LOG(INFO) << "SetUp: begin";
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        std::get<1>(GetParam()));
     if (advertising_options_.allowed.ble) {
       LOG(INFO) << "SetUp: BLE enabled";
     }
@@ -138,7 +133,7 @@ class P2pPointToPointPcpHandlerTest
           std::get<0>(GetParam()),
       },
       false,  // auto_upgrade_bandwidth
-      true,  // enforce_topology_constraints
+      true,   // enforce_topology_constraints
   };
   AdvertisingOptions advertising_options_{
       {
@@ -146,7 +141,7 @@ class P2pPointToPointPcpHandlerTest
           std::get<0>(GetParam()),
       },
       false,  // auto_upgrade_bandwidth
-      true,  // enforce_topology_constraints
+      true,   // enforce_topology_constraints
   };
   DiscoveryOptions discovery_options_{
       {
@@ -296,8 +291,7 @@ TEST_P(P2pPointToPointPcpHandlerTest, CanConnect) {
 
 INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest,
                          P2pPointToPointPcpHandlerTest,
-                         ::testing::Combine(::testing::ValuesIn(kTestCases),
-                                            ::testing::Bool()));
+                         ::testing::Combine(::testing::ValuesIn(kTestCases)));
 
 }  // namespace
 }  // namespace connections

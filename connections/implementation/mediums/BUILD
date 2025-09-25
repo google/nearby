@@ -1,6 +1,3 @@
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_cc//cc:cc_test.bzl", "cc_test")
-
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +11,16 @@ load("@rules_cc//cc:cc_test.bzl", "cc_test")
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 licenses(["notice"])
 
 cc_library(
     name = "mediums",
     srcs = [
         "awdl.cc",
-        "ble.cc",
         "ble_v2.cc",
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
@@ -33,7 +33,6 @@ cc_library(
     ],
     hdrs = [
         "awdl.h",
-        "ble.h",
         "ble_v2.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
@@ -147,7 +146,6 @@ cc_test(
     size = "small",
     srcs = [
         "awdl_test.cc",
-        "ble_test.cc",
         "ble_v2_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",

@@ -16,7 +16,6 @@
 #define CORE_INTERNAL_MEDIUMS_MEDIUMS_H_
 
 #include "connections/implementation/mediums/awdl.h"
-#include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble_v2.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -44,9 +43,6 @@ class Mediums {
 
   // Returns a handle to the Bluetooth Classic medium.
   BluetoothClassic& GetBluetoothClassic();
-
-  // Returns a handle to the Ble medium.
-  Ble& GetBle();
 
   // Returns a handle to the Ble medium.
   BleV2& GetBleV2();
@@ -80,7 +76,6 @@ class Mediums {
   // corresponding radio.
   BluetoothRadio bluetooth_radio_;
   BluetoothClassic bluetooth_classic_{bluetooth_radio_};
-  Ble ble_{bluetooth_radio_};
   BleV2 ble_v2_{bluetooth_radio_};
   Wifi wifi_;
   WifiLan wifi_lan_;

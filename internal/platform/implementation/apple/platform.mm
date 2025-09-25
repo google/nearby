@@ -172,10 +172,6 @@ std::unique_ptr<BluetoothClassicMedium> ImplementationPlatform::CreateBluetoothC
   return nullptr;
 }
 
-std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(api::BluetoothAdapter& adapter) {
-  return nullptr;
-}
-
 std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
     api::BluetoothAdapter& adapter) {
   return std::make_unique<apple::BleMedium>();

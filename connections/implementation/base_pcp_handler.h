@@ -236,14 +236,6 @@ class BasePcpHandler : public PcpHandler,
     BluetoothDevice bluetooth_device;
   };
 
-  struct BleEndpoint : public BasePcpHandler::DiscoveredEndpoint {
-    BleEndpoint(DiscoveredEndpoint endpoint, BlePeripheral peripheral)
-        : DiscoveredEndpoint(std::move(endpoint)),
-          ble_peripheral(std::move(peripheral)) {}
-
-    BlePeripheral ble_peripheral;
-  };
-
   struct BleV2Endpoint : public BasePcpHandler::DiscoveredEndpoint {
     BleV2Endpoint(DiscoveredEndpoint endpoint, BleV2Peripheral peripheral)
         : DiscoveredEndpoint(std::move(endpoint)),

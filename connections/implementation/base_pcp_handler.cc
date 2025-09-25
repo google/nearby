@@ -186,8 +186,8 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
   std::vector<ConnectionInfoVariant> connection_infos;
   for (const auto& medium : result.mediums) {
     if (medium == location::nearby::proto::connections::BLUETOOTH) {
-      BluetoothConnectionInfo info(
-          mediums_->GetBluetoothClassic().GetAddress(), "", {});
+      BluetoothConnectionInfo info(mediums_->GetBluetoothClassic().GetAddress(),
+                                   "", {});
       connection_infos.push_back(info);
     } else if (medium == location::nearby::proto::connections::BLE) {
       // TODO(b/284311319): Add relevant information.
@@ -1159,12 +1159,7 @@ void BasePcpHandler::StripOutUnavailableMediums(
     allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      allowed.ble = mediums_->GetBleV2().IsAvailable();
-    } else {
-      allowed.ble = mediums_->GetBle().IsAvailable();
-    }
+    allowed.ble = mediums_->GetBleV2().IsAvailable();
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
@@ -1211,12 +1206,7 @@ void BasePcpHandler::StripOutUnavailableMediums(
     allowed.bluetooth = mediums_->GetBluetoothClassic().IsAvailable();
   }
   if (allowed.ble) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      allowed.ble = mediums_->GetBleV2().IsAvailable();
-    } else {
-      allowed.ble = mediums_->GetBle().IsAvailable();
-    }
+    allowed.ble = mediums_->GetBleV2().IsAvailable();
   }
   if (allowed.web_rtc) {
     allowed.web_rtc = mediums_->GetWebRtc().IsAvailable();
@@ -2188,8 +2178,7 @@ void BasePcpHandler::ProcessTieBreakLoss(
 }
 
 bool BasePcpHandler::AppendRemoteBluetoothMacAddressEndpoint(
-    const std::string& endpoint_id,
-    MacAddress remote_bluetooth_mac_address,
+    const std::string& endpoint_id, MacAddress remote_bluetooth_mac_address,
     const DiscoveryOptions& local_discovery_options) {
   if (!local_discovery_options.allowed.bluetooth) {
     return false;

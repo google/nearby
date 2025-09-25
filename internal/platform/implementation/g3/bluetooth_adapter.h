@@ -21,7 +21,6 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -32,28 +31,6 @@ namespace g3 {
 
 // BluetoothDevice and BluetoothAdapter have a mutual dependency.
 class BluetoothAdapter;
-
-// Opaque wrapper over a Ble peripheral. Must contain enough data about a
-// particular Ble device to connect to its GATT server.
-class BlePeripheral : public api::BlePeripheral {
- public:
-  ~BlePeripheral() override = default;
-
-  std::string GetName() const override;
-  ByteArray GetAdvertisementBytes(const std::string& service_id) const override;
-  void SetAdvertisementBytes(const std::string& service_id,
-                             const ByteArray& advertisement_bytes);
-  BluetoothAdapter& GetAdapter() { return adapter_; }
-
- private:
-  // Only BluetoothAdapter may instantiate BlePeripheral.
-  friend class BluetoothAdapter;
-
-  explicit BlePeripheral(BluetoothAdapter* adapter);
-
-  BluetoothAdapter& adapter_;
-  ByteArray advertisement_bytes_;
-};
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 class BluetoothDevice : public api::BluetoothDevice {
@@ -121,11 +98,6 @@ class BluetoothAdapter : public api::BluetoothAdapter {
     return bluetooth_classic_medium_;
   }
 
-  BlePeripheral& GetPeripheral() { return peripheral_; }
-
-  void SetBleMedium(api::BleMedium* medium);
-  api::BleMedium* GetBleMedium() { return ble_medium_; }
-
   void SetBleV2Medium(api::ble_v2::BleMedium* medium);
   api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
 
@@ -138,9 +110,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
  private:
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
-  BlePeripheral peripheral_{this};
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
-  api::BleMedium* ble_medium_ = nullptr;
   api::ble_v2::BleMedium* ble_v2_medium_ = nullptr;
   MacAddress mac_address_;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;

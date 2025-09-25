@@ -37,8 +37,8 @@ constexpr int BleAdvertisementHeader::kPsmValueByteLength;
 
 BleAdvertisementHeader::BleAdvertisementHeader(
     Version version, bool support_extended_advertisement, int num_slots,
-    const ByteArray &service_id_bloom_filter,
-    const ByteArray &advertisement_hash, int psm) {
+    const ByteArray& service_id_bloom_filter,
+    const ByteArray& advertisement_hash, int psm) {
   if (version != Version::kV2 || num_slots < 0 ||
       service_id_bloom_filter.size() != kServiceIdBloomFilterByteLength ||
       advertisement_hash.size() != kAdvertisementHashByteLength) {
@@ -54,27 +54,20 @@ BleAdvertisementHeader::BleAdvertisementHeader(
 }
 
 BleAdvertisementHeader::BleAdvertisementHeader(
-    const ByteArray &ble_advertisement_header_bytes) {
+    const ByteArray& ble_advertisement_header_bytes) {
   ByteArray advertisement_header_bytes =
       Base64Utils::Decode(ble_advertisement_header_bytes.AsStringView());
   if (advertisement_header_bytes.Empty()) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      // The BLE advertisement header is not encoded in base64, but still try to
-      // parse it as raw bytes.
-      if (ble_advertisement_header_bytes.size() ==
-              kMinAdvertisementHeaderLength ||
-          ble_advertisement_header_bytes.size() ==
-              kMinAdvertisementHeaderLength + 2) {
-        advertisement_header_bytes = ble_advertisement_header_bytes;
-      } else {
-        VLOG(1) << "Cannot deserialize BLEAdvertisementHeader. "
-                   "Invalid advertising data.";
-        return;
-      }
+    // The BLE advertisement header is not encoded in base64, but still try to
+    // parse it as raw bytes.
+    if (ble_advertisement_header_bytes.size() ==
+            kMinAdvertisementHeaderLength ||
+        ble_advertisement_header_bytes.size() ==
+            kMinAdvertisementHeaderLength + 2) {
+      advertisement_header_bytes = ble_advertisement_header_bytes;
     } else {
-      LOG(INFO) << "Cannot deserialize BLEAdvertisementHeader: failed "
-                   "Base64 decoding";
+      VLOG(1) << "Cannot deserialize BLEAdvertisementHeader. "
+                 "Invalid advertising data.";
       return;
     }
   }
@@ -145,7 +138,7 @@ BleAdvertisementHeader::operator ByteArray() const {
 
   // Convert psm_ value to 2-bytes.
   ByteArray psm_bytes{kPsmValueByteLength};
-  char *data = psm_bytes.data();
+  char* data = psm_bytes.data();
   data[0] = (psm_ & 0xFF00) >> 8;
   data[1] = psm_ & 0x00FF;
 
@@ -155,16 +148,11 @@ BleAdvertisementHeader::operator ByteArray() const {
                                  std::string(advertisement_hash_),
                                  std::string(psm_bytes));
   // clang-format on
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    return ByteArray(std::move(out));
-  } else {
-    return ByteArray(Base64Utils::Encode(ByteArray(std::move(out))));
-  }
+  return ByteArray(std::move(out));
 }
 
 bool BleAdvertisementHeader::operator==(
-    const BleAdvertisementHeader &rhs) const {
+    const BleAdvertisementHeader& rhs) const {
   return GetVersion() == rhs.GetVersion() &&
          IsSupportExtendedAdvertisement() ==
              rhs.IsSupportExtendedAdvertisement() &&

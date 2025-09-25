@@ -32,7 +32,6 @@
 #include "connections/implementation/awdl_endpoint_channel.h"
 #include "connections/implementation/base_pcp_handler.h"
 #include "connections/implementation/ble_advertisement.h"
-#include "connections/implementation/ble_endpoint_channel.h"
 #include "connections/implementation/ble_l2cap_endpoint_channel.h"
 #include "connections/implementation/ble_v2_endpoint_channel.h"
 #include "connections/implementation/bluetooth_device_name.h"
@@ -63,7 +62,6 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/platform/awdl.h"
-#include "internal/platform/ble.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -117,7 +115,6 @@ P2pClusterPcpHandler::P2pClusterPcpHandler(
       awdl_medium_(mediums->GetAwdl()),
       bluetooth_radio_(mediums->GetBluetoothRadio()),
       bluetooth_medium_(mediums->GetBluetoothClassic()),
-      ble_medium_(mediums->GetBle()),
       ble_v2_medium_(mediums->GetBleV2()),
       wifi_lan_medium_(mediums->GetWifiLan()),
       wifi_hotspot_medium_(mediums->GetWifiHotspot()),
@@ -144,15 +141,8 @@ std::vector<Medium> P2pClusterPcpHandler::GetConnectionMediumsByPriority() {
   if (bluetooth_medium_.IsAvailable()) {
     mediums.push_back(BLUETOOTH);
   }
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    if (ble_v2_medium_.IsAvailable()) {
-      mediums.push_back(BLE);
-    }
-  } else {
-    if (ble_medium_.IsAvailable()) {
-      mediums.push_back(BLE);
-    }
+  if (ble_v2_medium_.IsAvailable()) {
+    mediums.push_back(BLE);
   }
 
   return mediums;
@@ -230,34 +220,9 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
     if (bluetooth_medium != UNKNOWN_MEDIUM) {
       LOG(INFO) << "P2pClusterPcpHandler::StartAdvertisingImpl: BT started";
 
-      // TODO(hais): update this after ble_v2 refactor.
       if (api::ImplementationPlatform::GetCurrentOS() ==
-              api::OSName::kChromeOS &&
-          !NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kEnableBleV2)) {
-        if (ble_medium_.StartLegacyAdvertising(
-                service_id, local_endpoint_id,
-                advertising_options.fast_advertisement_service_uuid)) {
-          VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: "
-                     "Ble legacy started advertising";
-          VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: BT added";
-          mediums_started_successfully.push_back(bluetooth_medium);
-          bluetooth_classic_advertiser_client_id_ = client->GetClientId();
-        } else {
-          // TODO(hais): update this after ble_v2 refactor.
-          LOG(WARNING) << "P2pClusterPcpHandler::StartAdvertisingImpl: "
-                          "BLE legacy failed, revert BTC";
-          bluetooth_medium_.TurnOffDiscoverability();
-          bluetooth_medium_.StopAcceptingConnections(service_id);
-        }
-      } else if ((api::ImplementationPlatform::GetCurrentOS() ==
-                      api::OSName::kChromeOS ||
-                  api::ImplementationPlatform::GetCurrentOS() ==
-                      api::OSName::kLinux) &&
-                 NearbyFlags::GetInstance().GetBoolFlag(
-                     config_package_nearby::nearby_connections_feature::
-                         kEnableBleV2)) {
+              api::OSName::kChromeOS ||
+          api::ImplementationPlatform::GetCurrentOS() == api::OSName::kLinux) {
         if (ble_v2_medium_.StartLegacyAdvertising(
                 service_id, local_endpoint_id,
                 advertising_options.fast_advertisement_service_uuid)) {
@@ -290,24 +255,14 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 
   if (advertising_options.allowed.ble) {
     ErrorOr<Medium> ble_result = {Error(OperationResultCode::DETAIL_UNKNOWN)};
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      ble_result = StartBleV2Advertising(client, service_id, local_endpoint_id,
-                                         local_endpoint_info,
-                                         advertising_options, web_rtc_state);
-      if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
-        VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
-        mediums_started_successfully.push_back(ble_result.value());
-      }
-    } else {
-      ble_result = StartBleAdvertising(client, service_id, local_endpoint_id,
+    ble_result = StartBleV2Advertising(client, service_id, local_endpoint_id,
                                        local_endpoint_info, advertising_options,
                                        web_rtc_state);
-      if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
-        VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
-        mediums_started_successfully.push_back(ble_result.value());
-      }
+    if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
+      VLOG(1) << "P2pClusterPcpHandler::StartAdvertisingImpl: Ble added";
+      mediums_started_successfully.push_back(ble_result.value());
     }
+
     std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
         operation_result_with_medium = GetOperationResultWithMediumByResultCode(
             client, BLE, /*update_index=*/0,
@@ -342,18 +297,8 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartAdvertisingImpl(
 Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   if (client->GetClientId() == bluetooth_classic_advertiser_client_id_) {
     bluetooth_medium_.TurnOffDiscoverability();
-    // TODO(hais): update this after ble_v2 refactor.
-    if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS &&
-        !NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      ble_medium_.StopLegacyAdvertising(client->GetAdvertisingServiceId());
-    } else if ((api::ImplementationPlatform::GetCurrentOS() ==
-                    api::OSName::kChromeOS ||
-                api::ImplementationPlatform::GetCurrentOS() ==
-                    api::OSName::kLinux) &&
-               NearbyFlags::GetInstance().GetBoolFlag(
-                   config_package_nearby::nearby_connections_feature::
-                       kEnableBleV2)) {
+    if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS ||
+        api::ImplementationPlatform::GetCurrentOS() == api::OSName::kLinux) {
       ble_v2_medium_.StopLegacyAdvertising(client->GetAdvertisingServiceId());
     }
     bluetooth_classic_advertiser_client_id_ = 0;
@@ -365,20 +310,12 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   }
 
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
-
+  ble_v2_medium_.StopAdvertising(client->GetAdvertisingServiceId());
+  ble_v2_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
   if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    ble_v2_medium_.StopAdvertising(client->GetAdvertisingServiceId());
-    ble_v2_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kEnableBleL2cap)) {
-      ble_v2_medium_.StopAcceptingL2capConnections(
-          client->GetAdvertisingServiceId());
-    }
-  } else {
-    ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
-    ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
+          config_package_nearby::nearby_connections_feature::kEnableBleL2cap)) {
+    ble_v2_medium_.StopAcceptingL2capConnections(
+        client->GetAdvertisingServiceId());
   }
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
@@ -589,165 +526,6 @@ void P2pClusterPcpHandler::BluetoothDeviceLostHandler(
                                                   device_name.GetEndpointInfo(),
                                                   service_id, BLUETOOTH,
                                                   WebRtcState::kUndefined});
-      });
-}
-
-bool P2pClusterPcpHandler::IsRecognizedBleEndpoint(
-    const std::string& service_id,
-    const BleAdvertisement& advertisement) const {
-  if (advertisement.GetPcp() != GetPcp()) {
-    LOG(INFO) << "BleAdvertisement doesn't match on Pcp; expected "
-              << PcpToStrategy(GetPcp()).GetName() << ", found "
-              << PcpToStrategy(advertisement.GetPcp()).GetName();
-    return false;
-  }
-
-  // Check ServiceId for normal advertisement.
-  // ServiceIdHash is empty for fast advertisement.
-  if (!advertisement.IsFastAdvertisement()) {
-    ByteArray expected_service_id_hash =
-        GenerateHash(service_id, BleAdvertisement::kServiceIdHashLength);
-
-    if (advertisement.GetServiceIdHash() != expected_service_id_hash) {
-      LOG(INFO)
-          << "BleAdvertisement doesn't match on expected service_id_hash; "
-             "expected "
-          << absl::BytesToHexString(expected_service_id_hash.data())
-          << ", found "
-          << absl::BytesToHexString(advertisement.GetServiceIdHash().data());
-      return false;
-    }
-  }
-
-  return true;
-}
-
-void P2pClusterPcpHandler::BlePeripheralDiscoveredHandler(
-    ClientProxy* client, BlePeripheral& peripheral,
-    const std::string& service_id, const ByteArray& advertisement_bytes,
-    bool fast_advertisement) {
-  RunOnPcpHandlerThread(
-      "p2p-ble-device-discovered",
-      [this, client, &peripheral, service_id, advertisement_bytes,
-       fast_advertisement]() RUN_ON_PCP_HANDLER_THREAD() {
-        // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering() || stop_.Get()) {
-          LOG(WARNING) << "Skipping discovery of BleAdvertisement header "
-                       << absl::BytesToHexString(advertisement_bytes.data())
-                       << " because we are no longer discovering.";
-          return;
-        }
-
-        auto ble_status_or = BleAdvertisement::CreateBleAdvertisement(
-            fast_advertisement, advertisement_bytes);
-        if (!ble_status_or.ok()) {
-          LOG(ERROR) << ble_status_or.status();
-          return;
-        }
-        const auto& advertisement = ble_status_or.value();
-
-        // Make sure the BLE advertisement points to a valid
-        // endpoint we're discovering.
-        if (!IsRecognizedBleEndpoint(service_id, advertisement)) return;
-
-        // Store all the state we need to be able to re-create a BleEndpoint
-        // in BlePeripheralLostHandler, since that isn't privy to
-        // the bytes of the ble advertisement itself.
-        found_ble_endpoints_.emplace(
-            peripheral.GetName(),
-            BleEndpointState(advertisement.GetEndpointId(),
-                             advertisement.GetEndpointInfo()));
-
-        StopEndpointLostByMediumAlarm(advertisement.GetEndpointId(), BLE);
-
-        // Report the discovered endpoint to the client.
-        VLOG(1) << "Found BleAdvertisement "
-                << absl::BytesToHexString(advertisement_bytes.data())
-                << " (with endpoint_id=" << advertisement.GetEndpointId()
-                << ", and endpoint_info="
-                << absl::BytesToHexString(
-                       advertisement.GetEndpointInfo().data())
-                << ").";
-        OnEndpointFound(
-            client,
-            std::make_shared<BleEndpoint>(BleEndpoint{
-                {advertisement.GetEndpointId(), advertisement.GetEndpointInfo(),
-                 service_id, BLE, advertisement.GetWebRtcState()},
-                peripheral,
-            }));
-
-        // Make sure we can connect to this device via Classic Bluetooth.
-        MacAddress remote_bluetooth_mac_address =
-            advertisement.GetBluetoothMacAddress();
-        if (!remote_bluetooth_mac_address.IsSet()) {
-          LOG(INFO)
-              << "No Bluetooth Classic MAC address found in advertisement.";
-          return;
-        }
-
-        BluetoothDevice remote_bluetooth_device =
-            bluetooth_medium_.GetRemoteDevice(remote_bluetooth_mac_address);
-        if (!remote_bluetooth_device.IsValid()) {
-          LOG(INFO)
-              << "A valid Bluetooth device could not be derived from the MAC "
-                 "address "
-              << remote_bluetooth_mac_address.ToString();
-          return;
-        }
-
-        StopEndpointLostByMediumAlarm(advertisement.GetEndpointId(), BLUETOOTH);
-        OnEndpointFound(client,
-                        std::make_shared<BluetoothEndpoint>(BluetoothEndpoint{
-                            {
-                                advertisement.GetEndpointId(),
-                                advertisement.GetEndpointInfo(),
-                                service_id,
-                                BLUETOOTH,
-                                advertisement.GetWebRtcState(),
-                            },
-                            remote_bluetooth_device,
-                        }));
-      });
-}
-
-void P2pClusterPcpHandler::BlePeripheralLostHandler(
-    ClientProxy* client, BlePeripheral& peripheral,
-    const std::string& service_id) {
-  std::string peripheral_name = peripheral.GetName();
-  LOG(INFO) << "Ble: [LOST, SCHED] peripheral_name=" << peripheral_name;
-  RunOnPcpHandlerThread(
-      "p2p-ble-device-lost",
-      [this, client, service_id, &peripheral]() RUN_ON_PCP_HANDLER_THREAD() {
-        // Make sure we are still discovering before proceeding.
-        if (!client->IsDiscovering() || stop_.Get()) {
-          LOG(WARNING) << "Ignoring lost BlePeripheral  because we are "
-                          "no longer discovering.";
-          return;
-        }
-
-        // Remove this BlePeripheral from found_ble_endpoints_, and
-        // report the endpoint as lost to the client.
-        auto item = found_ble_endpoints_.find(peripheral.GetName());
-        if (item != found_ble_endpoints_.end()) {
-          BleEndpointState ble_endpoint_state(item->second);
-          found_ble_endpoints_.erase(item);
-
-          // Report the discovered endpoint to the client.
-          VLOG(1) << "Lost BleEndpoint for BlePeripheral "
-                  << peripheral.GetName()
-                  << " (with endpoint_id=" << ble_endpoint_state.endpoint_id
-                  << " and endpoint_info="
-                  << absl::BytesToHexString(
-                         ble_endpoint_state.endpoint_info.data())
-                  << ").";
-          OnEndpointLost(client, DiscoveredEndpoint{
-                                     ble_endpoint_state.endpoint_id,
-                                     ble_endpoint_state.endpoint_info,
-                                     service_id,
-                                     BLE,
-                                     WebRtcState::kUndefined,
-                                 });
-        }
       });
 }
 
@@ -1320,30 +1098,16 @@ BasePcpHandler::StartOperationResult P2pClusterPcpHandler::StartDiscoveryImpl(
 
   if (discovery_options.allowed.ble) {
     ErrorOr<Medium> ble_result = {Error(OperationResultCode::DETAIL_UNKNOWN)};
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      ble_result = StartBleV2Scanning(client, service_id, discovery_options);
-      Medium ble_v2_medium = UNKNOWN_MEDIUM;
-      if (ble_result.has_value()) {
-        ble_v2_medium = ble_result.value();
-      }
-      if (ble_v2_medium != UNKNOWN_MEDIUM) {
-        LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: Ble v2 added";
-        mediums_started_successfully.push_back(ble_v2_medium);
-      }
-    } else {
-      ble_result =
-          StartBleScanning(client, service_id,
-                           discovery_options.fast_advertisement_service_uuid);
-      Medium ble_medium = UNKNOWN_MEDIUM;
-      if (ble_result.has_value()) {
-        ble_medium = ble_result.value();
-      }
-      if (ble_medium != UNKNOWN_MEDIUM) {
-        LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: Ble added";
-        mediums_started_successfully.push_back(ble_medium);
-      }
+    ble_result = StartBleV2Scanning(client, service_id, discovery_options);
+    Medium ble_v2_medium = UNKNOWN_MEDIUM;
+    if (ble_result.has_value()) {
+      ble_v2_medium = ble_result.value();
     }
+    if (ble_v2_medium != UNKNOWN_MEDIUM) {
+      LOG(INFO) << "P2pClusterPcpHandler::StartDiscoveryImpl: Ble v2 added";
+      mediums_started_successfully.push_back(ble_v2_medium);
+    }
+
     std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
         operation_result_with_medium = GetOperationResultWithMediumByResultCode(
             client, BLE,
@@ -1420,12 +1184,7 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
               << " because it is not in discovery.";
   }
 
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    ble_v2_medium_.StopScanning(client->GetDiscoveryServiceId());
-  } else {
-    ble_medium_.StopScanning(client->GetDiscoveryServiceId());
-  }
+  ble_v2_medium_.StopScanning(client->GetDiscoveryServiceId());
 
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
@@ -1486,20 +1245,11 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
       break;
     }
     case BLE: {
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kEnableBleV2)) {
-        auto* ble_v2_endpoint = down_cast<BleV2Endpoint*>(endpoint);
-        if (ble_v2_endpoint) {
-          return BleV2ConnectImpl(client, ble_v2_endpoint);
-        }
-
-      } else {
-        auto* ble_endpoint = down_cast<BleEndpoint*>(endpoint);
-        if (ble_endpoint) {
-          return BleConnectImpl(client, ble_endpoint);
-        }
+      auto* ble_v2_endpoint = down_cast<BleV2Endpoint*>(endpoint);
+      if (ble_v2_endpoint) {
+        return BleV2ConnectImpl(client, ble_v2_endpoint);
       }
+
       break;
     }
     case WIFI_LAN: {
@@ -1561,64 +1311,45 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
                 : OperationResultCode::DETAIL_SUCCESS);
     operation_result_with_mediums.push_back(*operation_result_with_medium);
   }
-  // ble
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    // ble_v2
-    // TODO(mingshiouwu): Add unit test for ble_l2cap flow
-    bool accepting_ble_connections_success = false;
-    if (options.enable_ble_listening &&
-        NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kEnableBleL2cap) &&
-        !ble_v2_medium_.IsAcceptingL2capConnections(std::string(service_id))) {
-      if (!ble_v2_medium_.StartAcceptingL2capConnections(
-              std::string(service_id),
-              absl::bind_front(
-                  &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler,
-                  this, client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
-        LOG(WARNING) << "Failed to start listening for incoming L2CAP "
-                        "connections on ble_v2";
-      } else {
-        accepting_ble_connections_success = true;
-      }
-    }
 
-    if (options.enable_ble_listening &&
-        !ble_v2_medium_.IsAcceptingConnections(std::string(service_id))) {
-      if (!ble_v2_medium_.StartAcceptingConnections(
-              std::string(service_id),
-              absl::bind_front(
-                  &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
-        LOG(WARNING)
-            << "Failed to start listening for incoming connections on ble_v2";
-      } else {
-        accepting_ble_connections_success = true;
-      }
-    }
-    if (accepting_ble_connections_success) {
-      started_mediums.push_back(BLE);
-    }
-  } else {
-    // ble v1
-    if (options.enable_ble_listening &&
-        !ble_medium_.IsAcceptingConnections(std::string(service_id))) {
-      if (!ble_medium_.StartAcceptingConnections(
-              std::string(service_id),
-              absl::bind_front(
-                  &P2pClusterPcpHandler::BleConnectionAcceptedHandler, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
-        LOG(WARNING)
-            << "Failed to start listening for incoming connections on ble";
-      } else {
-        started_mediums.push_back(BLE);
-      }
+  // ble
+  // TODO(mingshiouwu): Add unit test for ble_l2cap flow
+  bool accepting_ble_connections_success = false;
+  if (options.enable_ble_listening &&
+      NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
+      !ble_v2_medium_.IsAcceptingL2capConnections(std::string(service_id))) {
+    if (!ble_v2_medium_.StartAcceptingL2capConnections(
+            std::string(service_id),
+            absl::bind_front(
+                &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler, this,
+                client_proxy, local_endpoint_id,
+                options.listening_endpoint_type))) {
+      LOG(WARNING) << "Failed to start listening for incoming L2CAP "
+                      "connections on ble_v2";
+    } else {
+      accepting_ble_connections_success = true;
     }
   }
+
+  if (options.enable_ble_listening &&
+      !ble_v2_medium_.IsAcceptingConnections(std::string(service_id))) {
+    if (!ble_v2_medium_.StartAcceptingConnections(
+            std::string(service_id),
+            absl::bind_front(
+                &P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler, this,
+                client_proxy, local_endpoint_id,
+                options.listening_endpoint_type))) {
+      LOG(WARNING)
+          << "Failed to start listening for incoming connections on ble_v2";
+    } else {
+      accepting_ble_connections_success = true;
+    }
+  }
+  if (accepting_ble_connections_success) {
+    started_mediums.push_back(BLE);
+  }
+
   // wifi lan
   if (options.enable_wlan_listening &&
       !wifi_lan_medium_.IsAcceptingConnections(std::string(service_id))) {
@@ -1677,23 +1408,13 @@ void P2pClusterPcpHandler::StopListeningForIncomingConnectionsImpl(
           << "Unable to stop bluetooth medium from accepting connections.";
     }
   }
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-    if (ble_v2_medium_.IsAcceptingConnections(
+
+  if (ble_v2_medium_.IsAcceptingConnections(
+          client->GetListeningForIncomingConnectionsServiceId())) {
+    if (!ble_v2_medium_.StopAcceptingConnections(
             client->GetListeningForIncomingConnectionsServiceId())) {
-      if (!ble_v2_medium_.StopAcceptingConnections(
-              client->GetListeningForIncomingConnectionsServiceId())) {
-        LOG(WARNING)
-            << "Unable to stop ble_v2 medium from accepting connections.";
-      }
-    }
-  } else {
-    if (ble_medium_.IsAcceptingConnections(
-            client->GetListeningForIncomingConnectionsServiceId())) {
-      if (!ble_medium_.StopAcceptingConnections(
-              client->GetListeningForIncomingConnectionsServiceId())) {
-        LOG(WARNING) << "Unable to stop ble medium from accepting connections.";
-      }
+      LOG(WARNING)
+          << "Unable to stop ble_v2 medium from accepting connections.";
     }
   }
 }
@@ -1708,14 +1429,8 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
   // ble
   if (NeedsToTurnOffAdvertisingMedium(BLE, old_options, advertising_options) ||
       needs_restart) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      mediums_->GetBleV2().StopAdvertising(std::string(service_id));
-      mediums_->GetBleV2().StopAcceptingConnections(std::string(service_id));
-    } else {
-      mediums_->GetBle().StopAdvertising(std::string(service_id));
-      mediums_->GetBle().StopAcceptingConnections(std::string(service_id));
-    }
+    mediums_->GetBleV2().StopAdvertising(std::string(service_id));
+    mediums_->GetBleV2().StopAcceptingConnections(std::string(service_id));
   }
   // awdl
   if (NearbyFlags::GetInstance().GetBoolFlag(
@@ -1741,16 +1456,8 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
     mediums_->GetBluetoothClassic().TurnOffDiscoverability();
     mediums_->GetBluetoothClassic().StopAcceptingConnections(
         std::string(service_id));
-    // TODO(hais): update this after ble_v2 refactor.
-    if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS) {
-      mediums_->GetBle().StopLegacyAdvertising(std::string(service_id));
-    } else if ((api::ImplementationPlatform::GetCurrentOS() ==
-                    api::OSName::kChromeOS ||
-                api::ImplementationPlatform::GetCurrentOS() ==
-                    api::OSName::kLinux) &&
-               NearbyFlags::GetInstance().GetBoolFlag(
-                   config_package_nearby::nearby_connections_feature::
-                       kEnableBleV2)) {
+    if (api::ImplementationPlatform::GetCurrentOS() == api::OSName::kChromeOS ||
+        api::ImplementationPlatform::GetCurrentOS() == api::OSName::kLinux) {
       mediums_->GetBleV2().StopLegacyAdvertising(
           client->GetAdvertisingServiceId());
     }
@@ -1780,29 +1487,16 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
       operation_result_with_mediums.push_back(*operation_result_with_medium);
     } else {
       ErrorOr<Medium> ble_result = {Error(OperationResultCode::DETAIL_UNKNOWN)};
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kEnableBleV2)) {
-        ble_result = StartBleV2Advertising(
-            client, std::string(service_id), std::string(local_endpoint_id),
-            ByteArray(std::string(local_endpoint_info)), advertising_options,
-            web_rtc_state);
-        if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
-          restarted_mediums.push_back(BLE);
-        } else {
-          status = {Status::kBleError};
-        }
+      ble_result = StartBleV2Advertising(
+          client, std::string(service_id), std::string(local_endpoint_id),
+          ByteArray(std::string(local_endpoint_info)), advertising_options,
+          web_rtc_state);
+      if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
+        restarted_mediums.push_back(BLE);
       } else {
-        ble_result = StartBleAdvertising(
-            client, std::string(service_id), std::string(local_endpoint_id),
-            ByteArray(std::string(local_endpoint_info)), advertising_options,
-            web_rtc_state);
-        if (ble_result.has_value() && ble_result.value() != UNKNOWN_MEDIUM) {
-          restarted_mediums.push_back(BLE);
-        } else {
-          status = {Status::kBleError};
-        }
+        status = {Status::kBleError};
       }
+
       std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
           operation_result_with_medium =
               GetOperationResultWithMediumByResultCode(
@@ -1893,34 +1587,10 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
           ByteArray(std::string(local_endpoint_info)), web_rtc_state);
       if (bluetooth_result.has_value() &&
           bluetooth_result.value() != UNKNOWN_MEDIUM) {
-        // TODO(hais): update this after ble_v2 refactor.
         if (api::ImplementationPlatform::GetCurrentOS() ==
-                api::OSName::kChromeOS &&
-            !NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnableBleV2)) {
-          if (ble_medium_.StartLegacyAdvertising(
-                  std::string(service_id), std::string(local_endpoint_id),
-                  advertising_options.fast_advertisement_service_uuid)) {
-            LOG(INFO) << "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: "
-                         "Ble legacy started advertising";
-            LOG(INFO) << "P2pClusterPcpHandler::"
-                         "UpdateAdvertisingOptionsImpl: BT added";
-            restarted_mediums.push_back(BLUETOOTH);
-          } else {
-            LOG(WARNING)
-                << "P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl: BLE "
-                   "legacy failed, revert BTC";
-            bluetooth_medium_.TurnOffDiscoverability();
-            bluetooth_medium_.StopAcceptingConnections(std::string(service_id));
-          }
-        } else if ((api::ImplementationPlatform::GetCurrentOS() ==
-                        api::OSName::kChromeOS ||
-                    api::ImplementationPlatform::GetCurrentOS() ==
-                        api::OSName::kLinux) &&
-                   NearbyFlags::GetInstance().GetBoolFlag(
-                       config_package_nearby::nearby_connections_feature::
-                           kEnableBleV2)) {
+                api::OSName::kChromeOS ||
+            api::ImplementationPlatform::GetCurrentOS() ==
+                api::OSName::kLinux) {
           if (ble_v2_medium_.StartLegacyAdvertising(
                   std::string(service_id), std::string(local_endpoint_id),
                   advertising_options.fast_advertisement_service_uuid)) {
@@ -1937,10 +1607,10 @@ P2pClusterPcpHandler::UpdateAdvertisingOptionsImpl(
             bluetooth_medium_.TurnOffDiscoverability();
             bluetooth_medium_.StopAcceptingConnections(std::string(service_id));
           }
-
         } else {
           restarted_mediums.push_back(BLUETOOTH);
         }
+
         std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
             operation_result_with_medium =
                 GetOperationResultWithMediumByResultCode(
@@ -1984,12 +1654,7 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
   bool needs_restart = old_options.low_power != discovery_options.low_power;
   // ble
   if (NeedsToTurnOffDiscoveryMedium(BLE, old_options, discovery_options)) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::kEnableBleV2)) {
-      ble_v2_medium_.StopScanning(std::string(service_id));
-    } else {
-      ble_medium_.StopScanning(std::string(service_id));
-    }
+    ble_v2_medium_.StopScanning(std::string(service_id));
     StartEndpointLostByMediumAlarms(client, BLE);
   }
   // bt classic
@@ -2035,28 +1700,15 @@ P2pClusterPcpHandler::UpdateDiscoveryOptionsImpl(
       operation_result_with_mediums.push_back(*operation_result_with_medium);
     } else {
       ErrorOr<Medium> ble_result = {Error(OperationResultCode::DETAIL_UNKNOWN)};
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kEnableBleV2)) {
-        ble_result = StartBleV2Scanning(client, std::string(service_id),
-                                        discovery_options);
-        if (ble_result.has_value()) {
-          restarted_mediums.push_back(BLE);
-        } else {
-          LOG(WARNING) << "UpdateDiscoveryOptionsImpl: unable to "
-                          "restart blev2 scanning";
-        }
+      ble_result = StartBleV2Scanning(client, std::string(service_id),
+                                      discovery_options);
+      if (ble_result.has_value()) {
+        restarted_mediums.push_back(BLE);
       } else {
-        ble_result =
-            StartBleScanning(client, std::string(service_id),
-                             discovery_options.fast_advertisement_service_uuid);
-        if (ble_result.has_value()) {
-          restarted_mediums.push_back(BLE);
-        } else {
-          LOG(WARNING)
-              << "UpdateDiscoveryOptionsImpl: unable to restart ble scanning";
-        }
+        LOG(WARNING) << "UpdateDiscoveryOptionsImpl: unable to "
+                        "restart blev2 scanning";
       }
+
       std::unique_ptr<ConnectionsLog::OperationResultWithMedium>
           operation_result_with_medium =
               GetOperationResultWithMediumByResultCode(
@@ -2434,257 +2086,6 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BluetoothConnectImpl(
       .status = {Status::kSuccess},
       .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
       .endpoint_channel = std::move(channel)};
-}
-
-void P2pClusterPcpHandler::BleConnectionAcceptedHandler(
-    ClientProxy* client, absl::string_view local_endpoint_info,
-    NearbyDevice::Type device_type, BleSocket socket,
-    const std::string& service_id) {
-  if (!socket.IsValid()) {
-    LOG(WARNING) << "Invalid socket in accept callback("
-                 << absl::BytesToHexString(local_endpoint_info)
-                 << "), client=" << client->GetClientId();
-    return;
-  }
-  RunOnPcpHandlerThread(
-      "p2p-ble-on-incoming-connection",
-      [this, client, service_id, socket = std::move(socket), device_type]()
-          RUN_ON_PCP_HANDLER_THREAD() mutable {
-            std::string remote_peripheral_name =
-                socket.GetRemotePeripheral().GetName();
-            auto channel = std::make_unique<BleEndpointChannel>(
-                service_id,
-                /*channel_name=*/remote_peripheral_name, socket);
-            ByteArray remote_peripheral_info =
-                socket.GetRemotePeripheral().GetAdvertisementBytes(service_id);
-
-            OnIncomingConnection(client, remote_peripheral_info,
-                                 std::move(channel), BLE, device_type);
-          });
-}
-
-ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
-    ClientProxy* client, const std::string& service_id,
-    const std::string& local_endpoint_id, const ByteArray& local_endpoint_info,
-    const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state) {
-  bool fast_advertisement =
-      !advertising_options.fast_advertisement_service_uuid.empty();
-  PowerLevel power_level = advertising_options.low_power
-                               ? PowerLevel::kLowPower
-                               : PowerLevel::kHighPower;
-
-  // Start listening for connections before advertising in case a connection
-  // request comes in very quickly. BLE allows connecting over BLE itself, as
-  // well as advertising the Bluetooth MAC address to allow connecting over
-  // Bluetooth Classic.
-  LOG(INFO) << "P2pClusterPcpHandler::StartBleAdvertising: service_id="
-            << service_id << " : start";
-  if (!ble_medium_.IsAcceptingConnections(service_id)) {
-    // TODO(b/380411884): Remove this check since we shouldn't enable radio by
-    // NC.
-    if (!bluetooth_radio_.Enable()) {
-      LOG(WARNING)
-          << "In StartBleAdvertising("
-          << absl::BytesToHexString(local_endpoint_info.data())
-          << "), client=" << client->GetClientId()
-          << " failed to start accepting for incoming BLE connections to "
-             "service_id="
-          << service_id;
-      return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
-    }
-    ErrorOr<bool> accept_result = ble_medium_.StartAcceptingConnections(
-        service_id,
-        absl::bind_front(&P2pClusterPcpHandler::BleConnectionAcceptedHandler,
-                         this, client, local_endpoint_info.AsStringView(),
-                         NearbyDevice::Type::kConnectionsDevice));
-    if (!accept_result.has_value()) {
-      LOG(WARNING)
-          << "In StartBleAdvertising("
-          << absl::BytesToHexString(local_endpoint_info.data())
-          << "), client=" << client->GetClientId()
-          << " failed to start accepting for incoming BLE connections to "
-             "service_id="
-          << service_id;
-      return {Error(accept_result.error().operation_result_code().value())};
-    }
-    LOG(INFO)
-        << "In StartBleAdvertising("
-        << absl::BytesToHexString(local_endpoint_info.data())
-        << "), client=" << client->GetClientId()
-        << " started accepting for incoming BLE connections to service_id="
-        << service_id;
-  }
-
-  if (ShouldAdvertiseBluetoothMacOverBle(power_level) ||
-      ShouldAcceptBluetoothConnections(advertising_options)) {
-    if (bluetooth_medium_.IsAvailable() &&
-        !bluetooth_medium_.IsAcceptingConnections(service_id)) {
-      // TODO(b/380411884): Remove this check since we shouldn't enable radio by
-      // NC.
-      if (!bluetooth_radio_.Enable()) {
-        LOG(WARNING)
-            << "In BT StartBleAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << "), client=" << client->GetClientId()
-            << " failed to start accepting for incoming BLE connections to "
-               "service_id="
-            << service_id;
-        return {
-            Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
-      }
-      ErrorOr<bool> accept_result = bluetooth_medium_.StartAcceptingConnections(
-          service_id,
-          absl::bind_front(
-              &P2pClusterPcpHandler::BluetoothConnectionAcceptedHandler, this,
-              client, local_endpoint_info.AsStringView(),
-              NearbyDevice::Type::kConnectionsDevice));
-      if (!accept_result.has_value()) {
-        LOG(WARNING)
-            << "In BT StartBleAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << "), client=" << client->GetClientId()
-            << " failed to start accepting for incoming BLE connections to "
-               "service_id="
-            << service_id;
-        ble_medium_.StopAcceptingConnections(service_id);
-        return {Error(accept_result.error().operation_result_code().value())};
-      }
-      LOG(INFO)
-          << "In BT StartBleAdvertising("
-          << absl::BytesToHexString(local_endpoint_info.data())
-          << "), client=" << client->GetClientId()
-          << " started accepting for incoming BLE connections to service_id="
-          << service_id;
-    }
-  }
-
-  LOG(INFO) << "In StartBleAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << "), client=" << client->GetClientId()
-            << " start to generate BleAdvertisement with service_id="
-            << service_id << ", local endpoint_id=" << local_endpoint_id;
-  // Generate a BleAdvertisement. If a fast advertisement service UUID was
-  // provided, create a fast BleAdvertisement.
-  ByteArray advertisement_bytes;
-  // TODO(b/169550050): Implement UWBAddress.
-  if (fast_advertisement) {
-    advertisement_bytes = ByteArray(
-        BleAdvertisement(kBleAdvertisementVersion, GetPcp(), local_endpoint_id,
-                         local_endpoint_info, ByteArray{}));
-  } else {
-    const ByteArray service_id_hash =
-        GenerateHash(service_id, BleAdvertisement::kServiceIdHashLength);
-    MacAddress bluetooth_mac_address;
-    if (bluetooth_medium_.IsAvailable() &&
-        ShouldAdvertiseBluetoothMacOverBle(power_level))
-      bluetooth_mac_address = bluetooth_medium_.GetAddress();
-
-    advertisement_bytes = ByteArray(
-        BleAdvertisement(kBleAdvertisementVersion, GetPcp(), service_id_hash,
-                         local_endpoint_id, local_endpoint_info,
-                         bluetooth_mac_address, ByteArray{}, web_rtc_state));
-  }
-  if (advertisement_bytes.Empty()) {
-    LOG(WARNING) << "In StartBleAdvertising("
-                 << absl::BytesToHexString(local_endpoint_info.data())
-                 << "), client=" << client->GetClientId()
-                 << " failed to create an advertisement.";
-    ble_medium_.StopAcceptingConnections(service_id);
-    return {Error(OperationResultCode::NEARBY_BLE_ADVERTISE_TO_BYTES_FAILURE)};
-  }
-
-  LOG(INFO) << "In StartBleAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << "), client=" << client->GetClientId()
-            << " generated BleAdvertisement with service_id=" << service_id
-            << ", bytes: "
-            << absl::BytesToHexString(advertisement_bytes.data());
-
-  ErrorOr<bool> ble_result = ble_medium_.StartAdvertising(
-      service_id, advertisement_bytes,
-      advertising_options.fast_advertisement_service_uuid);
-  if (ble_result.has_error()) {
-    LOG(WARNING) << "In StartBleAdvertising("
-                 << absl::BytesToHexString(local_endpoint_info.data())
-                 << "), client=" << client->GetClientId()
-                 << " couldn't start BLE Advertising with BleAdvertisement "
-                 << absl::BytesToHexString(advertisement_bytes.data());
-    ble_medium_.StopAcceptingConnections(service_id);
-    return {Error(ble_result.error().operation_result_code().value())};
-  }
-  LOG(INFO) << "In startBleAdvertising("
-            << absl::BytesToHexString(local_endpoint_info.data())
-            << ", fast_advertisement: " << fast_advertisement
-            << "), client=" << client->GetClientId()
-            << " started BLE Advertising with BleAdvertisement "
-            << absl::BytesToHexString(advertisement_bytes.data());
-  return {BLE};
-}
-
-ErrorOr<Medium> P2pClusterPcpHandler::StartBleScanning(
-    ClientProxy* client, const std::string& service_id,
-    const std::string& fast_advertisement_service_uuid) {
-  // TODO(b/380411884): Remove this check since we shouldn't enable radio by NC.
-  if (!bluetooth_radio_.Enable()) {
-    LOG(INFO) << "In StartBleScanning(), client=" << client->GetClientId()
-              << " couldn't start scanning on BLE for service_id="
-              << service_id;
-    return {Error(OperationResultCode::DEVICE_STATE_RADIO_ENABLING_FAILURE)};
-  }
-  ErrorOr<bool> result = ble_medium_.StartScanning(
-      service_id, fast_advertisement_service_uuid,
-      {
-          .peripheral_discovered_cb = absl::bind_front(
-              &P2pClusterPcpHandler::BlePeripheralDiscoveredHandler, this,
-              client),
-          .peripheral_lost_cb = absl::bind_front(
-              &P2pClusterPcpHandler::BlePeripheralLostHandler, this, client),
-      });
-  if (!result.has_error()) {
-    LOG(INFO) << "In StartBleScanning(), client=" << client->GetClientId()
-              << " started scanning for BLE advertisements for service_id="
-              << service_id;
-    return {BLE};
-  } else {
-    LOG(INFO) << "In StartBleScanning(), client=" << client->GetClientId()
-              << " couldn't start scanning on BLE for service_id="
-              << service_id;
-    return {Error(result.error().operation_result_code().value())};
-  }
-}
-
-BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
-    ClientProxy* client, BleEndpoint* endpoint) {
-  VLOG(1) << "Client " << client->GetClientId()
-          << " is attempting to connect to endpoint(id="
-          << endpoint->endpoint_id << ") over BLE.";
-
-  BlePeripheral& peripheral = endpoint->ble_peripheral;
-
-  ErrorOr<BleSocket> ble_socket_result =
-      ble_medium_.Connect(peripheral, endpoint->service_id,
-                          client->GetCancellationFlag(endpoint->endpoint_id));
-  if (ble_socket_result.has_error()) {
-    LOG(ERROR) << "In BleConnectImpl(), failed to connect to BLE device "
-               << peripheral.GetName()
-               << " for endpoint(id=" << endpoint->endpoint_id << ").";
-    return BasePcpHandler::ConnectImplResult{
-        .status = {Status::kBleError},
-        .operation_result_code =
-            ble_socket_result.error().operation_result_code().value(),
-    };
-  }
-
-  auto channel = std::make_unique<BleEndpointChannel>(
-      endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-      ble_socket_result.value());
-
-  return BasePcpHandler::ConnectImplResult{
-      .medium = BLE,
-      .status = {Status::kSuccess},
-      .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
-      .endpoint_channel = std::move(channel),
-  };
 }
 
 void P2pClusterPcpHandler::BleV2ConnectionAcceptedHandler(

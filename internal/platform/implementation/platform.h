@@ -21,10 +21,9 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
-#include "internal/platform/implementation/ble.h"
+#include "internal/platform/implementation/awdl.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -131,7 +130,6 @@ class ImplementationPlatform {
   static std::unique_ptr<BluetoothAdapter> CreateBluetoothAdapter();
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
       BluetoothAdapter&);
-  static std::unique_ptr<BleMedium> CreateBleMedium(BluetoothAdapter&);
   static std::unique_ptr<api::ble_v2::BleMedium> CreateBleV2Medium(
       api::BluetoothAdapter&);
   static std::unique_ptr<api::CredentialStorage> CreateCredentialStorage();

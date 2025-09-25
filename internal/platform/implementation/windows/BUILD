@@ -101,12 +101,8 @@ cc_library(
 cc_library(
     name = "comm",
     hdrs = [
-        "ble.h",
         "ble_gatt_client.h",
         "ble_gatt_server.h",
-        "ble_medium.h",
-        "ble_peripheral.h",
-        "ble_socket.h",
         "ble_v2.h",
         "ble_v2_server_socket.h",
         "ble_v2_socket.h",
@@ -208,8 +204,6 @@ cc_library(
     srcs = [
         "ble_gatt_client.cc",
         "ble_gatt_server.cc",
-        "ble_medium.cc",
-        "ble_socket.cc",
         "ble_v2.cc",
         "ble_v2_server_socket.cc",
         "ble_v2_socket.cc",
@@ -341,7 +335,6 @@ cc_test(
         "atomic_boolean_test.cc",
         "atomic_reference_test.cc",
         "ble_gatt_server_test.cc",
-        "ble_medium_test.cc",
         "ble_v2_test.cc",
         "bluetooth_adapter_test.cc",
         "count_down_latch_test.cc",

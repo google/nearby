@@ -41,7 +41,6 @@
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
-#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -60,7 +59,6 @@
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
-#include "internal/platform/implementation/windows/ble_medium.h"
 #include "internal/platform/implementation/windows/ble_v2.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
@@ -255,11 +253,6 @@ std::unique_ptr<BluetoothClassicMedium>
 ImplementationPlatform::CreateBluetoothClassicMedium(
     nearby::api::BluetoothAdapter& adapter) {
   return std::make_unique<windows::BluetoothClassicMedium>(adapter);
-}
-
-std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
-    BluetoothAdapter& adapter) {
-  return std::make_unique<windows::BleMedium>(adapter);
 }
 
 // TODO(b/184975123): replace with real implementation.

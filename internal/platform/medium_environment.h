@@ -29,7 +29,6 @@
 #include "internal/base/observer_list.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/implementation/awdl.h"
-#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -75,10 +74,6 @@ class MediumEnvironment {
  public:
   using BluetoothDiscoveryCallback =
       api::BluetoothClassicMedium::DiscoveryCallback;
-  using BleDiscoveredPeripheralCallback =
-      api::BleMedium::DiscoveredPeripheralCallback;
-  using BleAcceptedConnectionCallback =
-      api::BleMedium::AcceptedConnectionCallback;
   using BleScanCallback = api::ble_v2::BleMedium::ScanningCallback;
 #ifndef NO_WEBRTC
   using OnSignalingMessageCallback =
@@ -192,46 +187,6 @@ class MediumEnvironment {
   void SetPeerConnectionLatency(absl::Duration peer_connection_latency);
 
   absl::Duration GetPeerConnectionLatency();
-
-  // Adds medium-related info to allow for scanning/advertising to work.
-  // This provides access to this medium from other mediums, when protocol
-  // expects they should communicate.
-  void RegisterBleMedium(api::BleMedium& medium);
-
-  // Updates advertising info to indicate the current medium is exposing
-  // advertising event.
-  void UpdateBleMediumForAdvertising(api::BleMedium& medium,
-                                     api::BlePeripheral& peripheral,
-                                     const std::string& service_id,
-                                     bool fast_advertisement, bool enabled);
-
-  // Updates discovery callback info to allow for dispatch of discovery events.
-  //
-  // Invokes callback asynchronously when any changes happen to discoverable
-  // devices if it is turned on.
-  //
-  // This should be called when discoverable state changes.
-  // A valid callback should be assigned when discovery `enabled` as true; or
-  // an empty callback is assigned with discovery `enabled` as false.
-  void UpdateBleMediumForScanning(
-      api::BleMedium& medium, const std::string& service_id,
-      const std::string& fast_advertisement_service_uuid,
-      BleDiscoveredPeripheralCallback callback, bool enabled);
-
-  // Updates Accepted connection callback info to allow for dispatch of
-  // advertising events.
-  void UpdateBleMediumForAcceptedConnection(
-      api::BleMedium& medium, const std::string& service_id,
-      BleAcceptedConnectionCallback callback);
-
-  // Removes medium-related info. This should correspond to device power off.
-  void UnregisterBleMedium(api::BleMedium& medium);
-
-  // Call back when advertising has created the server socket and is ready for
-  // connect.
-  void CallBleAcceptedConnectionCallback(api::BleMedium& medium,
-                                         api::BleSocket& socket,
-                                         const std::string& service_id);
 
   // Adds medium-related info to allow for scanning/advertising to work.
   // This provides access to this medium from other mediums, when protocol
@@ -433,14 +388,6 @@ class MediumEnvironment {
     absl::flat_hash_map<api::BluetoothDevice*, std::string> devices;
   };
 
-  struct BleMediumContext {
-    BleDiscoveredPeripheralCallback discovery_callback;
-    BleAcceptedConnectionCallback accepted_connection_callback;
-    api::BlePeripheral* ble_peripheral = nullptr;
-    bool advertising = false;
-    bool fast_advertisement = false;
-  };
-
   struct BleV2MediumContext {
     absl::flat_hash_map<std::pair<Uuid, std::uint32_t>, BleScanCallback>
         scan_callback_map;
@@ -508,11 +455,6 @@ class MediumEnvironment {
                                      api::BluetoothAdapter::ScanMode mode,
                                      bool enabled);
 
-  void OnBlePeripheralStateChanged(BleMediumContext& info,
-                                   api::BlePeripheral& peripheral,
-                                   const std::string& service_id,
-                                   bool fast_advertisement, bool enabled);
-
   void OnBleV2PeripheralStateChanged(
       bool enabled, BleV2MediumContext& context, const Uuid& service_id,
       const api::ble_v2::BleAdvertisementData& ble_advertisement_data,
@@ -541,7 +483,6 @@ class MediumEnvironment {
   absl::flat_hash_map<api::BluetoothClassicMedium*, BluetoothMediumContext>
       bluetooth_mediums_;
 
-  absl::flat_hash_map<api::BleMedium*, BleMediumContext> ble_mediums_;
   absl::flat_hash_map<api::ble_v2::BleMedium*, BleV2MediumContext>
       ble_v2_mediums_;
   absl::flat_hash_map<api::BluetoothDevice*, BluetoothPairingContext>

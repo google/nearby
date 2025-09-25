@@ -22,8 +22,6 @@ BluetoothRadio& Mediums::GetBluetoothRadio() { return bluetooth_radio_; }
 
 BluetoothClassic& Mediums::GetBluetoothClassic() { return bluetooth_classic_; }
 
-Ble& Mediums::GetBle() { return ble_; }
-
 BleV2& Mediums::GetBleV2() { return ble_v2_; }
 
 Wifi& Mediums::GetWifi() { return wifi_; }

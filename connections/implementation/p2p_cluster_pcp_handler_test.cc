@@ -92,7 +92,6 @@ class P2pClusterPcpHandlerTest : public testing::Test {
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
     SetBleExtendedAdvertisementsAvailable(true);
     SetDisableBluetoothClassicScanning(true);
-    SetBleV2Enabled(true);
   }
 
   void SetBleExtendedAdvertisementsAvailable(bool available) {
@@ -104,12 +103,6 @@ class P2pClusterPcpHandlerTest : public testing::Test {
         config_package_nearby::nearby_connections_feature::
             kDisableBluetoothClassicScanning,
         disable);
-  }
-
-  void SetBleV2Enabled(bool enabled) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        enabled);
   }
 
   AdvertisingOptions GetBluetoothOnlyAdvertisingOptions() {
@@ -247,23 +240,17 @@ TEST_F(P2pClusterPcpHandlerTest,
   env_.Stop();
 }
 
-// Combines the bool `kEnableBleV2` as param testing but should revert it back
-// if ble_v2 is done and ble will be replaced by ble_v2.
 class P2pClusterPcpHandlerTestWithParam
     : public testing::TestWithParam<
-          /*mediums=*/std::tuple<BooleanMediumSelector, /*ble_v2_enabled=*/bool,
+          /*mediums=*/std::tuple<BooleanMediumSelector,
                                  /*disable_bluetooth_scanning*/ bool>> {
  protected:
   void SetUp() override {
     LOG(INFO) << "SetUp: begin";
     env_.SetBleExtendedAdvertisementsAvailable(false);
-    bool ble_v2_enabled = std::get<1>(GetParam());
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        ble_v2_enabled);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
-    bool is_disable_bluetooth_scanning = std::get<2>(GetParam());
+    bool is_disable_bluetooth_scanning = std::get<1>(GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kDisableBluetoothClassicScanning,
@@ -285,7 +272,6 @@ class P2pClusterPcpHandlerTestWithParam
     if (advertising_options_.allowed.awdl) {
       LOG(INFO) << "SetUp: Awdl enabled";
     }
-    LOG(INFO) << "SetUp: ble v2 enabled: " << ble_v2_enabled;
     LOG(INFO) << "SetUp: is_disable_bluetooth_scanning: "
               << is_disable_bluetooth_scanning;
     LOG(INFO) << "SetUp: end";
@@ -374,14 +360,11 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, AdvertiseForLegacyDeviceWithBt) {
                                  {.endpoint_info = ByteArray{endpoint_name}}),
       Status{Status::kSuccess});
   // advertising for legacy device depends on both BT and BLE V2 enabled.
-  if (std::get<0>(GetParam()).bluetooth && std::get<1>(GetParam())) {
+  if (std::get<0>(GetParam()).bluetooth) {
     EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
-  } else {
-    EXPECT_FALSE(
-        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
   handler_a.StopAdvertising(&client_a_);
-  if (std::get<0>(GetParam()).bluetooth && std::get<1>(GetParam())) {
+  if (std::get<0>(GetParam()).bluetooth) {
     EXPECT_FALSE(
         mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
@@ -389,11 +372,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, AdvertiseForLegacyDeviceWithBt) {
 }
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAdvertisingOptions) {
-  bool ble_v2_enabled = std::get<1>(GetParam());
-  if (!ble_v2_enabled) {
-    // Just don't run the test if ble_v2 is disabled.
-    return;
-  }
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -417,7 +395,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAdvertisingOptions) {
   mediums_a.GetBleV2().StopAdvertising(service_id_);
   ASSERT_FALSE(mediums_a.GetBleV2().IsAdvertising(service_id_));
   BooleanMediumSelector enabled = advertising_options_.allowed;
-  if (ble_v2_enabled && enabled.bluetooth) {
+  if (enabled.bluetooth) {
     EXPECT_FALSE(
         mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
@@ -433,7 +411,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAdvertisingOptions) {
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   EXPECT_EQ(enabled.bluetooth,
             mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
-  if (ble_v2_enabled && enabled.bluetooth) {
+  if (enabled.bluetooth) {
     EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
   // Turn discoverability back on
@@ -450,15 +428,11 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAdvertisingOptions) {
   EXPECT_EQ(
       handler_a.UpdateAdvertisingOptions(&client_a_, service_id_, new_options),
       Status{Status::kSuccess});
-  if (ble_v2_enabled) {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
-    // Low power won't restart BT, nor BLE advertising for legacy device.
-    if (enabled.bluetooth) {
-      EXPECT_FALSE(
-          mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
-    }
-  } else {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsAdvertising(service_id_));
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+  // Low power won't restart BT, nor BLE advertising for legacy device.
+  if (enabled.bluetooth) {
+    EXPECT_FALSE(
+        mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
   EXPECT_FALSE(mediums_a.GetWifiLan().IsAdvertising(service_id_));
   EXPECT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
@@ -470,11 +444,6 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateAdvertisingOptions) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam,
        CanUpdateAdvertisingOptionsNoLowPower) {
-  bool ble_v2_enabled = std::get<1>(GetParam());
-  if (!ble_v2_enabled) {
-    // Just don't run the test if ble_v2 is disabled.
-    return;
-  }
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;
@@ -508,7 +477,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
       true,   // low_power
       false,  // enable_bluetooth_listening
   };
-  if (ble_v2_enabled && enabled.bluetooth) {
+  if (enabled.bluetooth) {
     EXPECT_FALSE(
         mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
@@ -522,7 +491,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   EXPECT_EQ(
       enabled.bluetooth,
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
-  if (ble_v2_enabled && enabled.bluetooth) {
+  if (enabled.bluetooth) {
     EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
   EXPECT_EQ(enabled.bluetooth,
@@ -530,14 +499,9 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   EXPECT_EQ(handler_a.UpdateAdvertisingOptions(&client_a_, service_id_,
                                                advertising_options_),
             Status{Status::kSuccess});
-  if (ble_v2_enabled) {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
-    if (enabled.bluetooth) {
-      EXPECT_TRUE(
-          mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
-    }
-  } else {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsAdvertising(service_id_));
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsAdvertising(service_id_));
+  if (enabled.bluetooth) {
+    EXPECT_TRUE(mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsAdvertising(service_id_));
@@ -547,7 +511,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
       enabled.bluetooth || enabled.ble,
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   handler_a.StopAdvertising(&client_a_);
-  if (ble_v2_enabled && enabled.bluetooth) {
+  if (enabled.bluetooth) {
     EXPECT_FALSE(
         mediums_a.GetBleV2().IsAdvertisingForLegacyDevice(service_id_));
   }
@@ -626,11 +590,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
                 }),
             Status{Status::kSuccess});
   // advertising for legacy device depends on both BT and BLE V2 enabled.
-  //  if (std::get<0>(GetParam()).bluetooth && std::get<1>(GetParam())) {
   EXPECT_TRUE(latch.Await(absl::Milliseconds(1000)).result());
-  /*  } else {
-      EXPECT_FALSE(latch.Await(absl::Milliseconds(1000)).result());
-    }*/
   // We discovered endpoint over one medium. Before we finish the test, we have
   // to stop discovery for other mediums that may be still ongoing.
   handler_b.StopDiscovery(&client_b_);
@@ -639,8 +599,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanDiscoverLegacy) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, PauseBluetoothClassicDiscovery) {
   // Skip the case which not disable bluetooth scanning.
-  if (!std::get<2>(GetParam()) || !std::get<1>(GetParam()) ||
-      !advertising_options_.allowed.bluetooth ||
+  if (!std::get<1>(GetParam()) || !advertising_options_.allowed.bluetooth ||
       !advertising_options_.allowed.ble) {
     return;
   }
@@ -669,8 +628,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, PauseBluetoothClassicDiscovery) {
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, ResumeBluetoothClassicDiscovery) {
   // Skip the case which not disable bluetooth scanning.
-  if (!std::get<2>(GetParam()) || !std::get<1>(GetParam()) ||
-      !advertising_options_.allowed.bluetooth ||
+  if (!std::get<1>(GetParam()) || !advertising_options_.allowed.bluetooth ||
       !advertising_options_.allowed.ble) {
     return;
   }
@@ -825,12 +783,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptions) {
       handler_a.StartDiscovery(&client_a_, service_id_, discovery_options_, {}),
       Status{Status::kSuccess});
   BooleanMediumSelector enabled = std::get<0>(GetParam());
-  bool ble_v2_enabled = std::get<1>(GetParam());
-  if (ble_v2_enabled) {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
-  }
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   DiscoveryOptions new_options{
@@ -847,11 +800,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptions) {
   EXPECT_EQ(
       handler_a.UpdateDiscoveryOptions(&client_a_, service_id_, new_options),
       Status{Status::kSuccess});
-  if (ble_v2_enabled) {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
-  }
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   EXPECT_FALSE(mediums_a.GetWifiLan().IsDiscovering(service_id_));
   handler_a.StopDiscovery(&client_a_);
   env_.Stop();
@@ -876,13 +825,8 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
   ASSERT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
   mediums_a.GetWifiLan().StopDiscovery(service_id_);
   ASSERT_FALSE(mediums_a.GetWifiLan().IsDiscovering(service_id_));
-  if (std::get<1>(GetParam())) {
-    mediums_a.GetBleV2().StopScanning(service_id_);
-    ASSERT_FALSE(mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    mediums_a.GetBle().StopScanning(service_id_);
-    ASSERT_FALSE(mediums_a.GetBle().IsScanning(service_id_));
-  }
+  mediums_a.GetBleV2().StopScanning(service_id_);
+  ASSERT_FALSE(mediums_a.GetBleV2().IsScanning(service_id_));
   DiscoveryOptions old_options = discovery_options_;
   old_options.low_power = true;
   old_options.allowed = old_enabled;
@@ -891,11 +835,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
   // Start discovery
   EXPECT_EQ(handler_a.StartDiscovery(&client_a_, service_id_, old_options, {}),
             Status{Status::kSuccess});
-  if (std::get<1>(GetParam())) {
-    EXPECT_EQ(old_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    EXPECT_EQ(old_enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
-  }
+  EXPECT_EQ(old_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   EXPECT_EQ(old_enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   EXPECT_EQ(old_enabled.bluetooth,
@@ -906,11 +846,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanUpdateDiscoveryOptionsNoLowPower) {
       handler_a.UpdateDiscoveryOptions(&client_a_, service_id_, new_options)
           .Ok());
   LOG(INFO) << "updated discovery options";
-  if (std::get<1>(GetParam())) {
-    EXPECT_EQ(new_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    EXPECT_EQ(new_enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
-  }
+  EXPECT_EQ(new_enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   EXPECT_EQ(new_enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   EXPECT_EQ(new_enabled.bluetooth,
@@ -935,22 +871,14 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   ASSERT_FALSE(mediums_a.GetBluetoothClassic().TurnOffDiscoverability());
   mediums_a.GetWifiLan().StopDiscovery(service_id_);
   ASSERT_FALSE(mediums_a.GetWifiLan().IsDiscovering(service_id_));
-  if (std::get<1>(GetParam())) {
-    mediums_a.GetBleV2().StopScanning(service_id_);
-    ASSERT_FALSE(mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    mediums_a.GetBle().StopScanning(service_id_);
-    ASSERT_FALSE(mediums_a.GetBle().IsScanning(service_id_));
-  }
+  mediums_a.GetBleV2().StopScanning(service_id_);
+  ASSERT_FALSE(mediums_a.GetBleV2().IsScanning(service_id_));
   // Start discovery
   EXPECT_EQ(
       handler_a.StartDiscovery(&client_a_, service_id_, discovery_options_, {}),
       Status{Status::kSuccess});
-  if (std::get<1>(GetParam())) {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
-  }
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
+
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   EXPECT_EQ(enabled.bluetooth,
@@ -960,11 +888,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
                                                  discovery_options_);
   EXPECT_TRUE(result.Ok());
   LOG(INFO) << "updated discovery options";
-  if (std::get<1>(GetParam())) {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
-  } else {
-    EXPECT_EQ(enabled.ble, mediums_a.GetBle().IsScanning(service_id_));
-  }
+  EXPECT_EQ(enabled.ble, mediums_a.GetBleV2().IsScanning(service_id_));
   EXPECT_EQ(enabled.wifi_lan,
             mediums_a.GetWifiLan().IsDiscovering(service_id_));
   // We didn't restart the medium.
@@ -1250,11 +1174,8 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   ASSERT_FALSE(
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   ASSERT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    ASSERT_FALSE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
+  ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
+
   // call handler.
   auto result = handler_a.StartListeningForIncomingConnections(
       &client_a_, service_id_, v3_options, {});
@@ -1262,11 +1183,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   EXPECT_TRUE(
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   EXPECT_TRUE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    EXPECT_TRUE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    EXPECT_TRUE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
+  EXPECT_TRUE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
   EXPECT_EQ(result.second.size(), 3);
   ASSERT_TRUE(client_a_.IsListeningForIncomingConnections());
   EXPECT_EQ(client_a_.GetListeningForIncomingConnectionsServiceId(),
@@ -1304,11 +1221,7 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   ASSERT_FALSE(
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   ASSERT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    ASSERT_FALSE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
+  ASSERT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
   // call handler.
   auto result = handler_a.StartListeningForIncomingConnections(
       &client_a_, service_id_, v3_options, {});
@@ -1316,21 +1229,13 @@ TEST_P(P2pClusterPcpHandlerTestWithParam,
   ASSERT_TRUE(
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   ASSERT_TRUE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    ASSERT_TRUE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    ASSERT_TRUE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
+  ASSERT_TRUE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
   // stop.
   handler_a.StopListeningForIncomingConnections(&client_a_);
   EXPECT_FALSE(
       mediums_a.GetBluetoothClassic().IsAcceptingConnections(service_id_));
   EXPECT_FALSE(mediums_a.GetWifiLan().IsAcceptingConnections(service_id_));
-  if (std::get<1>(GetParam())) {
-    EXPECT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
-  } else {
-    EXPECT_FALSE(mediums_a.GetBle().IsAcceptingConnections(service_id_));
-  }
+  EXPECT_FALSE(mediums_a.GetBleV2().IsAcceptingConnections(service_id_));
   env_.Stop();
 }
 
@@ -1697,9 +1602,6 @@ class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
             kDisableBluetoothClassicScanning,
         false);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
         GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -1731,7 +1633,6 @@ class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
   std::string service_id_{"service"};
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };
-
 
 TEST_P(P2pLostHandlerTestWithParam, CanConnectWithInstantLostEnabled) {
   env_.Start();
@@ -1843,7 +1744,6 @@ TEST_P(P2pLostHandlerTestWithParam, CanConnectWithInstantLostEnabled) {
 INSTANTIATE_TEST_SUITE_P(
     ParametrisedPcpHandlerTest, P2pClusterPcpHandlerTestWithParam,
     ::testing::Combine(/*mediums=*/::testing::ValuesIn(kTestCases),
-                       /*ble_v2_enabled=*/::testing::Bool(),
                        /*disable_bluetooth_scanning=*/::testing::Bool()));
 INSTANTIATE_TEST_SUITE_P(ParametrisedP2pLostHandlerTest,
                          P2pLostHandlerTestWithParam, testing::Bool());

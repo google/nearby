@@ -970,8 +970,6 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
     old_medium = old_channel->GetMedium();
   }
 
-  bool enable_ble_v2 = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2);
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableStopBleScanningOnWifiUpgrade)) {
@@ -979,13 +977,11 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
             location::nearby::connections::OsInfo::APPLE &&
         old_medium == Medium::BLE && medium == Medium::WIFI_HOTSPOT) {
       disable_ble_scanning = true;
-      if (enable_ble_v2) {
-        LOG(INFO) << "For Apple OS, if upgrade from BLE_V2 to WIFI_HOTSPOT, "
-                     "we need to pause "
-                     "BLE_V2 scanning because it can interfere with WIFI "
-                     "Hotspot scanning and connection.";
-        ble_v2_medium_.PauseMediumScanning();
-      }
+      LOG(INFO) << "For Apple OS, if upgrade from BLE_V2 to WIFI_HOTSPOT, "
+                   "we need to pause "
+                   "BLE_V2 scanning because it can interfere with WIFI "
+                   "Hotspot scanning and connection.";
+      ble_v2_medium_.PauseMediumScanning();
     }
   }
 
@@ -997,10 +993,8 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
           config_package_nearby::nearby_connections_feature::
               kEnableStopBleScanningOnWifiUpgrade)) {
     if (disable_ble_scanning) {
-      if (enable_ble_v2) {
-        LOG(INFO) << "Resume BLE_V2 scanning.";
-        ble_v2_medium_.ResumeMediumScanning();
-      }
+      LOG(INFO) << "Resume BLE_V2 scanning.";
+      ble_v2_medium_.ResumeMediumScanning();
     }
   }
 

@@ -84,16 +84,11 @@ constexpr BooleanMediumSelector kTestCases[] = {
     },
 };
 
-// Combines the bool `kEnableBleV2` as param testing but should revert it back
-// if ble_v2 is done and ble will be replaced by ble_v2.
 class P2pStarPcpHandlerTest
-    : public testing::TestWithParam<std::tuple<BooleanMediumSelector, bool>> {
+    : public testing::TestWithParam<std::tuple<BooleanMediumSelector>> {
  protected:
   void SetUp() override {
     LOG(INFO) << "SetUp: begin";
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        std::get<1>(GetParam()));
     if (advertising_options_.allowed.ble) {
       LOG(INFO) << "SetUp: BLE enabled";
     }
@@ -124,7 +119,7 @@ class P2pStarPcpHandlerTest
           std::get<0>(GetParam()),
       },
       false,  // auto_upgrade_bandwidth
-      true,  // enforce_topology_constraints
+      true,   // enforce_topology_constraints
   };
   AdvertisingOptions advertising_options_{
       {
@@ -132,7 +127,7 @@ class P2pStarPcpHandlerTest
           std::get<0>(GetParam()),
       },
       false,  // auto_upgrade_bandwidth
-      true,  // enforce_topology_constraints
+      true,   // enforce_topology_constraints
   };
   DiscoveryOptions discovery_options_{
       {
@@ -280,10 +275,8 @@ TEST_P(P2pStarPcpHandlerTest, CanConnect) {
   env_.Stop();
 }
 
-INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest,
-                         P2pStarPcpHandlerTest,
-                         ::testing::Combine(::testing::ValuesIn(kTestCases),
-                                            ::testing::Bool()));
+INSTANTIATE_TEST_SUITE_P(ParametrisedPcpHandlerTest, P2pStarPcpHandlerTest,
+                         ::testing::Combine(::testing::ValuesIn(kTestCases)));
 
 }  // namespace
 }  // namespace connections

@@ -14,7 +14,6 @@
 
 #include "connections/implementation/service_controller_router.h"
 
-
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -559,32 +558,6 @@ TEST_F(ServiceControllerRouterTest, QualityConversionWorks) {
   EXPECT_EQ(router_.GetMediumQuality(Medium::WIFI_LAN), v3::Quality::kHigh);
   EXPECT_EQ(router_.GetMediumQuality(Medium::WIFI_DIRECT), v3::Quality::kHigh);
   EXPECT_EQ(router_.GetMediumQuality(Medium::WIFI_AWARE), v3::Quality::kHigh);
-}
-
-TEST_F(ServiceControllerRouterTest, EnableBleV2InConstructor) {
-  // This constructor is used to allow the platform to set the value
-  // of kEnableBleV2 to |enable_ble_v2|.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2, false);
-  EXPECT_FALSE(NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2));
-  ServiceControllerRouter ble_v2_enabled_router =
-      ServiceControllerRouter(/*enable_ble_v2=*/true);
-  EXPECT_TRUE(NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2));
-}
-
-TEST_F(ServiceControllerRouterTest, DisableBleV2InConstructor) {
-  // This constructor is used to allow the platform to set the value
-  // of kEnableBleV2 to |enable_ble_v2|.
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2, true);
-  EXPECT_TRUE(NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2));
-  ServiceControllerRouter ble_v2_disabled_router =
-      ServiceControllerRouter(/*enable_ble_v2=*/false);
-  EXPECT_FALSE(NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableBleV2));
 }
 
 TEST_F(ServiceControllerRouterTest, StartAdvertisingCalled) {
@@ -1358,12 +1331,12 @@ TEST_F(ServiceControllerRouterTest,
 TEST_F(ServiceControllerRouterTest, UpdateAdvertisingOptionsV3Called) {
   EXPECT_CALL(*mock_, UpdateAdvertisingOptions)
       .WillOnce(Return(Status{Status::kSuccess}));
-  router_.UpdateAdvertisingOptionsV3(
-      &client_, kServiceId, kAdvertisingOptions, [this](Status status) {
-        MutexLock lock(&mutex_);
-        result_ = status;
-        cond_.Notify();
-      });
+  router_.UpdateAdvertisingOptionsV3(&client_, kServiceId, kAdvertisingOptions,
+                                     [this](Status status) {
+                                       MutexLock lock(&mutex_);
+                                       result_ = status;
+                                       cond_.Notify();
+                                     });
   {
     MutexLock lock(&mutex_);
     if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {
@@ -1375,12 +1348,12 @@ TEST_F(ServiceControllerRouterTest, UpdateAdvertisingOptionsV3Called) {
 TEST_F(ServiceControllerRouterTest, UpdateDiscoveryOptionsV3Called) {
   EXPECT_CALL(*mock_, UpdateDiscoveryOptions)
       .WillOnce(Return(Status{Status::kSuccess}));
-  router_.UpdateDiscoveryOptionsV3(
-      &client_, kServiceId, kDiscoveryOptions, [this](Status status) {
-        MutexLock lock(&mutex_);
-        result_ = status;
-        cond_.Notify();
-      });
+  router_.UpdateDiscoveryOptionsV3(&client_, kServiceId, kDiscoveryOptions,
+                                   [this](Status status) {
+                                     MutexLock lock(&mutex_);
+                                     result_ = status;
+                                     cond_.Notify();
+                                   });
   {
     MutexLock lock(&mutex_);
     if (cond_.Wait(absl::Seconds(1)).value == Exception::kSuccess) {

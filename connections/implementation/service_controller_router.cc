@@ -98,24 +98,6 @@ ServiceControllerRouter::ServiceControllerRouter(
     absl::AnyInvocable<bool()> if_hp_realtek_device)
     : if_hp_realtek_device_(std::move(if_hp_realtek_device)) {}
 
-// Constructor called by the CrOS platform implementation to override the
-// kEnableBleV2 flag.
-ServiceControllerRouter::ServiceControllerRouter(bool enable_ble_v2)
-    : ServiceControllerRouter() {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleV2) !=
-      enable_ble_v2) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2,
-        enable_ble_v2);
-    // CrOS uses the async signature for Scanning and has no support for the
-    // sync version.
-    // TODO(b/333408829): Enable async advertising flag once supported.
-    const_cast<FeatureFlags&>(FeatureFlags::GetInstance())
-        .SetFlags({.enable_ble_v2_async_scanning = true});
-  }
-}
-
 ServiceControllerRouter::~ServiceControllerRouter() {
   LOG(INFO) << "ServiceControllerRouter going down.";
 

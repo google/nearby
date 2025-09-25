@@ -14,9 +14,14 @@
 
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
@@ -25,22 +30,6 @@ namespace nearby {
 namespace g3 {
 namespace {
 constexpr std::uint64_t kMacAddressMask = 0x0000FFFFFFFFFFFF;
-}
-
-BlePeripheral::BlePeripheral(BluetoothAdapter* adapter) : adapter_(*adapter) {}
-
-std::string BlePeripheral::GetName() const {
-  return adapter_.GetAddress().ToString();
-}
-
-ByteArray BlePeripheral::GetAdvertisementBytes(
-    const std::string& service_id) const {
-  return advertisement_bytes_;
-}
-
-void BlePeripheral::SetAdvertisementBytes(
-    const std::string& service_id, const ByteArray& advertisement_bytes) {
-  advertisement_bytes_ = advertisement_bytes;
 }
 
 BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
@@ -52,9 +41,7 @@ std::string BluetoothDevice::GetMacAddress() const {
   return GetAddress().ToString();
 }
 
-MacAddress BluetoothDevice::GetAddress() const {
-  return adapter_.GetAddress();
-}
+MacAddress BluetoothDevice::GetAddress() const { return adapter_.GetAddress(); }
 
 BluetoothAdapter::BluetoothAdapter() {
   std::uint64_t raw_mac_addr = Prng().NextInt64() & kMacAddressMask;
@@ -71,10 +58,6 @@ BluetoothAdapter::~BluetoothAdapter() { SetStatus(Status::kDisabled); }
 void BluetoothAdapter::SetBluetoothClassicMedium(
     api::BluetoothClassicMedium* medium) {
   bluetooth_classic_medium_ = medium;
-}
-
-void BluetoothAdapter::SetBleMedium(api::BleMedium* medium) {
-  ble_medium_ = medium;
 }
 
 void BluetoothAdapter::SetBleV2Medium(api::ble_v2::BleMedium* medium) {

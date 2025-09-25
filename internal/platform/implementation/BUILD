@@ -152,7 +152,6 @@ cc_library(
     name = "comm",
     hdrs = [
         "awdl.h",
-        "ble.h",
         "ble_v2.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",

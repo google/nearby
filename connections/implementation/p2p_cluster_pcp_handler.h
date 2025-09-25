@@ -33,7 +33,6 @@
 #include "connections/implementation/endpoint_manager.h"
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/mediums/awdl.h"
-#include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/ble_v2.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
@@ -47,7 +46,6 @@
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
-#include "internal/platform/ble.h"
 #include "internal/platform/ble_v2.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -164,7 +162,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
 
   using BluetoothDiscoveredDeviceCallback =
       BluetoothClassic::DiscoveredDeviceCallback;
-  using BleDiscoveredPeripheralCallback = Ble::DiscoveredPeripheralCallback;
   using BleV2DiscoveredPeripheralCallback = BleV2::DiscoveredPeripheralCallback;
   using WifiLanDiscoveredServiceCallback = WifiLan::DiscoveredServiceCallback;
   using AwdlDiscoveredServiceCallback = Awdl::DiscoveredServiceCallback;
@@ -216,32 +213,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       int update_index);
   BasePcpHandler::ConnectImplResult BluetoothConnectImpl(
       ClientProxy* client, BluetoothEndpoint* endpoint);
-
-  // Ble
-  bool IsRecognizedBleEndpoint(const std::string& service_id,
-                               const BleAdvertisement& advertisement) const;
-  void BlePeripheralDiscoveredHandler(ClientProxy* client,
-                                      BlePeripheral& peripheral,
-                                      const std::string& service_id,
-                                      const ByteArray& advertisement_bytes,
-                                      bool fast_advertisement);
-  void BlePeripheralLostHandler(ClientProxy* client, BlePeripheral& peripheral,
-                                const std::string& service_id);
-  void BleConnectionAcceptedHandler(ClientProxy* client,
-                                    absl::string_view local_endpoint_info,
-                                    NearbyDevice::Type device_type,
-                                    BleSocket socket,
-                                    const std::string& service_id);
-  ErrorOr<location::nearby::proto::connections::Medium> StartBleAdvertising(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& local_endpoint_id,
-      const ByteArray& local_endpoint_info,
-      const AdvertisingOptions& advertising_options, WebRtcState web_rtc_state);
-  ErrorOr<location::nearby::proto::connections::Medium> StartBleScanning(
-      ClientProxy* client, const std::string& service_id,
-      const std::string& fast_advertisement_service_uuid);
-  BasePcpHandler::ConnectImplResult BleConnectImpl(ClientProxy* client,
-                                                   BleEndpoint* endpoint);
 
   // BleV2
   bool IsRecognizedBleV2Endpoint(absl::string_view service_id,
@@ -330,7 +301,6 @@ class P2pClusterPcpHandler : public BasePcpHandler {
   Awdl& awdl_medium_;
   BluetoothRadio& bluetooth_radio_;
   BluetoothClassic& bluetooth_medium_;
-  Ble& ble_medium_;
   BleV2& ble_v2_medium_;
   WifiLan& wifi_lan_medium_;
   WifiHotspot& wifi_hotspot_medium_;

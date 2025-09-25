@@ -96,8 +96,6 @@ class OfflineServiceControllerTest
  protected:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleV2, true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableSafeToDisconnect,
         false);
