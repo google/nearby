@@ -40,6 +40,7 @@ cc_library(
         "//connections:__subpackages__",
         "//location/nearby/testing:__subpackages__",
         "//sharing:__subpackages__",
+        '//example:__subpackages__'
     ],
     deps = [
         ":core_types",

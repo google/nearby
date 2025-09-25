@@ -56,3 +56,7 @@ Cargo.lock
 
 # Bazel
 bazel-*
+/.clwb/
+
+# Devcontainers
+/.devcontainer/

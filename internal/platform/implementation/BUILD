@@ -233,11 +233,14 @@ cc_library(
         "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
     ],
-    deps = [
-    ] + select({
+    deps = [] + select({
+        "@platforms//os:linux": [
+            "//internal/platform/implementation/linux:linux_platform_impl",
+        ],
         "@platforms//os:windows": [
             "//internal/platform/implementation/windows",
         ],
+        # Add other platforms as needed
         "//conditions:default": [
             "//internal/platform/implementation/g3",
         ],
