@@ -22,7 +22,6 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace windows {
@@ -61,28 +60,6 @@ bool Timer::Stop() {
   bool result = cancelable_task_->Cancel();
   cancelable_task_ = nullptr;
   return result;
-}
-
-bool Timer::FireNow() {
-  absl::MutexLock lock(&mutex_);
-
-  if (!callback_) {
-    LOG(ERROR) << "callback_ is empty";
-    return false;
-  }
-
-  if (task_executor_ == nullptr) {
-    task_executor_ = std::make_unique<SubmittableExecutor>();
-  }
-
-  if (task_executor_ == nullptr) {
-    LOG(ERROR) << "Failed to fire the task due to cannot create executor.";
-    return false;
-  }
-
-  task_executor_->Execute([&]() { callback_(); });
-
-  return true;
 }
 
 }  // namespace windows

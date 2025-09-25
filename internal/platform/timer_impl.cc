@@ -55,12 +55,4 @@ void TimerImpl::Stop() {
 
 bool TimerImpl::IsRunning() { return (internal_timer_ != nullptr); }
 
-bool TimerImpl::FireNow() {
-  if (IsRunning()) {
-    return internal_timer_->FireNow();
-  }
-
-  return false;
-}
-
 }  // namespace nearby

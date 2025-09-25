@@ -55,24 +55,6 @@ TEST(TimerTest, TestRepeatTimer) {
   EXPECT_TRUE(timer->Stop());
 }
 
-TEST(TimerTest, TestFireNow) {
-  int count = 0;
-  absl::Notification notification;
-
-  auto timer = nearby::api::ImplementationPlatform::CreateTimer();
-
-  EXPECT_TRUE(timer != nullptr);
-  EXPECT_TRUE(timer->Create(3000, 3000, [&count, &notification]() {
-    ++count;
-    notification.Notify();
-  }));
-  EXPECT_TRUE(timer->FireNow());
-  EXPECT_TRUE(timer->Stop());
-  EXPECT_TRUE(
-      notification.WaitForNotificationWithTimeout(absl::Milliseconds(1000)));
-  EXPECT_EQ(count, 1);
-}
-
 }  // namespace
 }  // namespace windows
 }  // namespace nearby

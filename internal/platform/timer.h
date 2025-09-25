@@ -38,7 +38,6 @@ class Timer {
                      absl::AnyInvocable<void()> callback) = 0;
   virtual void Stop() = 0;
   virtual bool IsRunning() = 0;
-  virtual bool FireNow() = 0;
 };
 
 }  // namespace nearby

@@ -103,22 +103,4 @@
   XCTAssertTrue(timer->Stop());
 }
 
-- (void)testFireNow {
-  XCTestExpectation* expectation = [self expectationWithDescription:@"Timer fired"];
-  auto timer = std::make_unique<nearby::apple::Timer>();
-
-  bool fired = false;
-  XCTAssertTrue(timer->Create(1000,  0, [&]() {
-    dispatch_async(dispatch_get_main_queue(), ^{ 
-      fired = true;
-      [expectation fulfill];
-    });
-  }));
-
-  XCTAssertTrue(timer->FireNow());
-
-  [self waitForExpectationsWithTimeout:1.0 handler:nil];
-  XCTAssertTrue(fired);
-}
-
 @end

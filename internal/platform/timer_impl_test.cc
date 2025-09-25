@@ -49,16 +49,6 @@ TEST(TimerImpl, TestStartRunningTimer) {
   timer.Stop();
 }
 
-TEST(TimerImpl, TestFireNow) {
-  TimerImpl timer;
-  int count = 0;
-
-  EXPECT_TRUE(timer.Start(100, 100, [&count]() { ++count; }));
-  EXPECT_TRUE(timer.FireNow());
-  timer.Stop();
-  EXPECT_EQ(count, 1);
-}
-
 TEST(TimerImpl, TestStopAfterFire) {
   TimerImpl timer;
   absl::Notification notification;
