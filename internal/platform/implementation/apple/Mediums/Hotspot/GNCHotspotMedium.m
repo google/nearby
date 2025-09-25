@@ -109,7 +109,16 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
            dispatch_semaphore_signal(semaphore_internal);
          }];
     if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
+      // Timeout to connect to the hotspot. Technically, we should not reach here because the
+      // completion handler will be called even if it times out. But adding this log for debugging
+      // purpose.
       GNCLoggerError(@"Connecting to %@ timeout in %d seconds", ssid, kConnectionTimeoutInSeconds);
+      break;
+    }
+
+    if (connected) {
+      // Connected to the hotspot, no need to retry.
+      break;
     }
   }
 
