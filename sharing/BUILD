@@ -261,6 +261,33 @@ cc_library(
 )
 
 cc_library(
+    name = "outgoing_targets_manager",
+    srcs = ["outgoing_targets_manager.cc"],
+    hdrs = ["outgoing_targets_manager.h"],
+    deps = [
+        ":share_session",
+        ":thread_timer",
+        ":transfer_metadata",
+        ":types",
+        "//internal/flags:nearby_flags",
+        "//internal/platform:types",
+        "//proto:sharing_enums_cc_proto",
+        "//sharing/analytics",
+        "//sharing/certificates",
+        "//sharing/flags/generated:generated_flags",
+        "//sharing/internal/public:logging",
+        "//sharing/proto:enums_cc_proto",
+        "//sharing/proto:share_cc_proto",
+        "//sharing/proto:wire_format_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
+    ],
+)
+
+cc_library(
     name = "nearby_sharing_service",
     srcs = [
         "nearby_connections_manager.cc",
@@ -314,6 +341,7 @@ cc_library(
         ":incoming_frame_reader",
         ":nearby_connection_impl",
         ":nearby_sharing_decoder",
+        ":outgoing_targets_manager",
         ":paired_key_verification_runner",
         ":share_session",
         ":thread_timer",
