@@ -32,7 +32,7 @@ option objc_class_prefix = "GNSHP";
 // in NearbyClearcutLogger (for android, or clearcut_event_logger as the
 // equivalence for Windows) for all events (may exclude settings), and
 // session_id for a pair of events (start and end of a session).
-// Next id: 78
+// Next id: 80
 enum EventType {
   UNKNOWN_EVENT_TYPE = 0;
 
@@ -324,6 +324,9 @@ enum EventType {
   CLOUD_UPLOAD_START = 76
       /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
   CLOUD_UPLOAD_END = 77 /*[ device_role = DEVICE_ROLE_INITIATOR ]*/;
+  CLOUD_DOWNLOAD_START = 78
+      /*[ device_role = DEVICE_ROLE_REMOTE ]*/;
+  CLOUD_DOWNLOAD_END = 79 /*[ device_role = DEVICE_ROLE_REMOTE ]*/;
   // QR code cloud sharing events end.
 
   // LINT.ThenChange(//depot/google3/location/nearby/proto/nearby_event_codes.proto:SharingEventCode)

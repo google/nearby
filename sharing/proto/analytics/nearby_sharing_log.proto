@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 87
+// Next Tag: 89
 // LINT.IfChange
 message SharingLog {
   /* justification = {
@@ -234,6 +234,10 @@ message SharingLog {
   optional CloudUploadStart cloud_upload_start = 85;
 
   optional CloudUploadEnd cloud_upload_end = 86;
+
+  optional CloudDownloadStart cloud_download_start = 87;
+
+  optional CloudDownloadEnd cloud_download_end = 88;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -1060,6 +1064,20 @@ message SharingLog {
   // The cloud_sharing_id and flow_id are logged in the event metadata.
   message CloudUploadEnd {
     repeated CloudAttachmentInfo upload_infos = 1;
+  }
+
+  // EventType: CLOUD_DOWNLOAD_START used by QR code cloud web receiver
+  // The cloud_sharing_id and cloud_receiver_session_id are logged in the
+  // event_metadata into the anonymous logs.
+  message CloudDownloadStart {
+    optional AttachmentsInfo attachments_info = 1;
+  }
+
+  // EventType: CLOUD_DOWNLOAD_END used by QR code cloud web receiver
+  // The cloud_sharing_id and cloud_receiver_session_id are logged in the
+  // event_metadata into the anonymous logs.
+  message CloudDownloadEnd {
+    repeated CloudAttachmentInfo download_infos = 1;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
