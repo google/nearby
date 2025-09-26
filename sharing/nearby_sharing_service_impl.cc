@@ -107,6 +107,7 @@ namespace nearby::sharing {
 namespace {
 
 using BlockedVendorId = ::nearby::sharing::Advertisement::BlockedVendorId;
+using ::absl::Milliseconds;
 using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::location::nearby::proto::sharing::SessionStatus;
@@ -239,9 +240,13 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       outgoing_targets_manager_(
           context->GetClock(), service_thread_.get(),
           nearby_connections_manager_.get(), &analytics_recorder_,
+          absl::bind_front(
+              &NearbySharingServiceImpl::NotifyShareTargetDiscovered, this),
           absl::bind_front(&NearbySharingServiceImpl::NotifyShareTargetUpdated,
                            this),
           absl::bind_front(&NearbySharingServiceImpl::NotifyShareTargetLost,
+                           this),
+          absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
                            this)) {
   CHECK(nearby_connections_manager_);
   CHECK(analytics_recorder);
@@ -1608,10 +1613,11 @@ void NearbySharingServiceImpl::HandleEndpointLost(
 
   discovered_advertisements_to_retry_map_.erase(endpoint_id);
   discovered_advertisements_retried_set_.erase(endpoint_id);
-  outgoing_targets_manager_.MoveToDiscoveryCache(std::string(endpoint_id),
-                       NearbyFlags::GetInstance().GetInt64Flag(
-                           config_package_nearby::nearby_sharing_feature::
-                               kDiscoveryCacheLostExpiryMs));
+  outgoing_targets_manager_.OnShareTargetLost(
+      std::string(endpoint_id),
+      Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_sharing_feature::
+              kDiscoveryCacheLostExpiryMs)));
   FinishEndpointDiscoveryEvent();
 }
 
@@ -1703,53 +1709,8 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     return;
   }
   LogShareTargetDiscovered(*share_target);
-  if (outgoing_targets_manager_.FindDuplicateInOutgoingShareTargets(
-          endpoint_id, *share_target)) {
-    outgoing_targets_manager_.DeduplicateInOutgoingShareTarget(
-        *share_target, endpoint_id, std::move(certificate));
-    FinishEndpointDiscoveryEvent();
-    return;
-  }
-  bool in_discovery_cache =
-      outgoing_targets_manager_.FindDuplicateInDiscoveryCache(endpoint_id,
-                                                              *share_target);
-  VLOG(1) << __func__ << ": Adding (endpoint_id=" << endpoint_id
-          << ", share_target_id=" << share_target->id
-          << ") to outgoing share target map";
-  outgoing_targets_manager_.CreateOutgoingShareSession(
-      *share_target, endpoint_id, std::move(certificate),
-      absl::bind_front(&NearbySharingServiceImpl::OnOutgoingTransferUpdate,
-                       this));
-  if (in_discovery_cache) {
-    NotifyShareTargetUpdated(*share_target);
-
-    LOG(INFO)
-        << __func__
-        << ": [Dedupped] Reported NotifyShareTargetUpdated to all surfaces "
-           "for share_target: "
-        << share_target->ToString();
-    FinishEndpointDiscoveryEvent();
-    return;
-  }
-
-  // Update the endpoint id for the share target.
-  LOG(INFO) << __func__ << ": An endpoint: " << endpoint_id
-            << " has been discovered, with an advertisement "
-               "containing a valid share target with id: "
-            << share_target->id;
-
-  // Notifies the user that we discovered a device.
-  VLOG(1) << __func__ << ": There are "
-          << (foreground_send_surface_map_.size() +
-              background_send_surface_map_.size())
-          << " discovery callbacks be called.";
-
-  NotifyShareTargetDiscovered(*share_target);
-
-  VLOG(1) << __func__ << ": NotifyShareTargetDiscovered: share_target: "
-          << share_target->ToString() << " endpoint_id=" << endpoint_id
-          << " to all send surfaces.";
-
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      *share_target, endpoint_id, std::move(certificate));
   FinishEndpointDiscoveryEvent();
 }
 
@@ -2070,7 +2031,10 @@ void NearbySharingServiceImpl::StartScanning() {
   is_scanning_ = true;
   InvalidateReceiveSurfaceState();
 
-  outgoing_targets_manager_.DisableAllOutgoingShareTargets();
+  outgoing_targets_manager_.AllTargetsLost(
+      Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+          config_package_nearby::nearby_sharing_feature::
+              kDiscoveryCacheLostExpiryMs)));
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
@@ -3093,21 +3057,22 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
     // Find the endpoint id that matches the given share target.
     OutgoingShareSession* session =
         outgoing_targets_manager_.GetOutgoingShareSession(share_target_id);
+    absl::Duration cache_retention =
+        Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+            config_package_nearby::nearby_sharing_feature::
+                kUnregisterTargetDiscoveryCacheLostExpiryMs));
     if (session != nullptr) {
       LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
                 << session->endpoint_id() << " to discovery_cache.";
-      outgoing_targets_manager_.MoveToDiscoveryCache(
-          session->endpoint_id(),
-          NearbyFlags::GetInstance().GetInt64Flag(
-              config_package_nearby::nearby_sharing_feature::
-                  kUnregisterTargetDiscoveryCacheLostExpiryMs));
+      outgoing_targets_manager_.OnShareTargetLost(
+          session->endpoint_id(), cache_retention);
     } else {
       // Be careful not to clear out the share session map if a new session
       // was started during the cancellation delay.
       if (!is_scanning_ && !is_transferring_) {
         LOG(INFO) << "Cannot find session for target " << share_target_id
                   << " clearing all outgoing sessions.";
-        outgoing_targets_manager_.DisableAllOutgoingShareTargets();
+        outgoing_targets_manager_.AllTargetsLost(cache_retention);
       }
     }
 
