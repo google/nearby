@@ -120,7 +120,9 @@ class OutgoingTargetsManager {
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Returns the share target if it has been removed, std::nullopt otherwise.
-  std::optional<ShareTarget> RemoveTarget(absl::string_view endpoint_id);
+  // If `close_connected` is false, connected session will not be closed.
+  std::optional<ShareTarget> RemoveTarget(absl::string_view endpoint_id,
+                                          bool close_connected);
 
   // Cache a recently lost share target to be re-discovered.
   // Purged after expiry_timer.
