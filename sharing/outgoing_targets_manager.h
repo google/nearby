@@ -95,32 +95,32 @@ class OutgoingTargetsManager {
       absl::AnyInvocable<void(const ShareTarget&)> callback);
 
  private:
-  // Looks for a duplicate of the share target in the outgoing share
-  // target map. The share target's id is changed to match an existing target if
-  // available. Returns true if the duplicate is found.
-  bool FindDuplicateInOutgoingShareTargets(absl::string_view endpoint_id,
-                                           ShareTarget& share_target);
+  // If an existing target matching either endpoint_id or share_target.device_id
+  // is found, the share target is updated and the existing share target id is
+  // returned.
+  // Otherwise, std::nullopt is returned.
+  std::optional<int64_t> UpdateExistingTarget(absl::string_view endpoint_id,
+                                              const ShareTarget& share_target);
 
   // Update the entry in outgoing_share_session_map_ with the new share target.
   // Returns true if the share target was updated.
-  bool DeduplicateInOutgoingShareTarget(
+  bool UpdateExistingSession(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
-  // Looks for a duplicate of the share target in the discovery cache.
+  // Looks for existing share target in the discovery cache.
   // If found, the share target is removed from the discovery cache and its
-  // id is copied into `share_target`.
-  // Returns true if the duplicate is found.
-  bool FindDuplicateInDiscoveryCache(absl::string_view endpoint_id,
-                                     ShareTarget& share_target);
+  // id is returned.
+  // Otherwise, std::nullopt is returned.
+  std::optional<int64_t> FindInDiscoveryCache(absl::string_view endpoint_id,
+                                              const ShareTarget& share_target);
 
-  void CreateOutgoingShareSession(
+  void AddTarget(
       const ShareTarget& share_target, absl::string_view endpoint_id,
       std::optional<NearbyShareDecryptedPublicCertificate> certificate);
 
   // Returns the share target if it has been removed, std::nullopt otherwise.
-  std::optional<ShareTarget> RemoveOutgoingShareTargetWithEndpointId(
-      absl::string_view endpoint_id);
+  std::optional<ShareTarget> RemoveTarget(absl::string_view endpoint_id);
 
   // Cache a recently lost share target to be re-discovered.
   // Purged after expiry_timer.

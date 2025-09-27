@@ -499,6 +499,8 @@ bool OutgoingShareSession::UpdateSessionForDedup(
       << "Share target id cannot be changed during deduplication.";
   set_share_target(share_target);
   if (IsConnected()) {
+    LOG(INFO) << __func__ << ": session for share_target.id=" << share_target.id
+              << " is connected, not updating.";
     return false;
   }
   set_endpoint_id(endpoint_id);
