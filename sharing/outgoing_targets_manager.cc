@@ -193,29 +193,39 @@ std::optional<int64_t> OutgoingTargetsManager::UpdateExistingTarget(
 }
 
 std::optional<ShareTarget> OutgoingTargetsManager::RemoveTarget(
-    absl::string_view endpoint_id) {
+    absl::string_view endpoint_id, bool close_connected) {
   VLOG(1) << __func__ << ":Removing endpoint_id " << endpoint_id;
-  auto target_node = outgoing_share_target_map_.extract(endpoint_id);
-  if (target_node.empty()) {
+  auto it = outgoing_share_target_map_.find(endpoint_id);
+  if (it == outgoing_share_target_map_.end()) {
     LOG(WARNING) << __func__ << ": endpoint_id=" << endpoint_id
                  << " not found.";
     return std::nullopt;
   }
-  ShareTarget& share_target = target_node.mapped();
+  ShareTarget& share_target = it->second;
   VLOG(1) << __func__
-          << ": Removing share_target.id=" << target_node.mapped().id
+          << ": Removing share_target.id=" << share_target.id
           << " from outgoing share target map";
 
+  auto session_it = outgoing_share_session_map_.find(share_target.id);
+  if (session_it == outgoing_share_session_map_.end()) {
+    LOG(ERROR) << __func__ << ": share_target.id=" << share_target.id
+                 << " not found in outgoing share session map.";
+    return share_target;
+  }
+  if (!close_connected && session_it->second.IsConnected()) {
+    LOG(WARNING) << __func__ << ": share_target.id=" << share_target.id
+                 << " is connected, not removing.";
+    return std::nullopt;
+  }
+  outgoing_share_target_map_.erase(it);
   // Do not destroy the session until it has been removed from the map.
   // Session destruction can trigger callbacks that traverses the map and it
   // cannot access the map while it is being modified.
-  auto session_node =
-      outgoing_share_session_map_.extract(target_node.mapped().id);
-  if (!session_node.empty()) {
-    session_node.mapped().OnDisconnect();
+  auto session_node = outgoing_share_session_map_.extract(session_it);
+  // If session is connected, don't interrupt.
+  if (session_node.mapped().IsConnected()) {
   } else {
-    LOG(WARNING) << __func__ << ": share_target.id=" << target_node.mapped().id
-                 << " not found in outgoing share session map.";
+    session_node.mapped().OnDisconnect();
   }
   return share_target;
 }
@@ -226,7 +236,8 @@ std::optional<ShareTarget> OutgoingTargetsManager::RemoveTarget(
 // This prevents the endpoint_id from being invalidated in this function.
 void OutgoingTargetsManager::OnShareTargetLost(std::string endpoint_id,
                                                absl::Duration retention) {
-  std::optional<ShareTarget> share_target_opt = RemoveTarget(endpoint_id);
+  std::optional<ShareTarget> share_target_opt =
+      RemoveTarget(endpoint_id, /*close_connected=*/false);
   if (!share_target_opt.has_value()) {
     return;
   }
@@ -309,8 +320,6 @@ void OutgoingTargetsManager::AllTargetsLost(absl::Duration retention) {
   while (!outgoing_share_target_map_.empty()) {
     OnShareTargetLost(outgoing_share_target_map_.begin()->first, retention);
   }
-  DCHECK(outgoing_share_target_map_.empty());
-  DCHECK(outgoing_share_session_map_.empty());
 }
 
 void OutgoingTargetsManager::Cleanup() {
@@ -318,7 +327,7 @@ void OutgoingTargetsManager::Cleanup() {
     // Latch endpoint_id here since RemoveTarget() will remove the entry from
     // the map.
     std::string endpoint_id = outgoing_share_target_map_.begin()->first;
-    RemoveTarget(endpoint_id);
+    RemoveTarget(endpoint_id, /*close_connected=*/true);
   }
   discovery_cache_.clear();
 }
