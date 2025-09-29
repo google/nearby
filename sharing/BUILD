@@ -944,6 +944,8 @@ cc_test(
     name = "outgoing_targets_manager_test",
     srcs = ["outgoing_targets_manager_test.cc"],
     deps = [
+        ":connection_types",
+        ":nearby_connection_impl",
         ":outgoing_targets_manager",
         ":share_session",
         ":test_support",

@@ -1048,12 +1048,20 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
           share_target, attachment_container, transfer_metadata);
     }
   }
-  if (foreground_send_surface_map_.empty() &&
-      background_send_surface_map_.empty()) {
-    LOG(INFO) << __func__ << ": Last send surface has been unregistered";
-    // Clear outgoing_share_targets, outgoing_share_sessions and
-    // discovery_cache.
-    outgoing_targets_manager_.Cleanup();
+  if (foreground_send_surface_map_.empty()) {
+    if (background_send_surface_map_.empty()) {
+      LOG(INFO) << __func__ << ": Last send surface has been unregistered";
+      // Clear outgoing_share_targets, outgoing_share_sessions and
+      // discovery_cache.
+      outgoing_targets_manager_.Cleanup();
+    } else {
+      LOG(INFO) << __func__
+                << ": All foreground send surface has been unregistered";
+      outgoing_targets_manager_.AllTargetsLost(
+          Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
+              config_package_nearby::nearby_sharing_feature::
+                  kUnregisterTargetDiscoveryCacheLostExpiryMs)));
+    }
   }
 
   VLOG(1) << __func__ << ": A SendSurface has been unregistered: "
@@ -2034,7 +2042,7 @@ void NearbySharingServiceImpl::StartScanning() {
   outgoing_targets_manager_.AllTargetsLost(
       Milliseconds(NearbyFlags::GetInstance().GetInt64Flag(
           config_package_nearby::nearby_sharing_feature::
-              kDiscoveryCacheLostExpiryMs)));
+              kUnregisterTargetDiscoveryCacheLostExpiryMs)));
   discovered_advertisements_to_retry_map_.clear();
   discovered_advertisements_retried_set_.clear();
 
@@ -3062,8 +3070,6 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
             config_package_nearby::nearby_sharing_feature::
                 kUnregisterTargetDiscoveryCacheLostExpiryMs));
     if (session != nullptr) {
-      LOG(INFO) << __func__ << ": [Dedupped] Move the endpoint "
-                << session->endpoint_id() << " to discovery_cache.";
       outgoing_targets_manager_.OnShareTargetLost(
           session->endpoint_id(), cache_retention);
     } else {

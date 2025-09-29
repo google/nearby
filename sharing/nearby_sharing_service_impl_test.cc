@@ -4322,12 +4322,30 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
   FinishOutgoingTransfer(transfer_callback, share_target_updated.id,
                          /*complete=*/true, info);
 
-  EXPECT_TRUE(fake_nearby_connections_manager_
+  // Verify that the connection is established to one of the endpoints.
+  std::string connected_endpoint_id;
+  if (fake_nearby_connections_manager_
                   ->connection_endpoint_info(/*endpoint_id=*/"4")
-                  .has_value() ||
-              fake_nearby_connections_manager_
+                  .has_value()) {
+                    connected_endpoint_id = "4";
+  }
+  if (fake_nearby_connections_manager_
                   ->connection_endpoint_info(/*endpoint_id=*/"2")
-                  .has_value());
+                  .has_value()) {
+                    connected_endpoint_id = "2";
+  }
+  EXPECT_TRUE(connected_endpoint_id == "4" || connected_endpoint_id == "2");
+  // Update endpoint 2 or 4 to receive disabled after disconnect.
+  EXPECT_CALL(discovery_callback, OnShareTargetUpdated(_)).Times(1);
+  // Call disconnect on the connection early before the timeout has passed.
+  sharing_service_task_runner_->PostTask(
+      [this, connected_endpoint_id]() {
+    fake_nearby_connections_manager_->Disconnect(connected_endpoint_id);
+    // FakeNearbyConnectionsManager does not destroy the connection.
+    connection_.reset();
+  });
+  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
+
   Shutdown();
 }
 

@@ -22,9 +22,12 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "internal/test/fake_clock.h"
+#include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/fake_nearby_connections_manager.h"
+#include "sharing/nearby_connection_impl.h"
+#include "sharing/nearby_connections_types.h"
 #include "sharing/outgoing_share_session.h"
 #include "sharing/share_target.h"
 #include "sharing/transfer_metadata.h"
@@ -59,6 +62,7 @@ class OutgoingTargetsManagerTest : public ::testing::Test {
   testing::MockFunction<void(const ShareTarget&)> share_target_lost_callback_;
   testing::MockFunction<void(OutgoingShareSession&, const TransferMetadata&)>
       transfer_update_callback_;
+  FakeDeviceInfo device_info_;
   OutgoingTargetsManager outgoing_targets_manager_;
 };
 
@@ -133,6 +137,57 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargetLost) {
   outgoing_targets_manager_.ForEachShareTarget(
       [&](const ShareTarget& share_target) { has_targets = true; });
   EXPECT_FALSE(has_targets);
+}
+
+TEST_F(OutgoingTargetsManagerTest, onShareTargetLostConnectedNotClosed) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call).Times(0);
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  NearbyConnectionImpl connection(device_info_);
+  session->OnConnectResult(&connection, Status::kSuccess);
+  ASSERT_TRUE(session->IsConnected());
+
+  outgoing_targets_manager_.OnShareTargetLost(std::string(kEndpointId),
+                                              Seconds(10));
+
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, target);
+      });
+  EXPECT_TRUE(has_targets);
+  session = outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  EXPECT_TRUE(session->IsConnected());
+
+  // Retention timer expired.
+  clock_.FastForward(Seconds(10));
+  service_thread_.Sync();
+
+  has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, target);
+      });
+  EXPECT_TRUE(has_targets);
+  session = outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  EXPECT_TRUE(session->IsConnected());
 }
 
 TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupNoLossByEndpointId) {
@@ -382,6 +437,47 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByDeviceId) {
         EXPECT_EQ(share_target, merged_target);
       });
   EXPECT_TRUE(has_targets);
+}
+
+TEST_F(OutgoingTargetsManagerTest, CleanupClosesConnectedSessions) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  ShareTarget disabled_target = target;
+  disabled_target.receive_disabled = true;
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call).Times(0);
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call)
+        .WillOnce([&](OutgoingShareSession& session,
+                      const TransferMetadata& metadata) {
+          EXPECT_EQ(session.endpoint_id(), kEndpointId);
+          EXPECT_EQ(session.share_target(), target);
+          EXPECT_EQ(metadata.status(), TransferMetadata::Status::kFailed);
+        });
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  NearbyConnectionImpl connection(device_info_);
+  session->OnConnectResult(&connection, Status::kSuccess);
+  ASSERT_TRUE(session->IsConnected());
+
+  outgoing_targets_manager_.Cleanup();
+
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+      });
+  EXPECT_FALSE(has_targets);
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
 }
 
 }  // namespace
