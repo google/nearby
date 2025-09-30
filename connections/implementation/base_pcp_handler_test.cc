@@ -405,16 +405,6 @@ struct MockDiscoveredEndpoint : public MockPcpHandler::DiscoveredEndpoint {
   MockContext context;
 };
 
-class SetSafeToDisconnect {
- public:
-  explicit SetSafeToDisconnect(bool safe_to_disconnect) {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnableSafeToDisconnect,
-        safe_to_disconnect);
-  }
-};
-
 class BasePcpHandlerTest
     : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
@@ -890,7 +880,6 @@ class BasePcpHandlerTest
         true);
   }
 
-  SetSafeToDisconnect set_safe_to_disconnect_{true};
   MediumEnvironment& env_ = MediumEnvironment::Instance();
   NiceMock<MockNearbyDevice> mock_device_;
   MacAddress remote_mac_address_;

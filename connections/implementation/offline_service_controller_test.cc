@@ -94,12 +94,6 @@ constexpr BooleanMediumSelector kTestCases[] = {
 class OfflineServiceControllerTest
     : public ::testing::TestWithParam<BooleanMediumSelector> {
  protected:
-  void SetUp() override {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnableSafeToDisconnect,
-        false);
-  }
   bool SetupConnection(OfflineSimulationUser& user_a,
                        OfflineSimulationUser& user_b) {
     user_a.StartAdvertising(std::string(kServiceId), &connect_latch_);

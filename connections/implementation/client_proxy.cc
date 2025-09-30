@@ -101,9 +101,7 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
       });
   local_os_info_.set_type(
       OSNameToOsInfoType(api::ImplementationPlatform::GetCurrentOS()));
-  supports_safe_to_disconnect_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::
-          kEnableSafeToDisconnect);
+  supports_safe_to_disconnect_ = false;
   support_auto_reconnect_ = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::kEnableAutoReconnect);
   local_safe_to_disconnect_version_ = NearbyFlags::GetInstance().GetInt64Flag(
