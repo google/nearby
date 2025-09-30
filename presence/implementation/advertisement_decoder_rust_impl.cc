@@ -77,6 +77,11 @@ void ProcessDataElement(const nearby_protocol::V0DataElement& data_element,
     }
     case nearby_protocol::V0DataElementKind::Actions: {
       AddActionsToAdvertisement(data_element.AsActions(), advertisement);
+      return;
+    }
+    default: {
+      LOG(WARNING) << "Unsupported data element type: "
+                   << (int)data_element.GetKind();
     }
   }
 }
