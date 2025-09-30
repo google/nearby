@@ -97,6 +97,7 @@ objc_library(
         "@nlohmann_json//:json",
         "//internal/base:file_path",
         "//internal/base:files",
+        "//internal/base:masker",
         "//internal/platform:base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",

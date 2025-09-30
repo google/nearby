@@ -26,6 +26,8 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_endpoint_channel.h"
+#include "connections/strategy.h"
+#include "internal/base/masker.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -84,7 +86,7 @@ ByteArray WifiDirectBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   int freq = wifi_direct_crendential->GetFrequency();
 
   LOG(INFO) << "Start WifiDirect GO with SSID: " << ssid
-            << ",  Password: " << password << ",  Port: " << port
+            << ",  Password: " << masker::Mask(password) << ",  Port: " << port
             << ",  Gateway: " << gateway << ", Frequency: " << freq;
 
   bool disabling_encryption =
@@ -122,7 +124,7 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
   const std::string& gateway = upgrade_path_info_credentials.gateway();
 
   LOG(INFO) << "Received WifiDirect credential SSID: " << ssid
-            << ",  Password:" << password << ",  Port:" << port
+            << ",  Password:" << masker::Mask(password) << ",  Port:" << port
             << ",  Gateway:" << gateway;
 
   if (!wifi_direct_medium_.ConnectWifiDirect(ssid, password)) {

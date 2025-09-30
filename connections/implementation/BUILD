@@ -164,6 +164,7 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
+        "//internal/base:masker",
         "//internal/flags:nearby_flags",
         "//internal/interop:authentication_status",
         "//internal/interop:authentication_transport_interface",

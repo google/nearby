@@ -276,6 +276,7 @@ cc_library(
         "//internal/account",
         "//internal/base:file_path",
         "//internal/base:files",
+        "//internal/base:masker",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",

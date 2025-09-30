@@ -19,6 +19,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/base/masker.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
@@ -319,11 +320,11 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
       LOG(INFO) << "WiFi SoftAP SSID: "
                 << winrt::to_string(
                        publisher_.Advertisement().LegacySettings().Ssid());
-      VLOG(1) << "WiFi SoftAP PW: "
-              << winrt::to_string(publisher_.Advertisement()
-                                      .LegacySettings()
-                                      .Passphrase()
-                                      .Password());
+      VLOG(1) << "WiFi SoftAP password: "
+              << masker::Mask(winrt::to_string(publisher_.Advertisement()
+                                                   .LegacySettings()
+                                                   .Passphrase()
+                                                   .Password()));
     }
     return winrt::fire_and_forget();
   } else if (event.Status() ==

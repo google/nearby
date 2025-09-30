@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/wifi_utils.h"
@@ -313,11 +314,11 @@ fire_and_forget WifiDirectMedium::OnStatusChanged(
       LOG(INFO) << "WiFiDirect GO SSID: "
                 << winrt::to_string(
                        publisher_.Advertisement().LegacySettings().Ssid());
-      LOG(INFO) << "WiFiDirect GO PW: "
-                << winrt::to_string(publisher_.Advertisement()
-                                        .LegacySettings()
-                                        .Passphrase()
-                                        .Password());
+      LOG(INFO) << "WiFiDirect GO password: "
+                << masker::Mask(winrt::to_string(publisher_.Advertisement()
+                                                     .LegacySettings()
+                                                     .Passphrase()
+                                                     .Password()));
     }
     return winrt::fire_and_forget();
   } else if (event.Status() ==

@@ -21,6 +21,7 @@
 #include <utility>
 
 #include <arpa/inet.h>
+#include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
@@ -106,10 +107,11 @@ WifiHotspotMedium::~WifiHotspotMedium() { DisconnectWifiHotspot(); }
 
 bool WifiHotspotMedium::ConnectWifiHotspot(HotspotCredentials* hotspot_credentials_) {
   NSString* ssid = [[NSString alloc] initWithUTF8String:hotspot_credentials_->GetSSID().c_str()];
-  NSString* password =
-      [[NSString alloc] initWithUTF8String:hotspot_credentials_->GetPassword().c_str()];
+  std::string hotspot_password = hotspot_credentials_->GetPassword();
+  NSString* password = [[NSString alloc] initWithUTF8String:hotspot_password.c_str()];
 
-  GNCLoggerInfo(@"ConnectWifiHotspot SSID: %@ Password: %@", ssid, password);
+  GNCLoggerInfo(@"ConnectWifiHotspot SSID: %@ Password: %s", ssid,
+                masker::Mask(hotspot_password).c_str());
   bool result = [medium_ connectToWifiNetworkWithSSID:ssid password:password];
   if (result) {
     GNCLoggerInfo(@"Successfully connected to %@", ssid);
@@ -174,9 +176,9 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   }
 
   GNCNWFrameworkSocket* socket = [medium_ connectToHost:host
-                                               port:port
-                                       cancelSource:cancellation_source
-                                              error:&error];
+                                                   port:port
+                                           cancelSource:cancellation_source
+                                                  error:&error];
   if (socket != nil) {
     return std::make_unique<WifiHotspotSocket>(socket);
   }

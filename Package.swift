@@ -352,6 +352,7 @@ let package = Package(
         "internal/base/bluetooth_address_test.cc",
         "internal/base/file_path_test.cc",
         "internal/base/files_test.cc",
+        "internal/base/masker_test.cc",
         "internal/crypto/ed25519_unittest.cc",
         "internal/crypto_cros/aead_unittest.cc",
         "internal/crypto_cros/ec_private_key_unittest.cc",

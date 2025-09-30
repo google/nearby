@@ -27,6 +27,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
 #include "connections/strategy.h"
+#include "internal/base/masker.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
@@ -87,9 +88,9 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   std::int32_t port = hotspot_crendential->GetPort();
   std::int32_t frequency = hotspot_crendential->GetFrequency();
 
-  LOG(INFO) << "Start SoftAP with SSID:" << ssid << ",  Password:" << password
-            << ",  Port:" << port << ",  Gateway:" << gateway
-            << ",  Frequency:" << frequency;
+  LOG(INFO) << "Start SoftAP with SSID:" << ssid
+            << ",  Password:" << masker::Mask(password) << ",  Port:" << port
+            << ",  Gateway:" << gateway << ",  Frequency:" << frequency;
 
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
@@ -131,7 +132,7 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
   LOG(INFO) << "Received Hotspot credential SSID: "
             << hotspot_credentials.GetSSID()
-            << ",  Password:" << hotspot_credentials.GetPassword()
+            << ",  Password:" << masker::Mask(hotspot_credentials.GetPassword())
             << ",  Port:" << hotspot_credentials.GetPort()
             << ",  Gateway:" << hotspot_credentials.GetGateway()
             << ",  Frequency:" << hotspot_credentials.GetFrequency();
