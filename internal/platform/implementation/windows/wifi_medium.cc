@@ -16,18 +16,21 @@
 #include <exception>
 #include <string>
 
-// #include <cstddef>
 #include "absl/strings/str_format.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/logging.h"
+#include "winrt/Windows.Devices.WiFi.h"
 
 namespace nearby {
 namespace windows {
 
 namespace {
+using winrt::Windows::Devices::WiFi::WiFiAccessStatus;
+using winrt::Windows::Devices::WiFi::WiFiAdapter;
+
 constexpr int kMacAddrLen = 6;
 constexpr int kDefaultApFreq = -1;
 constexpr int kUseEthernet = -2;
@@ -128,6 +131,13 @@ api::WifiInformation& WifiMedium::GetInformation() {
   wifi_information_.bssid.clear();
   wifi_information_.ip_address_dot_decimal.clear();
   wifi_information_.ip_address_4_bytes.clear();
+
+  WiFiAccessStatus accessStatus = WiFiAdapter::RequestAccessAsync().get();
+  if (accessStatus != WiFiAccessStatus::Allowed) {
+    LOG(WARNING) << "Wi-Fi access is not granted";
+    FillupEthernetParams();
+    return wifi_information_;
+  }
 
   p_intf_list = EnumInterface(&client_handle);
   if (!client_handle) {
