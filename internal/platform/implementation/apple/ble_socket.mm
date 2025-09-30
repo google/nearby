@@ -14,7 +14,7 @@
 
 #import "internal/platform/implementation/apple/ble_socket.h"
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/ble_peripheral.h"
@@ -179,8 +179,7 @@ BleSocket::BleSocket(id<GNCMConnection> connection)
       output_stream_(new BleOutputStream(connection)),
       peripheral_id_(BlePeripheral::DefaultBlePeripheral().GetUniqueId()) {}
 
-BleSocket::BleSocket(id<GNCMConnection> connection,
-                     api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+BleSocket::BleSocket(id<GNCMConnection> connection, api::ble::BlePeripheral::UniqueId peripheral_id)
     : input_stream_(new BleInputStream()),
       output_stream_(new BleOutputStream(connection)),
       peripheral_id_(peripheral_id) {}

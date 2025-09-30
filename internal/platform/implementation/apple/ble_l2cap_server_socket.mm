@@ -35,7 +35,7 @@ int BleL2capServerSocket::GetPSM() const { return psm_; }
 void BleL2capServerSocket::SetPSM(int psm) { psm_ = psm; }
 
 // TODO: b/399815436 - Refactor Accept() and AddPendingSocket() for better readability.
-std::unique_ptr<api::ble_v2::BleL2capSocket> BleL2capServerSocket::Accept() {
+std::unique_ptr<api::ble::BleL2capSocket> BleL2capServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);

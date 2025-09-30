@@ -18,7 +18,7 @@
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/ble_v2.h"
+#include "internal/platform/ble.h"
 
 namespace nearby {
 namespace connections {

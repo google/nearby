@@ -18,7 +18,7 @@
 #include <utility>
 
 #include "connections/implementation/base_endpoint_channel.h"
-#include "internal/platform/ble_v2.h"
+#include "internal/platform/ble.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"

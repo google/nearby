@@ -20,7 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
@@ -60,8 +60,8 @@ void BluetoothAdapter::SetBluetoothClassicMedium(
   bluetooth_classic_medium_ = medium;
 }
 
-void BluetoothAdapter::SetBleV2Medium(api::ble_v2::BleMedium* medium) {
-  ble_v2_medium_ = medium;
+void BluetoothAdapter::SetBleMedium(api::ble::BleMedium* medium) {
+  ble_medium_ = medium;
 }
 
 bool BluetoothAdapter::SetStatus(Status status) {

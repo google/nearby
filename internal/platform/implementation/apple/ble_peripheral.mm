@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
 
@@ -29,11 +29,11 @@ namespace apple {
 #pragma mark - BlePeripheral
 
 BlePeripheral::BlePeripheral(id<GNCPeripheral> peripheral)
-    : api::ble_v2::BlePeripheral(peripheral.identifier.hash), peripheral_(peripheral) {}
+    : api::ble::BlePeripheral(peripheral.identifier.hash), peripheral_(peripheral) {}
 
-api::ble_v2::BlePeripheral& BlePeripheral::DefaultBlePeripheral() {
-  static api::ble_v2::BlePeripheral* default_peripheral =
-      new api::ble_v2::BlePeripheral(0xffffffffffffffff);
+api::ble::BlePeripheral& BlePeripheral::DefaultBlePeripheral() {
+  static api::ble::BlePeripheral* default_peripheral =
+      new api::ble::BlePeripheral(0xffffffffffffffff);
   return *default_peripheral;
 }
 
