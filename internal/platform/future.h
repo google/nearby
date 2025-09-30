@@ -36,12 +36,12 @@ class Future final {
   explicit Future(absl::Duration timeout)
       : impl_(std::make_shared<SettableFuture<T>>(timeout)) {}
 
-  virtual bool Set(T value) { return impl_->Set(std::move(value)); }
-  virtual bool SetException(Exception exception) {
+  bool Set(T value) { return impl_->Set(std::move(value)); }
+  bool SetException(Exception exception) {
     return impl_->SetException(exception);
   }
-  virtual ExceptionOr<T> Get() { return impl_->Get(); }
-  virtual ExceptionOr<T> Get(absl::Duration timeout) {
+  ExceptionOr<T> Get() { return impl_->Get(); }
+  ExceptionOr<T> Get(absl::Duration timeout) {
     return impl_->Get(timeout);
   }
   void AddListener(FutureCallback callback, api::Executor* executor) {
