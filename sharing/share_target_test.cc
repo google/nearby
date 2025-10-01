@@ -47,8 +47,8 @@ std::vector<ShareTargetToStringTestData> GetTestData() {
       kShareTargetToStringTestData =
           new std::vector<ShareTargetToStringTestData>({
               {share_target1,
-               "ShareTarget<id: 1, type: 0, device_name: , is_known: 0, "
-               "is_incoming: 0, for_self_share: 0, vendor_id: 0, "
+               "ShareTarget<id: 1, type: 0, device_name: , device_id: , "
+               "is_known: 0, is_incoming: 0, for_self_share: 0, vendor_id: 0, "
                "receive_disabled: 0>"},
               {share_target2,
                "ShareTarget<id: 2, type: 1, device_name: test_name, full_name: "
