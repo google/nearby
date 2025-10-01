@@ -225,13 +225,7 @@ cc_library(
     name = "platform_impl",
     testonly = True,
     tags = ["keep_dep"],  # Prevent build_cleaner from removing the dependency.
-    visibility = [
-        "//:__subpackages__",
-        "//connections/implementation:__subpackages__",
-        "//location/nearby/analytics/cpp:__subpackages__",
-        "//location/nearby/apps/better_together/plugins/preferences_native:__subpackages__",
-        "//location/nearby/cpp/sharing:__subpackages__",
-    ],
+    visibility = ["//:__subpackages__"],
     deps = [
     ] + select({
         "@platforms//os:windows": [
