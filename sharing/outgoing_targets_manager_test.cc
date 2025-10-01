@@ -16,6 +16,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
@@ -35,7 +36,9 @@
 namespace nearby::sharing {
 namespace {
 using ::absl::Seconds;
+using ::testing::ElementsAre;
 using ::testing::InSequence;
+using ::testing::SizeIs;
 
 class OutgoingTargetsManagerTest : public ::testing::Test {
  protected:
@@ -190,7 +193,7 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargetLostConnectedNotClosed) {
   EXPECT_TRUE(session->IsConnected());
 }
 
-TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupNoLossByEndpointId) {
+TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByEndpointIdNoLoss) {
   constexpr int kShareTargetId = 1234;
   constexpr int kShareTargetId2 = kShareTargetId + 100;
   constexpr absl::string_view kEndpointId = "endpoint_id";
@@ -238,7 +241,117 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupNoLossByEndpointId) {
   EXPECT_TRUE(has_targets);
 }
 
-TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupNoLossByDeviceId) {
+TEST_F(OutgoingTargetsManagerTest,
+       onShareTargeDedupByEndpointIdNoLossConnected) {
+  constexpr int kShareTargetId = 1234;
+  constexpr int kShareTargetId2 = kShareTargetId + 100;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  target.device_name = "device_name";
+  ShareTarget target2 = target;
+  target2.id = kShareTargetId2;
+  target2.device_name = "device_name_2";
+  ShareTarget merged_target = target;
+  merged_target.device_name = "device_name_2";
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call)
+        .WillOnce([&](const ShareTarget& share_target) {
+          EXPECT_EQ(share_target, merged_target);
+        });
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  NearbyConnectionImpl connection(device_info_);
+  session->OnConnectResult(&connection, Status::kSuccess);
+  ASSERT_TRUE(session->IsConnected());
+
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target2, kEndpointId, /*certificate=*/std::nullopt);
+
+  // Make sure share session is not created for new target id.
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId2),
+            nullptr);
+  // Make sure share session is created for original target id.
+  OutgoingShareSession* session2 =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  EXPECT_NE(session2, nullptr);
+  EXPECT_EQ(session2->share_target(), merged_target);
+  // Make sure endpoint id is not updated since session is already connected.
+  EXPECT_EQ(session2->endpoint_id(), kEndpointId);
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, merged_target);
+      });
+  EXPECT_TRUE(has_targets);
+}
+
+TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByDeviceIdNoLossConnected) {
+  constexpr int kShareTargetId = 1234;
+  constexpr int kShareTargetId2 = kShareTargetId + 100;
+  constexpr absl::string_view kEndpointId1 = "endpoint_id";
+  constexpr absl::string_view kEndpointId2 = "endpoint_id_2";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  target.device_id = "device_id";
+  target.device_name = "device_name";
+  ShareTarget target2 = target;
+  target2.id = kShareTargetId2;
+  target2.device_name = "device_name_2";
+  ShareTarget merged_target = target;
+  merged_target.device_name = "device_name_2";
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call)
+        .WillOnce([&](const ShareTarget& share_target) {
+          EXPECT_EQ(share_target, merged_target);
+        });
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId1, /*certificate=*/std::nullopt);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  NearbyConnectionImpl connection(device_info_);
+  session->OnConnectResult(&connection, Status::kSuccess);
+  ASSERT_TRUE(session->IsConnected());
+
+  // Discover a new target with the same device id, but different endpoint id.
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target2, kEndpointId2, /*certificate=*/std::nullopt);
+
+  // Make sure share session is not created for new target id.
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId2),
+            nullptr);
+  // Make sure share session is created for original target id.
+  OutgoingShareSession* session2 =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  EXPECT_NE(session2, nullptr);
+  EXPECT_EQ(session2->share_target(), merged_target);
+  // Make sure endpoint id is not updated since session is already connected.
+  EXPECT_EQ(session2->endpoint_id(), kEndpointId1);
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, merged_target);
+      });
+  EXPECT_TRUE(has_targets);
+}
+
+TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByDeviceIdNoLoss) {
   constexpr int kShareTargetId = 1234;
   constexpr int kShareTargetId2 = kShareTargetId + 100;
   constexpr absl::string_view kEndpointId1 = "endpoint_id";
@@ -398,7 +511,8 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByDeviceId) {
             nullptr);
   outgoing_targets_manager_.OnShareTargetLost(std::string(kEndpointId1),
                                               Seconds(10));
-  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(1234), nullptr);
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
 
   // Discover a new target with the same device id, but different endpoint id.
   outgoing_targets_manager_.OnShareTargetDiscovered(
@@ -437,6 +551,69 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByDeviceId) {
         EXPECT_EQ(share_target, merged_target);
       });
   EXPECT_TRUE(has_targets);
+}
+
+TEST_F(OutgoingTargetsManagerTest, onShareTargeNoDedupOnEmptyDeviceId) {
+  constexpr int kShareTargetId = 1234;
+  constexpr int kShareTargetId2 = kShareTargetId + 100;
+  constexpr absl::string_view kEndpointId1 = "endpoint_id";
+  constexpr absl::string_view kEndpointId2 = "endpoint_id_2";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  target.device_id = "device_id";
+  target.device_name = "device_name";
+  ShareTarget disabled_target = target;
+  disabled_target.receive_disabled = true;
+  ShareTarget target2 = target;
+  target2.id = kShareTargetId2;
+  target2.device_name = "device_name_2";
+  target2.device_id = "";
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call)
+        .WillOnce([&](const ShareTarget& share_target) {
+          EXPECT_EQ(share_target, target);
+        });
+    EXPECT_CALL(share_target_updated_callback_, Call)
+        .WillOnce([&](const ShareTarget& share_target) {
+          EXPECT_EQ(share_target, disabled_target);
+        });
+    EXPECT_CALL(share_target_discovered_callback_, Call)
+        .WillOnce([&](const ShareTarget& share_target) {
+          EXPECT_EQ(share_target, target2);
+        });
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId1, /*certificate=*/std::nullopt);
+  EXPECT_NE(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
+  outgoing_targets_manager_.OnShareTargetLost(std::string(kEndpointId1),
+                                              Seconds(10));
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
+
+  // Discover a new target with the same device id, but different endpoint id.
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target2, kEndpointId2, /*certificate=*/std::nullopt);
+
+  // Make sure share session is not created for new target id.
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
+  // Make sure share session is created for original target id.
+  OutgoingShareSession* session2 =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId2);
+  EXPECT_NE(session2, nullptr);
+  EXPECT_EQ(session2->share_target(), target2);
+  EXPECT_EQ(session2->endpoint_id(), kEndpointId2);
+  std::vector<ShareTarget> share_targets;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        share_targets.push_back(share_target);
+      });
+  EXPECT_THAT(share_targets, SizeIs(2));
+  EXPECT_THAT(share_targets, ElementsAre(disabled_target, target2));
 }
 
 TEST_F(OutgoingTargetsManagerTest, CleanupClosesConnectedSessions) {

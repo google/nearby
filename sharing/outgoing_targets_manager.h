@@ -96,17 +96,11 @@ class OutgoingTargetsManager {
 
  private:
   // If an existing target matching either endpoint_id or share_target.device_id
-  // is found, the share target is updated and the existing share target id is
-  // returned.
+  // is found, the existing share target id is returned.
   // Otherwise, std::nullopt is returned.
-  std::optional<int64_t> UpdateExistingTarget(absl::string_view endpoint_id,
-                                              const ShareTarget& share_target);
-
-  // Update the entry in outgoing_share_session_map_ with the new share target.
-  // Returns true if the share target was updated.
-  bool UpdateExistingSession(
-      const ShareTarget& share_target, absl::string_view endpoint_id,
-      std::optional<NearbyShareDecryptedPublicCertificate> certificate);
+  std::optional<int64_t> FindExistingTargetId(
+      absl::string_view endpoint_id,
+      const ShareTarget& share_target);
 
   // Looks for existing share target in the discovery cache.
   // If found, the share target is removed from the discovery cache and its
@@ -143,10 +137,9 @@ class OutgoingTargetsManager {
   std::function<void(OutgoingShareSession& session,
                      const TransferMetadata& metadata)>
       transfer_update_callback_;
-  // A map of endpoint id to ShareTarget, where each ShareTarget entry
-  // directly corresponds to a OutgoingShareSession entry in
-  // outgoing_share_target_info_map_;
-  absl::flat_hash_map<std::string, ShareTarget> outgoing_share_target_map_;
+  // A map of endpoint id to ShareTarget id, where each ShareTarget id refers to
+  // an OutgoingShareSession entry in outgoing_share_target_info_map_;
+  absl::flat_hash_map<std::string, int64_t> outgoing_target_id_map_;
   // A map of ShareTarget id to OutgoingShareSession. This lets us know which
   // endpoint and public certificate are related to the outgoing share target.
   absl::flat_hash_map<int64_t, OutgoingShareSession>
