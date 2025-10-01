@@ -918,6 +918,7 @@ message SharingLog {
       ANDROID_APP = 3;
       AUDIO = 4;
       DOCUMENT = 5;
+      CONTACT_CARD = 6;
     }
   }
 
