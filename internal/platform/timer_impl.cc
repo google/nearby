@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/logging.h"
 
@@ -24,17 +25,18 @@ namespace nearby {
 
 bool TimerImpl::Start(int delay, int period,
                       absl::AnyInvocable<void()> callback) {
-  if (internal_timer_ != nullptr) {
-    LOG(INFO) << "The timer is already running.";
-    return false;
-  }
-
   if (delay < 0) {
     delay = 0;
   }
   if (period < 0) {
     period = 0;
   }
+  absl::MutexLock lock(&mutex_);
+  if (internal_timer_ != nullptr) {
+    LOG(INFO) << "The timer is already running.";
+    return false;
+  }
+
   internal_timer_ = api::ImplementationPlatform::CreateTimer();
   if (!internal_timer_->Create(delay, period, std::move(callback))) {
     LOG(INFO) << "Failed to create timer.";
@@ -45,6 +47,7 @@ bool TimerImpl::Start(int delay, int period,
 }
 
 void TimerImpl::Stop() {
+  absl::MutexLock lock(&mutex_);
   if (internal_timer_ == nullptr) {
     return;
   }
@@ -53,6 +56,9 @@ void TimerImpl::Stop() {
   internal_timer_ = nullptr;
 }
 
-bool TimerImpl::IsRunning() { return (internal_timer_ != nullptr); }
+bool TimerImpl::IsRunning() {
+  absl::MutexLock lock(&mutex_);
+  return (internal_timer_ != nullptr);
+}
 
 }  // namespace nearby

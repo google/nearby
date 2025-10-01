@@ -17,7 +17,9 @@
 
 #include <memory>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/timer.h"
 #include "internal/platform/timer.h"
 
@@ -32,7 +34,8 @@ class TimerImpl : public Timer {
   bool IsRunning() override;
 
  private:
-  std::unique_ptr<api::Timer> internal_timer_ = nullptr;
+  absl::Mutex mutex_;
+  std::unique_ptr<api::Timer> internal_timer_ ABSL_GUARDED_BY(mutex_) = nullptr;
 };
 
 }  // namespace nearby
