@@ -24,9 +24,9 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
-#include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/borrowable.h"
 #include "internal/platform/byte_array.h"
@@ -52,6 +52,11 @@
 
 namespace nearby {
 
+// Delay to allow background threads to complete during environment stop.
+// This helps prevent use-after-free errors on resources like FakeClock
+// used by background tasks (e.g., in PendingJobRegistry).
+constexpr absl::Duration kEnvironmentStopDelay = absl::Milliseconds(200);
+
 MediumEnvironment& MediumEnvironment::Instance() {
   alignas(MediumEnvironment) static char storage[sizeof(MediumEnvironment)];
   static MediumEnvironment* env = new (&storage) MediumEnvironment();
@@ -74,6 +79,12 @@ void MediumEnvironment::Stop() {
   if (enabled_.exchange(false)) {
     LOG(INFO) << "MediumEnvironment::Stop()";
     Sync(false);
+
+    // Add a small delay to allow other background threads to complete.
+    // This is a workaround for not having a direct synchronization mechanism
+    // with threads that might be using resources like the simulated_clock_.
+    absl::SleepFor(kEnvironmentStopDelay);
+
     if (config_.use_simulated_clock) {
       MutexLock lock(&mutex_);
       simulated_clock_.reset();
@@ -751,8 +762,7 @@ void MediumEnvironment::RegisterAwdlMedium(api::AwdlMedium& medium) {
 
 void MediumEnvironment::UpdateWifiLanMediumForAdvertising(
     api::WifiLanMedium& medium, const NsdServiceInfo& service_info,
-    const std::string& ip_address,
-    bool enabled) {
+    const std::string& ip_address, bool enabled) {
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium, service_info = service_info,
                                 ip_address, enabled]() mutable {
