@@ -72,17 +72,14 @@ bool ShouldUseInternet(ConnectivityManager& connectivity_manager,
   // We won't use the internet in a low power mode.
   if (power_level == PowerLevel::kLowPower) return false;
 
-  ConnectivityManager::ConnectionType connection_type =
-      connectivity_manager.GetConnectionType();
-
   // Verify that this network has an internet connection.
-  if (connection_type == ConnectivityManager::ConnectionType::kNone) {
+  if (!connectivity_manager.IsInternetConnected()) {
     VLOG(1) << __func__ << ": No internet connection.";
     return false;
   }
 
   if (data_usage == DataUsage::WIFI_ONLY_DATA_USAGE &&
-      connection_type != ConnectivityManager::ConnectionType::kWifi) {
+      !connectivity_manager.IsLanConnected()) {
     return false;
   }
 
@@ -105,13 +102,7 @@ bool ShouldEnableWifiLan(ConnectivityManager& connectivity_manager) {
     return false;
   }
 
-  ConnectivityManager::ConnectionType connection_type =
-      connectivity_manager.GetConnectionType();
-  bool is_connection_wifi_or_ethernet =
-      connection_type == ConnectivityManager::ConnectionType::kWifi ||
-      connection_type == ConnectivityManager::ConnectionType::kEthernet;
-
-  return is_connection_wifi_or_ethernet;
+  return connectivity_manager.IsLanConnected();
 }
 
 // Temporarily fix to get around wifi hotspot issues for HP Aero with Realtek.

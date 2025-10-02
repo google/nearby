@@ -26,7 +26,6 @@
 #include "absl/synchronization/mutex.h"
 #include "sharing/internal/api/network_monitor.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/api/system_info.h"
 #include "sharing/internal/public/connectivity_manager.h"
 
 namespace nearby {
@@ -40,19 +39,22 @@ class ConnectivityManagerImpl : public ConnectivityManager {
   bool IsLanConnected() override;
   bool IsInternetConnected() override;
   bool IsHPRealtekDevice() override;
-  ConnectionType GetConnectionType() override;
 
-  void RegisterConnectionListener(
-      absl::string_view listener_name,
-      std::function<void(ConnectionType, bool, bool)> callback) override;
-  void UnregisterConnectionListener(absl::string_view listener_name) override;
+  void RegisterLanListener(absl::string_view listener_name,
+                           std::function<void(bool)>) override;
+  void UnregisterLanListener(absl::string_view listener_name) override;
+  void RegisterInternetListener(absl::string_view listener_name,
+                                std::function<void(bool)>) override;
+  void UnregisterInternetListener(absl::string_view listener_name) override;
 
-  int GetListenerCount() const;
+  int GetLanListenerCountForTests() const;
+  int GetInternetListenerCountForTests() const;
 
  private:
-  absl::flat_hash_map<std::string,
-                      std::function<void(ConnectionType, bool, bool)>>
-      listeners_;
+  absl::flat_hash_map<std::string, std::function<void(bool)>> lan_listeners_
+      ABSL_GUARDED_BY(mutex_);
+  absl::flat_hash_map<std::string, std::function<void(bool)>>
+      internet_listeners_ ABSL_GUARDED_BY(mutex_);
   std::unique_ptr<api::NetworkMonitor> network_monitor_;
   nearby::sharing::api::SharingPlatform& platform_;
   mutable absl::Mutex mutex_;

@@ -55,23 +55,20 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        ":logging",
         ":types",
         "//internal/flags:nearby_flags",
-        "//internal/network:url",
         "//internal/platform:types",
         "//sharing/flags/generated:generated_flags",
         "//sharing/internal/api:platform",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
 )
 
 cc_test(
-    name = "nearby_context_test",
+    name = "connectivity_manager_impl_test",
     size = "small",
     timeout = "short",
     srcs = [

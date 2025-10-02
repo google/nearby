@@ -569,7 +569,7 @@ cc_test(
         "//internal/test",
         "//sharing/common:enum",
         "//sharing/flags/generated:generated_flags",
-        "//sharing/internal/public:types",
+        "//sharing/internal/public:logging",
         "//sharing/internal/test:nearby_test",
         "//sharing/proto:enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",

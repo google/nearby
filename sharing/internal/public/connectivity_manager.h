@@ -23,35 +23,21 @@ namespace nearby {
 
 class ConnectivityManager {
  public:
-  enum class ConnectionType {
-    kUnknown = 0,  // A connection exists, but its type is unknown.
-                   // Also used as a default value.
-    kEthernet = 1,
-    kWifi = 2,
-    k2G = 3,
-    k3G = 4,
-    k4G = 5,
-    kNone = 6,  // No connection.
-    kBluetooth = 7,
-    k5G = 8,
-    kLast = k5G
-  };
-
   virtual ~ConnectivityManager() = default;
 
   virtual bool IsLanConnected() = 0;
   virtual bool IsInternetConnected() = 0;
 
-  virtual ConnectionType GetConnectionType() = 0;
-
   // Registers a listener for connection changes. The listener will be called
-  // with the current connection type, whether the device is connected to a
-  // LAN network and whether the device is connected to internet.
-  virtual void RegisterConnectionListener(
-      absl::string_view listener_name,
-      std::function<void(ConnectionType, bool, bool)>) = 0;
-  virtual void UnregisterConnectionListener(
-      absl::string_view listener_name) = 0;
+  // when the device is connected to a LAN network or when the device is
+  // connected to internet.
+  virtual void RegisterLanListener(absl::string_view listener_name,
+                                   std::function<void(bool)>) = 0;
+  virtual void UnregisterLanListener(absl::string_view listener_name) = 0;
+  virtual void RegisterInternetListener(absl::string_view listener_name,
+                                        std::function<void(bool)>) = 0;
+  virtual void UnregisterInternetListener(absl::string_view listener_name) = 0;
+
   // Is the device a HP device with Realtek wireless module.
   virtual bool IsHPRealtekDevice() = 0;
 };

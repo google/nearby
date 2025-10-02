@@ -31,7 +31,6 @@ cc_library(
         "fake_connectivity_manager.h",
         "fake_context.h",
         "fake_fast_initiation_manager.h",
-        "fake_network_monitor.h",
         "fake_preference_manager.h",
         "fake_public_certificate_db.h",
     ],

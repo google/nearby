@@ -33,52 +33,43 @@ class FakeConnectivityManager : public ConnectivityManager {
   void SetIsHPRealtekDevice(bool is_hp_realtek_device) {
     is_hp_realtek_device_ = is_hp_realtek_device;
   }
-  ConnectionType GetConnectionType() override { return connection_type_; }
-
-  void RegisterConnectionListener(
-      absl::string_view listener_name,
-      std::function<void(ConnectionType, bool, bool)> callback) override {
-    listeners_.emplace(listener_name, std::move(callback));
+  void RegisterLanListener(absl::string_view listener_name,
+                           std::function<void(bool)> callback) override {
+    lan_listeners_.emplace(listener_name, std::move(callback));
   }
-  void UnregisterConnectionListener(absl::string_view listener_name) override {
-    listeners_.erase(listener_name);
+  void UnregisterLanListener(absl::string_view listener_name) override {
+    lan_listeners_.erase(listener_name);
+  }
+  void RegisterInternetListener(absl::string_view listener_name,
+                                std::function<void(bool)> callback) override {
+    internet_listeners_.emplace(listener_name, std::move(callback));
+  }
+  void UnregisterInternetListener(absl::string_view listener_name) override {
+    internet_listeners_.erase(listener_name);
   }
 
   // Mocks connectivity methods.
   void SetLanConnected(bool connected) {
     is_lan_connected_ = connected;
-    for (auto& listener : listeners_) {
-      listener.second(connection_type_, is_lan_connected_,
-                      is_internet_connected_);
+    for (auto& listener : lan_listeners_) {
+      listener.second(is_lan_connected_);
     }
   }
 
   void SetInternetConnected(bool connected) {
     is_internet_connected_ = connected;
-    for (auto& listener : listeners_) {
-      listener.second(connection_type_, is_lan_connected_,
-                      is_internet_connected_);
+    for (auto& listener : internet_listeners_) {
+      listener.second(is_internet_connected_);
     }
   }
-
-  // Mocks connectivity methods.
-  void SetConnectionType(ConnectionType connection_type) {
-    connection_type_ = connection_type;
-    for (auto& listener : listeners_) {
-      listener.second(connection_type_, is_lan_connected_,
-                      is_internet_connected_);
-    }
-  }
-  int GetListenerCount() const { return listeners_.size(); }
 
  private:
   bool is_lan_connected_ = true;
   bool is_internet_connected_ = true;
   bool is_hp_realtek_device_ = false;
-  ConnectionType connection_type_ = ConnectionType::kWifi;
-  absl::flat_hash_map<std::string,
-                      std::function<void(ConnectionType, bool, bool)>>
-      listeners_;
+  absl::flat_hash_map<std::string, std::function<void(bool)>> lan_listeners_;
+  absl::flat_hash_map<std::string, std::function<void(bool)>>
+      internet_listeners_;
 };
 
 }  // namespace nearby
