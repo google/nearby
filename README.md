@@ -1,7 +1,5 @@
 # Nearby
 
-![Nearby Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_Nearby_Logo.svg/1200px-Google_Nearby_Logo.svg.png)
-
 **Nearby** is a collection of projects focused on **connectivity** that enable building **cross-device experiences**.
 
 ✨ This is not an officially supported Google product, but an open-source effort to empower developers to create smarter, more connected apps.
