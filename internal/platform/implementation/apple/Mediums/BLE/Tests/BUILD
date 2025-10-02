@@ -41,6 +41,7 @@ objc_library(
         "GNCMBleUtilsTest.m",
         "GNCMConnectionsTest.m",
         "GNCMFakeConnection.mm",
+        "GNCPeripheralTest.m",
         "NSData+GNCBase85Test.m",
         "NSData+GNCWebSafeBase64Test.m",
     ],
@@ -62,6 +63,7 @@ objc_library(
         "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Shared",
         "//third_party/apple_frameworks:CoreBluetooth",
         "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:ObjectiveC",
         "//third_party/apple_frameworks:XCTest",
     ],
 )
