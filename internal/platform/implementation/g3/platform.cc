@@ -29,7 +29,7 @@
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
@@ -61,7 +61,7 @@
 #endif
 #include "internal/platform/implementation/g3/atomic_boolean.h"
 #include "internal/platform/implementation/g3/atomic_reference.h"
-#include "internal/platform/implementation/g3/ble_v2.h"
+#include "internal/platform/implementation/g3/ble.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_classic.h"
 #include "internal/platform/implementation/g3/condition_variable.h"
@@ -185,9 +185,9 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
   return std::make_unique<g3::BluetoothClassicMedium>(adapter);
 }
 
-std::unique_ptr<api::ble_v2::BleMedium>
-ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
-  return std::make_unique<g3::BleV2Medium>(
+std::unique_ptr<api::ble::BleMedium>
+ImplementationPlatform::CreateBleMedium(api::BluetoothAdapter& adapter) {
+  return std::make_unique<g3::BleMedium>(
       dynamic_cast<g3::BluetoothAdapter&>(adapter));
 }
 

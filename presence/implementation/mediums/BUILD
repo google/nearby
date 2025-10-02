@@ -30,8 +30,10 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
+        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:uuid",
+        "//internal/platform/implementation:comm",
         "//presence:types",
     ],
 )
@@ -45,6 +47,7 @@ cc_test(
     shard_count = 16,
     deps = [
         ":mediums",
+        "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:test_util",
         "//internal/platform:types",
@@ -52,6 +55,9 @@ cc_test(
         "//internal/platform/implementation:comm",
         "//presence:types",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:variant",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@platforms//os:windows": [

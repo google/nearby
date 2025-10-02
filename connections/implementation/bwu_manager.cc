@@ -981,7 +981,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
                    "we need to pause "
                    "BLE_V2 scanning because it can interfere with WIFI "
                    "Hotspot scanning and connection.";
-      ble_v2_medium_.PauseMediumScanning();
+      ble_medium_.PauseMediumScanning();
     }
   }
 
@@ -994,7 +994,7 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
               kEnableStopBleScanningOnWifiUpgrade)) {
     if (disable_ble_scanning) {
       LOG(INFO) << "Resume BLE_V2 scanning.";
-      ble_v2_medium_.ResumeMediumScanning();
+      ble_medium_.ResumeMediumScanning();
     }
   }
 

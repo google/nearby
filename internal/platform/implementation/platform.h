@@ -24,7 +24,7 @@
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
@@ -130,7 +130,7 @@ class ImplementationPlatform {
   static std::unique_ptr<BluetoothAdapter> CreateBluetoothAdapter();
   static std::unique_ptr<BluetoothClassicMedium> CreateBluetoothClassicMedium(
       BluetoothAdapter&);
-  static std::unique_ptr<api::ble_v2::BleMedium> CreateBleV2Medium(
+  static std::unique_ptr<api::ble::BleMedium> CreateBleMedium(
       api::BluetoothAdapter&);
   static std::unique_ptr<api::CredentialStorage> CreateCredentialStorage();
   static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();

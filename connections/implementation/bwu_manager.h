@@ -28,7 +28,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
 #include "connections/implementation/endpoint_manager.h"
-#include "connections/implementation/mediums/ble_v2.h"
+#include "connections/implementation/mediums/ble.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/medium_selector.h"
 #include "internal/platform/cancelable_alarm.h"
@@ -234,7 +234,7 @@ class BwuManager : public EndpointManager::FrameProcessor {
 
   Mediums* mediums_;
   absl::flat_hash_map<Medium, std::unique_ptr<BwuHandler>> handlers_;
-  BleV2& ble_v2_medium_{mediums_->GetBleV2()};
+  Ble& ble_medium_{mediums_->GetBle()};
 
   EndpointManager* endpoint_manager_;
   EndpointChannelManager* channel_manager_;

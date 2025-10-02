@@ -308,9 +308,9 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertEqual(bluetooth_classic_medium.get(), nullptr);
 }
 
-- (void)testCreateBleV2Medium {
+- (void)testCreateBleMedium {
   auto bluetooth_adapter = nearby::api::ImplementationPlatform::CreateBluetoothAdapter();
-  auto ble_medium = nearby::api::ImplementationPlatform::CreateBleV2Medium(*bluetooth_adapter);
+  auto ble_medium = nearby::api::ImplementationPlatform::CreateBleMedium(*bluetooth_adapter);
   XCTAssertNotEqual(ble_medium.get(), nullptr);
 }
 

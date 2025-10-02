@@ -14,7 +14,7 @@
 
 #include <memory>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
 #import "internal/platform/implementation/apple/ble_peripheral.h"
 
@@ -27,7 +27,7 @@ namespace apple {
 /** A readable stream of bytes. */
 class BleL2capInputStream : public InputStream {
  public:
-  explicit BleL2capInputStream(GNCBLEL2CAPConnection* connection);
+  explicit BleL2capInputStream(GNCBLEL2CAPConnection *connection);
   ~BleL2capInputStream() override;
 
   // Reads at most `size` bytes from the input stream.
@@ -42,7 +42,7 @@ class BleL2capInputStream : public InputStream {
 
  private:
   GNCMConnectionHandlers *connectionHandlers_;
-  GNCBLEL2CAPConnection* connection_;
+  GNCBLEL2CAPConnection *connection_;
   NSMutableArray<NSData *> *newDataPackets_;
   NSMutableData *accumulatedData_;
   NSCondition *condition_;
@@ -51,7 +51,7 @@ class BleL2capInputStream : public InputStream {
 /** A writable stream of bytes. */
 class BleL2capOutputStream : public OutputStream {
  public:
-  explicit BleL2capOutputStream(GNCBLEL2CAPConnection* connection)
+  explicit BleL2capOutputStream(GNCBLEL2CAPConnection *connection)
       : connection_(connection), condition_([[NSCondition alloc] init]) {}
   ~BleL2capOutputStream() override;
 
@@ -71,21 +71,21 @@ class BleL2capOutputStream : public OutputStream {
   Exception Close() override;
 
  private:
-  GNCBLEL2CAPConnection* connection_;
+  GNCBLEL2CAPConnection *connection_;
   NSCondition *condition_;
 };
 
 /**
  * Concrete BleL2capSocket implementation.
  */
-class BleL2capSocket : public api::ble_v2::BleL2capSocket {
+class BleL2capSocket : public api::ble::BleL2capSocket {
  public:
-  explicit BleL2capSocket(GNCBLEL2CAPConnection* connection);
+  explicit BleL2capSocket(GNCBLEL2CAPConnection *connection);
 
   // The peripheral used to create the socket must outlive the socket or undefined behavior will
   // occur.
   BleL2capSocket(GNCBLEL2CAPConnection *connection,
-                 api::ble_v2::BlePeripheral::UniqueId peripheral_id);
+                 api::ble::BlePeripheral::UniqueId peripheral_id);
   ~BleL2capSocket() override;
 
   // Returns the InputStream of the BleL2capSocket.
@@ -109,7 +109,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
 
   // Returns valid BlePeripheral pointer if there is a connection, and
   // nullptr otherwise.
-  api::ble_v2::BlePeripheral::UniqueId GetRemotePeripheralId() override { return peripheral_id_; }
+  api::ble::BlePeripheral::UniqueId GetRemotePeripheralId() override { return peripheral_id_; }
 
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -120,7 +120,7 @@ class BleL2capSocket : public api::ble_v2::BleL2capSocket {
   bool closed_ ABSL_GUARDED_BY(mutex_) = false;
   std::unique_ptr<BleL2capInputStream> input_stream_;
   std::unique_ptr<BleL2capOutputStream> output_stream_;
-  api::ble_v2::BlePeripheral::UniqueId peripheral_id_;
+  api::ble::BlePeripheral::UniqueId peripheral_id_;
 };
 
 }  // namespace apple

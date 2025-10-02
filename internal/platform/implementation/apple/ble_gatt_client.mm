@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
 #import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
@@ -60,7 +60,7 @@ bool GattClient::DiscoverServiceAndCharacteristics(const Uuid &service_uuid,
   return blockError == nil;
 }
 
-std::optional<api::ble_v2::GattCharacteristic> GattClient::GetCharacteristic(
+std::optional<api::ble::GattCharacteristic> GattClient::GetCharacteristic(
     const Uuid &service_uuid, const Uuid &characteristic_uuid) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   CBUUID *characteristicUUID = CBUUID128FromCPP(characteristic_uuid);
@@ -90,7 +90,7 @@ std::optional<api::ble_v2::GattCharacteristic> GattClient::GetCharacteristic(
 }
 
 std::optional<std::string> GattClient::ReadCharacteristic(
-    const api::ble_v2::GattCharacteristic &characteristic) {
+    const api::ble::GattCharacteristic &characteristic) {
   NSCondition *condition = [[NSCondition alloc] init];
   [condition lock];
   __block NSData *blockValue = nil;
@@ -115,15 +115,15 @@ std::optional<std::string> GattClient::ReadCharacteristic(
 }
 
 // TODO(b/290385712): Implement.
-bool GattClient::WriteCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
+bool GattClient::WriteCharacteristic(const api::ble::GattCharacteristic &characteristic,
                                      absl::string_view value,
-                                     api::ble_v2::GattClient::WriteType type) {
+                                     api::ble::GattClient::WriteType type) {
   return false;
 }
 
 // TODO(b/290385712): Implement.
 bool GattClient::SetCharacteristicSubscription(
-    const api::ble_v2::GattCharacteristic &characteristic, bool enable,
+    const api::ble::GattCharacteristic &characteristic, bool enable,
     absl::AnyInvocable<void(absl::string_view value)> on_characteristic_changed_cb) {
   return false;
 }

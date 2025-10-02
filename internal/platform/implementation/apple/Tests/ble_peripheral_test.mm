@@ -95,7 +95,7 @@
 }
 
 - (void)testDefaultBlePeripheral {
-  nearby::api::ble_v2::BlePeripheral &defaultPeripheral =
+  nearby::api::ble::BlePeripheral &defaultPeripheral =
       nearby::apple::BlePeripheral::DefaultBlePeripheral();
   // 0xffffffffffffffff is the default value from
   // third_party/nearby/internal/platform/implementation/apple/ble_peripheral.mm when create static
