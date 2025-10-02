@@ -65,7 +65,7 @@ static const uint16_t kPSM = 192;
   NSMutableArray<CBService *> *_services;
 }
 
-@synthesize peripheralDelegate;
+@synthesize peripheralDelegate = _peripheralDelegate;
 
 #pragma mark Public
 
@@ -99,7 +99,9 @@ static const uint16_t kPSM = 192;
   if (!_didAddServiceError) {
     [_services addObject:service];
   }
-  [peripheralDelegate gnc_peripheralManager:self didAddService:service error:_didAddServiceError];
+  [_peripheralDelegate gnc_peripheralManager:self
+                               didAddService:service
+                                       error:_didAddServiceError];
 }
 
 - (void)removeService:(CBMutableService *)service {
@@ -113,8 +115,8 @@ static const uint16_t kPSM = 192;
 - (void)startAdvertising:(NSDictionary<NSString *, id> *)advertisementData {
   _isAdvertising = _didStartAdvertisingError == nil;
   _advertisementData = advertisementData;
-  [peripheralDelegate gnc_peripheralManagerDidStartAdvertising:self
-                                                         error:_didStartAdvertisingError];
+  [_peripheralDelegate gnc_peripheralManagerDidStartAdvertising:self
+                                                          error:_didStartAdvertisingError];
 }
 
 - (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result {
@@ -134,20 +136,20 @@ static const uint16_t kPSM = 192;
   if (!_didPublishL2CAPChannelError) {
     localPSM = _PSM;
   }
-  [peripheralDelegate gnc_peripheralManager:self
-                     didPublishL2CAPChannel:localPSM
-                                      error:_didPublishL2CAPChannelError];
+  [_peripheralDelegate gnc_peripheralManager:self
+                      didPublishL2CAPChannel:localPSM
+                                       error:_didPublishL2CAPChannelError];
   if (!_didPublishL2CAPChannelError) {
-    [peripheralDelegate gnc_peripheralManager:self
-                          didOpenL2CAPChannel:[[CBL2CAPChannel alloc] init]
-                                        error:nil];
+    [_peripheralDelegate gnc_peripheralManager:self
+                           didOpenL2CAPChannel:[[CBL2CAPChannel alloc] init]
+                                         error:nil];
   }
 }
 
 - (void)unpublishL2CAPChannel:(CBL2CAPPSM)PSM {
-  [peripheralDelegate gnc_peripheralManager:self
-                   didUnpublishL2CAPChannel:_PSM
-                                      error:_didUnPublishL2CAPChannelError];
+  [_peripheralDelegate gnc_peripheralManager:self
+                    didUnpublishL2CAPChannel:_PSM
+                                       error:_didUnPublishL2CAPChannelError];
   [_unpublishExpectation fulfill];
 }
 
@@ -163,14 +165,22 @@ static const uint16_t kPSM = 192;
 
 - (void)simulatePeripheralManagerDidUpdateState:(CBManagerState)fakeState {
   _state = fakeState;
-  [peripheralDelegate gnc_peripheralManagerDidUpdateState:self];
+  [_peripheralDelegate gnc_peripheralManagerDidUpdateState:self];
 }
 
 - (void)simulatePeripheralManagerDidReceiveReadRequestForService:(CBUUID *)service
                                                   characteristic:(CBUUID *)characteristic {
   CBATTRequest *request = [[CBATTRequest alloc] initWithService:service
                                                  characteristic:characteristic];
-  [peripheralDelegate gnc_peripheralManager:self didReceiveReadRequest:request];
+  [_peripheralDelegate gnc_peripheralManager:self didReceiveReadRequest:request];
+}
+
+- (void)setDelegate:(id<CBPeripheralManagerDelegate>)delegate {
+  self.peripheralDelegate = (id<GNCPeripheralManagerDelegate>)delegate;
+}
+
+- (id<CBPeripheralManagerDelegate>)delegate {
+  return (id<CBPeripheralManagerDelegate>)self.peripheralDelegate;
 }
 
 @end

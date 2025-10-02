@@ -41,6 +41,7 @@ objc_library(
         "GNCMBleUtilsTest.m",
         "GNCMConnectionsTest.m",
         "GNCMFakeConnection.mm",
+        "GNCPeripheralManagerTest.m",
         "GNCPeripheralTest.m",
         "NSData+GNCBase85Test.m",
         "NSData+GNCWebSafeBase64Test.m",
