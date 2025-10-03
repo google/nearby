@@ -686,6 +686,9 @@ enum SyncPurpose {
   SYNC_PURPOSE_REGENERATE_CERTIFICATES = 16;
   // When Device Contacts consent changes
   SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE = 17;
+  // When Nearby Presence identity model exhaust the salt to use on the contact
+  // group visibility credential
+  SYNC_EXHAUST_SALT = 18;
 }
 
 // The device role to trigger the server request.
