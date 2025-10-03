@@ -1059,12 +1059,18 @@ message SharingLog {
   // The cloud_sharing_id and flow_id are logged in the event metadata.
   message CloudUploadStart {
     optional AttachmentsInfo attachments_info = 1;
+
+    // Whether current cloud upload is a retry of a previous failure.
+    optional bool is_retry = 2;
   }
 
   // EventType: CLOUD_UPLOAD_END used by QR code cloud web sender
   // The cloud_sharing_id and flow_id are logged in the event metadata.
   message CloudUploadEnd {
     repeated CloudAttachmentInfo upload_infos = 1;
+
+    // Whether current cloud upload is a retry of a previous failure.
+    optional bool is_retry = 2;
   }
 
   // EventType: CLOUD_DOWNLOAD_START used by QR code cloud web receiver
