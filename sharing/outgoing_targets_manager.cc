@@ -22,6 +22,7 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
@@ -203,6 +204,7 @@ std::optional<ShareTarget> OutgoingTargetsManager::RemoveTarget(
   if (session_it == outgoing_share_session_map_.end()) {
     LOG(ERROR) << __func__ << ": share_target.id=" << share_target_id
                  << " not found in outgoing share session map.";
+    outgoing_target_id_map_.erase(it);
     return std::nullopt;
   }
   if (!close_connected && session_it->second.IsConnected()) {
@@ -307,16 +309,23 @@ OutgoingShareSession* OutgoingTargetsManager::GetOutgoingShareSession(
 
 void OutgoingTargetsManager::AllTargetsLost(absl::Duration retention) {
   VLOG(1) << "Move all outgoing share targets to discovery cache.";
-  while (!outgoing_target_id_map_.empty()) {
-    OnShareTargetLost(outgoing_target_id_map_.begin()->first, retention);
+  std::vector<std::string> endpoint_ids_to_remove;
+  endpoint_ids_to_remove.reserve(outgoing_target_id_map_.size());
+  for (const auto& [endpoint_id, share_target_id] : outgoing_target_id_map_) {
+    endpoint_ids_to_remove.push_back(endpoint_id);
+  }
+  for (const auto& endpoint_id : endpoint_ids_to_remove) {
+    OnShareTargetLost(endpoint_id, retention);
   }
 }
 
 void OutgoingTargetsManager::Cleanup() {
-  while (!outgoing_target_id_map_.empty()) {
-    // Latch endpoint_id here since RemoveTarget() will remove the entry from
-    // the map.
-    std::string endpoint_id = outgoing_target_id_map_.begin()->first;
+  std::vector<std::string> endpoint_ids_to_remove;
+  endpoint_ids_to_remove.reserve(outgoing_target_id_map_.size());
+  for (const auto& [endpoint_id, share_target_id] : outgoing_target_id_map_) {
+    endpoint_ids_to_remove.push_back(endpoint_id);
+  }
+  for (const auto& endpoint_id : endpoint_ids_to_remove) {
     RemoveTarget(endpoint_id, /*close_connected=*/true);
   }
   discovery_cache_.clear();

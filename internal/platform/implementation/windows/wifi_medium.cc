@@ -22,14 +22,16 @@
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi.h"
 #include "internal/platform/logging.h"
-#include "winrt/Windows.Devices.WiFi.h"
+#include "winrt/Windows.Security.Authorization.AppCapabilityAccess.h"
 
 namespace nearby {
 namespace windows {
 
 namespace {
-using winrt::Windows::Devices::WiFi::WiFiAccessStatus;
-using winrt::Windows::Devices::WiFi::WiFiAdapter;
+using winrt::Windows::Security::Authorization::AppCapabilityAccess::
+    AppCapability;
+using winrt::Windows::Security::Authorization::AppCapabilityAccess::
+    AppCapabilityAccessStatus;
 
 constexpr int kMacAddrLen = 6;
 constexpr int kDefaultApFreq = -1;
@@ -132,8 +134,11 @@ api::WifiInformation& WifiMedium::GetInformation() {
   wifi_information_.ip_address_dot_decimal.clear();
   wifi_information_.ip_address_4_bytes.clear();
 
-  WiFiAccessStatus accessStatus = WiFiAdapter::RequestAccessAsync().get();
-  if (accessStatus != WiFiAccessStatus::Allowed) {
+  AppCapability app_capability = AppCapability::Create(L"wiFiControl");
+  AppCapabilityAccessStatus access_status = app_capability.CheckAccess();
+
+  LOG(INFO) << "Wi-Fi access status:" << static_cast<int>(access_status);
+  if (access_status != AppCapabilityAccessStatus::Allowed) {
     LOG(WARNING) << "Wi-Fi access is not granted";
     FillupEthernetParams();
     return wifi_information_;
