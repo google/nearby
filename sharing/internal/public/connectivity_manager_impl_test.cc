@@ -42,25 +42,24 @@ TEST(ConnectivityManagerImpl, IsLanConnected) {
   auto network_monitor = std::make_unique<MockNetworkMonitor>();
   MockNetworkMonitor* mock_network_monitor = network_monitor.get();
   EXPECT_CALL(*mock_network_monitor, IsLanConnected()).WillOnce(Return(true));
-  EXPECT_CALL(sharing_platform, CreateNetworkMonitor(_))
+  EXPECT_CALL(sharing_platform, CreateNetworkMonitor(_, _))
       .WillOnce(Return(ByMove(std::move(network_monitor))));
 
   ConnectivityManagerImpl connectivity_manager_impl(sharing_platform);
   EXPECT_TRUE(connectivity_manager_impl.IsLanConnected());
 }
 
-TEST(ConnectivityManagerImpl, GetConnectionType) {
+TEST(ConnectivityManagerImpl, IsInternetConnected) {
   MockSharingPlatform sharing_platform;
   auto network_monitor = std::make_unique<MockNetworkMonitor>();
   MockNetworkMonitor* mock_network_monitor = network_monitor.get();
-  EXPECT_CALL(sharing_platform, CreateNetworkMonitor(_))
+  EXPECT_CALL(*mock_network_monitor, IsInternetConnected())
+      .WillOnce(Return(true));
+  EXPECT_CALL(sharing_platform, CreateNetworkMonitor(_, _))
       .WillOnce(Return(ByMove(std::move(network_monitor))));
-  EXPECT_CALL(*mock_network_monitor, GetCurrentConnection())
-      .WillOnce(Return(MockNetworkMonitor::ConnectionType::kWifi));
 
   ConnectivityManagerImpl connectivity_manager_impl(sharing_platform);
-  EXPECT_EQ(connectivity_manager_impl.GetConnectionType(),
-            ConnectivityManager::ConnectionType::kWifi);
+  EXPECT_TRUE(connectivity_manager_impl.IsInternetConnected());
 }
 
 TEST(ConnectivityManagerImpl, IsHPRealtekDeviceReturnsTrue) {
@@ -111,49 +110,43 @@ TEST(ConnectivityManagerImpl, IsHPRealtekDevice_NotRealtekDevice) {
   EXPECT_FALSE(connectivity_manager_impl.IsHPRealtekDevice());
 }
 
-TEST(ConnectivityManagerImpl, RegisterConnectionListener) {
-  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
-      listener_1 = [](ConnectivityManager::ConnectionType connection_type,
-                      bool is_lan_connected, bool is_internet_connected) {};
-  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
-      listener_2 = [](ConnectivityManager::ConnectionType connection_type,
-                      bool is_lan_connected, bool is_internet_connected) {};
+TEST(ConnectivityManagerImpl, RegisterLanListener) {
+  auto
+      listener_1 = [](bool is_lan_connected) {};
+  auto
+      listener_2 = [](bool is_lan_connected) {};
 
   MockSharingPlatform sharing_platform;
   ConnectivityManagerImpl connectivity_manager_impl(sharing_platform);
-  EXPECT_EQ(connectivity_manager_impl.GetListenerCount(), 0);
+  EXPECT_EQ(connectivity_manager_impl.GetLanListenerCountForTests(), 0);
 
-  connectivity_manager_impl.RegisterConnectionListener("listener_1",
+  connectivity_manager_impl.RegisterLanListener("listener_1",
                                                        listener_1);
-  EXPECT_EQ(connectivity_manager_impl.GetListenerCount(), 1);
+  EXPECT_EQ(connectivity_manager_impl.GetLanListenerCountForTests(), 1);
 
-  connectivity_manager_impl.RegisterConnectionListener("listener_2",
+  connectivity_manager_impl.RegisterLanListener("listener_2",
                                                        listener_2);
-  EXPECT_EQ(connectivity_manager_impl.GetListenerCount(), 2);
+  EXPECT_EQ(connectivity_manager_impl.GetLanListenerCountForTests(), 2);
 }
 
-TEST(ConnectivityManagerImpl, UnregisterConnectionListener) {
-  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
-      listener_1 = [](ConnectivityManager::ConnectionType connection_type,
-                      bool is_lan_connected, bool is_internet_connected) {};
-  std::function<void(ConnectivityManager::ConnectionType, bool, bool)>
-      listener_2 = [](ConnectivityManager::ConnectionType connection_type,
-                      bool is_lan_connected, bool is_internet_connected) {};
+TEST(ConnectivityManagerImpl, UnregisterLanListener) {
+  auto listener_1 = [](bool is_lan_connected) {};
+  auto listener_2 = [](bool is_lan_connected) {};
 
   MockSharingPlatform sharing_platform;
   ConnectivityManagerImpl connectivity_manager_impl(sharing_platform);
-  connectivity_manager_impl.RegisterConnectionListener("listener_1",
+  connectivity_manager_impl.RegisterLanListener("listener_1",
                                                        listener_1);
-  connectivity_manager_impl.RegisterConnectionListener("listener_2",
+  connectivity_manager_impl.RegisterLanListener("listener_2",
                                                        listener_2);
 
-  EXPECT_EQ(connectivity_manager_impl.GetListenerCount(), 2);
+  EXPECT_EQ(connectivity_manager_impl.GetLanListenerCountForTests(), 2);
 
-  connectivity_manager_impl.UnregisterConnectionListener("listener_1");
-  EXPECT_EQ(connectivity_manager_impl.GetListenerCount(), 1);
+  connectivity_manager_impl.UnregisterLanListener("listener_1");
+  EXPECT_EQ(connectivity_manager_impl.GetLanListenerCountForTests(), 1);
 
-  connectivity_manager_impl.UnregisterConnectionListener("listener_2");
-  EXPECT_EQ(connectivity_manager_impl.GetListenerCount(), 0);
+  connectivity_manager_impl.UnregisterLanListener("listener_2");
+  EXPECT_EQ(connectivity_manager_impl.GetLanListenerCountForTests(), 0);
 }
 
 }  // namespace

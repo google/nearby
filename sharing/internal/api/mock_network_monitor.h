@@ -23,15 +23,13 @@ namespace nearby::sharing::api {
 
 class MockNetworkMonitor : public nearby::api::NetworkMonitor {
  public:
-  MockNetworkMonitor() : nearby::api::NetworkMonitor(nullptr) {}
+  MockNetworkMonitor() : nearby::api::NetworkMonitor(nullptr, nullptr) {}
   MockNetworkMonitor(const MockNetworkMonitor&) = delete;
   MockNetworkMonitor& operator=(const MockNetworkMonitor&) = delete;
   ~MockNetworkMonitor() override = default;
 
   MOCK_METHOD(bool, IsLanConnected, (), (override));
   MOCK_METHOD(bool, IsInternetConnected, (), (override));
-
-  MOCK_METHOD(ConnectionType, GetCurrentConnection, (), (override));
 };
 
 }  // namespace nearby::sharing::api

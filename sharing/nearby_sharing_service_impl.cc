@@ -260,11 +260,8 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       profile_path, nearby_share_client_factory_.get()),
 
   certificate_manager_->AddObserver(this);
-  context_->GetConnectivityManager()->RegisterConnectionListener(
-      kConnectionListenerName,
-      [this](nearby::ConnectivityManager::ConnectionType type,
-             bool is_lan_connected, bool is_internet_connected) {
-        OnNetworkChanged(type);
+  context_->GetConnectivityManager()->RegisterLanListener(
+      kConnectionListenerName, [this](bool is_lan_connected) {
         OnLanConnectedChanged(is_lan_connected);
       });
 
@@ -313,7 +310,7 @@ void NearbySharingServiceImpl::Shutdown(
 
         certificate_manager_->RemoveObserver(this);
         account_manager_.RemoveObserver(this);
-        context_->GetConnectivityManager()->UnregisterConnectionListener(
+        context_->GetConnectivityManager()->UnregisterLanListener(
             kConnectionListenerName);
         context_->GetBluetoothAdapter().RemoveObserver(this);
         nearby_fast_initiation_->RemoveObserver(this);
@@ -721,7 +718,7 @@ void NearbySharingServiceImpl::SendAttachments(
             CreateEndpointInfo(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS,
                                local_device_data_manager_->GetDeviceName());
         if (!endpoint_info) {
-          LOG(WARNING)  << "Could not create local endpoint info.";
+          LOG(WARNING) << "Could not create local endpoint info.";
           std::move(status_codes_callback)(StatusCodes::kError);
           return;
         }
@@ -1175,12 +1172,11 @@ std::string NearbySharingServiceImpl::Dump() const {
                  preference_manager_,
                  PrefNames::kSchedulerDownloadPublicCertificates)
           << std::endl;
-  sstream
-      << " Upload local device certificates: "
-      << ConvertToReadableSchedule(
-             preference_manager_,
-             PrefNames::kSchedulerUploadLocalDeviceCertificates)
-      << std::endl;
+  sstream << " Upload local device certificates: "
+          << ConvertToReadableSchedule(
+                 preference_manager_,
+                 PrefNames::kSchedulerUploadLocalDeviceCertificates)
+          << std::endl;
   sstream << " Private certificates expiration: "
           << ConvertToReadableSchedule(
                  preference_manager_,
@@ -1341,15 +1337,14 @@ void NearbySharingServiceImpl::OnLockStateChanged(bool locked) {
 
 void NearbySharingServiceImpl::AdapterPresentChanged(
     sharing::api::BluetoothAdapter* adapter, bool present) {
-  RunOnNearbySharingServiceThread(
-      "bt_adapter_present_changed", [this, adapter, present]() {
-        VLOG(1) << "Bluetooth adapter present state changed. (" << present
-                << ")";
-        NearbySharingService::Observer::AdapterState state =
-            MapAdapterState(present, adapter->IsPowered());
-        service_observers_.NotifyBluetoothStatusChanged(state);
-        InvalidateSurfaceState();
-      });
+  RunOnNearbySharingServiceThread("bt_adapter_present_changed", [this, adapter,
+                                                                 present]() {
+    VLOG(1) << "Bluetooth adapter present state changed. (" << present << ")";
+    NearbySharingService::Observer::AdapterState state =
+        MapAdapterState(present, adapter->IsPowered());
+    service_observers_.NotifyBluetoothStatusChanged(state);
+    InvalidateSurfaceState();
+  });
 }
 
 void NearbySharingServiceImpl::AdapterPoweredChanged(
@@ -1717,8 +1712,8 @@ void NearbySharingServiceImpl::OnOutgoingDecryptedCertificate(
     return;
   }
   LogShareTargetDiscovered(*share_target);
-  outgoing_targets_manager_.OnShareTargetDiscovered(
-      *share_target, endpoint_id, std::move(certificate));
+  outgoing_targets_manager_.OnShareTargetDiscovered(*share_target, endpoint_id,
+                                                    std::move(certificate));
   FinishEndpointDiscoveryEvent();
 }
 
@@ -1776,14 +1771,9 @@ bool NearbySharingServiceImpl::HasAvailableConnectionMediums() {
   bool is_wifi_lan_enabled = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan);
 
-  ConnectivityManager::ConnectionType connection_type =
-      context_->GetConnectivityManager()->GetConnectionType();
-
-  bool hasNetworkConnection =
-      connection_type == ConnectivityManager::ConnectionType::kWifi ||
-      connection_type == ConnectivityManager::ConnectionType::kEthernet;
-
-  return IsBluetoothPowered() || (is_wifi_lan_enabled && hasNetworkConnection);
+  return IsBluetoothPowered() ||
+         (is_wifi_lan_enabled &&
+          context_->GetConnectivityManager()->IsLanConnected());
 }
 
 void NearbySharingServiceImpl::InvalidateSurfaceState() {
@@ -1975,8 +1965,7 @@ void NearbySharingServiceImpl::InvalidateAdvertisingState() {
       *endpoint_info,
       /*listener=*/this, power_level, data_usage,
       visibility == DeviceVisibility::DEVICE_VISIBILITY_EVERYONE,
-      force_new_endpoint_id_,
-      [this, visibility, data_usage](Status status) {
+      force_new_endpoint_id_, [this, visibility, data_usage](Status status) {
         // Log analytics event of advertising start.
         analytics_recorder_.NewAdvertiseDevicePresenceStart(
             advertising_session_id_, visibility,
@@ -3070,8 +3059,8 @@ void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {
             config_package_nearby::nearby_sharing_feature::
                 kUnregisterTargetDiscoveryCacheLostExpiryMs));
     if (session != nullptr) {
-      outgoing_targets_manager_.OnShareTargetLost(
-          session->endpoint_id(), cache_retention);
+      outgoing_targets_manager_.OnShareTargetLost(session->endpoint_id(),
+                                                  cache_retention);
     } else {
       // Be careful not to clear out the share session map if a new session
       // was started during the cancellation delay.
@@ -3150,15 +3139,11 @@ void NearbySharingServiceImpl::SetInHighVisibility(
   service_observers_.NotifyHighVisibilityChanged(in_high_visibility_);
 }
 
-void NearbySharingServiceImpl::OnNetworkChanged(
-    nearby::ConnectivityManager::ConnectionType type) {
+void NearbySharingServiceImpl::OnLanConnectedChanged(bool connected) {
   on_network_changed_delay_timer_ = std::make_unique<ThreadTimer>(
       *service_thread_, "on_network_changed_delay_timer",
       kProcessNetworkChangeTimerDelay,
       [this]() { StopAdvertisingAndInvalidateSurfaceState(); });
-}
-
-void NearbySharingServiceImpl::OnLanConnectedChanged(bool connected) {
   RunOnNearbySharingServiceThread(
       "lan_connection_changed", [this, connected]() {
         VLOG(1) << __func__

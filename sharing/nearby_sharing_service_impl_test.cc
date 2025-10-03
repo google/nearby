@@ -100,7 +100,6 @@
 namespace nearby::sharing {
 namespace {
 
-using ConnectionType = ::nearby::ConnectivityManager::ConnectionType;
 using SendSurfaceState =
     ::nearby::sharing::NearbySharingService::SendSurfaceState;
 using ::nearby::sharing::api::MockAppInfo;
@@ -448,7 +447,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetBluetoothIsPresent(true);
     SetBluetoothIsPowered(true);
     SetScreenLocked(false);
-    SetConnectionType(ConnectionType::kWifi);
+    SetLanConnected(true);
     analytics_recorder_ = std::make_unique<analytics::AnalyticsRecorder>(
         /*vendor_id=*/0, /*event_logger=*/nullptr);
 
@@ -471,11 +470,11 @@ class NearbySharingServiceImplTest : public testing::Test {
     nearby_fast_initiation_factory_.reset();
   }
 
-  void SetConnectionType(ConnectionType type) {
+  void SetLanConnected(bool connected) {
     FakeConnectivityManager* connectivity_manager =
         down_cast<FakeConnectivityManager*>(
             fake_context_.GetConnectivityManager());
-    connectivity_manager->SetConnectionType(type);
+    connectivity_manager->SetLanConnected(connected);
   }
 
   std::unique_ptr<NearbySharingServiceImpl> CreateService(
@@ -775,7 +774,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     SetUpIntroductionFrameDecoder(/*return_empty_introduction_frame=*/false);
 
     int64_t share_target_id;
-    SetConnectionType(ConnectionType::kWifi);
+    SetLanConnected(true);
     absl::Notification notification;
     EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
         .WillOnce([&](const ShareTarget& incoming_share_target,
@@ -851,7 +850,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   int64_t DiscoverShareTarget(
       MockTransferUpdateCallback& transfer_callback,
       MockShareTargetDiscoveredCallback& discovery_callback) {
-    SetConnectionType(ConnectionType::kWifi);
+    SetLanConnected(true);
 
     // Start discovering, to ensure a discovery listener is registered.
     EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1279,16 +1278,13 @@ class NearbySharingServiceImplTest : public testing::Test {
 
 struct ValidSendSurfaceTestData {
   bool bluetooth_enabled;
-  ConnectionType connection_type;
+  bool lan_connected;
 } kValidSendSurfaceTestData[] = {
     // No network connection, only bluetooth available
-    {true, ConnectionType::kNone},
+    {true, false},
     // Wifi available
-    {true, ConnectionType::kWifi},
-    // Ethernet available
-    {true, ConnectionType::kEthernet},
-    // 3G available
-    {true, ConnectionType::k3G}};
+    {true, true},
+};
 
 class NearbySharingServiceImplValidSendTest
     : public NearbySharingServiceImplTest,
@@ -1370,7 +1366,7 @@ class TestObserver : public NearbySharingService::Observer {
 TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertising) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1388,7 +1384,7 @@ TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertising) {
 }
 
 TEST_F(NearbySharingServiceImplTest, StartFastInitiationAdvertisingError) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   nearby_fast_initiation_factory_->GetNearbyFastInitiation()
@@ -1403,7 +1399,7 @@ TEST_F(NearbySharingServiceImplTest,
        BackgroundStartFastInitiationAdvertisingError) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1416,7 +1412,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest, StopFastInitiationAdvertising) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1434,7 +1430,7 @@ TEST_F(NearbySharingServiceImplTest,
        StopFastInitiationAdvertising_BluetoothBecomesNotPresent) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kNone);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1450,7 +1446,7 @@ TEST_F(NearbySharingServiceImplTest,
        StopFastInitiationAdvertising_BluetoothBecomesNotPowered) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kNone);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1465,7 +1461,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_StartAndStop) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
   EXPECT_EQ(fast_initiation->StopScanningCount(), 0);
@@ -1486,7 +1482,7 @@ TEST_F(NearbySharingServiceImplTest,
        FastInitiationScanning_PostTransferCooldown) {
   FakeNearbyFastInitiation* fast_initiation =
       nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetConnectionType(ConnectionType::kBluetooth);
+  SetLanConnected(false);
 
   // Make sure we started scanning once
   EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
@@ -1508,7 +1504,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundRegisterSendSurfaceStartsDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1520,7 +1516,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundRegisterSendSurfaceTwiceKeepsDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1556,7 +1552,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundRegisterSendSurfaceNotDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1569,7 +1565,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        DifferentSurfaceRegisterSendSurfaceTwiceKeepsDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1586,7 +1582,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterSendSurfaceEndpointFoundDiscoveryCallbackNotified) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   // Start discovering, to ensure a discovery listener is registered.
   MockTransferUpdateCallback transfer_callback;
@@ -1633,7 +1629,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, RegisterSendSurfaceEmptyCertificate) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   // Start discovering, to ensure a discovery listener is registered.
   MockTransferUpdateCallback transfer_callback;
@@ -1683,7 +1679,7 @@ TEST_F(NearbySharingServiceImplTest, RegisterSendSurfaceEmptyCertificate) {
 TEST_P(NearbySharingServiceImplValidSendTest,
        RegisterSendSurfaceIsDiscovering) {
   SetBluetoothIsPresent(GetParam().bluetooth_enabled);
-  SetConnectionType(GetParam().connection_type);
+  SetLanConnected(GetParam().lan_connected);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1699,7 +1695,7 @@ INSTANTIATE_TEST_SUITE_P(NearbySharingServiceImplTest,
                          testing::ValuesIn(kValidSendSurfaceTestData));
 
 TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceStopsDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1716,7 +1712,7 @@ TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceStopsDiscovering) {
 
 TEST_F(NearbySharingServiceImplTest,
        UnregisterSendSurfaceDifferentCallbackKeepDiscovering) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -1733,7 +1729,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceNeverRegistered) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
@@ -1744,7 +1740,7 @@ TEST_F(NearbySharingServiceImplTest, UnregisterSendSurfaceNeverRegistered) {
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundRegisterReceiveSurfaceIsAdvertisingAllContacts) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   ::nearby::AccountManager::Account account;
   account.id = kTestAccountId;
@@ -1772,7 +1768,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundRegisterReceiveSurfaceIsAdvertisingNoOne) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   local_device_data_manager()->SetDeviceName(kDeviceName);
   MockTransferUpdateCallback callback;
@@ -1798,7 +1794,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundRegisterReceiveSurfaceIsAdvertisingSelectedContacts) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
   ::nearby::AccountManager::Account account;
   account.id = kTestAccountId;
@@ -1826,7 +1822,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceTwiceSameCallbackKeepAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -1843,7 +1839,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceTwiceKeepAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -1862,7 +1858,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        DataUsageChangedRegisterReceiveSurfaceRestartsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   preference_manager().SetInteger(
       prefs::kNearbySharingDataUsageName,
@@ -1890,7 +1886,7 @@ TEST_F(
     NearbySharingServiceImplTest,
     UnregisterForegroundReceiveSurfaceVisibilityAllContactsRestartAdvertising) {
   TestObserver observer(service_.get());
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
@@ -1936,7 +1932,7 @@ TEST_F(
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceWithVendorId_StartAdvertisingVendorId) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
@@ -1961,7 +1957,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceWithVendorId_DoesNotAdvertiseInContacts) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
@@ -1986,7 +1982,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceWithDifferentVendorIdIsBlocked) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
@@ -2012,7 +2008,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterReceiveSurfaceWithVendorId_OkWithBgNoVendorId) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE));
@@ -2057,7 +2053,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, WifiRegisterReceiveSurfaceIsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2069,7 +2065,7 @@ TEST_F(NearbySharingServiceImplTest, WifiRegisterReceiveSurfaceIsAdvertising) {
 
 TEST_F(NearbySharingServiceImplTest,
        EthernetRegisterReceiveSurfaceIsAdvertising) {
-  SetConnectionType(ConnectionType::kEthernet);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2081,7 +2077,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ThreeGRegisterReceiveSurfaceIsAdvertising) {
-  SetConnectionType(ConnectionType::k3G);
+  SetLanConnected(false);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2095,7 +2091,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        NoBluetoothWifiReceiveSurfaceIsAdvertising) {
   SetBluetoothIsPresent(false);
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2108,7 +2104,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        NoBluetoothEthernetReceiveSurfaceIsAdvertising) {
   SetBluetoothIsPresent(false);
-  SetConnectionType(ConnectionType::kEthernet);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2120,7 +2116,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundReceiveSurfaceNoOneVisibilityIsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE));
@@ -2135,7 +2131,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceNoOneVisibilityNotAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELF_SHARE);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
@@ -2152,7 +2148,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceVisibilityToNoOneStopsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS);
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2173,7 +2169,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest, ValidateLoginStateWhenSettingVisibility) {
   absl::Notification set_visibility_notification;
   NearbySharingService::StatusCodes set_visibility_status;
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   FlushTesting();
   service_->SetVisibility(
       DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS, absl::ZeroDuration(),
@@ -2214,7 +2210,7 @@ TEST_F(NearbySharingServiceImplTest, ValidateLoginStateWhenSettingVisibility) {
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceVisibilityToAllContactsStartsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_UNSPECIFIED);
   FlushTesting();
   MockTransferUpdateCallback callback;
@@ -2232,7 +2228,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundReceiveSurfaceSelectedContactsVisibilityIsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
@@ -2247,7 +2243,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceSelectedContactsVisibilityIsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_SELECTED_CONTACTS));
@@ -2262,7 +2258,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        ForegroundReceiveSurfaceAllContactsVisibilityIsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
@@ -2277,7 +2273,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        BackgroundReceiveSurfaceAllContactsVisibilityNotAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
@@ -2291,7 +2287,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, UnregisterReceiveSurfaceStopsAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2309,7 +2305,7 @@ TEST_F(NearbySharingServiceImplTest, UnregisterReceiveSurfaceStopsAdvertising) {
 
 TEST_F(NearbySharingServiceImplTest,
        UnregisterReceiveSurfaceDifferentCallbackKeepAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -2326,7 +2322,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, UnregisterReceiveSurfaceNeverRegistered) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result =
@@ -2340,7 +2336,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionClosedAfterShutdown) {
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .Times(0);
@@ -2361,7 +2357,7 @@ TEST_F(NearbySharingServiceImplTest,
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   NiceMock<MockTransferUpdateCallback> callback;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -2389,7 +2385,7 @@ TEST_F(NearbySharingServiceImplTest,
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce([](const ShareTarget& share_target,
@@ -2420,7 +2416,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionEmptyIntroductionFrame) {
                                                               GetToken());
   SetUpIntroductionFrameDecoder(/*return_empty_introduction_frame=*/true);
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce([](const ShareTarget& share_target,
@@ -2459,7 +2455,7 @@ TEST_F(NearbySharingServiceImplTest,
                                                               GetToken());
   SetUpIntroductionFrameDecoder(/*return_empty_introduction_frame=*/false);
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
 
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -2567,7 +2563,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionOutOfStorage) {
   frame.SerializeToArray(bytes.data(), bytes.size());
   ReceiveMessageFromConnection(std::move(bytes));
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
       .WillOnce([](const ShareTarget& share_target,
@@ -2627,7 +2623,7 @@ TEST_F(NearbySharingServiceImplTest, IncomingConnectionFileSizeOverflow) {
   frame.SerializeToArray(bytes.data(), bytes.size());
   ReceiveMessageFromConnection(std::move(bytes));
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
 
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -2659,7 +2655,7 @@ TEST_F(NearbySharingServiceImplTest,
                                                               GetToken());
   SetUpIntroductionFrameDecoder(/*return_empty_introduction_frame=*/false);
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   absl::Notification notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -2954,7 +2950,7 @@ TEST_F(NearbySharingServiceImplTest,
                                                               GetToken());
   SetUpIntroductionFrameDecoder(/*return_empty_introduction_frame=*/false);
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   absl::Notification notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -2997,7 +2993,7 @@ TEST_F(NearbySharingServiceImplTest,
                                                               GetToken());
   SetUpIntroductionFrameDecoder(/*return_empty_introduction_frame=*/false);
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
   absl::Notification notification;
   EXPECT_CALL(callback, OnTransferUpdate(testing::_, testing::_, testing::_))
@@ -3044,7 +3040,7 @@ TEST_F(NearbySharingServiceImplTest,
   fake_nearby_connections_manager_->SetRawAuthenticationToken(kEndpointId,
                                                               GetToken());
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   NiceMock<MockTransferUpdateCallback> callback;
 
   SetUpKeyVerification(/*is_incoming=*/true, PairedKeyResultFrame::FAIL);
@@ -3076,7 +3072,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest,
        IncomingConnectionEmptyAuthTokenKeyVerificationRunnerStatusFail) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
   NiceMock<MockTransferUpdateCallback> callback;
 
@@ -3769,7 +3765,7 @@ TEST_F(NearbySharingServiceImplTest,
   TestObserver observer(service_.get());
   NiceMock<MockTransferUpdateCallback> callback;
 
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanIsConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_EVERYONE);
   local_device_data_manager()->SetDeviceName(kDeviceName);
 
@@ -3906,7 +3902,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, OrderedEndpointDiscoveryEvents) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanIsConnected(true);
 
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
@@ -3977,7 +3973,7 @@ TEST_F(NearbySharingServiceImplTest, OrderedEndpointDiscoveryEvents) {
 TEST_F(NearbySharingServiceImplTest,
        RetryDiscoveredEndpointsNoDownloadIfDecryption) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4007,7 +4003,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4053,7 +4049,7 @@ TEST_F(NearbySharingServiceImplTest, DedupSameEndpointId) {
 TEST_F(NearbySharingServiceImplTest,
        OnLostDedupSameEndpointIdBeforeExpiryNoOnShareTargetLost) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4108,7 +4104,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest, OnLostDedupSameEndpointIdAfterExpiry) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4176,7 +4172,7 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
           kDiscoveryCacheLostExpiryMs,
       20000);  // 20s
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4333,7 +4329,7 @@ TEST_F(NearbySharingServiceImplTest, EndpointDedupBasedOnDeviceId) {
 TEST_F(NearbySharingServiceImplTest,
        RetryDiscoveredEndpointsDiscoveryRestartClearsCache) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4374,7 +4370,7 @@ TEST_F(NearbySharingServiceImplTest,
 TEST_F(NearbySharingServiceImplTest,
        RetryDiscoveredEndpointsWhenCannotDecrypted) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4412,7 +4408,7 @@ TEST_F(NearbySharingServiceImplTest,
 
 TEST_F(NearbySharingServiceImplTest, RetryDiscoveredEndpointsDownloadLimit) {
   // Start discovery.
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4464,7 +4460,7 @@ TEST_F(NearbySharingServiceImplTest, RetryDiscoveredEndpointsDownloadLimit) {
 TEST_F(NearbySharingServiceImplTest,
        ScreenLockedRegisterReceiveSurfaceNotAdvertising) {
   SetScreenLocked(true);
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
       &callback, NearbySharingService::ReceiveSurfaceState::kForeground);
@@ -4496,7 +4492,7 @@ TEST_F(NearbySharingServiceImplTest, BlockTargetWithSameVendorId) {
 
 TEST_F(NearbySharingServiceImplTest,
        RegisterSendSurfaceWithDifferentVendorIdIsBlocked) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   preference_manager().SetInteger(
       prefs::kNearbySharingBackgroundVisibilityName,
       static_cast<int>(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS));
@@ -4523,7 +4519,7 @@ TEST_F(NearbySharingServiceImplTest,
 }
 
 TEST_F(NearbySharingServiceImplTest, ScreenLocksDuringAdvertising) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   SetVisibility(DeviceVisibility::DEVICE_VISIBILITY_ALL_CONTACTS);
   MockTransferUpdateCallback callback;
   NearbySharingService::StatusCodes result = RegisterReceiveSurface(
@@ -4543,7 +4539,7 @@ TEST_F(NearbySharingServiceImplTest, ScreenLocksDuringAdvertising) {
 }
 
 TEST_F(NearbySharingServiceImplTest, ScreenLocksDuringDiscovery) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
   EXPECT_EQ(RegisterSendSurface(&transfer_callback, &discovery_callback,
@@ -4680,7 +4676,7 @@ TEST_F(NearbySharingServiceImplTest, ObserveAccountLoginAndLogout) {
 }
 
 TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   // Used to check whether the setting is cleared after login.
   service_->GetSettings()->SetIsAnalyticsEnabled(true);
@@ -4728,7 +4724,7 @@ TEST_F(NearbySharingServiceImplTest, LoginAndLogoutShouldResetSettings) {
 }
 
 TEST_F(NearbySharingServiceImplTest, LoginShouldSetContactsVisibility) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   // Create account.
   AccountManager::Account account;
@@ -4747,7 +4743,7 @@ TEST_F(NearbySharingServiceImplTest, LoginShouldSetContactsVisibility) {
 }
 
 TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
 
   // Create account.
   AccountManager::Account account;
@@ -4801,7 +4797,7 @@ TEST_F(NearbySharingServiceImplTest, LogoutShouldSetValidVisibility) {
 }
 
 TEST_F(NearbySharingServiceImplTest, LoginAndLogoutNoStopRunningSurfaces) {
-  SetConnectionType(ConnectionType::kWifi);
+  SetLanConnected(true);
   MockTransferUpdateCallback transfer_callback;
   MockShareTargetDiscoveredCallback discovery_callback;
 

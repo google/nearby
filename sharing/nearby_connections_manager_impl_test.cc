@@ -16,7 +16,6 @@
 
 #include <stdint.h>
 
-#include <cstdio>
 #include <fstream>
 #include <functional>
 #include <ios>
@@ -39,14 +38,13 @@
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/constants.h"
 #include "sharing/fake_nearby_connections_service.h"
 #include "sharing/flags/generated/nearby_sharing_feature_flags.h"
-#include "sharing/internal/public/connectivity_manager.h"
+#include "sharing/internal/public/logging.h"
 #include "sharing/internal/test/fake_connectivity_manager.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/nearby_connection.h"
@@ -142,7 +140,6 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
         true);
     auto nearby_connections_service =
         std::make_unique<testing::NiceMock<FakeNearbyConnectionsService>>();
-    SetConnectionType(ConnectivityManager::ConnectionType::kWifi);
     nearby_connections_ = nearby_connections_service.get();
 
     nearby_connections_manager_ =
@@ -156,10 +153,10 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
     fake_task_runner_.SyncWithTimeout(absl::Seconds(1));
   }
 
-  void SetConnectionType(ConnectivityManager::ConnectionType connection_type) {
-    fake_connectivity_manager_.SetConnectionType(connection_type);
+  void SetConnectionStatus(bool lan_connected, bool internet_connected) {
+    fake_connectivity_manager_.SetLanConnected(lan_connected);
+    fake_connectivity_manager_.SetInternetConnected(internet_connected);
   }
-
   void Fastforward(absl::Duration duration) {
     fake_context_.fake_clock()->FastForward(duration);
   }
@@ -241,8 +238,7 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
     nearby_connections_manager_->StartAdvertising(
         local_endpoint_info, &incoming_connection_listener,
         PowerLevel::kHighPower, DataUsage::ONLINE_DATA_USAGE, false,
-        /*force_new_endpoint_id=*/false,
-        std::move(callback));
+        /*force_new_endpoint_id=*/false, std::move(callback));
     EXPECT_TRUE(
         notification.WaitForNotificationWithTimeout(kSynchronizationTimeOut));
   }
@@ -532,7 +528,6 @@ TEST_F(NearbyConnectionsManagerImplTest, DiscoveryFlow) {
 
 TEST_F(NearbyConnectionsManagerImplTest,
        DisableWifiHotspotForHighQualityNonDisruptiveTransport) {
-  SetConnectionType(ConnectivityManager::ConnectionType::kWifi);
   // StartDiscovery will succeed.
   NearbyConnectionsService::DiscoveryListener discovery_listener_remote;
   testing::NiceMock<MockDiscoveryListener> discovery_listener;
@@ -569,7 +564,6 @@ TEST_F(NearbyConnectionsManagerImplTest,
 }
 
 TEST_F(NearbyConnectionsManagerImplTest, DisableWifiHotspotForHPRealtekDevice) {
-  SetConnectionType(ConnectivityManager::ConnectionType::kWifi);
   fake_connectivity_manager_.SetIsHPRealtekDevice(true);
 
   // StartDiscovery will succeed.
@@ -611,7 +605,9 @@ TEST_F(NearbyConnectionsManagerImplTest, DisableWifiHotspotForHPRealtekDevice) {
 // Begin: NearbyConnectionsManagerImplTestConnectionMediums
 /******************************************************************************/
 using ConnectionMediumsTestParam =
-    std::tuple<DataUsage, ConnectivityManager::ConnectionType, bool, bool>;
+    std::tuple<DataUsage, /*is_webrtc_enabled=*/bool,
+               /*is_wifilan_enabled=*/bool, /*is_lan_connected=*/bool,
+               /*is_internet_connected=*/bool>;
 class NearbyConnectionsManagerImplTestConnectionMediums
     : public NearbyConnectionsManagerImplTest,
       public testing::WithParamInterface<ConnectionMediumsTestParam> {};
@@ -620,9 +616,15 @@ TEST_P(NearbyConnectionsManagerImplTestConnectionMediums,
        RequestConnection_MediumSelection) {
   const ConnectionMediumsTestParam& param = GetParam();
   DataUsage data_usage = std::get<0>(param);
-  ConnectivityManager::ConnectionType connection_type = std::get<1>(param);
-  bool is_webrtc_enabled = std::get<2>(GetParam());
-  bool is_wifilan_enabled = std::get<3>(GetParam());
+  bool is_webrtc_enabled = std::get<1>(GetParam());
+  bool is_wifilan_enabled = std::get<2>(GetParam());
+  bool is_lan_connected = std::get<3>(GetParam());
+  bool is_internet_connected = std::get<4>(GetParam());
+  LOG(INFO) << "Test params: data_usage: " << static_cast<int>(data_usage)
+            << ", is_webrtc_enabled: " << is_webrtc_enabled
+            << ", is_wifilan_enabled: " << is_wifilan_enabled
+            << ", is_lan_connected: " << is_lan_connected
+            << ", is_internet_connected: " << is_internet_connected;
 
   if (is_webrtc_enabled) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -642,18 +644,13 @@ TEST_P(NearbyConnectionsManagerImplTestConnectionMediums,
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         false);
   }
+  SetConnectionStatus(is_lan_connected, is_internet_connected);
 
-  SetConnectionType(connection_type);
   bool should_use_internet =
-      data_usage != DataUsage::OFFLINE_DATA_USAGE &&
-      connection_type != ConnectivityManager::ConnectionType::kNone &&
-      !(data_usage == DataUsage::WIFI_ONLY_DATA_USAGE &&
-        connection_type != ConnectivityManager::ConnectionType::kWifi);
-  bool is_connection_wifi_or_ethernet =
-      connection_type == ConnectivityManager::ConnectionType::kWifi ||
-      connection_type == ConnectivityManager::ConnectionType::kEthernet;
+      is_internet_connected && data_usage != DataUsage::OFFLINE_DATA_USAGE &&
+      !(data_usage == DataUsage::WIFI_ONLY_DATA_USAGE && !is_lan_connected);
   should_use_web_rtc_ = is_webrtc_enabled && should_use_internet;
-  should_use_wifilan_ = is_wifilan_enabled && is_connection_wifi_or_ethernet;
+  should_use_wifilan_ = is_wifilan_enabled && is_lan_connected;
 
   MediumSelection expected_mediums(/*bluetooth=*/true,
                                    /*ble=*/false,
@@ -707,10 +704,8 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(testing::Values(DataUsage::WIFI_ONLY_DATA_USAGE,
                                      DataUsage::OFFLINE_DATA_USAGE,
                                      DataUsage::ONLINE_DATA_USAGE),
-                     testing::Values(ConnectivityManager::ConnectionType::kNone,
-                                     ConnectivityManager::ConnectionType::kWifi,
-                                     ConnectivityManager::ConnectionType::k3G),
-                     testing::Bool(), testing::Bool()));
+                     testing::Bool(), testing::Bool(), testing::Bool(),
+                     testing::Bool()));
 /******************************************************************************/
 // End: NearbyConnectionsManagerImplTestConnectionMediums
 /******************************************************************************/
@@ -1602,8 +1597,9 @@ TEST_F(NearbyConnectionsManagerImplTest, ClearIncomingPayloads) {
 // Begin: NearbyConnectionsManagerImplTestMediums
 /******************************************************************************/
 using MediumsTestParam =
-    std::tuple<PowerLevel, DataUsage, ConnectivityManager::ConnectionType, bool,
-               bool>;
+    std::tuple<PowerLevel, DataUsage, /*is_webrtc_enabled=*/bool,
+               /*is_wifilan_enabled=*/bool, /*is_lan_connected=*/bool,
+               /*is_internet_connected=*/bool>;
 class NearbyConnectionsManagerImplTestMediums
     : public NearbyConnectionsManagerImplTest,
       public testing::WithParamInterface<MediumsTestParam> {};
@@ -1612,9 +1608,16 @@ TEST_P(NearbyConnectionsManagerImplTestMediums, StartAdvertising_Options) {
   const MediumsTestParam& param = GetParam();
   PowerLevel power_level = std::get<0>(param);
   DataUsage data_usage = std::get<1>(param);
-  ConnectivityManager::ConnectionType connection_type = std::get<2>(param);
-  bool is_webrtc_enabled = std::get<3>(GetParam());
-  bool is_wifilan_enabled = std::get<4>(GetParam());
+  bool is_webrtc_enabled = std::get<2>(GetParam());
+  bool is_wifilan_enabled = std::get<3>(GetParam());
+  bool is_lan_connected = std::get<4>(GetParam());
+  bool is_internet_connected = std::get<5>(GetParam());
+  LOG(INFO) << "Test params: power_level: " << static_cast<int>(power_level)
+            << ", data_usage: " << static_cast<int>(data_usage)
+            << ", is_webrtc_enabled: " << is_webrtc_enabled
+            << ", is_wifilan_enabled: " << is_wifilan_enabled
+            << ", is_lan_connected: " << is_lan_connected
+            << ", is_internet_connected: " << is_internet_connected;
 
   if (is_webrtc_enabled) {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -1634,19 +1637,13 @@ TEST_P(NearbyConnectionsManagerImplTestMediums, StartAdvertising_Options) {
         config_package_nearby::nearby_sharing_feature::kEnableMediumWifiLan,
         false);
   }
-
-  SetConnectionType(connection_type);
+  SetConnectionStatus(is_lan_connected, is_internet_connected);
 
   bool should_use_internet =
-      data_usage != DataUsage::OFFLINE_DATA_USAGE &&
-      connection_type != ConnectivityManager::ConnectionType::kNone &&
-      !(data_usage == DataUsage::WIFI_ONLY_DATA_USAGE &&
-        connection_type != ConnectivityManager::ConnectionType::kWifi);
-  bool is_connection_wifi_or_ethernet =
-      connection_type == ConnectivityManager::ConnectionType::kWifi ||
-      connection_type == ConnectivityManager::ConnectionType::kEthernet;
+      is_internet_connected && data_usage != DataUsage::OFFLINE_DATA_USAGE &&
+      !(data_usage == DataUsage::WIFI_ONLY_DATA_USAGE && !is_lan_connected);
   should_use_web_rtc_ = is_webrtc_enabled && should_use_internet;
-  should_use_wifilan_ = is_wifilan_enabled & is_connection_wifi_or_ethernet;
+  should_use_wifilan_ = is_wifilan_enabled && is_lan_connected;
 
   bool is_high_power = power_level == PowerLevel::kHighPower;
 
@@ -1706,10 +1703,8 @@ INSTANTIATE_TEST_SUITE_P(
                      testing::Values(DataUsage::WIFI_ONLY_DATA_USAGE,
                                      DataUsage::OFFLINE_DATA_USAGE,
                                      DataUsage::ONLINE_DATA_USAGE),
-                     testing::Values(ConnectivityManager::ConnectionType::kNone,
-                                     ConnectivityManager::ConnectionType::kWifi,
-                                     ConnectivityManager::ConnectionType::k3G),
-                     testing::Bool(), testing::Bool()));
+                     testing::Bool(), testing::Bool(), testing::Bool(),
+                     testing::Bool()));
 
 /******************************************************************************/
 // End: NearbyConnectionsManagerImplTestMediums
