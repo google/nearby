@@ -657,5 +657,74 @@ TEST_F(OutgoingTargetsManagerTest, CleanupClosesConnectedSessions) {
             nullptr);
 }
 
+TEST_F(OutgoingTargetsManagerTest, AllTargetsLostClosesConnectedSessions) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  ShareTarget disabled_target = target;
+  disabled_target.receive_disabled = true;
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call)
+        .WillOnce([&](const ShareTarget& share_target) {
+          EXPECT_EQ(share_target, disabled_target);
+        });
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+  EXPECT_NE(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
+
+  outgoing_targets_manager_.AllTargetsLost(Seconds(10));
+
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, disabled_target);
+      });
+  EXPECT_TRUE(has_targets);
+  EXPECT_EQ(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
+}
+
+TEST_F(OutgoingTargetsManagerTest, AllTargetsLostConnectedSessionsNotClosed) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call).Times(0);
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  NearbyConnectionImpl connection(device_info_);
+  session->OnConnectResult(&connection, Status::kSuccess);
+  ASSERT_TRUE(session->IsConnected());
+
+  outgoing_targets_manager_.AllTargetsLost(Seconds(10));
+
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, target);
+      });
+  EXPECT_TRUE(has_targets);
+  EXPECT_NE(outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId),
+            nullptr);
+}
+
 }  // namespace
 }  // namespace nearby::sharing
