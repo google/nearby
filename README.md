@@ -11,9 +11,9 @@
 Nearby enables **peer-to-peer communication** between devices using Bluetooth, Wi-Fi, and ultrasonic audio.  
 It automatically discovers devices nearby and lets you exchange messages, files, or even extend app functionality across devices.
 
-### 🔄 Animation
+### 🔄 Logo
 
-![Nearby Animation](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZDA1Z2NqdzB1czdsd2UzYWFtcGdzc2RibmFkcjR1Yjh2bnc3ZjhncSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/dWesBcTLavkZuG35MI/giphy.gif)
+![Nearby Logo](https://github.com/Diksha-3905/nearby/blob/Updates/Logo.png)
 
 ---
 
