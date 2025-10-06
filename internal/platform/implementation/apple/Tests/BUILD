@@ -37,6 +37,7 @@ objc_library(
         "GNCUtilsTest.m",
         "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
+        "ble_medium_test.mm",
         "ble_peripheral_test.mm",
         "ble_socket_test.mm",
     ],
