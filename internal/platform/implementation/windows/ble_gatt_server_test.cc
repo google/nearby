@@ -21,7 +21,8 @@
 #include "gtest/gtest.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 
 namespace nearby {
@@ -30,26 +31,25 @@ namespace {
 
 TEST(BleV2GattServer, DISABLED_StartStopAdvertising) {
   BluetoothAdapter bluetoothAdapter;
-  BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
+  BleGattServer ble_gatt_server(&bluetoothAdapter, {});
 
-  ByteArray
-      service_data;  // {.tx_power_level = api::ble_v2::TxPowerLevel::kHigh}
+  ByteArray service_data;  // {.tx_power_level = api::ble::TxPowerLevel::kHigh}
 
-  EXPECT_TRUE(blev2_gatt_server.StartAdvertisement(service_data, true));
+  EXPECT_TRUE(ble_gatt_server.StartAdvertisement(service_data, true));
 
-  EXPECT_TRUE(blev2_gatt_server.StopAdvertisement());
+  EXPECT_TRUE(ble_gatt_server.StopAdvertisement());
 }
 
 TEST(BleV2GattServer, DISABLED_Stop) {
   BluetoothAdapter bluetoothAdapter;
-  BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
+  BleGattServer ble_gatt_server(&bluetoothAdapter, {});
 
-  blev2_gatt_server.Stop();
+  ble_gatt_server.Stop();
 }
 
 TEST(BleV2GattServer, DISABLED_StopNotifierIsCalled) {
   BluetoothAdapter bluetoothAdapter;
-  BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
+  BleGattServer ble_gatt_server(&bluetoothAdapter, {});
   bool is_close_notifier_called = false;
   absl::Notification notification;
   std::function<void()> notifier = [&is_close_notifier_called,
@@ -57,25 +57,25 @@ TEST(BleV2GattServer, DISABLED_StopNotifierIsCalled) {
     is_close_notifier_called = true;
     notification.Notify();
   };
-  blev2_gatt_server.SetCloseNotifier(std::move(notifier));
+  ble_gatt_server.SetCloseNotifier(std::move(notifier));
 
-  blev2_gatt_server.Stop();
+  ble_gatt_server.Stop();
   notification.WaitForNotificationWithTimeout(absl::Seconds(1));
   EXPECT_TRUE(is_close_notifier_called);
 }
 
 TEST(BleV2GattServer, DISABLED_CreateCharacteristic) {
   BluetoothAdapter bluetoothAdapter;
-  BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
+  BleGattServer ble_gatt_server(&bluetoothAdapter, {});
 
   Uuid service_uuid;
   Uuid characteristic_uuid;
-  const api::ble_v2::GattCharacteristic::Permission permissions =
-      api::ble_v2::GattCharacteristic::Permission::kNone;
-  const api::ble_v2::GattCharacteristic::Property properties =
-      api::ble_v2::GattCharacteristic::Property::kNone;
+  const api::ble::GattCharacteristic::Permission permissions =
+      api::ble::GattCharacteristic::Permission::kNone;
+  const api::ble::GattCharacteristic::Property properties =
+      api::ble::GattCharacteristic::Property::kNone;
 
-  EXPECT_TRUE(blev2_gatt_server
+  EXPECT_TRUE(ble_gatt_server
                   .CreateCharacteristic(service_uuid, characteristic_uuid,
                                         permissions, properties)
                   .has_value());
@@ -83,21 +83,21 @@ TEST(BleV2GattServer, DISABLED_CreateCharacteristic) {
 
 TEST(BleV2GattServer, DISABLED_UpdateCharacteristic) {
   BluetoothAdapter bluetoothAdapter;
-  BleGattServer blev2_gatt_server(&bluetoothAdapter, {});
+  BleGattServer ble_gatt_server(&bluetoothAdapter, {});
 
   Uuid service_uuid;
   Uuid characteristic_uuid;
-  const api::ble_v2::GattCharacteristic::Permission permissions =
-      api::ble_v2::GattCharacteristic::Permission::kNone;
-  const api::ble_v2::GattCharacteristic::Property properties =
-      api::ble_v2::GattCharacteristic::Property::kNone;
+  const api::ble::GattCharacteristic::Permission permissions =
+      api::ble::GattCharacteristic::Permission::kNone;
+  const api::ble::GattCharacteristic::Property properties =
+      api::ble::GattCharacteristic::Property::kNone;
 
-  auto gatt_characteristic = blev2_gatt_server.CreateCharacteristic(
+  auto gatt_characteristic = ble_gatt_server.CreateCharacteristic(
       service_uuid, characteristic_uuid, permissions, properties);
   ByteArray value;
 
-  EXPECT_TRUE(blev2_gatt_server.UpdateCharacteristic(
-      gatt_characteristic.value(), value));
+  EXPECT_TRUE(
+      ble_gatt_server.UpdateCharacteristic(gatt_characteristic.value(), value));
 }
 
 }  // namespace

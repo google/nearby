@@ -15,20 +15,25 @@
 #include "presence/implementation/mediums/ble.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
-#include "internal/platform/ble_v2.h"
+#include "absl/status/status.h"
+#include "absl/time/time.h"
+#include "absl/types/variant.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/uuid.h"
 #include "presence/data_element.h"
 #include "presence/implementation/mediums/advertisement_data.h"
+#include "presence/power_mode.h"
 #include "presence/scan_request.h"
 
 namespace nearby {
@@ -36,16 +41,15 @@ namespace presence {
 namespace {
 
 using FeatureFlags = ::nearby::FeatureFlags::Flags;
-using BleV2MediumStatus = ::nearby::MediumEnvironment::BleV2MediumStatus;
-using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
-using TxPowerLevel = ::nearby::api::ble_v2::TxPowerLevel;
-using ScanningCallback = ::nearby::api::ble_v2::BleMedium::ScanningCallback;
+using BleMediumStatus = ::nearby::MediumEnvironment::BleMediumStatus;
+using ScanningSession = ::nearby::api::ble::BleMedium::ScanningSession;
+using TxPowerLevel = ::nearby::api::ble::TxPowerLevel;
+using ScanningCallback = ::nearby::api::ble::BleMedium::ScanningCallback;
 using Uuid = ::nearby::Uuid;
-using ::nearby::api::ble_v2::BleAdvertisementData;
-using ::nearby::api::ble_v2::BlePeripheral;
-using AdvertisingCallback =
-    ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
-using AdvertisingSession = ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+using ::nearby::api::ble::BleAdvertisementData;
+using ::nearby::api::ble::BlePeripheral;
+using AdvertisingCallback = ::nearby::api::ble::BleMedium::AdvertisingCallback;
+using AdvertisingSession = ::nearby::api::ble::BleMedium::AdvertisingSession;
 
 constexpr FeatureFlags kTestCases[] = {
     FeatureFlags{},
@@ -82,8 +86,8 @@ class BleTest : public testing::TestWithParam<FeatureFlags> {
   };
 
  protected:
-  absl::optional<BleV2MediumStatus> GetBleStatus(const Ble& ble) {
-    return env_.GetBleV2MediumStatus(*ble.GetImpl());
+  std::optional<BleMediumStatus> GetBleStatus(const Ble& ble) {
+    return env_.GetBleMediumStatus(*ble.GetImpl());
   }
   nearby::MediumEnvironment& env_{nearby::MediumEnvironment::Instance()};
 };
@@ -148,7 +152,7 @@ TEST_P(BleTest, AdvertiseAndScan) {
                              advertisements.push_back(advertisement_data);
                              scan_latch.CountDown();
                            }});
-  std::unique_ptr<nearby::api::ble_v2::BleMedium::AdvertisingSession>
+  std::unique_ptr<nearby::api::ble::BleMedium::AdvertisingSession>
       advertising_session = server.StartAdvertising(
           advert_data, PowerMode::kBalanced,
           AdvertisingCallback{

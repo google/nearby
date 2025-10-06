@@ -977,11 +977,11 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
             location::nearby::connections::OsInfo::APPLE &&
         old_medium == Medium::BLE && medium == Medium::WIFI_HOTSPOT) {
       disable_ble_scanning = true;
-      LOG(INFO) << "For Apple OS, if upgrade from BLE_V2 to WIFI_HOTSPOT, "
+      LOG(INFO) << "For Apple OS, if upgrade from BLE to WIFI_HOTSPOT, "
                    "we need to pause "
-                   "BLE_V2 scanning because it can interfere with WIFI "
+                   "BLE scanning because it can interfere with WIFI "
                    "Hotspot scanning and connection.";
-      ble_v2_medium_.PauseMediumScanning();
+      ble_medium_.PauseMediumScanning();
     }
   }
 
@@ -993,8 +993,8 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
           config_package_nearby::nearby_connections_feature::
               kEnableStopBleScanningOnWifiUpgrade)) {
     if (disable_ble_scanning) {
-      LOG(INFO) << "Resume BLE_V2 scanning.";
-      ble_v2_medium_.ResumeMediumScanning();
+      LOG(INFO) << "Resume BLE scanning.";
+      ble_medium_.ResumeMediumScanning();
     }
   }
 

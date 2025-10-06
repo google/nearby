@@ -19,12 +19,12 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 
-using GattCharacteristic = ::nearby::api::ble_v2::GattCharacteristic;
-using Property = ::nearby::api::ble_v2::GattCharacteristic::Property;
-using Permission = ::nearby::api::ble_v2::GattCharacteristic::Permission;
-using WriteType = ::nearby::api::ble_v2::GattClient::WriteType;
+using GattCharacteristic = ::nearby::api::ble::GattCharacteristic;
+using Property = ::nearby::api::ble::GattCharacteristic::Property;
+using Permission = ::nearby::api::ble::GattCharacteristic::Permission;
+using WriteType = ::nearby::api::ble::GattClient::WriteType;
 using Uuid = ::nearby::Uuid;
 using ByteArray = ::nearby::ByteArray;
 

@@ -23,7 +23,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/runnable.h"
@@ -41,7 +41,6 @@
 #include "presence/implementation/advertisement_decoder_impl.h"
 #endif
 
-
 namespace nearby {
 namespace presence {
 
@@ -52,9 +51,9 @@ class ScanManager {
   using SingleThreadExecutor = ::nearby::SingleThreadExecutor;
   using Mutex = ::nearby::Mutex;
   using MutexLock = ::nearby::MutexLock;
-  using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
+  using ScanningSession = ::nearby::api::ble::BleMedium::ScanningSession;
   using Runnable = ::nearby::Runnable;
-  using BleAdvertisementData = ::nearby::api::ble_v2::BleAdvertisementData;
+  using BleAdvertisementData = ::nearby::api::ble::BleAdvertisementData;
   using SharedCredential = ::nearby::internal::SharedCredential;
   using IdentityType = ::nearby::internal::IdentityType;
 
@@ -81,12 +80,11 @@ class ScanManager {
     AdvertisementFilter advertisement_filter;
     std::unique_ptr<ScanningSession> scanning_session;
   };
-  void NotifyFoundBle(
-      ScanSessionId id, BleAdvertisementData data,
-      nearby::api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+  void NotifyFoundBle(ScanSessionId id, BleAdvertisementData data,
+                      nearby::api::ble::BlePeripheral::UniqueId peripheral_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void NotifyLostBle(ScanSessionId id,
-                     nearby::api::ble_v2::BlePeripheral::UniqueId peripheral_id)
+                     nearby::api::ble::BlePeripheral::UniqueId peripheral_id)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
   void FetchCredentials(ScanSessionId id, const ScanRequest& scan_request)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(*executor_);
@@ -100,9 +98,8 @@ class ScanManager {
   CredentialManager* credential_manager_;
   absl::flat_hash_map<ScanSessionId, ScanSessionState> scan_sessions_
       ABSL_GUARDED_BY(*executor_);
-  absl::flat_hash_map<nearby::api::ble_v2::BlePeripheral::UniqueId, std::string>
-      device_unique_id_to_endpoint_id_map_
-      ABSL_GUARDED_BY(*executor_);
+  absl::flat_hash_map<nearby::api::ble::BlePeripheral::UniqueId, std::string>
+      device_unique_id_to_endpoint_id_map_ ABSL_GUARDED_BY(*executor_);
   SingleThreadExecutor* executor_;
 };
 

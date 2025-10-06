@@ -288,7 +288,7 @@ cc_library(
     name = "comm",
     srcs = [
         "awdl.cc",
-        "ble_v2.cc",
+        "ble.cc",
         "bluetooth_classic.cc",
         "credential_storage_impl.cc",
         "file.cc",
@@ -298,7 +298,7 @@ cc_library(
     ],
     hdrs = [
         "awdl.h",
-        "ble_v2.h",
+        "ble.h",
         "bluetooth_adapter.h",
         "bluetooth_classic.h",
         "credential_storage_impl.h",
@@ -471,7 +471,7 @@ cc_test(
     timeout = "moderate",
     srcs = [
         "ble_connection_info_test.cc",
-        "ble_v2_test.cc",
+        "ble_test.cc",
         "blocking_queue_stream_test.cc",
         "bluetooth_adapter_test.cc",
         "bluetooth_classic_test.cc",

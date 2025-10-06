@@ -26,7 +26,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
@@ -40,9 +40,8 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using AdvertisingCallback =
-    ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
-using AdvertisingSession = ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+using AdvertisingCallback = ::nearby::api::ble::BleMedium::AdvertisingCallback;
+using AdvertisingSession = ::nearby::api::ble::BleMedium::AdvertisingSession;
 using LocalCredential = internal::LocalCredential;
 
 uint16_t SaltToInt(absl::string_view salt) {

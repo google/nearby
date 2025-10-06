@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/uuid.h"
 
 @class GNCBLEGATTClient;
@@ -32,7 +32,7 @@
 namespace nearby {
 namespace apple {
 
-class GattClient : public api::ble_v2::GattClient {
+class GattClient : public api::ble::GattClient {
  public:
   explicit GattClient(GNCBLEGATTClient *gatt_client_);
   ~GattClient() override = default;
@@ -51,21 +51,20 @@ class GattClient : public api::ble_v2::GattClient {
   // services and characteristics first.
   //
   // On success, returns the characteristic. On error, returns nullptr.
-  std::optional<api::ble_v2::GattCharacteristic> GetCharacteristic(
+  std::optional<api::ble::GattCharacteristic> GetCharacteristic(
       const Uuid &service_uuid, const Uuid &characteristic_uuid) override;
 
   // Reads the requested characteristic from the associated remote device.
   //
   // On success, returns the characteristic's value. On error, returns nullptr.
   std::optional<std::string> ReadCharacteristic(
-      const api::ble_v2::GattCharacteristic &characteristic) override;
+      const api::ble::GattCharacteristic &characteristic) override;
 
   // Writes a given characteristic and its values to the associated remote device.
   //
   // Returns whether or not the write was successful.
-  bool WriteCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
-                           absl::string_view value,
-                           api::ble_v2::GattClient::WriteType type) override;
+  bool WriteCharacteristic(const api::ble::GattCharacteristic &characteristic,
+                           absl::string_view value, api::ble::GattClient::WriteType type) override;
 
   // Enable or disable notifications/indications for a given characteristic.
   //
@@ -74,7 +73,7 @@ class GattClient : public api::ble_v2::GattClient {
   //
   // Returns whether or not the subscription was successful.
   bool SetCharacteristicSubscription(
-      const api::ble_v2::GattCharacteristic &characteristic, bool enable,
+      const api::ble::GattCharacteristic &characteristic, bool enable,
       absl::AnyInvocable<void(absl::string_view value)> on_characteristic_changed_cb) override;
 
   // Disconnects an established connection, or cancels a connection attempt currently in progress.

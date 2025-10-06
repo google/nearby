@@ -24,7 +24,7 @@
 
 #include "internal/platform/implementation/apple/ble_utils.h"
 #include "internal/platform/implementation/apple/utils.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTCharacteristic.h"
@@ -92,14 +92,14 @@ BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {
 // ble_medium.mm
 BleMedium::~BleMedium() { [medium_ stop]; }
 
-std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> BleMedium::StartAdvertising(
-    const api::ble_v2::BleAdvertisementData &advertising_data,
-    api::ble_v2::AdvertiseParameters advertise_set_parameters,
-    api::ble_v2::BleMedium::AdvertisingCallback callback) {
+std::unique_ptr<api::ble::BleMedium::AdvertisingSession> BleMedium::StartAdvertising(
+    const api::ble::BleAdvertisementData &advertising_data,
+    api::ble::AdvertiseParameters advertise_set_parameters,
+    api::ble::BleMedium::AdvertisingCallback callback) {
   NSMutableDictionary<CBUUID *, NSData *> *serviceData =
       ObjCServiceDataFromCPP(advertising_data.service_data);
 
-  __block api::ble_v2::BleMedium::AdvertisingCallback blockCallback = std::move(callback);
+  __block api::ble::BleMedium::AdvertisingCallback blockCallback = std::move(callback);
 
   [socketPeripheralManager_ start];
 
@@ -115,8 +115,8 @@ std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession> BleMedium::StartAdve
   }});
 }
 
-bool BleMedium::StartAdvertising(const api::ble_v2::BleAdvertisementData &advertising_data,
-                                 api::ble_v2::AdvertiseParameters advertise_set_parameters) {
+bool BleMedium::StartAdvertising(const api::ble::BleAdvertisementData &advertising_data,
+                                 api::ble::AdvertiseParameters advertise_set_parameters) {
   NSMutableDictionary<CBUUID *, NSData *> *serviceData =
       ObjCServiceDataFromCPP(advertising_data.service_data);
 
@@ -158,7 +158,7 @@ bool BleMedium::StopAdvertising() {
 
 void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                          NSDictionary<CBUUID *, NSData *> *serviceData) {
-  api::ble_v2::BleAdvertisementData data;
+  api::ble::BleAdvertisementData data;
   NSDate *now = [NSDate date];
 
   if ([now timeIntervalSinceDate:GetLastTimestampToCleanExpiredAdvertisementPackets()] >
@@ -166,7 +166,7 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
     ClearAdvertisementPacketsMap();
   }
 
-  api::ble_v2::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
+  api::ble::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
 
   if (!ShouldReportAdvertisement(now, peripheral_id, serviceData)) {
     return;
@@ -177,7 +177,7 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
   }
 
   // Add the peripheral to the map if we haven't discovered it yet.
-  api::ble_v2::BlePeripheral::UniqueId unique_id = peripherals_.Add(peripheral);
+  api::ble::BlePeripheral::UniqueId unique_id = peripherals_.Add(peripheral);
   AddAdvertisementPacketInfo(unique_id, serviceData);
 
 #if DEBUG
@@ -196,9 +196,9 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
   }
 }
 
-std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScanning(
-    const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-    api::ble_v2::BleMedium::ScanningCallback callback) {
+std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
+    const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
+    api::ble::BleMedium::ScanningCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   scanning_cb_ = std::move(callback);
 
@@ -230,8 +230,8 @@ std::unique_ptr<api::ble_v2::BleMedium::ScanningSession> BleMedium::StartScannin
   }});
 }
 
-bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLevel tx_power_level,
-                              api::ble_v2::BleMedium::ScanCallback callback) {
+bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
+                              api::ble::BleMedium::ScanCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
   scan_cb_ = std::move(callback);
 
@@ -268,8 +268,8 @@ bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble_v2::TxPowerLeve
 }
 
 bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_uuids,
-                                              api::ble_v2::TxPowerLevel tx_power_level,
-                                              api::ble_v2::BleMedium::ScanCallback callback) {
+                                              api::ble::TxPowerLevel tx_power_level,
+                                              api::ble::BleMedium::ScanCallback callback) {
   if (service_uuids.empty()) {
     GNCLoggerError(@"No service UUIDs provided");
     return false;
@@ -355,8 +355,8 @@ bool BleMedium::ResumeMediumScanning() {
 }
 
 // TODO(b/290385712): Add implementation that calls ServerGattConnectionCallback methods.
-std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
-    api::ble_v2::ServerGattConnectionCallback callback) {
+std::unique_ptr<api::ble::GattServer> BleMedium::StartGattServer(
+    api::ble::ServerGattConnectionCallback callback) {
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block GNCBLEGATTServer *blockServer = nil;
   __block NSError *blockError = nil;
@@ -381,16 +381,16 @@ std::unique_ptr<api::ble_v2::GattServer> BleMedium::StartGattServer(
   return std::make_unique<GattServer>(blockServer);
 }
 
-std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id, api::ble_v2::TxPowerLevel tx_power_level,
-    api::ble_v2::ClientGattConnectionCallback callback) {
+std::unique_ptr<api::ble::GattClient> BleMedium::ConnectToGattServer(
+    api::ble::BlePeripheral::UniqueId peripheral_id, api::ble::TxPowerLevel tx_power_level,
+    api::ble::ClientGattConnectionCallback callback) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
     GNCLoggerError(@"[NEARBY] Failed to connect to Gatt server: peripheral is not found.");
     return nullptr;
   }
 
-  api::ble_v2::ClientGattConnectionCallback thread_callback = {
+  api::ble::ClientGattConnectionCallback thread_callback = {
       .on_characteristic_changed_cb =
           [this,
            call_on_characteristic_changed_cb = std::move(callback.on_characteristic_changed_cb)](
@@ -409,7 +409,7 @@ std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
                 });
           }};
 
-  __block api::ble_v2::ClientGattConnectionCallback blockCallback = std::move(thread_callback);
+  __block api::ble::ClientGattConnectionCallback blockCallback = std::move(thread_callback);
 
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block GNCBLEGATTClient *blockClient = nil;
@@ -440,7 +440,7 @@ std::unique_ptr<api::ble_v2::GattClient> BleMedium::ConnectToGattServer(
 }
 
 // TODO(b/293336684): Old Weave code that need to be deleted once shared Weave is complete.
-std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
+std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocket(
     const std::string &service_id) {
   auto server_socket = std::make_unique<BleServerSocket>();
   __block auto server_socket_ptr = server_socket.get();
@@ -512,7 +512,7 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleMedium::OpenServerSocket(
   return std::move(server_socket);
 }
 
-std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSocket(
+std::unique_ptr<api::ble::BleL2capServerSocket> BleMedium::OpenL2capServerSocket(
     const std::string &service_id) {
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
   __block NSError *blockPSMPublishedError = nil;
@@ -575,9 +575,9 @@ std::unique_ptr<api::ble_v2::BleL2capServerSocket> BleMedium::OpenL2capServerSoc
 
 // TODO(b/290385712): Add support for @c cancellation_flag.
 // TODO(b/293336684): Old Weave code that need to be deleted once shared Weave is complete.
-std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
-    const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
+std::unique_ptr<api::ble::BleSocket> BleMedium::Connect(
+    const std::string &service_id, api::ble::TxPowerLevel tx_power_level,
+    api::ble::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
     GNCLoggerError(@"Failed to connect to Gatt server: peripheral is not found.");
@@ -630,9 +630,9 @@ std::unique_ptr<api::ble_v2::BleSocket> BleMedium::Connect(
   return std::move(socket);
 }
 
-std::unique_ptr<api::ble_v2::BleL2capSocket> BleMedium::ConnectOverL2cap(
-    int psm, const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
+std::unique_ptr<api::ble::BleL2capSocket> BleMedium::ConnectOverL2cap(
+    int psm, const std::string &service_id, api::ble::TxPowerLevel tx_power_level,
+    api::ble::BlePeripheral::UniqueId peripheral_id, CancellationFlag *cancellation_flag) {
   id<GNCPeripheral> peripheral = peripherals_.Get(peripheral_id);
   if (!peripheral) {
     GNCLoggerError(@"Failed to connect over L2CAP: peripheral is not found.");
@@ -686,7 +686,7 @@ bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return [medium_ supportsExtendedAdvertisements];
 }
 
-std::optional<api::ble_v2::BlePeripheral::UniqueId> BleMedium::RetrieveBlePeripheralIdFromNativeId(
+std::optional<api::ble::BlePeripheral::UniqueId> BleMedium::RetrieveBlePeripheralIdFromNativeId(
     const std::string &ble_peripheral_native_id) {
   NSString *uuidString = [[NSString alloc] initWithUTF8String:ble_peripheral_native_id.c_str()];
   if (uuidString == nil) {
@@ -736,7 +736,7 @@ void BleMedium::CleanUpExpiredAdvertisementPackets(NSDate *now) {
 }
 
 bool BleMedium::ShouldReportAdvertisement(NSDate *now,
-                                          api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+                                          api::ble::BlePeripheral::UniqueId peripheral_id,
                                           NSDictionary<CBUUID *, NSData *> *service_data) {
   absl::MutexLock lock(&advertisement_packets_mutex_);
   if (service_data == nil || service_data.count == 0) {
@@ -768,21 +768,20 @@ bool BleMedium::ShouldReportAdvertisement(NSDate *now,
   return true;
 }
 
-void BleMedium::AddAdvertisementPacketInfo(api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+void BleMedium::AddAdvertisementPacketInfo(api::ble::BlePeripheral::UniqueId peripheral_id,
                                            NSDictionary<CBUUID *, NSData *> *service_data) {
   absl::MutexLock lock(&advertisement_packets_mutex_);
   advertisement_packets_map_[peripheral_id] = {[NSDate date], service_data};
 }
 
-api::ble_v2::BlePeripheral::UniqueId BleMedium::PeripheralsMap::Add(id<GNCPeripheral> peripheral) {
+api::ble::BlePeripheral::UniqueId BleMedium::PeripheralsMap::Add(id<GNCPeripheral> peripheral) {
   absl::MutexLock lock(&mutex_);
-  api::ble_v2::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
+  api::ble::BlePeripheral::UniqueId peripheral_id = peripheral.identifier.hash;
   peripherals_.insert({peripheral_id, peripheral});
   return peripheral_id;
 }
 
-id<GNCPeripheral> BleMedium::PeripheralsMap::Get(
-    api::ble_v2::BlePeripheral::UniqueId peripheral_id) {
+id<GNCPeripheral> BleMedium::PeripheralsMap::Get(api::ble::BlePeripheral::UniqueId peripheral_id) {
   absl::MutexLock lock(&mutex_);
   auto peripheral_it = peripherals_.find(peripheral_id);
   if (peripheral_it == peripherals_.end()) {

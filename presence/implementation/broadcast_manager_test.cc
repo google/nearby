@@ -74,7 +74,7 @@ class BroadcastManagerTest : public testing::TestWithParam<FeatureFlags> {
     WaitForServiceControllerTasks();
     MediumEnvironment::Instance().Sync();
     return MediumEnvironment::Instance()
-        .GetBleV2MediumStatus(*mediums_.GetBle().GetImpl())
+        .GetBleMediumStatus(*mediums_.GetBle().GetImpl())
         ->is_advertising;
   }
   BroadcastCallback CreateBroadcastCallback() {

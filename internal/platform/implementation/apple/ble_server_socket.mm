@@ -29,7 +29,7 @@ BleServerSocket::~BleServerSocket() {
   DoClose();
 }
 
-std::unique_ptr<api::ble_v2::BleSocket> BleServerSocket::Accept() {
+std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
   while (!closed_ && pending_sockets_.empty()) {
     cond_.Wait(&mutex_);

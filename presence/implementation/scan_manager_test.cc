@@ -29,7 +29,7 @@
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
@@ -52,9 +52,9 @@ namespace nearby {
 namespace presence {
 namespace {
 
-using AdvertisingSession = ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+using AdvertisingSession = ::nearby::api::ble::BleMedium::AdvertisingSession;
 using AdvertisingCallback =
-    ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
+    ::nearby::api::ble::BleMedium::AdvertisingCallback;
 using ::nearby::SingleThreadExecutor;
 
 using CountDownLatch = ::nearby::CountDownLatch;

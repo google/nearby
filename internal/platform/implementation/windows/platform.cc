@@ -36,12 +36,12 @@
 #undef StrCat  // Remove the Windows macro definition
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "internal/base/files.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/condition_variable.h"
@@ -59,7 +59,7 @@
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
-#include "internal/platform/implementation/windows/ble_v2.h"
+#include "internal/platform/implementation/windows/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
 #include "internal/platform/implementation/windows/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/windows/condition_variable.h"
@@ -158,8 +158,7 @@ std::string ImplementationPlatform::GetAppDataPath(
   std::string app_data_path_utf8 =
       windows::string_utils::WideStringToString(app_data_path);
   std::replace(app_data_path_utf8.begin(), app_data_path_utf8.end(), '\\', '/');
-  return absl::StrCat(app_data_path_utf8, "/", kNCRelativePath, "/",
-                        file_name);
+  return absl::StrCat(app_data_path_utf8, "/", kNCRelativePath, "/", file_name);
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }
@@ -220,8 +219,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
   // Verifies that a path is a valid directory.
   if (!Files::DirectoryExists(folder_path)) {
     if (!Files::CreateDirectories(folder_path)) {
-      LOG(ERROR) << "Failed to create directory: "
-                 << folder_path.ToString();
+      LOG(ERROR) << "Failed to create directory: " << folder_path.ToString();
       return nullptr;
     }
   }
@@ -256,9 +254,9 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
 }
 
 // TODO(b/184975123): replace with real implementation.
-std::unique_ptr<api::ble_v2::BleMedium>
-ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter& adapter) {
-  return std::make_unique<windows::BleV2Medium>(adapter);
+std::unique_ptr<api::ble::BleMedium> ImplementationPlatform::CreateBleMedium(
+    api::BluetoothAdapter& adapter) {
+  return std::make_unique<windows::BleMedium>(adapter);
 }
 
 std::unique_ptr<api::CredentialStorage>

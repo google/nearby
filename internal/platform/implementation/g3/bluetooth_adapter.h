@@ -21,7 +21,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/mac_address.h"
@@ -89,7 +89,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
 
   // Returns BT MAC address assigned to this adapter.
   std::string GetMacAddress() const override { return mac_address_.ToString(); }
-  MacAddress GetAddress() const  override { return mac_address_; }
+  MacAddress GetAddress() const override { return mac_address_; }
 
   BluetoothDevice& GetDevice() { return device_; }
 
@@ -98,12 +98,10 @@ class BluetoothAdapter : public api::BluetoothAdapter {
     return bluetooth_classic_medium_;
   }
 
-  void SetBleV2Medium(api::ble_v2::BleMedium* medium);
-  api::ble_v2::BleMedium* GetBleV2Medium() { return ble_v2_medium_; }
+  void SetBleMedium(api::ble::BleMedium* medium);
+  api::ble::BleMedium* GetBleMedium() { return ble_medium_; }
 
-  void SetMacAddress(MacAddress mac_address) {
-    mac_address_ = mac_address;
-  }
+  void SetMacAddress(MacAddress mac_address) { mac_address_ = mac_address; }
 
   std::uint64_t GetUniqueId() { return unique_id_; }
 
@@ -111,7 +109,7 @@ class BluetoothAdapter : public api::BluetoothAdapter {
   mutable absl::Mutex mutex_;
   BluetoothDevice device_{this};
   api::BluetoothClassicMedium* bluetooth_classic_medium_ = nullptr;
-  api::ble_v2::BleMedium* ble_v2_medium_ = nullptr;
+  api::ble::BleMedium* ble_medium_ = nullptr;
   MacAddress mac_address_;
   ScanMode mode_ ABSL_GUARDED_BY(mutex_) = ScanMode::kNone;
   std::string name_ ABSL_GUARDED_BY(mutex_) = "unknown G3 BT device";

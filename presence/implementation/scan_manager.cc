@@ -27,7 +27,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/future.h"
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/credential_callbacks.h"
 #include "internal/platform/implementation/crypto.h"
 #include "internal/platform/logging.h"
@@ -45,10 +45,10 @@ namespace nearby {
 namespace presence {
 
 namespace {
-using BleAdvertisementData = ::nearby::api::ble_v2::BleAdvertisementData;
-using BlePeripheral = ::nearby::api::ble_v2::BlePeripheral;
-using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
-using ScanningCallback = ::nearby::api::ble_v2::BleMedium::ScanningCallback;
+using BleAdvertisementData = ::nearby::api::ble::BleAdvertisementData;
+using BlePeripheral = ::nearby::api::ble::BlePeripheral;
+using ScanningSession = ::nearby::api::ble::BleMedium::ScanningSession;
+using ScanningCallback = ::nearby::api::ble::BleMedium::ScanningCallback;
 }  // namespace
 
 ScanSessionId ScanManager::StartScan(ScanRequest scan_request,

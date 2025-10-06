@@ -16,19 +16,19 @@
 
 #import <Foundation/Foundation.h>
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/base/files.h"
-#include "internal/platform/implementation/apple/awdl.h"
+#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
+#include "internal/platform/implementation/apple/awdl.h"
 #include "internal/platform/implementation/apple/ble.h"
 #include "internal/platform/implementation/apple/condition_variable.h"
 #include "internal/platform/implementation/apple/count_down_latch.h"
 #include "internal/platform/implementation/apple/device_info.h"
-#import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/multi_thread_executor.h"
 #include "internal/platform/implementation/apple/mutex.h"
 #include "internal/platform/implementation/apple/preferences_manager.h"
@@ -172,7 +172,7 @@ std::unique_ptr<BluetoothClassicMedium> ImplementationPlatform::CreateBluetoothC
   return nullptr;
 }
 
-std::unique_ptr<ble_v2::BleMedium> ImplementationPlatform::CreateBleV2Medium(
+std::unique_ptr<ble::BleMedium> ImplementationPlatform::CreateBleMedium(
     api::BluetoothAdapter& adapter) {
   return std::make_unique<apple::BleMedium>();
 }
@@ -256,7 +256,7 @@ absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest
   }
   if (blockData != nil) {
     // Body is not a UTF-8 encoded string and is just using `std::string` as a container for data.
-    webResponse.body = std::string((char *)blockData.bytes, blockData.length);
+    webResponse.body = std::string((char*)blockData.bytes, blockData.length);
   }
   return webResponse;
 }

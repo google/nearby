@@ -21,7 +21,7 @@ cc_library(
     name = "mediums",
     srcs = [
         "awdl.cc",
-        "ble_v2.cc",
+        "ble.cc",
         "bluetooth_classic.cc",
         "bluetooth_radio.cc",
         "mediums.cc",
@@ -33,7 +33,7 @@ cc_library(
     ],
     hdrs = [
         "awdl.h",
-        "ble_v2.h",
+        "ble.h",
         "bluetooth_classic.h",
         "bluetooth_radio.h",
         "mediums.h",
@@ -54,9 +54,9 @@ cc_library(
         "//connections:core_types",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
-        "//connections/implementation/mediums/ble_v2",
-        "//connections/implementation/mediums/ble_v2:ble_advertisement_header",
-        "//connections/implementation/mediums/ble_v2:bloom_filter",
+        "//connections/implementation/mediums/ble",
+        "//connections/implementation/mediums/ble:ble_advertisement_header",
+        "//connections/implementation/mediums/ble:bloom_filter",
         "//connections/implementation/mediums/multiplex",
         "//connections/implementation/mediums/webrtc",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
@@ -115,7 +115,7 @@ cc_library(
     name = "lost_entity_tracker",
     hdrs = ["lost_entity_tracker.h"],
     visibility = [
-        "//connections/implementation/mediums/ble_v2:__pkg__",
+        "//connections/implementation/mediums/ble:__pkg__",
     ],
     deps = [
         "//internal/platform:types",
@@ -131,7 +131,7 @@ cc_library(
     visibility = [
         "//connections/implementation:__pkg__",
         "//connections/implementation/mediums/advertisements:__pkg__",
-        "//connections/implementation/mediums/ble_v2:__subpackages__",
+        "//connections/implementation/mediums/ble:__subpackages__",
         "//connections/implementation/mediums/multiplex:__pkg__",
         "//internal/platform/implementation/windows:__pkg__",
     ],
@@ -146,7 +146,7 @@ cc_test(
     size = "small",
     srcs = [
         "awdl_test.cc",
-        "ble_v2_test.cc",
+        "ble_test.cc",
         "bluetooth_classic_test.cc",
         "bluetooth_radio_test.cc",
         "lost_entity_tracker_test.cc",
@@ -163,7 +163,7 @@ cc_test(
         "//connections:core_types",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
-        "//connections/implementation/mediums/ble_v2",
+        "//connections/implementation/mediums/ble",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",

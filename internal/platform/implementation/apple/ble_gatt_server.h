@@ -21,7 +21,7 @@
 
 #import <Foundation/Foundation.h>
 
-#include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/uuid.h"
 
 #import "internal/platform/implementation/apple/ble_peripheral.h"
@@ -31,7 +31,7 @@
 namespace nearby {
 namespace apple {
 
-class GattServer : public api::ble_v2::GattServer {
+class GattServer : public api::ble::GattServer {
  public:
   explicit GattServer(GNCBLEGATTServer *gatt_server_);
   ~GattServer() override = default;
@@ -43,21 +43,21 @@ class GattServer : public api::ble_v2::GattServer {
   // services with the same UUID.
   //
   // Returns no value upon error.
-  std::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
+  std::optional<api::ble::GattCharacteristic> CreateCharacteristic(
       const Uuid &service_uuid, const Uuid &characteristic_uuid,
-      api::ble_v2::GattCharacteristic::Permission permission,
-      api::ble_v2::GattCharacteristic::Property property) override;
+      api::ble::GattCharacteristic::Permission permission,
+      api::ble::GattCharacteristic::Property property) override;
 
   // Updates a local characteristic with the provided value.
   //
   // Returns whether or not the update was successful.
-  bool UpdateCharacteristic(const api::ble_v2::GattCharacteristic &characteristic,
+  bool UpdateCharacteristic(const api::ble::GattCharacteristic &characteristic,
                             const nearby::ByteArray &value) override;
 
   // Send a notification or indication that a local characteristic has been updated.
   //
   // Returns an absl::Status indicating success or what went wrong.
-  absl::Status NotifyCharacteristicChanged(const api::ble_v2::GattCharacteristic &characteristic,
+  absl::Status NotifyCharacteristicChanged(const api::ble::GattCharacteristic &characteristic,
                                            bool confirm, const ByteArray &new_value) override;
 
   // Stops a GATT server.

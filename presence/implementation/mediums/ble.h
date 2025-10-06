@@ -16,11 +16,12 @@
 #define THIRD_PARTY_NEARBY_PRESENCE_IMPLEMENTATION_MEDIUMS_BLE_H_
 
 #include <memory>
-#include <string>
 #include <utility>
 
-#include "internal/platform/ble_v2.h"
+#include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/ble.h"
 #include "internal/platform/uuid.h"
 #include "presence/implementation/mediums/advertisement_data.h"
 #include "presence/power_mode.h"
@@ -34,23 +35,22 @@ ABSL_CONST_INIT const nearby::Uuid kPresenceServiceUuid(0x0000fcf100001000,
                                                         0x800000805f9b34fb);
 
 /*
- * This Ble class utilizes platform/ble_v2 BleV2Medium, provides ble functions
+ * This Ble class utilizes platform/ble BleMedium, provides ble functions
  * for presence logic layer to invoke.
  * This class would have states like if ble is available or not, if it's doing
  * broadcast/scan.
  */
 class Ble {
  public:
-  using TxPowerLevel = ::nearby::api::ble_v2::TxPowerLevel;
-  using ScanningSession = ::nearby::api::ble_v2::BleMedium::ScanningSession;
-  using ScanningCallback = ::nearby::api::ble_v2::BleMedium::ScanningCallback;
-  using AdvertiseParameters = ::nearby::api::ble_v2::AdvertiseParameters;
-  using AdvertisingSession =
-      ::nearby::api::ble_v2::BleMedium::AdvertisingSession;
+  using TxPowerLevel = ::nearby::api::ble::TxPowerLevel;
+  using ScanningSession = ::nearby::api::ble::BleMedium::ScanningSession;
+  using ScanningCallback = ::nearby::api::ble::BleMedium::ScanningCallback;
+  using AdvertiseParameters = ::nearby::api::ble::AdvertiseParameters;
+  using AdvertisingSession = ::nearby::api::ble::BleMedium::AdvertisingSession;
   using AdvertisingCallback =
-      ::nearby::api::ble_v2::BleMedium::AdvertisingCallback;
-  using BleAdvertisementData = ::nearby::api::ble_v2::BleAdvertisementData;
-  using BleMedium = ::nearby::api::ble_v2::BleMedium;
+      ::nearby::api::ble::BleMedium::AdvertisingCallback;
+  using BleAdvertisementData = ::nearby::api::ble::BleAdvertisementData;
+  using BleMedium = ::nearby::api::ble::BleMedium;
 
   explicit Ble(nearby::BluetoothAdapter& bluetooth_adapter)
       : medium_(bluetooth_adapter) {}
@@ -102,7 +102,7 @@ class Ble {
     return TxPowerLevel::kUnknown;
   }
 
-  nearby::BleV2Medium medium_;
+  nearby::BleMedium medium_;
 };
 
 }  // namespace presence
