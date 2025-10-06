@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 
 @implementation GNCFakeNWFrameworkSocket
 
@@ -35,6 +35,10 @@
   if (self.dataToRead) {
     NSData *data = self.dataToRead;
     self.dataToRead = nil;
+    if (data.length > length) {
+      self.dataToRead = [data subdataWithRange:NSMakeRange(length, data.length - length)];
+      return [data subdataWithRange:NSMakeRange(0, length)];
+    }
     return data;
   }
   return [NSData data];

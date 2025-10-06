@@ -69,6 +69,9 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                                  PSKIdentity:(nullable NSData *)PSKIdentity
                                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
                                            includePeerToPeer:(BOOL)includePeerToPeer
+                                                cancelSource:
+                                                    (nullable dispatch_source_t)cancelSource
+                                                       queue:(nullable dispatch_queue_t)queue
                                                        error:(NSError **)error;
 @end
 
@@ -319,6 +322,8 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                              PSKIdentity:nil
                          PSKSharedSecret:nil
                        includePeerToPeer:_includePeerToPeer
+                            cancelSource:nil
+                                   queue:nil
                                    error:error];
 }
 
@@ -336,12 +341,16 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                              PSKIdentity:PSKIdentity
                          PSKSharedSecret:PSKSharedSecret
                        includePeerToPeer:_includePeerToPeer
+                            cancelSource:nil
+                                   queue:nil
                                    error:error];
 }
 
 - (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                             port:(NSInteger)port
                                includePeerToPeer:(BOOL)includePeerToPeer
+                                    cancelSource:(nullable dispatch_source_t)cancelSource
+                                           queue:(nullable dispatch_queue_t)queue
                                            error:(NSError **)error {
   GNCLoggerInfo(@"[GNCNWFramework] Connect to host {host:%s, port:%ld}.",
                 host.dottedRepresentation.UTF8String, (long)port);
@@ -351,6 +360,8 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                              PSKIdentity:nil
                          PSKSharedSecret:nil
                        includePeerToPeer:(BOOL)includePeerToPeer
+                            cancelSource:cancelSource
+                                   queue:queue
                                    error:error];
 }
 
@@ -360,6 +371,9 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
                                                  PSKIdentity:(nullable NSData *)PSKIdentity
                                              PSKSharedSecret:(nullable NSData *)PSKSharedSecret
                                            includePeerToPeer:(BOOL)includePeerToPeer
+                                                cancelSource:
+                                                    (nullable dispatch_source_t)cancelSource
+                                                       queue:(nullable dispatch_queue_t)queue
                                                        error:(NSError **)error {
   NSCondition *condition = [[NSCondition alloc] init];
   [condition lock];
@@ -378,7 +392,7 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     return nil;
   }
   nw_connection_t connection = nw_connection_create(endpoint, parameters);
-  nw_connection_set_queue(connection, dispatch_get_main_queue());
+  nw_connection_set_queue(connection, queue ? queue : dispatch_get_main_queue());
   nw_connection_set_state_changed_handler(
       connection, ^(nw_connection_state_t state, nw_error_t error) {
         [condition lock];
@@ -392,6 +406,14 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
         }
         [condition unlock];
       });
+  if (cancelSource) {
+    dispatch_source_set_event_handler(cancelSource, ^{
+      GNCLoggerInfo(
+          @"[GNCNWFramework] Connection to endpoint was cancelled before it could be established.");
+      nw_connection_cancel(connection);
+      dispatch_source_cancel(cancelSource);
+    });
+  }
   nw_connection_start(connection);
 
   BOOL didSignal =

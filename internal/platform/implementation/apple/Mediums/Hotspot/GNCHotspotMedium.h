@@ -19,6 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class GNCIPv4Address;
 @class GNCHotspotSocket;
+@class GNCNWFramework;
 @class GNCNWFrameworkSocket;
 
 /**
@@ -36,6 +37,16 @@ NS_ASSUME_NONNULL_BEGIN
  * @return An initialized Hotspot medium.
  */
 - (instancetype)initWithQueue:(dispatch_queue_t)queue;
+
+/**
+ * Initializes the Hotspot medium with the specified queue and network framework.
+ *
+ * @param queue The queue to use for all internal operations.
+ * @param nwFramework The network framework to use for connections.
+ * @return An initialized Hotspot medium.
+ */
+- (instancetype)initWithQueue:(dispatch_queue_t)queue
+                  nwFramework:(GNCNWFramework *)nwFramework NS_DESIGNATED_INITIALIZER;
 
 /**
  * Connects to a Wifi Hotspot with the specified SSID and password.

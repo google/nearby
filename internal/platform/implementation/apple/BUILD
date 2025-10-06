@@ -145,6 +145,7 @@ objc_library(
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
+        ":Shared",
         ":bluetooth_adapter_v2",
         ":comm",
         "//internal/platform:base",

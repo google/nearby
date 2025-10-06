@@ -60,8 +60,8 @@
                                          error:(NSError **)error {
   self.connectedToServiceName = serviceName;
   self.connectedToServiceType = serviceType;
-  GNCFakeNWFrameworkSocket *socket = [[GNCFakeNWFrameworkSocket alloc]
-      initWithConnection:[[GNCFakeNWConnection alloc] init]];
+  GNCFakeNWFrameworkSocket *socket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:[[GNCFakeNWConnection alloc] init]];
   [self.sockets addObject:socket];
   return socket;
 }
@@ -73,8 +73,8 @@
                                                   error:(NSError **)error {
   self.connectedToServiceName = serviceName;
   self.connectedToServiceType = serviceType;
-  GNCFakeNWFrameworkSocket *socket = [[GNCFakeNWFrameworkSocket alloc]
-      initWithConnection:[[GNCFakeNWConnection alloc] init]];
+  GNCFakeNWFrameworkSocket *socket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:[[GNCFakeNWConnection alloc] init]];
   [self.sockets addObject:socket];
   return socket;
 }
@@ -82,12 +82,16 @@
 - (GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                    port:(NSInteger)port
                       includePeerToPeer:(BOOL)includePeerToPeer
+                           cancelSource:(nullable dispatch_source_t)cancelSource
+                                  queue:(nullable dispatch_queue_t)queue
                                   error:(NSError **)error {
   self.connectedToHost = host;
   self.connectedToPort = port;
   self.connectedToIncludePeerToPeer = includePeerToPeer;
-  GNCFakeNWFrameworkSocket *socket = [[GNCFakeNWFrameworkSocket alloc]
-      initWithConnection:[[GNCFakeNWConnection alloc] init]];
+  self.connectedWithCancelSource = cancelSource;
+  self.connectedWithQueue = queue;
+  GNCFakeNWFrameworkSocket *socket =
+      [[GNCFakeNWFrameworkSocket alloc] initWithConnection:[[GNCFakeNWConnection alloc] init]];
   [self.sockets addObject:socket];
   return socket;
 }

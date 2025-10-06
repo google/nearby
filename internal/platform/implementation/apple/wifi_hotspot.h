@@ -15,7 +15,7 @@
 #ifndef PLATFORM_IMPL_APPLE_WIFI_HOTSPOT_H_
 #define PLATFORM_IMPL_APPLE_WIFI_HOTSPOT_H_
 
-#import <Foundation/Foundation.h> // NOLINT
+#import <Foundation/Foundation.h>  // NOLINT
 #import <Network/Network.h>
 
 #include <string>
@@ -27,6 +27,7 @@
 @class GNCMBonjourService;
 @class GNCHotspotMedium;
 @class GNCNWFrameworkSocket;
+@class GNCNWFrameworkServerSocket;
 
 namespace nearby {
 namespace apple {
@@ -68,7 +69,6 @@ class WifiHotspotOutputStream : public OutputStream {
 class WifiHotspotSocket : public api::WifiHotspotSocket {
  public:
   explicit WifiHotspotSocket(GNCNWFrameworkSocket* socket);
-  explicit WifiHotspotSocket() = default;
   ~WifiHotspotSocket() override = default;
   InputStream& GetInputStream() override;
   OutputStream& GetOutputStream() override;
@@ -86,6 +86,8 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
 class WifiHotspotMedium : public api::WifiHotspotMedium {
  public:
   WifiHotspotMedium();
+  // For testing only.
+  explicit WifiHotspotMedium(GNCHotspotMedium* hotspot_medium);
   ~WifiHotspotMedium() override;
 
   WifiHotspotMedium(const WifiHotspotMedium&) = delete;
@@ -121,10 +123,11 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
       absl::string_view ip_address, int port, CancellationFlag* cancellation_flag) override;
 
   // IOS is not supporting WifiHotspot Server yet.
-  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override {return false;}
-  bool StopWifiHotspot() override {return false;}
-  std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(
-      int port) override { return nil; }
+  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override { return false; }
+  bool StopWifiHotspot() override { return false; }
+  std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(int port) override {
+    return nullptr;
+  }
 
   /**
    * @brief Gets the dynamic port range for the Wifi Hotspot.
@@ -132,8 +135,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
    * @return An optional pair of integers representing the minimum and maximum dynamic port numbers,
    * or absl::nullopt if not supported.
    */
-  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
-      override {
+  std::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() override {
     return std::nullopt;
   }
 
