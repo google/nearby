@@ -42,7 +42,6 @@ ByteArray Sha256(absl::string_view input, size_t size);
 
 // Reads the IPv4 addresses
 std::vector<std::string> GetIpv4Addresses();
-std::vector<std::string> Get4BytesIpv4Addresses();
 std::vector<std::string> GetWifiIpv4Addresses();
 void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
                       std::vector<std::string>& ethernet_addresses,
