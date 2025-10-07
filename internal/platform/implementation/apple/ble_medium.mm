@@ -52,6 +52,7 @@
 #import "internal/platform/implementation/apple/ble_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
 #import "internal/platform/implementation/apple/utils.h"
+#import "internal/platform/implementation/apple/GNCUtils.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 static const char *const kConnectionCallbackQueueLabel =
@@ -64,27 +65,10 @@ static NSTimeInterval const kAdvertisementPacketsMapExpirationTimeInterval = 600
 
 namespace nearby {
 namespace apple {
-namespace {
 
-NSString *ConvertDataToHexString(NSData *data) {
-  NSUInteger dataLength = data.length;
-  if (dataLength == 0) {
-    return @"0x";
-  }
+BleMedium::BleMedium() : BleMedium([[GNCBLEMedium alloc] init]) {}
 
-  const unsigned char *dataBuffer = (const unsigned char *)data.bytes;
-  NSMutableString *hexString = [NSMutableString stringWithCapacity:dataLength * 2];
-
-  for (NSUInteger i = 0; i < dataLength; ++i) {
-    [hexString appendFormat:@"%02lx", (unsigned long)dataBuffer[i]];
-  }
-
-  return [NSString stringWithFormat:@"0x%@", hexString];
-}
-
-}  // namespace
-
-BleMedium::BleMedium() : medium_([[GNCBLEMedium alloc] init]) {
+BleMedium::BleMedium(GNCBLEMedium *medium) : medium_(medium) {
   connection_callback_queue_ =
       dispatch_queue_create(kConnectionCallbackQueueLabel, DISPATCH_QUEUE_SERIAL);
 }
@@ -184,7 +168,7 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
   for (NSData *service_data in serviceData.allValues) {
     GNCLoggerDebug(@"Reporting the advertisement packet to upper layer for unique_id: %llu, %@, "
                    @"advertisement_data: %@.",
-                   unique_id, peripheral, ConvertDataToHexString(service_data));
+                   unique_id, peripheral, GNCConvertDataToHexString(service_data));
   }
 #endif
 
@@ -211,6 +195,9 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
   socketCentralManager_ = [[GNSCentralManager alloc] initWithSocketServiceUUID:serviceUUID];
   [socketCentralManager_ startNoScanModeWithAdvertisedServiceUUIDs:@[ serviceUUID ]];
 
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  __block NSError *blockError = nil;
+
   [medium_ startScanningForService:serviceUUID
       advertisementFoundHandler:^(id<GNCPeripheral> peripheral,
                                   NSDictionary<CBUUID *, NSData *> *serviceData) {
@@ -218,12 +205,29 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
             [this, peripheral, serviceData] { HandleAdvertisementFound(peripheral, serviceData); });
       }
       completionHandler:^(NSError *error) {
+        blockError = error;
         if (scanning_cb_.start_scanning_result) {
           scanning_cb_.start_scanning_result(
               error == nil ? absl::OkStatus()
                            : absl::InternalError(error.localizedDescription.UTF8String));
         }
+        dispatch_semaphore_signal(semaphore);
       }];
+
+  dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, kApiTimeoutInSeconds * NSEC_PER_SEC);
+  if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+    GNCLoggerError(@"Start scanning operation timed out.");
+    if (scanning_cb_.start_scanning_result) {
+      scanning_cb_.start_scanning_result(absl::DeadlineExceededError("Start scanning timed out"));
+    }
+    return nullptr;
+  }
+
+  if (blockError) {
+    GNCLoggerError(@"Failed to start scanning: %@", blockError);
+    // The start_scanning_result callback was already called in the completionHandler with the error.
+    return nullptr;
+  }
 
   return std::make_unique<ScanningSession>(ScanningSession{.stop_scanning = [this] {
     return StopScanning() ? absl::OkStatus() : absl::InternalError("Failed to stop scanning");

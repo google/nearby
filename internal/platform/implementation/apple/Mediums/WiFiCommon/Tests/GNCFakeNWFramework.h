@@ -38,8 +38,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic) BOOL connectedToIncludePeerToPeer;
 @property(nonatomic) NSInteger listenedForServiceOnPort;
 @property(nonatomic) BOOL listenedForServiceIncludePeerToPeer;
-@property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkSocket *>* sockets;
-@property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkServerSocket *>* serverSockets;
+@property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkSocket*>* sockets;
+@property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkServerSocket*>* serverSockets;
+@property(nonatomic, nullable) dispatch_source_t connectedWithCancelSource;
+@property(nonatomic, nullable) dispatch_queue_t connectedWithQueue;
 
 @end
 
