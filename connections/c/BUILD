@@ -65,8 +65,10 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
     ] + select({
-        "@platforms//os:platform_ios": [
+        "@platforms//os:apple": [
+            "//internal/platform/implementation/apple",
             "//internal/platform/implementation/apple:nearby_logger",
+            "//internal/platform/implementation/apple/Mediums",
         ],
         "//conditions:default": [],
     }),
