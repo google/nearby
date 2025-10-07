@@ -172,8 +172,8 @@ std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
   return std::nullopt;
 }
 
-void ClientProxy::SetBluetoothMacAddress(
-    const std::string& endpoint_id, MacAddress bluetooth_mac_address) {
+void ClientProxy::SetBluetoothMacAddress(const std::string& endpoint_id,
+                                         MacAddress bluetooth_mac_address) {
   bluetooth_mac_addresses_[endpoint_id] = bluetooth_mac_address;
 }
 
@@ -1188,9 +1188,7 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
             << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
   cached_endpoint_id_alarm_ = std::make_unique<CancelableAlarm>(
       "clear_high_power_endpoint_id_cache",
-      [this]() {
-        ClearCachedLocalEndpointId();
-      },
+      [this]() { ClearCachedLocalEndpointId(); },
       kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
 }
 
@@ -1233,11 +1231,7 @@ std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
                  kEnableMultiplexBluetooth)
              ? kBtMultiplexEnabled
              : 0) |
-        (NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
-                 kEnableMultiplexWifiLan)
-             ? kWifiLanMultiplexEnabled
-             : 0);
+        (false ? kWifiLanMultiplexEnabled : 0);
     LOG(INFO) << "ClientProxy [GetLocalMultiplexSocketBitmask]: "
               << multiplex_bitmask;
     return multiplex_bitmask;

@@ -217,11 +217,11 @@ class WifiLan {
       ABSL_GUARDED_BY(mutex_);
 
   // Whether the multiplex feature is enabled.
-  bool is_multiplex_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_connections_feature::kEnableMultiplex) &&
+  bool is_multiplex_enabled_ =
       NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableMultiplexWifiLan);
+              kEnableMultiplex) &&
+      false;
 
   // A map of IpAddress -> MultiplexSocket.
   absl::flat_hash_map<std::string, mediums::multiplex::MultiplexSocket*>
