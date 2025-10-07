@@ -198,7 +198,7 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 // Container of operations that can be performed over the WifiHotspot medium.
 class WifiHotspotMedium : public api::WifiHotspotMedium {
  public:
-  WifiHotspotMedium();
+  WifiHotspotMedium() = default;
   ~WifiHotspotMedium() override;
 
   // If the WiFi Adaptor supports to start a Hotspot interface.
@@ -234,11 +234,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
     kMediumStatusBeaconing = (1 << 1),
     kMediumStatusConnected = (1 << 2),
   };
-
-  // Store the Hotspot SSID to local storage
-  void StoreHotspotSsid(std::string ssid);
-  // Get the Hotspot SSID from local storage
-  std::string GetStoredHotspotSsid();
 
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket

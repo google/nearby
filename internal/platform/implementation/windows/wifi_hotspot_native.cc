@@ -171,11 +171,6 @@ std::optional<std::wstring> WifiHotspotNative::GetConnectedProfileName() const {
   return GetConnectedProfileNameInternal();
 }
 
-bool WifiHotspotNative::DeleteWifiProfile(const std::wstring& profile_name) {
-  absl::MutexLock lock(&mutex_);
-  return RemoveWlanProfile(profile_name);
-}
-
 bool WifiHotspotNative::Scan(absl::string_view ssid) {
   absl::MutexLock lock(&mutex_);
 

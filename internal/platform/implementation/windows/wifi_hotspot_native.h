@@ -47,8 +47,6 @@ class WifiHotspotNative {
 
   std::optional<std::wstring> GetConnectedProfileName() const
       ABSL_LOCKS_EXCLUDED(mutex_);
-  bool DeleteWifiProfile(const std::wstring& profile_name)
-      ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool Scan(absl::string_view ssid) ABSL_LOCKS_EXCLUDED(mutex_);
 
