@@ -41,8 +41,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectAdvertisementPublisherStatus;
@@ -387,13 +386,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       wifi_hotspot_native_.DisconnectWifiNetwork();
     }
 
-    connected_hotspot_profile_name_ =
-        wifi_hotspot_native_.GetConnectedProfileName();
-    if (connected_hotspot_profile_name_.has_value()) {
-      LOG(INFO) << "Connected to Hotspot profile: "
-                << string_utils::WideStringToString(
-                       *connected_hotspot_profile_name_);
-    }
+    wifi_hotspot_native_.BackupWifiProfile();
 
     // Initialize Intel PIE scan if it is installed.
     bool intel_wifi_started = false;
@@ -436,10 +429,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     if (!connected) {
       LOG(INFO) << "Failed to connect to Hotspot.";
-      if (connected_hotspot_profile_name_.has_value()) {
-        wifi_hotspot_native_.ConnectToWifiNetwork(
-            connected_hotspot_profile_name_->c_str());
-      }
+      wifi_hotspot_native_.RestoreWifiProfile();
       return false;
     }
 
@@ -479,13 +469,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     if (ip_address.empty()) {
       LOG(INFO) << "Failed to get IP address from hotspot.";
-      if (connected_hotspot_profile_name_.has_value()) {
-        wifi_hotspot_native_.ConnectToWifiNetwork(
-            *connected_hotspot_profile_name_);
-      } else {
-        wifi_hotspot_native_.DisconnectWifiNetwork();
-      }
-
+      wifi_hotspot_native_.RestoreWifiProfile();
       return false;
     }
 
@@ -512,17 +496,7 @@ bool WifiHotspotMedium::DisconnectWifiHotspot() {
     return true;
   }
 
-  if (connected_hotspot_profile_name_.has_value()) {
-    if (!wifi_hotspot_native_.ConnectToWifiNetwork(
-            *connected_hotspot_profile_name_)) {
-      LOG(ERROR) << __func__ << ": Failed to connect to hotspot profile.";
-    }
-  } else {
-    if (!wifi_hotspot_native_.DisconnectWifiNetwork()) {
-      LOG(ERROR) << __func__ << ": Failed to disconnect hotspot.";
-    }
-  }
-
+  wifi_hotspot_native_.RestoreWifiProfile();
   medium_status_ &= (~kMediumStatusConnected);
   LOG(INFO) << __func__ << ": Disconnected to hotspot successfully.";
   return true;
@@ -540,5 +514,4 @@ std::string WifiHotspotMedium::GetErrorMessage(std::exception_ptr eptr) {
   }
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

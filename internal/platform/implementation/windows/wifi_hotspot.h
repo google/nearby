@@ -276,7 +276,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // connects Wi-Fi hotspot using native API.
   WifiHotspotNative wifi_hotspot_native_;
-  std::optional<std::wstring> connected_hotspot_profile_name_;
 };
 
 }  // namespace windows
