@@ -65,14 +65,15 @@ class WifiHotspotNative {
   bool RegisterWlanNotificationCallback();
   bool UnregisterWlanNotificationCallback();
   bool SetWlanProfile(HotspotCredentials* hotspot_credentials);
-  bool RemoveWlanProfile();
+  bool RemoveCreatedWlanProfile() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  bool RemoveWlanProfile(const std::wstring& profile_name)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   std::optional<std::wstring> GetConnectedProfileNameInternal() const;
 
   mutable absl::Mutex mutex_;
 
   HANDLE wifi_ = nullptr;
   std::wstring connecting_profile_name_;
-  std::wstring created_profile_name_;
   std::string scanning_ssid_;
   std::unique_ptr<CountDownLatch> connect_latch_;
   std::unique_ptr<CountDownLatch> scan_latch_;

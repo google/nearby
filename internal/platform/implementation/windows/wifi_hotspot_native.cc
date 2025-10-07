@@ -41,6 +41,7 @@ namespace windows {
 
 namespace {
 constexpr absl::Duration kConnectTimeout = absl::Seconds(15);
+constexpr absl::string_view kHotspotProfileName = "_QS_peer_hotspot_";
 constexpr char kProfileTemplate[] =
     R"(<?xml version="1.0"?>
 <WLANProfile xmlns = "http://www.microsoft.com/networking/WLAN/profile/v1" >
@@ -82,6 +83,7 @@ WifiHotspotNative::WifiHotspotNative() {
   }
 
   VLOG(1) << "WifiHotspotNative created successfully.";
+  RemoveCreatedWlanProfile();
 }
 
 WifiHotspotNative::~WifiHotspotNative() {
@@ -107,7 +109,8 @@ bool WifiHotspotNative::ConnectToWifiNetwork(
     return false;
   }
 
-  if (!ConnectToWifiNetworkInternal(created_profile_name_)) {
+  if (!ConnectToWifiNetworkInternal(
+          string_utils::StringToWideString(std::string(kHotspotProfileName)))) {
     return false;
   }
 
@@ -127,7 +130,7 @@ bool WifiHotspotNative::ConnectToWifiNetwork(const std::wstring& profile_name) {
     return false;
   }
 
-  RemoveWlanProfile();
+  RemoveCreatedWlanProfile();
   LOG(ERROR) << "Connect to Wifi network successfully.";
   return true;
 }
@@ -145,7 +148,7 @@ bool WifiHotspotNative::DisconnectWifiNetwork() {
       GetConnectedProfileNameInternal();
   if (!connected_profile_name.has_value()) {
     LOG(ERROR) << "Not connected to any WLAN network.";
-    RemoveWlanProfile();
+    RemoveCreatedWlanProfile();
     return false;
   }
 
@@ -154,11 +157,11 @@ bool WifiHotspotNative::DisconnectWifiNetwork() {
       /*pReserved=*/nullptr);
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to disconnect WLAN profile with error: " << result;
-    RemoveWlanProfile();
+    RemoveCreatedWlanProfile();
     return false;
   }
 
-  RemoveWlanProfile();
+  RemoveCreatedWlanProfile();
   LOG(ERROR) << "Disconnect Wifi hotspot successfully.";
   return true;
 }
@@ -170,26 +173,7 @@ std::optional<std::wstring> WifiHotspotNative::GetConnectedProfileName() const {
 
 bool WifiHotspotNative::DeleteWifiProfile(const std::wstring& profile_name) {
   absl::MutexLock lock(&mutex_);
-  GUID interface_guid = GetInterfaceGuid();
-  if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << "No available WLAN Interface to use.";
-    return false;
-  }
-
-  DWORD result = WlanDeleteProfile(
-      /*hClientHandle=*/wifi_,
-      /*pInterfaceGuid=*/&interface_guid,
-      /*strProfileName=*/profile_name.data(),
-      /*pReserved=*/nullptr);
-
-  if (result != ERROR_SUCCESS) {
-    LOG(ERROR) << "Failed to delete WLAN profile "
-               << string_utils::WideStringToString(profile_name)
-               << " with reason" << result;
-    return false;
-  }
-
-  return true;
+  return RemoveWlanProfile(profile_name);
 }
 
 bool WifiHotspotNative::Scan(absl::string_view ssid) {
@@ -317,7 +301,8 @@ void WifiHotspotNative::WlanNotificationCallback(
 
 std::wstring WifiHotspotNative::BuildWlanProfile(absl::string_view ssid,
                                                  absl::string_view password) {
-  std::string profile = absl::StrFormat(kProfileTemplate, ssid, ssid, password);
+  std::string profile =
+      absl::StrFormat(kProfileTemplate, kHotspotProfileName, ssid, password);
   return string_utils::StringToWideString(profile);
 }
 
@@ -382,7 +367,7 @@ bool WifiHotspotNative::ConnectToWifiNetworkInternal(
                   /*pConnectionParameters=*/&parameters, /*pReserved=*/nullptr);
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to connect to WLAN profile "
-               << string_utils::WideStringToString(created_profile_name_);
+               << string_utils::WideStringToString(profile_name);
     UnregisterWlanNotificationCallback();
     return false;
   }
@@ -452,17 +437,18 @@ bool WifiHotspotNative::SetWlanProfile(
     return false;
   }
 
-  created_profile_name_ =
-      string_utils::StringToWideString(hotspot_credentials->GetSSID());
-
-  LOG(INFO) << "Set WLAN profile "
-            << string_utils::WideStringToString(created_profile_name_)
+  LOG(INFO) << "Set WLAN profile to " << kHotspotProfileName
             << " successfully.";
   return true;
 }
 
-bool WifiHotspotNative::RemoveWlanProfile() {
-  if (created_profile_name_.empty()) {
+bool WifiHotspotNative::RemoveCreatedWlanProfile() {
+  return RemoveWlanProfile(
+          string_utils::StringToWideString(std::string(kHotspotProfileName)));
+}
+
+bool WifiHotspotNative::RemoveWlanProfile(const std::wstring& profile_name) {
+  if (profile_name.empty()) {
     return false;
   }
 
@@ -474,20 +460,18 @@ bool WifiHotspotNative::RemoveWlanProfile() {
 
   DWORD result = WlanDeleteProfile(
       /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-      /*strProfileName=*/created_profile_name_.data(), /*pReserved=*/nullptr);
+      /*strProfileName=*/profile_name.data(), /*pReserved=*/nullptr);
 
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to remove WLAN profile "
-               << string_utils::WideStringToString(created_profile_name_)
-               << " with reason" << result;
+               << string_utils::WideStringToString(profile_name)
+               << " with reason " << result;
     return false;
   }
 
   LOG(INFO) << "WLAN profile "
-            << string_utils::WideStringToString(created_profile_name_)
+            << string_utils::WideStringToString(profile_name)
             << " removed successfully.";
-
-  created_profile_name_ = L"";
   return true;
 }
 
