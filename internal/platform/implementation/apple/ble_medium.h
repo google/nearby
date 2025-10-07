@@ -47,6 +47,8 @@ namespace apple {
 class BleMedium : public api::ble::BleMedium {
  public:
   BleMedium();
+  // For testing only.
+  explicit BleMedium(GNCBLEMedium *medium);
   ~BleMedium() override;
 
   // Async interface for StartAdvertising.

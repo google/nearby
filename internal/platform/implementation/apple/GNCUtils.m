@@ -41,4 +41,20 @@ NSData *GNCMd5String(NSString *string) {
   return GNCMd5Data([string dataUsingEncoding:NSUTF8StringEncoding]);
 }
 
+NSString *GNCConvertDataToHexString(NSData *_Nullable data) {
+  NSUInteger dataLength = data.length;
+  if (dataLength == 0) {
+    return @"0x";
+  }
+
+  const unsigned char *dataBuffer = (const unsigned char *)data.bytes;
+  NSMutableString *hexString = [NSMutableString stringWithCapacity:dataLength * 2];
+
+  for (NSUInteger i = 0; i < dataLength; ++i) {
+    [hexString appendFormat:@"%02lx", (unsigned long)dataBuffer[i]];
+  }
+
+  return [NSString stringWithFormat:@"0x%@", hexString];
+}
+
 NS_ASSUME_NONNULL_END
