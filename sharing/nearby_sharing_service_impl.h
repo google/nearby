@@ -52,7 +52,6 @@
 #include "sharing/internal/api/preference_manager.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
 #include "sharing/local_device_data/nearby_share_local_device_data_manager.h"
 #include "sharing/nearby_connection.h"
@@ -369,7 +368,6 @@ class NearbySharingServiceImpl
       bool is_initiator_of_cancellation);
 
   // Monitor connectivity changes.
-  void OnNetworkChanged(nearby::ConnectivityManager::ConnectionType type);
   void OnLanConnectedChanged(bool connected);
 
   // Resets all settings of the nearby sharing service.

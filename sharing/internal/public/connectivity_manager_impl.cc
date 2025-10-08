@@ -18,7 +18,6 @@
 #include <functional>
 #include <memory>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
@@ -29,50 +28,27 @@
 #include "sharing/flags/generated/nearby_sharing_feature_flags.h"
 #include "sharing/internal/api/network_monitor.h"
 #include "sharing/internal/api/sharing_platform.h"
-#include "sharing/internal/public/connectivity_manager.h"
-#include "sharing/internal/public/logging.h"
 
 namespace nearby {
 namespace {
 
 using ::nearby::sharing::api::SharingPlatform;
-using ConnectionType = ConnectivityManager::ConnectionType;
-
-std::string GetConnectionTypeString(ConnectionType connection_type) {
-  switch (connection_type) {
-    case ConnectionType::k2G:
-      return "2G";
-    case ConnectionType::k3G:
-      return "3G";
-    case ConnectionType::k4G:
-      return "4G";
-    case ConnectionType::k5G:
-      return "5G";
-    case ConnectionType::kBluetooth:
-      return "Bluetooth";
-    case ConnectionType::kEthernet:
-      return "Ethernet";
-    case ConnectionType::kWifi:
-      return "WiFi";
-    default:
-      return "Unknown";
-  }
-}
 
 }  // namespace
 
 ConnectivityManagerImpl::ConnectivityManagerImpl(SharingPlatform& platform)
     : platform_(platform) {
   network_monitor_ = platform.CreateNetworkMonitor(
-      [this](api::NetworkMonitor::ConnectionType connection_type,
-             bool is_lan_connected, bool is_internet_connected) {
-        ConnectionType new_connection_type =
-            static_cast<ConnectionType>(connection_type);
-        VLOG(1) << ": New connection type:"
-                << GetConnectionTypeString(new_connection_type);
-        for (auto& listener : listeners_) {
-          listener.second(new_connection_type, is_lan_connected,
-                          is_internet_connected);
+      [this](bool is_lan_connected) {
+        absl::MutexLock lock(mutex_);
+        for (auto& listener : lan_listeners_) {
+          listener.second(is_lan_connected);
+        }
+      },
+      [this](bool is_internet_connected) {
+        absl::MutexLock lock(mutex_);
+        for (auto& listener : internet_listeners_) {
+          listener.second(is_internet_connected);
         }
       });
 }
@@ -113,23 +89,37 @@ bool ConnectivityManagerImpl::IsHPRealtekDevice() {
   return is_hp_realtek_device_.value();
 }
 
-ConnectionType ConnectivityManagerImpl::GetConnectionType() {
-  return static_cast<ConnectionType>(network_monitor_->GetCurrentConnection());
+void ConnectivityManagerImpl::RegisterLanListener(
+    absl::string_view listener_name, std::function<void(bool)> callback) {
+  absl::MutexLock lock(mutex_);
+  lan_listeners_.emplace(listener_name, std::move(callback));
 }
 
-void ConnectivityManagerImpl::RegisterConnectionListener(
-    absl::string_view listener_name,
-    std::function<void(ConnectionType, bool, bool)> callback) {
-  listeners_.emplace(listener_name, std::move(callback));
-}
-
-void ConnectivityManagerImpl::UnregisterConnectionListener(
+void ConnectivityManagerImpl::UnregisterLanListener(
     absl::string_view listener_name) {
-  listeners_.erase(listener_name);
+  absl::MutexLock lock(mutex_);
+  lan_listeners_.erase(listener_name);
 }
 
-int ConnectivityManagerImpl::GetListenerCount() const {
-  return listeners_.size();
+void ConnectivityManagerImpl::RegisterInternetListener(
+    absl::string_view listener_name, std::function<void(bool)> callback) {
+  absl::MutexLock lock(mutex_);
+  internet_listeners_.emplace(listener_name, std::move(callback));
+}
+
+void ConnectivityManagerImpl::UnregisterInternetListener(
+    absl::string_view listener_name) {
+  absl::MutexLock lock(mutex_);
+  internet_listeners_.erase(listener_name);
+}
+
+int ConnectivityManagerImpl::GetLanListenerCountForTests() const {
+  absl::MutexLock lock(mutex_);
+  return lan_listeners_.size();
+}
+int ConnectivityManagerImpl::GetInternetListenerCountForTests() const {
+  absl::MutexLock lock(mutex_);
+  return internet_listeners_.size();
 }
 
 }  // namespace nearby

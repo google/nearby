@@ -78,10 +78,8 @@ NearbyShareSchedulerBase::NearbyShareSchedulerBase(
   }
 
   if (require_connectivity_) {
-    connectivity_manager_->RegisterConnectionListener(
-        connection_listener_name_,
-        [this](nearby::ConnectivityManager::ConnectionType connection_type,
-               bool is_lan_connected, bool is_internet_connected) {
+    connectivity_manager_->RegisterInternetListener(
+        connection_listener_name_, [this](bool is_internet_connected) {
           OnInternetConnectivityChanged(is_internet_connected);
         });
   }
@@ -89,7 +87,7 @@ NearbyShareSchedulerBase::NearbyShareSchedulerBase(
 
 NearbyShareSchedulerBase::~NearbyShareSchedulerBase() {
   if (require_connectivity_) {
-    connectivity_manager_->UnregisterConnectionListener(
+    connectivity_manager_->UnregisterInternetListener(
         connection_listener_name_);
   }
 }
@@ -154,8 +152,7 @@ absl::Duration NearbyShareSchedulerBase::GetTimeUntilNextRequest() const {
 
   // Recover from failures using exponential backoff strategy if necessary.
   absl::Duration time_until_retry = TimeUntilRetry(now);
-  if (time_until_retry != absl::InfiniteDuration())
-    return time_until_retry;
+  if (time_until_retry != absl::InfiniteDuration()) return time_until_retry;
 
   // Schedule the periodic request if applicable.
   return TimeUntilRecurringRequest(now);
@@ -184,9 +181,7 @@ size_t NearbyShareSchedulerBase::GetNumConsecutiveFailures() const {
   return pref_value.value();
 }
 
-void NearbyShareSchedulerBase::OnStart() {
-  Reschedule();
-}
+void NearbyShareSchedulerBase::OnStart() { Reschedule(); }
 
 void NearbyShareSchedulerBase::OnStop() { timer_->Stop(); }
 

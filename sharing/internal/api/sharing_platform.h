@@ -48,9 +48,8 @@ class SharingPlatform {
       absl::string_view (*product_id_getter)()) = 0;
 
   virtual std::unique_ptr<nearby::api::NetworkMonitor> CreateNetworkMonitor(
-      std::function<void(nearby::api::NetworkMonitor::ConnectionType, bool,
-                         bool)>
-          callback) = 0;
+      std::function<void(bool)> lan_connected_callback,
+      std::function<void(bool)> internet_connected_callback) = 0;
 
   virtual BluetoothAdapter& GetBluetoothAdapter() = 0;
 
