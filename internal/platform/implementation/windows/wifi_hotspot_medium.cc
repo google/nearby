@@ -153,7 +153,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
 
 std::unique_ptr<api::WifiHotspotServerSocket>
 WifiHotspotMedium::ListenForService(int port) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__
             << " :Start to listen connection from WiFi Hotspot client.";
 
@@ -172,7 +172,7 @@ WifiHotspotMedium::ListenForService(int port) {
 
     // Setup close notifier after listen started.
     server_socket->SetCloseNotifier([this]() {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       LOG(INFO) << "Server socket was closed.";
       medium_status_ &= (~kMediumStatusAccepting);
       server_socket_ptr_ = nullptr;
@@ -189,7 +189,7 @@ WifiHotspotMedium::ListenForService(int port) {
 
 bool WifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials* hotspot_credentials) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Start to create WiFi Hotspot.";
 
   if (IsBeaconing()) {
@@ -268,7 +268,7 @@ bool WifiHotspotMedium::StartWifiHotspot(
 
 bool WifiHotspotMedium::StopWifiHotspot() {
   // Need to use Win32 API to deregister the Dnssd instance
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsBeaconing()) {
     LOG(WARNING) << "Cannot stop SoftAP because no SoftAP is started.";
@@ -329,7 +329,7 @@ fire_and_forget WifiHotspotMedium::OnStatusChanged(
 
   // Publisher is stopped. Need to clean up the publisher.
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (publisher_ != nullptr) {
       LOG(ERROR) << "Windows WiFi Hotspot cleanup.";
       listener_.ConnectionRequested(connection_requested_token_);
@@ -378,15 +378,13 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
     HotspotCredentials* hotspot_credentials) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   try {
     if (IsConnected()) {
       LOG(WARNING) << "Already connected to Hotspot, disconnect first.";
       wifi_hotspot_native_.DisconnectWifiNetwork();
     }
-
-    wifi_hotspot_native_.BackupWifiProfile();
 
     // Initialize Intel PIE scan if it is installed.
     bool intel_wifi_started = false;
@@ -489,7 +487,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 }
 
 bool WifiHotspotMedium::DisconnectWifiHotspot() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (!IsConnected()) {
     LOG(WARNING) << "Cannot disconnect SoftAP because it is not connected.";

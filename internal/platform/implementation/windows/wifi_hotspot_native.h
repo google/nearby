@@ -26,6 +26,7 @@
 #include <optional>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -43,15 +44,25 @@ class WifiHotspotNative {
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool DisconnectWifiNetwork() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool BackupWifiProfile() ABSL_LOCKS_EXCLUDED(mutex_);
   bool RestoreWifiProfile() ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool Scan(absl::string_view ssid) ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void TriggerConnected(const std::wstring& profile_name);
-  void TriggerNetworkRefreshed();
-
  private:
+  // Context for WLAN notification callback.
+  struct WlanNotificationContext {
+    WifiHotspotNative& wifi_hotspot_native;
+    // This is reset to false when we start connecting to a new network, and set
+    // to true when we receive the connecting event.
+    bool got_connecting_event = false;
+    // Original profile name is captured when a disconnecting event is received
+    // before a connecting event.
+    std::wstring original_profile_name;
+    // The profile name of the network we are trying to connect to.
+    std::wstring connecting_profile_name;
+    WLAN_REASON_CODE connection_code = WLAN_REASON_CODE_UNKNOWN;
+  };
+
   static void WlanNotificationCallback(
       PWLAN_NOTIFICATION_DATA wlan_notification_data, PVOID context);
   std::wstring BuildWlanProfile(absl::string_view ssid,
@@ -60,7 +71,9 @@ class WifiHotspotNative {
   bool ConnectToWifiNetworkInternal(GUID interface_guid,
                                     const std::wstring& profile_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool RegisterWlanNotificationCallback();
+  bool RegisterWlanNotificationCallback(
+      WlanNotificationContext* absl_nonnull context)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool UnregisterWlanNotificationCallback();
   bool SetWlanProfile(GUID interface_guid,
                       HotspotCredentials* hotspot_credentials)
@@ -69,16 +82,16 @@ class WifiHotspotNative {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool RemoveWlanProfile(GUID interface_guid, const std::wstring& profile_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  std::optional<std::wstring> GetConnectedProfileNameInternal() const;
+  void TriggerConnected();
+  void TriggerNetworkRefreshed();
 
   mutable absl::Mutex mutex_;
 
   HANDLE wifi_ = nullptr;
-  std::wstring connecting_profile_name_;
   std::string scanning_ssid_;
   std::unique_ptr<CountDownLatch> connect_latch_;
   std::unique_ptr<CountDownLatch> scan_latch_;
-  std::wstring backup_profile_name_ ABSL_GUARDED_BY(mutex_);
+  std::wstring backup_profile_name_;
 };
 
 }  // namespace windows
