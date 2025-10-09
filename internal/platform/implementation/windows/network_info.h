@@ -1,0 +1,66 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_NETWORK_INFO_H_
+#define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_NETWORK_INFO_H_
+
+// clang-format off
+#include <winsock2.h>
+// clang-format on
+
+#include <cstdint>
+#include <vector>
+
+#include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
+
+namespace nearby::windows {
+
+// The type of the network interface.
+enum InterfaceType {
+  kEthernet,
+  kWifi,
+  kOther,
+};
+
+// Class to track network interfaces details.  These include the interface type,
+// interface index, GUID and IP addresses.
+// This class is thread-safe.
+class NetworkInfo {
+ public:
+  struct InterfaceInfo {
+    uint64_t index;
+    InterfaceType type;
+    GUID guid;
+    std::vector<sockaddr_storage> ipv4_addresses;
+    std::vector<sockaddr_storage> ipv6_addresses;
+  };
+
+  // Refreshes the network interfaces information keep by this class.
+  // Returns true on success.
+  bool Refresh();
+  // Returns the network interfaces information.
+  std::vector<InterfaceInfo> GetInterfaces() const;
+  // Renews the IPv4 address for the given interface.
+  // Returns true on success.
+  bool RenewIpv4Address(GUID interface_guid) const;
+
+ private:
+  mutable absl::Mutex mutex_;
+  std::vector<InterfaceInfo> interfaces_ ABSL_GUARDED_BY(mutex_);
+};
+
+}  // namespace nearby::windows
+
+#endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_NETWORK_INFO_H_

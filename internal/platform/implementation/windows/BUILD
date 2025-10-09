@@ -197,6 +197,31 @@ cc_library(
 )
 
 cc_library(
+    name = "network_info",
+    srcs = [
+        "network_info.cc",
+    ],
+    hdrs = [
+        "network_info.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    linkopts = [
+        "iphlpapi.lib",
+        "ole32.lib",
+    ],
+    tags = ["windows"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby:__subpackages__",
+    ],
+    deps = [
+        ":string_utils",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
     name = "windows",
     srcs = [
         "ble.cc",
@@ -419,6 +444,20 @@ cc_test(
     deps = [
         ":device_paths",
         "//internal/base:file_path",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "network_info_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "network_info_test.cc",
+    ],
+    deps = [
+        ":network_info",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
