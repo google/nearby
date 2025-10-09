@@ -39,7 +39,6 @@
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/implementation/server_sync.h"
-#include "internal/platform/implementation/settable_future.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/implementation/timer.h"
@@ -68,7 +67,6 @@ class ImplementationPlatform {
   // - synchronization primitives:
   //   - mutex (regular, and recursive)
   //   - condition variable (must work with regular mutex only)
-  //   - Future<T> : to synchronize on Callable<T> scheduled to execute.
   //   - CountDownLatch : to ensure at least N threads are waiting.
   // - file I/O
   // - Logging

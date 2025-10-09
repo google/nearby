@@ -15,10 +15,7 @@
 #ifndef PLATFORM_API_SUBMITTABLE_EXECUTOR_H_
 #define PLATFORM_API_SUBMITTABLE_EXECUTOR_H_
 
-#include <memory>
-
 #include "internal/platform/implementation/executor.h"
-#include "internal/platform/implementation/future.h"
 #include "internal/platform/runnable.h"
 
 namespace nearby {

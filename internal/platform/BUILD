@@ -241,7 +241,6 @@ cc_library(
         "pending_job_registry.h",
         "pipe.h",
         "scheduled_executor.h",
-        "settable_future.h",
         "single_thread_executor.h",
         "submittable_executor.h",
         "system_clock.h",
