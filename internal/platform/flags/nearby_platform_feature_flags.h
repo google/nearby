@@ -73,9 +73,6 @@ constexpr auto kSocketSendBufferSize =
 constexpr auto kRunScheduledExecutorCallbackOnExecutorThread =
     flags::Flag<bool>(kConfigPackage, "45686494", false);
 
-constexpr auto kEnableIpAddressesNative =
-    flags::Flag<bool>(kConfigPackage, "45722101", false);
-
 }  // namespace nearby_platform_feature
 }  // namespace config_package_nearby
 }  // namespace platform
