@@ -33,7 +33,7 @@ TEST(NetworkInfoTest, RenewIpv4Address) {
     if (net_interface.ipv4_addresses.empty()) {
       LOG(INFO) << "Ipv6 only interface";
     }
-    EXPECT_TRUE(network_info.RenewIpv4Address(net_interface.guid));
+    EXPECT_TRUE(network_info.RenewIpv4Address(net_interface.luid));
   }
 }
 

@@ -17,6 +17,7 @@
 
 // clang-format off
 #include <winsock2.h>
+#include <ifdef.h>
 // clang-format on
 
 #include <cstdint>
@@ -35,14 +36,14 @@ enum InterfaceType {
 };
 
 // Class to track network interfaces details.  These include the interface type,
-// interface index, GUID and IP addresses.
+// interface index, NET_LUID and IP addresses.
 // This class is thread-safe.
 class NetworkInfo {
  public:
   struct InterfaceInfo {
     uint64_t index;
     InterfaceType type;
-    GUID guid;
+    NET_LUID luid;
     std::vector<sockaddr_storage> ipv4_addresses;
     std::vector<sockaddr_storage> ipv6_addresses;
   };
@@ -54,7 +55,7 @@ class NetworkInfo {
   std::vector<InterfaceInfo> GetInterfaces() const;
   // Renews the IPv4 address for the given interface.
   // Returns true on success.
-  bool RenewIpv4Address(GUID interface_guid) const;
+  bool RenewIpv4Address(NET_LUID luid) const;
 
  private:
   mutable absl::Mutex mutex_;

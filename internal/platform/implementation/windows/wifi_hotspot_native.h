@@ -25,16 +25,17 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/wifi_credential.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 class WifiHotspotNative {
  public:
@@ -47,6 +48,10 @@ class WifiHotspotNative {
   bool RestoreWifiProfile() ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool Scan(absl::string_view ssid) ABSL_LOCKS_EXCLUDED(mutex_);
+
+  // Returns true if the interface has a non local scoped IPv4 address.
+  bool HasAssignedAddress();
+  bool RenewIpv4Address() const;
 
  private:
   // Context for WLAN notification callback.
@@ -92,9 +97,9 @@ class WifiHotspotNative {
   std::unique_ptr<CountDownLatch> connect_latch_;
   std::unique_ptr<CountDownLatch> scan_latch_;
   std::wstring backup_profile_name_;
+  NetworkInfo network_info_;
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_WINDOWS_WIFI_HOTSPOT_NATIVE_H_

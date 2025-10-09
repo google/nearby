@@ -434,7 +434,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     LOG(INFO) << "Connected to Hotspot successfully.";
 
     // Make sure IP address is ready.
-    std::string ip_address;
+    bool has_address = false;
     int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
         platform::config_package_nearby::nearby_platform_feature::
             kWifiHotspotCheckIpMaxRetries);
@@ -447,32 +447,22 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
             << "ms";
     for (int i = 0; i < ip_address_max_retries; i++) {
       LOG(INFO) << "Check IP address at attempt " << i;
-      std::vector<std::string> ip_addresses = GetWifiIpv4Addresses();
 
-      if (ip_addresses.empty()) {
+      if (!wifi_hotspot_native_.HasAssignedAddress()) {
+        // TODO: ftsui - Add flag to control this.
+        wifi_hotspot_native_.RenewIpv4Address();
         Sleep(ip_address_retry_interval_millis);
         continue;
       }
-
-      // Need to filter out the APIPA address("169.254.x.x").
-      if (ip_addresses[0].starts_with("169.254.")) {
-        LOG(WARNING) << "Got APIPA address " << ip_addresses[0];
-        Sleep(ip_address_retry_interval_millis);
-        continue;
-      }
-
-      ip_address = ip_addresses[0];
+      has_address = true;
       break;
     }
 
-    if (ip_address.empty()) {
+    if (!has_address) {
       LOG(INFO) << "Failed to get IP address from hotspot.";
       wifi_hotspot_native_.RestoreWifiProfile();
       return false;
     }
-
-    LOG(INFO) << "Got IP address " << ip_address << " from hotspot.";
-
     medium_status_ |= kMediumStatusConnected;
     LOG(INFO) << "Connected to hotspot: " << hotspot_credentials->GetSSID();
 

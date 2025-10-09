@@ -18,7 +18,6 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
-#include <combaseapi.h>
 // clang-format on
 
 #include <algorithm>
@@ -28,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
@@ -53,20 +53,8 @@ void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
     unicast_addresses = unicast_addresses->Next;
   }
   LOG(INFO) << "Added to interface: " << net_interface.index << ", "
-            << net_interface.ipv4_addresses.size()
-            << " v4 addresses, "
+            << net_interface.ipv4_addresses.size() << " v4 addresses, "
             << net_interface.ipv6_addresses.size() << " v6 addresses.";
-}
-
-std::string GuidToString(GUID guid) {
-  std::wstring guid_str;
-  guid_str.resize(39);
-  int guid_size = StringFromGUID2(guid, guid_str.data(), guid_str.size());
-  if (guid_size != 0) {
-    guid_str.resize(guid_size - 1);
-    return string_utils::WideStringToString(guid_str);
-  }
-  return "";
 }
 
 }  // namespace
@@ -112,9 +100,9 @@ bool NetworkInfo::Refresh() {
       continue;
     }
     auto it = result.insert(result.end(), InterfaceInfo{
-        .index = next_address->IfIndex,
-        .guid = next_address->NetworkGuid,
-    });
+                                              .index = next_address->IfIndex,
+                                              .luid = next_address->Luid,
+                                          });
     if (next_address->IfType == IF_TYPE_ETHERNET_CSMACD) {
       it->type = InterfaceType::kEthernet;
       VLOG(1) << "Found ethernet interface: " << next_address->AdapterName
@@ -144,16 +132,16 @@ std::vector<NetworkInfo::InterfaceInfo> NetworkInfo::GetInterfaces() const {
   return interfaces_;
 }
 
-bool NetworkInfo::RenewIpv4Address(GUID interface_guid) const {
+bool NetworkInfo::RenewIpv4Address(NET_LUID luid) const {
   uint64_t index = 0;
   {
     absl::MutexLock lock(mutex_);
     auto it = std::find_if(interfaces_.begin(), interfaces_.end(),
-                           [&interface_guid](const InterfaceInfo& intf) {
-                             return intf.guid == interface_guid;
+                           [luid](const InterfaceInfo& intf) {
+                             return intf.luid.Value == luid.Value;
                            });
     if (it == interfaces_.end()) {
-      LOG(ERROR) << "Interface not found: " << GuidToString(interface_guid);
+      LOG(ERROR) << "Interface not found: " << absl::Hex(luid.Value);
       return false;
     }
     index = it->index;

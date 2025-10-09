@@ -18,6 +18,7 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <wlanapi.h>
+#include <iphlpapi.h>
 #include <cguid.h>
 // clang-format on
 
@@ -70,6 +71,16 @@ constexpr char kProfileTemplate[] =
 </security>
 </MSM>
 </WLANProfile>)";
+
+std::string ReasonCodeToString(DWORD reason_code) {
+  std::wstring reason_str;
+  reason_str.resize(100);
+  WlanReasonCodeToString(reason_code, reason_str.size(), reason_str.data(),
+                         /*pReserved=*/nullptr);
+  reason_str.resize(std::wcslen(reason_str.data()));
+  return string_utils::WideStringToString(reason_str);
+}
+
 }  // namespace
 
 WifiHotspotNative::WifiHotspotNative() {
@@ -104,7 +115,7 @@ bool WifiHotspotNative::ConnectToWifiNetwork(
     HotspotCredentials* hotspot_credentials) {
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << "No available WLAN Interface to use.";
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
     return false;
   }
   {
@@ -128,7 +139,7 @@ bool WifiHotspotNative::ConnectToWifiNetwork(
 bool WifiHotspotNative::DisconnectWifiNetwork() {
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << "No available WLAN Interface to use.";
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
     return false;
   }
   absl::MutexLock lock(mutex_);
@@ -146,7 +157,7 @@ bool WifiHotspotNative::DisconnectWifiNetwork() {
 bool WifiHotspotNative::Scan(absl::string_view ssid) {
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << "No available WLAN Interface to use.";
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
     return false;
   }
   WlanNotificationContext context = {
@@ -204,7 +215,7 @@ void WifiHotspotNative::TriggerNetworkRefreshed() {
 
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << "No available WLAN Interface to use.";
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
     return;
   }
 
@@ -368,18 +379,18 @@ bool WifiHotspotNative::ConnectToWifiNetworkInternal(
   ExceptionOr<bool> connect_result = connect_latch_->Await(kConnectTimeout);
   UnregisterWlanNotificationCallback();
 
+  backup_profile_name_ = std::move(context.original_profile_name);
   if (!connect_result.ok() || !connect_result.result()) {
     LOG(ERROR) << "Connect to Wifi hotspot timed out.";
     return false;
   }
   if (context.connection_code != WLAN_REASON_CODE_SUCCESS) {
     LOG(ERROR) << "Failed to connect to Wifi hotspot, code: "
-               << context.connection_code;
+               << ReasonCodeToString(context.connection_code);
     return false;
   }
 
   connect_latch_ = nullptr;
-  backup_profile_name_ = std::move(context.original_profile_name);
   return true;
 }
 
@@ -472,7 +483,7 @@ bool WifiHotspotNative::RemoveWlanProfile(GUID interface_guid,
 bool WifiHotspotNative::RestoreWifiProfile() {
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << "No available WLAN Interface to use.";
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
     return false;
   }
   absl::MutexLock lock(mutex_);
@@ -490,6 +501,46 @@ bool WifiHotspotNative::RestoreWifiProfile() {
     return false;
   }
   return ConnectToWifiNetworkInternal(interface_guid, backup_profile_name_);
+}
+
+bool WifiHotspotNative::HasAssignedAddress() {
+  if (!network_info_.Refresh()) {
+    return false;
+  }
+  GUID interface_guid = GetInterfaceGuid();
+  if (interface_guid == GUID_NULL) {
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
+    return false;
+  }
+  NET_LUID luid;
+  ConvertInterfaceGuidToLuid(&interface_guid, &luid);
+  for (const auto& interface : network_info_.GetInterfaces()) {
+    if (interface.luid.Value != luid.Value) {
+      continue;
+    }
+    for (const auto& address : interface.ipv4_addresses) {
+      DCHECK(address.ss_family == AF_INET);
+      const sockaddr_in* ipv4_address =
+          reinterpret_cast<const sockaddr_in*>(&address);
+      // We ignore APIPA addresses since we won't be able to connect using that.
+      if (ipv4_address->sin_addr.S_un.S_un_b.s_b1 != 169 ||
+          ipv4_address->sin_addr.S_un.S_un_b.s_b2 != 254) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool WifiHotspotNative::RenewIpv4Address() const {
+  GUID interface_guid = GetInterfaceGuid();
+  if (interface_guid == GUID_NULL) {
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
+    return false;
+  }
+  NET_LUID luid;
+  ConvertInterfaceGuidToLuid(&interface_guid, &luid);
+  return network_info_.RenewIpv4Address(luid);
 }
 
 }  // namespace nearby::windows
