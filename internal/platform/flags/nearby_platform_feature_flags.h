@@ -53,6 +53,10 @@ constexpr auto kWifiHotspotConnectionIntervalMillis =
 constexpr auto kWifiHotspotConnectionTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45415888", 10000);
 
+// Enable/Disable DHCP renewal when connecting to hotspot.
+constexpr auto kEnableHotspotDhcpRenew =
+    flags::Flag<bool>(kConfigPackage, "45731858", false);
+
 // Enable/Disable Intel PIe SDK to query/set WIFI feature.
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);

@@ -449,8 +449,11 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       LOG(INFO) << "Check IP address at attempt " << i;
 
       if (!wifi_hotspot_native_.HasAssignedAddress()) {
-        // TODO: ftsui - Add flag to control this.
-        wifi_hotspot_native_.RenewIpv4Address();
+        if (NearbyFlags::GetInstance().GetBoolFlag(
+                platform::config_package_nearby::nearby_platform_feature::
+                    kEnableHotspotDhcpRenew)) {
+          wifi_hotspot_native_.RenewIpv4Address();
+        }
         Sleep(ip_address_retry_interval_millis);
         continue;
       }
