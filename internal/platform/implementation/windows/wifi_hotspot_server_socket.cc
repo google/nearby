@@ -51,7 +51,7 @@ WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
 
 std::string WifiHotspotServerSocket::GetIPAddress() const {
-  return server_socket_.GetIPAddress();
+  return hotspot_ipaddr_;
 }
 
 int WifiHotspotServerSocket::GetPort() const {
