@@ -20,12 +20,31 @@
 #include <memory>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
+namespace {
 
-NearbyServerSocket::NearbyServerSocket() {
+int PortFromSockaddr(const sockaddr_storage* absl_nonnull local_address) {
+  if (local_address->ss_family != AF_INET) {
+    const sockaddr_in* v4_address =
+        reinterpret_cast<const sockaddr_in*>(local_address);
+    return ntohs(v4_address->sin_port);
+  }
+  if (local_address->ss_family == AF_INET6) {
+    const sockaddr_in6* v6_address =
+        reinterpret_cast<const sockaddr_in6*>(local_address);
+    return ntohs(v6_address->sin6_port);
+  }
+  LOG(ERROR) << "Unknown socket family: " << local_address->ss_family;
+  return 0;
+}
+
+}  // namespace
+
+NearbyServerSocket::NearbyServerSocket(bool dual_stack) {
   WSADATA wsa_data;
   int result =
       WSAStartup(/*wVersionRequired=*/MAKEWORD(2, 2), /*lpWSAData=*/&wsa_data);
@@ -81,26 +100,28 @@ bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
     }
   }
 
-  if (bind(/*s=*/socket_, /*addr=*/(struct sockaddr*)&serv_addr,
-           /*namelen=*/sizeof(serv_addr)) == SOCKET_ERROR) {
+  if (bind(socket_, reinterpret_cast<sockaddr*>(&serv_addr),
+           sizeof(serv_addr)) == SOCKET_ERROR) {
     LOG(ERROR) << "Failed to bind socket with error " << WSAGetLastError();
     closesocket(socket_);
     return false;
   }
 
-  sockaddr_in local_address;
+  sockaddr_storage local_address;
   int address_length = sizeof(local_address);
-  if (getsockname(/*s=*/socket_, (/*name=*/SOCKADDR*)&local_address,
-                  /*namelen=*/&address_length) == SOCKET_ERROR) {
+  if (getsockname(socket_, reinterpret_cast<sockaddr*>(&local_address),
+                  &address_length) == SOCKET_ERROR) {
     LOG(ERROR) << "Failed to get socket name with error " << WSAGetLastError();
     closesocket(socket_);
     return false;
   }
+  port_ = PortFromSockaddr(&local_address);
+  if (port_ == 0) {
+    closesocket(socket_);
+    return false;
+  }
 
-  ip_address_ = ip_address;
-  port_ = ntohs(local_address.sin_port);
-
-  VLOG(1) << "Bound to " << ip_address_ << ":" << port_;
+  VLOG(1) << "Bound to " << ip_address << ":" << port_;
 
   if (::listen(/*s=*/socket_, /*backlog=*/SOMAXCONN) == SOCKET_ERROR) {
     LOG(ERROR) << "Failed to listen socket with error " << WSAGetLastError();
@@ -118,22 +139,28 @@ std::unique_ptr<NearbyClientSocket> NearbyServerSocket::Accept() {
     return nullptr;
   }
 
-  sockaddr_in peer_address;
+  sockaddr_storage peer_address;
   int peer_address_length = sizeof(peer_address);
 
   SOCKET client_socket =
-      accept(/*s=*/socket_, /*addr=*/(SOCKADDR*)&peer_address,
-             /*addrlen=*/&peer_address_length);
+      accept(socket_, reinterpret_cast<sockaddr*>(&peer_address),
+             &peer_address_length);
   if (client_socket == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to accept socket with error: " << WSAGetLastError();
     return nullptr;
   }
 
-  char client_ip[INET_ADDRSTRLEN];
-  inet_ntop(AF_INET, &(peer_address.sin_addr), client_ip, INET_ADDRSTRLEN);
-  int client_port = ntohs(peer_address.sin_port);
-
-  LOG(INFO) << "Accepted remote device " << client_ip << ":" << client_port;
+  std::string address;
+  DWORD size = INET6_ADDRSTRLEN;  // Max IP address length.
+  address.resize(size);
+  if (WSAAddressToStringA(
+          reinterpret_cast<sockaddr*>(&peer_address), peer_address_length,
+          /*lpProtocolInfo=*/nullptr, address.data(), &size) != 0) {
+    LOG(ERROR) << __func__ << ": Cannot convert address to string.";
+  }
+  address.resize(size);
+  LOG(INFO) << "Accepted remote device " << address << ":"
+            << PortFromSockaddr(&peer_address);
   return std::make_unique<NearbyClientSocket>(client_socket);
 }
 
