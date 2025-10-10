@@ -1343,19 +1343,24 @@ void NearbySharingServiceImpl::AdapterPresentChanged(
     NearbySharingService::Observer::AdapterState state =
         MapAdapterState(present, adapter->IsPowered());
     service_observers_.NotifyBluetoothStatusChanged(state);
-    InvalidateSurfaceState();
   });
 }
 
 void NearbySharingServiceImpl::AdapterPoweredChanged(
     sharing::api::BluetoothAdapter* adapter, bool powered) {
-  RunOnNearbySharingServiceThread(
-      "bt_adapter_power_changed", [this, adapter, powered]() {
+  // When adpater is powered on, it takes some time for the RFCOMM service to
+  // be ready.  If we don't wait the RfCommServiceProvider::CreateAsync() call
+  // fails with a "device is not ready for use" error.
+  // Waiting 500ms seems to be enough to allow it to reliably work.
+  // Should investigate if there is a better events to listen to.
+  RunOnNearbySharingServiceThreadDelayed(
+      "bt_adapter_power_changed", absl::Milliseconds(500),
+      [this, adapter, powered]() {
         VLOG(1) << "Bluetooth adapter power state changed. (" << powered << ")";
         NearbySharingService::Observer::AdapterState state =
             MapAdapterState(adapter->IsPresent(), powered);
         service_observers_.NotifyBluetoothStatusChanged(state);
-        InvalidateSurfaceState();
+        StopAdvertisingAndInvalidateSurfaceState();
       });
 }
 
