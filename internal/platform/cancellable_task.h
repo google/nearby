@@ -17,10 +17,10 @@
 
 #include <utility>
 
-#include "internal/platform/feature_flags.h"
-#include "internal/platform/runnable.h"
 #include "internal/platform/atomic_boolean.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 
@@ -31,7 +31,10 @@ namespace nearby {
 class CancellableTask {
  public:
   explicit CancellableTask(Runnable&& runnable)
-      : runnable_{std::move(runnable)} {}
+      : CancellableTask(std::move(runnable), /*is_repeated=*/false) {}
+
+  explicit CancellableTask(Runnable&& runnable, bool is_repeated_)
+      : is_repeated_{is_repeated_}, runnable_{std::move(runnable)} {}
 
   /**
    * Try to cancel the task and wait until completion if the task is already
@@ -53,12 +56,17 @@ class CancellableTask {
 
   void operator()() {
     if (started_or_cancelled_.Set(true)) return;
+    finished_ = Future<bool>();
     runnable_();
     finished_.Set(true);
+    if (is_repeated_) {
+      started_or_cancelled_.Set(false);
+    }
   }
 
  private:
-  AtomicBoolean started_or_cancelled_;
+  const bool is_repeated_;
+  AtomicBoolean started_or_cancelled_{false};
   Future<bool> finished_;
   Runnable runnable_;
 };
