@@ -347,6 +347,11 @@ message ConnectionsLog {
     // the wifi credentials are received from the remote device, to the moment
     // wifi connection is established with internet access.
     optional int64 wifi_connection_latency_millis = 13;
+
+    // The latency of the device attestation in milliseconds, starting from when
+    // the device attestation is initiated, to the moment the device attestation
+    // is finished.
+    optional int64 device_attestation_latency_millis = 14;
   }
 
   message DeviceInfo {
