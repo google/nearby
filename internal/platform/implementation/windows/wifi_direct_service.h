@@ -125,6 +125,10 @@ class WifiDirectServiceMedium {
     return (medium_status_ & kMediumStatusConnecting) != 0;
   }
 
+  // Converts WiFiDirectServiceConfigurationMethod enum to a string.
+  static std::string ConfigMethodToString(
+      WiFiDirectServiceConfigurationMethod config_method);
+
   WiFiDirectServiceAdvertiser advertiser_ = nullptr;
   WiFiDirectService service_ = nullptr;
   WiFiDirectServiceSession session_ = nullptr;

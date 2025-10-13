@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <exception>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -24,6 +25,7 @@ namespace nearby {
 namespace windows {
 namespace {
 constexpr std::wstring_view kServiceName = L"QuickShare";
+constexpr std::wstring_view kPin = L"1234";
 }  // namespace
 
 WifiDirectServiceMedium::WifiDirectServiceMedium() {
@@ -75,7 +77,12 @@ bool WifiDirectServiceMedium::StartWifiDirectService() {
   advertiser_.PreferGroupOwnerMode(true);
   advertiser_.ServiceStatus(WiFiDirectServiceStatus::Available);
   // Config Methods
-  auto config_method = WiFiDirectServiceConfigurationMethod::Default;
+  WiFiDirectServiceConfigurationMethod config_method;
+  if (kPin.empty()) {
+    config_method = WiFiDirectServiceConfigurationMethod::Default; // NOLINT
+  } else {
+    config_method = WiFiDirectServiceConfigurationMethod::PinDisplay;
+  }
   advertiser_.PreferredConfigurationMethods().Clear();
   advertiser_.PreferredConfigurationMethods().Append(config_method);
 
@@ -141,6 +148,20 @@ bool WifiDirectServiceMedium::StopWifiDirectService() {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
+}
+
+std::string WifiDirectServiceMedium::ConfigMethodToString(
+    WiFiDirectServiceConfigurationMethod config_method) {
+  switch (config_method) {
+    case WiFiDirectServiceConfigurationMethod::Default:
+      return "Default";
+    case WiFiDirectServiceConfigurationMethod::PinDisplay:
+      return "PinDisplay";
+    case WiFiDirectServiceConfigurationMethod::PinEntry:
+      return "PinEntry";
+    default:
+      return "Unknown";
+  }
 }
 
 fire_and_forget WifiDirectServiceMedium::OnAdvertisementStatusChanged(
@@ -216,14 +237,24 @@ fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
     }
     device_info_ = request.DeviceInformation();
     LOG(INFO) << "GO: OnSessionRequested: "
-              << winrt::to_string(device_info_.Id());
+              << winrt::to_string(device_info_.Id())
+              << " Is GroupFormationNeeded: "
+              << request.ProvisioningInfo().IsGroupFormationNeeded()
+              << ", SelectedConfigurationMethod: "
+              << ConfigMethodToString(
+                     request.ProvisioningInfo().SelectedConfigurationMethod());
 
     LOG(INFO) << "GO: Dispatch to UI thread to call ConnectAsync";
     dispatcher_queue_.TryEnqueue([this]() {
       LOG(INFO) << "GO: TryEnqueue: calling ConnectAsync";
 
       absl::MutexLock lock(mutex_);
-      auto session = advertiser_.ConnectAsync(device_info_).get();
+      WiFiDirectServiceSession session = nullptr;
+      if (kPin.empty()) {
+        session = advertiser_.ConnectAsync(device_info_).get(); // NOLINT
+      } else {
+        session = advertiser_.ConnectAsync(device_info_, kPin).get();
+      }
       LOG(INFO) << "GO: TryEnqueue: Wait for ConnectAsync finish";
       if (!session) {
         LOG(ERROR) << "OnSessionRequested returned null session";
@@ -325,8 +356,27 @@ fire_and_forget WifiDirectServiceMedium::Watcher_DeviceAdded(
       co_return;
     }
     LOG(INFO) << "GC: ConnectAsync in Watcher_DeviceAdded";
+    service_.PreferGroupOwnerMode(false);
 
-    auto session = service_.ConnectAsync().get();
+    WiFiDirectServiceSession session = nullptr;
+    if (kPin.empty()) {
+      session = service_.ConnectAsync().get(); // NOLINT
+    } else {
+      auto prov_info = co_await service_.GetProvisioningInfoAsync(
+          WiFiDirectServiceConfigurationMethod::PinEntry);
+
+      if (prov_info.IsGroupFormationNeeded()) {
+        LOG(INFO) << "GC: Group formation needed";
+      } else {
+        LOG(INFO) << "GC: Group formation not needed";
+      }
+      LOG(INFO) << "GC: SelectedConfigurationMethod: "
+                << ConfigMethodToString(
+                       prov_info.SelectedConfigurationMethod());
+
+      session = service_.ConnectAsync(kPin).get();
+    }
+
     if (!session) {
       LOG(ERROR) << "GC: ConnectAsync returned null session";
       co_return;
