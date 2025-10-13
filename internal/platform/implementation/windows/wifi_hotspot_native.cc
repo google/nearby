@@ -467,7 +467,7 @@ bool WifiHotspotNative::RemoveWlanProfile(GUID interface_guid,
       /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
       /*strProfileName=*/profile_name.data(), /*pReserved=*/nullptr);
 
-  if (result != ERROR_SUCCESS) {
+  if (result != ERROR_SUCCESS && result != ERROR_NOT_FOUND) {
     LOG(ERROR) << "Failed to remove WLAN profile "
                << string_utils::WideStringToString(profile_name)
                << " with reason " << result;

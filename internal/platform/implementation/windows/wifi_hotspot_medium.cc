@@ -19,6 +19,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "internal/base/masker.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
@@ -30,6 +31,7 @@
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
@@ -43,6 +45,7 @@
 
 namespace nearby::windows {
 namespace {
+using ::absl::Milliseconds;
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectAdvertisementPublisherStatus;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
@@ -442,27 +445,40 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
         NearbyFlags::GetInstance().GetInt64Flag(
             platform::config_package_nearby::nearby_platform_feature::
                 kWifiHotspotCheckIpIntervalMillis);
+    absl::Duration connection_timeout =
+        Milliseconds(ip_address_retry_interval_millis) * ip_address_max_retries;
     VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
             << ", IP check interval=" << ip_address_retry_interval_millis
-            << "ms";
+            << "ms, timeout=" << connection_timeout;
+    absl::Time start_time = SystemClock::ElapsedRealtime();;
     for (int i = 0; i < ip_address_max_retries; i++) {
       LOG(INFO) << "Check IP address at attempt " << i;
 
-      if (!wifi_hotspot_native_.HasAssignedAddress()) {
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                platform::config_package_nearby::nearby_platform_feature::
-                    kEnableHotspotDhcpRenew)) {
-          wifi_hotspot_native_.RenewIpv4Address();
-        }
-        Sleep(ip_address_retry_interval_millis);
-        continue;
+      if (wifi_hotspot_native_.HasAssignedAddress()) {
+        has_address = true;
+        break;
       }
-      has_address = true;
-      break;
+      // Keep track of time spent waiting for connection as RenewIpv4Address()
+      // can take a while and only relying on retry count can increase the time
+      // spent waiting significantly.
+      if (SystemClock::ElapsedRealtime() - start_time > connection_timeout) {
+        LOG(WARNING) << "Timeout getting IP address from hotspot.";
+        break;
+      }
+      bool wait_before_retrying = true;
+      if (NearbyFlags::GetInstance().GetBoolFlag(
+              platform::config_package_nearby::nearby_platform_feature::
+                  kEnableHotspotDhcpRenew)) {
+        // IP address is assigned if RenewIpv4Address() returns true.
+        wait_before_retrying = !wifi_hotspot_native_.RenewIpv4Address();
+      }
+      if (wait_before_retrying) {
+        Sleep(ip_address_retry_interval_millis);
+      }
     }
 
     if (!has_address) {
-      LOG(INFO) << "Failed to get IP address from hotspot.";
+      LOG(WARNING) << "Failed to get IP address from hotspot.";
       wifi_hotspot_native_.RestoreWifiProfile();
       return false;
     }
