@@ -21,8 +21,10 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/time/time.h"
+#include "internal/platform/atomic_boolean.h"
 #include "internal/platform/cancelable.h"
 #include "internal/platform/cancellable_task.h"
+#include "internal/platform/implementation/cancelable.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/scheduled_executor.h"
 #include "internal/platform/lockable.h"
@@ -82,7 +84,97 @@ class ABSL_LOCKABLE ScheduledExecutor final : public Lockable {
     }
   }
 
+  Cancelable ScheduleRepeatedly(Runnable&& runnable, absl::Duration duration)
+      ABSL_LOCKS_EXCLUDED(mutex_) {
+    {
+      MutexLock lock(&mutex_);
+      if (!impl_) {
+        return Cancelable();
+      }
+    }
+
+    auto cancellable_task = std::make_shared<CancellableTask>(
+        ThreadCheckRunnable(this, std::move(runnable)), /*is_repeated=*/true);
+
+    auto repeated_task_handler =
+        std::make_shared<RepeatedTask>(this, cancellable_task, duration);
+
+    // Start the first execution.
+    repeated_task_handler->Start();
+    return Cancelable(cancellable_task, repeated_task_handler);
+  }
+
  private:
+  // This class encapsulates the state and re-scheduling logic for a single
+  // repeated task. An instance is created for each call to
+  // ScheduleRepeatedly.
+  class RepeatedTask : public api::Cancelable,
+                       public std::enable_shared_from_this<RepeatedTask> {
+   public:
+    RepeatedTask(ScheduledExecutor* executor,
+                 std::shared_ptr<CancellableTask> cancellable_task,
+                 absl::Duration delay)
+        : executor_(executor),
+          cancellable_task_(std::move(cancellable_task)),
+          delay_(delay) {}
+
+    // Starts the first execution of the task.
+    void Start() {
+      MutexLock lock(&executor_->mutex_);
+      ScheduleNextUnderLock();
+    }
+
+    // Implementation of api::Cancelable. This cancels future executions.
+    bool Cancel() override {
+      if (cancelled_.Set(true)) {
+        return true;  // Already cancelled
+      }
+
+      // Cancel the pending scheduled task, if any.
+      MutexLock lock(&executor_->mutex_);
+      if (pending_future_) {
+        pending_future_->Cancel();
+      }
+      return true;
+    }
+
+   private:
+    void Run() {
+      if (cancelled_.Get()) {
+        return;
+      }
+
+      (*cancellable_task_)();
+
+      if (cancelled_.Get()) {
+        return;
+      }
+
+      // Re-schedule the next execution.
+      MutexLock lock(&executor_->mutex_);
+      ScheduleNextUnderLock();
+    }
+
+    void ScheduleNextUnderLock()
+        ABSL_EXCLUSIVE_LOCKS_REQUIRED(executor_->mutex_) {
+      if (cancelled_.Get() || !executor_->impl_) {
+        return;
+      }
+      // Schedule the next run, capturing a shared_ptr to ourself to keep
+      // this object alive.
+      pending_future_ = executor_->impl_->Schedule(
+          [self = shared_from_this()]() { self->Run(); }, delay_);
+    }
+
+    ScheduledExecutor* const executor_;
+    const std::shared_ptr<CancellableTask> cancellable_task_;
+    const absl::Duration delay_;
+
+    AtomicBoolean cancelled_{false};
+    std::shared_ptr<api::Cancelable> pending_future_
+        ABSL_GUARDED_BY(executor_->mutex_);
+  };
+
   void DoShutdown() ABSL_LOCKS_EXCLUDED(mutex_) {
     std::unique_ptr<api::ScheduledExecutor> executor = ReleaseExecutor();
     if (executor) {

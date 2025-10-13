@@ -301,4 +301,152 @@ TEST(ScheduledExecutorTest, ThreadCheck_Schedule) {
   EXPECT_TRUE(notification.WaitForNotificationWithTimeout(absl::Seconds(2)));
 }
 
+TEST(ScheduledExecutorTest, CanScheduleRepeatedly) {
+  constexpr int kNumIterations = 3;
+  ScheduledExecutor executor;
+  std::atomic_int value = 0;
+  CountDownLatch latch(kNumIterations);
+
+  Cancelable cancelable = executor.ScheduleRepeatedly(
+      [&]() {
+        value++;
+        latch.CountDown();
+      },
+      kShortDelay);
+
+  latch.Await();
+  EXPECT_GE(value, kNumIterations);
+  cancelable.Cancel();
+}
+
+TEST(ScheduledExecutorTest, CanCancelRepeatedly) {
+  ScheduledExecutor executor;
+  std::atomic_int value = 0;
+  CountDownLatch latch(1);
+
+  Cancelable cancelable = executor.ScheduleRepeatedly(
+      [&]() {
+        value++;
+        latch.CountDown();
+      },
+      kLongDelay);
+
+  // Wait for the first execution.
+  latch.Await();
+  EXPECT_EQ(value, 1);
+  EXPECT_TRUE(cancelable.Cancel());
+
+  // Wait for a bit to see if it runs again.
+  absl::SleepFor(kLongDelay);
+  EXPECT_EQ(value, 1);
+}
+
+TEST(ScheduledExecutorTest, ShutdownDoesNotRescheduleRepeatedTask) {
+  ScheduledExecutor executor;
+  std::atomic_int value = 0;
+  CountDownLatch latch(1);
+  executor.ScheduleRepeatedly(
+      [&]() {
+        value++;
+        latch.CountDown();
+      },
+      kShortDelay);
+
+  // Wait for first execution to complete.
+  latch.Await();
+  EXPECT_EQ(value, 1);
+
+  executor.Shutdown();
+
+  // After shutdown, the task should not run again.
+  absl::SleepFor(kLongDelay);
+  EXPECT_EQ(value, 1);
+}
+
+TEST(ScheduledExecutorTest, CanCancelOneOfTwoRepeatedTasks) {
+  ScheduledExecutor executor;
+  std::atomic_int valueA = 0;
+  std::atomic_int valueB = 0;
+  CountDownLatch latchA(1);
+  CountDownLatch latchB(1);
+
+  Cancelable cancelableA = executor.ScheduleRepeatedly(
+      [&]() {
+        valueA++;
+        latchA.CountDown();
+      },
+      kShortDelay);
+
+  Cancelable cancelableB = executor.ScheduleRepeatedly(
+      [&]() {
+        valueB++;
+        latchB.CountDown();
+      },
+      kShortDelay);
+
+  // Wait for both to execute once.
+  latchA.Await();
+  latchB.Await();
+  EXPECT_EQ(valueA, 1);
+  EXPECT_EQ(valueB, 1);
+
+  // Cancel the first task.
+  cancelableA.Cancel();
+
+  // Wait for a while and check that only the second task continues to run.
+  absl::SleepFor(kShortDelay * 3);
+  EXPECT_EQ(valueA, 1);
+  EXPECT_GE(valueB, 2);
+
+  cancelableB.Cancel();
+}
+
+TEST(ScheduledExecutorTest, SimulatedClockCanScheduleRepeatedly) {
+  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  FakeClock* fake_clock =
+      MediumEnvironment::Instance().GetSimulatedClock().value();
+  ScheduledExecutor executor;
+  std::atomic_int value = 0;
+  std::atomic_int i = 0;
+  CountDownLatch latch[] = {CountDownLatch(1), CountDownLatch(1)};
+
+  Cancelable cancelable = executor.ScheduleRepeatedly(
+      [&]() {
+        value++;
+        latch[i.fetch_add(1)].CountDown();
+      },
+      kShortDelay);
+
+  EXPECT_EQ(value, 0);
+  // Advance to just before the first execution.
+  fake_clock->FastForward(kShortDelay - absl::Milliseconds(1));
+  EXPECT_EQ(value, 0);
+
+  // Advance past the first execution.
+  fake_clock->FastForward(absl::Milliseconds(1));
+  latch[0].Await(absl::Seconds(1));
+  EXPECT_EQ(value, 1);
+
+  // Wait for the second execution to schedule.
+  absl::SleepFor(kShortDelay);
+
+  // Advance to just before the second execution.
+  fake_clock->FastForward(kShortDelay - absl::Milliseconds(1));
+  EXPECT_EQ(value, 1);
+
+  // Advance past the second execution.
+  fake_clock->FastForward(absl::Milliseconds(1));
+  latch[1].Await(absl::Seconds(1));
+  EXPECT_EQ(value, 2);
+
+  // Cancel the task.
+  cancelable.Cancel();
+
+  // Advance a long time and make sure it doesn't run again.
+  fake_clock->FastForward(kLongDelay * 5);
+  EXPECT_EQ(value, 2);
+
+  MediumEnvironment::Instance().Stop();
+}
+
 }  // namespace nearby
