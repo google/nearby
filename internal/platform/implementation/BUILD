@@ -157,7 +157,6 @@ cc_library(
         "credential_storage.h",
         "http_loader.h",
         "psk_info.h",
-        "server_sync.h",
         "webrtc.h",
         "wifi.h",
         "wifi_direct.h",

@@ -30,7 +30,6 @@
 #include "internal/platform/implementation/condition_variable.h"
 #include "internal/platform/implementation/count_down_latch.h"
 #include "internal/platform/implementation/credential_storage.h"
-#include "internal/platform/implementation/crypto.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/http_loader.h"
 #include "internal/platform/implementation/input_file.h"
@@ -38,9 +37,7 @@
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/server_sync.h"
 #include "internal/platform/implementation/submittable_executor.h"
-#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/implementation/timer.h"
 #ifndef NO_WEBRTC
 #include "internal/platform/implementation/webrtc.h"
@@ -131,7 +128,6 @@ class ImplementationPlatform {
   static std::unique_ptr<api::ble::BleMedium> CreateBleMedium(
       api::BluetoothAdapter&);
   static std::unique_ptr<api::CredentialStorage> CreateCredentialStorage();
-  static std::unique_ptr<ServerSyncMedium> CreateServerSyncMedium();
   static std::unique_ptr<WifiMedium> CreateWifiMedium();
   static std::unique_ptr<WifiLanMedium> CreateWifiLanMedium();
   static std::unique_ptr<WifiHotspotMedium> CreateWifiHotspotMedium();

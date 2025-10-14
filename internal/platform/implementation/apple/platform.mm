@@ -177,10 +177,6 @@ std::unique_ptr<ble::BleMedium> ImplementationPlatform::CreateBleMedium(
   return std::make_unique<apple::BleMedium>();
 }
 
-std::unique_ptr<ServerSyncMedium> ImplementationPlatform::CreateServerSyncMedium() {
-  return nullptr;
-}
-
 std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {
   return std::make_unique<apple::WifiMedium>();
 }

@@ -44,7 +44,6 @@
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/server_sync.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/timer.h"
@@ -194,11 +193,6 @@ ImplementationPlatform::CreateBleMedium(api::BluetoothAdapter& adapter) {
 std::unique_ptr<api::CredentialStorage>
 ImplementationPlatform::CreateCredentialStorage() {
   return std::make_unique<g3::CredentialStorageImpl>();
-}
-
-std::unique_ptr<ServerSyncMedium>
-ImplementationPlatform::CreateServerSyncMedium() {
-  return std::unique_ptr<ServerSyncMedium>(/*new ServerSyncMediumImpl()*/);
 }
 
 std::unique_ptr<WifiMedium> ImplementationPlatform::CreateWifiMedium() {

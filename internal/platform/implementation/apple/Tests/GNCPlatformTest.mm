@@ -314,11 +314,6 @@ void GNCEnsureFileAtPath(std::string path) {
   XCTAssertNotEqual(ble_medium.get(), nullptr);
 }
 
-- (void)testCreateServerSyncMedium {
-  auto server_sync_medium = nearby::api::ImplementationPlatform::CreateServerSyncMedium();
-  XCTAssertEqual(server_sync_medium.get(), nullptr);
-}
-
 - (void)testCreateWifiDirectMedium {
   auto wifi_direct_medium = nearby::api::ImplementationPlatform::CreateWifiDirectMedium();
   XCTAssertEqual(wifi_direct_medium.get(), nullptr);
