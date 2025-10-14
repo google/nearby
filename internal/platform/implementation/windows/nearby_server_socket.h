@@ -33,13 +33,11 @@ class NearbyServerSocket {
   std::unique_ptr<NearbyClientSocket> Accept();
   bool Close();
 
-  std::string GetIPAddress() const { return ip_address_; }
   int GetPort() const { return port_; }
 
  private:
   bool is_socket_initiated_ = false;
   SOCKET socket_ = INVALID_SOCKET;
-  std::string ip_address_;
   int port_ = 0;
 };
 

@@ -97,10 +97,9 @@ bool NearbyServerSocket::Listen(const std::string& ip_address, int port) {
     return false;
   }
 
-  ip_address_ = ip_address;
   port_ = ntohs(local_address.sin_port);
 
-  VLOG(1) << "Bound to " << ip_address_ << ":" << port_;
+  VLOG(1) << "Bound to " << ip_address << ":" << port_;
 
   if (::listen(/*s=*/socket_, /*backlog=*/SOMAXCONN) == SOCKET_ERROR) {
     LOG(ERROR) << "Failed to listen socket with error " << WSAGetLastError();
