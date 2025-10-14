@@ -52,7 +52,6 @@
 #include "internal/platform/implementation/mutex.h"
 #include "internal/platform/implementation/output_file.h"
 #include "internal/platform/implementation/scheduled_executor.h"
-#include "internal/platform/implementation/server_sync.h"
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi.h"
@@ -70,7 +69,6 @@
 #include "internal/platform/implementation/windows/mutex.h"
 #include "internal/platform/implementation/windows/preferences_manager.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
-#include "internal/platform/implementation/windows/server_sync.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
 #include "internal/platform/implementation/windows/timer.h"
@@ -262,12 +260,6 @@ std::unique_ptr<api::ble::BleMedium> ImplementationPlatform::CreateBleMedium(
 std::unique_ptr<api::CredentialStorage>
 ImplementationPlatform::CreateCredentialStorage() {
   return nullptr;
-}
-
-// TODO(b/184975123): replace with real implementation.
-std::unique_ptr<ServerSyncMedium>
-ImplementationPlatform::CreateServerSyncMedium() {
-  return std::unique_ptr<windows::ServerSyncMedium>();
 }
 
 // TODO(b/184975123): replace with real implementation.
