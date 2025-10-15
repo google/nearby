@@ -45,6 +45,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
+#include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
 // Prefer using absl:: versions of a set and a map; they tend to be more
@@ -458,6 +459,8 @@ class ClientProxy final {
 
   std::optional<std::string> GetEndpointIdForDct() const;
 
+  void InitializePreferencesManager();
+
   // The device name used for DCT advertising.
   std::string dct_device_name_;
   // The dedup value used for DCT advertising.
@@ -533,6 +536,9 @@ class ClientProxy final {
   // A default cancellation flag with isCancelled set be true.
   std::unique_ptr<CancellationFlag> default_cancellation_flag_ =
       std::make_unique<CancellationFlag>(true);
+
+  // A preferences manager for storing client-specific preferences.
+  std::unique_ptr<nearby::api::PreferencesManager> preferences_manager_;
 
   // An analytics logger with |EventLogger| provided by client, which is default
   // nullptr as no-op.

@@ -52,11 +52,13 @@
 #include "connections/v3/connections_device_provider.h"
 #include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
+#include "internal/base/file_path.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/device_info_impl.h"
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
@@ -81,6 +83,8 @@ constexpr char kEndpointIdChars[] = {
     'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
     'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 
+constexpr absl::string_view kPreferencesFilePath = "Google/Nearby/Connections";
+
 bool IsFeatureUseStableEndpointIdEnabled() {
   return NearbyFlags::GetInstance().GetBoolFlag(
       connections::config_package_nearby::nearby_connections_feature::
@@ -91,6 +95,12 @@ bool IsFeatureUseStableEndpointIdEnabled() {
 ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
     : client_id_(Prng().NextInt64()) {
   VLOG(1) << "ClientProxy ctor event_logger=" << event_logger;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableNearbyConnectionsPreferences)) {
+    InitializePreferencesManager();
+  }
+
   is_dct_enabled_ = NearbyFlags::GetInstance().GetBoolFlag(
       config_package_nearby::nearby_connections_feature::kEnableDct);
   analytics_recorder_ =
@@ -172,8 +182,8 @@ std::optional<MacAddress> ClientProxy::GetBluetoothMacAddress(
   return std::nullopt;
 }
 
-void ClientProxy::SetBluetoothMacAddress(
-    const std::string& endpoint_id, MacAddress bluetooth_mac_address) {
+void ClientProxy::SetBluetoothMacAddress(const std::string& endpoint_id,
+                                         MacAddress bluetooth_mac_address) {
   bluetooth_mac_addresses_[endpoint_id] = bluetooth_mac_address;
 }
 
@@ -1188,9 +1198,7 @@ void ClientProxy::ScheduleClearCachedEndpointIdAlarm() {
             << GetClientId() << "; cached_endpoint_id_=" << cached_endpoint_id_;
   cached_endpoint_id_alarm_ = std::make_unique<CancelableAlarm>(
       "clear_high_power_endpoint_id_cache",
-      [this]() {
-        ClearCachedLocalEndpointId();
-      },
+      [this]() { ClearCachedLocalEndpointId(); },
       kHighPowerAdvertisementEndpointIdCacheTimeout, &single_thread_executor_);
 }
 
@@ -1346,6 +1354,22 @@ std::optional<std::string> ClientProxy::GetEndpointIdForDct() const {
   }
 
   return dct_endpoint_id_;
+}
+
+void ClientProxy::InitializePreferencesManager() {
+  LOG(INFO) << "ClientProxy [InitializePreferencesManager]: client="
+            << GetClientId();
+  auto device_info_ = std::make_unique<nearby::DeviceInfoImpl>();
+  preferences_manager_ = api::ImplementationPlatform::CreatePreferencesManager(
+      device_info_->GetAppDataPath()
+          .append(FilePath(kPreferencesFilePath))
+          .ToString());
+
+  if (preferences_manager_ == nullptr) {
+    LOG(ERROR) << "ClientProxy [Failed to initialize preferences manager]: "
+                  "client="
+               << GetClientId();
+  }
 }
 
 std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {
