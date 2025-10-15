@@ -71,6 +71,11 @@ constexpr absl::string_view kDeviceToken = "\x04\x20";
 constexpr absl::string_view kDeviceName = "device";
 constexpr absl::Duration kDefaultGattFetchDelay = absl::Milliseconds(200);
 
+// Delay to allow background threads to complete during teardown.
+// This helps prevent use-after-free errors on resources like FakeClock
+// used by background tasks (e.g., in PendingJobRegistry).
+constexpr absl::Duration kTeardownDelay = absl::Milliseconds(400);
+
 ByteArray CreateFastBleAdvertisement(const ByteArray& data,
                                      const ByteArray& device_token) {
   return ByteArray(BleAdvertisement(
@@ -218,6 +223,9 @@ class DiscoveredPeripheralTrackerTest
 
   void TearDown() override {
     discovered_peripheral_tracker_.reset();
+
+    // Add a small delay to allow background threads to complete.
+    absl::SleepFor(kTeardownDelay);
     MediumEnvironment::Instance().Stop();
     NearbyFlags::GetInstance().ResetOverridedValues();
   }
