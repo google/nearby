@@ -79,6 +79,9 @@ constexpr auto kEnableMultiplexBluetooth =
 // When true, enable multiplexing in NC for Wifi.
 constexpr auto kEnableMultiplexWifiLan =
     flags::Flag<bool>(kConfigPackage, "45676647", false);
+// Enable/Disable preferences for Nearby Connections.
+constexpr auto kEnableNearbyConnectionsPreferences =
+    flags::Flag<bool>(kConfigPackage, "45732423", false);
 // Enable/Disable payload manager to skip chunk update.
 constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
     flags::Flag<bool>(kConfigPackage, "45415729", true);
