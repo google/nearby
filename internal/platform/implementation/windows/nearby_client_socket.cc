@@ -26,6 +26,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
@@ -48,7 +49,8 @@ NearbyClientSocket::~NearbyClientSocket() {
   }
 }
 
-bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
+bool NearbyClientSocket ::Connect(const std::string& ip_address, int port,
+                                  bool dual_stack) {
   if (!is_socket_initiated_) {
     LOG(WARNING) << "Windows socket is not initiated.";
     return false;
@@ -58,24 +60,34 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
     LOG(ERROR) << "Socket is already connected.";
     return false;
   }
+  SocketAddress serv_address(dual_stack);
+  if (!SocketAddress::FromString(serv_address, ip_address, port)) {
+    LOG(ERROR) << "Failed to parse address " << ip_address << ":" << port;
+    return false;
+  }
 
-  socket_ =
-      socket(/*af=*/AF_INET, /*type=*/SOCK_STREAM, /*protocol=*/IPPROTO_TCP);
+  socket_ = socket(dual_stack ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
   if (socket_ == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to get socket with error " << WSAGetLastError();
     return false;
   }
-
-  struct sockaddr_in serv_addr;
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_port = htons(port);
-  serv_addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
+  if (dual_stack) {
+    // On Windows dual stack is not the default.
+    // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
+    DWORD v6_only = 0;
+    if (setsockopt(socket_, IPPROTO_IPV6, IPV6_V6ONLY,
+                   reinterpret_cast<const char*>(&v6_only),
+                   sizeof(v6_only)) == SOCKET_ERROR) {
+      LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
+                   << WSAGetLastError();
+    }
+  }
 
   BOOL flag = TRUE;
-  if (setsockopt(/*s=*/socket_, /*level=*/SOL_SOCKET, /*optname=*/SO_KEEPALIVE,
-                 /*optval=*/(const char*)&flag,
-                 /*optlen=*/sizeof(flag)) == SOCKET_ERROR) {
+  if (setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE,
+                 reinterpret_cast<const char*>(&flag),
+                 sizeof(flag)) == SOCKET_ERROR) {
     LOG(WARNING) << "Failed to set SO_KEEPALIVE with error "
                  << WSAGetLastError();
   }
@@ -84,35 +96,33 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port) {
       static_cast<int>(NearbyFlags::GetInstance().GetInt64Flag(
           nearby::platform::config_package_nearby::nearby_platform_feature::
               kSocketSendBufferSize));
-  if (setsockopt(/*s=*/socket_, /*level=*/SOL_SOCKET, /*optname=*/SO_SNDBUF,
-                 /*optval=*/(char*)&send_buffer_size,
-                 /*optlen=*/sizeof(send_buffer_size)) == SOCKET_ERROR) {
+  if (setsockopt(socket_, SOL_SOCKET, SO_SNDBUF,
+                 reinterpret_cast<char*>(&send_buffer_size),
+                 sizeof(send_buffer_size)) == SOCKET_ERROR) {
     LOG(WARNING) << "Failed to set SO_SNDBUF with error " << WSAGetLastError();
   }
 
   flag = TRUE;
-  setsockopt(/*s=*/socket_, /*level=*/IPPROTO_TCP, /*optname=*/TCP_NODELAY,
-             /*optval=*/(char*)&flag, /*optlen=*/sizeof(flag));
+  setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag),
+             sizeof(flag));
 
-  if (connect(/*s=*/socket_, /*name=*/(struct sockaddr*)&serv_addr,
-              /*namelen=*/sizeof(serv_addr)) == SOCKET_ERROR) {
+  if (connect(socket_, serv_address.address(), sizeof(sockaddr_storage)) ==
+      SOCKET_ERROR) {
     LOG(ERROR) << "Failed to connect socket with error: " << WSAGetLastError();
     closesocket(socket_);
     socket_ = INVALID_SOCKET;
     return false;
   }
 
-  sockaddr_in local_address;
-  int address_length = sizeof(local_address);
-  if (getsockname(/*s=*/socket_, /*name=*/(SOCKADDR*)&local_address,
-                  /*namelen=*/&address_length) != SOCKET_ERROR) {
-    // Extract the IP address and port
-    char local_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(local_address.sin_addr), local_ip, INET_ADDRSTRLEN);
-    int local_port = ntohs(local_address.sin_port);
-
-    LOG(INFO) << "Connected to " << ip_address << ":" << port << " from "
-              << local_ip << ":" << local_port;
+  LOG(INFO) << "Client socket connected successfully";
+  if (VLOG_IS_ON(1)) {
+    SocketAddress local_address;
+    int address_length = sizeof(sockaddr_storage);
+    if (getsockname(socket_, local_address.address(), &address_length) !=
+        SOCKET_ERROR) {
+      VLOG(1) << "Connected to " << serv_address.ToString() << " from "
+              << local_address.ToString();
+    }
   }
 
   return true;
