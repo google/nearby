@@ -29,7 +29,7 @@ class NearbyServerSocket {
   NearbyServerSocket();
   ~NearbyServerSocket();
 
-  bool Listen(const std::string& ip_address, int port);
+  bool Listen(const std::string& ip_address, int port, bool dual_stack = false);
   std::unique_ptr<NearbyClientSocket> Accept();
   bool Close();
 

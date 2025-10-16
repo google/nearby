@@ -37,6 +37,8 @@ class SocketAddress {
   }
   explicit SocketAddress(const sockaddr_in& address, bool dual_stack = false);
   explicit SocketAddress(const sockaddr_in6& address);
+  // This constructor assumes dual_stack is enabled, and will convert IPv4
+  // addresses to mapped IPv6 addresses.
   explicit SocketAddress(const sockaddr_storage& address);
 
   ~SocketAddress() = default;
@@ -46,8 +48,8 @@ class SocketAddress {
   // If dual_stack is enabled, an IPv4 string will be returned as a mapped IPv6
   // address (e.g. [::ffff:192.0.2.1]).
   // Use empty `address_string` to create and unspecified address ie. ADDR_ANY.
-  static bool FromString(SocketAddress& address,
-                         const std::string& address_string, int port = 0);
+  static bool FromString(SocketAddress& address, std::string address_string,
+                         int port = 0);
 
   // `Returns port in host byte order.
   int port() const;
@@ -56,12 +58,10 @@ class SocketAddress {
 
   std::string ToString() const;
 
-  const sockaddr_in* v4_address() const {
-    return reinterpret_cast<const sockaddr_in*>(&address_);
-  }
-  const sockaddr_in6* v6_address() const {
-    return reinterpret_cast<const sockaddr_in6*>(&address_);
-  }
+  // Returns a pointer to the internal sockaddr_storage.
+  // This can be used to modify the address directly.  However, the dual_stack
+  // state is not honored, ie. it will not convert IPv4 addresses to mapped IPv6
+  // addresses.
   sockaddr* address() {
     return reinterpret_cast<sockaddr*>(&address_);
   }

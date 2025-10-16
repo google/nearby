@@ -252,6 +252,7 @@ cc_library(
     deps = [
         ":crypto",  # build_cleaner: keep
         ":network_info",
+        ":socket_address",
         ":string_utils",
         ":types",
         "//connections/implementation/flags:connections_flags",

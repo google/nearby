@@ -40,6 +40,7 @@ SocketAddress::SocketAddress(const sockaddr_in6& address) : dual_stack_(true) {
 
 SocketAddress::SocketAddress(const sockaddr_storage& address)
     : dual_stack_(true) {
+  DCHECK(address.ss_family == AF_INET || address.ss_family == AF_INET6);
   std::memcpy(&address_, &address, sizeof(sockaddr_storage));
   ToMappedIPv6();
 }
@@ -72,7 +73,7 @@ void SocketAddress::ToMappedIPv6() {
 }
 
 bool SocketAddress::FromString(SocketAddress& address,
-                               const std::string& address_string, int port) {
+                               std::string address_string, int port) {
   if (address_string.empty()) {
     if (address.dual_stack_) {
       address.address_.ss_family = AF_INET6;
@@ -95,7 +96,7 @@ bool SocketAddress::FromString(SocketAddress& address,
   // Try v4 address first.
   address.address_.ss_family = AF_INET;
   int sock_address_size = sizeof(sockaddr_storage);
-  if (WSAStringToAddressA(const_cast<char*>(address_string.data()), AF_INET,
+  if (WSAStringToAddressA(address_string.data(), AF_INET,
                           /*lpProtocolInfo=*/nullptr,
                           reinterpret_cast<sockaddr*>(&address.address_),
                           &sock_address_size) == 0) {
