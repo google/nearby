@@ -65,9 +65,7 @@ constexpr absl::Duration kAdvertisementHeaderExpiry = absl::Seconds(15);
 
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available)
-    : is_fetching_in_thread_(NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread)),
+    : is_fetching_in_thread_(true),
       is_read_gatt_for_extended_advertisement_enabled_(
           NearbyFlags::GetInstance().GetBoolFlag(
               config_package_nearby::nearby_connections_feature::
