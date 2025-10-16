@@ -19,32 +19,40 @@ load("//third_party/nearby:minimum_os.bzl", "IOS_MINIMUM_OS")
 package(default_visibility = ["//:__subpackages__"])
 
 objc_library(
-    name = "HotspotTestslib",
+    name = "Fake",
     testonly = True,
-    srcs = [
-        "GNCHotspotMediumTest.m",
-    ],
+    srcs = ["CLLocationManagerFake.m"],
+    hdrs = ["CLLocationManagerFake.h"],
     deps = [
-        "//internal/platform/implementation/apple/Mediums/CoreLocation/CLLocationManager/Fake",
-        "//internal/platform/implementation/apple/Mediums/Hotspot",
-        "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//third_party/apple_frameworks:CoreLocation",
-        "//third_party/apple_frameworks:NetworkExtension",
+        "//third_party/apple_frameworks:Foundation",
+    ],
+)
+
+objc_library(
+    name = "CLLocationManagerDelegateFake",
+    testonly = True,
+    srcs = ["CLLocationManagerDelegateFake.m"],
+    hdrs = ["CLLocationManagerDelegateFake.h"],
+    deps = ["//third_party/apple_frameworks:CoreLocation"],
+)
+
+objc_library(
+    name = "TestsLib",
+    testonly = True,
+    srcs = ["CLLocationManagerFakeTests.m"],
+    deps = [
+        ":CLLocationManagerDelegateFake",
+        ":Fake",
+        "//third_party/apple_frameworks:CoreLocation",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
-        "//third_party/objective_c/ocmock/v3:OCMock",
-    ] + select({
-        "@platforms//os:platform_macos": [
-            "//third_party/apple_frameworks:CoreWLAN",
-        ],
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 ios_unit_test(
-    name = "HotspotTests",
+    name = "Tests",
     minimum_os_version = IOS_MINIMUM_OS,
     runner = "//testing/utp/ios:IOS_LATEST",
-    deps = [
-        ":HotspotTestslib",
-    ],
+    deps = [":TestsLib"],
 )
