@@ -301,6 +301,28 @@ cc_library(
 )
 
 cc_library(
+    name = "socket_address",
+    srcs = [
+        "socket_address.cc",
+    ],
+    hdrs = [
+        "socket_address.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    defines = [
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+        "WINVER=_WIN32_WINNT_WIN10",
+    ],
+    tags = ["windows"],
+    visibility = [
+        "//:__subpackages__",
+    ],
+    deps = [
+        "//internal/platform:logging",
+    ],
+)
+
+cc_library(
     name = "test_utils",
     srcs = [
         "test_utils.cc",
@@ -423,6 +445,20 @@ cc_test(
     ],
     deps = [
         ":network_info",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "socket_address_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "socket_address_test.cc",
+    ],
+    deps = [
+        ":socket_address",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
