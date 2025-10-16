@@ -42,6 +42,7 @@ cc_library(
         "//connections/implementation/mediums:webrtc_utils",
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//proto/mediums:web_rtc_signaling_frames_cc_proto",
         # TODO: Support WebRTC
@@ -68,8 +69,8 @@ cc_library(
         "//connections/implementation:__subpackages__",
     ],
     deps = [
-        "//connections:core_types",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:types",
     ],
 )

@@ -355,6 +355,7 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/network:url",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform/implementation:account_manager",

@@ -64,13 +64,10 @@ objc_library(
     deps = [
         "//connections/c:nc",
         "//connections/c:nc_types",
-        "//connections/implementation/flags:connections_flags",
-        "//internal/flags:nearby_flags",
         "//internal/platform:base",
-        "//internal/platform:types",
+        "//internal/platform:logging",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//third_party/dart_lang/v2:dart_api_dl",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",

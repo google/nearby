@@ -92,6 +92,7 @@ cc_library(
     ],
     deps = [
         ":types",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",

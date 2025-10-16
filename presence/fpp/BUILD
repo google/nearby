@@ -27,7 +27,7 @@ cc_library(
         "//presence:__subpackages__",
     ],
     deps = [
-        "//internal/platform:types",
+        "//internal/platform:logging",
         "//presence:types",
         "//presence/fpp/fpp_c_ffi",
         "//presence/implementation:sensor_fusion",

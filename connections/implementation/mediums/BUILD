@@ -64,6 +64,7 @@ cc_library(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:uuid",
@@ -159,7 +160,6 @@ cc_test(
     deps = [
         ":lost_entity_tracker",
         ":mediums",
-        ":utils",
         "//connections:core_types",
         "//connections/implementation:types",
         "//connections/implementation/flags:connections_flags",
@@ -168,9 +168,9 @@ cc_test(
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
+        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",

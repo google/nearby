@@ -48,6 +48,7 @@ cc_library(
         "//internal/analytics:event_logger",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
@@ -93,6 +94,7 @@ cc_library(
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/interop:authentication_status",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:util",
@@ -121,6 +123,7 @@ cc_test(
         "//connections/implementation:internal_test",
         "//connections/v3:v3_types",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",

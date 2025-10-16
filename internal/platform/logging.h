@@ -26,6 +26,7 @@
 #include "absl/log/globals.h"            // nogncheck
 #include "absl/log/log.h"                // nogncheck
 #include "absl/log/log_sink_registry.h"  // nogncheck
+#include "absl/log/vlog_is_on.h"         // nogncheck
 // IWYU pragma: end_exports
 #endif                                               // defined(NEARBY_CHROMIUM)
 

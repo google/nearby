@@ -38,8 +38,8 @@ cc_library(
     deps = [
         ":types",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
-        "//internal/platform:types",
         "//internal/platform:util",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -177,6 +177,7 @@ cc_library(
         "//internal/platform:comm",
         "//internal/platform:connection_info",
         "//internal/platform:error_code_recorder",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",
         "//internal/platform:util",
@@ -233,6 +234,7 @@ cc_library(
         "//internal/flags:nearby_flags",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:types",
         "@com_google_absl//absl/functional:any_invocable",
@@ -260,6 +262,7 @@ cc_test(
         "//connections/implementation/mediums",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
@@ -316,6 +319,7 @@ cc_test(
         "//internal/interop:authentication_transport_interface",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
@@ -430,6 +434,7 @@ cc_test(
         "//connections/implementation/flags:connections_flags",
         "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/test",
@@ -451,6 +456,7 @@ cc_test(
     deps = [
         ":internal",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto/analytics:connections_log_cc_proto",
@@ -491,9 +497,8 @@ cc_test(
         ":internal_test",
         "//connections:core_types",
         "//connections/implementation/analytics",
-        "//connections/implementation/flags:connections_flags",
-        "//internal/flags:nearby_flags",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
@@ -515,6 +520,7 @@ cc_test(
         "//connections:core_types",
         "//connections/implementation/mediums",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
@@ -541,6 +547,7 @@ cc_test(
         "//internal/interop:authentication_status",
         "//internal/interop:device",
         "//internal/platform:base",
+        "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep

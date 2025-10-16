@@ -28,9 +28,9 @@ cc_library(
     ],
     visibility = ["//visibility:private"],
     deps = [
+        "//internal/platform:logging",
         "//internal/platform:types",
         "//internal/weave",
-        "@com_google_absl//absl/log",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -47,7 +47,7 @@ cc_test(
     deps = [
         ":sockets",
         "//internal/platform:base",
-        "//internal/platform:types",
+        "//internal/platform:logging",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/synchronization",

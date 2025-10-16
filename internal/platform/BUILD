@@ -32,6 +32,7 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/log:globals",
         "@com_google_absl//absl/log:log_sink_registry",
+        "@com_google_absl//absl/log:vlog_is_on",
     ],
 )
 
@@ -233,7 +234,6 @@ cc_library(
         "file.h",
         "future.h",
         "lockable.h",
-        "logging.h",
         "monitored_runnable.h",
         "multi_thread_executor.h",
         "mutex.h",
@@ -260,6 +260,7 @@ cc_library(
     ],
     deps = [
         ":base",
+        ":logging",
         ":util",
         "//connections/implementation/flags:connections_flags",
         "//internal/base:file_path",
@@ -320,6 +321,7 @@ cc_library(
     deps = [
         ":base",
         ":cancellation_flag",
+        ":logging",
         ":mac_address",
         ":types",
         ":uuid",
@@ -370,6 +372,7 @@ cc_library(
     ],
     deps = [
         ":base",
+        ":logging",
         ":mac_address",
         ":types",
         ":uuid",
@@ -487,6 +490,7 @@ cc_test(
         ":cancellation_flag",
         ":comm",
         ":connection_info",
+        ":logging",
         ":mac_address",
         ":test_util",
         ":types",
@@ -549,6 +553,7 @@ cc_test(
     deps = [
         ":base",
         ":connection_info",
+        ":logging",
         ":mac_address",
         ":test_util",
         ":types",
