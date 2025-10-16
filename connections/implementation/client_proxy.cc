@@ -31,6 +31,7 @@
 #include "absl/random/random.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
@@ -53,6 +54,7 @@
 #include "connections/v3/listeners.h"
 #include "internal/analytics/event_logger.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/interop/device.h"
 #include "internal/platform/byte_array.h"
@@ -63,6 +65,7 @@
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
@@ -84,6 +87,13 @@ constexpr char kEndpointIdChars[] = {
     'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
 
 constexpr absl::string_view kPreferencesFilePath = "Google/Nearby/Connections";
+
+constexpr absl::string_view kAdvertisingEndpointId =
+    "nc.advertising.endpoint_id";
+
+constexpr absl::string_view kAdvertisingTimestamp = "nc.advertising.timestamp";
+
+constexpr absl::Duration kAdvertisingKeepAliveDuration = absl::Seconds(30);
 
 bool IsFeatureUseStableEndpointIdEnabled() {
   return NearbyFlags::GetInstance().GetBoolFlag(
@@ -125,6 +135,9 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
   // Generate a 7 bits dedup value.
   absl::BitGen bitgen;
   dct_dedup_ = absl::Uniform(bitgen, 0, 1 << 7);
+
+  // Load advertising info from preferences.
+  LoadClientInfoFromPreferences();
 }
 
 ClientProxy::~ClientProxy() { Reset(); }
@@ -1360,16 +1373,77 @@ void ClientProxy::InitializePreferencesManager() {
   LOG(INFO) << "ClientProxy [InitializePreferencesManager]: client="
             << GetClientId();
   auto device_info_ = std::make_unique<nearby::DeviceInfoImpl>();
+
+  FilePath preferences_path =
+      device_info_->GetAppDataPath().append(FilePath(kPreferencesFilePath));
+
+  if (!Files::FileExists(preferences_path)) {
+    Files::CreateDirectories(preferences_path);
+  }
+
   preferences_manager_ = api::ImplementationPlatform::CreatePreferencesManager(
-      device_info_->GetAppDataPath()
-          .append(FilePath(kPreferencesFilePath))
-          .ToString());
+      preferences_path.ToString());
 
   if (preferences_manager_ == nullptr) {
     LOG(ERROR) << "ClientProxy [Failed to initialize preferences manager]: "
                   "client="
                << GetClientId();
   }
+}
+
+void ClientProxy::SaveClientInfoToPreferences() {
+  MutexLock lock(&mutex_);
+  if (preferences_manager_ == nullptr) {
+    return;
+  }
+
+  if (advertising_info_.IsEmpty()) {
+    preferences_manager_->Remove(kAdvertisingEndpointId);
+    preferences_manager_->Remove(kAdvertisingTimestamp);
+    return;
+  }
+
+  preferences_manager_->SetString(kAdvertisingEndpointId, local_endpoint_id_);
+  preferences_manager_->SetTime(kAdvertisingTimestamp,
+                                SystemClock::ElapsedRealtime());
+
+  LOG(INFO) << "ClientProxy [SaveClientInfoToPreferences]: client="
+            << GetClientId() << "; local_endpoint_id_=" << local_endpoint_id_;
+}
+
+void ClientProxy::LoadClientInfoFromPreferences() {
+  MutexLock lock(&mutex_);
+  if (preferences_manager_ == nullptr) {
+    return;
+  }
+
+  absl::Time last_advertising_time = preferences_manager_->GetTime(
+      kAdvertisingTimestamp, absl::InfinitePast());
+  if (SystemClock::ElapsedRealtime() - last_advertising_time <
+      kAdvertisingKeepAliveDuration) {
+    std::string endpoint_id =
+        preferences_manager_->GetString(kAdvertisingEndpointId, "");
+    if (!endpoint_id.empty() && endpoint_id.length() == kEndpointIdLength) {
+      bool is_valid_endpoint_id = true;
+      for (const auto& c : endpoint_id) {
+        if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))) {
+          is_valid_endpoint_id = false;
+          break;
+        }
+      }
+
+      if (is_valid_endpoint_id) {
+        local_endpoint_id_ = endpoint_id;
+        cached_endpoint_id_ = local_endpoint_id_;
+        LOG(INFO) << "ClientProxy [LoadClientInfoFromPreferences]: client="
+                  << GetClientId()
+                  << "; local_endpoint_id_=" << local_endpoint_id_;
+      }
+    }
+  }
+
+  preferences_manager_->Remove(kAdvertisingEndpointId);
+  preferences_manager_->Remove(kAdvertisingTimestamp);
 }
 
 std::string ClientProxy::ToString(PayloadProgressInfo::Status status) const {

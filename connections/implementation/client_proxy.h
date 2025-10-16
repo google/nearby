@@ -372,6 +372,9 @@ class ClientProxy final {
   // Forces client to regenerate a new local endpoint id.
   void ClearCachedLocalEndpointId();
 
+  // Saves the client information to preferences.
+  void SaveClientInfoToPreferences();
+
  private:
   struct Connection {
     // Status: may be either:
@@ -460,6 +463,7 @@ class ClientProxy final {
   std::optional<std::string> GetEndpointIdForDct() const;
 
   void InitializePreferencesManager();
+  void LoadClientInfoFromPreferences();
 
   // The device name used for DCT advertising.
   std::string dct_device_name_;

@@ -63,6 +63,10 @@ struct EnvironmentConfig {
   // The simulated clock is automatically picked up by SystemClock, Timer and
   // ScheduledExecutor implementations.
   bool use_simulated_clock = false;
+
+  // If true, the app data path will be a temporary directory, instead of the
+  // actual app data path, so that we can test the preferences manager under G3.
+  bool use_temporary_directory_for_app_path = false;
 };
 
 // MediumEnvironment is a simulated environment which allows multiple instances

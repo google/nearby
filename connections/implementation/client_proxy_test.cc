@@ -162,7 +162,8 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
 
   void SetUp() override {
     EnvironmentConfig config{/*webrtc_enabled=*/false,
-                             /*use_simulated_clock=*/true};
+                             /*use_simulated_clock=*/true,
+                             /*use_temporary_directory_for_app_path=*/true};
     env_.Start(config);
     client1_ = std::make_unique<ClientProxy>(&event_logger1_);
     client2_ = std::make_unique<ClientProxy>(&event_logger2_);
@@ -1618,6 +1619,66 @@ TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexWifiLan,
+      false);
+}
+
+TEST_F(ClientProxyTest, SaveClientInfoFromPreferences) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableNearbyConnectionsPreferences,
+      true);
+  client1_ = std::make_unique<ClientProxy>(&event_logger1_);
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  std::string endpoint_id = advertising_endpoint.id;
+  client1_->SaveClientInfoToPreferences();
+
+  // Destroy the client and create a new one.
+  client1_.reset();
+  client1_ = std::make_unique<ClientProxy>(&event_logger1_);
+
+  // The new client should load the same endpoint ID.
+  EXPECT_EQ(client1()->GetLocalEndpointId(), endpoint_id);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
+      false);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableNearbyConnectionsPreferences,
+      false);
+}
+
+TEST_F(ClientProxyTest, NotLoadClientInfoFromPreferencesOnExpired) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
+      true);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableNearbyConnectionsPreferences,
+      true);
+  client1_ = std::make_unique<ClientProxy>(&event_logger1_);
+  Endpoint advertising_endpoint =
+      StartAdvertising(client1(), advertising_connection_listener_);
+  std::string endpoint_id = advertising_endpoint.id;
+  client1_->SaveClientInfoToPreferences();
+
+  // Destroy the client and create a new one.
+  client1_.reset();
+  FastForward(absl::Hours(25));
+
+  client1_ = std::make_unique<ClientProxy>(&event_logger1_);
+
+  // The new client should load the same endpoint ID.
+  EXPECT_NE(client1()->GetLocalEndpointId(), endpoint_id);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
+      false);
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableNearbyConnectionsPreferences,
       false);
 }
 

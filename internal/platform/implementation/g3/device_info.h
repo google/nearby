@@ -26,6 +26,7 @@
 #include "internal/base/files.h"
 #include "internal/platform/implementation/device_info.h"
 #include "internal/platform/implementation/g3/linux_path_util.h"
+#include "internal/platform/medium_environment.h"
 
 namespace nearby {
 namespace g3 {
@@ -49,6 +50,12 @@ class DeviceInfo : public api::DeviceInfo {
   }
 
   std::optional<FilePath> GetLocalAppDataPath() const override {
+    if (MediumEnvironment::Instance()
+            .GetEnvironmentConfig()
+            .use_temporary_directory_for_app_path) {
+      return Files::GetTemporaryDirectory();
+    }
+
     return GetAppDataPath();
   }
 

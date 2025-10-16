@@ -166,6 +166,7 @@ cc_library(
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
         "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/base:masker",
         "//internal/flags:nearby_flags",
         "//internal/interop:authentication_status",
