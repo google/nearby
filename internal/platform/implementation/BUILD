@@ -149,6 +149,7 @@ cc_library(
 cc_library(
     name = "comm",
     hdrs = [
+        "app_lifecycle_monitor.h",
         "awdl.h",
         "ble.h",
         "bluetooth_adapter.h",
@@ -213,6 +214,7 @@ cc_library(
         ":comm",
         ":types",
         "//internal/platform:base",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],

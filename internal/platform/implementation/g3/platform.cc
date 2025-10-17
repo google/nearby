@@ -20,12 +20,14 @@
 #include <string>
 
 #include "absl/base/attributes.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
@@ -184,8 +186,8 @@ ImplementationPlatform::CreateBluetoothClassicMedium(
   return std::make_unique<g3::BluetoothClassicMedium>(adapter);
 }
 
-std::unique_ptr<api::ble::BleMedium>
-ImplementationPlatform::CreateBleMedium(api::BluetoothAdapter& adapter) {
+std::unique_ptr<api::ble::BleMedium> ImplementationPlatform::CreateBleMedium(
+    api::BluetoothAdapter& adapter) {
   return std::make_unique<g3::BleMedium>(
       dynamic_cast<g3::BluetoothAdapter&>(adapter));
 }
@@ -226,6 +228,13 @@ std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
   }
 }
 #endif
+
+std::unique_ptr<AppLifecycleMonitor>
+ImplementationPlatform::CreateAppLifecycleMonitor(
+    absl::AnyInvocable<void(AppLifecycleMonitor::AppLifecycleState)>
+        state_updated_callback) {
+  return nullptr;
+}
 
 absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(
     const api::WebRequest& request) {

@@ -64,6 +64,7 @@
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
@@ -138,6 +139,19 @@ ClientProxy::ClientProxy(::nearby::analytics::EventLogger* event_logger)
 
   // Load advertising info from preferences.
   LoadClientInfoFromPreferences();
+
+  if (preferences_manager_ != nullptr) {
+    app_lifecycle_monitor_ =
+        api::ImplementationPlatform::CreateAppLifecycleMonitor(
+            [this](api::AppLifecycleMonitor::AppLifecycleState state) {
+              if (state ==
+                      api::AppLifecycleMonitor::AppLifecycleState::kInactive ||
+                  state == api::AppLifecycleMonitor::AppLifecycleState::
+                               kBackground) {
+                SaveClientInfoToPreferences();
+              }
+            });
+  }
 }
 
 ClientProxy::~ClientProxy() { Reset(); }
