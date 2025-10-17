@@ -35,6 +35,9 @@ NSData *_Nullable GNCMd5Data(NSData *data);
 /// Generates an MD5 hash (16 bytes) from a string.
 NSData *_Nullable GNCMd5String(NSString *string);
 
+/// Converts NSData to a hex string with a "0x" prefix.
+NSString *GNCConvertDataToHexString(NSData *_Nullable data);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

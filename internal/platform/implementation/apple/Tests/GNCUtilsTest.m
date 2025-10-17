@@ -153,4 +153,22 @@
                         @"MD5 hash for an empty string did not match the expected value.");
 }
 
+- (void)testConvertDataToHexString {
+  // Test with nil data.
+  XCTAssertEqualObjects(GNCConvertDataToHexString(nil), @"0x",
+                        @"Hex string for nil data should be '0x'.");
+
+  // Test with empty data.
+  NSData *emptyData = [NSData data];
+  XCTAssertEqualObjects(GNCConvertDataToHexString(emptyData), @"0x",
+                        @"Hex string for empty data should be '0x'.");
+
+  // Test with sample data.
+  const unsigned char bytes[] = {0xDE, 0xAD, 0xBE, 0xEF};
+  NSData *sampleData = [NSData dataWithBytes:bytes length:sizeof(bytes)];
+  NSString *expectedHexString = @"0xdeadbeef";
+  XCTAssertEqualObjects(GNCConvertDataToHexString(sampleData), expectedHexString,
+                        @"Hex string for sample data did not match the expected value.");
+}
+
 @end
