@@ -19,6 +19,8 @@
 #import <XCTest/XCTest.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEL2CAPFakeInputOutputStream.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCBL2CAPChannel.h"
 
 @interface CBCharacteristic ()
 
@@ -59,7 +61,6 @@
 static const uint16_t kPSM = 192;
 
 @implementation GNCFakePeripheralManager {
-  CBManagerState _state;
   BOOL _isAdvertising;
   NSDictionary<NSString *, id> *_advertisementData;
   NSMutableArray<CBService *> *_services;
@@ -87,10 +88,6 @@ static const uint16_t kPSM = 192;
   return self;
 }
 
-- (CBManagerState)state {
-  return _state;
-}
-
 - (BOOL)isAdvertising {
   return _isAdvertising;
 }
@@ -99,9 +96,7 @@ static const uint16_t kPSM = 192;
   if (!_didAddServiceError) {
     [_services addObject:service];
   }
-  [_peripheralDelegate gnc_peripheralManager:self
-                               didAddService:service
-                                       error:_didAddServiceError];
+  [_peripheralDelegate gnc_peripheralManager:self didAddService:service error:_didAddServiceError];
 }
 
 - (void)removeService:(CBMutableService *)service {
@@ -140,9 +135,14 @@ static const uint16_t kPSM = 192;
                       didPublishL2CAPChannel:localPSM
                                        error:_didPublishL2CAPChannelError];
   if (!_didPublishL2CAPChannelError) {
+    GNCBLEL2CAPFakeInputOutputStream *fakeStream =
+        [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1024];
+    GNCFakeCBL2CAPChannel *fakeChannel = [[GNCFakeCBL2CAPChannel alloc] init];
+    fakeChannel.inputStream = fakeStream.inputStream;
+    fakeChannel.outputStream = fakeStream.outputStream;
     [_peripheralDelegate gnc_peripheralManager:self
-                           didOpenL2CAPChannel:[[CBL2CAPChannel alloc] init]
-                                         error:nil];
+                           didOpenL2CAPChannel:(CBL2CAPChannel *)fakeChannel
+                                         error:_didOpenL2CAPChannelError];
   }
 }
 
