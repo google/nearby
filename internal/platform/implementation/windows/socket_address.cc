@@ -20,6 +20,7 @@
 #include <cstring>
 #include <string>
 
+#include "absl/types/span.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
@@ -120,6 +121,31 @@ bool SocketAddress::FromString(SocketAddress& address,
     return true;
   }
   return false;
+}
+
+bool SocketAddress::FromBytes(SocketAddress& address,
+                              absl::Span<const char> address_bytes, int port) {
+  if (address_bytes.size() != 4 &&
+      !(address.dual_stack_ && address_bytes.size() == 16)) {
+    // Invalid address bytes size.
+    return false;
+  }
+  if (address_bytes.size() == 4) {
+    address.address_.ss_family = AF_INET;
+    sockaddr_in* v4_address = reinterpret_cast<sockaddr_in*>(&address.address_);
+    std::memcpy(&v4_address->sin_addr, address_bytes.data(), sizeof(in_addr));
+    address.set_port(port);
+    if (address.dual_stack_) {
+      address.ToMappedIPv6();
+    }
+    return true;
+  }
+  address.address_.ss_family = AF_INET6;
+  sockaddr_in6* v6_address =
+      reinterpret_cast<sockaddr_in6*>(&address.address_);
+  std::memcpy(&v6_address->sin6_addr, address_bytes.data(), sizeof(in6_addr));
+  address.set_port(port);
+  return true;
 }
 
 int SocketAddress::port() const {

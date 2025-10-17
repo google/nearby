@@ -170,14 +170,6 @@ std::vector<std::string> GetIpv4Addresses() {
   return result;
 }
 
-std::vector<std::string> GetWifiIpv4Addresses() {
-  std::vector<std::string> result;
-  std::vector<std::string> ethernet_addresses;
-  std::vector<std::string> other_addresses;
-  GetIpv4Addresses(result, ethernet_addresses, other_addresses);
-  return result;
-}
-
 void GetConnectedNetworks(bool& is_wifi_connected, bool& is_ethernet_connected,
                           bool& is_other_connected) {
   std::vector<std::string> wifi_addresses;

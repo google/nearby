@@ -36,6 +36,7 @@
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Security.Credentials.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
@@ -85,16 +86,16 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     return nullptr;
   }
 
-  std::string ipv4_address;
-  if (ip_address.length() == 4) {
-    ipv4_address = ipaddr_4bytes_to_dotdecimal_string(ip_address);
-  } else {
-    ipv4_address = std::string(ip_address);
-  }
-  if (ipv4_address.empty()) {
-    LOG(ERROR) << "Invalid IP address parameter.";
+  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableIpv6DualStack);
+  SocketAddress server_address(dual_stack);
+  if (!server_address.FromString(server_address, std::string(ip_address),
+                                 port)) {
+    LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }
+  VLOG(1) << "ConnectToService address: " << server_address.ToString();
 
   // Try connecting to the service up to wifi_hotspot_max_connection_retries,
   // because it may fail first time if DHCP procedure is not finished yet.
@@ -117,7 +118,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
           << "ms, connection timeout="
           << wifi_hotspot_client_socket_connect_timeout_millis << "ms";
 
-  LOG(INFO) << "Connect to service " << ipv4_address << ":" << port;
+  LOG(INFO) << "Connect to service.";
   for (int i = 0; i < wifi_hotspot_max_connection_retries; ++i) {
     auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>();
 
@@ -126,8 +127,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
         nullptr;
     if (cancellation_flag != nullptr) {
       if (cancellation_flag->Cancelled()) {
-        LOG(INFO) << "connect has been cancelled to service " << ipv4_address
-                  << ":" << port;
+        LOG(INFO) << "connect to service has been cancelled.";
         return nullptr;
       }
 
@@ -139,21 +139,18 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
               });
     }
 
-    bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-        platform::config_package_nearby::nearby_platform_feature::
-            kEnableIpv6DualStack);
-    bool result = wifi_hotspot_socket->Connect(ipv4_address, port, dual_stack);
+    bool result = wifi_hotspot_socket->Connect(server_address);
     if (!result) {
       LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
       Sleep(wifi_hotspot_retry_interval_millis);
       continue;
     }
 
-    LOG(INFO) << "connected to remote service " << ipv4_address << ":" << port;
+    LOG(INFO) << "connected to remote service.";
     return wifi_hotspot_socket;
   }
 
-  LOG(ERROR) << "Failed to connect to service " << ipv4_address << ":" << port;
+  LOG(ERROR) << "Failed to connect to service.";
   return nullptr;
 }
 

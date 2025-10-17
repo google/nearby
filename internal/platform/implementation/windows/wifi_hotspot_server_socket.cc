@@ -34,6 +34,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/logging.h"
@@ -117,7 +118,13 @@ bool WifiHotspotServerSocket::Listen(bool dual_stack) {
     return false;
   }
 
-  if (!server_socket_.Listen(hotspot_ipaddr_, port_, dual_stack)) {
+  SocketAddress address(dual_stack);
+  if (!SocketAddress::FromString(address, hotspot_ipaddr_, port_)) {
+    LOG(ERROR) << "Failed to parse hotspot IP address: " << hotspot_ipaddr_
+               << " and port: " << port_;
+    return false;
+  }
+  if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket.";
     return false;
   }

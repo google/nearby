@@ -146,5 +146,44 @@ TEST(SocketAddressTest, SetInvalidPort) {
   EXPECT_EQ(address.port(), 8080);
 }
 
+TEST(SocketAddressTest, FromBytesIPv4) {
+  SocketAddress address;
+  char bytes[4] = {192, 168, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_EQ(address.ToString(), "192.168.1.1:8080");
+  EXPECT_EQ(address.port(), 8080);
+}
+
+TEST(SocketAddressTest, FromBytesIPv6Fails) {
+  SocketAddress address;
+  char bytes[16] = {0xfe, 0x80, 0,    0,    0,    0,    0,    0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_FALSE(SocketAddress::FromBytes(address, bytes, 8080));
+}
+
+TEST(SocketAddressTest, FromBytesIPv4DualStack) {
+  SocketAddress address(/*dual_stack=*/true);
+  char bytes[4] = {192, 168, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_EQ(address.ToString(), "[::ffff:192.168.1.1]:8080");
+  EXPECT_EQ(address.port(), 8080);
+}
+
+TEST(SocketAddressTest, FromBytesIPv6DualStack) {
+  SocketAddress address(/*dual_stack=*/true);
+  char bytes[16] = {0xfe, 0x80, 0,    0,    0,    0,    0,    0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_EQ(address.ToString(), "[fe80::4db2:b35c:2203:98a1]:8080");
+  EXPECT_EQ(address.port(), 8080);
+}
+
+TEST(SocketAddressTest, DualStack) {
+  SocketAddress address(/*dual_stack=*/true);
+  EXPECT_TRUE(address.dual_stack());
+  SocketAddress address2(/*dual_stack=*/false);
+  EXPECT_FALSE(address2.dual_stack());
+}
+
 }  // namespace
 }  // namespace nearby::windows

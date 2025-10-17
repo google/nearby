@@ -49,8 +49,7 @@ NearbyClientSocket::~NearbyClientSocket() {
   }
 }
 
-bool NearbyClientSocket ::Connect(const std::string& ip_address, int port,
-                                  bool dual_stack) {
+bool NearbyClientSocket ::Connect(const SocketAddress& server_address) {
   if (!is_socket_initiated_) {
     LOG(WARNING) << "Windows socket is not initiated.";
     return false;
@@ -60,19 +59,14 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port,
     LOG(ERROR) << "Socket is already connected.";
     return false;
   }
-  SocketAddress serv_address(dual_stack);
-  if (!SocketAddress::FromString(serv_address, ip_address, port)) {
-    LOG(ERROR) << "Failed to parse address " << ip_address << ":" << port;
-    return false;
-  }
-
-  socket_ = socket(dual_stack ? AF_INET6 : AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  socket_ = socket(server_address.dual_stack() ? AF_INET6 : AF_INET,
+                   SOCK_STREAM, IPPROTO_TCP);
 
   if (socket_ == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to get socket with error " << WSAGetLastError();
     return false;
   }
-  if (dual_stack) {
+  if (server_address.dual_stack()) {
     // On Windows dual stack is not the default.
     // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
     DWORD v6_only = 0;
@@ -106,7 +100,7 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port,
   setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag),
              sizeof(flag));
 
-  if (connect(socket_, serv_address.address(), sizeof(sockaddr_storage)) ==
+  if (connect(socket_, server_address.address(), sizeof(sockaddr_storage)) ==
       SOCKET_ERROR) {
     LOG(ERROR) << "Failed to connect socket with error: " << WSAGetLastError();
     closesocket(socket_);
@@ -120,7 +114,7 @@ bool NearbyClientSocket ::Connect(const std::string& ip_address, int port,
     int address_length = sizeof(sockaddr_storage);
     if (getsockname(socket_, local_address.address(), &address_length) !=
         SOCKET_ERROR) {
-      VLOG(1) << "Connected to " << serv_address.ToString() << " from "
+      VLOG(1) << "Connected to " << server_address.ToString() << " from "
               << local_address.ToString();
     }
   }

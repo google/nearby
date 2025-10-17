@@ -320,6 +320,7 @@ cc_library(
     ],
     deps = [
         "//internal/platform:logging",
+        "@com_google_absl//absl/types:span",
     ],
 )
 

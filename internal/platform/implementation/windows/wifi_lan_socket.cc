@@ -26,6 +26,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -74,9 +75,8 @@ Exception WifiLanSocket::Close() {
   return {Exception::kSuccess};
 }
 
-bool WifiLanSocket::Connect(const std::string& ip_address,
-                            int port, bool dual_stack) {
-  return client_socket_->Connect(ip_address, port, dual_stack);
+bool WifiLanSocket::Connect(const SocketAddress& server_address) {
+  return client_socket_->Connect(server_address);
 }
 
 // SocketInputStream

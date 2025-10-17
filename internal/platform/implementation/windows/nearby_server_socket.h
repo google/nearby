@@ -21,6 +21,7 @@
 #include <string>
 
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 
 namespace nearby::windows {
 
@@ -29,7 +30,7 @@ class NearbyServerSocket {
   NearbyServerSocket();
   ~NearbyServerSocket();
 
-  bool Listen(const std::string& ip_address, int port, bool dual_stack);
+  bool Listen(const SocketAddress& address);
   std::unique_ptr<NearbyClientSocket> Accept();
   bool Close();
 

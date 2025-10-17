@@ -26,6 +26,7 @@
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
@@ -122,7 +123,9 @@ Exception WifiLanServerSocket::Close() {
 
 bool WifiLanServerSocket::Listen(bool dual_stack) {
   // Listen on all interfaces.
-  if (!server_socket_.Listen("", port_, dual_stack)) {
+  SocketAddress address(dual_stack);
+  SocketAddress::FromString(address, "", port_);
+  if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket at port:" << port_;
     return false;
   }

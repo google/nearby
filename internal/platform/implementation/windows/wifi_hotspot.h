@@ -42,6 +42,7 @@
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_native.h"
 
 // WinRT headers
@@ -94,8 +95,8 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override { return client_socket_->Close(); }
 
-  bool Connect(const std::string& ip_address, int port, bool dual_stack) {
-    return client_socket_->Connect(ip_address, port, dual_stack);
+  bool Connect(const SocketAddress& server_address) {
+    return client_socket_->Connect(server_address);
   }
 
  private:

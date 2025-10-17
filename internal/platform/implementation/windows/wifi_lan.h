@@ -46,6 +46,7 @@
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
 #include "internal/platform/implementation/windows/scheduled_executor.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wifi_lan_mdns.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/nsd_service_info.h"
@@ -95,7 +96,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
 
-  bool Connect(const std::string& ip_address, int port, bool dual_stack);
+  bool Connect(const SocketAddress& server_address);
 
  private:
   // A simple wrapper to handle input stream of socket

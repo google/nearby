@@ -19,9 +19,7 @@
 #include <winsock.h>
 
 // Standard C/C++ headers
-#include <codecvt>
 #include <cstdint>
-#include <locale>
 #include <memory>
 #include <optional>
 #include <string>
@@ -49,6 +47,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
@@ -228,26 +227,17 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const std::string& ip_address, int port,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "ConnectToService is called.";
-  if (ip_address.empty() || ip_address.length() != 4 || port == 0) {
+  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableIpv6DualStack);
+  SocketAddress server_address(dual_stack);
+  if (!server_address.FromBytes(server_address, ip_address, port)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }
-
-  // Converts ip address to x.x.x.x format
-  in_addr address;
-  address.S_un.S_un_b.s_b1 = ip_address[0];
-  address.S_un.S_un_b.s_b2 = ip_address[1];
-  address.S_un.S_un_b.s_b3 = ip_address[2];
-  address.S_un.S_un_b.s_b4 = ip_address[3];
-  char* ipv4_address = inet_ntoa(address);
-  if (ipv4_address == nullptr) {
-    LOG(ERROR) << "Invalid IP address parameter.";
-    return nullptr;
-  }
-
+  VLOG(1) << "ConnectToService address: " << server_address.ToString();
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
-    LOG(INFO) << "connect has been cancelled to service " << ipv4_address << ":"
-              << port;
+    LOG(INFO) << "connect to service has been cancelled.";
     return nullptr;
   }
 
@@ -265,18 +255,13 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
               socket->Close();
             });
   }
-
-  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableIpv6DualStack);
-  bool result = wifi_lan_socket->Connect(ipv4_address, port, dual_stack);
+  bool result = wifi_lan_socket->Connect(server_address);
   if (!result) {
-    LOG(ERROR) << "failed to connect to service " << ipv4_address << ":"
-               << port;
+    LOG(ERROR) << "failed to connect to service.";
     return nullptr;
   }
 
-  LOG(INFO) << "connected to remote service " << ipv4_address << ":" << port;
+  LOG(INFO) << "connected to remote service.";
 
   return wifi_lan_socket;
 }

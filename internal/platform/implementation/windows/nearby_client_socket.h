@@ -19,10 +19,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
 
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 
 namespace nearby::windows {
 
@@ -32,8 +32,7 @@ class NearbyClientSocket {
   explicit NearbyClientSocket(SOCKET socket);
   ~NearbyClientSocket();
 
-  bool Connect(const std::string& ip_address, int port,
-               bool dual_stack);
+  bool Connect(const SocketAddress& server_address);
   ExceptionOr<ByteArray> Read(std::int64_t size);
   ExceptionOr<size_t> Skip(size_t offset);
   Exception Write(const ByteArray& data);

@@ -21,6 +21,8 @@
 #include <cstring>
 #include <string>
 
+#include "absl/types/span.h"
+
 namespace nearby::windows {
 
 // A helper class that simplifies handling of both IPv4 and IPv6 addresses.
@@ -48,8 +50,20 @@ class SocketAddress {
   // If dual_stack is enabled, an IPv4 string will be returned as a mapped IPv6
   // address (e.g. [::ffff:192.0.2.1]).
   // Use empty `address_string` to create and unspecified address ie. ADDR_ANY.
+  // `port` is in host byte order.
   static bool FromString(SocketAddress& address, std::string address_string,
                          int port = 0);
+
+  // The `dual_stack` state of `address` determines whether the address is
+  // can be parsed as IPv6.
+  // `addresss_bytes` is 4 bytes if dual_stack is disabled, and 4 or 16 bytes
+  // for dual_stack.  The address must be in network byte order.
+  // `port` is in host byte order.
+  static bool FromBytes(SocketAddress& address,
+                        absl::Span<const char> address_bytes, int port = 0);
+
+  // Returns true if dual stack support has been enabled.
+  bool dual_stack() const { return dual_stack_; }
 
   // `Returns port in host byte order.
   int port() const;
@@ -64,6 +78,12 @@ class SocketAddress {
   // addresses.
   sockaddr* address() {
     return reinterpret_cast<sockaddr*>(&address_);
+  }
+
+  // An overload to return a non-const sockaddr pointer from a const
+  // SocketAddress.  This is a convenience for calling legacy C APIs.
+  sockaddr* address() const {
+    return const_cast<sockaddr*>(reinterpret_cast<const sockaddr*>(&address_));
   }
 
  private:
