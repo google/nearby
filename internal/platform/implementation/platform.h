@@ -15,12 +15,15 @@
 #ifndef PLATFORM_API_PLATFORM_H_
 #define PLATFORM_API_PLATFORM_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
@@ -137,6 +140,9 @@ class ImplementationPlatform {
 #ifndef NO_WEBRTC
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif
+  static std::unique_ptr<AppLifecycleMonitor> CreateAppLifecycleMonitor(
+      absl::AnyInvocable<void(AppLifecycleMonitor::AppLifecycleState)>
+          state_updated_callback);
 
   // Gets HTTP response from remote server.
   //

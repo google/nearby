@@ -32,7 +32,9 @@
 #include <string>
 
 #include "absl/base/attributes.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #undef StrCat  // Remove the Windows macro definition
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -287,6 +289,13 @@ ImplementationPlatform::CreateWifiDirectMedium() {
 
 // TODO(b/261663238) replace with real implementation.
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() {
+  return nullptr;
+}
+
+std::unique_ptr<AppLifecycleMonitor>
+ImplementationPlatform::CreateAppLifecycleMonitor(
+    absl::AnyInvocable<void(AppLifecycleMonitor::AppLifecycleState)>
+        state_updated_callback) {
   return nullptr;
 }
 

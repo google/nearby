@@ -208,6 +208,7 @@ cc_library(
         "//internal/platform/implementation/shared:count_down_latch",
         "//internal/platform/implementation/shared:file",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
