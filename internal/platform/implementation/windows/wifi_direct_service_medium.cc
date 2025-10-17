@@ -79,7 +79,7 @@ bool WifiDirectServiceMedium::StartWifiDirectService() {
   // Config Methods
   WiFiDirectServiceConfigurationMethod config_method;
   if (kPin.empty()) {
-    config_method = WiFiDirectServiceConfigurationMethod::Default; // NOLINT
+    config_method = WiFiDirectServiceConfigurationMethod::Default;  // NOLINT
   } else {
     config_method = WiFiDirectServiceConfigurationMethod::PinDisplay;
   }
@@ -251,7 +251,7 @@ fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
       absl::MutexLock lock(mutex_);
       WiFiDirectServiceSession session = nullptr;
       if (kPin.empty()) {
-        session = advertiser_.ConnectAsync(device_info_).get(); // NOLINT
+        session = advertiser_.ConnectAsync(device_info_).get();  // NOLINT
       } else {
         session = advertiser_.ConnectAsync(device_info_, kPin).get();
       }
@@ -262,6 +262,20 @@ fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
       }
       LOG(INFO) << "GO: TryEnqueue: OnSessionRequested: ConnectAsync succeeded";
       session_ = std::move(session);
+
+      auto endpoint_pairs = session_.GetConnectionEndpointPairs();
+      if (endpoint_pairs.Size() > 0) {
+        auto const& pair = endpoint_pairs.GetAt(0);
+        ip_address_local_ =
+            winrt::to_string(pair.LocalHostName().DisplayName());
+        ip_address_remote_ =
+            winrt::to_string(pair.RemoteHostName().DisplayName());
+        LOG(INFO) << "GO: Local IP: " << ip_address_local_
+                  << ", Remote IP: " << ip_address_remote_;
+      } else {
+        LOG(WARNING) << "GO: No connection endpoint pairs found.";
+      }
+
       LOG(INFO) << "Service Address: "
                 << winrt::to_string(session_.ServiceAddress())
                 << ", Service Name: "
@@ -275,7 +289,7 @@ fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
         LOG(INFO) << "GO: TryEnqueue: Session status changed";
       });
     });
-    LOG(INFO) << "GC: Dispatch to UI thread to call ConnectAsync finish";
+    LOG(INFO) << "GO: Dispatch to UI thread to call ConnectAsync finish";
   } catch (std::exception exception) {
     LOG(ERROR) << __func__
                << ": Failed to get session. Exception: " << exception.what();
@@ -360,7 +374,7 @@ fire_and_forget WifiDirectServiceMedium::Watcher_DeviceAdded(
 
     WiFiDirectServiceSession session = nullptr;
     if (kPin.empty()) {
-      session = service_.ConnectAsync().get(); // NOLINT
+      session = service_.ConnectAsync().get();  // NOLINT
     } else {
       auto prov_info = co_await service_.GetProvisioningInfoAsync(
           WiFiDirectServiceConfigurationMethod::PinEntry);
@@ -383,6 +397,19 @@ fire_and_forget WifiDirectServiceMedium::Watcher_DeviceAdded(
     }
     LOG(INFO) << "GC: ConnectAsync succeeded";
     session_ = std::move(session);
+
+    auto endpoint_pairs = session_.GetConnectionEndpointPairs();
+    if (endpoint_pairs.Size() > 0) {
+      auto const& pair = endpoint_pairs.GetAt(0);
+      ip_address_local_ = winrt::to_string(pair.LocalHostName().DisplayName());
+      ip_address_remote_ =
+          winrt::to_string(pair.RemoteHostName().DisplayName());
+      LOG(INFO) << "GC: Local IP: " << ip_address_local_
+                << ", Remote IP: " << ip_address_remote_;
+    } else {
+      LOG(WARNING) << "GC: No connection endpoint pairs found.";
+    }
+
     LOG(INFO) << "Service Address: "
               << winrt::to_string(session_.ServiceAddress())
               << ", Service Name: " << winrt::to_string(session_.ServiceName())
