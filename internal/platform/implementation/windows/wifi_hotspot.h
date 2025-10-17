@@ -25,7 +25,6 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
@@ -35,6 +34,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/types/optional.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -45,7 +45,6 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_native.h"
 
 // WinRT headers
-#include "absl/types/optional.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.WiFiDirect.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
@@ -53,8 +52,7 @@
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_credential.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 
 using ::winrt::fire_and_forget;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher;
@@ -96,8 +94,8 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override { return client_socket_->Close(); }
 
-  bool Connect(const std::string& ip_address, int port) {
-    return client_socket_->Connect(ip_address, port);
+  bool Connect(const std::string& ip_address, int port, bool dual_stack) {
+    return client_socket_->Connect(ip_address, port, dual_stack);
   }
 
  private:
@@ -173,7 +171,7 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   Exception Close() override;
 
   // Binds to local port
-  bool listen();
+  bool Listen(bool dual_stack);
 
   NearbyServerSocket server_socket_;
 
@@ -278,7 +276,6 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   WifiHotspotNative wifi_hotspot_native_;
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // PLATFORM_IMPL_WINDOWS_WIFI_HOTSPOT_H_

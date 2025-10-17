@@ -22,9 +22,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/flags/nearby_flags.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
@@ -32,13 +30,13 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
-
-using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
-
-}
+using ::winrt::fire_and_forget;
+using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
+using ::winrt::Windows::Networking::Sockets::
+    StreamSocketListenerConnectionReceivedEventArgs;
+}  // namespace
 
 WifiLanServerSocket::WifiLanServerSocket(int port) : port_(port) {}
 
@@ -59,9 +57,7 @@ std::string WifiLanServerSocket::GetIPAddress() const {
 }
 
 // Returns socket port.
-int WifiLanServerSocket::GetPort() const {
-  return server_socket_.GetPort();
-}
+int WifiLanServerSocket::GetPort() const { return server_socket_.GetPort(); }
 
 // Blocks until either:
 // - at least one incoming connection request is available, or
@@ -124,9 +120,9 @@ Exception WifiLanServerSocket::Close() {
   }
 }
 
-bool WifiLanServerSocket::listen() {
+bool WifiLanServerSocket::Listen(bool dual_stack) {
   // Listen on all interfaces.
-  if (!server_socket_.Listen("", port_)) {
+  if (!server_socket_.Listen("", port_, dual_stack)) {
     LOG(ERROR) << "Failed to listen socket at port:" << port_;
     return false;
   }
@@ -148,5 +144,4 @@ fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
   return fire_and_forget{};
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

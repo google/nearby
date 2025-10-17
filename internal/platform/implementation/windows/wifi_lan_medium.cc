@@ -45,15 +45,25 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
+#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/runnable.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
+using ::winrt::fire_and_forget;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformation;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationKind;
+using ::winrt::Windows::Devices::Enumeration::DeviceInformationUpdate;
+using ::winrt::Windows::Devices::Enumeration::DeviceWatcher;
+using ::winrt::Windows::Foundation::Collections::IMapView;
+using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
+
 // mDNS text attributes
 constexpr absl::string_view kDeviceEndpointInfo = "n";
 constexpr absl::string_view kDeviceIpv4 = "IPv4";
@@ -256,7 +266,10 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
             });
   }
 
-  bool result = wifi_lan_socket->Connect(ipv4_address, port);
+  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableIpv6DualStack);
+  bool result = wifi_lan_socket->Connect(ipv4_address, port, dual_stack);
   if (!result) {
     LOG(ERROR) << "failed to connect to service " << ipv4_address << ":"
                << port;
@@ -281,7 +294,10 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
       std::make_unique<WifiLanServerSocket>(port);
   WifiLanServerSocket* server_socket_ptr = server_socket.get();
 
-  if (server_socket->listen()) {
+  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableIpv6DualStack);
+  if (server_socket->Listen(dual_stack)) {
     int port = server_socket_ptr->GetPort();
     LOG(INFO) << "started to listen serive on IP:port "
               << ipaddr_4bytes_to_dotdecimal_string(
@@ -652,5 +668,4 @@ std::string WifiLanMedium::GetErrorMessage(std::exception_ptr eptr) {
   }
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

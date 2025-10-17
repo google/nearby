@@ -38,8 +38,7 @@
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
 #include "internal/platform/logging.h"
 
-namespace nearby {
-namespace windows {
+namespace nearby::windows {
 namespace {
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 using ::winrt::Windows::Networking::HostNameType;
@@ -90,7 +89,7 @@ Exception WifiHotspotServerSocket::Close() {
   return {Exception::kSuccess};
 }
 
-bool WifiHotspotServerSocket::listen() {
+bool WifiHotspotServerSocket::Listen(bool dual_stack) {
   // Get current IP addresses of the device.
   int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
       platform::config_package_nearby::nearby_platform_feature::
@@ -118,7 +117,7 @@ bool WifiHotspotServerSocket::listen() {
     return false;
   }
 
-  if (!server_socket_.Listen(hotspot_ipaddr_, port_)) {
+  if (!server_socket_.Listen(hotspot_ipaddr_, port_, dual_stack)) {
     LOG(ERROR) << "Failed to listen socket.";
     return false;
   }
@@ -175,5 +174,4 @@ std::string WifiHotspotServerSocket::GetHotspotIpAddress() const {
   }
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows

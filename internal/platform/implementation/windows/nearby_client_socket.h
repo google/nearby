@@ -33,7 +33,7 @@ class NearbyClientSocket {
   ~NearbyClientSocket();
 
   bool Connect(const std::string& ip_address, int port,
-               bool dual_stack = false);
+               bool dual_stack);
   ExceptionOr<ByteArray> Read(std::int64_t size);
   ExceptionOr<size_t> Skip(size_t offset);
   Exception Write(const ByteArray& data);

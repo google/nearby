@@ -139,7 +139,10 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
               });
     }
 
-    bool result = wifi_hotspot_socket->Connect(ipv4_address, port);
+    bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableIpv6DualStack);
+    bool result = wifi_hotspot_socket->Connect(ipv4_address, port, dual_stack);
     if (!result) {
       LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
       Sleep(wifi_hotspot_retry_interval_millis);
@@ -170,7 +173,10 @@ WifiHotspotMedium::ListenForService(int port) {
   auto server_socket = std::make_unique<WifiHotspotServerSocket>(port);
   server_socket_ptr_ = server_socket.get();
 
-  if (server_socket->listen()) {
+  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableIpv6DualStack);
+  if (server_socket->Listen(dual_stack)) {
     medium_status_ |= kMediumStatusAccepting;
 
     // Setup close notifier after listen started.
