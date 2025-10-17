@@ -153,6 +153,8 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string
   GNCNWFrameworkSocket* socket = [medium connectToHost:host
                                                   port:port
                                      includePeerToPeer:include_peer_to_peer
+                                          cancelSource:nil
+                                                 queue:nil
                                                  error:&error];
   if (socket != nil) {
     return socket;

@@ -27,6 +27,7 @@
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnectionImpl.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 
@@ -55,6 +56,7 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 
 @implementation GNCHotspotMedium {
   dispatch_queue_t _hotspot_queue;
+  GNCNWFramework *_nwFramework;
 }
 
 - (instancetype)init {
@@ -62,10 +64,15 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
 }
 
 - (instancetype)initWithQueue:(dispatch_queue_t)queue {
+  return [self initWithQueue:queue nwFramework:[[GNCNWFramework alloc] init]];
+}
+
+- (instancetype)initWithQueue:(dispatch_queue_t)queue nwFramework:(GNCNWFramework *)nwFramework {
   self = [super init];
   if (self) {
     _hotspot_queue = queue;
     _locationManager = [[CLLocationManager alloc] init];
+    _nwFramework = nwFramework;
   }
   return self;
 }
@@ -238,90 +245,12 @@ static const UInt8 kConnectionToHostTimeoutInSeconds = 10;
     return nil;
   }
 
-  nw_endpoint_t endpoint =
-      nw_endpoint_create_host(host.dottedRepresentation.UTF8String, @(port).stringValue.UTF8String);
-  return [self connectToEndpoint:endpoint
-               includePeerToPeer:(BOOL)YES
-                    cancelSource:cancelSource
-                           error:error];
-}
-
-- (nullable GNCNWFrameworkSocket *)connectToEndpoint:(nw_endpoint_t)endpoint
-                                   includePeerToPeer:(BOOL)includePeerToPeer
-                                        cancelSource:(nullable dispatch_source_t)cancelSource
-                                               error:(NSError *_Nullable *_Nullable)error {
-  GNCLoggerInfo(@"connectToEndpoint: %@ includePeerToPeer: %d", endpoint.debugDescription,
-                includePeerToPeer);
-
-  dispatch_semaphore_t semaphore_internal = dispatch_semaphore_create(0);
-  __block nw_connection_state_t blockResult = nw_connection_state_invalid;
-  __block NSError *blockError = nil;
-
-  nw_parameters_t parameters =
-      nw_parameters_create_secure_tcp(/*tls*/ NW_PARAMETERS_DISABLE_PROTOCOL,
-                                      /*tcp*/ NW_PARAMETERS_DEFAULT_CONFIGURATION);
-
-  nw_parameters_set_include_peer_to_peer(parameters, includePeerToPeer);
-  nw_connection_t connection = nw_connection_create(endpoint, parameters);
-
-  nw_connection_set_queue(connection, _hotspot_queue);
-
-  nw_connection_set_state_changed_handler(
-      connection, ^(nw_connection_state_t state, nw_error_t error) {
-        GNCLoggerDebug(@"connectToEndpoint state changed to: %d", state);
-
-        // Ignore the preparing state and waiting state, because it is not a final state.
-        if ((state != nw_connection_state_preparing) && (state != nw_connection_state_waiting)) {
-          blockResult = state;
-          if (error != nil) {
-            GNCLoggerError(@"connectToEndpoint Error: %@", error.debugDescription);
-            blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-          }
-          dispatch_semaphore_signal(semaphore_internal);
-        }
-      });
-
-  if (cancelSource != nil) {
-    dispatch_source_set_event_handler(cancelSource, ^{
-      GNCLoggerWarning(@"connectToEndpoint is cancelled.");
-      nw_connection_cancel(connection);
-      dispatch_source_cancel(cancelSource);
-    });
-  }
-
-  nw_connection_start(connection);
-  dispatch_time_t timeout =
-      dispatch_time(DISPATCH_TIME_NOW, kConnectionToHostTimeoutInSeconds * NSEC_PER_SEC);
-  if (dispatch_semaphore_wait(semaphore_internal, timeout) != 0) {
-    GNCLoggerError(@"Connecting to %@ timeout in %d seconds", endpoint.debugDescription,
-                   kConnectionToHostTimeoutInSeconds);
-    nw_connection_set_state_changed_handler(connection, nil);  // Prevent callback issues
-    nw_connection_cancel(connection);
-    if (error != nil) {
-      *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
-                                   code:GNCNWFrameworkErrorTimedOut
-                               userInfo:nil];
-    }
-    return nil;
-  }
-
-  if (error != nil) {
-    *error = blockError;
-  }
-
-  switch (blockResult) {
-    case nw_connection_state_invalid:
-    case nw_connection_state_waiting:
-    case nw_connection_state_preparing:
-    case nw_connection_state_failed:
-    case nw_connection_state_cancelled:
-      GNCLoggerError(@"connectToEndpoint failed with result: %d", blockResult);
-      return nil;
-    case nw_connection_state_ready: {
-      return [[GNCNWFrameworkSocket alloc]
-          initWithConnection:[[GNCNWConnectionImpl alloc] initWithNWConnection:connection]];
-    }
-  }
+  return [_nwFramework connectToHost:host
+                                port:port
+                   includePeerToPeer:YES
+                        cancelSource:cancelSource
+                               queue:_hotspot_queue
+                               error:error];
 }
 
 - (NSString *)getCurrentWifiSSID {

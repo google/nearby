@@ -156,12 +156,17 @@ typedef void (^ServiceUpdateHandler)(NSString *_Nonnull serviceName,
  * @param host The IPv4 address to connect to.
  * @param port The port to connect to.
  * @param includePeerToPeer Whether to include peer-to-peer services.
+ * @param cancelSource An optional dispatch source to cancel the connection attempt.
+ * @param queue An optional dispatch queue to use for connection events. If nil, the main queue is
+ * used.
  * @param[out] error Error that will be populated on failure.
  * @return Returns a connected socket or nil if an error has occured.
  */
 - (nullable GNCNWFrameworkSocket *)connectToHost:(GNCIPv4Address *)host
                                             port:(NSInteger)port
                                includePeerToPeer:(BOOL)includePeerToPeer
+                                    cancelSource:(nullable dispatch_source_t)cancelSource
+                                           queue:(nullable dispatch_queue_t)queue
                                            error:(NSError **_Nullable)error;
 
 /**

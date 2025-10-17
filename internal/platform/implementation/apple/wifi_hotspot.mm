@@ -26,7 +26,10 @@
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/Hotspot/GNCHotspotMedium.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFramework.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
+#import "internal/platform/implementation/apple/network_utils.h"
 
 namespace nearby {
 namespace apple {
@@ -102,6 +105,8 @@ WifiHotspotMedium::WifiHotspotMedium() {
   hotspot_queue_ = dispatch_queue_create(kHotspotQueueLabel, DISPATCH_QUEUE_SERIAL);
   medium_ = [[GNCHotspotMedium alloc] initWithQueue:hotspot_queue_];
 }
+
+WifiHotspotMedium::WifiHotspotMedium(GNCHotspotMedium* hotspot_medium) : medium_(hotspot_medium) {}
 
 WifiHotspotMedium::~WifiHotspotMedium() { DisconnectWifiHotspot(); }
 
