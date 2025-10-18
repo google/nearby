@@ -1381,6 +1381,18 @@ enum SupportedService {
   SUPPORTED_SERVICE_DATA_MIGRATION = 2;
   SUPPORTED_SERVICE_DATA_TRANSFER = 3;
 }
+
+enum DctPayloadType {
+  DCT_PAYLOAD_TYPE_UNSPECIFIED = 0;
+  // A Payload representing a request.
+  DCT_PAYLOAD_TYPE_REQUEST = 1;
+  // A Payload consisting of a list of byte arrays as a response.
+  DCT_PAYLOAD_TYPE_BYTES_RESPONSE = 2;
+  // A Payload representing a list of files and their metadata as a response.
+  DCT_PAYLOAD_TYPE_FILES_RESPONSE = 3;
+  // A one-way message payload.
+  DCT_PAYLOAD_TYPE_ONE_WAY_MESSAGE = 4;
+}
 // LINT.ThenChange(
 //     //depot/google3/wireless/android/stats/platform/westworld/public/protos/enums/android/nearby/connections/enums.proto
 // )
