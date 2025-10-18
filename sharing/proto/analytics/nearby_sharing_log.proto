@@ -1051,6 +1051,7 @@ message SharingLog {
   // EventType: CLOUD_CREATE_SHARING_REQUEST
   message CloudCreateSharingRequest {
     optional AttachmentsInfo attachments_info = 1;
+    optional location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
   }
   // EventType: CLOUD_REGISTER_RECEIVER used by QR code cloud web receiver
   message CloudRegisterReceiver {}

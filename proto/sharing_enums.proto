@@ -937,6 +937,9 @@ enum DesktopTransferEventType {
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_SENT = 8;
   DESKTOP_TRANSFER_EVENT_SEND_TYPE_ERROR = 9;
 }
+// LINT.ThenChange(
+//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
+// )
 
 enum DecryptCertificateFailureStatus {
   DECRYPT_CERT_UNKNOWN_FAILURE = 0;
@@ -973,6 +976,40 @@ enum ButtonStatus {
   BUTTON_STATUS_CLICK_REJECT = 2;
   BUTTON_STATUS_IGNORE = 3;
 }
+
+// LINT.IfChange
+// The result of creating a cloud sharing request. Used by
+// CLOUD_CREATE_SHARING_REQUEST.
+enum CloudCreateSharingResult {
+  CLOUD_CREATE_SHARING_RESULT_UNKNOWN = 0;
+  // The request was successful.
+  CLOUD_CREATE_SHARING_RESULT_SUCCESS = 1
+      /*[ status_bucket = STATUS_SUCCESSFUL ]*/;
+  // The user needs to sign in to perform the request. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_SIGN_IN_REQUIRE = 2
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // The sharing id or file id already exists. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_ALREADY_EXIST = 3
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // There is an existing active QR code cloud sharing session.
+  CLOUD_CREATE_SHARING_RESULT_ALREADY_STARTED = 4
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // A network error occurred during the request. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_NETWORK_ERROR = 5
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // The request contains invalid arguments. Resolvable failure.
+  CLOUD_CREATE_SHARING_RESULT_INVALID_ARGUMENT = 6
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // A remote error occurred during the request. Unresolvable error.
+  CLOUD_CREATE_SHARING_RESULT_REMOTE_ERROR = 7
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // The request contains more than 1000 files.
+  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT = 8
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  // The request contains more than 10GB of files.
+  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE = 9
+      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+}
 // LINT.ThenChange(
-//   //depot/google3/location/nearby/cpp/sharing/clients/dart/platform/lib/types/models.dart
+//     //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/cloud/data/CreateSharingRequestResultStatus.kt
 // )
