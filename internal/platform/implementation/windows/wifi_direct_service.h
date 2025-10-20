@@ -167,6 +167,8 @@ class WifiDirectServiceMedium {
                                                      IInspectable inspectable);
   fire_and_forget Watcher_DeviceStopped(DeviceWatcher sender,
                                         IInspectable inspectable);
+  std::string ip_address_local_;
+  std::string ip_address_remote_;
 
   absl::Mutex mutex_;
   absl::flat_hash_map<winrt::hstring,
