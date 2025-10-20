@@ -188,8 +188,7 @@ class MockDiscoveredPeripheralCallback : public DiscoveredPeripheralCallback {
 
 class DiscoveredPeripheralTrackerTest
     : public testing::TestWithParam<
-          std::tuple</*kEnableGattQueryInThread=*/bool,
-                     /*kEnableReadGattForExtendedAdvertisement=*/bool>> {
+          std::tuple</*kEnableReadGattForExtendedAdvertisement=*/bool>> {
  public:
   void SetUp() override {
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -199,11 +198,7 @@ class DiscoveredPeripheralTrackerTest
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableInstantOnLost,
         false);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::
-            kEnableGattQueryInThread,
-        std::get<0>(GetParam()));
-    bool enable_read_gatt_for_extended_advertisement = std::get<1>(GetParam());
+    bool enable_read_gatt_for_extended_advertisement = std::get<0>(GetParam());
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::
             kEnableReadGattForExtendedAdvertisement,
@@ -1552,11 +1547,6 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipDummyAdvertisement) {
 }
 
 TEST_P(DiscoveredPeripheralTrackerTest, FetchGattAdvertisementInThread) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread)) {
-    return;
-  }
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);
@@ -1598,12 +1588,6 @@ TEST_P(DiscoveredPeripheralTrackerTest, FetchGattAdvertisementInThread) {
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        IgnoreGattAdvertisementResultWhentrackingStoppedInThread) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread)) {
-    return;
-  }
-
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);
@@ -1647,11 +1631,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
 TEST_P(DiscoveredPeripheralTrackerTest,
        FetchMultipleGattAdvertisementResultsInThread) {
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread)) {
-    return;
-  }
   std::vector<std::string> service_ids = {std::string(kServiceIdA)};
   ByteArray advertisement_header_bytes = CreateBleAdvertisementHeader(
       GenerateRandomAdvertisementHash(), service_ids);
@@ -1707,9 +1686,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 TEST_P(DiscoveredPeripheralTrackerTest,
        GattAdvertisementGotEarlierThanExtendedAdvertisement) {
   if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread) ||
-      !NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableReadGattForExtendedAdvertisement)) {
     return;
@@ -1767,9 +1743,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
        OnlyGattAdvertisementReceivedOnDeviceWithExtended) {
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread) ||
-      !NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
               kEnableReadGattForExtendedAdvertisement)) {
     return;
   }
@@ -1824,9 +1797,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
 TEST_P(DiscoveredPeripheralTrackerTest, SkipExpiredGattAdvertisement) {
   if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread) ||
-      !NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableReadGattForExtendedAdvertisement)) {
     return;
@@ -1883,9 +1853,6 @@ TEST_P(DiscoveredPeripheralTrackerTest, SkipExpiredGattAdvertisement) {
 TEST_P(DiscoveredPeripheralTrackerTest,
        DiscoveredOnceWhenGattAndExtendedAdvertisementReceived) {
   if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread) ||
-      !NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableReadGattForExtendedAdvertisement)) {
     return;
@@ -1946,9 +1913,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 TEST_P(DiscoveredPeripheralTrackerTest,
        FindGattAdvertisementInHigherPriorityThanExtendedGattAdvertisement) {
   if (!NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableGattQueryInThread) ||
-      !NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableReadGattForExtendedAdvertisement)) {
     return;
@@ -2025,7 +1989,6 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 INSTANTIATE_TEST_SUITE_P(
     DiscoveredPeripheralTrackerFlagsTest, DiscoveredPeripheralTrackerTest,
     ::testing::Combine(
-        /*kEnableGattQueryInThread=*/testing::Bool(),
         /*kEnableReadGattForExtendedAdvertisement=*/testing::Bool()));
 
 }  // namespace
