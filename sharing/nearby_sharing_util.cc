@@ -131,7 +131,7 @@ std::string GetDeviceId(
   }
 
   if (!certificate->id().empty()) {
-    return std::string(certificate->id().begin(), certificate->id().end());
+    return absl::StrCat(absl::Hash<std::vector<uint8_t>>{}(certificate->id()));
   }
 
   return std::string(endpoint_id);
