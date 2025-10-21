@@ -48,6 +48,9 @@ class NetworkInfo {
     std::vector<sockaddr_storage> ipv6_addresses;
   };
 
+  // Returns the singleton instance of this class.
+  static NetworkInfo& GetNetworkInfo();
+
   // Refreshes the network interfaces information keep by this class.
   // Returns true on success.
   bool Refresh();

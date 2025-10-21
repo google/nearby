@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/windows/string_utils.h"
@@ -58,6 +59,11 @@ void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
 }
 
 }  // namespace
+
+NetworkInfo& NetworkInfo::GetNetworkInfo() {
+  static absl::NoDestructor<NetworkInfo> kNetworkInfo;
+  return *kNetworkInfo;
+}
 
 bool NetworkInfo::Refresh() {
   static constexpr int kDefaultBufferSize = 15 * 1024;  // default to 15K buffer
@@ -94,8 +100,10 @@ bool NetworkInfo::Refresh() {
   IP_ADAPTER_ADDRESSES* next_address = addresses;
   while (next_address != nullptr) {
     if (next_address->OperStatus != IfOperStatusUp ||
-        next_address->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
-      // Skip down and loopback interfaces.
+        next_address->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
+        next_address->FirstUnicastAddress == nullptr) {
+      // Skip down and loopback interfaces as well as interfaces without
+      // addresses.
       next_address = next_address->Next;
       continue;
     }
@@ -105,16 +113,19 @@ bool NetworkInfo::Refresh() {
                                           });
     if (next_address->IfType == IF_TYPE_ETHERNET_CSMACD) {
       it->type = InterfaceType::kEthernet;
-      VLOG(1) << "Found ethernet interface: " << next_address->AdapterName
-              << " index: " << next_address->IfIndex;
+      VLOG(1) << "Found ethernet interface: "
+              << string_utils::WideStringToString(next_address->Description)
+              << ", index: " << next_address->IfIndex;
     } else if (next_address->IfType == IF_TYPE_IEEE80211) {
       it->type = InterfaceType::kWifi;
-      VLOG(1) << "Found wifi interface: " << next_address->AdapterName
-              << " index: " << next_address->IfIndex;
+      VLOG(1) << "Found wifi interface: "
+              << string_utils::WideStringToString(next_address->Description)
+              << ", index: " << next_address->IfIndex;
     } else {
       it->type = InterfaceType::kOther;
-      VLOG(1) << "Found other interface: " << next_address->AdapterName
-              << " index: " << next_address->IfIndex;
+      VLOG(1) << "Found other interface: "
+              << string_utils::WideStringToString(next_address->Description)
+              << ", index: " << next_address->IfIndex;
     }
     AddIpUnicastAddresses(next_address->FirstUnicastAddress, *it);
     next_address = next_address->Next;

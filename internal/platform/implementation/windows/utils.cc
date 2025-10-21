@@ -62,9 +62,9 @@ void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
   }
 }
 
-void GetIpAddressesNative(int family, std::vector<std::string>& wifi_addresses,
-                          std::vector<std::string>& ethernet_addresses,
-                          std::vector<std::string>& other_addresses) {
+void GetIpAddresses(int family, std::vector<std::string>& wifi_addresses,
+                    std::vector<std::string>& ethernet_addresses,
+                    std::vector<std::string>& other_addresses) {
   static constexpr int kDefaultBufferSize = 15 * 1024;  // default to 15K buffer
   static constexpr int kMaxBufferSize =
       45 * 1024;  // Try to increase buffer 2 times.
@@ -157,28 +157,10 @@ std::string ipaddr_dotdecimal_to_4bytes_string(std::string ipv4_s) {
   return std::string(ipv4_b, 4);
 }
 
-void GetIpv4Addresses(std::vector<std::string>& wifi_addresses,
-                      std::vector<std::string>& ethernet_addresses,
-                      std::vector<std::string>& other_addresses) {
-  GetIpAddressesNative(AF_INET, wifi_addresses, ethernet_addresses,
-                        other_addresses);
-}
-
 std::vector<std::string> GetIpv4Addresses() {
   std::vector<std::string> result;
-  GetIpv4Addresses(result, result, result);
+  GetIpAddresses(AF_INET, result, result, result);
   return result;
-}
-
-void GetConnectedNetworks(bool& is_wifi_connected, bool& is_ethernet_connected,
-                          bool& is_other_connected) {
-  std::vector<std::string> wifi_addresses;
-  std::vector<std::string> ethernet_addresses;
-  std::vector<std::string> other_addresses;
-  GetIpv4Addresses(wifi_addresses, ethernet_addresses, other_addresses);
-  is_wifi_connected = !wifi_addresses.empty();
-  is_ethernet_connected = !ethernet_addresses.empty();
-  is_other_connected = !other_addresses.empty();
 }
 
 Uuid winrt_guid_to_nearby_uuid(const ::winrt::guid& guid) {

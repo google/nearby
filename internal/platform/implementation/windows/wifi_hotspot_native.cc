@@ -36,6 +36,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
@@ -83,7 +84,8 @@ std::string ReasonCodeToString(DWORD reason_code) {
 
 }  // namespace
 
-WifiHotspotNative::WifiHotspotNative() {
+WifiHotspotNative::WifiHotspotNative()
+    : network_info_(NetworkInfo::GetNetworkInfo()) {
   // Open WLAN handle
   DWORD negotiated_version;
   DWORD result = WlanOpenHandle(/*dwClientVersion=*/2, /*pReserved=*/nullptr,
@@ -539,8 +541,11 @@ bool WifiHotspotNative::RenewIpv4Address() const {
     return false;
   }
   NET_LUID luid;
-  ConvertInterfaceGuidToLuid(&interface_guid, &luid);
-  return network_info_.RenewIpv4Address(luid);
+  if (ConvertInterfaceGuidToLuid(&interface_guid, &luid) == NO_ERROR) {
+    return network_info_.RenewIpv4Address(luid);
+  }
+  LOG(ERROR) << "Failed to convert interface guid to luid.";
+  return false;
 }
 
 }  // namespace nearby::windows

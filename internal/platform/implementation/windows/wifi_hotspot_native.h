@@ -90,6 +90,7 @@ class WifiHotspotNative {
   void TriggerConnected();
   void TriggerNetworkRefreshed();
 
+  NetworkInfo& network_info_;
   mutable absl::Mutex mutex_;
 
   HANDLE wifi_ = nullptr;
@@ -97,7 +98,6 @@ class WifiHotspotNative {
   std::unique_ptr<CountDownLatch> connect_latch_;
   std::unique_ptr<CountDownLatch> scan_latch_;
   std::wstring backup_profile_name_;
-  NetworkInfo network_info_;
 };
 
 }  // namespace nearby::windows
