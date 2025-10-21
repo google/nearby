@@ -447,6 +447,39 @@ message ConnectionsLog {
         supported_service = 14;
   }
 
+  // Contains the transfer statistics for a DCT payload.
+  message DctPayloadTransferStats {
+    // The type of the DCT payload.
+    // Note: For legacy payloads, the type is logged in the Payload message
+    // instead.
+    optional location.nearby.proto.connections.DctPayloadType type = 1;
+
+    // Indicates whether the payload was sent using the multipart protocol.
+    // True if multipart was used, false otherwise.
+    optional bool is_multipart = 2;
+
+    // The number of parts that were successfully transferred.
+    // This field is only meaningful when is_multipart is true.
+    // The counting method differs for outgoing and incoming multipart payloads:
+    // - OUTGOING: All parts associated with the same request are treated as one
+    //   payload. This field increments by 1 if the payload transfers
+    //   successfully.
+    // - INCOMING: Each part of the incoming multipart payload is logged
+    //   individually. This field increments for each successfully received
+    //   part.
+    optional int32 num_parts_success = 3;
+
+    // The number of parts that failed to transfer.
+    // This field is only meaningful when is_multipart is true.
+    // The counting method differs for outgoing and incoming multipart payloads:
+    // - OUTGOING: All parts associated with the same request are treated as one
+    //   payload. This field increments by 1 if the payload fails to transfer.
+    // - INCOMING: Each part of the incoming multipart payload is logged
+    //   individually. This field increments for each part that fails to be
+    //   received.
+    optional int32 num_parts_failure = 4;
+  }
+
   // A Payload transferred (or attempted to be transferred) between devices.
   message Payload {
     // Elapsed time in milliseconds that num_bytes_transferred took to transfer.
@@ -475,6 +508,10 @@ message ConnectionsLog {
 
     // The number of failed auto resume attempts.
     optional int32 num_failed_auto_resume = 9;
+
+    // Statistics for DCT payloads, e.g., type, multipart details. Populated
+    // only for DCT payloads.
+    optional DctPayloadTransferStats dct_payload_transfer_stats = 10;
   }
 
   // An attempt to upgrade an existing connection from one medium to another.
