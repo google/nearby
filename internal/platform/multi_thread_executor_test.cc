@@ -42,7 +42,7 @@ TEST(MultiThreadExecutorTest, CanExecute) {
   });
   absl::Mutex mutex;
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     if (!done) {
       cond.WaitWithTimeout(&mutex, absl::Seconds(1));
     }
@@ -59,7 +59,7 @@ TEST(MultiThreadExecutorTest, JobsExecuteInParallel) {
 
   for (int i = 0; i < kMaxThreads; ++i) {
     executor.Execute([&]() {
-      absl::MutexLock lock(&mutex);
+      absl::MutexLock lock(mutex);
       count++;
       test_cond.Signal();
       thread_cond.Wait(&mutex);
@@ -69,7 +69,7 @@ TEST(MultiThreadExecutorTest, JobsExecuteInParallel) {
   }
 
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     while (count < kMaxThreads) {
       if (test_cond.WaitWithTimeout(&mutex, absl::Seconds(30))) break;
     }
@@ -79,7 +79,7 @@ TEST(MultiThreadExecutorTest, JobsExecuteInParallel) {
   thread_cond.SignalAll();
 
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     while (count > 0) {
       if (test_cond.WaitWithTimeout(&mutex, absl::Seconds(30))) break;
     }
