@@ -1120,12 +1120,8 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnablePayloadManagerToSkipChunkUpdate)) {
-    MutexLock lock(&chunk_update_mutex_);
-    ++outgoing_chunk_update_count_;
-  }
+  MutexLock lock(&chunk_update_mutex_);
+  ++outgoing_chunk_update_count_;
   RunOnStatusUpdateThread(
       "outgoing-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
@@ -1137,38 +1133,34 @@ void PayloadManager::HandleSuccessfulOutgoingChunk(
             (payload_chunk_flags &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnablePayloadManagerToSkipChunkUpdate)) {
-          MutexLock lock(&chunk_update_mutex_);
-          --outgoing_chunk_update_count_;
-          if (payload_header.has_type() &&
-              payload_header.type() ==
-                  PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
-                      FILE) {
-            if (outgoing_chunk_update_count_ > 0 && !is_last_chunk &&
-                payload_chunk_offset != 0) {
-              VLOG(1) << "Skip the outgoing chunk update with offset="
-                      << payload_chunk_offset;
-              client->GetAnalyticsRecorder().OnPayloadChunkSent(
-                  endpoint_id, payload_header.id(), payload_chunk_body_size);
-              return;
-            }
-
-            absl::Time current_time = SystemClock::ElapsedRealtime();
-            if (!is_last_chunk && payload_chunk_offset != 0 &&
-                current_time - last_outgoing_chunk_update_time_ <
-                    kMinTransferUpdateInterval) {
-              VLOG(1) << "Skip the outgoing chunk update with offset="
-                      << payload_chunk_offset
-                      << " because it's too close to the previous update.";
-              client->GetAnalyticsRecorder().OnPayloadChunkSent(
-                  endpoint_id, payload_header.id(), payload_chunk_body_size);
-              return;
-            }
-
-            last_outgoing_chunk_update_time_ = current_time;
+        MutexLock lock(&chunk_update_mutex_);
+        --outgoing_chunk_update_count_;
+        if (payload_header.has_type() &&
+            payload_header.type() ==
+                PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
+                    FILE) {
+          if (outgoing_chunk_update_count_ > 0 && !is_last_chunk &&
+              payload_chunk_offset != 0) {
+            VLOG(1) << "Skip the outgoing chunk update with offset="
+                    << payload_chunk_offset;
+            client->GetAnalyticsRecorder().OnPayloadChunkSent(
+                endpoint_id, payload_header.id(), payload_chunk_body_size);
+            return;
           }
+
+          absl::Time current_time = SystemClock::ElapsedRealtime();
+          if (!is_last_chunk && payload_chunk_offset != 0 &&
+              current_time - last_outgoing_chunk_update_time_ <
+                  kMinTransferUpdateInterval) {
+            VLOG(1) << "Skip the outgoing chunk update with offset="
+                    << payload_chunk_offset
+                    << " because it's too close to the previous update.";
+            client->GetAnalyticsRecorder().OnPayloadChunkSent(
+                endpoint_id, payload_header.id(), payload_chunk_body_size);
+            return;
+          }
+
+          last_outgoing_chunk_update_time_ = current_time;
         }
 
         PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
@@ -1219,12 +1211,8 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
     const PayloadTransferFrame::PayloadHeader& payload_header,
     std::int32_t payload_chunk_flags, std::int64_t payload_chunk_offset,
     std::int64_t payload_chunk_body_size) {
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnablePayloadManagerToSkipChunkUpdate)) {
-    MutexLock lock(&chunk_update_mutex_);
-    ++incoming_chunk_update_count_;
-  }
+  MutexLock lock(&chunk_update_mutex_);
+  ++incoming_chunk_update_count_;
   RunOnStatusUpdateThread(
       "incoming-chunk-success",
       [this, client, endpoint_id, payload_header, payload_chunk_flags,
@@ -1235,38 +1223,34 @@ void PayloadManager::HandleSuccessfulIncomingChunk(
             (payload_chunk_flags &
              PayloadTransferFrame::PayloadChunk::LAST_CHUNK) != 0;
 
-        if (NearbyFlags::GetInstance().GetBoolFlag(
-                config_package_nearby::nearby_connections_feature::
-                    kEnablePayloadManagerToSkipChunkUpdate)) {
-          MutexLock lock(&chunk_update_mutex_);
-          --incoming_chunk_update_count_;
-          if (payload_header.has_type() &&
-              payload_header.type() ==
-                  PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
-                      FILE) {
-            if (incoming_chunk_update_count_ > 0 && !is_last_chunk &&
-                payload_chunk_offset != 0) {
-              VLOG(1) << "Skip the incoming chunk update with offset="
-                      << payload_chunk_offset;
-              client->GetAnalyticsRecorder().OnPayloadChunkReceived(
-                  endpoint_id, payload_header.id(), payload_chunk_body_size);
-              return;
-            }
-
-            absl::Time current_time = SystemClock::ElapsedRealtime();
-            if (!is_last_chunk && payload_chunk_offset != 0 &&
-                current_time - last_incoming_chunk_update_time_ <
-                    kMinTransferUpdateInterval) {
-              VLOG(1) << "Skip the incoming chunk update with offset="
-                      << payload_chunk_offset
-                      << " because it's too close to the previous update.";
-              client->GetAnalyticsRecorder().OnPayloadChunkSent(
-                  endpoint_id, payload_header.id(), payload_chunk_body_size);
-              return;
-            }
-
-            last_incoming_chunk_update_time_ = current_time;
+        MutexLock lock(&chunk_update_mutex_);
+        --incoming_chunk_update_count_;
+        if (payload_header.has_type() &&
+            payload_header.type() ==
+                PayloadTransferFrame::PayloadTransferFrame::PayloadHeader::
+                    FILE) {
+          if (incoming_chunk_update_count_ > 0 && !is_last_chunk &&
+              payload_chunk_offset != 0) {
+            VLOG(1) << "Skip the incoming chunk update with offset="
+                    << payload_chunk_offset;
+            client->GetAnalyticsRecorder().OnPayloadChunkReceived(
+                endpoint_id, payload_header.id(), payload_chunk_body_size);
+            return;
           }
+
+          absl::Time current_time = SystemClock::ElapsedRealtime();
+          if (!is_last_chunk && payload_chunk_offset != 0 &&
+              current_time - last_incoming_chunk_update_time_ <
+                  kMinTransferUpdateInterval) {
+            VLOG(1) << "Skip the incoming chunk update with offset="
+                    << payload_chunk_offset
+                    << " because it's too close to the previous update.";
+            client->GetAnalyticsRecorder().OnPayloadChunkSent(
+                endpoint_id, payload_header.id(), payload_chunk_body_size);
+            return;
+          }
+
+          last_incoming_chunk_update_time_ = current_time;
         }
 
         PendingPayloadHandle pending_payload = GetPayload(payload_header.id());
