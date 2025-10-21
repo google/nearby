@@ -20,7 +20,10 @@
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEL2CAPClient+Testing.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCBLEL2CAPFakeInputOutputStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheral.h"
+
+static const NSTimeInterval kTestTimeout = 1.0;
 
 @interface GNCBLEL2CAPClientTest : XCTestCase
 @property(nonatomic) GNCFakePeripheral *fakePeripheral;
@@ -58,10 +61,11 @@
                                  peripheral:self.fakePeripheral
                           completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
                             XCTAssertNil(error, @"Error should be nil");
+                            XCTAssertNil(stream, @"Stream should be nil due to testing limitation");
                             [expectation fulfill];
                           }];
 
-  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  [self waitForExpectations:@[ expectation ] timeout:kTestTimeout];
 }
 
 - (void)testOpenL2CAPChannelWithError {
@@ -79,7 +83,7 @@
                             [expectation fulfill];
                           }];
 
-  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  [self waitForExpectations:@[ expectation ] timeout:kTestTimeout];
 }
 
 - (void)testDisconnect {
@@ -94,7 +98,96 @@
 
   [self.l2capClient disconnect];
 
-  [self waitForExpectations:@[ self.requestDisconnectionHandlerExpectation ] timeout:1.0];
+  [self waitForExpectations:@[ self.requestDisconnectionHandlerExpectation ] timeout:kTestTimeout];
+}
+
+- (void)testOpenL2CAPChannelSetsPeripheralDelegate {
+  uint16_t psm = 123;
+
+  [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
+                          completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error){
+                          }];
+
+  XCTAssertEqualObjects(self.fakePeripheral.peripheralDelegate, self.l2capClient);
+}
+
+- (void)testInitWithRequestDisconnectionHandlerAndDisconnect {
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"Disconnection handler called"];
+  GNCBLEL2CAPClient *client = [[GNCBLEL2CAPClient alloc]
+      initWithRequestDisconnectionHandler:^(id<GNCPeripheral> _Nullable peripheral) {
+        XCTAssertNil(peripheral);
+        [expectation fulfill];
+      }];
+  [client disconnect];
+  [self waitForExpectations:@[ expectation ] timeout:kTestTimeout];
+}
+
+- (void)testCloseL2CAPChannel {
+  self.requestDisconnectionHandlerExpectation =
+      [self expectationWithDescription:@"Request disconnection handler should be called"];
+  uint16_t psm = 123;
+
+  [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
+                          completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error){
+                          }];
+
+  [self.l2capClient closeL2CAPChannel];
+
+  [self waitForExpectations:@[ self.requestDisconnectionHandlerExpectation ] timeout:kTestTimeout];
+}
+
+- (void)testDidOpenL2CAPChannelWithStreams {
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"L2CAP channel opened successfully"];
+  uint16_t psm = 123;
+  GNCBLEL2CAPFakeInputOutputStream *fakeStreams =
+      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1];
+  self.fakePeripheral.channelInputStream = fakeStreams.inputStream;
+  self.fakePeripheral.channelOutputStream = fakeStreams.outputStream;
+
+  [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
+                          completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
+                            XCTAssertNil(error);
+                            XCTAssertNotNil(stream);
+                            [expectation fulfill];
+                          }];
+
+  [self waitForExpectations:@[ expectation ] timeout:kTestTimeout];
+}
+
+- (void)testDidOpenL2CAPChannelCalledTwice {
+  XCTestExpectation *expectation = [self expectationWithDescription:@"L2CAP channel opened twice"];
+  expectation.expectedFulfillmentCount = 2;
+  self.requestDisconnectionHandlerExpectation =
+      [self expectationWithDescription:@"Request disconnection handler should be called"];
+  uint16_t psm = 123;
+  GNCBLEL2CAPFakeInputOutputStream *fakeStreams =
+      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1];
+  self.fakePeripheral.channelInputStream = fakeStreams.inputStream;
+  self.fakePeripheral.channelOutputStream = fakeStreams.outputStream;
+
+  [self.l2capClient openL2CAPChannelWithPSM:psm
+                                 peripheral:self.fakePeripheral
+                          completionHandler:^(GNCBLEL2CAPStream *stream, NSError *error) {
+                            XCTAssertNil(error);
+                            XCTAssertNotNil(stream);
+                            [expectation fulfill];
+                          }];
+
+  // Calling gnc_peripheral again to simulate channel opened again.
+  CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
+  [channel setValue:fakeStreams.inputStream forKey:@"inputStream"];
+  [channel setValue:fakeStreams.outputStream forKey:@"outputStream"];
+  [self.l2capClient peripheral:(CBPeripheral *)self.fakePeripheral
+           didOpenL2CAPChannel:channel
+                         error:nil];
+
+  [self waitForExpectations:@[ expectation, self.requestDisconnectionHandlerExpectation ]
+                    timeout:kTestTimeout];
 }
 
 @end

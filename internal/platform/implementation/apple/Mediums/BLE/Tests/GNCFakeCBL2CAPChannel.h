@@ -12,33 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPServer.h"
-
+#import <CoreBluetooth/CoreBluetooth.h>
 #import <Foundation/Foundation.h>
-
-#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheralManager.h"
-
-@protocol GNCPeripheralManager;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GNCBLEL2CAPServer (Testing) <GNCPeripheralManagerDelegate>
-
 /**
- * Creates a L2CAP server with a provided peripheral manager.
- *
- * This is only exposed for testing and can be used to inject a fake peripheral manager.
- *
- * @param peripheralManager The peripheral manager instance.
+ * A fake CBL2CAPChannel for testing.
  */
-- (instancetype)initWithPeripheralManager:(id<GNCPeripheralManager>)peripheralManager;
+@interface GNCFakeCBL2CAPChannel : NSObject
 
-/**
- * Closes the L2CAP channel.
- *
- * This is only exposed for testing.
- */
-- (void)closeL2CAPChannel;
+/** The input stream for the L2CAP channel. */
+@property(nonatomic, nullable) NSInputStream *inputStream;
+/** The output stream for the L2CAP channel. */
+@property(nonatomic, nullable) NSOutputStream *outputStream;
+/** The socket file descriptor for the L2CAP channel. */
+@property(nonatomic, readonly) int socketFD;
+/** The PSM (Protocol/Service Multiplexer) of the L2CAP channel. */
+@property(nonatomic, readonly) CBL2CAPPSM PSM;
 
 @end
 

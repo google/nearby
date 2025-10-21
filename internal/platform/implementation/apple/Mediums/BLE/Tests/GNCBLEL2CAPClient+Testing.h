@@ -16,11 +16,13 @@
 
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
+
 @protocol GNCPeripheral;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GNCBLEL2CAPClient (Testing)
+@interface GNCBLEL2CAPClient (Testing) <GNCPeripheralDelegate>
 
 /**
  * Initializes the L2CAP client with a provided queue and request disconnection handler.
@@ -32,8 +34,15 @@ NS_ASSUME_NONNULL_BEGIN
  * @param requestDisconnectionHandler Called on a private queue with @c peripheral when the
  *                                    connection to the peripheral should be cancelled.
  */
--(instancetype)initWithQueue:(nullable dispatch_queue_t)queue
-       requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
+- (instancetype)initWithQueue:(nullable dispatch_queue_t)queue
+    requestDisconnectionHandler:(GNCRequestDisconnectionHandler)requestDisconnectionHandler;
+
+/**
+ * Closes the L2CAP channel and disconnects the peripheral.
+ *
+ * This is only exposed for testing.
+ */
+- (void)closeL2CAPChannel;
 
 @end
 

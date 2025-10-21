@@ -117,12 +117,20 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)openL2CAPChannel:(CBL2CAPPSM)PSM {
   [self delayDelegateUsingBlock:^() {
     CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
+    if (self.channelInputStream) {
+      [channel setValue:self.channelInputStream forKey:@"inputStream"];
+    }
+    if (self.channelOutputStream) {
+      [channel setValue:self.channelOutputStream forKey:@"outputStream"];
+    }
     if (_openL2CAPChannelError) {
-      [self.peripheralDelegate gnc_peripheral:self
-                          didOpenL2CAPChannel:channel
-                                        error:_openL2CAPChannelError];
+      [self.peripheralDelegate peripheral:(CBPeripheral *)self
+                      didOpenL2CAPChannel:channel
+                                    error:_openL2CAPChannelError];
     } else {
-      [self.peripheralDelegate gnc_peripheral:self didOpenL2CAPChannel:channel error:nil];
+      [self.peripheralDelegate peripheral:(CBPeripheral *)self
+                      didOpenL2CAPChannel:channel
+                                    error:nil];
     }
   }];
 }

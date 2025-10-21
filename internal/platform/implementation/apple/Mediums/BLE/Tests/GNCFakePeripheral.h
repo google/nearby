@@ -67,6 +67,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @property(nonatomic, nullable, readwrite) NSError *openL2CAPChannelError;
 
+/** Fake input stream to inject into CBL2CAPChannel. */
+@property(nonatomic, nullable) NSInputStream *channelInputStream;
+/** Fake output stream to inject into CBL2CAPChannel. */
+@property(nonatomic, nullable) NSOutputStream *channelOutputStream;
+
 @end
 
 NS_ASSUME_NONNULL_END
