@@ -1004,3 +1004,13 @@ enum CloudCreateSharingResult {
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/cloud/data/CreateSharingRequestResultStatus.kt
 // )
+
+// The action type of uploading files to the cloud. Used by CLOUD_UPLOAD_START
+// and CLOUD_UPLOAD_END.
+enum CloudActionType {
+  CLOUD_ACTION_TYPE_UNKNOWN = 0;
+  // The upload is a normal upload.
+  CLOUD_ACTION_TYPE_NORMAL = 1;
+  // The upload is a retry of a previous failed upload.
+  CLOUD_ACTION_TYPE_RETRY = 2;
+}
