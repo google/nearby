@@ -983,32 +983,23 @@ enum ButtonStatus {
 enum CloudCreateSharingResult {
   CLOUD_CREATE_SHARING_RESULT_UNKNOWN = 0;
   // The request was successful.
-  CLOUD_CREATE_SHARING_RESULT_SUCCESS = 1
-      /*[ status_bucket = STATUS_SUCCESSFUL ]*/;
+  CLOUD_CREATE_SHARING_RESULT_SUCCESS = 1;
   // The user needs to sign in to perform the request. Resolvable failure.
-  CLOUD_CREATE_SHARING_RESULT_SIGN_IN_REQUIRE = 2
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_SIGN_IN_REQUIRE = 2;
   // The sharing id or file id already exists. Resolvable failure.
-  CLOUD_CREATE_SHARING_RESULT_ALREADY_EXIST = 3
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_ALREADY_EXIST = 3;
   // There is an existing active QR code cloud sharing session.
-  CLOUD_CREATE_SHARING_RESULT_ALREADY_STARTED = 4
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_ALREADY_STARTED = 4;
   // A network error occurred during the request. Resolvable failure.
-  CLOUD_CREATE_SHARING_RESULT_NETWORK_ERROR = 5
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_NETWORK_ERROR = 5;
   // The request contains invalid arguments. Resolvable failure.
-  CLOUD_CREATE_SHARING_RESULT_INVALID_ARGUMENT = 6
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_INVALID_ARGUMENT = 6;
   // A remote error occurred during the request. Unresolvable error.
-  CLOUD_CREATE_SHARING_RESULT_REMOTE_ERROR = 7
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_REMOTE_ERROR = 7;
   // The request contains more than 1000 files.
-  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT = 8
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT = 8;
   // The request contains more than 10GB of files.
-  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE = 9
-      /*[ status_bucket = STATUS_INTERNAL_ERROR ]*/;
+  CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE = 9;
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/cloud/data/CreateSharingRequestResultStatus.kt
