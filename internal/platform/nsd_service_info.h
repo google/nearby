@@ -69,13 +69,22 @@ class NsdServiceInfo {
     txt_records_ = txt_records;
   }
 
-  // Gets IP Address, which is in byte sequence, in network order.
-  std::string GetIPAddress() const { return ip_address_; }
+  // Gets IPv4 Address, which is in byte sequence, in network order.
+  std::string GetIPAddress() const { return ipv4_address_; }
 
-  // Sets IP Address.  Not used in advertising.
+  // Sets IPv4 Address.  Not used in advertising.
   // mDNS system should advertise IP address based on the interface used to
   // start advertising.
-  void SetIPAddress(const std::string& ip_address) { ip_address_ = ip_address; }
+  void SetIPAddress(const std::string& ip_address) {
+    ipv4_address_ = ip_address;
+  }
+
+  // IPv6 address is in string format.  The address can include a scope ID which
+  // cannot be represented in byte sequence without some hackery.
+  std::string GetIPv6Address() const { return ipv6_address_; }
+  void SetIPv6Address(const std::string& ipv6_address) {
+    ipv6_address_ = ipv6_address;
+  }
 
   // Gets the port number
   int GetPort() const { return port_; }
@@ -96,7 +105,8 @@ class NsdServiceInfo {
  private:
   std::string service_name_;
   absl::flat_hash_map<std::string, std::string> txt_records_;
-  std::string ip_address_;
+  std::string ipv4_address_;
+  std::string ipv6_address_;
   int port_;
   std::string service_type_;
 };

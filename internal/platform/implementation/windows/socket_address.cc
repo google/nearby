@@ -17,6 +17,7 @@
 #include <winsock2.h>
 #include <ws2ipdef.h>
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -199,6 +200,24 @@ std::string SocketAddress::ToString() const {
   // size includes the null terminator.
   address_string.resize(size - 1);
   return address_string;
+}
+
+bool SocketAddress::IsV6LinkLocal() const {
+  if (address_.ss_family != AF_INET6) {
+    return false;
+  }
+  const sockaddr_in6* v6_address =
+      reinterpret_cast<const sockaddr_in6*>(&address_);
+  return IN6_IS_ADDR_LINKLOCAL(&v6_address->sin6_addr);
+}
+
+bool SocketAddress::SetScopeId(uint32_t scope_id) {
+  if (address_.ss_family != AF_INET6) {
+    return false;
+  }
+  sockaddr_in6* v6_address = reinterpret_cast<sockaddr_in6*>(&address_);
+  v6_address->sin6_scope_id = scope_id;
+  return true;
 }
 
 }  // namespace nearby::windows

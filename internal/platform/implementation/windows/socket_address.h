@@ -18,6 +18,7 @@
 #include <winsock2.h>
 #include <ws2ipdef.h>
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -72,6 +73,14 @@ class SocketAddress {
 
   std::string ToString() const;
 
+  // Returns true if the address is a link local IPv6 address, ie. FE80::XXXX.
+  // Returns false if the address is not IPv6 or is not link local.
+  bool IsV6LinkLocal() const;
+
+  // Sets the scope id of the address.
+  // Returns false if the address is not IPv6.
+  bool SetScopeId(uint32_t scope_id);
+
   // Returns a pointer to the internal sockaddr_storage.
   // This can be used to modify the address directly.  However, the dual_stack
   // state is not honored, ie. it will not convert IPv4 addresses to mapped IPv6
@@ -84,6 +93,13 @@ class SocketAddress {
   // SocketAddress.  This is a convenience for calling legacy C APIs.
   sockaddr* address() const {
     return const_cast<sockaddr*>(reinterpret_cast<const sockaddr*>(&address_));
+  }
+
+  const sockaddr_in* ipv4_address() const {
+    return reinterpret_cast<const sockaddr_in*>(&address_);
+  }
+  const sockaddr_in6* ipv6_address() const {
+    return reinterpret_cast<const sockaddr_in6*>(&address_);
   }
 
  private:

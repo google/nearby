@@ -70,7 +70,6 @@ cc_library(
         "//connections:partners",
     ],
     deps = [
-        ":mac_address",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -83,7 +82,6 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_absl//absl/types:span",
     ],
 )
 

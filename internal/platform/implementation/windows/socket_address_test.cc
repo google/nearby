@@ -185,5 +185,21 @@ TEST(SocketAddressTest, DualStack) {
   EXPECT_FALSE(address2.dual_stack());
 }
 
+TEST(SocketAddressTest, IPv6LinkLocalSuccess) {
+  SocketAddress address(/*dual_stack=*/true);
+  char bytes[16] = {0xfe, 0x80, 0,    0,    0,    0,    0,    0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsV6LinkLocal());
+}
+
+TEST(SocketAddressTest, IPv6LinkLocalFail) {
+  SocketAddress address(/*dual_stack=*/true);
+  char bytes[16] = {0x20, 0x01, 0x0d, 0xb8,   0,    0,    0,    0,
+                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsV6LinkLocal());
+}
+
 }  // namespace
 }  // namespace nearby::windows

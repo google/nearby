@@ -310,6 +310,23 @@ std::vector<std::string> InspectableReader::ReadStringArray(
   return result;
 }
 
+GUID InspectableReader::ReadGuid(IInspectable inspectable) {
+  if (inspectable == nullptr) {
+    return GUID{};
+  }
+  auto property_value =
+      inspectable.try_as<winrt::Windows::Foundation::IPropertyValue>();
+  if (property_value == nullptr) {
+    throw std::invalid_argument("no property value interface.");
+  }
+  if (property_value.Type() !=
+      winrt::Windows::Foundation::PropertyType::Guid) {
+    throw std::invalid_argument("not guid data type.");
+  }
+
+  return property_value.GetGuid();
+}
+
 std::optional<std::wstring> GetDnsHostName() {
   DWORD size = 0;
 

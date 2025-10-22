@@ -269,13 +269,9 @@ class WifiLanMedium : public api::WifiLanMedium {
     return (medium_status_ & kMediumStatusDiscovering) != 0;
   }
 
-  // Checks whether the IP address is connectable in the given timeout.
-  // Parameters:
-  //   ip - IP string in format as 192.168.1.1
-  //   port - The IP port to connect.
-  //   timeout - IP is not connectable if cannot connect in the duration.
-  // Result - return true if the IP is connectable, otherwise return false.
-  bool IsConnectableIpAddress(absl::string_view ip, int port,
+  // Checks whether the service in the given timeout.
+  // Returns true if the IP is connectable, otherwise return false.
+  bool IsConnectableIpAddress(const NsdServiceInfo& nsd_service_info,
                               absl::Duration timeout = absl::Seconds(1));
 
   // Methods to manage discovred services.
@@ -310,9 +306,6 @@ class WifiLanMedium : public api::WifiLanMedium {
       winrt::Windows::Devices::Enumeration::DeviceWatcher sender,
       winrt::Windows::Devices::Enumeration::DeviceInformationUpdate
           deviceInfoUpdate);
-
-  // Gets error message from exception pointer
-  std::string GetErrorMessage(std::exception_ptr eptr);
 
   void RestartScanning();
 

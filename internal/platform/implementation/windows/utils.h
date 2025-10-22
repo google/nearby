@@ -78,6 +78,7 @@ class InspectableReader {
   static uint32_t ReadUint32(IInspectable inspectable);
   static std::string ReadString(IInspectable inspectable);
   static std::vector<std::string> ReadStringArray(IInspectable inspectable);
+  static GUID ReadGuid(IInspectable inspectable);
 };
 
 }  // namespace windows
