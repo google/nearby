@@ -24,6 +24,8 @@ objc_library(
     name = "FakeNWFramework",
     testonly = True,
     srcs = [
+        "GNCFakeNWBrowseResult.m",
+        "GNCFakeNWBrowser.m",
         "GNCFakeNWConnection.m",
         "GNCFakeNWFramework.m",
         "GNCFakeNWFrameworkServerSocket.m",
@@ -31,6 +33,8 @@ objc_library(
         "GNCFakeNWListener.m",
     ],
     hdrs = [
+        "GNCFakeNWBrowseResult.h",
+        "GNCFakeNWBrowser.h",
         "GNCFakeNWConnection.h",
         "GNCFakeNWFramework.h",
         "GNCFakeNWFrameworkServerSocket.h",
@@ -49,6 +53,8 @@ objc_library(
     testonly = True,
     srcs = [
         "GNCIPAddressTest.mm",
+        "GNCNWBrowseResultImplTest.m",
+        "GNCNWBrowserImplTest.m",
         "GNCNWConnectionImplTest.m",
         "GNCNWFrameworkServerSocketTest.m",
         "GNCNWFrameworkSocketTest.m",

@@ -30,15 +30,21 @@ NS_ASSUME_NONNULL_BEGIN
 /** Whether cancel has been called on the fake connection. */
 @property(nonatomic) BOOL cancelCalled;
 
+/** Property to simulate start failure. */
+@property(nonatomic) BOOL simulateStartFailure;
+
 /** Property to simulate send failure. */
 @property(nonatomic) BOOL simulateSendFailure;
 
 /** Property to simulate receive failure. */
 @property(nonatomic) BOOL simulateReceiveFailure;
 
+/** The state changed handler for the fake connection. */
+@property(nonatomic, nullable) nw_connection_state_changed_handler_t stateChangedHandler;
+
 - (instancetype)init NS_DESIGNATED_INITIALIZER;
 
-- (instancetype)initWithNWConnection:(nw_connection_t)connection NS_UNAVAILABLE;
+- (instancetype)initWithNWConnection:(nw_connection_t)connection;
 
 @end
 
