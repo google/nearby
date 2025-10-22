@@ -26,6 +26,8 @@ objc_library(
     name = "WiFiCommon",
     srcs = [
         "GNCIPv4Address.m",
+        "GNCNWBrowseResultImpl.m",
+        "GNCNWBrowserImpl.m",
         "GNCNWConnectionImpl.m",
         "GNCNWFramework.m",
         "GNCNWFrameworkError.m",
@@ -36,6 +38,10 @@ objc_library(
     ],
     hdrs = [
         "GNCIPv4Address.h",
+        "GNCNWBrowseResult.h",
+        "GNCNWBrowseResultImpl.h",
+        "GNCNWBrowser.h",
+        "GNCNWBrowserImpl.h",
         "GNCNWConnection.h",
         "GNCNWConnectionImpl.h",
         "GNCNWFramework.h",
