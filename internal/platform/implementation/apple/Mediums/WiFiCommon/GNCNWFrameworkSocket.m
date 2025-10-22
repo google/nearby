@@ -137,7 +137,10 @@ static const NSTimeInterval kConnectionWriteTimeout = 5.0;  // 5 seconds timeout
 }
 
 - (void)close {
-  [self.connection cancel];
+  nw_connection_t nwConnection = [self.connection nwConnection];
+  if (nwConnection) {
+    [self.connection cancel:nwConnection];
+  }
   _connection = nil;
 }
 

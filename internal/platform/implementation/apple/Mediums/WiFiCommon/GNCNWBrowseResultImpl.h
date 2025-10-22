@@ -12,23 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResult.h"
 
 #import <Foundation/Foundation.h>
-#import <Network/Network.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-/**
- * The default implementation of GNCNWConnection that calls the real Network.framework C
- * functions.
- */
-@interface GNCNWConnectionImpl : NSObject <GNCNWConnection>
-
-- (instancetype)initWithNWConnection:(nw_connection_t)connection;
-
-- (instancetype)init NS_DESIGNATED_INITIALIZER;
-
+@interface GNCNWBrowseResultImpl : NSObject <GNCNWBrowseResult>
 @end
 
 NS_ASSUME_NONNULL_END

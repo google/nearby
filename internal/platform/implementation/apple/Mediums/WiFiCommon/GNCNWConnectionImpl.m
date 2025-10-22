@@ -23,12 +23,38 @@ NS_ASSUME_NONNULL_BEGIN
   nw_connection_t _connection;
 }
 
+- (instancetype)init {
+  return [super init];
+}
+
 - (instancetype)initWithNWConnection:(nw_connection_t)connection {
-  self = [super init];
+  self = [self init];
   if (self) {
     _connection = connection;
   }
   return self;
+}
+
+- (nw_connection_t)createWithEndpoint:(nw_endpoint_t)endpoint
+                           parameters:(nw_parameters_t)parameters {
+  return nw_connection_create(endpoint, parameters);
+}
+
+- (void)setQueue:(nw_connection_t)connection queue:(dispatch_queue_t)queue {
+  nw_connection_set_queue(connection, queue);
+}
+
+- (void)setStateChangedHandler:(nw_connection_t)connection
+                       handler:(nw_connection_state_changed_handler_t)handler {
+  nw_connection_set_state_changed_handler(connection, handler);
+}
+
+- (void)start:(nw_connection_t)connection {
+  nw_connection_start(connection);
+}
+
+- (void)cancel:(nw_connection_t)connection {
+  nw_connection_cancel(connection);
 }
 
 - (void)receiveMessageWithMinLength:(uint32_t)minIncompleteLength
@@ -44,10 +70,6 @@ NS_ASSUME_NONNULL_BEGIN
            isComplete:(BOOL)isComplete
     completionHandler:(void (^)(nw_error_t _Nullable error))handler {
   nw_connection_send(_connection, content, context, isComplete, handler);
-}
-
-- (void)cancel {
-  nw_connection_cancel(_connection);
 }
 
 - (nullable nw_connection_t)nwConnection {
