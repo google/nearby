@@ -15,12 +15,15 @@
 #ifndef PLATFORM_API_PLATFORM_H_
 #define PLATFORM_API_PLATFORM_H_
 
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/atomic_boolean.h"
 #include "internal/platform/implementation/atomic_reference.h"
 #include "internal/platform/implementation/awdl.h"
@@ -138,6 +141,18 @@ class ImplementationPlatform {
   static std::unique_ptr<WebRtcMedium> CreateWebRtcMedium();
 #endif
 
+#if defined(NEARBY_CHROMIUM)
+  static std::unique_ptr<AppLifecycleMonitor> CreateAppLifecycleMonitor(
+      std::function<void(AppLifecycleMonitor::AppLifecycleState)>
+          state_updated_callback) {
+    return nullptr;
+  }
+#else
+  static std::unique_ptr<AppLifecycleMonitor> CreateAppLifecycleMonitor(
+      std::function<void(AppLifecycleMonitor::AppLifecycleState)>
+          state_updated_callback);
+#endif
+
   // Gets HTTP response from remote server.
   //
   // @param request Webrequest
@@ -147,7 +162,12 @@ class ImplementationPlatform {
   //         other cases will return absl Status in error.
   static absl::StatusOr<WebResponse> SendRequest(const WebRequest& request);
 
-#ifndef NEARBY_CHROMIUM
+#if defined(NEARBY_CHROMIUM)
+  static std::unique_ptr<nearby::api::PreferencesManager>
+  CreatePreferencesManager(absl::string_view path) {
+    return nullptr;
+  }
+#else
   static std::unique_ptr<nearby::api::PreferencesManager>
   CreatePreferencesManager(absl::string_view path);
 #endif

@@ -82,6 +82,7 @@ objc_library(
         ":Platform_cc",
         ":Shared",
         ":ble_v2",
+        ":app_lifecycle_monitor",
         ":network_utils",
         # Required Reason API File: third_party/nearby/internal/platform/implementation/apple/preferences_manager.mm
         "//releasetools/apple/privacy/privacymanifests/requiredreasonsapi:user_defaults-user_defaults-read_write_app_data_ca92_1",
@@ -107,6 +108,38 @@ objc_library(
         "//internal/platform/implementation/shared:file",
         "//internal/platform/implementation/apple/Log:GNCLogger",
         "//internal/platform:cancellation_flag",
+    ] + select({
+        "@platforms//os:platform_ios": [
+            "//third_party/apple_frameworks:UIKit",
+        ],
+        "//conditions:default": [],
+    }),
+)
+
+objc_library(
+    name = "GNCNotificationCenter",
+    hdrs = ["GNCNotificationCenter.h"],
+    deps = [
+        "//third_party/apple_frameworks:Foundation",
+    ],
+)
+
+objc_library(
+    name = "app_lifecycle_monitor",
+    srcs = [
+        "app_lifecycle_monitor.mm",
+    ],
+    hdrs = [
+        "app_lifecycle_monitor.h",
+    ],
+    # Prevent Objective-C++ headers from being pulled into swift.
+    aspect_hints = ["//tools/build_defs/swift:no_module"],
+    deps = [
+        ":GNCNotificationCenter",
+        "//internal/platform:base",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//third_party/apple_frameworks:Foundation",
     ] + select({
         "@platforms//os:platform_ios": [
             "//third_party/apple_frameworks:UIKit",

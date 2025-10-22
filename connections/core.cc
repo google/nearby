@@ -207,8 +207,6 @@ void Core::SetCustomSavePath(absl::string_view path, ResultCallback callback) {
   router_->SetCustomSavePath(&client_, path, std::move(callback));
 }
 
-void Core::SaveStates() { client_.SaveClientInfoToPreferences(); }
-
 std::string Core::Dump() { return client_.Dump(); }
 
 // V3

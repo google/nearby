@@ -196,10 +196,6 @@ NC_API void NcSetCustomSavePath(NC_INSTANCE instance, const NC_DATA* save_path,
 NC_API void NcSetPhenotypeFlagReader(
     READER_CONTEXT context, NC_PHENOTYPE_FLAG_READER phenotype_flag_reader);
 
-// Saves the states of Nearby Connections to preferences. This is used to
-// restore the states when restart the Nearby Connections.
-NC_API void NcSaveStates(NC_INSTANCE instance);
-
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus

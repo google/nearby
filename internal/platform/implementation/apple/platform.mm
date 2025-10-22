@@ -16,12 +16,14 @@
 
 #import <Foundation/Foundation.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 
 #include "absl/strings/string_view.h"
 #include "internal/base/files.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
+#include "internal/platform/implementation/apple/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/apple/atomic_boolean.h"
 #include "internal/platform/implementation/apple/atomic_uint32.h"
 #include "internal/platform/implementation/apple/awdl.h"
@@ -204,6 +206,15 @@ std::unique_ptr<WifiDirectMedium> ImplementationPlatform::CreateWifiDirectMedium
 #ifndef NO_WEBRTC
 std::unique_ptr<WebRtcMedium> ImplementationPlatform::CreateWebRtcMedium() { return nullptr; }
 #endif
+
+std::unique_ptr<AppLifecycleMonitor> ImplementationPlatform::CreateAppLifecycleMonitor(
+    std::function<void(AppLifecycleMonitor::AppLifecycleState)> state_updated_callback) {
+#if TARGET_OS_IPHONE
+  return std::make_unique<apple::AppLifecycleMonitor>(std::move(state_updated_callback));
+#else
+  return nullptr;
+#endif
+}
 
 absl::StatusOr<WebResponse> ImplementationPlatform::SendRequest(const WebRequest& requestInfo) {
   NSURL* url = [NSURL URLWithString:@(requestInfo.url.c_str())];

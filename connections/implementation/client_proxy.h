@@ -45,6 +45,7 @@
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/error_code_recorder.h"
+#include "internal/platform/implementation/app_lifecycle_monitor.h"
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
@@ -540,6 +541,9 @@ class ClientProxy final {
   // A default cancellation flag with isCancelled set be true.
   std::unique_ptr<CancellationFlag> default_cancellation_flag_ =
       std::make_unique<CancellationFlag>(true);
+
+  // An app lifecycle monitor for monitoring the app lifecycle state.
+  std::unique_ptr<api::AppLifecycleMonitor> app_lifecycle_monitor_;
 
   // A preferences manager for storing client-specific preferences.
   std::unique_ptr<nearby::api::PreferencesManager> preferences_manager_;

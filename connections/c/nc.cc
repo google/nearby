@@ -840,12 +840,3 @@ void NcSetPhenotypeFlagReader(READER_CONTEXT context,
       context, phenotype_flag_reader);
   nearby::NearbyFlags::GetInstance().SetFlagReader(*kNearbyFlags);
 }
-
-void NcSaveStates(NC_INSTANCE instance) {
-  NcContext* nc_context = GetContext(instance);
-  if (nc_context == nullptr) {
-    return;
-  }
-
-  nc_context->core->SaveStates();
-}
