@@ -15,68 +15,19 @@
 #ifndef THIRD_PARTY_NEARBY_SHARING_CONTACTS_FAKE_NEARBY_SHARE_CONTACT_MANAGER_H_
 #define THIRD_PARTY_NEARBY_SHARING_CONTACTS_FAKE_NEARBY_SHARE_CONTACT_MANAGER_H_
 
-#include <stddef.h>
-
-#include <memory>
-#include <vector>
-
-#include "internal/platform/implementation/account_manager.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
-#include "sharing/contacts/nearby_share_contact_manager_impl.h"
-#include "sharing/internal/api/sharing_rpc_client.h"
-#include "sharing/internal/public/context.h"
 
 namespace nearby {
 namespace sharing {
 
-// A fake implementation of NearbyShareContactManager, along with a fake
-// factory, to be used in tests. Stores parameters input into
-// NearbyShareContactManager method calls. Use the notification methods from the
-// base class--NotifyContactsDownloaded() and NotifyContactsUploaded()--to alert
-// observers of changes; these methods are made public in this fake class.
+// A fake implementation of NearbyShareContactManager.
 class FakeNearbyShareContactManager : public NearbyShareContactManager {
  public:
-  // Factory that creates FakeNearbyShareContactManager instances. Use in
-  // NearbyShareContactManagerImpl::Factor::SetFactoryForTesting() in unit
-  // tests.
-  class Factory : public NearbyShareContactManagerImpl::Factory {
-   public:
-    Factory();
-    ~Factory() override;
-
-    // Returns all FakeNearbyShareContactManager instances created by
-    // CreateInstance().
-    std::vector<FakeNearbyShareContactManager*>& instances() {
-      return instances_;
-    }
-
-    nearby::sharing::api::SharingRpcClientFactory* latest_http_client_factory()
-        const {
-      return latest_nearby_client_factory_;
-    }
-
-    AccountManager* latest_account_manager() const {
-      return latest_account_manager_;
-    }
-
-   private:
-    // NearbyShareContactManagerImpl::Factory:
-    std::unique_ptr<NearbyShareContactManager> CreateInstance(
-        Context* context, AccountManager& account_manager,
-        nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory)
-        override;
-
-    std::vector<FakeNearbyShareContactManager*> instances_;
-    nearby::sharing::api::SharingRpcClientFactory*
-        latest_nearby_client_factory_ = nullptr;
-    AccountManager* latest_account_manager_ = nullptr;
-  };
-
-  FakeNearbyShareContactManager();
-  ~FakeNearbyShareContactManager() override;
+  FakeNearbyShareContactManager() = default;
+  ~FakeNearbyShareContactManager() override = default;
 
  private:
-  void GetContacts(ContactsCallback callback) override;
+  void GetContacts(ContactsCallback callback) override {};
 };
 
 }  // namespace sharing

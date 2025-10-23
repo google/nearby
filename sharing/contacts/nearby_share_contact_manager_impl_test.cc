@@ -26,14 +26,11 @@
 #include "absl/time/time.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/test/fake_account_manager.h"
-#include "sharing/contacts/nearby_share_contact_manager.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
 #include "sharing/internal/test/fake_context.h"
 #include "sharing/local_device_data/fake_nearby_share_local_device_data_manager.h"
 #include "sharing/proto/contact_rpc.pb.h"
 #include "sharing/proto/rpc_resources.pb.h"
-#include "sharing/scheduling/fake_nearby_share_scheduler_factory.h"
-#include "sharing/scheduling/nearby_share_scheduler_factory.h"
 
 namespace nearby::sharing {
 namespace {
@@ -61,19 +58,17 @@ class NearbyShareContactManagerImplTest
   ~NearbyShareContactManagerImplTest() override = default;
 
   void SetUp() override {
-    NearbyShareSchedulerFactory::SetFactoryForTesting(&scheduler_factory_);
     AccountManager::Account account;
     account.id = kTestAccountId;
     account.email = kTestProfileUserName;
     fake_account_manager_.SetAccount(account);
 
-    manager_ = NearbyShareContactManagerImpl::Factory::Create(
+    manager_ = std::make_unique<NearbyShareContactManagerImpl>(
         &fake_context_, fake_account_manager_, &nearby_client_factory_);
   }
 
   void TearDown() override {
     manager_.reset();
-    NearbyShareSchedulerFactory::SetFactoryForTesting(nullptr);
   }
 
   void Sync() {
@@ -101,8 +96,7 @@ class NearbyShareContactManagerImplTest
   FakeNearbyShareClientFactory nearby_client_factory_;
   FakeNearbyShareLocalDeviceDataManager local_device_data_manager_;
   std::unique_ptr<FakeAccountManager> account_manager_;
-  FakeNearbyShareSchedulerFactory scheduler_factory_;
-  std::unique_ptr<NearbyShareContactManager> manager_;
+  std::unique_ptr<NearbyShareContactManagerImpl> manager_;
 };
 
 }  // namespace

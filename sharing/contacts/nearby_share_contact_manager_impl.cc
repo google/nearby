@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
 #include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/account_manager.h"
@@ -42,53 +41,32 @@ using ::nearby::sharing::proto::ContactRecord;
 using ::nearby::sharing::proto::ListContactPeopleRequest;
 using ::nearby::sharing::proto::ListContactPeopleResponse;
 
-void FilterOutUnreachableContacts(std::vector<ContactRecord>& contacts) {
-  contacts.erase(
-      std::remove_if(contacts.begin(), contacts.end(),
-                     [](const nearby::sharing::proto::ContactRecord& contact) {
-                       return !contact.is_reachable();
-                     }),
-      contacts.end());
-}
+// Class for maintaining a single instance of contacts download request.  It
+// is responsible for downloading all available pages and making the results
+// or error available.
+class ContactDownloadContext {
+ public:
+  ContactDownloadContext(
+      nearby::sharing::api::SharingRpcClient* nearby_share_client,
+      NearbyShareContactManager::ContactsCallback download_callback)
+      : nearby_share_client_(nearby_share_client),
+        download_callback_(std::move(download_callback)) {}
 
-}  // namespace
+  // Fetches the next page of contacts.
+  // If |next_page_token_| is empty, it fetches the first page.
+  // On successful download, if  page token in the response is empty, the
+  // |download_callback_| is invoked with all downloaded contacts.
+  void FetchNextPage();
 
-// static
-NearbyShareContactManagerImpl::Factory*
-    NearbyShareContactManagerImpl::Factory::test_factory_ = nullptr;
+ private:
+  nearby::sharing::api::SharingRpcClient* const nearby_share_client_;
+  std::optional<std::string> next_page_token_;
+  int page_number_ = 1;
+  std::vector<ContactRecord> contacts_;
+  NearbyShareContactManager::ContactsCallback download_callback_;
+};
 
-// static
-std::unique_ptr<NearbyShareContactManager>
-NearbyShareContactManagerImpl::Factory::Create(
-    Context* context, AccountManager& account_manager,
-    nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory) {
-  if (test_factory_) {
-    return test_factory_->CreateInstance(context, account_manager,
-                                         nearby_client_factory);
-  }
-
-  return absl::WrapUnique(new NearbyShareContactManagerImpl(
-      context, account_manager, nearby_client_factory));
-}
-
-// static
-void NearbyShareContactManagerImpl::Factory::SetFactoryForTesting(
-    Factory* test_factory) {
-  test_factory_ = test_factory;
-}
-
-NearbyShareContactManagerImpl::Factory::~Factory() = default;
-
-NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
-    Context* context, AccountManager& account_manager,
-    nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory)
-    : account_manager_(account_manager),
-      nearby_share_client_(nearby_client_factory->CreateInstance()),
-      executor_(context->CreateSequencedTaskRunner()) {}
-
-NearbyShareContactManagerImpl::~NearbyShareContactManagerImpl() = default;
-
-void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
+void ContactDownloadContext::FetchNextPage() {
   LOG(INFO) << "Downloading contacts page=" << page_number_++;
   ListContactPeopleRequest request;
   if (next_page_token_.has_value()) {
@@ -112,7 +90,12 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
           // We should filter here because we only care about contacts that we
           // can share with.
           uint32_t contacts_size = contacts_.size();
-          FilterOutUnreachableContacts(contacts_);
+          // Filter out unreachable contacts.
+          contacts_.erase(std::remove_if(contacts_.begin(), contacts_.end(),
+                                         [](const ContactRecord& contact) {
+                                           return !contact.is_reachable();
+                                         }),
+                          contacts_.end());
           uint32_t num_unreachable_contacts_filtered_out =
               contacts_size - contacts_.size();
           std::move(download_callback_)(std::move(contacts_),
@@ -124,6 +107,15 @@ void NearbyShareContactManagerImpl::ContactDownloadContext::FetchNextPage() {
         FetchNextPage();
       });
 }
+
+}  // namespace
+
+NearbyShareContactManagerImpl::NearbyShareContactManagerImpl(
+    Context* context, AccountManager& account_manager,
+    nearby::sharing::api::SharingRpcClientFactory* nearby_client_factory)
+    : account_manager_(account_manager),
+      nearby_share_client_(nearby_client_factory->CreateInstance()),
+      executor_(context->CreateSequencedTaskRunner()) {}
 
 void NearbyShareContactManagerImpl::GetContacts(ContactsCallback callback) {
   executor_->PostTask([this, callback = std::move(callback)]() mutable {

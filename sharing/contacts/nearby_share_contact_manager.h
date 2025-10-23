@@ -26,27 +26,15 @@
 namespace nearby {
 namespace sharing {
 
-// The Nearby Share contacts manager interfaces with the Nearby server in the
-// following ways:
-//   1) The user's contacts are downloaded from People API, using the Nearby
-//   server as a proxy.
-//   2) All the user's contacts are uploaded to Nearby server, along with an
-//   indication of what contacts are allowed for selected-contacts visibility
-//   mode. The Nearby server will distribute all-contacts visibility
-//   certificates accordingly. For privacy reasons, the Nearby server needs to
-//   explicitly receive the list of contacts from the device instead of pulling
-//   them directly from People API.
-//
-// All contact data and update notifications are conveyed via observer methods;
-// the manager does not return data directly from function calls.
+// The Nearby Share contacts manager retrieves the user's contact list from the
+// server.
 class NearbyShareContactManager {
  public:
   using ContactsCallback = absl::AnyInvocable<
       void(absl::StatusOr<std::vector<nearby::sharing::proto::ContactRecord>>,
            uint32_t num_unreachable_contacts_filtered_out) &&>;
 
-  NearbyShareContactManager();
-  virtual ~NearbyShareContactManager();
+  virtual ~NearbyShareContactManager() = default;
 
   // Retrieves the user's contact list from the server.
   virtual void GetContacts(ContactsCallback callback) = 0;

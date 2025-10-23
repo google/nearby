@@ -48,7 +48,6 @@
 #include "sharing/certificates/nearby_share_encrypted_metadata_key.h"
 #include "sharing/certificates/nearby_share_private_certificate.h"
 #include "sharing/certificates/test_util.h"
-#include "sharing/contacts/fake_nearby_share_contact_manager.h"
 #include "sharing/internal/api/fake_nearby_share_client.h"
 #include "sharing/internal/api/mock_sharing_platform.h"
 #include "sharing/internal/public/pref_names.h"
@@ -114,7 +113,6 @@ class NearbyShareCertificateManagerImplTest
     local_device_data_manager_ =
         std::make_unique<FakeNearbyShareLocalDeviceDataManager>(
             kDefaultDeviceName);
-    contact_manager_ = std::make_unique<FakeNearbyShareContactManager>();
 
     AccountManager::Account account{
         .display_name = GetNearbyShareTestMetadata().full_name(),
@@ -501,7 +499,6 @@ class NearbyShareCertificateManagerImplTest
   FakeNearbyShareCertificateStorage::Factory cert_store_factory_;
   std::unique_ptr<FakeNearbyShareLocalDeviceDataManager>
       local_device_data_manager_;
-  std::unique_ptr<FakeNearbyShareContactManager> contact_manager_;
   std::unique_ptr<NearbyShareCertificateManager> cert_manager_;
 };
 

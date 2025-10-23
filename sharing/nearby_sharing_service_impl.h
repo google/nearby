@@ -102,7 +102,10 @@ class NearbySharingServiceImpl
   NearbySharingServiceImpl(
       std::unique_ptr<nearby::TaskRunner> service_thread, Context* context,
       nearby::sharing::api::SharingPlatform& sharing_platform,
+      std::unique_ptr<nearby::sharing::api::SharingRpcClientFactory>
+          nearby_share_client_factory,
       std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
+      std::unique_ptr<NearbyShareContactManager> contact_manager,
       analytics::AnalyticsRecorder* analytics_recorder);
   ~NearbySharingServiceImpl() override;
 

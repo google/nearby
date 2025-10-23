@@ -63,7 +63,6 @@
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/constants.h"
 #include "sharing/contacts/nearby_share_contact_manager.h"
-#include "sharing/contacts/nearby_share_contact_manager_impl.h"
 #include "sharing/fast_initiation/nearby_fast_initiation.h"
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
 #include "sharing/file_attachment.h"
@@ -72,6 +71,7 @@
 #include "sharing/incoming_share_session.h"
 #include "sharing/internal/api/bluetooth_adapter.h"
 #include "sharing/internal/api/sharing_platform.h"
+#include "sharing/internal/api/sharing_rpc_client.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/connectivity_manager.h"
 #include "sharing/internal/public/context.h"
@@ -112,6 +112,7 @@ using ::location::nearby::proto::sharing::OSType;
 using ::location::nearby::proto::sharing::ResponseToIntroduction;
 using ::location::nearby::proto::sharing::SessionStatus;
 using ::nearby::sharing::api::SharingPlatform;
+using ::nearby::sharing::api::SharingRpcClientFactory;
 using ::nearby::sharing::proto::DataUsage;
 using ::nearby::sharing::proto::DeviceVisibility;
 using ::nearby::sharing::service::proto::ConnectionResponseFrame;
@@ -212,7 +213,9 @@ std::string GenerateDeviceId() {
 NearbySharingServiceImpl::NearbySharingServiceImpl(
     std::unique_ptr<TaskRunner> service_thread, Context* context,
     SharingPlatform& sharing_platform,
+    std::unique_ptr<SharingRpcClientFactory> nearby_share_client_factory,
     std::unique_ptr<NearbyConnectionsManager> nearby_connections_manager,
+    std::unique_ptr<NearbyShareContactManager> contact_manager,
     analytics::AnalyticsRecorder* analytics_recorder)
     : service_thread_(std::move(service_thread)),
       context_(context),
@@ -221,14 +224,11 @@ NearbySharingServiceImpl::NearbySharingServiceImpl(
       account_manager_(sharing_platform.GetAccountManager()),
       analytics_recorder_(*analytics_recorder),
       nearby_connections_manager_(std::move(nearby_connections_manager)),
-      nearby_share_client_factory_(
-          sharing_platform.CreateSharingRpcClientFactory(context_->GetClock(),
-                                                         &analytics_recorder_)),
+      nearby_share_client_factory_(std::move(nearby_share_client_factory)),
       local_device_data_manager_(
           NearbyShareLocalDeviceDataManagerImpl::Factory::Create(
               preference_manager_, account_manager_, device_info_)),
-      contact_manager_(NearbyShareContactManagerImpl::Factory::Create(
-          context_, account_manager_, nearby_share_client_factory_.get())),
+      contact_manager_(std::move(contact_manager)),
       nearby_fast_initiation_(
           NearbyFastInitiationImpl::Factory::Create(context_)),
       settings_(std::make_unique<NearbyShareSettings>(

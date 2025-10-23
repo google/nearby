@@ -14,13 +14,13 @@
 
 #include "sharing/nearby_sharing_service_factory.h"
 
-#include <cstdint>
 #include <memory>
 #include <utility>
 
 #include "internal/analytics/event_logger.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
+#include "sharing/contacts/nearby_share_contact_manager_impl.h"
 #include "sharing/internal/api/sharing_platform.h"
 #include "sharing/internal/public/context_impl.h"
 #include "sharing/nearby_connections_manager_factory.h"
@@ -54,9 +54,19 @@ NearbySharingService* NearbySharingServiceFactory::CreateSharingService(
           service_thread.get(), context_.get(),
           sharing_platform.GetDeviceInfo(), event_logger);
 
+  auto nearby_share_client_factory =
+      sharing_platform.CreateSharingRpcClientFactory(context_->GetClock(),
+                                                     analytics_recorder);
+  auto nearby_share_contact_manager =
+      std::make_unique<NearbyShareContactManagerImpl>(
+          context_.get(), sharing_platform.GetAccountManager(),
+          nearby_share_client_factory.get());
+
   nearby_sharing_service_ = std::make_unique<NearbySharingServiceImpl>(
       std::move(service_thread), context_.get(), sharing_platform,
-      std::move(nearby_connections_manager), analytics_recorder);
+      std::move(nearby_share_client_factory),
+      std::move(nearby_connections_manager),
+      std::move(nearby_share_contact_manager), analytics_recorder);
 
   return nearby_sharing_service_.get();
 }

@@ -64,7 +64,6 @@
 #include "sharing/common/nearby_share_prefs.h"
 #include "sharing/constants.h"
 #include "sharing/contacts/fake_nearby_share_contact_manager.h"
-#include "sharing/contacts/nearby_share_contact_manager_impl.h"
 #include "sharing/fake_nearby_connections_manager.h"
 #include "sharing/fast_initiation/fake_nearby_fast_initiation.h"
 #include "sharing/fast_initiation/nearby_fast_initiation_impl.h"
@@ -408,8 +407,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         .WillOnce(Return(std::move(mock_app_info)));
     NearbyShareLocalDeviceDataManagerImpl::Factory::SetFactoryForTesting(
         &local_device_data_manager_factory_);
-    NearbyShareContactManagerImpl::Factory::SetFactoryForTesting(
-        &contact_manager_factory_);
     NearbyShareCertificateManagerImpl::Factory::SetFactoryForTesting(
         &certificate_manager_factory_);
     nearby_fast_initiation_factory_ =
@@ -424,6 +421,7 @@ class NearbySharingServiceImplTest : public testing::Test {
     auto fake_task_runner =
         std::make_unique<FakeTaskRunner>(fake_context_.fake_clock(), 1);
     sharing_service_task_runner_ = fake_task_runner.get();
+    contact_manager_ = new FakeNearbyShareContactManager();
     fake_nearby_connections_manager_ = new FakeNearbyConnectionsManager();
     connection_ = std::make_unique<NearbyConnectionImpl>(fake_device_info_);
     fake_nearby_connections_manager_->set_send_payload_callback(
@@ -463,7 +461,6 @@ class NearbySharingServiceImplTest : public testing::Test {
         true);
     NearbyShareLocalDeviceDataManagerImpl::Factory::SetFactoryForTesting(
         nullptr);
-    NearbyShareContactManagerImpl::Factory::SetFactoryForTesting(nullptr);
     NearbyShareCertificateManagerImpl::Factory::SetFactoryForTesting(nullptr);
     NearbyFlags::GetInstance().ResetOverridedValues();
     nearby_fast_initiation_factory_.reset();
@@ -480,7 +477,9 @@ class NearbySharingServiceImplTest : public testing::Test {
       std::unique_ptr<FakeTaskRunner> task_runner) {
     return std::make_unique<NearbySharingServiceImpl>(
         std::move(task_runner), &fake_context_, mock_sharing_platform_,
+        /*nearby_share_client_factory=*/nullptr,
         absl::WrapUnique(fake_nearby_connections_manager_),
+        absl::WrapUnique(contact_manager_),
         analytics_recorder_.get());
   }
 
@@ -1257,7 +1256,7 @@ class NearbySharingServiceImplTest : public testing::Test {
   FakeNearbyConnectionsManager* fake_nearby_connections_manager_ = nullptr;
   FakeNearbyShareLocalDeviceDataManager::Factory
       local_device_data_manager_factory_;
-  FakeNearbyShareContactManager::Factory contact_manager_factory_;
+  FakeNearbyShareContactManager* contact_manager_ = nullptr;
   FakeNearbyShareCertificateManager::Factory certificate_manager_factory_;
   std::unique_ptr<FakeNearbyFastInitiation::Factory>
       nearby_fast_initiation_factory_;
