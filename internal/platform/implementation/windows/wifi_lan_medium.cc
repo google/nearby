@@ -76,8 +76,7 @@ constexpr absl::string_view kMdnsDeviceSelectorFormat =
     "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
     "System.Devices.Dnssd.Domain:=\"local\"";
 
-constexpr absl::Duration kConnectTimeout = absl::Seconds(2);
-constexpr absl::Duration kConnectServiceTimeout = absl::Seconds(3);
+constexpr absl::Duration kConnectTimeout = absl::Seconds(1);
 
 bool IsSelfInstance(IMapView<winrt::hstring, IInspectable> properties,
                      absl::string_view self_instance_name) {
@@ -157,6 +156,58 @@ bool GetMdnsIpv6Address(const std::string& address_str,
   return false;
 }
 
+// Returns true if a connection can be established to the given address within
+// the given timeout.
+bool TestConnection(
+    const SocketAddress& address, absl::Duration timeout) {
+  bool result = false;
+  int error = -1;
+  int size = sizeof(int);
+  timeval tm;
+  fd_set set;
+  unsigned long non_blocking = 1;  // NOLINT
+  VLOG(1) << "Checking connection to: " << address.ToString();
+  SOCKET sock = socket(address.dual_stack() ? AF_INET6 : AF_INET, SOCK_STREAM,
+                       IPPROTO_TCP);
+  if (address.dual_stack()) {
+    // On Windows dual stack is not the default.
+    // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
+    DWORD v6_only = 0;
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
+                   reinterpret_cast<const char*>(&v6_only),
+                   sizeof(v6_only)) == SOCKET_ERROR) {
+      LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
+                   << WSAGetLastError();
+    }
+  }
+  ioctlsocket(sock, /*cmd=*/FIONBIO, /*argp=*/&non_blocking);
+  if (connect(sock, address.address(), sizeof(sockaddr_storage)) ==
+      SOCKET_ERROR) {
+    tm.tv_sec = timeout / absl::Seconds(1);
+    tm.tv_usec = 0;
+    FD_ZERO(&set);
+    FD_SET(sock, &set);
+
+    if (select(sock + 1, nullptr, &set, nullptr, &tm) > 0) {
+      getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&error,
+                 /*(socklen_t *)*/ &size);
+      result = error == 0;
+    } else {
+      result = false;
+    }
+  } else {
+    result = true;
+  }
+
+  non_blocking = 0;
+  ioctlsocket(sock, /*cmd=*/FIONBIO, /*argp=*/&non_blocking);
+
+  if (result) {
+    closesocket(sock);
+  }
+
+  return result;
+}
 
 }  // namespace
 
@@ -296,11 +347,41 @@ bool WifiLanMedium::StopDiscovery(const std::string& service_type) {
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const NsdServiceInfo& remote_service_info,
     CancellationFlag* cancellation_flag) {
-  LOG(ERROR) << "connect to service by NSD service info. service type is "
-             << remote_service_info.GetServiceType();
+  LOG(INFO) << "connect to service by NSD service info: "
+            << remote_service_info.GetServiceName() << "."
+            << remote_service_info.GetServiceType();
 
-  return ConnectToService(remote_service_info.GetIPAddress(),
-                          remote_service_info.GetPort(), cancellation_flag);
+  std::string ipv4_address = remote_service_info.GetIPAddress();
+  if (!ipv4_address.empty()) {
+    std::unique_ptr<api::WifiLanSocket> socket = ConnectToService(
+        ipv4_address, remote_service_info.GetPort(), cancellation_flag);
+    if (socket != nullptr) {
+      return socket;
+    }
+    LOG(WARNING) << "Failed to connect to service by IPv4 address";
+  }
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableMdnsIpv6)) {
+    return nullptr;
+  }
+  std::string ipv6_address = remote_service_info.GetIPv6Address();
+  if (ipv6_address.empty()) {
+    return nullptr;
+  }
+  SocketAddress server_address(/*dual_stack=*/true);
+  if (!server_address.FromString(server_address, ipv6_address,
+                                 remote_service_info.GetPort())) {
+    return nullptr;
+  }
+  std::unique_ptr<api::WifiLanSocket> socket =
+      ConnectToSocket(server_address, cancellation_flag);
+  if (socket != nullptr) {
+    return socket;
+  }
+  VLOG(1) << "Failed to connect to service by IPv6 address: "
+          << ipv6_address;
+  return nullptr;
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
@@ -315,12 +396,17 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }
-  VLOG(1) << "ConnectToService address: " << server_address.ToString();
+  return ConnectToSocket(server_address, cancellation_flag);
+}
+
+std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToSocket(
+    const SocketAddress& address,
+    CancellationFlag* cancellation_flag) {
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
     LOG(INFO) << "connect to service has been cancelled.";
     return nullptr;
   }
-
+  VLOG(1) << "ConnectToSocket: " << address.ToString();
   std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
       nullptr;
 
@@ -335,7 +421,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
               socket->Close();
             });
   }
-  bool result = wifi_lan_socket->Connect(server_address);
+  bool result = wifi_lan_socket->Connect(address);
   if (!result) {
     LOG(ERROR) << "failed to connect to service.";
     return nullptr;
@@ -585,15 +671,10 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
       << "Device is changed from (service name:"
       << last_nsd_service_info->GetServiceName() << ", endpoint info:"
       << last_nsd_service_info->GetTxtRecord(std::string(kDeviceEndpointInfo))
-      << ", address:"
-      << ipaddr_4bytes_to_dotdecimal_string(
-             last_nsd_service_info->GetIPAddress())
-      << ":" << last_nsd_service_info->GetPort()
+      << ", port: " << last_nsd_service_info->GetPort()
       << ") to (service name:" << nsd_service_info.GetServiceName() << ", "
       << nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo))
-      << ", address:"
-      << ipaddr_4bytes_to_dotdecimal_string(nsd_service_info.GetIPAddress())
-      << ":" << nsd_service_info.GetPort() << ").";
+      << ", port: " << nsd_service_info.GetPort() << ").";
 
   // Report device lost first.
   discovered_service_callback_.service_lost_cb(*last_nsd_service_info);
@@ -660,53 +741,43 @@ void WifiLanMedium::RemoveDiscoveredService(absl::string_view id) {
   }
 }
 
-bool WifiLanMedium::IsConnectableIpAddress(
-    const NsdServiceInfo& nsd_service_info, absl::Duration timeout) {
-  bool result = false;
-  int error = -1;
-  int size = sizeof(int);
-  timeval tm;
-  fd_set set;
-  unsigned long non_blocking = 1;  // NOLINT
-  if (nsd_service_info.GetIPAddress().empty()) {
-    return false;
-  }
-  SocketAddress service_address(/*dual_stack=*/false);
-  if (!SocketAddress::FromBytes(service_address,
-                                nsd_service_info.GetIPAddress(),
-                                nsd_service_info.GetPort())) {
-    LOG(ERROR) << "no valid service address and port to connect.";
-    return false;
-  }
-  SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-  ioctlsocket(sock, /*cmd=*/FIONBIO, /*argp=*/&non_blocking);
-  if (connect(sock, service_address.address(), sizeof(sockaddr_storage)) ==
-      SOCKET_ERROR) {
-    tm.tv_sec = timeout / absl::Seconds(1);
-    tm.tv_usec = 0;
-    FD_ZERO(&set);
-    FD_SET(sock, &set);
-
-    if (select(sock + 1, nullptr, &set, nullptr, &tm) > 0) {
-      getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&error,
-                 /*(socklen_t *)*/ &size);
-      result = error == 0;
-    } else {
-      result = false;
+bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
+                                           absl::Duration timeout) {
+  std::string ipv4_address = nsd_service_info.GetIPAddress();
+  if (!ipv4_address.empty()) {
+    bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableIpv6DualStack);
+    SocketAddress service_address(dual_stack);
+    if (SocketAddress::FromBytes(service_address, ipv4_address,
+                                 nsd_service_info.GetPort())) {
+      if (TestConnection(service_address, timeout)) {
+        return true;
+      }
+      VLOG(1) << "Failed to connect to IPv4 address: "
+              << service_address.ToString();
     }
-  } else {
-    result = true;
   }
 
-  non_blocking = 0;
-  ioctlsocket(sock, /*cmd=*/FIONBIO, /*argp=*/&non_blocking);
-
-  if (result) {
-    closesocket(sock);
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+    platform::config_package_nearby::nearby_platform_feature::
+        kEnableMdnsIpv6)) {
+    return false;
   }
-
-  return result;
+  std::string ipv6_address = nsd_service_info.GetIPv6Address();
+  if (ipv6_address.empty()) {
+    return false;
+  }
+  SocketAddress server_address(/*dual_stack=*/true);
+  if (!server_address.FromString(server_address, ipv6_address,
+                                 nsd_service_info.GetPort())) {
+    return false;
+  }
+  if (TestConnection(server_address, timeout)) {
+    return true;
+  }
+  VLOG(1) << "Failed to connect to IPv6 address: " << ipv6_address;
+  return false;
 }
 
 }  // namespace nearby::windows

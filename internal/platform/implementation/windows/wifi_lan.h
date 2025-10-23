@@ -271,8 +271,11 @@ class WifiLanMedium : public api::WifiLanMedium {
 
   // Checks whether the service in the given timeout.
   // Returns true if the IP is connectable, otherwise return false.
-  bool IsConnectableIpAddress(const NsdServiceInfo& nsd_service_info,
-                              absl::Duration timeout = absl::Seconds(1));
+  bool IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
+                              absl::Duration timeout);
+
+  std::unique_ptr<api::WifiLanSocket> ConnectToSocket(
+      const SocketAddress& address, CancellationFlag* cancellation_flag);
 
   // Methods to manage discovred services.
   void ClearDiscoveredServices() ABSL_LOCKS_EXCLUDED(mutex_);

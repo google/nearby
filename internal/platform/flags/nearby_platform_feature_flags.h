@@ -65,7 +65,11 @@ constexpr auto kEnableIntelPieSdk =
 constexpr auto kEnableIpv6DualStack =
     flags::Flag<bool>(kConfigPackage, "45733519", false);
 
-// Enable/Disable new Bluetooth refactor
+// Enable/Disable use of IPv6 address from mDNS on Windows.
+constexpr auto kEnableMdnsIpv6 =
+    flags::Flag<bool>(kConfigPackage, "45735181", false);
+
+    // Enable/Disable new Bluetooth refactor
 constexpr auto kEnableNewBluetoothRefactor =
     flags::Flag<bool>(kConfigPackage, "45615156", false);
 
