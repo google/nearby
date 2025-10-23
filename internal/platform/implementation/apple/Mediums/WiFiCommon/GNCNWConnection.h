@@ -22,6 +22,47 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @protocol GNCNWConnection <NSObject>
 
+/**
+ * Creates a connection to an endpoint.
+ *
+ * @param endpoint The endpoint to connect to.
+ * @param parameters The parameters to use for the connection.
+ * @return The new connection object.
+ */
+- (nw_connection_t)createWithEndpoint:(nw_endpoint_t)endpoint
+                           parameters:(nw_parameters_t)parameters;
+
+/**
+ * Sets the dispatch queue for the connection.
+ *
+ * @param connection The connection object.
+ * @param queue The dispatch queue to use for the connection.
+ */
+- (void)setQueue:(nw_connection_t)connection queue:(dispatch_queue_t)queue;
+
+/**
+ * Sets the state changed handler for the connection.
+ *
+ * @param connection The connection object.
+ * @param handler The state changed handler to use for the connection.
+ */
+- (void)setStateChangedHandler:(nw_connection_t)connection
+                       handler:(nw_connection_state_changed_handler_t)handler;
+
+/**
+ * Starts the connection.
+ *
+ * @param connection The connection object.
+ */
+- (void)start:(nw_connection_t)connection;
+
+/**
+ * Cancels the connection.
+ *
+ * @param connection The connection object.
+ */
+- (void)cancel:(nw_connection_t)connection;
+
 @optional
 /**
  * Initializes the connection object with a Network.framework connection object.
@@ -34,7 +75,8 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Receives a message from the connection.
  *
- * @param minIncompleteLength The minimum number of bytes to receive before the completion handler is called.
+ * @param minIncompleteLength The minimum number of bytes to receive before the completion handler
+ * is called.
  * @param maxLengths The maximum number of bytes to receive.
  * @param handler The completion handler to call when the receive is complete or an error occurs.
  */
@@ -56,11 +98,6 @@ NS_ASSUME_NONNULL_BEGIN
               context:(nw_content_context_t)context
            isComplete:(BOOL)isComplete
     completionHandler:(void (^)(nw_error_t _Nullable error))handler;
-
-/**
- * Cancels the connection.
- */
-- (void)cancel;
 
 /**
  * Returns the underlying nw_connection_t object.

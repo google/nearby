@@ -22,6 +22,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 @synthesize port = _port;
 
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _stateForStart = nw_listener_state_ready;
+  }
+  return self;
+}
+
 - (void)setNewConnectionHandler:(void (^)(nw_connection_t connection))handler {
   self.capturedNewConnectionHandler = handler;
 }
@@ -40,10 +48,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)start {
   self.startCalled = YES;
+  if (self.simulateTimeout) {
+    return;
+  }
   // Trigger the state change handler asynchronously.
   if (self.capturedStateChangedHandler) {
-    nw_listener_state_t state =
-        self.simulatedError ? nw_listener_state_failed : nw_listener_state_ready;
+    nw_listener_state_t state = self.simulatedError ? nw_listener_state_failed : self.stateForStart;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       // We cannot create a realistic nw_error_t, so pass nil.
       self.capturedStateChangedHandler(state, nil);
@@ -53,11 +63,24 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)cancel {
   self.cancelCalled = YES;
+  if (self.capturedStateChangedHandler) {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      self.capturedStateChangedHandler(nw_listener_state_cancelled, nil);
+    });
+  }
 }
 
 - (void)setAdvertiseDescriptor:(nullable nw_advertise_descriptor_t)advertiseDescriptor {
   self.setAdvertiseDescriptorCalled = YES;
   self.capturedAdvertiseDescriptor = advertiseDescriptor;
+}
+
+- (void)simulateNewConnection:(nw_connection_t)connection {
+  if (self.capturedNewConnectionHandler) {
+    dispatch_async(self.capturedQueue ?: dispatch_get_main_queue(), ^{
+      self.capturedNewConnectionHandler(connection);
+    });
+  }
 }
 
 @end
