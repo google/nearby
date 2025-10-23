@@ -48,6 +48,8 @@
                                error:(NSError **)error {
   self.startedDiscoveryServiceType = serviceType;
   self.startedDiscoveryIncludePeerToPeer = includePeerToPeer;
+  self.serviceFoundHandler = serviceFoundHandler;
+  self.serviceLostHandler = serviceLostHandler;
   return YES;
 }
 
@@ -118,6 +120,20 @@
       [[GNCFakeNWFrameworkServerSocket alloc] initWithPort:port];
   [self.serverSockets addObject:serverSocket];
   return serverSocket;
+}
+
+- (void)triggerServiceFound:(NSString *)serviceName
+                 txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+  if (self.serviceFoundHandler) {
+    self.serviceFoundHandler(serviceName, txtRecords);
+  }
+}
+
+- (void)triggerServiceLost:(NSString *)serviceName
+                txtRecords:(NSDictionary<NSString *, NSString *> *)txtRecords {
+  if (self.serviceLostHandler) {
+    self.serviceLostHandler(serviceName, txtRecords);
+  }
 }
 
 @end
