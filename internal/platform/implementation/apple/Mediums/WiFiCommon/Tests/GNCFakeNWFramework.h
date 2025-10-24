@@ -42,6 +42,13 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) NSMutableArray<GNCFakeNWFrameworkServerSocket*>* serverSockets;
 @property(nonatomic, nullable) dispatch_source_t connectedWithCancelSource;
 @property(nonatomic, nullable) dispatch_queue_t connectedWithQueue;
+@property(nonatomic, nullable) ServiceUpdateHandler serviceFoundHandler;
+@property(nonatomic, nullable) ServiceUpdateHandler serviceLostHandler;
+
+- (void)triggerServiceFound:(NSString*)serviceName
+                 txtRecords:(NSDictionary<NSString*, NSString*>*)txtRecords;
+- (void)triggerServiceLost:(NSString*)serviceName
+                txtRecords:(NSDictionary<NSString*, NSString*>*)txtRecords;
 
 @end
 
