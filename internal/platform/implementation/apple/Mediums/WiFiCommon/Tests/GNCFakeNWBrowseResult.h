@@ -12,22 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResult.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-/**
- * The default implementation of GNCNWConnection that calls the real Network.framework C
- * functions.
- */
-@interface GNCNWConnectionImpl : NSObject <GNCNWConnection>
+// Fake interface for testing
+@interface GNCFakeNWInterface : NSObject <OS_nw_interface>
+@property(nonatomic) nw_interface_type_t type;
+@end
 
-- (instancetype)initWithNWConnection:(nw_connection_t)connection;
+@interface GNCFakeNWBrowseResult : NSObject <GNCNWBrowseResult>
+@property(nonatomic, copy) NSArray<GNCFakeNWInterface *> *interfaces;
+@property(nonatomic, nullable) NSDictionary<NSString *, NSString *> *txtRecord;
 
-- (instancetype)init NS_DESIGNATED_INITIALIZER;
+@property(nonatomic) nw_browse_result_change_t getChangesFromResult;
+@property(nonatomic, nullable) nw_endpoint_t endpointFromResultResult;
+@property(nonatomic, nullable) NSString *getBonjourServiceNameFromEndpointResult;
 
 @end
 
