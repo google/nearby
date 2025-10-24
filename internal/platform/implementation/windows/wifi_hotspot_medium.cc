@@ -383,9 +383,11 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
 }
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
-    HotspotCredentials* hotspot_credentials) {
+    const HotspotCredentials& hotspot_credentials) {
   absl::MutexLock lock(mutex_);
 
+  std::string ssid = hotspot_credentials.GetSSID();
+  std::string password = hotspot_credentials.GetPassword();
   try {
     if (IsConnected()) {
       LOG(WARNING) << "Already connected to Hotspot, disconnect first.";
@@ -398,7 +400,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableIntelPieSdk)) {
       auto channel = WifiUtils::ConvertFrequencyMhzToChannel(
-          hotspot_credentials->GetFrequency());
+          hotspot_credentials.GetFrequency());
       WifiIntel& intel_wifi{WifiIntel::GetInstance()};
       intel_wifi_started = intel_wifi.Start();
       if (intel_wifi_started) {
@@ -409,9 +411,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableWifiHotspotNativeScan)) {
-      if (!wifi_hotspot_native_.Scan(hotspot_credentials->GetSSID())) {
-        LOG(INFO) << "Hotspot " << hotspot_credentials->GetSSID()
-                  << " is not found";
+      if (!wifi_hotspot_native_.Scan(ssid)) {
+        LOG(INFO) << "Hotspot " << ssid << " is not found";
 
         if (intel_wifi_started) {
           WifiIntel& intel_wifi{WifiIntel::GetInstance()};
@@ -423,7 +424,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     }
 
     bool connected =
-        wifi_hotspot_native_.ConnectToWifiNetwork(hotspot_credentials);
+        wifi_hotspot_native_.ConnectToWifiNetwork(ssid, password);
 
     if (intel_wifi_started) {
       WifiIntel& intel_wifi{WifiIntel::GetInstance()};
@@ -486,7 +487,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       return false;
     }
     medium_status_ |= kMediumStatusConnected;
-    LOG(INFO) << "Connected to hotspot: " << hotspot_credentials->GetSSID();
+    LOG(INFO) << "Connected to hotspot: " << ssid;
 
     return true;
   } catch (std::exception exception) {
