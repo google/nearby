@@ -478,6 +478,10 @@ message ConnectionsLog {
     //   individually. This field increments for each part that fails to be
     //   received.
     optional int32 num_parts_failure = 4;
+
+    // True if this payload transfer is an attempt to resume an interrupted
+    // payload after a reconnection. False if it's a new payload transfer.
+    optional bool is_resumption = 5;
   }
 
   // A Payload transferred (or attempted to be transferred) between devices.
