@@ -31,7 +31,7 @@ bool TimerImpl::Start(int delay, int period,
   if (period < 0) {
     period = 0;
   }
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (internal_timer_ != nullptr) {
     LOG(INFO) << "The timer is already running.";
     return false;
@@ -47,7 +47,7 @@ bool TimerImpl::Start(int delay, int period,
 }
 
 void TimerImpl::Stop() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (internal_timer_ == nullptr) {
     return;
   }
@@ -57,7 +57,7 @@ void TimerImpl::Stop() {
 }
 
 bool TimerImpl::IsRunning() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return (internal_timer_ != nullptr);
 }
 

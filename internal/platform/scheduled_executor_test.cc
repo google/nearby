@@ -51,7 +51,7 @@ TEST(ScheduledExecutorTest, CanExecute) {
     cond.SignalAll();
   });
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     if (!done) {
       cond.WaitWithTimeout(&mutex, kLongDelay);
     }
@@ -81,7 +81,7 @@ TEST(ScheduledExecutorTest, CanSchedule) {
       kShortDelay);
   {
     // wait for the final job to unblock us; wait longer than kLongDelay.
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     cond.WaitWithTimeout(&mutex, 2 * kLongDelay);
   }
   EXPECT_EQ(value, 5);
@@ -129,7 +129,7 @@ TEST(ScheduledExecutorTest, FailToCancel) {
       },
       kLongDelay);
   {
-    absl::MutexLock lock(&mutex);
+    absl::MutexLock lock(mutex);
     cond.Wait(&mutex);
   }
   EXPECT_EQ(value, 1);
