@@ -12,22 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
-
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-/**
- * The default implementation of GNCNWConnection that calls the real Network.framework C
- * functions.
- */
-@interface GNCNWConnectionImpl : NSObject <GNCNWConnection>
+@protocol GNCNWBrowser <NSObject>
 
-- (instancetype)initWithNWConnection:(nw_connection_t)connection;
+- (nw_browser_t)createWithDescriptor:(nw_browse_descriptor_t)descriptor
+                          parameters:(nw_parameters_t)parameters;
 
-- (instancetype)init NS_DESIGNATED_INITIALIZER;
+- (void)setQueue:(nw_browser_t)browser queue:(dispatch_queue_t)queue;
+
+- (void)setBrowseResultsChangedHandler:(nw_browser_t)browser
+                               handler:(nw_browser_browse_results_changed_handler_t)handler;
+
+- (void)setStateChangedHandler:(nw_browser_t)browser
+                       handler:(nw_browser_state_changed_handler_t)handler;
+
+- (void)start:(nw_browser_t)browser;
+
+- (void)cancel:(nw_browser_t)browser;
 
 @end
 

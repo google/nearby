@@ -25,6 +25,7 @@
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkSocket.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/Tests/GNCFakeNWListener.h"
+#import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
 @interface GNCNWFrameworkServerSocketTest : XCTestCase
 @end
@@ -88,6 +89,59 @@
 
   XCTAssertNotNil(socket, @"acceptWithError should return a non-nil socket");
   XCTAssertNil(error, @"error should be nil when accept is successful");
+}
+
+- (void)testAcceptWithError_FailureWhenListenerFails API_AVAILABLE(ios(13.0)) {
+  // Simulate listener entering a failed state.
+  _serverSocket.listenerState = nw_listener_state_failed;
+  _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
+
+  NSError *error = nil;
+  GNCNWFrameworkSocket *socket = [_serverSocket acceptWithError:&error];
+
+  XCTAssertNil(socket, @"acceptWithError should return nil when listener has failed");
+  XCTAssertNotNil(error, @"error should be non-nil when listener has failed");
+  XCTAssertEqualObjects(error.domain, @"Test");
+  XCTAssertEqual(error.code, 123);
+}
+
+- (void)testStartListening_Timeout API_AVAILABLE(ios(13.0)) {
+  _fakeListener.simulateTimeout = YES;
+  NSError *error = nil;
+  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, GNCNWFrameworkErrorDomain);
+  XCTAssertEqual(error.code, GNCNWFrameworkErrorTimedOut);
+}
+
+- (void)testStartListening_StateInvalid API_AVAILABLE(ios(13.0)) {
+  _fakeListener.stateForStart = nw_listener_state_invalid;
+  _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
+  NSError *error = nil;
+  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, @"Test");
+  XCTAssertEqual(error.code, 123);
+}
+
+- (void)testStartListening_StateWaiting API_AVAILABLE(ios(13.0)) {
+  _fakeListener.stateForStart = nw_listener_state_waiting;
+  _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
+  NSError *error = nil;
+  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, @"Test");
+  XCTAssertEqual(error.code, 123);
+}
+
+- (void)testStartListening_StateCancelled API_AVAILABLE(ios(13.0)) {
+  _fakeListener.stateForStart = nw_listener_state_cancelled;
+  _serverSocket.listenerError = [NSError errorWithDomain:@"Test" code:123 userInfo:nil];
+  NSError *error = nil;
+  XCTAssertFalse([_serverSocket startListeningWithError:&error includePeerToPeer:NO]);
+  XCTAssertNotNil(error);
+  XCTAssertEqualObjects(error.domain, @"Test");
+  XCTAssertEqual(error.code, 123);
 }
 
 - (void)testStartListeningWithError_Success API_AVAILABLE(ios(13.0)) {
@@ -218,6 +272,91 @@
                  @"Connection should be removed from pending connections on failure.");
   XCTAssertFalse([_serverSocket.readyConnections containsObject:connection],
                  @"Connection should not be added to ready connections on failure.");
+}
+
+- (void)testHandleNewConnectionAddsConnectionToPendingList API_AVAILABLE(ios(13.0)) {
+  id partialServerSocket = OCMPartialMock(_serverSocket);
+  OCMStub([partialServerSocket configureAndStartConnection:[OCMArg any]]);
+
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  nw_connection_t connection = (nw_connection_t)fakeConnection;
+
+  [partialServerSocket handleNewConnection:connection];
+
+  XCTAssertTrue([_serverSocket.pendingConnections containsObject:connection],
+                @"handleNewConnection should add the connection to pendingConnections.");
+}
+
+- (void)testHandleConnectionStateChange_Cancelled API_AVAILABLE(ios(13.0)) {
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  nw_connection_t connection = (nw_connection_t)fakeConnection;
+
+  // Manually add to pending connections.
+  [_serverSocket.pendingConnections addObject:connection];
+
+  // Simulate the connection failing.
+  [_serverSocket handleConnectionStateChange:connection
+                                       state:nw_connection_state_cancelled
+                                       error:nil];
+
+  XCTAssertFalse([_serverSocket.pendingConnections containsObject:connection],
+                 @"Connection should be removed from pending connections on failure.");
+  XCTAssertFalse([_serverSocket.readyConnections containsObject:connection],
+                 @"Connection should not be added to ready connections on failure.");
+}
+
+- (void)testHandleConnectionStateChange_Invalid API_AVAILABLE(ios(13.0)) {
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  nw_connection_t connection = (nw_connection_t)fakeConnection;
+
+  // Manually add to pending connections.
+  [_serverSocket.pendingConnections addObject:connection];
+
+  // Simulate the connection failing.
+  [_serverSocket handleConnectionStateChange:connection
+                                       state:nw_connection_state_invalid
+                                       error:nil];
+
+  XCTAssertFalse([_serverSocket.pendingConnections containsObject:connection],
+                 @"Connection should be removed from pending connections on failure.");
+  XCTAssertFalse([_serverSocket.readyConnections containsObject:connection],
+                 @"Connection should not be added to ready connections on failure.");
+}
+
+- (void)testHandleConnectionStateChange_Waiting API_AVAILABLE(ios(13.0)) {
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  nw_connection_t connection = (nw_connection_t)fakeConnection;
+
+  // Manually add to pending connections.
+  [_serverSocket.pendingConnections addObject:connection];
+
+  // Simulate the connection failing.
+  [_serverSocket handleConnectionStateChange:connection
+                                       state:nw_connection_state_waiting
+                                       error:nil];
+
+  XCTAssertFalse([_serverSocket.pendingConnections containsObject:connection],
+                 @"Connection should be removed from pending connections on failure.");
+  XCTAssertFalse([_serverSocket.readyConnections containsObject:connection],
+                 @"Connection should not be added to ready connections on failure.");
+}
+
+- (void)testHandleConnectionStateChange_Preparing API_AVAILABLE(ios(13.0)) {
+  GNCFakeNWConnection *fakeConnection = [[GNCFakeNWConnection alloc] init];
+  nw_connection_t connection = (nw_connection_t)fakeConnection;
+
+  // Manually add to pending connections.
+  [_serverSocket.pendingConnections addObject:connection];
+
+  // Simulate the connection failing.
+  [_serverSocket handleConnectionStateChange:connection
+                                       state:nw_connection_state_preparing
+                                       error:nil];
+
+  XCTAssertTrue([_serverSocket.pendingConnections containsObject:connection],
+                @"Connection should remain in pending connections when preparing.");
+  XCTAssertFalse([_serverSocket.readyConnections containsObject:connection],
+                 @"Connection should not be added to ready connections when preparing.");
 }
 
 @end

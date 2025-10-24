@@ -43,7 +43,12 @@ static NSString *const kWrongSSID = @"WrongSSID";
 @implementation GNCHotspotMediumTests {
   GNCHotspotMedium *_hotspotMedium;
   CLLocationManagerFake *_fakeLocationManager;
-#if TARGET_OS_OSX
+#if TARGET_OS_IOS
+  id _mockHotspotConfigurationManager;
+  id _mockHotspotConfigurationManagerClass;
+  id _mockHotspotNetwork;
+  id _mockHotspotNetworkClass;
+#elif TARGET_OS_OSX
   id _mockWiFiClient;
   id _mockWiFiClientClass;
   id _mockWiFiInterface;
@@ -56,7 +61,14 @@ static NSString *const kWrongSSID = @"WrongSSID";
   _hotspotMedium = [[GNCHotspotMedium alloc] initWithQueue:dispatch_get_main_queue()];
   _fakeLocationManager = [[CLLocationManagerFake alloc] init];
   _hotspotMedium.locationManager = _fakeLocationManager;
-#if TARGET_OS_OSX
+#if TARGET_OS_IOS
+  _mockHotspotConfigurationManager = OCMClassMock([NEHotspotConfigurationManager class]);
+  _mockHotspotConfigurationManagerClass = OCMClassMock([NEHotspotConfigurationManager class]);
+  OCMStub([_mockHotspotConfigurationManagerClass sharedManager])
+      .andReturn(_mockHotspotConfigurationManager);
+  _mockHotspotNetwork = OCMClassMock([NEHotspotNetwork class]);
+  _mockHotspotNetworkClass = OCMClassMock([NEHotspotNetwork class]);
+#elif TARGET_OS_OSX
   // Success/failure tests for connecting on macOS require mocking CoreWLAN.
   _mockWiFiInterface = OCMClassMock([CWInterface class]);
   _mockWiFiClient = OCMClassMock([CWWiFiClient class]);
@@ -69,7 +81,12 @@ static NSString *const kWrongSSID = @"WrongSSID";
 
 - (void)tearDown {
   [super tearDown];
-#if TARGET_OS_OSX
+#if TARGET_OS_IOS
+  [_mockHotspotConfigurationManager stopMocking];
+  [_mockHotspotConfigurationManagerClass stopMocking];
+  [_mockHotspotNetwork stopMocking];
+  [_mockHotspotNetworkClass stopMocking];
+#elif TARGET_OS_OSX
   [_mockWiFiClient stopMocking];
   [_mockWiFiClientClass stopMocking];
   [_mockWiFiInterface stopMocking];
@@ -95,10 +112,90 @@ static NSString *const kWrongSSID = @"WrongSSID";
 }
 
 #if TARGET_OS_IOS
-- (void)testConnectToWifiNetworkWithSSID_iOS {
-  // iOS implementation via NEHotspotConfigurationManager is not supported in unit tests
-  // and the current implementation returns NO.
-  XCTAssertFalse([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+- (void)testConnectToWifiNetworkWithSSID_Success_iOS {
+  if (@available(iOS 14.0, *)) {
+    OCMStub([_mockHotspotConfigurationManager
+        applyConfiguration:[OCMArg any]
+         completionHandler:([OCMArg invokeBlockWithArgs:[NSNull null], nil])]);
+    OCMStub([_mockHotspotNetwork SSID]).andReturn(kSSID);
+    OCMStub([_mockHotspotNetworkClass
+        fetchCurrentWithCompletionHandler:([OCMArg invokeBlockWithArgs:_mockHotspotNetwork, nil])]);
+    [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedWhenInUse];
+
+    XCTAssertTrue([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+  } else {
+    XCTSkip(@"iOS 14+ only test.");
+  }
+}
+
+- (void)testConnectToWifiNetworkWithSSID_AlreadyAssociated_iOS {
+  if (@available(iOS 14.0, *)) {
+    NSError *error = [NSError errorWithDomain:NEHotspotConfigurationErrorDomain
+                                         code:NEHotspotConfigurationErrorAlreadyAssociated
+                                     userInfo:nil];
+    OCMStub([_mockHotspotConfigurationManager
+        applyConfiguration:[OCMArg any]
+         completionHandler:([OCMArg invokeBlockWithArgs:error, nil])]);
+    OCMStub([_mockHotspotNetwork SSID]).andReturn(kSSID);
+    OCMStub([_mockHotspotNetworkClass
+        fetchCurrentWithCompletionHandler:([OCMArg invokeBlockWithArgs:_mockHotspotNetwork, nil])]);
+    [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedWhenInUse];
+
+    XCTAssertTrue([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+  } else {
+    XCTSkip(@"iOS 14+ only test.");
+  }
+}
+
+- (void)testConnectToWifiNetworkWithSSID_ConnectError_iOS {
+  if (@available(iOS 14.0, *)) {
+    NSError *error = [NSError errorWithDomain:NEHotspotConfigurationErrorDomain
+                                         code:NEHotspotConfigurationErrorInvalid
+                                     userInfo:nil];
+    OCMStub([_mockHotspotConfigurationManager
+        applyConfiguration:[OCMArg any]
+         completionHandler:([OCMArg invokeBlockWithArgs:error, nil])]);
+    OCMExpect([_mockHotspotConfigurationManager removeConfigurationForSSID:kSSID]);
+    [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedWhenInUse];
+
+    XCTAssertFalse([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+    OCMVerifyAll(_mockHotspotConfigurationManager);
+  } else {
+    XCTSkip(@"iOS 14+ only test.");
+  }
+}
+
+- (void)testConnectToWifiNetworkWithSSID_WrongSSID_iOS {
+  if (@available(iOS 14.0, *)) {
+    OCMStub([_mockHotspotConfigurationManager
+        applyConfiguration:[OCMArg any]
+         completionHandler:([OCMArg invokeBlockWithArgs:[NSNull null], nil])]);
+    OCMStub([_mockHotspotNetwork SSID]).andReturn(kWrongSSID);
+    OCMStub([_mockHotspotNetworkClass
+        fetchCurrentWithCompletionHandler:([OCMArg invokeBlockWithArgs:_mockHotspotNetwork, nil])]);
+    OCMExpect([_mockHotspotConfigurationManager removeConfigurationForSSID:kSSID]);
+    [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedWhenInUse];
+
+    XCTAssertFalse([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+    OCMVerifyAll(_mockHotspotConfigurationManager);
+  } else {
+    XCTSkip(@"iOS 14+ only test.");
+  }
+}
+
+- (void)testConnectToWifiNetworkWithSSID_FetchCurrentSSIDFails_iOS {
+  if (@available(iOS 14.0, *)) {
+    OCMStub([_mockHotspotConfigurationManager
+        applyConfiguration:[OCMArg any]
+         completionHandler:([OCMArg invokeBlockWithArgs:[NSNull null], nil])]);
+    OCMStub([_mockHotspotNetworkClass
+        fetchCurrentWithCompletionHandler:([OCMArg invokeBlockWithArgs:[NSNull null], nil])]);
+    [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedWhenInUse];
+
+    XCTAssertTrue([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+  } else {
+    XCTSkip(@"iOS 14+ only test.");
+  }
 }
 #elif TARGET_OS_OSX
 - (void)testConnectToWifiNetworkWithSSID_PermissionDenied_MacOS {
@@ -113,7 +210,8 @@ static NSString *const kWrongSSID = @"WrongSSID";
 
 - (void)testConnectToWifiNetworkWithSSID_Success_MacOS {
   [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedAlways];
-  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:kSSID error:[OCMArg anyObjectRef]])
+  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:[kSSID dataUsingEncoding:NSUTF8StringEncoding]
+                                                error:[OCMArg anyObjectRef]])
       .andReturn([NSSet setWithObject:_mockNetwork]);
   OCMStub([_mockWiFiInterface associateToNetwork:_mockNetwork
                                         password:kPassword
@@ -124,27 +222,49 @@ static NSString *const kWrongSSID = @"WrongSSID";
 
 - (void)testConnectToWifiNetworkWithSSID_ScanFailure_MacOS {
   [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedAlways];
-  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:kSSID error:[OCMArg anyObjectRef]])
+  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:[kSSID dataUsingEncoding:NSUTF8StringEncoding]
+                                                error:[OCMArg anyObjectRef]])
       .andReturn(nil);
   XCTAssertFalse([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
 }
 
 - (void)testConnectToWifiNetworkWithSSID_NetworkNotFound_MacOS {
   [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedAlways];
-  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:kSSID error:[OCMArg anyObjectRef]])
+  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:[kSSID dataUsingEncoding:NSUTF8StringEncoding]
+                                                error:[OCMArg anyObjectRef]])
       .andReturn([NSSet set]);
   XCTAssertFalse([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
 }
 
 - (void)testConnectToWifiNetworkWithSSID_AssociationFailure_MacOS {
   [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedAlways];
-  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:kSSID error:[OCMArg anyObjectRef]])
+  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:[kSSID dataUsingEncoding:NSUTF8StringEncoding]
+                                                error:[OCMArg anyObjectRef]])
       .andReturn([NSSet setWithObject:_mockNetwork]);
   OCMStub([_mockWiFiInterface associateToNetwork:_mockNetwork
                                         password:kPassword
                                            error:[OCMArg anyObjectRef]])
       .andReturn(NO);
   XCTAssertFalse([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+}
+
+- (void)testConnectToWifiNetworkWithSSID_MultipleNetworksFound_MacOS {
+  [_fakeLocationManager setAuthorizationStatus:kCLAuthorizationStatusAuthorizedAlways];
+  id mockNetwork1 = OCMClassMock([CWNetwork class]);
+  id mockNetwork2 = OCMClassMock([CWNetwork class]);
+  OCMStub([mockNetwork1 rssiValue]).andReturn(-50);
+  OCMStub([mockNetwork2 rssiValue]).andReturn(-40);  // best network
+  NSSet *networks = [NSSet setWithObjects:mockNetwork1, mockNetwork2, nil];
+  OCMStub([_mockWiFiInterface scanForNetworksWithSSID:[kSSID dataUsingEncoding:NSUTF8StringEncoding]
+                                                error:[OCMArg anyObjectRef]])
+      .andReturn(networks);
+  OCMStub([_mockWiFiInterface associateToNetwork:mockNetwork2
+                                        password:kPassword
+                                           error:[OCMArg anyObjectRef]])
+      .andReturn(YES);
+  XCTAssertTrue([_hotspotMedium connectToWifiNetworkWithSSID:kSSID password:kPassword]);
+  [mockNetwork1 stopMocking];
+  [mockNetwork2 stopMocking];
 }
 #endif
 
