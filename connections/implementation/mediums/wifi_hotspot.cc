@@ -135,7 +135,6 @@ HotspotCredentials* WifiHotspot::GetCredentials(absl::string_view service_id) {
     return crendential;
   }
   crendential->SetGateway(it->second.GetIPAddress());
-  crendential->SetIPAddress(it->second.GetIPAddress());
   crendential->SetPort(it->second.GetPort());
 
   return crendential;

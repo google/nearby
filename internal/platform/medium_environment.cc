@@ -1045,7 +1045,7 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
     if (info.is_ap && info.hotspot_credentials) {
       if ((info.hotspot_credentials->GetSSID() == ssid) ||
           (!ip_address.empty() &&
-           (info.hotspot_credentials->GetIPAddress() == ip_address))) {
+           (info.hotspot_credentials->GetGateway() == ip_address))) {
         LOG(INFO) << "Found Remote WifiHotspot medium=" << medium_found;
         return medium_found;
       }

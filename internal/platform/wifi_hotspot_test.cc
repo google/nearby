@@ -140,7 +140,7 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
 
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
-  wifi_hotspot_a->GetCredential()->SetIPAddress(server_socket.GetIPAddress());
+  wifi_hotspot_a->GetCredential()->SetGateway(server_socket.GetIPAddress());
 
   WifiHotspotSocket socket_a;
   WifiHotspotSocket socket_b;
@@ -205,7 +205,7 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
 
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
-  wifi_hotspot_a->GetCredential()->SetIPAddress(server_socket.GetIPAddress());
+  wifi_hotspot_a->GetCredential()->SetGateway(server_socket.GetIPAddress());
 
   WifiHotspotSocket socket_a;
   WifiHotspotSocket socket_b;

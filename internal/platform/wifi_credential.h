@@ -43,12 +43,8 @@ class HotspotCredentials {
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
 
-  // Gets IP Address, which is in byte sequence, in network order. For example,
-  // for "192.168.1.1", it'll be byte(129)+byte(168)+byte(1)+byte(1). Now only
-  // ipv4 is supported.
-  std::string GetIPAddress() const { return ip_address_; }
-  void SetIPAddress(const std::string& ip_address) { ip_address_ = ip_address; }
-
+  // Gets IP Address in string format.
+  // This is the IP address at which the service is provided.
   std::string GetGateway() const { return gateway_; }
   void SetGateway(const std::string& gateway) { gateway_ = gateway; }
 
@@ -76,8 +72,7 @@ class HotspotCredentials {
  private:
   std::string ssid_;
   std::string password_;
-  std::string ip_address_;
-  std::string gateway_ = "0.0.0.0";
+  std::string gateway_;
   int port_ = 0;
   int frequency_ = -1;
   location::nearby::proto::connections::ConnectionBand band_;
