@@ -235,11 +235,6 @@ api::WifiInformation& WifiMedium::GetInformation() {
   return wifi_information_;
 }
 
-std::string WifiMedium::GetIpAddress() {
-  GetInformation();
-  return wifi_information_.ip_address_dot_decimal;
-}
-
 std::string WifiMedium::InternalGetWifiIpAddress() {
   try {
     auto host_names = NetworkInformation::GetHostNames();

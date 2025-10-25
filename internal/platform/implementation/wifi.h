@@ -123,17 +123,6 @@ class WifiMedium {
   virtual WifiConnectionStatus ConnectToNetwork(absl::string_view ssid,
                                                 absl::string_view password,
                                                 WifiAuthType auth_type) = 0;
-
-  // Blocks until it's certain of there being a connection to the internet, or
-  // returns false if it fails to do so.
-  //
-  // How this method wants to verify said connection is totally up to it (so it
-  // can feel free to ping whatever server, download whatever resource, etc.
-  // that it needs to gain confidence that the internet is reachable hereon in).
-  virtual bool VerifyInternetConnectivity() = 0;
-
-  // Returns the local device's IP address in the IPv4 dotted-quad format.
-  virtual std::string GetIpAddress() = 0;
 };
 
 }  // namespace api
