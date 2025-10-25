@@ -64,11 +64,6 @@ class WifiMedium : public api::WifiMedium {
     absl::MutexLock lock(&mutex_);
     return wifi_information_;
   }
-  std::string GetIpAddress() override {
-    absl::MutexLock lock(&mutex_);
-    return wifi_information_.ip_address_dot_decimal;
-  }
-
   class ScanResultCallback : public api::WifiMedium::ScanResultCallback {
    public:
     // TODO(b/184975123): replace with real implementation.
@@ -96,15 +91,6 @@ class WifiMedium : public api::WifiMedium {
       api::WifiAuthType auth_type) override {
     return api::WifiConnectionStatus::kUnknown;
   }
-
-  // Blocks until it's certain of there being a connection to the internet, or
-  // returns false if it fails to do so.
-  //
-  // How this method wants to verify said connection is totally up to it (so it
-  // can feel free to ping whatever server, download whatever resource, etc.
-  // that it needs to gain confidence that the internet is reachable hereon in).
-  // TODO(b/184975123): replace with real implementation.
-  bool VerifyInternetConnectivity() override { return false; }
 
  private:
   absl::Mutex mutex_;

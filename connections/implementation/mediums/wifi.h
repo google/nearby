@@ -50,16 +50,6 @@ class Wifi {
     return medium_.GetInformation();
   }
 
-  bool VerifyInternetConnectivity() {
-    MutexLock lock(&mutex_);
-    return medium_.VerifyInternetConnectivity();
-  }
-
-  std::string GetIpAddress() const {
-    MutexLock lock(&mutex_);
-    return medium_.GetIpAddress();
-  }
-
  private:
   mutable Mutex mutex_;
   WifiMedium medium_ ABSL_GUARDED_BY(mutex_);
