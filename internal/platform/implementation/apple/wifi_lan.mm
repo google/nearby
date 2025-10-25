@@ -183,5 +183,10 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(int po
   return nil;
 }
 
+std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+    const api::WifiLanServerSocket& server_socket) {
+  return { server_socket.GetIPAddress() };
+}
+
 }  // namespace apple
 }  // namespace nearby

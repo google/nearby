@@ -25,7 +25,6 @@
 #include <cstring>
 #include <cwchar>
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 
@@ -39,7 +38,6 @@
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 
@@ -113,8 +111,8 @@ WifiHotspotNative::~WifiHotspotNative() {
   VLOG(1) << "WifiHotspotNative destroyed successfully.";
 }
 
-bool WifiHotspotNative::ConnectToWifiNetwork(
-    HotspotCredentials* hotspot_credentials) {
+bool WifiHotspotNative::ConnectToWifiNetwork(absl::string_view ssid,
+                                             absl::string_view password) {
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid == GUID_NULL) {
     LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
@@ -122,7 +120,7 @@ bool WifiHotspotNative::ConnectToWifiNetwork(
   }
   {
     absl::MutexLock lock(mutex_);
-    if (!SetWlanProfile(interface_guid, hotspot_credentials)) {
+    if (!SetWlanProfile(interface_guid, ssid, password)) {
       LOG(ERROR) << "Failed to set WLAN profile.";
       return false;
     }
@@ -428,9 +426,8 @@ bool WifiHotspotNative::UnregisterWlanNotificationCallback() {
 }
 
 bool WifiHotspotNative::SetWlanProfile(
-    GUID interface_guid, HotspotCredentials* hotspot_credentials) {
-  std::wstring profile = BuildWlanProfile(hotspot_credentials->GetSSID(),
-                                          hotspot_credentials->GetPassword());
+    GUID interface_guid, absl::string_view ssid, absl::string_view password) {
+  std::wstring profile = BuildWlanProfile(ssid, password);
   DWORD reason = 0;
   DWORD result = WlanSetProfile(
       /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,

@@ -18,8 +18,10 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
+#include "absl/strings/str_cat.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -124,20 +126,27 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   // Note: Credentials are not populated until StartAcceptingConnections() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
-  auto ip_address = credential.first;
-  auto port = credential.second;
-  if (ip_address.empty()) {
+  std::pair<std::vector<std::string>, int> upgrade_candidates =
+      wifi_lan_medium_.GetUpgradeAddressCandidates(upgrade_service_id);
+  const std::vector<std::string>& ip_addresses = upgrade_candidates.first;
+  int port = upgrade_candidates.second;
+  if (ip_addresses.empty()) {
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
               << endpoint_id
-              << " because the wifi_lan ip address were unable to be obtained.";
+              << " because there are no available ip addresses.";
     return {};
   }
-
+  // For compatibility with Android versions, use the last IP address if it is
+  // IPv4.
+  std::string ip_address = ip_addresses.back();
+  if (ip_address.size() != 4) {
+    return {};
+  }
   LOG(INFO) << "WifiLanBwuHandler retrieved WIFI_LAN credentials. IP addr: "
-            << ip_address[0] << "." << ip_address[1] << "." << ip_address[2]
-            << "." << ip_address[3] << ",  Port: " << port;
+            << absl::Hex(ip_address[0]) << "." << absl::Hex(ip_address[1])
+            << "." << absl::Hex(ip_address[2]) << "."
+            << absl::Hex(ip_address[3]) << ",  Port: " << port;
 
   return parser::ForBwuWifiLanPathAvailable(ip_address, port);
 }

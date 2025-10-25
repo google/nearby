@@ -158,7 +158,8 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;
   // Discoverer connects to the Hotspot
-  bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials) override;
+  bool ConnectWifiHotspot(
+      const HotspotCredentials& hotspot_credentials) override;
   // Discoverer disconnects from the Hotspot
   bool DisconnectWifiHotspot() override;
 

@@ -45,11 +45,13 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/socket_address.h"
+#include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
@@ -778,6 +780,42 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
   }
   VLOG(1) << "Failed to connect to IPv6 address: " << ipv6_address;
   return false;
+}
+
+std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+    const api::WifiLanServerSocket& server_socket) {
+  const NetworkInfo& network_info = NetworkInfo::GetNetworkInfo();
+  std::vector<std::string> ip_addresses;
+  std::vector<std::string> ipv4_addresses;
+  for (const auto& net_interface : network_info.GetInterfaces()) {
+    // Only use wifi and ethernet interfaces for upgrade.
+    if (net_interface.type != InterfaceType::kWifi &&
+        net_interface.type != InterfaceType::kEthernet) {
+      continue;
+    }
+    for (const auto& ipv6_address : net_interface.ipv6_addresses) {
+      SocketAddress address(ipv6_address);
+      // Link local addresses cannot be used for upgrade since we can't tell
+      // which interface on the remote device the address is valid.
+      if (address.IsV6LinkLocal()) {
+        continue;
+      }
+      ip_addresses.push_back(
+          std::string(reinterpret_cast<const char*>(
+                          &address.ipv6_address()->sin6_addr.u.Byte[0]),
+                      16));
+    }
+    for (const auto& ipv4address : net_interface.ipv4_addresses) {
+      auto address = reinterpret_cast<const sockaddr_in*>(&ipv4address);
+      ipv4_addresses.push_back(std::string(
+          reinterpret_cast<const char*>(&address->sin_addr.S_un.S_un_b.s_b1),
+          4));
+    }
+  }
+  // Append v4 addresses to the end of the list.
+  ip_addresses.insert(ip_addresses.end(), ipv4_addresses.begin(),
+                      ipv4_addresses.end());
+  return ip_addresses;
 }
 
 }  // namespace nearby::windows

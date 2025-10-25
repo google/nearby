@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/synchronization/mutex.h"
@@ -279,6 +280,11 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
   absl::MutexLock lock(mutex_);
   server_sockets_.insert({server_port, server_socket.get()});
   return server_socket;
+}
+
+std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+    const api::WifiLanServerSocket& server_socket) {
+  return { server_socket.GetIPAddress() };
 }
 
 }  // namespace g3
