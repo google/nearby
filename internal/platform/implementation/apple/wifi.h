@@ -84,17 +84,6 @@ class WifiMedium : public api::WifiMedium {
     return api::WifiConnectionStatus::kUnknown;
   }
 
-  /**
-   * @brief Verifies if the device has internet connectivity through the WiFi
-   * network.
-   */
-  bool VerifyInternetConnectivity() override { return false; }
-
-  /**
-   * @brief Returns the IP address of the device on the WiFi network.
-   */
-  std::string GetIpAddress() override { return ""; }
-
  private:
   api::WifiCapability capability_ = {};
   api::WifiInformation information_ = {};
