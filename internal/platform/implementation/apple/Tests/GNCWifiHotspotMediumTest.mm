@@ -72,7 +72,7 @@ const char kIPAddress[] = "192.168.1.2";
   hotspotCredentials.SetSSID("TestSSID");
   hotspotCredentials.SetPassword("TestPassword");
 
-  XCTAssertFalse(_hotspotMedium->ConnectWifiHotspot(&hotspotCredentials));
+  XCTAssertFalse(_hotspotMedium->ConnectWifiHotspot(hotspotCredentials));
 }
 
 - (void)testListenForService {

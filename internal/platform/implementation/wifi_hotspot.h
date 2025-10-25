@@ -19,7 +19,6 @@
 
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/listeners.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_credential.h"
 
@@ -101,7 +100,8 @@ class WifiHotspotMedium {
   virtual bool StopWifiHotspot() = 0;
 
   // Client device connect to a softAP with specified credential.
-  virtual bool ConnectWifiHotspot(HotspotCredentials* hotspot_credentials) = 0;
+  virtual bool ConnectWifiHotspot(
+      const HotspotCredentials& hotspot_credentials) = 0;
   virtual bool DisconnectWifiHotspot() = 0;
 
   // Returns the port range as a pair of min and max port.

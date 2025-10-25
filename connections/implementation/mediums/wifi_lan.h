@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -115,6 +116,9 @@ class WifiLan {
   // Credential is for the currently-hosted Wifi ServerSocket (if any).
   std::pair<std::string, int> GetCredentials(const std::string& service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::pair<std::vector<std::string>, int> GetUpgradeAddressCandidates(
+      const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   struct AdvertisingInfo {

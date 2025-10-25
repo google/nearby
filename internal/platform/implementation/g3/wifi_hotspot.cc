@@ -14,7 +14,6 @@
 
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -158,23 +157,23 @@ bool WifiHotspotMedium::StopWifiHotspot() {
 }
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
-    HotspotCredentials* hotspot_credentials) {
+    const HotspotCredentials& hotspot_credentials) {
   absl::MutexLock lock(mutex_);
 
-  LOG(INFO) << "G3 ConnectWifiHotspot: ssid=" << hotspot_credentials->GetSSID()
-            << ",  password:" << hotspot_credentials->GetPassword();
+  LOG(INFO) << "G3 ConnectWifiHotspot: ssid=" << hotspot_credentials.GetSSID()
+            << ",  password:" << hotspot_credentials.GetPassword();
 
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium = static_cast<WifiHotspotMedium*>(
-      env.GetWifiHotspotMedium(hotspot_credentials->GetSSID(), {}));
+      env.GetWifiHotspotMedium(hotspot_credentials.GetSSID(), ""));
   if (!remote_medium) {
-    env.UpdateWifiHotspotMediumForStartOrConnect(*this, hotspot_credentials,
+    env.UpdateWifiHotspotMediumForStartOrConnect(*this, &hotspot_credentials,
                                                  /*is_ap=*/false,
                                                  /*enabled=*/false);
     return false;
   }
 
-  env.UpdateWifiHotspotMediumForStartOrConnect(*this, hotspot_credentials,
+  env.UpdateWifiHotspotMediumForStartOrConnect(*this, &hotspot_credentials,
                                                /*is_ap=*/false,
                                                /*enabled=*/true);
   return true;
