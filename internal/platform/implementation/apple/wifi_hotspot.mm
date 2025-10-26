@@ -110,9 +110,9 @@ WifiHotspotMedium::WifiHotspotMedium(GNCHotspotMedium* hotspot_medium) : medium_
 
 WifiHotspotMedium::~WifiHotspotMedium() { DisconnectWifiHotspot(); }
 
-bool WifiHotspotMedium::ConnectWifiHotspot(HotspotCredentials* hotspot_credentials_) {
-  NSString* ssid = [[NSString alloc] initWithUTF8String:hotspot_credentials_->GetSSID().c_str()];
-  std::string hotspot_password = hotspot_credentials_->GetPassword();
+bool WifiHotspotMedium::ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials_) {
+  NSString* ssid = [[NSString alloc] initWithUTF8String:hotspot_credentials_.GetSSID().c_str()];
+  std::string hotspot_password = hotspot_credentials_.GetPassword();
   NSString* password = [[NSString alloc] initWithUTF8String:hotspot_password.c_str()];
 
   GNCLoggerInfo(@"ConnectWifiHotspot SSID: %@ Password: %s", ssid,

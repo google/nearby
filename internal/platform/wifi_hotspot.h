@@ -23,7 +23,6 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
@@ -187,7 +186,7 @@ class WifiHotspotMedium {
   bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials) {
     MutexLock lock(&mutex_);
     hotspot_credentials_ = hotspot_credentials;
-    return impl_->ConnectWifiHotspot(&hotspot_credentials_);
+    return impl_->ConnectWifiHotspot(hotspot_credentials);
   }
   bool DisconnectWifiHotspot() { return impl_->DisconnectWifiHotspot(); }
 

@@ -23,9 +23,7 @@
 // clang-format on
 
 #include <memory>
-#include <optional>
 #include <string>
-#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
@@ -33,7 +31,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/implementation/windows/network_info.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 
@@ -41,7 +38,7 @@ class WifiHotspotNative {
  public:
   WifiHotspotNative();
   ~WifiHotspotNative();
-  bool ConnectToWifiNetwork(HotspotCredentials* hotspot_credentials)
+  bool ConnectToWifiNetwork(absl::string_view ssid, absl::string_view password)
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool DisconnectWifiNetwork() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -80,8 +77,8 @@ class WifiHotspotNative {
       WlanNotificationContext* absl_nonnull context)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool UnregisterWlanNotificationCallback();
-  bool SetWlanProfile(GUID interface_guid,
-                      HotspotCredentials* hotspot_credentials)
+  bool SetWlanProfile(GUID interface_guid, absl::string_view ssid,
+                      absl::string_view password)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool RemoveCreatedWlanProfile(GUID interface_guid)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);

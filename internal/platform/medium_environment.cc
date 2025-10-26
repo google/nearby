@@ -1056,8 +1056,8 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
 }
 
 void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
-    api::WifiHotspotMedium& medium, HotspotCredentials* hotspot_credentials,
-    bool is_ap, bool enabled) {
+    api::WifiHotspotMedium& medium,
+    const HotspotCredentials* hotspot_credentials, bool is_ap, bool enabled) {
   if (!enabled_) return;
 
   CountDownLatch latch(1);

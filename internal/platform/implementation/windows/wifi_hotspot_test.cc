@@ -121,7 +121,7 @@ TEST(WifiHotspotMedium, DISABLED_ConnectWifiHotspot) {
             kEnableIntelPieSdk,
         true);
 
-    EXPECT_TRUE(hotspot_medium.ConnectWifiHotspot(&hotspot_credentials));
+    EXPECT_TRUE(hotspot_medium.ConnectWifiHotspot(hotspot_credentials));
     absl::SleepFor(absl::Seconds(1));
     while (true) {
       LOG(INFO) << "Enter \"s\" to stop test:";
