@@ -73,12 +73,14 @@ TEST_P(WifiLanTest, AdvertiseSameServiceNameReusesPort) {
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(std::string(kServiceInfoName));
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  auto [address, port] = wifi_lan_server.GetCredentials(service_id);
+  auto [addresses, port] =
+      wifi_lan_server.GetUpgradeAddressCandidates(service_id);
   wifi_lan_server.StopAdvertising(service_id);
   wifi_lan_server.StopAcceptingConnections(service_id);
 
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  auto [address2, port2] = wifi_lan_server.GetCredentials(service_id);
+  auto [addresses2, port2] =
+      wifi_lan_server.GetUpgradeAddressCandidates(service_id);
   EXPECT_EQ(port, port2);
   env_.Stop();
 }
@@ -95,13 +97,15 @@ TEST_P(WifiLanTest, AdvertiseDifferentServiceNameUsesDifferentPort) {
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(std::string(kServiceInfoName));
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  auto [address, port] = wifi_lan_server.GetCredentials(service_id);
+  auto [addresses, port] =
+      wifi_lan_server.GetUpgradeAddressCandidates(service_id);
   wifi_lan_server.StopAdvertising(service_id);
   wifi_lan_server.StopAcceptingConnections(service_id);
 
   nsd_service_info.SetServiceName("ServiceInfoName2");
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  auto [address2, port2] = wifi_lan_server.GetCredentials(service_id);
+  auto [addresses2, port2] =
+      wifi_lan_server.GetUpgradeAddressCandidates(service_id);
   EXPECT_NE(port, port2);
   env_.Stop();
 }
@@ -313,13 +317,15 @@ TEST_P(WifiLanTest, CanConnectWithIpAddressAndPort) {
         accept_latch.CountDown();
       }));
 
-  auto server_credentials = wifi_lan_server.GetCredentials(service_id);
-  ASSERT_FALSE(server_credentials.first.empty());
-  ASSERT_NE(server_credentials.second, 0);
+  auto server_candidates =
+      wifi_lan_server.GetUpgradeAddressCandidates(service_id);
+  ASSERT_FALSE(server_candidates.first.empty());
+  ASSERT_NE(server_candidates.second, 0);
 
   CancellationFlag flag;
-  ErrorOr<WifiLanSocket> socket_for_client_result = wifi_lan_client.Connect(
-      service_id, server_credentials.first, server_credentials.second, &flag);
+  ErrorOr<WifiLanSocket> socket_for_client_result =
+      wifi_lan_client.Connect(service_id, server_candidates.first.front(),
+                              server_candidates.second, &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));

@@ -257,14 +257,14 @@ message BandwidthUpgradeNegotiationFrame {
       optional string password = 2
           /* type = ST_ACCOUNT_CREDENTIAL */;
       optional int32 port = 3;
-      optional string gateway = 4 [default = "0.0.0.0"];
+      repeated string gateway = 4;
       // This field can be a band or frequency
       optional int32 frequency = 5 [default = -1];
     }
 
     // Accompanies Medium.WIFI_LAN.
     message WifiLanSocket {
-      optional bytes ip_address = 1;
+      repeated bytes ip_address = 1;
       optional int32 wifi_port = 2;
     }
 

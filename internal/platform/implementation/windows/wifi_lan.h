@@ -250,6 +250,9 @@ class WifiLanMedium : public api::WifiLanMedium {
     return absl::nullopt;
   }
 
+  std::vector<std::string> GetUpgradeAddressCandidates(
+      const api::WifiLanServerSocket& server_socket) override;
+
  private:
   // Nsd status
   static const int kMediumStatusIdle = 0;

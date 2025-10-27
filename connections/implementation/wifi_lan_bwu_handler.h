@@ -15,9 +15,11 @@
 #ifndef CORE_INTERNAL_WIFI_LAN_BWU_HANDLER_H_
 #define CORE_INTERNAL_WIFI_LAN_BWU_HANDLER_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
@@ -26,6 +28,7 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/mediums/wifi_lan.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/wifi_lan.h"
 
@@ -77,6 +80,10 @@ class WifiLanBwuHandler : public BaseBwuHandler {
   void OnIncomingWifiLanConnection(ClientProxy* client,
                                    const std::string& upgrade_service_id,
                                    WifiLanSocket socket);
+  ErrorOr<WifiLanSocket> ConnectToWifiLanService(
+      const std::string& service_id,
+      const std::vector<std::string>& ip_addresses, std::int32_t port,
+      CancellationFlag* cancellation_flag);
 
   Mediums& mediums_;
   WifiLan& wifi_lan_medium_{mediums_.GetWifiLan()};

@@ -145,7 +145,7 @@ class FakeBwuHandler : public BaseBwuHandler {
             /*mac_address=*/mac_address);
       }
       case location::nearby::proto::connections::WIFI_LAN:
-        return parser::ForBwuWifiLanPathAvailable(/*ip_address=*/"ABCD",
+        return parser::ForBwuWifiLanPathAvailable(/*ip_addresses=*/{"ABCD"},
                                                   /*port=*/1234);
       case location::nearby::proto::connections::WEB_RTC:
       case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:

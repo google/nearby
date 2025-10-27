@@ -126,7 +126,8 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   HotspotCredentials hotspot_credentials;
   hotspot_credentials.SetSSID(upgrade_path_info_credentials.ssid());
   hotspot_credentials.SetPassword(upgrade_path_info_credentials.password());
-  hotspot_credentials.SetGateway(upgrade_path_info_credentials.gateway());
+  hotspot_credentials.SetGateway(
+      upgrade_path_info_credentials.gateway().Get(0));
   hotspot_credentials.SetPort(upgrade_path_info_credentials.port());
   hotspot_credentials.SetFrequency(upgrade_path_info_credentials.frequency());
 

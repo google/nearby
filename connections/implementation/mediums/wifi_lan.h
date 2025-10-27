@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -109,12 +110,14 @@ class WifiLan {
                                  CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Gets ip address + port for remote services on the network to identify and
-  // connect to this service.
-  //
-  // Credential is for the currently-hosted Wifi ServerSocket (if any).
-  std::pair<std::string, int> GetCredentials(const std::string& service_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  // Returns the list of ip address candidates that can be used to connect to
+  // this device for bandwidth upgrade + port number the service is listening
+  // on.
+  // The candidates list is ordered to have IPv6 addresses first, then IPv4.
+  // Both IPv4 and IPv6 adddresses are represented as network order byte
+  // sequence.
+  std::pair<std::vector<std::string>, int> GetUpgradeAddressCandidates(
+      const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   struct AdvertisingInfo {

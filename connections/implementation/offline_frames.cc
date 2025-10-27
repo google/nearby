@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
@@ -29,6 +30,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 
 namespace nearby {
@@ -281,13 +283,23 @@ ByteArray ForBwuWifiHotspotPathAvailable(const std::string& ssid,
   wifi_hotspot_credentials->set_password(password);
   wifi_hotspot_credentials->set_port(port);
   wifi_hotspot_credentials->set_frequency(frequency);
-  wifi_hotspot_credentials->set_gateway(gateway);
+  wifi_hotspot_credentials->add_gateway(gateway);
 
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
-                                     std::int32_t port) {
+ByteArray ForBwuWifiLanPathAvailable(
+    const std::vector<std::string>& ip_addresses, std::int32_t port) {
+  // For compatibility with Android versions, only use IPv4 address.
+  // IPv4 addresses are always at the end of the list.
+  std::string ip_address = ip_addresses.back();
+  if (ip_address.size() != 4) {
+    return {};
+  }
+  VLOG(1) << "WifiLanBwuPath retrieved WIFI_LAN credentials. IP addr: "
+          << absl::Hex(ip_address[0]) << "." << absl::Hex(ip_address[1]) << "."
+          << absl::Hex(ip_address[2]) << "." << absl::Hex(ip_address[3])
+          << ",  Port: " << port;
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -300,7 +312,7 @@ ByteArray ForBwuWifiLanPathAvailable(const std::string& ip_address,
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
   upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
-  wifi_lan_socket->set_ip_address(ip_address);
+  wifi_lan_socket->add_ip_address(ip_address);
   wifi_lan_socket->set_wifi_port(port);
 
   return ToBytes(std::move(frame));

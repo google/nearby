@@ -232,12 +232,14 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
       !WithinRange(wifi_hotspot_credentials.password().length(),
                    kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
     return {Exception::kInvalidProtocolBuffer};
-  if (!wifi_hotspot_credentials.has_gateway())
+  if (wifi_hotspot_credentials.gateway_size() == 0)
     return {Exception::kInvalidProtocolBuffer};
   const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
   const std::regex ip6_pattern(std::string(kIpv6PatternString).c_str());
-  if (!(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern) ||
-        std::regex_match(wifi_hotspot_credentials.gateway(), ip6_pattern)))
+  if (!(std::regex_match(wifi_hotspot_credentials.gateway().Get(0),
+                         ip4_pattern) ||
+        std::regex_match(wifi_hotspot_credentials.gateway().Get(0),
+                         ip6_pattern)))
     return {Exception::kInvalidProtocolBuffer};
 
   // For backwards compatibility reasons, no other fields should be null-checked
@@ -247,7 +249,7 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
 
 Exception EnsureValidBandwidthUpgradeWifiLanPathAvailableFrame(
     const WifiLanSocket& wifi_lan_socket) {
-  if (!wifi_lan_socket.has_ip_address())
+  if (wifi_lan_socket.ip_address_size() == 0)
     return {Exception::kInvalidProtocolBuffer};
   if (!wifi_lan_socket.has_wifi_port() || wifi_lan_socket.wifi_port() < 0)
     return {Exception::kInvalidProtocolBuffer};

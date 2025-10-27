@@ -957,7 +957,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
   ExceptionOr<OfflineFrame> wlan_path_available_frame = parser::FromBytes(
-      parser::ForBwuWifiLanPathAvailable(/*ip_address=*/"ABCD",
+      parser::ForBwuWifiLanPathAvailable(/*ip_addresses=*/{"ABCD"},
                                          /*port=*/1234));
   OfflineFrame frame = wlan_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
