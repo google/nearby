@@ -425,7 +425,7 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiLanPathAvailable("\x01\x02\x03\x04", 1234);
+  ByteArray bytes = ForBwuWifiLanPathAvailable({"\x01\x02\x03\x04"}, 1234);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

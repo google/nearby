@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
@@ -603,15 +604,15 @@ ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
   return ExceptionOr<WifiLanSocket>(Exception::kFailed);
 }
 
-std::pair<std::string, int> WifiLan::GetCredentials(
+std::pair<std::vector<std::string>, int> WifiLan::GetUpgradeAddressCandidates(
     const std::string& service_id) {
   MutexLock lock(&mutex_);
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
-    return std::pair<std::string, int>();
+    return std::pair<std::vector<std::string>, int>();
   }
-  return std::pair<std::string, int>(it->second.GetIPAddress(),
-                                     it->second.GetPort());
+  return {medium_.GetUpgradeAddressCandidates(it->second),
+          it->second.GetPort()};
 }
 
 std::string WifiLan::GenerateServiceType(const std::string& service_id) {

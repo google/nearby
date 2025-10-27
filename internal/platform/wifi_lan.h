@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
@@ -178,6 +179,7 @@ class WifiLanServerSocket final {
 
   bool IsValid() const { return impl_ != nullptr; }
   api::WifiLanServerSocket& GetImpl() { return *impl_; }
+  const api::WifiLanServerSocket& GetImpl() const { return *impl_; }
 
  private:
   std::shared_ptr<api::WifiLanServerSocket> impl_;
@@ -266,6 +268,15 @@ class WifiLanMedium {
   }
 
   api::WifiLanMedium& GetImpl() { return *impl_; }
+
+  // Returns the list of ip address candidates that can be used to connect to
+  // this device for bandwidth upgrade.
+  // `server_socket` is the socket that is currently listening for service
+  // requests.
+  // Returned adddress list is sorted so IPv6 addresses are first.  Both IPv4
+  // and IPv6 addresses are represented as network order byte sequence.
+  std::vector<std::string> GetUpgradeAddressCandidates(
+      const WifiLanServerSocket& server_socket);
 
  private:
   Mutex mutex_;

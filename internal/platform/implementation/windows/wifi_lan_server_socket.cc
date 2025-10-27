@@ -45,10 +45,7 @@ WifiLanServerSocket::~WifiLanServerSocket() { Close(); }
 
 // Returns the first IP address.
 std::string WifiLanServerSocket::GetIPAddress() const {
-  // The result of this function is used in BWU to let the remote side know
-  // which IP to connect to.
-  // server_socket_ is not bound to any addresses.  So we need to pick an
-  // IP address from the list of available addresses.
+  // Just pick an IP address from the list of available addresses.
   std::vector<std::string> ip_addresses = GetIpv4Addresses();
   if (ip_addresses.empty()) {
     LOG(ERROR) << "No IP addresses found.";

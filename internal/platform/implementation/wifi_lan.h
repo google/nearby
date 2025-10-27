@@ -16,6 +16,7 @@
 #define PLATFORM_API_WIFI_LAN_H_
 
 #include <string>
+#include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
@@ -151,6 +152,15 @@ class WifiLanMedium {
   // Returns the port range as a pair of min and max port.
   virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() = 0;
+
+  // Returns the list of ip address candidates that can be used to connect to
+  // this device for bandwidth upgrade.
+  // `server_socket` is the socket that is currently listening for service
+  // requests.
+  // Returned adddress list is sorted so IPv6 addresses are first.  Both IPv4
+  // and IPv6 addresses are represented as network order byte sequence.
+  virtual std::vector<std::string> GetUpgradeAddressCandidates(
+      const WifiLanServerSocket& server_socket) = 0;
 };
 
 }  // namespace api
