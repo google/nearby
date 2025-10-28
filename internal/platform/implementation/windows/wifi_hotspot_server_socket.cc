@@ -36,7 +36,8 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
+#include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
+#include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {

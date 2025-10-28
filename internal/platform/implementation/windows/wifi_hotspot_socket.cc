@@ -17,7 +17,7 @@
 
 #include "absl/base/nullability.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
-#include "internal/platform/implementation/windows/wifi_hotspot.h"
+#include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 
 namespace nearby {
 namespace windows {

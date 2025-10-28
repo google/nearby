@@ -228,6 +228,8 @@ cc_library(
         "wifi_direct_service.h",
         "wifi_hotspot.h",
         "wifi_hotspot_native.h",
+        "wifi_hotspot_server_socket.h",
+        "wifi_hotspot_socket.h",
         "wifi_intel.h",
         "wifi_lan.h",
         "wifi_lan_mdns.h",

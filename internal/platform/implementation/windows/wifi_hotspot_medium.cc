@@ -40,6 +40,8 @@
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot.h"
+#include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
+#include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/wifi_credential.h"
