@@ -44,8 +44,6 @@ class WifiHotspotNative {
 
   bool RestoreWifiProfile() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  bool Scan(absl::string_view ssid) ABSL_LOCKS_EXCLUDED(mutex_);
-
   // Returns true if the interface has a non local scoped IPv4 address.
   bool HasAssignedAddress();
   bool RenewIpv4Address() const;
@@ -85,15 +83,12 @@ class WifiHotspotNative {
   bool RemoveWlanProfile(GUID interface_guid, const std::wstring& profile_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void TriggerConnected();
-  void TriggerNetworkRefreshed();
 
   NetworkInfo& network_info_;
   mutable absl::Mutex mutex_;
 
   HANDLE wifi_ = nullptr;
-  std::string scanning_ssid_;
   std::unique_ptr<CountDownLatch> connect_latch_;
-  std::unique_ptr<CountDownLatch> scan_latch_;
   std::wstring backup_profile_name_;
 };
 

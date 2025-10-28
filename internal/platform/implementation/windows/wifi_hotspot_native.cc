@@ -154,96 +154,11 @@ bool WifiHotspotNative::DisconnectWifiNetwork() {
   return true;
 }
 
-bool WifiHotspotNative::Scan(absl::string_view ssid) {
-  GUID interface_guid = GetInterfaceGuid();
-  if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
-    return false;
-  }
-  WlanNotificationContext context = {
-    .wifi_hotspot_native = *this,
-  };
-  absl::MutexLock lock(mutex_);
-  if (!RegisterWlanNotificationCallback(&context)) {
-    LOG(ERROR) << "Failed to register WLAN notification callback.";
-    return false;
-  }
-
-  if (ssid.length() > DOT11_SSID_MAX_LENGTH) {
-    LOG(ERROR) << "Invalid SSID length.";
-    return false;
-  }
-
-  DOT11_SSID dot11_ssid;
-  dot11_ssid.uSSIDLength = ssid.length();
-  memcpy(dot11_ssid.ucSSID, ssid.data(), dot11_ssid.uSSIDLength);
-  scan_latch_ = std::make_unique<CountDownLatch>(1);
-  scanning_ssid_ = ssid;
-  DWORD result = WlanScan(
-      /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-      /*pDot11Ssid=*/&dot11_ssid, /*pIeData=*/nullptr, /*pReserved=*/nullptr);
-
-  if (result != ERROR_SUCCESS) {
-    LOG(ERROR) << "Failed to scan Wi-Fi network with error " << result;
-    UnregisterWlanNotificationCallback();
-    return false;
-  }
-
-  ExceptionOr<bool> scan_result = scan_latch_->Await(kConnectTimeout);
-  UnregisterWlanNotificationCallback();
-
-  if (!scan_result.ok() || !scan_result.result()) {
-    LOG(ERROR) << "Failed to scan to Wifi network " << ssid;
-    return false;
-  }
-
-  scan_latch_ = nullptr;
-  return true;
-}
-
 void WifiHotspotNative::TriggerConnected() {
   if (connect_latch_ == nullptr) {
     return;
   }
   connect_latch_->CountDown();
-}
-
-void WifiHotspotNative::TriggerNetworkRefreshed() {
-  if (scan_latch_ == nullptr) {
-    return;
-  }
-
-  GUID interface_guid = GetInterfaceGuid();
-  if (interface_guid == GUID_NULL) {
-    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
-    return;
-  }
-
-  PWLAN_AVAILABLE_NETWORK_LIST list = nullptr;
-  DWORD result = WlanGetAvailableNetworkList(
-      /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-      /*dwFlags=*/WLAN_AVAILABLE_NETWORK_INCLUDE_ALL_ADHOC_PROFILES,
-      /*pReserved=*/nullptr, /*ppAvailableNetworkList=*/&list);
-  if (result != ERROR_SUCCESS) {
-    return;
-  }
-
-  bool found_ssid = false;
-  for (int i = 0; i < list->dwNumberOfItems; i++) {
-    std::string ssid = std::string((char*)list->Network[i].dot11Ssid.ucSSID,
-                                   list->Network[i].dot11Ssid.uSSIDLength);
-    if (ssid == scanning_ssid_) {
-      found_ssid = true;
-      break;
-    }
-  }
-
-  WlanFreeMemory(list);
-
-  if (found_ssid) {
-    LOG(INFO) << "Found WLAN network " << scanning_ssid_;
-    scan_latch_->CountDown();
-  }
 }
 
 void WifiHotspotNative::WlanNotificationCallback(
@@ -282,7 +197,6 @@ void WifiHotspotNative::WlanNotificationCallback(
     }
     case wlan_notification_acm_scan_list_refresh: {
       LOG(INFO) << "Scan list refreshed.";
-      wlan_context->wifi_hotspot_native.TriggerNetworkRefreshed();
       break;
     }
     case wlan_notification_acm_disconnecting: {

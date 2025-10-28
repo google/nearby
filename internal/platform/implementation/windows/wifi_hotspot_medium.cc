@@ -410,21 +410,6 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       }
     }
 
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            platform::config_package_nearby::nearby_platform_feature::
-                kEnableWifiHotspotNativeScan)) {
-      if (!wifi_hotspot_native_.Scan(ssid)) {
-        LOG(INFO) << "Hotspot " << ssid << " is not found";
-
-        if (intel_wifi_started) {
-          WifiIntel& intel_wifi{WifiIntel::GetInstance()};
-          intel_wifi.ResetScanFilter();
-          intel_wifi.Stop();
-        }
-        return false;
-      }
-    }
-
     bool connected =
         wifi_hotspot_native_.ConnectToWifiNetwork(ssid, password);
 

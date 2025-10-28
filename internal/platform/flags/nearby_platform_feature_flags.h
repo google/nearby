@@ -73,10 +73,6 @@ constexpr auto kEnableMdnsIpv6 =
 constexpr auto kEnableNewBluetoothRefactor =
     flags::Flag<bool>(kConfigPackage, "45615156", false);
 
-// Enable/Disable Wi-Fi hotspot scan in native
-constexpr auto kEnableWifiHotspotNativeScan =
-    flags::Flag<bool>(kConfigPackage, "45670001", false);
-
 // The send buffer size of blocking socket
 constexpr auto kSocketSendBufferSize =
     flags::Flag<int64_t>(kConfigPackage, "45673785", 524288);
