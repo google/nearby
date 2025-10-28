@@ -15,11 +15,13 @@
 #include "internal/platform/implementation/windows/wifi_direct_service.h"
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/platform/implementation/wifi_direct_service.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -76,6 +78,76 @@ TEST(WifiDirectServiceMedium, DISABLED_ConnectWifiDirectService) {
     LOG(INFO) << "Skip the test";
   }
 }
+
+TEST(WifiDirectServiceMedium, DISABLED_WifiDirectServiceServerStartListen) {
+  int run_test;
+  LOG(INFO) << "Run WifiDirectServiceServerStartListen test? input 0 or 1:";
+  std::cin >> run_test;
+
+  if (run_test) {
+    winrt::init_apartment();
+    WifiDirectServiceMedium wifi_direct_service_medium;
+
+    EXPECT_TRUE(wifi_direct_service_medium.StartWifiDirectService());
+    absl::SleepFor(absl::Seconds(1));
+    std::unique_ptr<api::WifiDirectServiceServerSocket> server_socket =
+        wifi_direct_service_medium.ListenForService(/*port=*/1234);
+
+    absl::SleepFor(absl::Seconds(60));
+    std::unique_ptr<api::WifiDirectServiceSocket> client_socket =
+        server_socket->Accept();
+    EXPECT_NE(client_socket, nullptr);
+
+    while (true) {
+      LOG(INFO) << "Enter \"s\" to stop test:";
+      std::string stop;
+      std::cin >> stop;
+      if (stop == "s") {
+        LOG(INFO) << "Close server socket and stop WiFi Direct Service";
+        server_socket->Close();
+        EXPECT_TRUE(wifi_direct_service_medium.StopWifiDirectService());
+        break;
+      }
+    }
+  } else {
+    LOG(INFO) << "Skip the test";
+  }
+}
+
+TEST(WifiDirectServiceMedium, DISABLED_WifiDirectConnectToServiceServer) {
+  int run_test;
+  LOG(INFO) << "Run WifiDirectConnectToServiceServer test? input 0 or 1:";
+  std::cin >> run_test;
+
+  if (run_test) {
+    winrt::init_apartment();
+    WifiDirectServiceMedium wifi_direct_service_medium;
+
+    EXPECT_TRUE(wifi_direct_service_medium.ConnectWifiDirectService());
+    absl::SleepFor(absl::Seconds(1));
+    std::unique_ptr<api::WifiDirectServiceSocket> client_socket =
+        wifi_direct_service_medium.ConnectToService(
+            /*ip_address=*/"",
+            /*port=*/1234,
+            /*cancellation_flag=*/nullptr);
+    absl::SleepFor(absl::Seconds(10));
+
+    while (true) {
+      LOG(INFO) << "Enter \"s\" to stop test:";
+      std::string stop;
+      std::cin >> stop;
+      if (stop == "s") {
+        LOG(INFO) << "Close client socket and disconnect WiFi Direct Service";
+        client_socket->Close();
+        EXPECT_TRUE(wifi_direct_service_medium.DisconnectWifiDirectService());
+        break;
+      }
+    }
+  } else {
+    LOG(INFO) << "Skip the test";
+  }
+}
+
 }  // namespace
 }  // namespace windows
 }  // namespace nearby
