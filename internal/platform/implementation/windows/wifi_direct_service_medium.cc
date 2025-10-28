@@ -12,12 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
 #include <exception>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
+#include "internal/flags/nearby_flags.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/implementation/wifi_direct_service.h"
+#include "internal/platform/implementation/windows/socket_address.h"
+#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_direct_service.h"
 #include "internal/platform/logging.h"
 
@@ -26,6 +37,7 @@ namespace windows {
 namespace {
 constexpr std::wstring_view kServiceName = L"QuickShare";
 constexpr std::wstring_view kPin = L"1234";
+constexpr int kWaitingForConnectionTimeoutSeconds = 90;  // seconds
 }  // namespace
 
 WifiDirectServiceMedium::WifiDirectServiceMedium() {
@@ -41,6 +53,7 @@ WifiDirectServiceMedium::WifiDirectServiceMedium() {
 }
 
 WifiDirectServiceMedium::~WifiDirectServiceMedium() {
+  listener_executor_.Shutdown();
   StopWifiDirectService();
   DisconnectWifiDirectService();
   if (controller_) {
@@ -53,6 +66,206 @@ WifiDirectServiceMedium::~WifiDirectServiceMedium() {
     // before this object is fully destroyed.
     shutdown_async.get();
   }
+}
+
+bool WifiDirectServiceMedium::IsInterfaceValid() const {
+  HANDLE wifi_direct_handle = nullptr;
+  DWORD negotiated_version = 0;
+  DWORD result = 0;
+
+  result =
+      WFDOpenHandle(WFD_API_VERSION, &negotiated_version, &wifi_direct_handle);
+  if (result == ERROR_SUCCESS) {
+    LOG(INFO) << "WiFi can support WifiDirect";
+    WFDCloseHandle(wifi_direct_handle);
+    return true;
+  }
+
+  LOG(ERROR) << "WiFi can't support WifiDirect";
+  return false;
+}
+
+// Discoverer connects to server socket
+std::unique_ptr<api::WifiDirectServiceSocket>
+WifiDirectServiceMedium::ConnectToService(absl::string_view ip_address,
+                                          int port,
+                                          CancellationFlag* cancellation_flag) {
+  LOG(INFO) << "WifiDirectServiceMedium::ConnectToService Server Socket";
+  // check current status
+  if (!IsConnecting()) {
+    LOG(WARNING) << "GC is not connecting to GO, skip.";
+    return nullptr;
+  }
+
+  std::string remote_ip_address;
+  if (ip_address.empty()) {
+    remote_ip_address = ip_address_remote_;
+  } else {
+    remote_ip_address = std::string(ip_address);
+  }
+  // when this API is called, GC may not finish connecting to GO, so we need to
+  // wait the connection is finished and IP address is ready.
+  if (remote_ip_address.empty()) {
+    LOG(INFO) << "Waiting for IP address to be ready.";
+    absl::MutexLock lock(mutex_);
+    is_ip_address_ready_.WaitWithTimeout(
+        &mutex_, absl::Seconds(kWaitingForConnectionTimeoutSeconds));
+    if (ip_address_remote_.empty()) {
+      LOG(WARNING)
+          << "IP address is still empty, probably GC connecting to GO failed.";
+      return nullptr;
+    }
+    LOG(INFO) << "IP address is ready.";
+    remote_ip_address = ip_address_remote_;
+  }
+
+  if (remote_ip_address.empty() || port == 0) {
+    LOG(ERROR) << "no valid service address and port to connect: "
+               << "ip_address = " << remote_ip_address << ", port = " << port;
+    return nullptr;
+  }
+
+  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableIpv6DualStack);
+  SocketAddress server_address(dual_stack);
+  if (!server_address.FromString(server_address, remote_ip_address, port)) {
+    LOG(ERROR) << "no valid service address and port to connect.";
+    return nullptr;
+  }
+  VLOG(1) << "ConnectToService server address: " << server_address.ToString();
+
+  // Try connecting to the service up to wifi_direct_max_connection_retries,
+  // because it may fail first time if DHCP procedure is not finished yet.
+  int64_t wifi_direct_max_connection_retries =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionMaxRetries);
+  int64_t wifi_direct_retry_interval_millis =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionIntervalMillis);
+  int64_t wifi_direct_client_socket_connect_timeout_millis =
+      NearbyFlags::GetInstance().GetInt64Flag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionTimeoutMillis);
+
+  VLOG(1) << "maximum connection retries=" << wifi_direct_max_connection_retries
+          << ", connection interval=" << wifi_direct_retry_interval_millis
+          << "ms, connection timeout="
+          << wifi_direct_client_socket_connect_timeout_millis << "ms";
+
+  LOG(INFO) << "Connect to service ";
+  for (int i = 0; i < wifi_direct_max_connection_retries; ++i) {
+    auto wifi_direct_socket = std::make_unique<WifiDirectServiceSocket>();
+
+    // setup cancel listener
+    std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
+        nullptr;
+    if (cancellation_flag != nullptr) {
+      if (cancellation_flag->Cancelled()) {
+        LOG(INFO) << "connect has been cancelled to service ";
+        return nullptr;
+      }
+
+      connection_cancellation_listener =
+          std::make_unique<nearby::CancellationFlagListener>(
+              cancellation_flag, [socket = wifi_direct_socket.get()]() {
+                LOG(WARNING) << "connect is closed due to it is cancelled.";
+                socket->Close();
+              });
+    }
+
+    bool result = wifi_direct_socket->Connect(server_address);
+    if (!result) {
+      LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
+      Sleep(wifi_direct_retry_interval_millis);
+      continue;
+    }
+
+    LOG(INFO) << "connected to remote service ";
+    return wifi_direct_socket;
+  }
+
+  LOG(ERROR) << "Failed to connect to service ";
+  return nullptr;
+}
+
+// Advertiser starts to listen on server socket
+std::unique_ptr<api::WifiDirectServiceServerSocket>
+WifiDirectServiceMedium::ListenForService(int port) {
+  LOG(INFO) << "WifiDirectServiceMedium::ListenForService";
+
+  absl::MutexLock lock(mutex_);
+  if (!IsServiceStarted()) {
+    LOG(WARNING) << "WifiDirect service is not started, skip.";
+    return nullptr;
+  }
+  // check current status
+  if (IsAccepting()) {
+    LOG(WARNING) << "Accepting connections already started on port "
+                 << server_socket_ptr_->GetPort();
+    return nullptr;
+  }
+
+  auto server_socket = std::make_unique<WifiDirectServiceServerSocket>(port);
+  server_socket_ptr_ = server_socket.get();
+
+  // Start to listen on server socket in a separate thread. Before GC
+  // connects to GO, GO doesn't have IP address. BWU calls this API right away
+  // after it starts GO, we need to spin out the following logic to another
+  // thread to avoid blocking BWU sending out of band upgrade frame to GC.
+  listener_executor_.Execute([this]() mutable {
+    absl::MutexLock lock(mutex_);
+    bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
+        platform::config_package_nearby::nearby_platform_feature::
+            kEnableIpv6DualStack);
+    if (ip_address_local_.empty()) {
+      if (server_socket_ptr_) {
+        LOG(INFO) << "Waiting for IP address is ready.";
+        is_ip_address_ready_.WaitWithTimeout(
+            &mutex_, absl::Seconds(kWaitingForConnectionTimeoutSeconds));
+        if (!server_socket_ptr_) {
+          LOG(WARNING)
+              << "Server socket was closed before IP address is ready.";
+          return;
+        }
+        if (ip_address_local_.empty()) {
+          LOG(WARNING) << "IP address is still empty, probably the GO doesn't "
+                          "receive GC's connection request.";
+          server_socket_ptr_->Close();
+          server_socket_ptr_ = nullptr;
+          return;
+        }
+        LOG(INFO) << "IP address is ready.";
+      }
+    }
+
+    if (server_socket_ptr_ &&
+        server_socket_ptr_->Listen(dual_stack, ip_address_local_)) {
+      medium_status_ |= kMediumStatusAccepting;
+
+      // Setup close notifier after listen started.
+      server_socket_ptr_->SetCloseNotifier([this]() {
+        absl::MutexLock lock(mutex_);
+        LOG(INFO) << "Server socket was closed.";
+        medium_status_ &= (~kMediumStatusAccepting);
+        server_socket_ptr_ = nullptr;
+      });
+      LOG(INFO) << "Started to listen serive on port "
+                << server_socket_ptr_->GetPort();
+    } else {
+      LOG(WARNING) << "server_socket_ptr_ is null or Listen failed.";
+      if (server_socket_ptr_) {
+        server_socket_ptr_->Close();
+        server_socket_ptr_ = nullptr;
+      }
+    }
+  });
+
+  LOG(INFO) << "Started to listen service on port " << port;
+
+  return server_socket;
 }
 
 bool WifiDirectServiceMedium::StartWifiDirectService() {
@@ -137,6 +350,9 @@ bool WifiDirectServiceMedium::StopWifiDirectService() {
       session_ = nullptr;
     }
     medium_status_ &= (~kMediumStatusServiceStarted);
+    medium_status_ &= (~kMediumStatusConnected);
+    server_socket_ptr_ = nullptr;
+    listener_executor_.Shutdown();
     return true;
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. Exception: "
@@ -272,9 +488,11 @@ fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
             winrt::to_string(pair.RemoteHostName().DisplayName());
         LOG(INFO) << "GO: Local IP: " << ip_address_local_
                   << ", Remote IP: " << ip_address_remote_;
+        is_ip_address_ready_.SignalAll();
       } else {
         LOG(WARNING) << "GO: No connection endpoint pairs found.";
       }
+      medium_status_ |= kMediumStatusConnected;
 
       LOG(INFO) << "Service Address: "
                 << winrt::to_string(session_.ServiceAddress())
@@ -417,6 +635,11 @@ fire_and_forget WifiDirectServiceMedium::Watcher_DeviceAdded(
               << ", Session Address: "
               << winrt::to_string(session_.SessionAddress())
               << ", Session ID: " << session_.SessionId();
+    {
+      absl::MutexLock lock(mutex_);
+      is_ip_address_ready_.SignalAll();
+    }
+    medium_status_ |= kMediumStatusConnected;
 
     // Subscribe to events to prevent early teardown
     session_.SessionStatusChanged([](auto const& s, auto const& e) {
@@ -456,7 +679,7 @@ fire_and_forget WifiDirectServiceMedium::Watcher_DeviceEnumerationCompleted(
 
 fire_and_forget WifiDirectServiceMedium::Watcher_DeviceStopped(
     DeviceWatcher sender, IInspectable inspectable) {
-  LOG(INFO) << "WifiDirectServiceMedium::Watcher_DeviceStopped";
+  medium_status_ &= (~kMediumStatusConnecting);
   return fire_and_forget();
 }
 
@@ -476,6 +699,7 @@ bool WifiDirectServiceMedium::DisconnectWifiDirectService() {
     device_watcher_.Removed(device_watcher_removed_event_token_);
     device_watcher_.Stopped(device_watcher_stopped_event_token_);
     medium_status_ &= (~kMediumStatusConnecting);
+    medium_status_ &= (~kMediumStatusConnected);
     device_watcher_ = nullptr;
     service_ = nullptr;
     session_ = nullptr;

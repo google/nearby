@@ -189,6 +189,8 @@ cc_library(
         "wifi_direct_medium.cc",
         "wifi_direct_server_socket.cc",
         "wifi_direct_service_medium.cc",
+        "wifi_direct_service_server_socket.cc",
+        "wifi_direct_service_socket.cc",
         "wifi_direct_socket.cc",
         "wifi_hotspot_medium.cc",
         "wifi_hotspot_native.cc",
