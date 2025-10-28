@@ -144,11 +144,14 @@ std::string NearbyShareLocalDeviceDataManagerImpl::GetDefaultDeviceName()
   DeviceInfo::OsType os_type = device_info_.GetOsType();
 
   // If not logged in or account has not given name, use machine name instead.
-  // For iOS and macOS, the device name is already localized and generally works
-  // well for Quick Share purposes (i.e. "Niko's MacBook Pro"), so avoid using
-  // the non-localized account name and device type concatenation.
+  // For iOS, macOS and visionOS, the device name is already localized and
+  // generally works well for Quick Share purposes (i.e. "Niko's MacBook Pro"),
+  // so avoid using the non-localized account name and device type
+  // concatenation.
   if (os_type == DeviceInfo::OsType::kMacOS ||
-      os_type == DeviceInfo::OsType::kIos || !account.has_value() ||
+      os_type == DeviceInfo::OsType::kIos ||
+      os_type == DeviceInfo::OsType::kVisionOS ||
+      !account.has_value() ||
       account->given_name.empty()) {
     std::string device_name = device_info_.GetOsDeviceName();
     return GetTruncatedName(device_name, kNearbyShareDeviceNameMaxLength);
