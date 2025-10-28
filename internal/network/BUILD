@@ -88,7 +88,6 @@ cc_library(
     visibility = [
         "//internal:__pkg__",
         "//internal:__subpackages__",
-        "//sharing:__subpackages__",
     ],
     deps = [
         ":types",
