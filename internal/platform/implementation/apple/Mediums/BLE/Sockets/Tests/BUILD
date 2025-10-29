@@ -25,9 +25,23 @@ objc_library(
     testonly = 1,
     srcs = [
         "Central/GNSCentralManagerTest.m",
+        "Central/GNSCentralPeerManagerTest.m",
+        "Central/GNSFakeCBCharacteristic.m",
+        "Central/GNSFakeCBPeripheral.m",
+        "Central/GNSFakeCBService.m",
+        "Central/GNSFakeCentralManager.m",
+    ],
+    hdrs = [
+        "Central/GNSFakeCBCharacteristic.h",
+        "Central/GNSFakeCBPeripheral.h",
+        "Central/GNSFakeCBService.h",
+        "Central/GNSFakeCentralManager.h",
     ],
     deps = [
         "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Central",
+        "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Shared",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "//third_party/objective_c/ocmock/v3:OCMock",
     ],
