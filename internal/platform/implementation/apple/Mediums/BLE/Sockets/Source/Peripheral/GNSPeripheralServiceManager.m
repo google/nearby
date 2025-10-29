@@ -16,6 +16,8 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralManager+Private.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/CBATTRequest+GNSATTRequest.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSATTRequest.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSWeavePacket.h"
@@ -340,6 +342,10 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   socket = _sockets[request.central.identifier];
 
   // Only an error packet can cause the socket to have been removed at this point.
+  if (!socket && [packet isKindOfClass:[GNSWeaveConnectionRequestPacket class]]) {
+    // If socket is not found for a connection request, it means connection was rejected.
+    return;
+  }
   NSAssert(socket || [packet isKindOfClass:[GNSWeaveErrorPacket class]],
            @"Socket missing after receiving non-error weave packet");
   [socket incrementReceivePacketCounter];
@@ -506,8 +512,12 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)handleConnectionRequestPacket:(GNSWeaveConnectionRequestPacket *)packet
                               context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
-  GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
+  if (![request conformsToProtocol:@protocol(GNSATTRequest)]) {
+    GNCLoggerError(@"The context doesn't contain a central.");
+    return;
+  }
+  CBCentral *central = [(id<GNSATTRequest>)request central];
+  GNSSocket *socket = _sockets[central.identifier];
   if (socket) {
     GNCLoggerInfo(@"Receiving a connection request from an already connected socket %@.", socket);
     // The peripheral considers the previous socket as being disconnected.
@@ -515,9 +525,7 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
     [self removeSocket:socket withError:error];
     socket = nil;
   }
-  socket = [[GNSSocket alloc] initWithOwner:self
-                                centralPeer:((CBATTRequest *)request).central
-                                      queue:_queue];
+  socket = [[GNSSocket alloc] initWithOwner:self centralPeer:central queue:_queue];
   if (packet.maxVersion < kWeaveVersionSupported || packet.minVersion > kWeaveVersionSupported) {
     GNCLoggerError(@"Unsupported Weave version range: [%d, %d].", packet.minVersion,
                    packet.maxVersion);
@@ -553,22 +561,34 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)handleConnectionConfirmPacket:(GNSWeaveConnectionConfirmPacket *)packet
                               context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
-  GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
+  if (![request conformsToProtocol:@protocol(GNSATTRequest)]) {
+    GNCLoggerError(@"The context doesn't contain a central.");
+    return;
+  }
+  CBCentral *central = [(id<GNSATTRequest>)request central];
+  GNSSocket *socket = _sockets[central.identifier];
   GNCLoggerError(@"Unexpected connection confirm packet received.");
   [self handleWeaveError:GNSErrorUnexpectedWeaveControlPacket socket:socket];
 }
 
 - (void)handleErrorPacket:(GNSWeaveErrorPacket *)packet context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
-  GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
+  if (![request conformsToProtocol:@protocol(GNSATTRequest)]) {
+    GNCLoggerError(@"The context doesn't contain a central.");
+    return;
+  }
+  CBCentral *central = [(id<GNSATTRequest>)request central];
+  GNSSocket *socket = _sockets[central.identifier];
   GNCLoggerInfo(@"Error packet received.");
   [self handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:socket];
 }
 
 - (void)handleDataPacket:(GNSWeaveDataPacket *)packet context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
-  GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
+  if (![request conformsToProtocol:@protocol(GNSATTRequest)]) {
+    GNCLoggerError(@"The context doesn't contain a central.");
+    return;
+  }
+  CBCentral *central = [(id<GNSATTRequest>)request central];
+  GNSSocket *socket = _sockets[central.identifier];
   if (packet.isFirstPacket && socket.waitingForIncomingData) {
     GNCLoggerError(@"There is already a receive operation in progress");
     [self handleWeaveError:GNSErrorWeaveDataTransferInProgress socket:socket];

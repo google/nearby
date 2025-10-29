@@ -15,6 +15,7 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
 
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket+Private.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSWeavePacket.h"
 
 typedef NS_ENUM(NSInteger, GNSBluetoothServiceState) {
   GNSBluetoothServiceStateNotAdded,
@@ -26,7 +27,7 @@ typedef NS_ENUM(NSInteger, GNSBluetoothServiceState) {
  * Private methods called by GNSPeripheralManager, GNSSocket and for tests.
  * Should not be used by the Nearby Socket client.
  */
-@interface GNSPeripheralServiceManager ()<GNSSocketOwner>
+@interface GNSPeripheralServiceManager () <GNSSocketOwner, GNSWeavePacketHandler>
 
 @property(nonatomic, readonly) GNSPeripheralManager *peripheralManager;
 @property(nonatomic, readonly) GNSBluetoothServiceState cbServiceState;
@@ -35,6 +36,12 @@ typedef NS_ENUM(NSInteger, GNSBluetoothServiceState) {
 @property(nonatomic, readonly) CBMutableCharacteristic *weaveOutgoingCharacteristic;
 @property(nonatomic, readonly) CBMutableCharacteristic *pairingCharacteristic;
 @property(nonatomic, readonly) GNSShouldAcceptSocketHandler shouldAcceptSocketHandler;
+/**
+ * Called when the BLE service is added.
+ * Warning: Be careful with retain cycles, if the completion block has a strong reference to this
+ * object.
+ */
+@property(nonatomic, readonly) GNSErrorHandler bleServiceAddedCompletion;
 
 /**
  * Informs this service manager that its CBService will start to be added.
@@ -109,6 +116,14 @@ typedef NS_ENUM(NSInteger, GNSBluetoothServiceState) {
 - (void)processWriteRequest:(CBATTRequest *)request;
 
 /**
+ * Handles a Weave error.
+ *
+ * @param errorCode Weave error code.
+ * @param socket    Socket associated with the error.
+ */
+- (void)handleWeaveError:(GNSError)errorCode socket:(GNSSocket *)socket;
+
+/**
  * Called when a central subscribes to a characteristic. If the characteristic is the outgoing
  * characteristic, the desired connection latency is set to low.
  *
@@ -128,5 +143,23 @@ typedef NS_ENUM(NSInteger, GNSBluetoothServiceState) {
  */
 - (void)central:(CBCentral *)central
     didUnsubscribeFromCharacteristic:(CBCharacteristic *)characteristic;
+
+/**
+ * Marks socket as ready.
+ *
+ * @param socket Socket to mark as ready.
+ */
+- (void)socketReady:(GNSSocket *)socket;
+
+/**
+ * Sends a weave packet.
+ *
+ * @param packet   Weave packet to send.
+ * @param socket   Socket to send packet to.
+ * @param completion Completion handler.
+ */
+- (void)sendPacket:(GNSWeavePacket *)packet
+          toSocket:(GNSSocket *)socket
+        completion:(void (^)(void))completion;
 
 @end

@@ -97,6 +97,14 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
                                 queue:dispatch_get_main_queue()];
 }
 
+- (instancetype)initWithPeripheralManager:(CBPeripheralManager *)peripheralManager {
+  self = [self initWithAdvertisedName:nil restoreIdentifier:nil queue:dispatch_get_main_queue()];
+  if (self) {
+    _cbPeripheralManager = peripheralManager;
+  }
+  return self;
+}
+
 - (void)dealloc {
   [self stop];
 }
@@ -323,11 +331,16 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
 }
 
 - (BOOL)updateOutgoingCharacteristic:(NSData *)data onSocket:(GNSSocket *)socket {
-  GNSPeripheralServiceManager *peripheralServiceManager = socket.owner;
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      (GNSPeripheralServiceManager *)socket.owner;
   NSAssert(peripheralServiceManager, @"%@ should have an owner.", socket);
+  CBCentral *central = socket.peerAsCentral;
+  if (!central) {
+    return NO;
+  }
   return [_cbPeripheralManager updateValue:data
                          forCharacteristic:peripheralServiceManager.weaveOutgoingCharacteristic
-                      onSubscribedCentrals:@[ socket.peerAsCentral ]];
+                      onSubscribedCentrals:@[ central ]];
 }
 
 - (CBPeripheralManager *)cbPeripheralManagerWithDelegate:(id<CBPeripheralManagerDelegate>)delegate

@@ -24,10 +24,13 @@ typedef BOOL (^GNSUpdateValueHandler)();
  * Private methods called by GNSPeripheralManager, GNSSocket and for tests.
  * Should not be used by the Nearby Socket client.
  */
-@interface GNSPeripheralManager ()<CBPeripheralManagerDelegate>
+@interface GNSPeripheralManager () <CBPeripheralManagerDelegate>
 
 @property(nonatomic, readonly) NSString *restoreIdentifier;
 @property(nonatomic, readonly) CBPeripheralManager *cbPeripheralManager;
+
+/** Test initializer. */
+- (instancetype)initWithPeripheralManager:(CBPeripheralManager *)peripheralManager;
 
 /**
  * Updates the outgoing characteristic value using an handler. The handler is stored in

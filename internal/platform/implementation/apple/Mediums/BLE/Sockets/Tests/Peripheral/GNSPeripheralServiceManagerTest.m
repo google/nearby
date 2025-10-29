@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,657 +12,918 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import <XCTest/XCTest.h>
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
 
-#import "internal/platform/implementation/apple/Log/GNCLogger.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralManager+Private.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager+Private.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket+Private.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSWeavePacket.h"
+#import <XCTest/XCTest.h>
 #import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
 
-@interface GNSPeripheralServiceManagerTest : XCTestCase {
-  GNSPeripheralServiceManager *_peripheralServiceManager;
-  CBUUID *_serviceUUID;
-  BOOL _shouldAcceptSocket;
-  GNSSocket *_receivedSocket;
-  id _peripheralManagerMock;
-  id _cbPeripheralManagerMock;
-  id _socketDelegateMock;
-  NSMutableArray *_mocksToVerify;
-  NSUInteger _centralMaximumUpdateValueLength;
-  NSUInteger _packetSize;
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralManager+Private.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager+Private.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSATTRequest.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket+Private.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSWeavePacket.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Tests/Peripheral/GNSFakePeripheralManager.h"
+
+// The default packet size.
+static const NSInteger kPacketSize = 20;
+
+// Fake CBCentral for testing.
+@interface GNCFakeCBCentral : NSObject <NSCopying>
+@property(nonatomic, readonly) NSUUID *identifier;
+@property(nonatomic, readonly) NSUInteger maximumUpdateValueLength;
+
+- (instancetype)initWithIdentifier:(NSUUID *)identifier
+          maximumUpdateValueLength:(NSUInteger)maximumUpdateValueLength;
+
+@end
+
+@implementation GNCFakeCBCentral
+- (instancetype)initWithIdentifier:(NSUUID *)identifier
+          maximumUpdateValueLength:(NSUInteger)maximumUpdateValueLength {
+  self = [super init];
+  if (self) {
+    _identifier = identifier;
+    _maximumUpdateValueLength = maximumUpdateValueLength;
+  }
+  return self;
 }
+
+- (BOOL)isEqual:(id)object {
+  if (self == object) {
+    return YES;
+  }
+  if (![object isKindOfClass:[GNCFakeCBCentral class]]) {
+    return NO;
+  }
+  GNCFakeCBCentral *other = (GNCFakeCBCentral *)object;
+  return [_identifier isEqual:other.identifier];
+}
+
+- (NSUInteger)hash {
+  return _identifier.hash;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+  return self;
+}
+
+@end
+
+// Fake CBATTRequest for testing.
+@interface GNSFakeCBATTRequest : NSObject <GNSATTRequest>
+@property(nonatomic) CBCentral *central;
+@property(nonatomic) CBCharacteristic *characteristic;
+@property(nonatomic) NSData *value;
+@property(nonatomic) NSInteger offset;
+@end
+
+@implementation GNSFakeCBATTRequest
+@end
+
+@interface GNSFakeSocketDelegate : NSObject <GNSSocketDelegate>
+@property(nonatomic) NSData *receivedData;
+@property(nonatomic) XCTestExpectation *dataReceivedExpectation;
+@property(nonatomic) XCTestExpectation *connectedExpectation;
+@property(nonatomic) XCTestExpectation *disconnectExpectation;
+@end
+
+@implementation GNSFakeSocketDelegate
+- (void)socket:(GNSSocket *)socket didReceiveData:(NSData *)data {
+  self.receivedData = data;
+  [self.dataReceivedExpectation fulfill];
+}
+
+- (void)socketDidConnect:(GNSSocket *)socket {
+  [self.connectedExpectation fulfill];
+}
+
+- (void)socket:(GNSSocket *)socket didDisconnectWithError:(NSError *)error {
+  [self.disconnectExpectation fulfill];
+}
+@end
+
+@interface GNSPeripheralManager ()
+- (instancetype)initWithPeripheralManager:(CBPeripheralManager *)peripheralManager;
+@end
+
+@interface GNSPeripheralServiceManagerTest : XCTestCase
 @end
 
 @implementation GNSPeripheralServiceManagerTest
 
-- (void)setUp {
-  _mocksToVerify = [NSMutableArray array];
-  _serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
-  _peripheralManagerMock = OCMStrictClassMock([GNSPeripheralManager class]);
-  _cbPeripheralManagerMock = OCMStrictClassMock([CBPeripheralManager class]);
-  _socketDelegateMock = OCMStrictProtocolMock(@protocol(GNSSocketDelegate));
-  _centralMaximumUpdateValueLength = 100;
-  _packetSize = 100;
-  OCMStub([_peripheralManagerMock cbPeripheralManager]).andReturn(_cbPeripheralManagerMock);
-  _peripheralServiceManager =
-      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:_serviceUUID
-                                         addPairingCharacteristic:NO
-                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
-                                          _receivedSocket = socket;
-                                          socket.delegate = _socketDelegateMock;
-                                          return self->_shouldAcceptSocket;
-                                        }];
-  XCTAssertEqualObjects(_peripheralServiceManager.serviceUUID, _serviceUUID);
-  [_peripheralServiceManager addedToPeripheralManager:_peripheralManagerMock
-                            bleServiceAddedCompletion:nil];
-  XCTAssertEqual(GNSBluetoothServiceStateNotAdded, _peripheralServiceManager.cbServiceState);
-  XCTAssertNil(_peripheralServiceManager.cbService);
-  [_peripheralServiceManager willAddCBService];
-  XCTAssertNotNil(_peripheralServiceManager.cbService);
-  XCTAssertEqual(GNSBluetoothServiceStateAddInProgress, _peripheralServiceManager.cbServiceState);
-  [_peripheralServiceManager didAddCBServiceWithError:nil];
-  XCTAssertEqual(GNSBluetoothServiceStateAdded, _peripheralServiceManager.cbServiceState);
-}
-
-- (void)tearDown {
-  OCMVerifyAll(_peripheralManagerMock);
-  OCMVerifyAll(_cbPeripheralManagerMock);
-  OCMVerifyAll(_socketDelegateMock);
-  for (id mock in _mocksToVerify) {
-    OCMVerifyAll(mock);
-  }
-}
-
-- (void)testServiceManagerAdded {
+- (void)testInit {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
   GNSPeripheralServiceManager *peripheralServiceManager =
-      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:_serviceUUID
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
                                          addPairingCharacteristic:NO
                                         shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
-                                          _receivedSocket = socket;
-                                          return _shouldAcceptSocket;
+                                          return YES;
                                         }];
-  __block BOOL completionCalled = NO;
-  [peripheralServiceManager addedToPeripheralManager:_peripheralManagerMock
-                           bleServiceAddedCompletion:^(NSError *error) {
-                             completionCalled = YES;
-                           }];
-  XCTAssertEqual(peripheralServiceManager.peripheralManager, _peripheralManagerMock);
-  XCTAssertFalse(completionCalled);
+  XCTAssertNotNil(peripheralServiceManager);
+  XCTAssertEqualObjects(peripheralServiceManager.serviceUUID, serviceUUID);
+  XCTAssertTrue(peripheralServiceManager.isAdvertising);
+  XCTAssertEqual(peripheralServiceManager.cbServiceState, GNSBluetoothServiceStateNotAdded);
+}
+
+- (void)testInitUnavailable {
+  GNSPeripheralServiceManager *manager = [GNSPeripheralServiceManager alloc];
+  SEL initSelector = NSSelectorFromString(@"init");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+  XCTAssertThrows([manager performSelector:initSelector]);
+#pragma clang diagnostic pop
+}
+
+- (void)testShouldAcceptSocketHandler {
+  GNSShouldAcceptSocketHandler handler = ^BOOL(GNSSocket *socket) {
+    return YES;
+  };
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:NO
+                                        shouldAcceptSocketHandler:handler];
+  XCTAssertEqual(peripheralServiceManager.shouldAcceptSocketHandler, handler);
+}
+
+- (void)testSimpleGetters {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:YES
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  GNSErrorHandler completion = ^(NSError *error) {
+  };
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:completion];
+  XCTAssertEqual(peripheralServiceManager.peripheralManager, peripheralManager);
+  XCTAssertEqual(peripheralServiceManager.bleServiceAddedCompletion, completion);
+
   [peripheralServiceManager willAddCBService];
-  XCTAssertFalse(completionCalled);
-  [peripheralServiceManager didAddCBServiceWithError:nil];
-  XCTAssertTrue(completionCalled);
-}
+  XCTAssertNotNil(peripheralServiceManager.weaveOutgoingCharacteristic);
+  XCTAssertNotNil(peripheralServiceManager.pairingCharacteristic);
 
-- (void)testPeripheralServiceManagerRestored {
-  GNSPeripheralServiceManager *manager =
-      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:_serviceUUID
+  GNSPeripheralServiceManager *peripheralServiceManagerNoPairing =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
                                          addPairingCharacteristic:NO
                                         shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
-                                          return NO;
+                                          return YES;
                                         }];
-  XCTAssertEqual(GNSBluetoothServiceStateNotAdded, manager.cbServiceState);
-
-  CBMutableCharacteristic *weaveOutgoingChar = OCMStrictClassMock([CBMutableCharacteristic class]);
-  CBUUID *weaveOutgoingCharUUID = [CBUUID UUIDWithString:@"00000100-0004-1000-8000-001A11000102"];
-  OCMStub([weaveOutgoingChar UUID]).andReturn(weaveOutgoingCharUUID);
-  CBMutableCharacteristic *weaveIncomingChar = OCMStrictClassMock([CBMutableCharacteristic class]);
-  CBUUID *weaveIncomingCharUUID = [CBUUID UUIDWithString:@"00000100-0004-1000-8000-001A11000101"];
-  OCMStub([weaveIncomingChar UUID]).andReturn(weaveIncomingCharUUID);
-
-  CBMutableService *cbService = OCMStrictClassMock([CBMutableService class]);
-  OCMStub([cbService UUID]).andReturn(_serviceUUID);
-  NSArray *restoredCharacteristics = @[ weaveOutgoingChar, weaveIncomingChar ];
-  OCMStub([cbService characteristics]).andReturn(restoredCharacteristics);
-  [manager restoredCBService:cbService];
-  XCTAssertEqual(GNSBluetoothServiceStateAdded, manager.cbServiceState);
-  XCTAssertEqual(manager.cbService, cbService);
-  XCTAssertEqual(manager.weaveOutgoingCharacteristic, weaveOutgoingChar);
-  XCTAssertEqual(manager.weaveIncomingCharacteristic, weaveIncomingChar);
+  [peripheralServiceManagerNoPairing willAddCBService];
+  XCTAssertNil(peripheralServiceManagerNoPairing.pairingCharacteristic);
 }
 
-- (void)testDefaultAdvertisingValue {
-  XCTAssertTrue(_peripheralServiceManager.isAdvertising);
-}
-
-- (void)testSetAdvertisingValueToTrue {
-  // Nothing should happen since it is already to YES
-  _peripheralServiceManager.advertising = YES;
-}
-
-- (void)testSetAdvertisingValueToFalse {
-  OCMExpect([_peripheralManagerMock updateAdvertisedServices]);
-  _peripheralServiceManager.advertising = NO;
+- (void)testAddedToPeripheralManagerTwiceAsserts {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:NO
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
+  XCTAssertThrows([peripheralServiceManager addedToPeripheralManager:peripheralManager
+                                           bleServiceAddedCompletion:nil]);
 }
 
 - (void)testCanProcessReadRequest {
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  OCMStubRecorder *recorder = OCMStub([request characteristic]);
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:YES
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  [peripheralServiceManager willAddCBService];
 
-  recorder.andReturn(_peripheralServiceManager.weaveOutgoingCharacteristic);
-  XCTAssertEqual([_peripheralServiceManager canProcessReadRequest:request],
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  XCTAssertEqual([peripheralServiceManager canProcessReadRequest:(CBATTRequest *)request],
                  CBATTErrorReadNotPermitted);
-  recorder.andReturn(_peripheralServiceManager.weaveIncomingCharacteristic);
-  XCTAssertEqual([_peripheralServiceManager canProcessReadRequest:request],
+
+  request.characteristic = peripheralServiceManager.weaveOutgoingCharacteristic;
+  XCTAssertEqual([peripheralServiceManager canProcessReadRequest:(CBATTRequest *)request],
                  CBATTErrorReadNotPermitted);
 
-  OCMVerifyAll((id)request);
-}
+  request.characteristic = peripheralServiceManager.pairingCharacteristic;
+  XCTAssertEqual([peripheralServiceManager canProcessReadRequest:(CBATTRequest *)request],
+                 CBATTErrorSuccess);
 
-- (void)testCanProcessReadRequestOnWrongCharacteristic {
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  CBUUID *uuid = [CBUUID UUIDWithNSUUID:[NSUUID UUID]];
-  id characteristicMock = OCMStrictClassMock([CBMutableCharacteristic class]);
-  OCMStub([characteristicMock UUID]).andReturn(uuid);
-  OCMStub([request characteristic]).andReturn(characteristicMock);
-  XCTAssertEqual([_peripheralServiceManager canProcessReadRequest:request],
+  CBMutableCharacteristic *unknownChar = [[CBMutableCharacteristic alloc]
+      initWithType:[CBUUID UUIDWithString:@"CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"]
+        properties:CBCharacteristicPropertyRead
+             value:nil
+       permissions:CBAttributePermissionsReadable];
+  request.characteristic = unknownChar;
+  XCTAssertEqual([peripheralServiceManager canProcessReadRequest:(CBATTRequest *)request],
                  CBATTErrorAttributeNotFound);
-  OCMVerifyAll((id)request);
-  OCMVerifyAll(characteristicMock);
 }
 
-- (void)testCanProcessWriteRequestOnOutgoingCharacteristic {
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  OCMStubRecorder *recorder = OCMStub([request characteristic]);
+- (void)testProcessReadRequest {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:YES
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  [peripheralServiceManager willAddCBService];
 
-  recorder.andReturn(_peripheralServiceManager.weaveOutgoingCharacteristic);
-  XCTAssertEqual([_peripheralServiceManager canProcessWriteRequest:request],
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+
+  // Test with pairing characteristic.
+  request.characteristic = peripheralServiceManager.pairingCharacteristic;
+  [peripheralServiceManager processReadRequest:(CBATTRequest *)request];
+  XCTAssertEqualObjects(request.value, [NSData data]);
+
+  // Test with non-pairing characteristic - should assert.
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  XCTAssertThrows([peripheralServiceManager processReadRequest:(CBATTRequest *)request]);
+}
+
+- (void)testCanProcessWriteRequest {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:YES
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  [peripheralServiceManager willAddCBService];
+
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  XCTAssertEqual([peripheralServiceManager canProcessWriteRequest:(CBATTRequest *)request],
+                 CBATTErrorSuccess);
+
+  request.characteristic = peripheralServiceManager.weaveOutgoingCharacteristic;
+  XCTAssertEqual([peripheralServiceManager canProcessWriteRequest:(CBATTRequest *)request],
                  CBATTErrorWriteNotPermitted);
-  OCMVerifyAll((id)request);
-}
 
-- (void)testCanProcessWriteRequestOnIncomingCharacteristic {
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  OCMStubRecorder *recorder = OCMStub([request characteristic]);
-
-  recorder.andReturn(_peripheralServiceManager.weaveIncomingCharacteristic);
-  XCTAssertEqual([_peripheralServiceManager canProcessWriteRequest:request], CBATTErrorSuccess);
-  OCMVerifyAll((id)request);
-}
-
-- (void)testCanProcessWriteRequestOnWrongCharacteristic {
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  CBUUID *uuid = [CBUUID UUIDWithNSUUID:[NSUUID UUID]];
-  id characteristicMock = OCMStrictClassMock([CBMutableCharacteristic class]);
-  OCMStub([characteristicMock UUID]).andReturn(uuid);
-  OCMStub([request characteristic]).andReturn(characteristicMock);
-  XCTAssertEqual([_peripheralServiceManager canProcessWriteRequest:request],
+  request.characteristic = peripheralServiceManager.pairingCharacteristic;
+  XCTAssertEqual([peripheralServiceManager canProcessWriteRequest:(CBATTRequest *)request],
                  CBATTErrorAttributeNotFound);
-  OCMVerifyAll((id)request);
-  OCMVerifyAll(characteristicMock);
-}
 
-- (CBCentral *)setupRequest:(id)request
-         withCharacteristic:(CBMutableCharacteristic *)characteristic
-                    central:(CBCentral *)central {
-  if (!central) {
-    NSUUID *identifier = [NSUUID UUID];
-    central = OCMStrictClassMock([CBCentral class]);
-    OCMStub([central identifier]).andReturn(identifier);
-    OCMStub([central maximumUpdateValueLength]).andReturn(_centralMaximumUpdateValueLength);
-    [_mocksToVerify addObject:central];
-  }
-  OCMStub([request characteristic]).andReturn(characteristic);
-  OCMStub([request central]).andReturn(central);
-  return central;
+  CBMutableCharacteristic *unknownChar = [[CBMutableCharacteristic alloc]
+      initWithType:[CBUUID UUIDWithString:@"CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"]
+        properties:CBCharacteristicPropertyWrite
+             value:nil
+       permissions:CBAttributePermissionsWriteable];
+  request.characteristic = unknownChar;
+  XCTAssertEqual([peripheralServiceManager canProcessWriteRequest:(CBATTRequest *)request],
+                 CBATTErrorAttributeNotFound);
 }
 
 - (void)testProcessEmptyData {
-  NSMutableData *data = [NSMutableData data];
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  OCMStub([request value]).andReturn(data);
-
-  [self setupRequest:request
-      withCharacteristic:_peripheralServiceManager.weaveIncomingCharacteristic
-                 central:nil];
-  [_peripheralServiceManager processWriteRequest:request];
-  // should not crash, should do nothing.
-  OCMVerifyAll((id)request);
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  [peripheralServiceManager willAddCBService];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  request.value = [NSData data];
+  id mockManager = OCMPartialMock(peripheralServiceManager);
+  OCMExpect([mockManager handleWeaveError:GNSErrorParsingWeavePacket socket:[OCMArg any]]);
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+  OCMVerifyAll(mockManager);
 }
 
 #pragma mark - Characteristics
 
-- (void)testPairingChar {
-  GNSPeripheralServiceManager *manager =
-      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:_serviceUUID
+- (void)testCharacteristicsWithPairing {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
                                          addPairingCharacteristic:YES
                                         shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
-                                          return NO;
+                                          return YES;
                                         }];
-  [manager willAddCBService];
-  [manager didAddCBServiceWithError:nil];
-  CBMutableCharacteristic *pairingCharacteristic = manager.pairingCharacteristic;
-  XCTAssertNotNil(pairingCharacteristic);
-  XCTAssertEqualObjects(pairingCharacteristic.UUID.UUIDString,
-                        @"17836FBD-8C6A-4B81-83CE-8560629E834B",
-                        @"Wrong pairing characteristic UUID.");
-  XCTAssertEqual(pairingCharacteristic.properties, CBCharacteristicPropertyRead,
-                 @"Wrong property for pairing characteristic.");
-  XCTAssertEqual(pairingCharacteristic.permissions, CBAttributePermissionsReadEncryptionRequired,
-                 @"Wrong permission for pairing characteristic.");
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  XCTAssertEqual(peripheralServiceManager.cbServiceState, GNSBluetoothServiceStateAdded);
+  CBMutableService *service = peripheralServiceManager.cbService;
+  XCTAssertNotNil(service);
+  XCTAssertEqualObjects(service.UUID, serviceUUID);
+  XCTAssertTrue(service.isPrimary);
+  XCTAssertEqual(service.characteristics.count, 3);
+
+  CBMutableCharacteristic *incoming = (CBMutableCharacteristic *)service.characteristics[0];
+  XCTAssertEqualObjects(incoming.UUID.UUIDString, @"00000100-0004-1000-8000-001A11000101");
+  XCTAssertEqual(incoming.properties, CBCharacteristicPropertyWrite);
+  XCTAssertEqual(incoming.permissions, CBAttributePermissionsWriteable);
+
+  CBMutableCharacteristic *outgoing = (CBMutableCharacteristic *)service.characteristics[1];
+  XCTAssertEqualObjects(outgoing.UUID.UUIDString, @"00000100-0004-1000-8000-001A11000102");
+  XCTAssertEqual(outgoing.properties, CBCharacteristicPropertyIndicate);
+  XCTAssertEqual(outgoing.permissions, CBAttributePermissionsReadable);
+
+  CBMutableCharacteristic *pairing = (CBMutableCharacteristic *)service.characteristics[2];
+  XCTAssertEqualObjects(pairing.UUID.UUIDString, @"17836FBD-8C6A-4B81-83CE-8560629E834B");
+  XCTAssertEqual(pairing.properties, CBCharacteristicPropertyRead);
+  XCTAssertEqual(pairing.permissions, CBAttributePermissionsReadEncryptionRequired);
 }
 
-- (void)testNoPairingChar {
-  GNSPeripheralServiceManager *manager =
-      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:_serviceUUID
+- (void)testCharacteristicsWithoutPairing {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
                                          addPairingCharacteristic:NO
                                         shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
-                                          return NO;
+                                          return YES;
                                         }];
-  [manager willAddCBService];
-  [manager didAddCBServiceWithError:nil];
-  XCTAssertNil(manager.pairingCharacteristic);
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  XCTAssertEqual(peripheralServiceManager.cbServiceState, GNSBluetoothServiceStateAdded);
+  CBMutableService *service = peripheralServiceManager.cbService;
+  XCTAssertNotNil(service);
+  XCTAssertEqualObjects(service.UUID, serviceUUID);
+  XCTAssertTrue(service.isPrimary);
+  XCTAssertEqual(service.characteristics.count, 2);
+
+  CBMutableCharacteristic *incoming = (CBMutableCharacteristic *)service.characteristics[0];
+  XCTAssertEqualObjects(incoming.UUID.UUIDString, @"00000100-0004-1000-8000-001A11000101");
+  XCTAssertEqual(incoming.properties, CBCharacteristicPropertyWrite);
+  XCTAssertEqual(incoming.permissions, CBAttributePermissionsWriteable);
+
+  CBMutableCharacteristic *outgoing = (CBMutableCharacteristic *)service.characteristics[1];
+  XCTAssertEqualObjects(outgoing.UUID.UUIDString, @"00000100-0004-1000-8000-001A11000102");
+  XCTAssertEqual(outgoing.properties, CBCharacteristicPropertyIndicate);
+  XCTAssertEqual(outgoing.permissions, CBAttributePermissionsReadable);
 }
 
-- (void)testOutgoingChar {
-  CBMutableCharacteristic *weaveOutgoingCharacteristic =
-      _peripheralServiceManager.weaveOutgoingCharacteristic;
-  XCTAssertNotNil(weaveOutgoingCharacteristic);
-  XCTAssertEqualObjects(weaveOutgoingCharacteristic.UUID.UUIDString,
-                        @"00000100-0004-1000-8000-001A11000102",
-                        @"Wrong weave outgoing characteristic UUID.");
-  XCTAssertEqual(weaveOutgoingCharacteristic.properties, CBCharacteristicPropertyIndicate,
-                 @"Wrong property for weave outgoing characteristic.");
-  XCTAssertEqual(weaveOutgoingCharacteristic.permissions, CBAttributePermissionsReadable,
-                 @"Wrong permission for weave outgoing characteristic.");
+- (void)testOutgoingCharacteristic {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:NO
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  [peripheralServiceManager willAddCBService];
+  CBMutableCharacteristic *outgoing = peripheralServiceManager.weaveOutgoingCharacteristic;
+  XCTAssertEqualObjects(outgoing.UUID.UUIDString, @"00000100-0004-1000-8000-001A11000102");
+  XCTAssertEqual(outgoing.properties, CBCharacteristicPropertyIndicate);
+  XCTAssertEqual(outgoing.permissions, CBAttributePermissionsReadable);
 }
 
-- (void)testIncomingChar {
-  CBMutableCharacteristic *weaveIncomingCharacteristic =
-      _peripheralServiceManager.weaveIncomingCharacteristic;
-  XCTAssertNotNil(weaveIncomingCharacteristic);
-  XCTAssertEqualObjects(weaveIncomingCharacteristic.UUID.UUIDString,
-                        @"00000100-0004-1000-8000-001A11000101",
-                        @"Wrong weave incoming characteristic UUID.");
-  XCTAssertEqual(weaveIncomingCharacteristic.properties, CBCharacteristicPropertyWrite,
-                 @"Wrong property for weave incoming characteristic.");
-  XCTAssertEqual(weaveIncomingCharacteristic.permissions, CBAttributePermissionsWriteable,
-                 @"Wrong permission for weave incoming characteristic.");
+- (void)testIncomingCharacteristic {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:NO
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  [peripheralServiceManager willAddCBService];
+  CBMutableCharacteristic *incoming = peripheralServiceManager.weaveIncomingCharacteristic;
+  XCTAssertEqualObjects(incoming.UUID.UUIDString, @"00000100-0004-1000-8000-001A11000101");
+  XCTAssertEqual(incoming.properties, CBCharacteristicPropertyWrite);
+  XCTAssertEqual(incoming.permissions, CBAttributePermissionsWriteable);
 }
 
 #pragma mark - Socket connection
 
-- (void)checkOpenSocketWithShouldAccept:(BOOL)shouldAccept {
-  [self checkOpenSocketWithShouldAccept:shouldAccept central:nil];
-}
+- (void)testSocketConnectionAccepted {
+  __block BOOL socketHandlerCalled = NO;
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        socketHandlerCalled = YES;
+        strongSocket = socket;
+        return YES;
+      }];
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
 
-- (void)checkOpenSocketWithShouldAccept:(BOOL)shouldAccept central:(CBCentral *)central {
-  CBMutableCharacteristic *characteristic;
-  NSMutableData *data = [NSMutableData data];
-  _shouldAcceptSocket = shouldAccept;
-
-  // This is necessary to ensure that negotiated packet size is |_packetSize|. It should be set here
-  // and in the connection request packet.
-  _centralMaximumUpdateValueLength = _packetSize;
-  characteristic = _peripheralServiceManager.weaveIncomingCharacteristic;
-  GNSWeaveConnectionRequestPacket *connectionRequest =
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *packet =
       [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
                                                        maxVersion:1
-                                                    maxPacketSize:_packetSize
+                                                    maxPacketSize:0
                                                              data:nil];
-  [data appendData:[connectionRequest serialize]];
-  XCTAssertNotNil(characteristic);
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  OCMStub([request value]).andReturn(data);
-  [self setupRequest:request withCharacteristic:characteristic central:central];
-  __block GNSUpdateValueHandler updateValueHandler = nil;
-  // Nothing is sent when the socket is refused in the Weave protocol.
-  if (!shouldAccept) {
-    return;
-  }
-  OCMExpect([_peripheralManagerMock
-      updateOutgoingCharOnSocket:[OCMArg checkWithBlock:^BOOL(id obj) {
-        // The socket has not been created yet. So the socket check has to be done with a block.
-        return _receivedSocket == obj;
-      }]
-                     withHandler:[OCMArg checkWithBlock:^(id handler) {
-                       updateValueHandler = [handler copy];
-                       return YES;
-                     }]]);
-  [_peripheralServiceManager processWriteRequest:request];
-  XCTAssertNotNil(updateValueHandler);
-  if (!updateValueHandler) {
-    return;
-  }
-  NSMutableData *expectedData = [NSMutableData data];
-  GNSWeaveConnectionConfirmPacket *connectionConfirm =
-      [[GNSWeaveConnectionConfirmPacket alloc] initWithVersion:1 packetSize:_packetSize data:nil];
-  [expectedData appendData:[connectionConfirm serialize]];
-  OCMExpect([_peripheralManagerMock updateOutgoingCharacteristic:expectedData
-                                                        onSocket:_receivedSocket])
-      .andReturn(YES);
-  XCTAssertNotNil(_receivedSocket);
-  XCTAssertFalse(_receivedSocket.isConnected);
-  if (shouldAccept) {
-    OCMExpect([_socketDelegateMock socketDidConnect:_receivedSocket]);
-  }
-  updateValueHandler(_peripheralManagerMock);
-  XCTAssertEqual(_receivedSocket.isConnected, shouldAccept);
-  OCMVerifyAll((id)request);
+  request.value = [packet serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+
+  XCTAssertTrue(socketHandlerCalled);
+  XCTAssertNotNil(strongSocket);
 }
 
-- (void)testRefuseSocket {
-  [self checkOpenSocketWithShouldAccept:NO];
-}
+- (void)testSocketConnectionRejected {
+  __block BOOL socketHandlerCalled = NO;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        socketHandlerCalled = YES;
+        return NO;
+      }];
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
 
-- (void)testAcceptSocket {
-  [self checkOpenSocketWithShouldAccept:YES];
-}
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *packet =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [packet serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
 
-- (void)testTwoConnectionRequests {
-  [self checkOpenSocketWithShouldAccept:YES];
-  GNSSocket *firstSocket = _receivedSocket;
-  OCMExpect([_socketDelegateMock socket:firstSocket
-                 didDisconnectWithError:[OCMArg checkWithBlock:^BOOL(NSError *error) {
-                   return [error.domain isEqualToString:kGNSSocketsErrorDomain] &&
-                          error.code == GNSErrorNewInviteToConnectReceived;
-                 }]]);
-  OCMExpect([_peripheralManagerMock socketDidDisconnect:firstSocket]);
-  [self checkOpenSocketWithShouldAccept:YES central:firstSocket.peerAsCentral];
-  XCTAssertNotEqual(firstSocket, _receivedSocket);
-  XCTAssertFalse(firstSocket.isConnected);
+  XCTAssertTrue(socketHandlerCalled);
 }
 
 #pragma mark - Socket receive data
 
-- (NSData *)generateDataWithSize:(uint32_t)length {
-  NSMutableData *result = [NSMutableData dataWithCapacity:length];
-  unsigned char byte = 0;
-  for (NSInteger ii = 0; ii < length; ii++) {
-    [result appendBytes:&byte length:sizeof(byte)];
-    byte++;
-  }
-  return result;
+- (void)testHandleDataPacket {
+  GNSFakeSocketDelegate *delegate = [[GNSFakeSocketDelegate alloc] init];
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        strongSocket = socket;
+        strongSocket.delegate = delegate;
+        return YES;
+      }];
+
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
+
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *connPacket =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [connPacket serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+  id mockSocket = OCMPartialMock(strongSocket);
+  OCMExpect([mockSocket didReceiveIncomingWeaveDataPacket:[OCMArg any]]);
+
+  GNSWeaveDataPacket *dataPacket = [[GNSWeaveDataPacket alloc] initWithPacketCounter:1
+                                                                         firstPacket:NO
+                                                                          lastPacket:YES
+                                                                                data:[NSData data]];
+  [peripheralServiceManager handleDataPacket:dataPacket context:request];
+
+  OCMVerifyAll(mockSocket);
 }
 
-- (void)testReceiveEmptyMessage {
-  [self checkOpenSocketWithShouldAccept:YES];
+- (void)testHandleDataPacketWhenWaitingForIncomingData {
+  GNSFakeSocketDelegate *delegate = [[GNSFakeSocketDelegate alloc] init];
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        strongSocket = socket;
+        strongSocket.delegate = delegate;
+        return YES;
+      }];
 
-  NSData *expectedMessage = [self generateDataWithSize:0];
-  OCMExpect([_socketDelegateMock socket:_receivedSocket didReceiveData:expectedMessage]);
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
 
-  GNSWeaveDataPacket *dataPacket =
-      [[GNSWeaveDataPacket alloc] initWithPacketCounter:_receivedSocket.receivePacketCounter
-                                            firstPacket:YES
-                                             lastPacket:YES
-                                                   data:expectedMessage];
-  CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-  OCMStub([request value]).andReturn([dataPacket serialize]);
-  [self setupRequest:request
-      withCharacteristic:_peripheralServiceManager.weaveIncomingCharacteristic
-                 central:_receivedSocket.peerAsCentral];
-  [_peripheralServiceManager processWriteRequest:request];
-  XCTAssertTrue(_receivedSocket.isConnected);
-  OCMVerifyAll((id)request);
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *connPacket =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [connPacket serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+
+  id mockSocket = OCMPartialMock(strongSocket);
+  OCMStub([mockSocket waitingForIncomingData]).andReturn(YES);
+  id mockManager = OCMPartialMock(peripheralServiceManager);
+  OCMExpect([mockManager handleWeaveError:GNSErrorWeaveDataTransferInProgress socket:strongSocket]);
+
+  GNSWeaveDataPacket *dataPacket = [[GNSWeaveDataPacket alloc] initWithPacketCounter:1
+                                                                         firstPacket:YES
+                                                                          lastPacket:YES
+                                                                                data:[NSData data]];
+  [peripheralServiceManager handleDataPacket:dataPacket context:request];
+
+  OCMVerifyAll(mockManager);
 }
 
-- (void)simulateReceiveMessageWithSize:(uint32_t)size
-                            packetSize:(NSUInteger)packetSize
-                               counter:(UInt8)counter {
-  NSData *expectedMessage = [self generateDataWithSize:size];
-  OCMExpect([_socketDelegateMock socket:_receivedSocket didReceiveData:expectedMessage]);
-
-  NSUInteger offset = 0;
-  UInt8 receivePacketCounter = counter;
-  while (offset < size) {
-    GNSWeaveDataPacket *dataPacket =
-        [GNSWeaveDataPacket dataPacketWithPacketCounter:receivePacketCounter
-                                             packetSize:packetSize
-                                                   data:expectedMessage
-                                                 offset:&offset];
-    CBATTRequest *request = OCMStrictClassMock([CBATTRequest class]);
-    OCMStub([request value]).andReturn([dataPacket serialize]);
-    [self setupRequest:request
-        withCharacteristic:_peripheralServiceManager.weaveIncomingCharacteristic
-                   central:_receivedSocket.peerAsCentral];
-    [_peripheralServiceManager processWriteRequest:request];
-    XCTAssertTrue(_receivedSocket.isConnected);
-    OCMVerifyAll((id)request);
-    receivePacketCounter = (receivePacketCounter + 1) % kGNSMaxPacketCounterValue;
-  }
+- (void)testHandleConnectionConfirmPacket {
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  id mockManager = OCMPartialMock(peripheralServiceManager);
+  OCMExpect([mockManager handleWeaveError:GNSErrorUnexpectedWeaveControlPacket
+                                   socket:[OCMArg any]]);
+  GNSWeaveConnectionConfirmPacket *packet =
+      [[GNSWeaveConnectionConfirmPacket alloc] initWithVersion:1 packetSize:kPacketSize data:nil];
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  [peripheralServiceManager handleConnectionConfirmPacket:packet context:request];
+  OCMVerifyAll(mockManager);
 }
 
-- (void)testReceiveSinglePacketMessage {
-  _packetSize = 100;
-  [self checkOpenSocketWithShouldAccept:YES];
-  [self simulateReceiveMessageWithSize:99
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
+- (void)testHandleErrorPacket {
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  id mockManager = OCMPartialMock(peripheralServiceManager);
+  OCMExpect([mockManager handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:[OCMArg any]]);
+  GNSWeaveErrorPacket *packet = [[GNSWeaveErrorPacket alloc] initWithPacketCounter:0];
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  [peripheralServiceManager handleErrorPacket:packet context:request];
+  OCMVerifyAll(mockManager);
 }
 
-- (void)testReceiveTwoSinglePacketMessages {
-  _packetSize = 100;
-  [self checkOpenSocketWithShouldAccept:YES];
-  [self simulateReceiveMessageWithSize:1
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
-  [self simulateReceiveMessageWithSize:98
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
+- (void)testHandleWeaveErrorWithNilSocket {
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  XCTAssertNoThrow([peripheralServiceManager handleWeaveError:GNSErrorParsingWeavePacket
+                                                       socket:nil]);
 }
 
-- (void)testReceiveMultiplePacketMessage {
-  _packetSize = 100;
-  [self checkOpenSocketWithShouldAccept:YES];
-  [self simulateReceiveMessageWithSize:101
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
+- (void)testHandleWeaveErrorWithErrorPacketReceived {
+  GNSFakeSocketDelegate *delegate = [[GNSFakeSocketDelegate alloc] init];
+
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        strongSocket = socket;
+        strongSocket.delegate = delegate;
+        return YES;
+      }];
+
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
+
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *packet =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [packet serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+
+  XCTAssertNotNil(strongSocket);
+
+  delegate.disconnectExpectation = [self expectationWithDescription:@"Socket disconnected"];
+  [peripheralServiceManager handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:strongSocket];
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
 }
 
-- (void)testReceiveSeveralMultiplePacketMessage {
-  _packetSize = 100;
-  [self checkOpenSocketWithShouldAccept:YES];
-  [self simulateReceiveMessageWithSize:101
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
-  [self simulateReceiveMessageWithSize:198
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
-  [self simulateReceiveMessageWithSize:1000
-                            packetSize:_packetSize
-                               counter:_receivedSocket.receivePacketCounter];
-}
+- (void)testHandleWeaveErrorWithOtherError {
+  GNSFakeSocketDelegate *delegate = [[GNSFakeSocketDelegate alloc] init];
 
-#pragma mark - Socket send data
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        strongSocket = socket;
+        strongSocket.delegate = delegate;
+        return YES;
+      }];
 
-- (BOOL)simulateSendMessageWithExpectedData:(NSData *)expectedData
-                                 packetSize:(NSUInteger)packetSize
-                                 completion:(GNSErrorHandler)completion {
-  BOOL sendHasBeenCompleted = YES;
-  // The expectedData.length divided by the amount of data that fits a packet, rounded up.
-  NSUInteger expectedPacketNumber =
-      (expectedData.length / (packetSize - 1)) + (expectedData.length % (packetSize - 1) != 0);
-  if (expectedData.length == 0) {
-    expectedPacketNumber = 1;
-  }
-  _packetSize = packetSize;
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
 
-  [self checkOpenSocketWithShouldAccept:YES];
-  UInt8 sendPacketCounter = _receivedSocket.sendPacketCounter;
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
 
-  __block GNSUpdateValueHandler updateValueHandler = nil;
-  OCMStub([_peripheralManagerMock updateOutgoingCharOnSocket:_receivedSocket
-                                                 withHandler:[OCMArg checkWithBlock:^(id obj) {
-                                                   updateValueHandler = obj;
-                                                   return YES;
-                                                 }]]);
-  // Send the data
-  [_receivedSocket sendData:expectedData progressHandler:nil completion:completion];
-  XCTAssertNotNil(updateValueHandler);
-  if (!updateValueHandler) {
-    return NO;
-  }
-  __block NSData *packetSent = nil;
-  OCMStub([_peripheralManagerMock
-              updateOutgoingCharacteristic:[OCMArg checkWithBlock:^BOOL(id obj) {
-                packetSent = obj;
-                return YES;
-              }]
-                                  onSocket:_receivedSocket])
-      .andReturn(YES);
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *packet =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [packet serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
 
-  NSMutableData *sentData = [NSMutableData data];
-  for (NSUInteger i = 0; i < expectedPacketNumber; i++) {
-    // Cleanup |updateValueHandler| before calling it. So a new handler can be received if needed.
-    GNSUpdateValueHandler tmpUpdateValueHandler = updateValueHandler;
-    updateValueHandler = nil;
-    XCTAssertNotNil(tmpUpdateValueHandler);
-    tmpUpdateValueHandler(_peripheralManagerMock);
-    NSError *error = nil;
-    XCTAssertLessThanOrEqual(packetSent.length, packetSize);
-    GNSWeavePacket *packet = [GNSWeavePacket parseData:packetSent error:&error];
-    XCTAssertNil(error);
-    XCTAssertNotNil(packet);
-    XCTAssertTrue([packet isKindOfClass:[GNSWeaveDataPacket class]]);
-    GNSWeaveDataPacket *dataPacket = (GNSWeaveDataPacket *)packet;
-    GNCLoggerInfo(@"packetCounter = %d", dataPacket.packetCounter);
-    XCTAssertEqual(dataPacket.packetCounter, sendPacketCounter);
-    sendPacketCounter = (sendPacketCounter + 1) % kGNSMaxPacketCounterValue;
-    if (i == 0) {
-      XCTAssertTrue(dataPacket.isFirstPacket);
-    } else {
-      XCTAssertFalse(dataPacket.isFirstPacket);
-    }
-    [sentData appendData:dataPacket.data];
-    if (i == expectedPacketNumber - 1) {
-      XCTAssertTrue(dataPacket.isLastPacket);
-    } else {
-      XCTAssertFalse(dataPacket.isLastPacket);
-    }
-  }
-  XCTAssertEqual((int)_receivedSocket.sendPacketCounter, (int)sendPacketCounter);
-  if (sendHasBeenCompleted) {
-    XCTAssertEqualObjects(sentData, expectedData);
-  }
-  return sendHasBeenCompleted;
-}
+  XCTAssertNotNil(strongSocket);
 
-- (void)simulateMessageWithSize:(uint32_t)size packetSize:(NSUInteger)packetSize {
-  __block NSInteger completionCalled = 0;
-  NSData *expectedData = [self generateDataWithSize:size];
-  BOOL completed = [self simulateSendMessageWithExpectedData:expectedData
-                                                  packetSize:packetSize
-                                                  completion:^(NSError *error) {
-                                                    XCTAssertNil(error);
-                                                    completionCalled++;
-                                                  }];
-  XCTAssertTrue(completed);
-  XCTAssertEqual(completionCalled, 1);
-}
-
-- (void)testSendEmptyMessage {
-  [self simulateMessageWithSize:0 packetSize:30];
-}
-
-// The header has 1 byte.
-- (void)testSendSinglePacketMessage {
-  [self simulateMessageWithSize:29 packetSize:30];
-}
-
-// The header has 1 byte.
-- (void)testSendTwoPacketMessage {
-  [self simulateMessageWithSize:30 packetSize:30];
-}
-
-- (void)testSendMessagesWithSeveralPacketSizes {
-  for (NSUInteger packetSize = 20; packetSize < 50; packetSize++) {
-    [self simulateMessageWithSize:200 packetSize:packetSize];
-  }
-}
-
-- (void)testSendMessagesWithSeveralSizes {
-  for (uint32_t size = 100; size < 1000; size += 50) {
-    [self simulateMessageWithSize:size packetSize:120];
-  }
+  delegate.disconnectExpectation = [self expectationWithDescription:@"Socket disconnected"];
+  [peripheralServiceManager handleWeaveError:GNSErrorParsingWeavePacket socket:strongSocket];
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
 }
 
 #pragma mark - Socket disconnect
 
 - (void)testUnsubscribeToDisconnect {
-  [self checkOpenSocketWithShouldAccept:YES];
-  XCTAssertTrue(_receivedSocket.isConnected);
-  // Unsubscribing to the incoming characteristic: nothing should happen.
-  [_peripheralServiceManager central:_receivedSocket.peerAsCentral
-      didUnsubscribeFromCharacteristic:_peripheralServiceManager.weaveIncomingCharacteristic];
-  XCTAssertTrue(_receivedSocket.isConnected);
-  // Unsubscribing to the outgoing characteristic: the socket should be disconnected.
-  OCMExpect([_socketDelegateMock socket:_receivedSocket didDisconnectWithError:nil]);
-  OCMExpect([_peripheralManagerMock socketDidDisconnect:_receivedSocket]);
-  [_peripheralServiceManager central:_receivedSocket.peerAsCentral
-      didUnsubscribeFromCharacteristic:_peripheralServiceManager.weaveOutgoingCharacteristic];
-  XCTAssertFalse(_receivedSocket.isConnected);
+  GNSFakeSocketDelegate *delegate = [[GNSFakeSocketDelegate alloc] init];
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        strongSocket = socket;
+        strongSocket.delegate = delegate;
+        return YES;
+      }];
+
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
+
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *packet =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [packet serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+
+  XCTAssertNotNil(strongSocket);
+
+  delegate.disconnectExpectation = [self expectationWithDescription:@"Socket disconnected"];
+  [peripheralServiceManager central:(CBCentral *)central
+      didUnsubscribeFromCharacteristic:peripheralServiceManager.weaveOutgoingCharacteristic];
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
 }
 
-- (void)testDisconnect {
-  [self checkOpenSocketWithShouldAccept:YES];
-  __block GNSUpdateValueHandler updateValueHandler = nil;
-  OCMExpect([_peripheralManagerMock
-      updateOutgoingCharOnSocket:_receivedSocket
-                     withHandler:[OCMArg checkWithBlock:^(id handler) {
-                       updateValueHandler = handler;
-                       return YES;
-                     }]]);
-  OCMExpect([_peripheralManagerMock socketDidDisconnect:_receivedSocket]);
-  UInt8 sendPacketCounter = _receivedSocket.sendPacketCounter;
-  [_receivedSocket disconnect];
-  XCTAssertNotNil(updateValueHandler);
-  if (!updateValueHandler) {
-    return;
-  }
-  GNSWeaveErrorPacket *errorPacket =
-      [[GNSWeaveErrorPacket alloc] initWithPacketCounter:sendPacketCounter];
-  OCMExpect([_peripheralManagerMock updateOutgoingCharacteristic:[errorPacket serialize]
-                                                        onSocket:_receivedSocket])
-      .andReturn(YES);
-  OCMExpect([_socketDelegateMock socket:_receivedSocket didDisconnectWithError:nil]);
-  XCTAssertEqual(updateValueHandler(_peripheralManagerMock), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertFalse(_receivedSocket.isConnected);
+- (void)testDisconnectSocket_notConnected {
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  id partialMockManager = OCMPartialMock(peripheralServiceManager);
+  OCMReject([partialMockManager sendPacket:[OCMArg any]
+                                  toSocket:[OCMArg any]
+                                completion:[OCMArg any]]);
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:peripheralServiceManager
+                                           centralPeer:(CBCentral *)central
+                                                 queue:dispatch_get_main_queue()];
+  [peripheralServiceManager disconnectSocket:socket];
+  OCMVerifyAll(partialMockManager);
+}
+
+- (void)testDisconnectSocket_connected {
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  id mockManager = OCMPartialMock(peripheralServiceManager);
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:peripheralServiceManager
+                                           centralPeer:(CBCentral *)central
+                                                 queue:dispatch_get_main_queue()];
+  [socket didConnect];
+  OCMExpect([mockManager sendPacket:[OCMArg any] toSocket:socket completion:[OCMArg any]]);
+  [peripheralServiceManager disconnectSocket:socket];
+  OCMVerifyAll(mockManager);
 }
 
 - (void)testDisconnectWithErrorToSendDisconnectPacket {
-  [self checkOpenSocketWithShouldAccept:YES];
-  __block GNSUpdateValueHandler updateValueHandler = nil;
-  OCMExpect([_peripheralManagerMock
-      updateOutgoingCharOnSocket:_receivedSocket
-                     withHandler:[OCMArg checkWithBlock:^(id handler) {
-                       updateValueHandler = handler;
-                       return YES;
-                     }]]);
-  OCMExpect([_peripheralManagerMock socketDidDisconnect:_receivedSocket]);
-  UInt8 sendPacketCounter = _receivedSocket.sendPacketCounter;
-  [_receivedSocket disconnect];
-  XCTAssertNotNil(updateValueHandler);
-  if (!updateValueHandler) {
-    return;
-  }
-  GNSWeaveErrorPacket *errorPacket =
-      [[GNSWeaveErrorPacket alloc] initWithPacketCounter:sendPacketCounter];
-  OCMExpect([_peripheralManagerMock updateOutgoingCharacteristic:[errorPacket serialize]
-                                                        onSocket:_receivedSocket])
-      .andReturn(NO);
-  XCTAssertEqual(updateValueHandler(_peripheralManagerMock), GNSOutgoingCharUpdateScheduleLater);
-  XCTAssertTrue(_receivedSocket.isConnected);
-  OCMExpect([_peripheralManagerMock updateOutgoingCharacteristic:[errorPacket serialize]
-                                                        onSocket:_receivedSocket])
-      .andReturn(YES);
-  OCMExpect([_socketDelegateMock socket:_receivedSocket didDisconnectWithError:nil]);
-  XCTAssertEqual(updateValueHandler(_peripheralManagerMock), GNSOutgoingCharUpdateNoReschedule);
-  XCTAssertFalse(_receivedSocket.isConnected);
+  GNSFakeSocketDelegate *delegate = [[GNSFakeSocketDelegate alloc] init];
+  __block GNSSocket *strongSocket = nil;
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        strongSocket = socket;
+        strongSocket.delegate = delegate;
+        return YES;
+      }];
+
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)cbPeripheralManager];
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
+
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSFakeCBATTRequest *request = [[GNSFakeCBATTRequest alloc] init];
+  request.central = (CBCentral *)central;
+  request.characteristic = peripheralServiceManager.weaveIncomingCharacteristic;
+  GNSWeaveConnectionRequestPacket *packet =
+      [[GNSWeaveConnectionRequestPacket alloc] initWithMinVersion:1
+                                                       maxVersion:1
+                                                    maxPacketSize:0
+                                                             data:nil];
+  request.value = [packet serialize];
+  [peripheralServiceManager processWriteRequest:(CBATTRequest *)request];
+
+  XCTAssertNotNil(strongSocket);
+  [strongSocket didConnect];
+
+  id mockManager = OCMPartialMock(peripheralServiceManager);
+  OCMStub([mockManager sendPacket:[OCMArg any] toSocket:strongSocket completion:[OCMArg any]])
+      .andDo(^(NSInvocation *invocation) {
+        __unsafe_unretained GNSSocket *socket;
+        [invocation getArgument:&socket atIndex:3];
+        [peripheralServiceManager handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:socket];
+      });
+
+  delegate.disconnectExpectation = [self expectationWithDescription:@"Socket disconnected"];
+  [peripheralServiceManager disconnectSocket:strongSocket];
+  [self waitForExpectationsWithTimeout:2.0 handler:nil];
+  OCMVerifyAll(mockManager);
 }
 
 - (void)testSubscribeToOutgoingCharacteristic {
-  id centralMock = OCMStrictClassMock([CBCentral class]);
-  id characteristic = OCMStrictClassMock([CBMutableCharacteristic class]);
-  CBUUID *uuid = _peripheralServiceManager.weaveOutgoingCharacteristic.UUID;
-  OCMStub([characteristic UUID]).andReturn(uuid);
-  OCMStub([_cbPeripheralManagerMock
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+
+  GNSFakePeripheralManager *cbPeripheralManager = [[GNSFakePeripheralManager alloc] init];
+  id mockCBPeripheralManager = OCMPartialMock(cbPeripheralManager);
+  GNSPeripheralManager *peripheralManager = [[GNSPeripheralManager alloc]
+      initWithPeripheralManager:(CBPeripheralManager *)mockCBPeripheralManager];
+
+  [peripheralServiceManager addedToPeripheralManager:peripheralManager
+                           bleServiceAddedCompletion:nil];
+
+  [peripheralServiceManager willAddCBService];
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+
+  OCMExpect([mockCBPeripheralManager
       setDesiredConnectionLatency:CBPeripheralManagerConnectionLatencyLow
-                       forCentral:centralMock]);
-  [_peripheralServiceManager central:centralMock didSubscribeToCharacteristic:characteristic];
-  OCMVerifyAll(centralMock);
+                       forCentral:(CBCentral *)central]);
+  [peripheralServiceManager central:(CBCentral *)central
+       didSubscribeToCharacteristic:peripheralServiceManager.weaveOutgoingCharacteristic];
+  OCMVerifyAll(mockCBPeripheralManager);
+}
+
+#pragma mark - Description
+
+- (void)testSocketReady {
+  GNSPeripheralServiceManager *peripheralServiceManager = [[GNSPeripheralServiceManager alloc]
+         initWithBleServiceUUID:[CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"]
+       addPairingCharacteristic:NO
+      shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+        return YES;
+      }];
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:peripheralServiceManager
+                                           centralPeer:(CBCentral *)central
+                                                 queue:dispatch_get_main_queue()];
+  id mockSocket = OCMPartialMock(socket);
+  OCMExpect([mockSocket didConnect]);
+  [peripheralServiceManager socketReady:mockSocket];
+  OCMVerifyAll(mockSocket);
+}
+
+- (void)testSocketServiceIdentifier {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:NO
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+  GNCFakeCBCentral *central = [[GNCFakeCBCentral alloc] initWithIdentifier:[NSUUID UUID]
+                                                  maximumUpdateValueLength:kPacketSize];
+  GNSSocket *socket = [[GNSSocket alloc] initWithOwner:peripheralServiceManager
+                                           centralPeer:(CBCentral *)central
+                                                 queue:dispatch_get_main_queue()];
+  XCTAssertEqualObjects([peripheralServiceManager socketServiceIdentifier:socket].UUIDString,
+                        serviceUUID.UUIDString);
+}
+
+- (void)testBluetoothServiceStateDescriptionViaDescription {
+  CBUUID *serviceUUID = [CBUUID UUIDWithString:@"3C672799-2B3F-4D93-9E57-29D5C5B01092"];
+  GNSPeripheralServiceManager *peripheralServiceManager =
+      [[GNSPeripheralServiceManager alloc] initWithBleServiceUUID:serviceUUID
+                                         addPairingCharacteristic:NO
+                                        shouldAcceptSocketHandler:^BOOL(GNSSocket *socket) {
+                                          return YES;
+                                        }];
+
+  // Initial state: NotAdded
+  XCTAssertTrue(
+      [[peripheralServiceManager description] containsString:@"CBService state: NotAdded"],
+      @"Description should indicate NotAdded state initially: %@",
+      [peripheralServiceManager description]);
+
+  // State: AddInProgress
+  [peripheralServiceManager willAddCBService];
+  XCTAssertTrue(
+      [[peripheralServiceManager description] containsString:@"CBService state: AddInProgress"],
+      @"Description should indicate AddInProgress state after willAddCBService: %@",
+      [peripheralServiceManager description]);
+
+  // State: Added
+  [peripheralServiceManager didAddCBServiceWithError:nil];
+  XCTAssertTrue([[peripheralServiceManager description] containsString:@"CBService state: Added"],
+                @"Description should indicate Added state after didAddCBService: %@",
+                [peripheralServiceManager description]);
+
+  // State: NotAdded again
+  [peripheralServiceManager didRemoveCBService];
+  XCTAssertTrue(
+      [[peripheralServiceManager description] containsString:@"CBService state: NotAdded"],
+      @"Description should indicate NotAdded state after didRemoveCBService: %@",
+      [peripheralServiceManager description]);
 }
 
 @end

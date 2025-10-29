@@ -38,6 +38,7 @@
 @interface TestGNSPeripheralManager : GNSPeripheralManager
 @property(nonatomic, strong) GNSFakePeripheralManager *fakeCBPeripheralManager;
 @property(nonatomic, strong) NSDictionary<id, id> *cbOptions;
+@property(nonatomic) XCTestExpectation *stateUpdateExpectation;
 @end
 
 @implementation TestGNSPeripheralManager
@@ -51,6 +52,12 @@
                                                                             options:options];
   self.fakeCBPeripheralManager.delegate = delegate;
   return (CBPeripheralManager *)self.fakeCBPeripheralManager;
+}
+
+- (void)peripheralManagerDidUpdateState:(CBPeripheralManager *)peripheralManager {
+  [super peripheralManagerDidUpdateState:peripheralManager];
+  [_stateUpdateExpectation fulfill];
+  _stateUpdateExpectation = nil;
 }
 
 @end
@@ -134,9 +141,12 @@
 }
 
 - (void)updatePeripheralManagerWithPeripheralManagerState:(CBPeripheralManagerState)state {
+  XCTestExpectation *exp = [self expectationWithDescription:@"state update"];
+  _peripheralManager.stateUpdateExpectation = exp;
   _peripheralManager.fakeCBPeripheralManager.state = state;
   [_peripheralManager peripheralManagerDidUpdateState:(CBPeripheralManager *)_peripheralManager
                                                           .fakeCBPeripheralManager];
+  [self waitForExpectationsWithTimeout:1.0 handler:nil];
   XCTAssertTrue(_peripheralManager.isStarted);
 }
 
@@ -523,6 +533,19 @@
   XCTAssertEqual(handler1CallCount, 3);
   XCTAssertEqual(handler2CallCount, 1);
   XCTAssertNil(_peripheralManager->_handlerQueuePerSocketIdentifier[socketID]);
+}
+
+
+- (void)testUpdateOutgoingCharacteristicWithoutCentral {
+  id socketMock = OCMClassMock([GNSSocket class]);
+  id serviceManagerMock = OCMClassMock([GNSPeripheralServiceManager class]);
+  OCMStub([socketMock owner]).andReturn(serviceManagerMock);
+  OCMStub([socketMock peerAsCentral]).andReturn(nil);
+
+  NSData *data = [@"test" dataUsingEncoding:NSUTF8StringEncoding];
+  BOOL result = [_peripheralManager updateOutgoingCharacteristic:data onSocket:socketMock];
+
+  XCTAssertFalse(result);
 }
 
 #pragma mark - CBPeripheralManagerDelegate callbacks
