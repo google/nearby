@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -205,6 +206,9 @@ class WifiLanMedium : public api::WifiLanMedium {
       override {
     return std::nullopt;
   }
+
+  std::vector<std::string> GetUpgradeAddressCandidates(
+      const api::WifiLanServerSocket& server_socket) override;
 
  private:
   struct AdvertisingInfo {

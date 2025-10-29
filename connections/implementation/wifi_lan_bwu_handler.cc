@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
@@ -66,7 +67,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   std::int32_t port = upgrade_path_info_socket.wifi_port();
 
   VLOG(1) << "WifiLanBwuHandler is attempting to connect to "
-          << "available WifiLan service (" << ip_address << ":" << port
+          << "available WifiLan service ("
+          << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
           << ") for endpoint " << endpoint_id;
 
   ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
@@ -79,8 +81,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   }
 
   VLOG(1) << "WifiLanBwuHandler successfully connected to WifiLan service ("
-          << ip_address << ":" << port << ") while upgrading endpoint "
-          << endpoint_id;
+          << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
+          << ") while upgrading endpoint " << endpoint_id;
 
   // Create a new WifiLanEndpointChannel.
   auto channel = std::make_unique<WifiLanEndpointChannel>(
@@ -121,25 +123,21 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
         << endpoint_id;
   }
 
-  // Note: Credentials are not populated until StartAcceptingConnections() is
+  // Address candidates are not populated until StartAcceptingConnections() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  auto credential = wifi_lan_medium_.GetCredentials(upgrade_service_id);
-  auto ip_address = credential.first;
-  auto port = credential.second;
-  if (ip_address.empty()) {
+  std::pair<std::vector<std::string>, int> upgrade_candidates =
+      wifi_lan_medium_.GetUpgradeAddressCandidates(upgrade_service_id);
+  const std::vector<std::string>& ip_addresses = upgrade_candidates.first;
+  int port = upgrade_candidates.second;
+  if (ip_addresses.empty()) {
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
               << endpoint_id
-              << " because the wifi_lan ip address were unable to be obtained.";
+              << " because there are no available ip addresses.";
     return {};
   }
-
-  LOG(INFO) << "WifiLanBwuHandler retrieved WIFI_LAN credentials. IP addr: "
-            << ip_address[0] << "." << ip_address[1] << "." << ip_address[2]
-            << "." << ip_address[3] << ",  Port: " << port;
-
-  return parser::ForBwuWifiLanPathAvailable(ip_address, port);
+  return parser::ForBwuWifiLanPathAvailable(ip_addresses, port);
 }
 
 void WifiLanBwuHandler::HandleRevertInitiatorStateForService(

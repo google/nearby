@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/cancellation_flag.h"
@@ -199,6 +200,11 @@ WifiLanSocket WifiLanMedium::ConnectToService(
             << ", port=" << port;
   return WifiLanSocket(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
+}
+
+std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+    const WifiLanServerSocket& server_socket) {
+  return impl_->GetUpgradeAddressCandidates(server_socket.GetImpl());
 }
 
 }  // namespace nearby
