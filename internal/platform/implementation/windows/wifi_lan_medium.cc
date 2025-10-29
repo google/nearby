@@ -265,9 +265,11 @@ bool WifiLanMedium::StopAdvertising(const NsdServiceInfo& nsd_service_info) {
 
   bool result = wifi_lan_mdns_.StopMdnsService();
 
+  // Note: Do not clear the service_name_ when stopping advertising.
+  // It's needed for discovery to filter out our own mDNS records.
+  // TODO: b/456199356 - Look into a more robust way to handle self discovery.
   if (result) {
     medium_status_ &= (~kMediumStatusAdvertising);
-    service_name_.clear();
     return true;
   }
 
