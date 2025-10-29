@@ -619,6 +619,9 @@ message SharingLog {
     optional int32 connection_medium = 14;
     // The data usage of the user settings.
     optional location.nearby.proto.sharing.DataUsage data_usage = 15;
+
+    // True if the sender and receiver are mutual contacts.
+    optional bool is_mutual_contact = 16;
   }
 
   // EventType: RECEIVE_ATTACHMENTS_START
