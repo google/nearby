@@ -30,6 +30,11 @@ typedef BOOL (^GNSUpdateValueHandler)();
 @property(nonatomic, readonly) CBPeripheralManager *cbPeripheralManager;
 
 /**
+ * Test initializer.
+ */
+- (instancetype)initWithPeripheralManager:(CBPeripheralManager *)peripheralManager;
+
+/**
  * Updates the outgoing characteristic value using an handler. The handler is stored in
  * a queue. If the CBPeripheralManager is ready, the handler is called right away. Otherwise the
  * handler will be called as soon as the CBPeripheralManager is ready.
