@@ -38,6 +38,7 @@ objc_library(
         "GNCWifiHotspotMediumTest.mm",
         "GNCWifiLanMediumTest.mm",
         "UtilsTest.mm",
+        "ble_l2cap_server_socket_test.mm",
         "ble_medium_test.mm",
         "ble_peripheral_test.mm",
         "ble_server_socket_test.mm",
