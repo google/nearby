@@ -296,10 +296,6 @@ enum { READ_BUFFER_SIZE = 409600 };
     return;
   }
 
-  if (result < 0) {
-    GNCLoggerError(@"[NEARBY] Write result should not be negative.");
-    return;
-  }
   NSUInteger totalBytesWritten = (NSUInteger)result;
 
   if (_verboseLoggingEnabled) {
