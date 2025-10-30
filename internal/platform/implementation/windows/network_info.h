@@ -25,6 +25,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/windows/wlan_client.h"
 
 namespace nearby::windows {
 
@@ -32,6 +33,7 @@ namespace nearby::windows {
 enum InterfaceType {
   kEthernet,
   kWifi,
+  kWifiHotspot,  // Wifi SoftAP interface
   kOther,
 };
 
@@ -61,6 +63,11 @@ class NetworkInfo {
   bool RenewIpv4Address(NET_LUID luid) const;
 
  private:
+  // Lazily initializes the list of wlan interface LUIDs.  If `wifi_luids` is
+  // not empty, it is assumed to be populated already.
+  void GetWifiLuids(std::vector<ULONG64>& wifi_luids);
+
+  WlanClient wlan_client_;
   mutable absl::Mutex mutex_;
   std::vector<InterfaceInfo> interfaces_ ABSL_GUARDED_BY(mutex_);
 };

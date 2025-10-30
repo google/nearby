@@ -27,10 +27,12 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/base/no_destructor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/wlan_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
@@ -63,6 +65,23 @@ void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
 NetworkInfo& NetworkInfo::GetNetworkInfo() {
   static absl::NoDestructor<NetworkInfo> kNetworkInfo;
   return *kNetworkInfo;
+}
+
+void NetworkInfo::GetWifiLuids(std::vector<ULONG64>& wifi_luids) {
+  // If `wifi_luids` is not empty, it is assumed to be populated already.
+  if (!wifi_luids.empty()) {
+    return;
+  }
+  if (!wlan_client_.Initialize()) {
+    return;
+  }
+  auto wlan_interfaces = wlan_client_.GetInterfaceInfos();
+  for (const auto& wlan_interface : wlan_interfaces) {
+    NET_LUID luid;
+    if (ConvertInterfaceGuidToLuid(&wlan_interface.guid, &luid) == NO_ERROR) {
+      wifi_luids.push_back(luid.Value);
+    }
+  }
 }
 
 bool NetworkInfo::Refresh() {
@@ -98,6 +117,7 @@ bool NetworkInfo::Refresh() {
   }
   std::vector<InterfaceInfo> result;
   IP_ADAPTER_ADDRESSES* next_address = addresses;
+  std::vector<ULONG64> wifi_luids;
   while (next_address != nullptr) {
     if (next_address->OperStatus != IfOperStatusUp ||
         next_address->IfType == IF_TYPE_SOFTWARE_LOOPBACK ||
@@ -117,10 +137,21 @@ bool NetworkInfo::Refresh() {
               << string_utils::WideStringToString(next_address->Description)
               << ", index: " << next_address->IfIndex;
     } else if (next_address->IfType == IF_TYPE_IEEE80211) {
-      it->type = InterfaceType::kWifi;
-      VLOG(1) << "Found wifi interface: "
-              << string_utils::WideStringToString(next_address->Description)
-              << ", index: " << next_address->IfIndex;
+      // Hotspot interfaces are not available from WlanClient, so if we can't
+      // find the interface in the list, we assume it's a hotspot interface.
+      GetWifiLuids(wifi_luids);
+      if (absl::c_find(wifi_luids,
+                    next_address->Luid.Value) == wifi_luids.end()) {
+        it->type = InterfaceType::kWifiHotspot;
+        VLOG(1) << "Found wifi-hotspot interface: "
+                << string_utils::WideStringToString(next_address->Description)
+                << ", index: " << next_address->IfIndex;
+      } else {
+        it->type = InterfaceType::kWifi;
+        VLOG(1) << "Found wifi interface: "
+                << string_utils::WideStringToString(next_address->Description)
+                << ", index: " << next_address->IfIndex;
+      }
     } else {
       it->type = InterfaceType::kOther;
       VLOG(1) << "Found other interface: "
