@@ -145,10 +145,6 @@ cc_library(
         "network_info.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
-    linkopts = [
-        "iphlpapi.lib",
-        "ole32.lib",
-    ],
     tags = ["windows"],
     visibility = [
         "//:__subpackages__",
@@ -158,6 +154,39 @@ cc_library(
         ":string_utils",
         "//internal/platform:logging",
         "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "scoped_wlan_memory",
+    hdrs = [
+        "scoped_wlan_memory.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    tags = ["windows"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby:__subpackages__",
+    ],
+)
+
+cc_library(
+    name = "wlan_client",
+    srcs = [
+        "wlan_client.cc",
+    ],
+    hdrs = [
+        "wlan_client.h",
+    ],
+    compatible_with = ["//buildenv/target:non_prod"],
+    tags = ["windows"],
+    visibility = [
+        "//:__subpackages__",
+        "//location/nearby:__subpackages__",
+    ],
+    deps = [
+        ":scoped_wlan_memory",
+        "//internal/platform:logging",
     ],
 )
 
@@ -256,9 +285,11 @@ cc_library(
     deps = [
         ":crypto",  # build_cleaner: keep
         ":network_info",
+        ":scoped_wlan_memory",
         ":socket_address",
         ":string_utils",
         ":types",
+        ":wlan_client",
         "//connections/implementation/flags:connections_flags",
         "//connections/implementation/mediums:utils",
         "//connections/implementation/mediums/ble:ble_advertisement_header",
@@ -451,6 +482,7 @@ cc_test(
     ],
     deps = [
         ":network_info",
+        "//sharing/internal/impl/windows:platform_windows_libs",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -465,6 +497,36 @@ cc_test(
     ],
     deps = [
         ":socket_address",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "scoped_wlan_memory_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "scoped_wlan_memory_test.cc",
+    ],
+    deps = [
+        ":scoped_wlan_memory",
+        "//sharing/internal/impl/windows:platform_windows_libs",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "wlan_client_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "wlan_client_test.cc",
+    ],
+    deps = [
+        ":wlan_client",
+        "//sharing/internal/impl/windows:platform_windows_libs",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],

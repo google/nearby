@@ -103,6 +103,7 @@ class WifiMedium : public api::WifiMedium {
   // Since the WiFi interface capability won't change in the connection session,
   // we only need to query it once at the beginning
   void InitCapability();
+  bool GetWifiInformation();
   std::string InternalGetWifiIpAddress();
   std::string InternalGetEthernetIpAddress();
   void FillupEthernetParams();

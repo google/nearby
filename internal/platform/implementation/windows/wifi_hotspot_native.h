@@ -31,6 +31,7 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/implementation/windows/network_info.h"
+#include "internal/platform/implementation/windows/wlan_client.h"
 
 namespace nearby::windows {
 
@@ -87,7 +88,7 @@ class WifiHotspotNative {
   NetworkInfo& network_info_;
   mutable absl::Mutex mutex_;
 
-  HANDLE wifi_ = nullptr;
+  WlanClient wlan_client_;
   std::unique_ptr<CountDownLatch> connect_latch_;
   std::wstring backup_profile_name_;
 };

@@ -15,12 +15,15 @@
 #include <cstring>
 #include <exception>
 #include <string>
+#include <vector>
 
 #include "absl/strings/str_format.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_utils.h"
+#include "internal/platform/implementation/windows/scoped_wlan_memory.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi.h"
+#include "internal/platform/implementation/windows/wlan_client.h"
 #include "internal/platform/logging.h"
 #include "winrt/Windows.Security.Authorization.AppCapabilityAccess.h"
 
@@ -28,6 +31,7 @@ namespace nearby {
 namespace windows {
 
 namespace {
+using ::nearby::windows::ScopedWlanMemory;
 using winrt::Windows::Security::Authorization::AppCapabilityAccess::
     AppCapability;
 using winrt::Windows::Security::Authorization::AppCapabilityAccess::
@@ -40,93 +44,101 @@ constexpr int kUseEthernet = -2;
 
 WifiMedium::WifiMedium() { InitCapability(); }
 
-PWLAN_INTERFACE_INFO_LIST EnumInterface(PHANDLE client_handle) {
-  DWORD client_version = 2;
-  DWORD negotiated_version = 0;
-  DWORD result = 0;
-
-  /* variables used for WlanEnumInterfaces */
-  PWLAN_INTERFACE_INFO_LIST p_intf_list = nullptr;
-
-  result = WlanOpenHandle(client_version, nullptr, &negotiated_version,
-                          client_handle);
-  if (result != ERROR_SUCCESS) {
-    LOG(INFO) << "WlanOpenHandle failed with error: " << result;
-    return p_intf_list;
-  }
-
-  result = WlanEnumInterfaces(*client_handle, nullptr, &p_intf_list);
-  if (result != ERROR_SUCCESS) {
-    LOG(INFO) << "WlanEnumInterfaces failed with error: " << result;
-  }
-  return p_intf_list;
-}
-
 bool WifiMedium::IsInterfaceValid() const { return wifi_interface_valid_; }
 
 void WifiMedium::InitCapability() {
-  HANDLE client_handle = nullptr;
-
-  /* variables used for WlanEnumInterfaces */
-  PWLAN_INTERFACE_INFO_LIST p_intf_list = nullptr;
-  PWLAN_INTERFACE_INFO p_intf_info = nullptr;
-  PWLAN_INTERFACE_CAPABILITY p_intf_capability = nullptr;
-
   wifi_capability_.supports_5_ghz = false;
   wifi_capability_.supports_6_ghz = false;
   wifi_interface_valid_ = false;
 
-  p_intf_list = EnumInterface(&client_handle);
-  if (!client_handle) {
-    LOG(INFO)
-        << "Client Handle is null, wifi maybe not supported on this device.";
+  WlanClient wlan_client;
+  if (!wlan_client.Initialize()) {
     return;
   }
-  if (!p_intf_list) {
-    WlanCloseHandle(client_handle, nullptr);
-    return;
-  }
-  wifi_interface_valid_ = true;
-
-  for (int i = 0; i < (int)p_intf_list->dwNumberOfItems; i++) {
-    p_intf_info = (WLAN_INTERFACE_INFO*)&p_intf_list->InterfaceInfo[i];
-    if (WlanGetInterfaceCapability(client_handle, &p_intf_info->InterfaceGuid,
-                                   nullptr,
-                                   &p_intf_capability) != ERROR_SUCCESS) {
+  std::vector<WlanClient::InterfaceInfo> interface_infos =
+      wlan_client.GetInterfaceInfos();
+  for (const auto& interface_info : interface_infos) {
+    ScopedWlanMemory<WLAN_INTERFACE_CAPABILITY> intf_capability;
+    wifi_interface_valid_ = true;
+    if (WlanGetInterfaceCapability(
+            wlan_client.GetHandle(), &interface_info.guid, nullptr,
+            intf_capability.OutParam()) != ERROR_SUCCESS) {
       LOG(INFO) << "Get Capability failed";
-      WlanFreeMemory(p_intf_list);
-      p_intf_list = nullptr;
-      WlanCloseHandle(client_handle, nullptr);
       return;
     }
 
-    for (int j = 0; j < p_intf_capability->dwNumberOfSupportedPhys; j++) {
-      if (p_intf_capability->dot11PhyTypes[j] == dot11_phy_type_ofdm)
+    for (int j = 0; j < intf_capability->dwNumberOfSupportedPhys; j++) {
+      if (intf_capability->dot11PhyTypes[j] == dot11_phy_type_ofdm)
         wifi_capability_.supports_5_ghz = true;
     }
   }
+}
 
-  WlanFreeMemory(p_intf_capability);
-  p_intf_capability = nullptr;
-  WlanFreeMemory(p_intf_list);
-  p_intf_list = nullptr;
-  WlanCloseHandle(client_handle, nullptr);
+bool WifiMedium::GetWifiInformation() {
+  WlanClient wlan_client;
+  if (!wlan_client.Initialize()) {
+    return false;
+  }
+  bool result = false;
+  for (const auto& interface_info : wlan_client.GetInterfaceInfos()) {
+    if (!interface_info.connected) {
+      continue;
+    }
+    LOG(INFO) << "Found connected WiFi interface";
+    wifi_information_.is_connected = true;
+
+    DWORD result = 0;
+    DWORD channel_size;
+    ScopedWlanMemory<ULONG> channel;
+    result = WlanQueryInterface(wlan_client.GetHandle(), &interface_info.guid,
+                                wlan_intf_opcode_channel_number, nullptr,
+                                &channel_size,
+                                reinterpret_cast<PVOID*>(channel.OutParam()),
+                                /*pWlanOpcodeValueType=*/nullptr);
+    if (result != ERROR_SUCCESS || channel.get() == nullptr) {
+      LOG(INFO) << "WlanQueryInterface channel error = " << result;
+      return false;
+    }
+    wifi_information_.ap_frequency = WifiUtils::ConvertChannelToFrequencyMhz(
+        *channel.get(), api::WifiBandType::kUnknown);
+    LOG(INFO) << "Channel: " << (channel.get() == nullptr ? 0 : *channel.get())
+              << "; ap_frequency: " << wifi_information_.ap_frequency;
+
+    ScopedWlanMemory<WLAN_CONNECTION_ATTRIBUTES> connect_info;
+    DWORD connect_info_size;
+    result = WlanQueryInterface(
+        wlan_client.GetHandle(), &interface_info.guid,
+        wlan_intf_opcode_current_connection, nullptr, &connect_info_size,
+        reinterpret_cast<PVOID*>(connect_info.OutParam()),
+        /*pWlanOpcodeValueType=*/nullptr);
+    if (result != ERROR_SUCCESS) {
+      LOG(INFO) << "WlanQueryInterface current AP error = " << result;
+      return false;
+    }
+
+    wifi_information_.ssid.assign(
+        reinterpret_cast<const char*>(
+            connect_info->wlanAssociationAttributes.dot11Ssid.ucSSID),
+        connect_info->wlanAssociationAttributes.dot11Ssid.uSSIDLength);
+    LOG(INFO) << "wifi ssid is: " << wifi_information_.ssid
+              << "; length is:" << wifi_information_.ssid.length();
+
+    char str_tmp[kMacAddrLen];
+    strncpy(str_tmp,
+            reinterpret_cast<const char*>(
+                connect_info->wlanAssociationAttributes.dot11Bssid),
+            kMacAddrLen);
+    wifi_information_.bssid = absl::StrFormat(
+        "%02llx:%02llx:%02llx:%02llx:%02llx:%02llx", str_tmp[0], str_tmp[1],
+        str_tmp[2], str_tmp[3], str_tmp[4], str_tmp[5]);
+    LOG(INFO) << "wifi bssid is: " << wifi_information_.bssid;
+    result = true;
+  }
+  return result;
 }
 
 // TODO(b/259414512): the return type should be optional.
 api::WifiInformation& WifiMedium::GetInformation() {
-  HANDLE client_handle = nullptr;
-  PWLAN_AVAILABLE_NETWORK_LIST pWLAN_AVAILABLE_NETWORK_LIST = nullptr;
-  DWORD result = 0;
-  DWORD connect_info_size = sizeof(WLAN_CONNECTION_ATTRIBUTES);
-  WLAN_OPCODE_VALUE_TYPE op_code_value_type = wlan_opcode_value_type_invalid;
-
-  /* variables used for WlanEnumInterfaces */
-  PWLAN_INTERFACE_INFO_LIST p_intf_list = nullptr;
-  PWLAN_INTERFACE_INFO p_intf_info = nullptr;
-  PWLAN_CONNECTION_ATTRIBUTES p_connect_info = nullptr;
-  ULONG* channel = nullptr;
-
   wifi_information_.is_connected = false;
   wifi_information_.ap_frequency = kDefaultApFreq;
   wifi_information_.ssid.clear();
@@ -144,86 +156,10 @@ api::WifiInformation& WifiMedium::GetInformation() {
     return wifi_information_;
   }
 
-  p_intf_list = EnumInterface(&client_handle);
-  if (!client_handle) {
-    LOG(INFO) << "Client Handle is nullptr";
+  if (!GetWifiInformation()) {
     FillupEthernetParams();
     return wifi_information_;
   }
-  if (!p_intf_list) {
-    LOG(INFO) << "WlanEnumInterfaces failed with error: ";
-    WlanCloseHandle(client_handle, nullptr);
-    FillupEthernetParams();
-    return wifi_information_;
-  }
-
-  for (int i = 0; i < (int)p_intf_list->dwNumberOfItems; i++) {
-    p_intf_info = (WLAN_INTERFACE_INFO*)&p_intf_list->InterfaceInfo[i];
-    if (p_intf_info->isState == wlan_interface_state_connected) {
-      LOG(INFO) << "Found connected WiFi interface No: " << i;
-      wifi_information_.is_connected = true;
-
-      DWORD channel_size;
-      result = WlanQueryInterface(client_handle, &p_intf_info->InterfaceGuid,
-                                  wlan_intf_opcode_channel_number, nullptr,
-                                  &channel_size, (PVOID*)&channel,
-                                  &op_code_value_type);
-      if (result != ERROR_SUCCESS) {
-        LOG(INFO) << "WlanQueryInterface channel error = " << result;
-        WlanFreeMemory(p_intf_list);
-        p_intf_list = nullptr;
-        WlanCloseHandle(client_handle, nullptr);
-        FillupEthernetParams();
-        return wifi_information_;
-      }
-      wifi_information_.ap_frequency = WifiUtils::ConvertChannelToFrequencyMhz(
-          *channel, api::WifiBandType::kUnknown);
-      LOG(INFO) << "Channel: " << (channel == nullptr ? 0 : *channel)
-                << "; ap_frequency: " << wifi_information_.ap_frequency;
-      WlanFreeMemory(channel);
-      channel = nullptr;
-
-      result = WlanQueryInterface(client_handle, &p_intf_info->InterfaceGuid,
-                                  wlan_intf_opcode_current_connection, nullptr,
-                                  &connect_info_size, (PVOID*)&p_connect_info,
-                                  &op_code_value_type);
-      if (result != ERROR_SUCCESS) {
-        LOG(INFO) << "WlanQueryInterface current AP error = " << result;
-        WlanFreeMemory(p_intf_list);
-        p_intf_list = nullptr;
-        WlanCloseHandle(client_handle, nullptr);
-        FillupEthernetParams();
-        return wifi_information_;
-      }
-
-      wifi_information_.ssid.resize(
-          p_connect_info->wlanAssociationAttributes.dot11Ssid.uSSIDLength);
-      std::memcpy(
-          wifi_information_.ssid.data(),
-          reinterpret_cast<const char*>(
-              p_connect_info->wlanAssociationAttributes.dot11Ssid.ucSSID),
-          wifi_information_.ssid.size());
-      LOG(INFO) << "wifi ssid is: " << wifi_information_.ssid
-                << "; length is:" << wifi_information_.ssid.length();
-
-      char str_tmp[kMacAddrLen];
-      strncpy(str_tmp,
-              reinterpret_cast<const char*>(
-                  p_connect_info->wlanAssociationAttributes.dot11Bssid),
-              kMacAddrLen);
-      wifi_information_.bssid = absl::StrFormat(
-          "%02llx:%02llx:%02llx:%02llx:%02llx:%02llx", str_tmp[0], str_tmp[1],
-          str_tmp[2], str_tmp[3], str_tmp[4], str_tmp[5]);
-      LOG(INFO) << "wifi bssid is: " << wifi_information_.bssid;
-    }
-  }
-
-  WlanFreeMemory(p_connect_info);
-  p_connect_info = nullptr;
-  WlanFreeMemory(p_intf_list);
-  p_intf_list = nullptr;
-  WlanCloseHandle(client_handle, nullptr);
-
   if (wifi_information_.is_connected) {
     wifi_information_.ip_address_dot_decimal = InternalGetWifiIpAddress();
     wifi_information_.ip_address_4_bytes = ipaddr_dotdecimal_to_4bytes_string(

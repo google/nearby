@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/strings/str_format.h"
@@ -37,6 +38,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/string_utils.h"
+#include "internal/platform/implementation/windows/wlan_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
@@ -84,17 +86,10 @@ std::string ReasonCodeToString(DWORD reason_code) {
 
 WifiHotspotNative::WifiHotspotNative()
     : network_info_(NetworkInfo::GetNetworkInfo()) {
-  // Open WLAN handle
-  DWORD negotiated_version;
-  DWORD result = WlanOpenHandle(/*dwClientVersion=*/2, /*pReserved=*/nullptr,
-                                /*pdwNegotiatedVersion=*/&negotiated_version,
-                                /*phClientHandle=*/&wifi_);
-
-  if (result != ERROR_SUCCESS) {
-    LOG(ERROR) << "Failed to open WLAN handle.";
+  if (!wlan_client_.Initialize()) {
+    LOG(ERROR) << "Failed to initialize WLAN client.";
     return;
   }
-
   VLOG(1) << "WifiHotspotNative created successfully.";
   GUID interface_guid = GetInterfaceGuid();
   if (interface_guid != GUID_NULL) {
@@ -103,11 +98,6 @@ WifiHotspotNative::WifiHotspotNative()
 }
 
 WifiHotspotNative::~WifiHotspotNative() {
-  if (wifi_ != nullptr) {
-    WlanCloseHandle(wifi_, nullptr);
-    wifi_ = nullptr;
-  }
-
   VLOG(1) << "WifiHotspotNative destroyed successfully.";
 }
 
@@ -143,9 +133,8 @@ bool WifiHotspotNative::DisconnectWifiNetwork() {
     return false;
   }
   absl::MutexLock lock(mutex_);
-  DWORD result = WlanDisconnect(
-      /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-      /*pReserved=*/nullptr);
+  DWORD result = WlanDisconnect(wlan_client_.GetHandle(), &interface_guid,
+                                /*pReserved=*/nullptr);
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to disconnect WLAN profile with error: " << result;
   } else {
@@ -229,29 +218,18 @@ std::wstring WifiHotspotNative::BuildWlanProfile(absl::string_view ssid,
 }
 
 GUID WifiHotspotNative::GetInterfaceGuid() const {
-  if (wifi_ == nullptr) {
+  if (wlan_client_.GetHandle() == nullptr) {
     return GUID_NULL;
   }
 
   // Find WLAN interface, only support one interface for now.
-  PWLAN_INTERFACE_INFO_LIST interfaces = nullptr;
-  DWORD result =
-      WlanEnumInterfaces(/*hClientHandle=*/wifi_, /*pReserved=*/nullptr,
-                         /*ppInterfaceList=*/&interfaces);
-  if (result != ERROR_SUCCESS) {
-    LOG(ERROR) << "Failed to enum WLAN interfaces.";
-    return GUID_NULL;
-  }
-
-  if (interfaces->dwNumberOfItems == 0) {
+  std::vector<WlanClient::InterfaceInfo> interfaces =
+      wlan_client_.GetInterfaceInfos();
+  if (interfaces.empty()) {
     LOG(ERROR) << "No WLAN interfaces found.";
-    WlanFreeMemory(interfaces);
     return GUID_NULL;
   }
-
-  GUID interface_guid = interfaces->InterfaceInfo[0].InterfaceGuid;
-  WlanFreeMemory(interfaces);
-  return interface_guid;
+  return interfaces[0].guid;
 }
 
 bool WifiHotspotNative::ConnectToWifiNetworkInternal(
@@ -261,8 +239,8 @@ bool WifiHotspotNative::ConnectToWifiNetworkInternal(
     return false;
   }
   WlanNotificationContext context = {
-    .wifi_hotspot_native = *this,
-    .connecting_profile_name = profile_name,
+      .wifi_hotspot_native = *this,
+      .connecting_profile_name = profile_name,
   };
   if (!RegisterWlanNotificationCallback(&context)) {
     LOG(ERROR) << "Failed to register WLAN notification callback.";
@@ -279,9 +257,8 @@ bool WifiHotspotNative::ConnectToWifiNetworkInternal(
   parameters.dot11BssType = dot11_BSS_type_infrastructure;
   parameters.dwFlags = 0;
 
-  DWORD result =
-      WlanConnect(/*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-                  /*pConnectionParameters=*/&parameters, /*pReserved=*/nullptr);
+  DWORD result = WlanConnect(wlan_client_.GetHandle(), &interface_guid,
+                             &parameters, /*pReserved=*/nullptr);
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to connect to WLAN profile "
                << string_utils::WideStringToString(profile_name);
@@ -311,10 +288,9 @@ bool WifiHotspotNative::ConnectToWifiNetworkInternal(
 bool WifiHotspotNative::RegisterWlanNotificationCallback(
     WlanNotificationContext* absl_nonnull context) {
   DWORD result = WlanRegisterNotification(
-      /*hClientHandle=*/wifi_, /*dwNotifSource=*/WLAN_NOTIFICATION_SOURCE_ACM,
-      /*bIgnoreDuplicate=*/TRUE,
-      /*funcCallback=*/WifiHotspotNative::WlanNotificationCallback,
-      /*pCallbackContext=*/context, /*pReserved=*/nullptr,
+      wlan_client_.GetHandle(), WLAN_NOTIFICATION_SOURCE_ACM,
+      /*bIgnoreDuplicate=*/TRUE, WifiHotspotNative::WlanNotificationCallback,
+      context, /*pReserved=*/nullptr,
       /*pdwPrevNotifSource=*/nullptr);
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to register WLAN notification with error: " << result;
@@ -326,7 +302,7 @@ bool WifiHotspotNative::RegisterWlanNotificationCallback(
 
 bool WifiHotspotNative::UnregisterWlanNotificationCallback() {
   DWORD result = WlanRegisterNotification(
-      /*hClientHandle=*/wifi_, /*dwNotifSource=*/WLAN_NOTIFICATION_SOURCE_NONE,
+      wlan_client_.GetHandle(), WLAN_NOTIFICATION_SOURCE_NONE,
       /*bIgnoreDuplicate=*/TRUE,
       /*funcCallback=*/nullptr, /*pCallbackContext=*/nullptr,
       /*pReserved=*/nullptr, /*pdwPrevNotifSource=*/nullptr);
@@ -339,15 +315,16 @@ bool WifiHotspotNative::UnregisterWlanNotificationCallback() {
   return true;
 }
 
-bool WifiHotspotNative::SetWlanProfile(
-    GUID interface_guid, absl::string_view ssid, absl::string_view password) {
+bool WifiHotspotNative::SetWlanProfile(GUID interface_guid,
+                                       absl::string_view ssid,
+                                       absl::string_view password) {
   std::wstring profile = BuildWlanProfile(ssid, password);
   DWORD reason = 0;
-  DWORD result = WlanSetProfile(
-      /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-      /*dwFlags=*/WLAN_PROFILE_USER, /*strProfileXml=*/profile.data(),
-      /*strAllUserProfileSecurity=*/nullptr, /*bOverwrite=*/TRUE,
-      /*pReserved=*/nullptr, /*pdwReasonCode*/ &reason);
+  DWORD result =
+      WlanSetProfile(wlan_client_.GetHandle(), &interface_guid,
+                     WLAN_PROFILE_USER, profile.data(),
+                     /*strAllUserProfileSecurity=*/nullptr, /*bOverwrite=*/TRUE,
+                     /*pReserved=*/nullptr, /*pdwReasonCode*/ &reason);
   if (result != ERROR_SUCCESS) {
     LOG(ERROR) << "Failed to set WLAN profile with error: " << result;
     if (result == ERROR_BAD_PROFILE) {
@@ -367,8 +344,9 @@ bool WifiHotspotNative::SetWlanProfile(
 }
 
 bool WifiHotspotNative::RemoveCreatedWlanProfile(GUID interface_guid) {
-  return RemoveWlanProfile(interface_guid,
-          string_utils::StringToWideString(std::string(kHotspotProfileName)));
+  return RemoveWlanProfile(
+      interface_guid,
+      string_utils::StringToWideString(std::string(kHotspotProfileName)));
 }
 
 bool WifiHotspotNative::RemoveWlanProfile(GUID interface_guid,
@@ -376,9 +354,8 @@ bool WifiHotspotNative::RemoveWlanProfile(GUID interface_guid,
   if (profile_name.empty()) {
     return false;
   }
-  DWORD result = WlanDeleteProfile(
-      /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-      /*strProfileName=*/profile_name.data(), /*pReserved=*/nullptr);
+  DWORD result = WlanDeleteProfile(wlan_client_.GetHandle(), &interface_guid,
+                                   profile_name.data(), /*pReserved=*/nullptr);
 
   if (result != ERROR_SUCCESS && result != ERROR_NOT_FOUND) {
     LOG(ERROR) << "Failed to remove WLAN profile "
@@ -387,8 +364,7 @@ bool WifiHotspotNative::RemoveWlanProfile(GUID interface_guid,
     return false;
   }
 
-  LOG(INFO) << "WLAN profile "
-            << string_utils::WideStringToString(profile_name)
+  LOG(INFO) << "WLAN profile " << string_utils::WideStringToString(profile_name)
             << " removed successfully.";
   return true;
 }
@@ -403,9 +379,8 @@ bool WifiHotspotNative::RestoreWifiProfile() {
   RemoveCreatedWlanProfile(interface_guid);
   if (backup_profile_name_.empty()) {
     LOG(ERROR) << "No backup WLAN profile to restore.";
-    DWORD result = WlanDisconnect(
-        /*hClientHandle=*/wifi_, /*pInterfaceGuid=*/&interface_guid,
-        /*pReserved=*/nullptr);
+    DWORD result = WlanDisconnect(wlan_client_.GetHandle(), &interface_guid,
+                                  /*pReserved=*/nullptr);
     if (result != ERROR_SUCCESS) {
       LOG(ERROR) << "Failed to disconnect WLAN with error: " << result;
     } else {
