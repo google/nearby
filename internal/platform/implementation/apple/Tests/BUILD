@@ -41,15 +41,18 @@ objc_library(
         "ble_medium_test.mm",
         "ble_peripheral_test.mm",
         "ble_socket_test.mm",
+        "network_utils_test.mm",
     ],
     deps = [
         "//internal/platform:base",
+        "//internal/platform:cancellation_flag",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/apple",  # buildcleaner: keep
         "//internal/platform/implementation/apple:Shared",
         "//internal/platform/implementation/apple:ble_v2",
+        "//internal/platform/implementation/apple:network_utils",
         "//internal/platform/implementation/apple/Mediums/BLE",
         "//internal/platform/implementation/apple/Mediums/BLE/Tests:BLETestsLib",
         "//internal/platform/implementation/apple/Mediums/CoreLocation/CLLocationManager/Fake",
