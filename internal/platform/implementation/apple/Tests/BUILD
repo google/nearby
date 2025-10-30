@@ -40,6 +40,7 @@ objc_library(
         "UtilsTest.mm",
         "ble_medium_test.mm",
         "ble_peripheral_test.mm",
+        "ble_server_socket_test.mm",
         "ble_socket_test.mm",
         "network_utils_test.mm",
     ],
