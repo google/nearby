@@ -318,6 +318,7 @@ let package = Package(
         "connections/implementation/mediums/ble/ble_advertisement_test.cc",
         "connections/implementation/mediums/ble/advertisement_read_result_test.cc",
         "connections/implementation/mediums/ble/ble_advertisement_header_test.cc",
+        "connections/implementation/mediums/ble/ble_socket_test.cc",
         "connections/implementation/mediums/ble/ble_utils_test.cc",
         "connections/implementation/mediums/ble/discovered_peripheral_tracker_test.cc",
         "connections/implementation/mediums/ble/instant_on_lost_advertisement_test.cc",

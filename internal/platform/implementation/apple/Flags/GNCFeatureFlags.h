@@ -26,4 +26,7 @@
 /** Checks whether BLE L2CAP is enabled in the Nearby Connections SDK. */
 @property(nonatomic, class, readonly) BOOL bleL2capEnabled;
 
+/** Checks whether BLE L2CAP refactor is enabled in the Nearby Connections SDK. */
+@property(nonatomic, class, readonly) BOOL refactorBleL2capEnabled;
+
 @end
