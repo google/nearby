@@ -52,7 +52,7 @@ TEST(FakeTaskRunner, PostTasksRunInSequence) {
   FakeTaskRunner task_runner{&clock, 1};
   for (int i = 0; i < 100; ++i) {
     task_runner.PostTask([&, i]() {
-      absl::MutexLock lock(&mutex);
+      absl::MutexLock lock(mutex);
       absl::SleepFor(absl::Milliseconds(40));
       result.push_back(i);
     });
