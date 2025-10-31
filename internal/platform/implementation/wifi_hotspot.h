@@ -51,8 +51,6 @@ class WifiHotspotServerSocket {
  public:
   virtual ~WifiHotspotServerSocket() = default;
 
-  virtual std::string GetIPAddress() const = 0;
-
   virtual int GetPort() const = 0;
 
   // Blocks until either:
@@ -65,6 +63,11 @@ class WifiHotspotServerSocket {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   virtual Exception Close() = 0;
+
+  // Populates the hotspot credentials with the server socket's service
+  // addresses and ports.
+  virtual void PopulateHotspotCredentials(
+      HotspotCredentials& hotspot_credentials) = 0;
 };
 
 // Container of operations that can be performed over the WifiHotspot medium.

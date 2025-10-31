@@ -110,6 +110,13 @@ Exception WifiHotspotServerSocket::DoClose() {
   return {Exception::kSuccess};
 }
 
+void WifiHotspotServerSocket::PopulateHotspotCredentials(
+    HotspotCredentials& hotspot_credentials) {
+  absl::MutexLock lock(mutex_);
+  hotspot_credentials.SetGateway(ip_address_);
+  hotspot_credentials.SetPort(port_);
+}
+
 // Code for WifiHotspotMedium
 WifiHotspotMedium::WifiHotspotMedium() {
   auto& env = MediumEnvironment::Instance();
@@ -263,9 +270,10 @@ WifiHotspotMedium::ListenForService(int port) {
   dot_decimal_ip.pop_back();
 
   server_socket->SetIPAddress(dot_decimal_ip);
-  server_socket->SetPort(port == 0 ? env.GetFakePort() : port);
-  std::string socket_name = WifiHotspotServerSocket::GetName(
-      server_socket->GetIPAddress(), server_socket->GetPort());
+  int port_to_use = port == 0 ? env.GetFakePort() : port;
+  server_socket->SetPort(port_to_use);
+  std::string socket_name =
+      WifiHotspotServerSocket::GetName(dot_decimal_ip, port_to_use);
   server_socket->SetCloseNotifier([this, socket_name]() {
     absl::MutexLock lock(mutex_);
     server_sockets_.erase(socket_name);

@@ -39,6 +39,7 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 namespace {
@@ -50,10 +51,6 @@ using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
 WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
 
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
-
-std::string WifiHotspotServerSocket::GetIPAddress() const {
-  return hotspot_ipaddr_;
-}
 
 int WifiHotspotServerSocket::GetPort() const {
   return server_socket_.GetPort();
@@ -89,6 +86,12 @@ Exception WifiHotspotServerSocket::Close() {
 
   LOG(INFO) << __func__ << ": Close completed succesfully.";
   return {Exception::kSuccess};
+}
+
+void WifiHotspotServerSocket::PopulateHotspotCredentials(
+    HotspotCredentials& hotspot_credentials) {
+  hotspot_credentials.SetGateway(hotspot_ipaddr_);
+  hotspot_credentials.SetPort(port_);
 }
 
 bool WifiHotspotServerSocket::Listen(bool dual_stack) {

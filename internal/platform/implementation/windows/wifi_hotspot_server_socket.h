@@ -36,6 +36,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 
@@ -50,7 +51,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   WifiHotspotServerSocket& operator=(const WifiHotspotServerSocket&) = default;
   WifiHotspotServerSocket& operator=(WifiHotspotServerSocket&&) = default;
 
-  std::string GetIPAddress() const override;
   int GetPort() const override;
 
   // Blocks until either:
@@ -68,6 +68,9 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
+
+  void PopulateHotspotCredentials(
+      HotspotCredentials& hotspot_credentials) override;
 
   // Binds to local port
   bool Listen(bool dual_stack);

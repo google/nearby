@@ -20,13 +20,13 @@
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/g3/multi_thread_executor.h"
 #include "internal/platform/implementation/g3/socket_base.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -64,11 +64,6 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   ~WifiHotspotServerSocket() override;
 
   static std::string GetName(absl::string_view ip_address, int port);
-
-  std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
-    return ip_address_;
-  }
 
   void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
@@ -112,6 +107,9 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   // Calls close_notifier if it was previously set, and marks socket as closed.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void PopulateHotspotCredentials(HotspotCredentials& hotspot_credentials)
+      override ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Retrieves IP addresses from local machine

@@ -134,9 +134,7 @@ HotspotCredentials* WifiHotspot::GetCredentials(absl::string_view service_id) {
               << ".  Use default credentials";
     return crendential;
   }
-  crendential->SetGateway(it->second.GetIPAddress());
-  crendential->SetPort(it->second.GetPort());
-
+  it->second.PopulateHotspotCredentials(*crendential);
   return crendential;
 }
 
@@ -165,7 +163,7 @@ bool WifiHotspot::StartAcceptingConnections(
   }
 
   // "port=0" to let the platform to select an available port for the socket
-  WifiHotspotServerSocket server_socket = medium_.ListenForService(/*port=*/0);
+  WifiHotspotServerSocket server_socket = medium_.ListenForService();
   if (!server_socket.IsValid()) {
     LOG(INFO)
         << "Failed to start accepting WifiHotspot connections for service_id="
