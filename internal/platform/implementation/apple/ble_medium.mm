@@ -27,6 +27,7 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTServer.h"
@@ -38,6 +39,7 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 // TODO(b/293336684): Old Weave imports that need to be deleted once shared Weave is complete.
+#import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleUtils.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager.h"
@@ -52,7 +54,6 @@
 #import "internal/platform/implementation/apple/ble_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
 #import "internal/platform/implementation/apple/utils.h"
-#import "internal/platform/implementation/apple/GNCUtils.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 static const char *const kConnectionCallbackQueueLabel =
@@ -225,7 +226,8 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
 
   if (blockError) {
     GNCLoggerError(@"Failed to start scanning: %@", blockError);
-    // The start_scanning_result callback was already called in the completionHandler with the error.
+    // The start_scanning_result callback was already called in the completionHandler with the
+    // error.
     return nullptr;
   }
 
@@ -629,8 +631,10 @@ std::unique_ptr<api::ble::BleSocket> BleMedium::Connect(
     return nullptr;
   }
 
-  // Send the (empty) intro packet, which the BLE advertiser is expecting.
-  socket->GetOutputStream().Write(ByteArray());
+  if (!GNCFeatureFlags.refactorBleL2capEnabled) {
+    // Send the (empty) intro packet, which the BLE advertiser is expecting.
+    socket->GetOutputStream().Write(ByteArray());
+  }
   return std::move(socket);
 }
 
@@ -659,17 +663,22 @@ std::unique_ptr<api::ble::BleL2capSocket> BleMedium::ConnectOverL2cap(
                                                          serviceID:@(service_id_str.c_str())
                                                 incomingConnection:NO
                                                      callbackQueue:connection_callback_queue_];
-                   // Blocked call to wait for the packet validation result.
-                   // TODO: b/419654808 - Remove this once the packet validation is moved to the
-                   // Connections layer.
-                   [connection requestDataConnectionWithCompletion:^(BOOL result) {
-                     if (result) {
-                       socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
-                     }
-                     GNCLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
-                                          : @"[NEARBY] Request data connection is not ok");
+                   if (GNCFeatureFlags.refactorBleL2capEnabled) {
+                     socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
                      dispatch_semaphore_signal(semaphore);
-                   }];
+                   } else {
+                     // Blocked call to wait for the packet validation result.
+                     // TODO: b/419654808 - Remove this once the packet validation is moved to the
+                     // Connections layer.
+                     [connection requestDataConnectionWithCompletion:^(BOOL result) {
+                       if (result) {
+                         socket = std::make_unique<BleL2capSocket>(connection, peripheral_id);
+                       }
+                       GNCLoggerInfo(result ? @"[NEARBY] Request data connection is ok"
+                                            : @"[NEARBY] Request data connection is not ok");
+                       dispatch_semaphore_signal(semaphore);
+                     }];
+                   }
                  }];
   dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, kApiTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
