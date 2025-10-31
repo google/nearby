@@ -28,11 +28,33 @@
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPClient.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralPeerManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Peripheral/GNSPeripheralServiceManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeBLEGATTServer.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeBLEMedium.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakePeripheral.h"
 #include "internal/platform/implementation/apple/ble_utils.h"
 #include "internal/platform/implementation/ble.h"
+#import "third_party/objective_c/ocmock/v3/Source/OCMock/OCMock.h"
+
+namespace nearby {
+namespace apple {
+
+class BleMediumPeer {
+ public:
+  static void SetSocketCentralManager(BleMedium *ble_medium, GNSCentralManager *manager) {
+    ble_medium->socketCentralManager_ = manager;
+  }
+  static void SetSocketPeripheralManager(BleMedium *ble_medium, GNSPeripheralManager *manager) {
+    ble_medium->socketPeripheralManager_ = manager;
+  }
+};
+
+}  // namespace apple
+}  // namespace nearby
 
 // TODO(b/293336684): Add tests for Weave sockets, AdvertisementFoundHandler, and more edge cases.
 
@@ -51,6 +73,10 @@ static const char *const kTestServiceID = "TestServiceID";
   [super setUp];
   _fakeGNCBLEMedium = [[GNCFakeBLEMedium alloc] init];
   _medium = std::make_unique<nearby::apple::BleMedium>((GNCBLEMedium *)_fakeGNCBLEMedium);
+}
+
+- (void)tearDown {
+  [super tearDown];
 }
 
 #pragma mark - Advertising Tests
@@ -308,17 +334,186 @@ static const char *const kTestServiceID = "TestServiceID";
   XCTAssertEqual(l2cap_socket.get(), nullptr);
 }
 
+- (void)testConnectOverL2cap_OpenChannelError {
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  NSDictionary<CBUUID *, NSData *> *serviceData =
+      @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"Advertisement found callback should be called."];
+  nearby::api::ble::BleMedium::ScanCallback callback = {
+      .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
+                                                   nearby::api::ble::BleAdvertisementData)>(
+          [expectation](nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+                        const nearby::api::ble::BleAdvertisementData &advertisement) {
+            [expectation fulfill];
+          })};
+  _medium->StartScanning(nearby::Uuid(0, 0), nearby::api::ble::TxPowerLevel::kUltraLow,
+                         std::move(callback));
+  if (_fakeGNCBLEMedium.advertisementFoundHandler) {
+    _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
+  }
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  _fakeGNCBLEMedium.openL2CAPChannelError = [NSError errorWithDomain:@"test" code:0 userInfo:nil];
+
+  auto l2cap_socket =
+      _medium->ConnectOverL2cap(123, kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
+                                fakePeripheral.identifier.hash, nullptr);
+
+  XCTAssertEqual(l2cap_socket.get(), nullptr);
+}
+
+- (void)testConnectOverL2cap_Timeout {
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  NSDictionary<CBUUID *, NSData *> *serviceData =
+      @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"Advertisement found callback should be called."];
+  nearby::api::ble::BleMedium::ScanCallback callback = {
+      .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
+                                                   nearby::api::ble::BleAdvertisementData)>(
+          [expectation](nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+                        const nearby::api::ble::BleAdvertisementData &advertisement) {
+            [expectation fulfill];
+          })};
+  _medium->StartScanning(nearby::Uuid(0, 0), nearby::api::ble::TxPowerLevel::kUltraLow,
+                         std::move(callback));
+  if (_fakeGNCBLEMedium.advertisementFoundHandler) {
+    _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
+  }
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+  _fakeGNCBLEMedium.openL2CAPChannelShouldComplete = NO;
+
+  auto l2cap_socket =
+      _medium->ConnectOverL2cap(123, kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
+                                fakePeripheral.identifier.hash, nullptr);
+
+  XCTAssertEqual(l2cap_socket.get(), nullptr);
+}
+
+#pragma mark - Connect Tests
+
+- (void)testConnect_PeripheralNotFound {
+  auto socket =
+      _medium->Connect(kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow, 99999, nullptr);
+
+  XCTAssertEqual(socket.get(), nullptr);
+}
+
+- (void)testConnect_CentralPeerNotFound {
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  NSDictionary<CBUUID *, NSData *> *serviceData =
+      @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"Advertisement found callback should be called."];
+  nearby::api::ble::BleMedium::ScanCallback callback = {
+      .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
+                                                   nearby::api::ble::BleAdvertisementData)>(
+          [expectation](nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+                        const nearby::api::ble::BleAdvertisementData &advertisement) {
+            [expectation fulfill];
+          })};
+  _medium->StartScanning(nearby::Uuid(0, 0), nearby::api::ble::TxPowerLevel::kUltraLow,
+                         std::move(callback));
+  if (_fakeGNCBLEMedium.advertisementFoundHandler) {
+    _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
+  }
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+
+  id mockCentralManager = OCMClassMock([GNSCentralManager class]);
+  OCMStub([mockCentralManager retrieveCentralPeerWithIdentifier:fakePeripheral.identifier])
+      .andReturn(nil);
+  nearby::apple::BleMediumPeer::SetSocketCentralManager(_medium.get(), mockCentralManager);
+
+  auto socket = _medium->Connect(kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
+                                 fakePeripheral.identifier.hash, nullptr);
+
+  XCTAssertEqual(socket.get(), nullptr);
+}
+
+- (void)testConnect_SocketError {
+  GNCFakePeripheral *fakePeripheral = [[GNCFakePeripheral alloc] init];
+  NSDictionary<CBUUID *, NSData *> *serviceData =
+      @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
+  XCTestExpectation *expectation =
+      [self expectationWithDescription:@"Advertisement found callback should be called."];
+  nearby::api::ble::BleMedium::ScanCallback callback = {
+      .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
+                                                   nearby::api::ble::BleAdvertisementData)>(
+          [expectation](nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+                        const nearby::api::ble::BleAdvertisementData &advertisement) {
+            [expectation fulfill];
+          })};
+  _medium->StartScanning(nearby::Uuid(0, 0), nearby::api::ble::TxPowerLevel::kUltraLow,
+                         std::move(callback));
+  if (_fakeGNCBLEMedium.advertisementFoundHandler) {
+    _fakeGNCBLEMedium.advertisementFoundHandler(fakePeripheral, serviceData);
+  }
+  [self waitForExpectations:@[ expectation ] timeout:1.0];
+
+  id mockCentralPeerManager = OCMClassMock([GNSCentralPeerManager class]);
+  OCMStub([mockCentralPeerManager socketWithPairingCharacteristic:NO completion:[OCMArg any]])
+      .andDo(^(GNSCentralPeerManager *localSelf, BOOL pairing,
+               void (^completion)(GNSSocket *socket, NSError *error)) {
+        completion(nil, [NSError errorWithDomain:@"test" code:0 userInfo:nil]);
+      });
+
+  id mockCentralManager = OCMClassMock([GNSCentralManager class]);
+  OCMStub([mockCentralManager retrieveCentralPeerWithIdentifier:fakePeripheral.identifier])
+      .andReturn(mockCentralPeerManager);
+  nearby::apple::BleMediumPeer::SetSocketCentralManager(_medium.get(), mockCentralManager);
+
+  auto socket = _medium->Connect(kTestServiceID, nearby::api::ble::TxPowerLevel::kUltraLow,
+                                 fakePeripheral.identifier.hash, nullptr);
+
+  XCTAssertEqual(socket.get(), nullptr);
+}
+
 #pragma mark - Server Socket Tests
 
 - (void)testOpenServerSocket_Success {
-  XCTSkip(@"TODO(b/293336684): Requires more capable GNSPeripheralManager fakes for full testing.");
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion(nil);
+      });
+  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+
   auto server_socket = _medium->OpenServerSocket(kTestServiceID);
 
   XCTAssertNotEqual(server_socket.get(), nullptr);
 }
 
-// TODO(b/293336684): Add failure test case for OpenServerSocket when GNSPeripheralManager fakes
-// are more capable.
+- (void)testOpenServerSocket_Failure {
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)) {
+        completion([NSError errorWithDomain:@"test" code:0 userInfo:nil]);
+      });
+  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+
+  XCTAssertEqual(server_socket.get(), nullptr);
+}
+
+- (void)testOpenServerSocket_Timeout {
+  id mockPeripheralManager = OCMClassMock([GNSPeripheralManager class]);
+  OCMStub([mockPeripheralManager addPeripheralServiceManager:[OCMArg any]
+                                   bleServiceAddedCompletion:[OCMArg any]])
+      .andDo(^(GNSPeripheralManager *localSelf, GNSPeripheralServiceManager *manager,
+               void (^completion)(NSError *error)){
+          // Do not call completion to simulate timeout.
+      });
+  nearby::apple::BleMediumPeer::SetSocketPeripheralManager(_medium.get(), mockPeripheralManager);
+
+  auto server_socket = _medium->OpenServerSocket(kTestServiceID);
+
+  XCTAssertEqual(server_socket.get(), nullptr);
+}
 
 #pragma mark - Other Tests
 

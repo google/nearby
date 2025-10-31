@@ -42,9 +42,13 @@
 namespace nearby {
 namespace apple {
 
+class BleMediumPeer;
+
 // The main BLE medium used inside of Nearby. This serves as the entry point for all BLE and GATT
 // related operations.
 class BleMedium : public api::ble::BleMedium {
+  friend class BleMediumPeer;
+
  public:
   BleMedium();
   // For testing only.
@@ -197,7 +201,6 @@ class BleMedium : public api::ble::BleMedium {
   void HandleAdvertisementFound(id<GNCPeripheral> peripheral,
                                 NSDictionary<CBUUID *, NSData *> *serviceData);
   void ClearAdvertisementPacketsMap();
-  void CleanUpExpiredAdvertisementPackets(NSDate *now);
   bool ShouldReportAdvertisement(NSDate *now, api::ble::BlePeripheral::UniqueId peripheral_id,
                                  NSDictionary<CBUUID *, NSData *> *service_data);
   void AddAdvertisementPacketInfo(api::ble::BlePeripheral::UniqueId peripheral_id,

@@ -28,6 +28,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation GNCFakeBLEMedium
 
+- (instancetype)init {
+  self = [super init];
+  if (self) {
+    _openL2CAPChannelShouldComplete = YES;
+  }
+  return self;
+}
+
 - (void)startAdvertisingData:(NSDictionary<CBUUID *, NSData *> *)advertisementData
            completionHandler:(nullable GNCStartAdvertisingCompletionHandler)completionHandler {
   if (completionHandler) {
@@ -35,7 +43,8 @@ NS_ASSUME_NONNULL_BEGIN
   }
 }
 
-- (void)stopAdvertisingWithCompletionHandler:(nullable GNCStopAdvertisingCompletionHandler)completionHandler {
+- (void)stopAdvertisingWithCompletionHandler:
+    (nullable GNCStopAdvertisingCompletionHandler)completionHandler {
   if (completionHandler) {
     completionHandler(self.stopAdvertisingError);
   }
@@ -51,15 +60,17 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)startScanningForMultipleServices:(NSArray<CBUUID *> *)serviceUUIDs
-             advertisementFoundHandler:(GNCAdvertisementFoundHandler)advertisementFoundHandler
-                     completionHandler:(nullable GNCStartScanningCompletionHandler)completionHandler {
+               advertisementFoundHandler:(GNCAdvertisementFoundHandler)advertisementFoundHandler
+                       completionHandler:
+                           (nullable GNCStartScanningCompletionHandler)completionHandler {
   self.advertisementFoundHandler = advertisementFoundHandler;
   if (completionHandler) {
     completionHandler(self.startScanningError);
   }
 }
 
-- (void)stopScanningWithCompletionHandler:(nullable GNCStopScanningCompletionHandler)completionHandler {
+- (void)stopScanningWithCompletionHandler:
+    (nullable GNCStopScanningCompletionHandler)completionHandler {
   if (completionHandler) {
     completionHandler(self.stopScanningError);
   }
@@ -71,15 +82,17 @@ NS_ASSUME_NONNULL_BEGIN
   }
 }
 
-- (void)startGATTServerWithCompletionHandler:(nullable GNCGATTServerCompletionHandler)completionHandler {
+- (void)startGATTServerWithCompletionHandler:
+    (nullable GNCGATTServerCompletionHandler)completionHandler {
   if (completionHandler) {
     completionHandler(self.fakeGATTServer, self.startGATTServerError);
   }
 }
 
 - (void)connectToGATTServerForPeripheral:(id<GNCPeripheral>)peripheral
-                  disconnectionHandler:(nullable GNCGATTDisconnectionHandler)disconnectionHandler
-                     completionHandler:(nullable GNCGATTConnectionCompletionHandler)completionHandler {
+                    disconnectionHandler:(nullable GNCGATTDisconnectionHandler)disconnectionHandler
+                       completionHandler:
+                           (nullable GNCGATTConnectionCompletionHandler)completionHandler {
   self.lastConnectedPeripheral = peripheral;
   self.lastDisconnectionHandler = disconnectionHandler;
   if (completionHandler) {
@@ -87,8 +100,8 @@ NS_ASSUME_NONNULL_BEGIN
       if (!self.fakeGATTClient) {
         // Create a default fake client if one isn't provided.
         self.fakeGATTClient = [[GNCBLEGATTClient alloc] initWithPeripheral:peripheral
-                                               requestDisconnectionHandler:^(id<GNCPeripheral> p) {
-                                                 // Do nothing in fake.
+                                               requestDisconnectionHandler:^(id<GNCPeripheral> p){
+                                                   // Do nothing in fake.
                                                }];
       }
       completionHandler(self.fakeGATTClient, nil);
@@ -100,10 +113,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)openL2CAPServerWithPSMPublishedCompletionHandler:
             (GNCOpenL2CAPServerPSMPublishedCompletionHandler)psmPublishedCompletionHandler
-                        channelOpenedCompletionHandler:
-                            (GNCOpenL2CAPServerChannelOpendCompletionHandler)channelOpenedCompletionHandler
-                                     peripheralManager:
-                                         (nullable id<GNCPeripheralManager>)peripheralManager {
+                          channelOpenedCompletionHandler:
+                              (GNCOpenL2CAPServerChannelOpendCompletionHandler)
+                                  channelOpenedCompletionHandler
+                                       peripheralManager:
+                                           (nullable id<GNCPeripheralManager>)peripheralManager {
   if (psmPublishedCompletionHandler) {
     psmPublishedCompletionHandler(self.fakePSM, self.openL2CAPServerSocketError);
   }
@@ -114,7 +128,7 @@ NS_ASSUME_NONNULL_BEGIN
                      peripheral:(id<GNCPeripheral>)peripheral
               completionHandler:(nullable GNCOpenL2CAPStreamCompletionHandler)completionHandler {
   self.lastConnectedPeripheral = peripheral;
-  if (completionHandler) {
+  if (self.openL2CAPChannelShouldComplete && completionHandler) {
     completionHandler(self.fakeL2CAPStream, self.openL2CAPChannelError);
   }
 }

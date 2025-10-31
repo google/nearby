@@ -38,6 +38,7 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 // TODO(b/293336684): Old Weave imports that need to be deleted once shared Weave is complete.
+#import "internal/platform/implementation/apple/GNCUtils.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleConnection.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleUtils.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager.h"
@@ -52,7 +53,6 @@
 #import "internal/platform/implementation/apple/ble_socket.h"
 #import "internal/platform/implementation/apple/bluetooth_adapter_v2.h"
 #import "internal/platform/implementation/apple/utils.h"
-#import "internal/platform/implementation/apple/GNCUtils.h"
 
 static NSString *const kWeaveServiceUUID = @"FEF3";
 static const char *const kConnectionCallbackQueueLabel =
@@ -225,7 +225,8 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
 
   if (blockError) {
     GNCLoggerError(@"Failed to start scanning: %@", blockError);
-    // The start_scanning_result callback was already called in the completionHandler with the error.
+    // The start_scanning_result callback was already called in the completionHandler with the
+    // error.
     return nullptr;
   }
 
@@ -449,12 +450,10 @@ std::unique_ptr<api::ble::BleServerSocket> BleMedium::OpenServerSocket(
   auto server_socket = std::make_unique<BleServerSocket>();
   __block auto server_socket_ptr = server_socket.get();
 
-  if (socketPeripheralManager_) {
-    [socketPeripheralManager_ stop];
+  if (socketPeripheralManager_ == nil) {
+    socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
+                                                                  restoreIdentifier:nil];
   }
-
-  socketPeripheralManager_ = [[GNSPeripheralManager alloc] initWithAdvertisedName:nil
-                                                                restoreIdentifier:nil];
 
   if (socketPeripheralManager_ == nil) {
     GNCLoggerError(@"Failed to create peripheral manager.");
@@ -724,19 +723,6 @@ void BleMedium::ClearAdvertisementPacketsMap() {
 NSDate *BleMedium::GetLastTimestampToCleanExpiredAdvertisementPackets() {
   absl::MutexLock lock(&advertisement_packets_mutex_);
   return last_timestamp_to_clean_expired_advertisement_packets_;
-}
-
-void BleMedium::CleanUpExpiredAdvertisementPackets(NSDate *now) {
-  absl::MutexLock lock(&advertisement_packets_mutex_);
-  for (auto it = advertisement_packets_map_.begin(); it != advertisement_packets_map_.end();) {
-    if ([now timeIntervalSinceDate:it->second.last_timestamp] >
-        kAdvertisementPacketsMapExpirationTimeInterval) {
-      advertisement_packets_map_.erase(it++);
-    } else {
-      ++it;
-    }
-  }
-  last_timestamp_to_clean_expired_advertisement_packets_ = now;
 }
 
 bool BleMedium::ShouldReportAdvertisement(NSDate *now,

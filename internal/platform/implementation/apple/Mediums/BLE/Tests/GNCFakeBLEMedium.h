@@ -45,6 +45,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property(nonatomic, nullable) GNCAdvertisementFoundHandler advertisementFoundHandler;
 
+/** When NO, the completion for opening an L2CAP channel will not be invoked. Default is YES. */
+@property(nonatomic) BOOL openL2CAPChannelShouldComplete;
+
 @end
 
 NS_ASSUME_NONNULL_END
