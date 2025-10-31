@@ -276,8 +276,6 @@ static UInt8 WeaveDataPacketHeader(UInt8 packetCounter, BOOL firstPacketFlag, BO
 @implementation GNSWeaveConnectionConfirmPacket
 
 - (instancetype)initWithVersion:(UInt16)version packetSize:(UInt16)packetSize data:(NSData *)data {
-  NSAssert(packetSize >= kGNSMinSupportedPacketSize, @"The minimum packet size is %ld",
-           (long)kGNSMinSupportedPacketSize);
   self = [super initWithPacketCounter:0];
   if (self) {
     _version = version;

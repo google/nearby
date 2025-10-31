@@ -340,6 +340,10 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
   socket = _sockets[request.central.identifier];
 
   // Only an error packet can cause the socket to have been removed at this point.
+  if (!socket && [packet isKindOfClass:[GNSWeaveConnectionRequestPacket class]]) {
+    // If socket is not found for a connection request, it means connection was rejected.
+    return;
+  }
   NSAssert(socket || [packet isKindOfClass:[GNSWeaveErrorPacket class]],
            @"Socket missing after receiving non-error weave packet");
   [socket incrementReceivePacketCounter];
@@ -506,7 +510,6 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)handleConnectionRequestPacket:(GNSWeaveConnectionRequestPacket *)packet
                               context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
   if (socket) {
     GNCLoggerInfo(@"Receiving a connection request from an already connected socket %@.", socket);
@@ -553,21 +556,18 @@ static CBMutableCharacteristic *CreatePairingCharacteristic() {
 
 - (void)handleConnectionConfirmPacket:(GNSWeaveConnectionConfirmPacket *)packet
                               context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
   GNCLoggerError(@"Unexpected connection confirm packet received.");
   [self handleWeaveError:GNSErrorUnexpectedWeaveControlPacket socket:socket];
 }
 
 - (void)handleErrorPacket:(GNSWeaveErrorPacket *)packet context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
   GNCLoggerInfo(@"Error packet received.");
   [self handleWeaveError:GNSErrorWeaveErrorPacketReceived socket:socket];
 }
 
 - (void)handleDataPacket:(GNSWeaveDataPacket *)packet context:(id)request {
-  NSAssert([request isKindOfClass:[CBATTRequest class]], @"The context should be a request.");
   GNSSocket *socket = _sockets[((CBATTRequest *)request).central.identifier];
   if (packet.isFirstPacket && socket.waitingForIncomingData) {
     GNCLoggerError(@"There is already a receive operation in progress");

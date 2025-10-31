@@ -234,7 +234,6 @@ typedef void (^GNSIncomingChunkReceivedBlock)(NSData *incomingData);
 }
 
 - (CBCentral *)peerAsCentral {
-  NSAssert([_peer isKindOfClass:[CBCentral class]], @"Wrong peer type %@", _peer);
   if ([_peer isKindOfClass:[CBCentral class]]) {
     return _peer;
   } else {
