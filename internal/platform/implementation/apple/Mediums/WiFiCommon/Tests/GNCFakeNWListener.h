@@ -31,6 +31,12 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @property(nonatomic, nullable) NSError *simulatedError;
 
+/** If set, `start` will not call the state changed handler, simulating a timeout. */
+@property(nonatomic) BOOL simulateTimeout;
+
+/** State to report from `start` if `simulatedError` is nil. Defaults to `ready`. */
+@property(nonatomic) nw_listener_state_t stateForStart;
+
 /** The port number to return from the `port` property. */
 @property(nonatomic) uint16_t port;
 
@@ -63,6 +69,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 /** The descriptor captured from the last call to `setAdvertiseDescriptor:`. */
 @property(nonatomic, nullable) nw_advertise_descriptor_t capturedAdvertiseDescriptor;
+
+/**
+ * Simulates a new connection arriving, calling newConnectionHandler.
+ *
+ * @param connection The connection to pass to handler.
+ */
+- (void)simulateNewConnection:(nw_connection_t)connection;
 
 @end
 
