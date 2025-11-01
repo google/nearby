@@ -23,14 +23,13 @@
 // Standard C/C++ headers
 #include <cstddef>
 #include <cstdint>
-#include <deque>
-#include <exception>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
 
 // Nearby connections headers
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
@@ -57,8 +56,6 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.ServiceDiscovery.Dnssd.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Storage.Streams.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 
 namespace nearby::windows {
@@ -71,12 +68,9 @@ class WifiLanSocket : public api::WifiLanSocket {
  public:
   WifiLanSocket();
   explicit WifiLanSocket(
-      winrt::Windows::Networking::Sockets::StreamSocket socket);
-  explicit WifiLanSocket(std::unique_ptr<NearbyClientSocket> socket);
-  WifiLanSocket(WifiLanSocket&) = default;
+      absl_nonnull std::unique_ptr<NearbyClientSocket> socket);
   WifiLanSocket(WifiLanSocket&&) = default;
   ~WifiLanSocket() override;
-  WifiLanSocket& operator=(const WifiLanSocket&) = default;
   WifiLanSocket& operator=(WifiLanSocket&&) = default;
 
   // Returns the InputStream of the WifiLanSocket.
@@ -102,9 +96,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   // A simple wrapper to handle input stream of socket
   class SocketInputStream : public InputStream {
    public:
-    explicit SocketInputStream(
-        winrt::Windows::Storage::Streams::IInputStream input_stream);
-    explicit SocketInputStream(NearbyClientSocket* client_socket);
+    explicit SocketInputStream(NearbyClientSocket* absl_nonnull client_socket);
     ~SocketInputStream() = default;
 
     ExceptionOr<ByteArray> Read(std::int64_t size) override;
@@ -112,17 +104,13 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
-    winrt::Windows::Storage::Streams::IInputStream input_stream_{nullptr};
-    winrt::Windows::Storage::Streams::Buffer read_buffer_{nullptr};
-    NearbyClientSocket* client_socket_{nullptr};
+    NearbyClientSocket* absl_nonnull const client_socket_;
   };
 
   // A simple wrapper to handle output stream of socket
   class SocketOutputStream : public OutputStream {
    public:
-    explicit SocketOutputStream(
-        winrt::Windows::Storage::Streams::IOutputStream output_stream);
-    explicit SocketOutputStream(NearbyClientSocket* client_socket);
+    explicit SocketOutputStream(NearbyClientSocket* absl_nonnull client_socket);
     ~SocketOutputStream() = default;
 
     Exception Write(const ByteArray& data) override;
@@ -130,27 +118,22 @@ class WifiLanSocket : public api::WifiLanSocket {
     Exception Close() override;
 
    private:
-    winrt::Windows::Storage::Streams::IOutputStream output_stream_{nullptr};
-    NearbyClientSocket* client_socket_{nullptr};
+    NearbyClientSocket* absl_nonnull const client_socket_;
   };
 
   // Internal properties
-  winrt::Windows::Networking::Sockets::StreamSocket stream_soket_{nullptr};
-  SocketInputStream input_stream_{nullptr};
-  SocketOutputStream output_stream_{nullptr};
-
-  std::unique_ptr<NearbyClientSocket> client_socket_;
+  absl_nonnull std::unique_ptr<NearbyClientSocket> client_socket_;
+  SocketInputStream input_stream_;
+  SocketOutputStream output_stream_;
 };
 
 // WifiLanServerSocket provides the support to server socket, this server socket
 // accepts connection from clients.
 class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
-  explicit WifiLanServerSocket(int port);
-  WifiLanServerSocket(WifiLanServerSocket&) = default;
+  WifiLanServerSocket() = default;
   WifiLanServerSocket(WifiLanServerSocket&&) = default;
   ~WifiLanServerSocket() override;
-  WifiLanServerSocket& operator=(const WifiLanServerSocket&) = default;
   WifiLanServerSocket& operator=(WifiLanServerSocket&&) = default;
 
   // Returns ip address.
@@ -158,14 +141,6 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
 
   // Returns port.
   int GetPort() const override;
-
-  // Sets port
-  void SetPort(int port) { port_ = port; }
-
-  winrt::Windows::Networking::Sockets::StreamSocketListener GetSocketListener()
-      const {
-    return stream_socket_listener_;
-  }
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -184,29 +159,14 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   Exception Close() override;
 
   // Binds to local port
-  bool Listen(bool dual_stack);
+  bool Listen(int port, bool dual_stack);
 
  private:
-  // The listener is accepting incoming connections
-  winrt::fire_and_forget Listener_ConnectionReceived(
-      winrt::Windows::Networking::Sockets::StreamSocketListener listener,
-      winrt::Windows::Networking::Sockets::
-          StreamSocketListenerConnectionReceivedEventArgs const& args);
-
   mutable absl::Mutex mutex_;
-  absl::CondVar cond_;
-  std::deque<winrt::Windows::Networking::Sockets::StreamSocket> pending_sockets_
-      ABSL_GUARDED_BY(mutex_);
-  winrt::Windows::Networking::Sockets::StreamSocketListener
-      stream_socket_listener_{nullptr};
-  winrt::event_token listener_event_token_{};
-
   // Close notifier
-  absl::AnyInvocable<void()> close_notifier_ = nullptr;
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
 
-  // Cache socket not be picked by upper layer
-  int port_ = 0;
-  bool closed_ = false;
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 
   NearbyServerSocket server_socket_;
 };

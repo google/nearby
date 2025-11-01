@@ -14,7 +14,6 @@
 
 #include <windows.h>
 
-#include <exception>
 #include <memory>
 #include <string>
 #include <utility>
@@ -24,7 +23,6 @@
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_lan.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -32,14 +30,6 @@
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
-namespace {
-using ::winrt::fire_and_forget;
-using ::winrt::Windows::Networking::Sockets::StreamSocketListener;
-using ::winrt::Windows::Networking::Sockets::
-    StreamSocketListenerConnectionReceivedEventArgs;
-}  // namespace
-
-WifiLanServerSocket::WifiLanServerSocket(int port) : port_(port) {}
 
 WifiLanServerSocket::~WifiLanServerSocket() { Close(); }
 
@@ -76,12 +66,14 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
 
 void WifiLanServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
 Exception WifiLanServerSocket::Close() {
-  try {
+  absl::AnyInvocable<void()> close_callback;
+  {
     absl::MutexLock lock(mutex_);
     VLOG(1) << __func__ << ": Close is called.";
     if (closed_) {
@@ -92,56 +84,26 @@ Exception WifiLanServerSocket::Close() {
 
     server_socket_.Close();
     closed_ = true;
-
-    if (close_notifier_ != nullptr) {
-      close_notifier_();
-    }
-
-    LOG(INFO) << __func__ << ": Close completed succesfully.";
-    return {Exception::kSuccess};
-  } catch (std::exception exception) {
-    closed_ = true;
-    cond_.SignalAll();
-    LOG(ERROR) << __func__ << ": Exception: " << exception.what();
-    return {Exception::kIo};
-  } catch (const winrt::hresult_error& error) {
-    closed_ = true;
-    cond_.SignalAll();
-    LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
-               << winrt::to_string(error.message());
-    return {Exception::kIo};
-  } catch (...) {
-    closed_ = true;
-    cond_.SignalAll();
-    LOG(ERROR) << __func__ << ": Unknown exeption.";
-    return {Exception::kIo};
+    close_callback = std::move(close_notifier_);
   }
+
+  if (close_callback) {
+    close_callback();
+  }
+
+  LOG(INFO) << __func__ << ": Close completed succesfully.";
+  return {Exception::kSuccess};
 }
 
-bool WifiLanServerSocket::Listen(bool dual_stack) {
+bool WifiLanServerSocket::Listen(int port, bool dual_stack) {
   // Listen on all interfaces.
   SocketAddress address(dual_stack);
-  SocketAddress::FromString(address, "", port_);
+  SocketAddress::FromString(address, "", port);
   if (!server_socket_.Listen(address)) {
-    LOG(ERROR) << "Failed to listen socket at port:" << port_;
+    LOG(ERROR) << "Failed to listen socket at port:" << port;
     return false;
   }
   return true;
-}
-
-fire_and_forget WifiLanServerSocket::Listener_ConnectionReceived(
-    StreamSocketListener listener,
-    StreamSocketListenerConnectionReceivedEventArgs const& args) {
-  absl::MutexLock lock(mutex_);
-  LOG(INFO) << __func__ << ": Received connection.";
-
-  if (closed_) {
-    return fire_and_forget{};
-  }
-
-  pending_sockets_.push_back(args.Socket());
-  cond_.SignalAll();
-  return fire_and_forget{};
 }
 
 }  // namespace nearby::windows

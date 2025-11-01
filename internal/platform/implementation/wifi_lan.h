@@ -15,6 +15,7 @@
 #ifndef PLATFORM_API_WIFI_LAN_H_
 #define PLATFORM_API_WIFI_LAN_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 

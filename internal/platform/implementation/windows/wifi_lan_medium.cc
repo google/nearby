@@ -446,13 +446,13 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
     return nullptr;
   }
   std::unique_ptr<WifiLanServerSocket> server_socket =
-      std::make_unique<WifiLanServerSocket>(port);
+      std::make_unique<WifiLanServerSocket>();
   WifiLanServerSocket* server_socket_ptr = server_socket.get();
 
   bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableIpv6DualStack);
-  if (server_socket->Listen(dual_stack)) {
+  if (server_socket->Listen(port, dual_stack)) {
     int port = server_socket_ptr->GetPort();
     LOG(INFO) << "started to listen serive on port: " << port;
     port_to_server_socket_map_.insert({port, server_socket_ptr});
