@@ -44,11 +44,9 @@ namespace nearby::windows {
 // socket accepts connection from clients.
 class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
  public:
-  explicit WifiHotspotServerSocket(int port = 0);
-  WifiHotspotServerSocket(const WifiHotspotServerSocket&) = default;
+  WifiHotspotServerSocket() = default;
   WifiHotspotServerSocket(WifiHotspotServerSocket&&) = default;
   ~WifiHotspotServerSocket() override;
-  WifiHotspotServerSocket& operator=(const WifiHotspotServerSocket&) = default;
   WifiHotspotServerSocket& operator=(WifiHotspotServerSocket&&) = default;
 
   int GetPort() const override;
@@ -73,26 +71,18 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
       HotspotCredentials& hotspot_credentials) override;
 
   // Binds to local port
-  bool Listen(bool dual_stack);
-
-  NearbyServerSocket server_socket_;
+  bool Listen(int port, bool dual_stack);
 
  private:
   // Retrieves hotspot IP address from local machine
   std::string GetHotspotIpAddress() const;
 
-  const int port_;
   mutable absl::Mutex mutex_;
+  NearbyServerSocket server_socket_;
 
   // Close notifier
-  absl::AnyInvocable<void()> close_notifier_ = nullptr;
-
-  // IP addresses of the computer. mDNS uses them to advertise.
-  std::vector<std::string> ip_addresses_{};
-
-  // Cache socket not be picked by upper layer
-  std::string hotspot_ipaddr_ = {};
-  bool closed_ = false;
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace nearby::windows

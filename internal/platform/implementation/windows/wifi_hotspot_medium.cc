@@ -169,13 +169,13 @@ WifiHotspotMedium::ListenForService(int port) {
     return nullptr;
   }
 
-  auto server_socket = std::make_unique<WifiHotspotServerSocket>(port);
+  auto server_socket = std::make_unique<WifiHotspotServerSocket>();
   server_socket_ptr_ = server_socket.get();
 
   bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableIpv6DualStack);
-  if (server_socket->Listen(dual_stack)) {
+  if (server_socket->Listen(port, dual_stack)) {
     medium_status_ |= kMediumStatusAccepting;
 
     // Setup close notifier after listen started.

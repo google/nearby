@@ -48,8 +48,6 @@ using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
 }  // namespace
 
-WifiHotspotServerSocket::WifiHotspotServerSocket(int port) : port_(port) {}
-
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
 
 int WifiHotspotServerSocket::GetPort() const {
@@ -68,20 +66,25 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
 
 void WifiHotspotServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
+  absl::MutexLock lock(&mutex_);
   close_notifier_ = std::move(notifier);
 }
 
 Exception WifiHotspotServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
-  if (closed_) {
-    return {Exception::kSuccess};
+  absl::AnyInvocable<void()> close_callback;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (closed_) {
+      return {Exception::kSuccess};
+    }
+
+    server_socket_.Close();
+    closed_ = true;
+    close_callback = std::move(close_notifier_);
   }
 
-  server_socket_.Close();
-  closed_ = true;
-
-  if (close_notifier_ != nullptr) {
-    close_notifier_();
+  if (close_callback) {
+    close_callback();
   }
 
   LOG(INFO) << __func__ << ": Close completed succesfully.";
@@ -90,11 +93,6 @@ Exception WifiHotspotServerSocket::Close() {
 
 void WifiHotspotServerSocket::PopulateHotspotCredentials(
     HotspotCredentials& hotspot_credentials) {
-  hotspot_credentials.SetGateway(hotspot_ipaddr_);
-  hotspot_credentials.SetPort(port_);
-}
-
-bool WifiHotspotServerSocket::Listen(bool dual_stack) {
   // Get current IP addresses of the device.
   int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
       platform::config_package_nearby::nearby_platform_feature::
@@ -105,9 +103,10 @@ bool WifiHotspotServerSocket::Listen(bool dual_stack) {
               kWifiHotspotCheckIpIntervalMillis);
   VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
           << ", IP check interval=" << ip_address_retry_interval_millis << "ms";
+  std::string hotspot_ipaddr;
   for (int i = 0; i < ip_address_max_retries; i++) {
-    hotspot_ipaddr_ = GetHotspotIpAddress();
-    if (hotspot_ipaddr_.empty()) {
+    hotspot_ipaddr = GetHotspotIpAddress();
+    if (hotspot_ipaddr.empty()) {
       LOG(WARNING) << "Failed to find Hotspot's IP addr for the try: " << i + 1
                    << ". Wait " << ip_address_retry_interval_millis
                    << "ms snd try again";
@@ -116,72 +115,63 @@ bool WifiHotspotServerSocket::Listen(bool dual_stack) {
       break;
     }
   }
-  if (hotspot_ipaddr_.empty()) {
+  if (hotspot_ipaddr.empty()) {
     LOG(WARNING) << "Failed to start accepting connection without IP "
                     "addresses configured on computer.";
-    return false;
+    return;
   }
+  hotspot_credentials.SetGateway(hotspot_ipaddr);
+  hotspot_credentials.SetPort(GetPort());
+}
 
+bool WifiHotspotServerSocket::Listen(int port, bool dual_stack) {
   SocketAddress address(dual_stack);
-  if (!SocketAddress::FromString(address, hotspot_ipaddr_, port_)) {
-    LOG(ERROR) << "Failed to parse hotspot IP address: " << hotspot_ipaddr_
-               << " and port: " << port_;
-    return false;
-  }
+  // Allow server socket to listen on all interfaces.
+  // Consider sharing the same server socket for WifiLan medium.
+  SocketAddress::FromString(address, "", port);
   if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket.";
     return false;
   }
-
   return true;
 }
 
 std::string WifiHotspotServerSocket::GetHotspotIpAddress() const {
   try {
-    int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
-        platform::config_package_nearby::nearby_platform_feature::
-            kWifiHotspotCheckIpMaxRetries);
-
-    for (int i = 0; i < ip_address_max_retries; i++) {
-      auto host_names = NetworkInformation::GetHostNames();
-      std::vector<std::string> ip_candidates;
-      for (auto host_name : host_names) {
-        if (host_name.IPInformation() != nullptr &&
-            host_name.IPInformation().NetworkAdapter() != nullptr &&
-            host_name.Type() == HostNameType::Ipv4) {
-          std::string ipv4_s = winrt::to_string(host_name.ToString());
-          if (absl::EndsWith(ipv4_s, ".1")) {
-            ip_candidates.push_back(ipv4_s);
-          }
+    auto host_names = NetworkInformation::GetHostNames();
+    std::vector<std::string> ip_candidates;
+    for (auto host_name : host_names) {
+      if (host_name.IPInformation() != nullptr &&
+          host_name.IPInformation().NetworkAdapter() != nullptr &&
+          host_name.Type() == HostNameType::Ipv4) {
+        std::string ipv4_s = winrt::to_string(host_name.ToString());
+        if (absl::EndsWith(ipv4_s, ".1")) {
+          ip_candidates.push_back(ipv4_s);
         }
       }
-
-      if (ip_candidates.empty()) {
-        continue;
-      }
-
-      // Windows always creates Hotspot at address "192.168.137.1".
-      for (auto &ip_candidate : ip_candidates) {
-        if (ip_candidate == "192.168.137.1") {
-          LOG(INFO) << "Found Hotspot IP: " << ip_candidate;
-          return ip_candidate;
-        }
-      }
-
-      LOG(INFO) << "Found Hotspot IP: " << ip_candidates.front();
-      return ip_candidates.front();
     }
-    return {};
+    if (ip_candidates.empty()) {
+      return "";
+    }
+    // Windows always creates Hotspot at address "192.168.137.1".
+    for (auto &ip_candidate : ip_candidates) {
+      if (ip_candidate == "192.168.137.1") {
+        LOG(INFO) << "Found Hotspot IP: " << ip_candidate;
+        return ip_candidate;
+      }
+    }
+    LOG(INFO) << "Found Hotspot IP: " << ip_candidates.front();
+    return ip_candidates.front();
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Exception: " << exception.what();
     return {};
   } catch (const winrt::hresult_error &error) {
     LOG(ERROR) << __func__ << ": WinRT exception: " << error.code() << ": "
                << winrt::to_string(error.message());
-    return {};
+    return "";
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exception.";
-    return {};
+    return "";
   }
 }
 
