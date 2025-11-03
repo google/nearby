@@ -15,12 +15,15 @@
 #ifndef PLATFORM_API_WIFI_HOTSPOT_H_
 #define PLATFORM_API_WIFI_HOTSPOT_H_
 
-#include <string>
-
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace api {
@@ -66,8 +69,9 @@ class WifiHotspotServerSocket {
 
   // Populates the hotspot credentials with the server socket's service
   // addresses and ports.
-  virtual void PopulateHotspotCredentials(
-      HotspotCredentials& hotspot_credentials) = 0;
+  virtual bool PopulateHotspotCredentials(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials) = 0;
 };
 
 // Container of operations that can be performed over the WifiHotspot medium.
@@ -99,12 +103,15 @@ class WifiHotspotMedium {
   // SSID/password pair back to the credentials. BWU module will retrieve these
   // credentials and send to the client device through established channel and
   // then client may connect to this Hotspot with these credentials.
-  virtual bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) = 0;
+  virtual bool StartWifiHotspot(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials* hotspot_credentials) = 0;
   virtual bool StopWifiHotspot() = 0;
 
   // Client device connect to a softAP with specified credential.
   virtual bool ConnectWifiHotspot(
-      const HotspotCredentials& hotspot_credentials) = 0;
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials) = 0;
   virtual bool DisconnectWifiHotspot() = 0;
 
   // Returns the port range as a pair of min and max port.

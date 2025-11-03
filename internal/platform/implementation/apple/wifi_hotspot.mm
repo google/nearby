@@ -34,6 +34,8 @@
 namespace nearby {
 namespace apple {
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+
 constexpr char kHotspotQueueLabel[] = "com.google.nearby.wifi_hotspot";
 }
 
@@ -110,9 +112,11 @@ WifiHotspotMedium::WifiHotspotMedium(GNCHotspotMedium* hotspot_medium) : medium_
 
 WifiHotspotMedium::~WifiHotspotMedium() { DisconnectWifiHotspot(); }
 
-bool WifiHotspotMedium::ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials_) {
-  NSString* ssid = [[NSString alloc] initWithUTF8String:hotspot_credentials_.GetSSID().c_str()];
-  std::string hotspot_password = hotspot_credentials_.GetPassword();
+bool WifiHotspotMedium::ConnectWifiHotspot(
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials&
+        hotspot_credentials_) {
+  NSString* ssid = [[NSString alloc] initWithUTF8String:hotspot_credentials_.ssid().c_str()];
+  std::string hotspot_password = hotspot_credentials_.password();
   NSString* password = [[NSString alloc] initWithUTF8String:hotspot_password.c_str()];
 
   GNCLoggerInfo(@"ConnectWifiHotspot SSID: %@ Password: %s", ssid,

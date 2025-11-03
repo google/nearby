@@ -32,6 +32,7 @@ namespace nearby {
 namespace connections {
 namespace {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using FeatureFlags = FeatureFlags::Flags;
 
 constexpr FeatureFlags kTestCases[] = {
@@ -87,9 +88,10 @@ TEST_F(WifiHotspotTest, CanStartStopHotspot) {
 
 TEST_F(WifiHotspotTest, CanConnectDisconnectHotspot) {
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
-  HotspotCredentials hotspot_credentials;
-  hotspot_credentials.SetSSID(std::string(kSsid));
-  hotspot_credentials.SetPassword(std::string(kPassword));
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      hotspot_credentials;
+  hotspot_credentials.set_ssid(std::string(kSsid));
+  hotspot_credentials.set_password(std::string(kPassword));
 
   EXPECT_FALSE(wifi_hotspot_a->ConnectWifiHotspot(hotspot_credentials));
   EXPECT_TRUE(wifi_hotspot_a->DisconnectWifiHotspot());
@@ -109,8 +111,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
     EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
   }
 
-  HotspotCredentials* hotspot_credentials =
-      wifi_hotspot_a->GetCredentials(service_id);
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials*
+      hotspot_credentials = wifi_hotspot_a->GetCredentials(service_id);
 
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(*hotspot_credentials));
 
@@ -123,8 +125,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
   EXPECT_TRUE(socket_result.has_error());
 
   socket_result =
-      wifi_hotspot_b->Connect(service_id, hotspot_credentials->GetGateway(),
-                              hotspot_credentials->GetPort(), &flag);
+      wifi_hotspot_b->Connect(service_id, hotspot_credentials->gateway(),
+                              hotspot_credentials->port(), &flag);
   EXPECT_TRUE(socket_result.has_value());
   EXPECT_TRUE(socket_result.value().IsValid());
 
@@ -146,8 +148,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
     EXPECT_TRUE(wifi_hotspot_a->StartAcceptingConnections(service_id, {}));
   }
 
-  HotspotCredentials* hotspot_credentials =
-      wifi_hotspot_a->GetCredentials(service_id);
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials*
+      hotspot_credentials = wifi_hotspot_a->GetCredentials(service_id);
 
   EXPECT_TRUE(wifi_hotspot_b->ConnectWifiHotspot(*hotspot_credentials));
 
@@ -156,8 +158,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
 
   CancellationFlag flag(true);
   ErrorOr<WifiHotspotSocket> socket_result =
-      wifi_hotspot_b->Connect(service_id, hotspot_credentials->GetGateway(),
-                              hotspot_credentials->GetPort(), &flag);
+      wifi_hotspot_b->Connect(service_id, hotspot_credentials->gateway(),
+                              hotspot_credentials->port(), &flag);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {
@@ -178,9 +180,10 @@ TEST_F(WifiHotspotTest, CanStartHotspotTheOtherFailConnect) {
 
   EXPECT_TRUE(wifi_hotspot_a->StartWifiHotspot());
 
-  HotspotCredentials hotspot_credentials;
-  hotspot_credentials.SetSSID(std::string(kSsid));
-  hotspot_credentials.SetPassword(std::string(kPassword));
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      hotspot_credentials;
+  hotspot_credentials.set_ssid(std::string(kSsid));
+  hotspot_credentials.set_password(std::string(kPassword));
   EXPECT_FALSE(wifi_hotspot_b->ConnectWifiHotspot(hotspot_credentials));
   EXPECT_TRUE(wifi_hotspot_b->DisconnectWifiHotspot());
 

@@ -17,67 +17,9 @@
 
 #include <string>
 
-#include "absl/strings/str_format.h"
-#include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
-
-// Credentials for the currently-hosted Wifi hotspot (if any)
-// Class HotspotCredentials is copyable & movable
-class HotspotCredentials {
- public:
-  HotspotCredentials() = default;
-  HotspotCredentials(const HotspotCredentials&) = default;
-  HotspotCredentials& operator=(const HotspotCredentials&) = default;
-  HotspotCredentials(HotspotCredentials&&) = default;
-  HotspotCredentials& operator=(HotspotCredentials&&) = default;
-  ~HotspotCredentials() = default;
-
-  // Returns the SSID (Service Set Identifier) which the hotspot will
-  // periodically beacon. STA can start a wifi scan for this SSID to find the
-  // hotspot
-  std::string GetSSID() const { return ssid_; }
-  void SetSSID(const std::string& ssid) { ssid_ = ssid; }
-
-  std::string GetPassword() const { return password_; }
-  void SetPassword(const std::string& password) { password_ = password; }
-
-  // Gets IP Address in string format.
-  // This is the IP address at which the service is provided.
-  std::string GetGateway() const { return gateway_; }
-  void SetGateway(const std::string& gateway) { gateway_ = gateway; }
-
-  // Gets the Port number
-  int GetPort() const { return port_; }
-  // Set port_
-  void SetPort(const int port) { port_ = port; }
-
-  // Gets the Frequency
-  int GetFrequency() const { return frequency_; }
-  // Set frequency_
-  void SetFrequency(int frequency) { frequency_ = frequency; }
-
-  // Gets the Band
-  location::nearby::proto::connections::ConnectionBand GetBand() const {
-    return band_;
-  }
-
-  // Gets the Technology
-  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
-      const {
-    return technology_;
-  }
-
- private:
-  std::string ssid_;
-  std::string password_;
-  std::string gateway_;
-  int port_ = 0;
-  int frequency_ = -1;
-  location::nearby::proto::connections::ConnectionBand band_;
-  location::nearby::proto::connections::ConnectionTechnology technology_;
-};
 
 // Credentials for the currently-hosted WifiDirect GO (if any)
 // Class WifiDirectCredentials is copyable & movable

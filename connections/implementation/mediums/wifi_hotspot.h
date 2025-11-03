@@ -20,11 +20,11 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
-#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
@@ -53,7 +53,9 @@ class WifiHotspot {
   bool StopWifiHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
 
   bool IsConnectedToHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
-  bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials)
+  bool ConnectWifiHotspot(
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials)
       ABSL_LOCKS_EXCLUDED(mutex_);
   bool DisconnectWifiHotspot() ABSL_LOCKS_EXCLUDED(mutex_);
 
@@ -82,8 +84,9 @@ class WifiHotspot {
   // Gets SoftAP ssid + password + ip address + gateway + port etc for remote
   // services on the network to identify and connect to this service.
   // Credential is for the currently-hosted WiFi SoftAP ServerSocket (if any).
-  HotspotCredentials* GetCredentials(absl::string_view service_id)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+      UpgradePathInfo::WifiHotspotCredentials*
+      GetCredentials(absl::string_view service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   mutable Mutex mutex_;

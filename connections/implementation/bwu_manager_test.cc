@@ -926,11 +926,15 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
 
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
-  ExceptionOr<OfflineFrame> hotspot_path_available_frame =
-      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
-          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1",
-          false));
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("Direct-357a2d8c");
+  credentials.set_password("b592f7d3");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("123.234.23.1");
+  ExceptionOr<OfflineFrame> hotspot_path_available_frame = parser::FromBytes(
+      parser::ForBwuWifiHotspotPathAvailable(std::move(credentials), false));
   OfflineFrame frame = hotspot_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();
@@ -993,10 +997,15 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
   ecm_.RegisterChannelForEndpoint(&client_, std::string(kEndpointId2),
                                   std::move(channel));
 
-  ExceptionOr<OfflineFrame> hotspot_path_available_frame2 =
-      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
-          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1", true));
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("Direct-357a2d8c");
+  credentials.set_password("b592f7d3");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("123.234.23.1");
+  ExceptionOr<OfflineFrame> hotspot_path_available_frame2 = parser::FromBytes(
+      parser::ForBwuWifiHotspotPathAvailable(std::move(credentials), true));
   OfflineFrame frame2 = hotspot_path_available_frame2.result();
   frame2.set_version(OfflineFrame::V1);
   auto* v1_frame2 = frame2.mutable_v1();
@@ -1016,10 +1025,15 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
 }
 
 TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
-  ExceptionOr<OfflineFrame> hotspot_path_available_frame =
-      parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
-          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1", true));
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("Direct-357a2d8c");
+  credentials.set_password("b592f7d3");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("123.234.23.1");
+  ExceptionOr<OfflineFrame> hotspot_path_available_frame = parser::FromBytes(
+      parser::ForBwuWifiHotspotPathAvailable(std::move(credentials), true));
   OfflineFrame frame = hotspot_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();

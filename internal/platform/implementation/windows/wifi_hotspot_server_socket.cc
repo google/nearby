@@ -35,17 +35,15 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/logging.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
 using ::winrt::Windows::Networking::HostNameType;
-using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
 }  // namespace
 
 WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
@@ -91,8 +89,9 @@ Exception WifiHotspotServerSocket::Close() {
   return {Exception::kSuccess};
 }
 
-void WifiHotspotServerSocket::PopulateHotspotCredentials(
-    HotspotCredentials& hotspot_credentials) {
+bool WifiHotspotServerSocket::PopulateHotspotCredentials(
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials&
+        hotspot_credentials) {
   // Get current IP addresses of the device.
   int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
       platform::config_package_nearby::nearby_platform_feature::
@@ -118,10 +117,11 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
   if (hotspot_ipaddr.empty()) {
     LOG(WARNING) << "Failed to start accepting connection without IP "
                     "addresses configured on computer.";
-    return;
+    return false;
   }
-  hotspot_credentials.SetGateway(hotspot_ipaddr);
-  hotspot_credentials.SetPort(GetPort());
+  hotspot_credentials.set_gateway(hotspot_ipaddr);
+  hotspot_credentials.set_port(GetPort());
+  return true;
 }
 
 bool WifiHotspotServerSocket::Listen(int port, bool dual_stack) {

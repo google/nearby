@@ -22,13 +22,13 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
-#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
 namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -100,7 +100,8 @@ bool WifiHotspot::IsConnectedToHotspot() {
 }
 
 bool WifiHotspot::ConnectWifiHotspot(
-    const HotspotCredentials& hotspot_credentials) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+        WifiHotspotCredentials& hotspot_credentials) {
   MutexLock lock(&mutex_);
   if (is_connected_to_hotspot_) {
     LOG(INFO)
@@ -123,9 +124,11 @@ bool WifiHotspot::DisconnectWifiHotspot() {
   return true;
 }
 
-HotspotCredentials* WifiHotspot::GetCredentials(absl::string_view service_id) {
+BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials*
+WifiHotspot::GetCredentials(absl::string_view service_id) {
   MutexLock lock(&mutex_);
-  HotspotCredentials* crendential = medium_.GetCredential();
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+        WifiHotspotCredentials* crendential = medium_.GetCredential();
   CHECK(crendential);
 
   const auto& it = server_sockets_.find(service_id);

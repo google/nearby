@@ -18,7 +18,9 @@
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/base/masker.h"
 #include "internal/platform/cancellation_flag.h"
@@ -30,6 +32,8 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace windows {

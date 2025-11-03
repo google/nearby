@@ -25,6 +25,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
@@ -38,6 +39,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -80,22 +82,16 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   // Note: Credentials are not generated until Medium StartWifiHotspot() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  HotspotCredentials* hotspot_crendential =
-      wifi_hotspot_medium_.GetCredentials(upgrade_service_id);
-  std::string ssid = hotspot_crendential->GetSSID();
-  std::string password = hotspot_crendential->GetPassword();
-  std::string gateway = hotspot_crendential->GetGateway();
-  std::int32_t port = hotspot_crendential->GetPort();
-  std::int32_t frequency = hotspot_crendential->GetFrequency();
-
-  LOG(INFO) << "Start SoftAP with SSID:" << ssid
-            << ",  Password:" << masker::Mask(password) << ",  Port:" << port
-            << ",  Gateway:" << gateway << ",  Frequency:" << frequency;
-
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials*
+      credentials = wifi_hotspot_medium_.GetCredentials(upgrade_service_id);
+  LOG(INFO) << "Start SoftAP with SSID:" << credentials->ssid()
+            << ",  Password:" << masker::Mask(credentials->password())
+            << ",  Port:" << credentials->port()
+            << ",  Gateway:" << credentials->gateway()
+            << ",  Frequency:" << credentials->frequency();
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
-  return parser::ForBwuWifiHotspotPathAvailable(
-      ssid, password, port, frequency, gateway,
+  return parser::ForBwuWifiHotspotPathAvailable(*credentials,
       /* supports_disabling_encryption */ disabling_encryption);
 }
 
@@ -120,22 +116,15 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     return {Error(
         OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
   }
-  const UpgradePathInfo::WifiHotspotCredentials& upgrade_path_info_credentials =
+  const UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials =
       upgrade_path_info.wifi_hotspot_credentials();
 
-  HotspotCredentials hotspot_credentials;
-  hotspot_credentials.SetSSID(upgrade_path_info_credentials.ssid());
-  hotspot_credentials.SetPassword(upgrade_path_info_credentials.password());
-  hotspot_credentials.SetGateway(upgrade_path_info_credentials.gateway());
-  hotspot_credentials.SetPort(upgrade_path_info_credentials.port());
-  hotspot_credentials.SetFrequency(upgrade_path_info_credentials.frequency());
-
   LOG(INFO) << "Received Hotspot credential SSID: "
-            << hotspot_credentials.GetSSID()
-            << ",  Password:" << masker::Mask(hotspot_credentials.GetPassword())
-            << ",  Port:" << hotspot_credentials.GetPort()
-            << ",  Gateway:" << hotspot_credentials.GetGateway()
-            << ",  Frequency:" << hotspot_credentials.GetFrequency();
+            << hotspot_credentials.ssid()
+            << ",  Password:" << masker::Mask(hotspot_credentials.password())
+            << ",  Port:" << hotspot_credentials.port()
+            << ",  Gateway:" << hotspot_credentials.gateway()
+            << ",  Frequency:" << hotspot_credentials.frequency();
 
   if (!wifi_hotspot_medium_.ConnectWifiHotspot(hotspot_credentials)) {
     LOG(ERROR) << "Connect to Hotspot failed";
@@ -144,20 +133,20 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   }
 
   ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
-      service_id, hotspot_credentials.GetGateway(),
-      hotspot_credentials.GetPort(), client->GetCancellationFlag(endpoint_id));
+      service_id, hotspot_credentials.gateway(),
+      hotspot_credentials.port(), client->GetCancellationFlag(endpoint_id));
   if (socket_result.has_error()) {
     LOG(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("
-        << hotspot_credentials.GetGateway() << ":"
-        << hotspot_credentials.GetPort() << ") for endpoint " << endpoint_id;
+        << hotspot_credentials.gateway() << ":"
+        << hotspot_credentials.port() << ") for endpoint " << endpoint_id;
     return {Error(socket_result.error().operation_result_code().value())};
   }
 
   VLOG(1)
       << "WifiHotspotBwuHandler successfully connected to WifiHotspot service ("
-      << hotspot_credentials.GetGateway() << ":"
-      << hotspot_credentials.GetPort() << ") while upgrading endpoint "
+      << hotspot_credentials.gateway() << ":"
+      << hotspot_credentials.port() << ") while upgrading endpoint "
       << endpoint_id;
 
   // Create a new WifiHotspotEndpointChannel.

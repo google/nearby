@@ -326,7 +326,9 @@ class MediumEnvironment {
   // medium is exposing Start Hotspot event.
   void UpdateWifiHotspotMediumForStartOrConnect(
       api::WifiHotspotMedium& medium,
-      const HotspotCredentials* hotspot_credentials, bool is_ap, bool enabled);
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials* hotspot_credentials,
+      bool is_ap, bool enabled);
 
   // Removes medium-related info. This should correspond to device stopped or
   // disconnected.
@@ -435,7 +437,8 @@ class MediumEnvironment {
     bool is_ap = true;
     // Set "true" when SoftAP is started or STA is connected
     bool is_active = false;
-    const HotspotCredentials* hotspot_credentials;
+    const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+        UpgradePathInfo::WifiHotspotCredentials* hotspot_credentials;
   };
 
   struct BluetoothPairingContext {

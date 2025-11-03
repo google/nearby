@@ -17,6 +17,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -35,6 +36,7 @@ namespace connections {
 namespace parser {
 namespace {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
@@ -402,8 +404,15 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
         >
       >
     >)pb";
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("ssid");
+  credentials.set_password("password");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("0.0.0.0");
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      "ssid", "password", 1234, /*frequency=*/2412, "0.0.0.0", false);
+      std::move(credentials), false);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

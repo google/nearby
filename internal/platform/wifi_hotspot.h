@@ -22,6 +22,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
@@ -31,7 +32,6 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
@@ -110,8 +110,10 @@ class WifiHotspotServerSocket final {
 
   // Populates the hotspot credentials with the server socket's service
   // addresses and ports.
-  void PopulateHotspotCredentials(HotspotCredentials& hotspot_credentials) {
-    impl_->PopulateHotspotCredentials(hotspot_credentials);
+  bool PopulateHotspotCredentials(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials) {
+    return impl_->PopulateHotspotCredentials(hotspot_credentials);
   }
 
   // Blocks until either:
@@ -125,8 +127,7 @@ class WifiHotspotServerSocket final {
   WifiHotspotSocket Accept() {
     std::unique_ptr<api::WifiHotspotSocket> socket = impl_->Accept();
     if (!socket) {
-      LOG(INFO)
-          << "WifiHotspotServerSocket Accept() failed on server socket: ";
+      LOG(INFO) << "WifiHotspotServerSocket Accept() failed on server socket: ";
     }
     return WifiHotspotSocket(std::move(socket));
   }
@@ -176,14 +177,20 @@ class WifiHotspotMedium {
   }
   bool StopWifiHotspot() { return impl_->StopWifiHotspot(); }
 
-  bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials) {
+  bool ConnectWifiHotspot(
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials) {
     MutexLock lock(&mutex_);
     hotspot_credentials_ = hotspot_credentials;
     return impl_->ConnectWifiHotspot(hotspot_credentials);
   }
   bool DisconnectWifiHotspot() { return impl_->DisconnectWifiHotspot(); }
 
-  HotspotCredentials* GetCredential() { return &hotspot_credentials_; }
+  location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+      UpgradePathInfo::WifiHotspotCredentials*
+      GetCredential() {
+    return &hotspot_credentials_;
+  }
 
   bool IsInterfaceValid() const {
     CHECK(impl_);
@@ -202,7 +209,9 @@ class WifiHotspotMedium {
  private:
   Mutex mutex_;
   std::unique_ptr<api::WifiHotspotMedium> impl_;
-  HotspotCredentials hotspot_credentials_ ABSL_GUARDED_BY(mutex_);
+  location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+      UpgradePathInfo::WifiHotspotCredentials hotspot_credentials_
+          ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby

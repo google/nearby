@@ -45,18 +45,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.h"
 #include "internal/platform/implementation/windows/generated/winrt/base.h"
 
-#include "internal/platform/wifi_credential.h"
-
 namespace nearby::windows {
-
-using ::winrt::fire_and_forget;
-using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher;
-using ::winrt::Windows::Devices::WiFiDirect::
-    WiFiDirectAdvertisementPublisherStatusChangedEventArgs;
-using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener;
-using ::winrt::Windows::Devices::WiFiDirect::
-    WiFiDirectConnectionRequestedEventArgs;
-using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
 
 // Container of operations that can be performed over the WifiHotspot medium.
 class WifiHotspotMedium : public api::WifiHotspotMedium {
@@ -77,12 +66,17 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
       int port) override;
 
   // Advertiser start WiFi Hotspot with specific Credentials.
-  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override;
+  bool StartWifiHotspot(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials* hotspot_credentials)
+      override;
   // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;
   // Discoverer connects to the Hotspot
   bool ConnectWifiHotspot(
-      const HotspotCredentials& hotspot_credentials) override;
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials)
+      override;
   // Discoverer disconnects from the Hotspot
   bool DisconnectWifiHotspot() override;
 
@@ -107,20 +101,27 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
   // Discoverer is connected with the Hotspot
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
 
-  WiFiDirectAdvertisementPublisher publisher_{nullptr};
-  WiFiDirectConnectionListener listener_{nullptr};
+  winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher
+      publisher_{nullptr};
+  winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener listener_{
+      nullptr};
 
   // The list of WiFiDirectDevice is used to keep hotspot connection alive.
-  std::list<WiFiDirectDevice> wifi_direct_devices_;
+  std::list<winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice>
+      wifi_direct_devices_;
 
-  fire_and_forget OnStatusChanged(
-      WiFiDirectAdvertisementPublisher sender,
-      WiFiDirectAdvertisementPublisherStatusChangedEventArgs event);
+  winrt::fire_and_forget OnStatusChanged(
+      winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher
+          sender,
+      winrt::Windows::Devices::WiFiDirect::
+          WiFiDirectAdvertisementPublisherStatusChangedEventArgs event);
   winrt::event_token publisher_status_changed_token_;
 
-  fire_and_forget OnConnectionRequested(
-      WiFiDirectConnectionListener const& sender,
-      WiFiDirectConnectionRequestedEventArgs const& event);
+  winrt::fire_and_forget OnConnectionRequested(
+      winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener const&
+          sender,
+      winrt::Windows::Devices::WiFiDirect::
+          WiFiDirectConnectionRequestedEventArgs const& event);
   winrt::event_token connection_requested_token_;
 
   // Gets error message from exception pointer

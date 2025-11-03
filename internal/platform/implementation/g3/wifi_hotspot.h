@@ -26,7 +26,6 @@
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -108,8 +107,10 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Calls close_notifier if it was previously set, and marks socket as closed.
   Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void PopulateHotspotCredentials(HotspotCredentials& hotspot_credentials)
-      override ABSL_LOCKS_EXCLUDED(mutex_);
+  bool PopulateHotspotCredentials(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials) override
+      ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   // Retrieves IP addresses from local machine
@@ -152,12 +153,17 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
       int port) override;
 
   // Advertiser start WiFi Hotspot with specific Crendentials
-  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override;
+  bool StartWifiHotspot(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials* hotspot_credentials)
+      override;
   // Advertiser stop the current WiFi Hotspot
   bool StopWifiHotspot() override;
   // Discoverer connects to the Hotspot
   bool ConnectWifiHotspot(
-      const HotspotCredentials& hotspot_credentials) override;
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials)
+      override;
   // Discoverer disconnects from the Hotspot
   bool DisconnectWifiHotspot() override;
 

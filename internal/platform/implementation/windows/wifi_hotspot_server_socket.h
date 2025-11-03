@@ -21,22 +21,16 @@
 #include <wlanapi.h>
 
 // Standard C/C++ headers
-#include <cstddef>
-#include <cstdint>
-#include <exception>
 #include <memory>
 #include <string>
-#include <utility>
 
 // Nearby connections headers
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 
@@ -67,8 +61,9 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
 
-  void PopulateHotspotCredentials(
-      HotspotCredentials& hotspot_credentials) override;
+  bool PopulateHotspotCredentials(
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+      UpgradePathInfo::WifiHotspotCredentials& hotspot_credentials) override;
 
   // Binds to local port
   bool Listen(int port, bool dual_stack);

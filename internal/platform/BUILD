@@ -323,6 +323,7 @@ cc_library(
         ":mac_address",
         ":types",
         ":uuid",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/base",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",

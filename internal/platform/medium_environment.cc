@@ -51,6 +51,8 @@
 
 namespace nearby {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+
 MediumEnvironment& MediumEnvironment::Instance() {
   alignas(MediumEnvironment) static char storage[sizeof(MediumEnvironment)];
   static MediumEnvironment* env = new (&storage) MediumEnvironment();
@@ -1043,9 +1045,9 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
     if (info.is_ap && info.hotspot_credentials) {
-      if ((info.hotspot_credentials->GetSSID() == ssid) ||
+      if ((info.hotspot_credentials->ssid() == ssid) ||
           (!ip_address.empty() &&
-           (info.hotspot_credentials->GetGateway() == ip_address))) {
+           (info.hotspot_credentials->gateway() == ip_address))) {
         LOG(INFO) << "Found Remote WifiHotspot medium=" << medium_found;
         return medium_found;
       }
@@ -1057,7 +1059,9 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
 
 void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
     api::WifiHotspotMedium& medium,
-    const HotspotCredentials* hotspot_credentials, bool is_ap, bool enabled) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+        WifiHotspotCredentials* hotspot_credentials,
+    bool is_ap, bool enabled) {
   if (!enabled_) return;
 
   CountDownLatch latch(1);
@@ -1072,8 +1076,8 @@ void MediumEnvironment::UpdateWifiHotspotMediumForStartOrConnect(
     if (hotspot_credentials) {
       LOG(INFO) << "Update WifiHotspot medium for Hotspot: this=" << this
                 << "; medium=" << &medium << role_status
-                << "; ssid=" << hotspot_credentials->GetSSID()
-                << "; password=" << hotspot_credentials->GetPassword();
+                << "; ssid=" << hotspot_credentials->ssid()
+                << "; password=" << hotspot_credentials->password();
     } else {
       LOG(INFO) << "Reset WifiHotspot medium for Hotspot: this=" << this
                 << "; medium=" << &medium << role_status;

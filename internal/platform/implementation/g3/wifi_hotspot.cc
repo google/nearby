@@ -30,10 +30,11 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
+
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 
 // Code for WifiHotspotServerSocket
 std::string WifiHotspotServerSocket::GetName(absl::string_view ip_address,
@@ -110,11 +111,13 @@ Exception WifiHotspotServerSocket::DoClose() {
   return {Exception::kSuccess};
 }
 
-void WifiHotspotServerSocket::PopulateHotspotCredentials(
-    HotspotCredentials& hotspot_credentials) {
+bool WifiHotspotServerSocket::PopulateHotspotCredentials(
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials&
+        hotspot_credentials) {
   absl::MutexLock lock(mutex_);
-  hotspot_credentials.SetGateway(ip_address_);
-  hotspot_credentials.SetPort(port_);
+  hotspot_credentials.set_gateway(ip_address_);
+  hotspot_credentials.set_port(port_);
+  return true;
 }
 
 // Code for WifiHotspotMedium
@@ -129,15 +132,16 @@ WifiHotspotMedium::~WifiHotspotMedium() {
 }
 
 bool WifiHotspotMedium::StartWifiHotspot(
-    HotspotCredentials* hotspot_credentials) {
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials*
+        hotspot_credentials) {
   absl::MutexLock lock(mutex_);
 
   if (!IsInterfaceValid()) return false;
 
   std::string ssid = absl::StrCat("DIRECT-", Prng().NextUint32());
-  hotspot_credentials->SetSSID(ssid);
+  hotspot_credentials->set_ssid(ssid);
   std::string password = absl::StrFormat("%08x", Prng().NextUint32());
-  hotspot_credentials->SetPassword(password);
+  hotspot_credentials->set_password(password);
 
   LOG(INFO) << "G3 StartWifiHotspot: ssid=" << ssid
             << ",  password:" << password;
@@ -164,15 +168,16 @@ bool WifiHotspotMedium::StopWifiHotspot() {
 }
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
-    const HotspotCredentials& hotspot_credentials) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+        WifiHotspotCredentials& hotspot_credentials) {
   absl::MutexLock lock(mutex_);
 
-  LOG(INFO) << "G3 ConnectWifiHotspot: ssid=" << hotspot_credentials.GetSSID()
-            << ",  password:" << hotspot_credentials.GetPassword();
+  LOG(INFO) << "G3 ConnectWifiHotspot: ssid=" << hotspot_credentials.ssid()
+            << ",  password:" << hotspot_credentials.password();
 
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium = static_cast<WifiHotspotMedium*>(
-      env.GetWifiHotspotMedium(hotspot_credentials.GetSSID(), ""));
+      env.GetWifiHotspotMedium(hotspot_credentials.ssid(), ""));
   if (!remote_medium) {
     env.UpdateWifiHotspotMediumForStartOrConnect(*this, &hotspot_credentials,
                                                  /*is_ap=*/false,

@@ -103,7 +103,9 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
    *
    * @param hotspot_credentials_ The credentials of the Wifi Hotspot to connect to.
    */
-  bool ConnectWifiHotspot(const HotspotCredentials& hotspot_credentials_) override;
+  bool ConnectWifiHotspot(
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+          WifiHotspotCredentials& hotspot_credentials_) override;
 
   /**
    * @brief Disconnects from the currently connected Wifi Hotspot.
@@ -123,7 +125,10 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
       absl::string_view ip_address, int port, CancellationFlag* cancellation_flag) override;
 
   // IOS is not supporting WifiHotspot Server yet.
-  bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override { return false; }
+  bool StartWifiHotspot(location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+                            UpgradePathInfo::WifiHotspotCredentials* hotspot_credentials) override {
+    return false;
+  }
   bool StopWifiHotspot() override { return false; }
   std::unique_ptr<api::WifiHotspotServerSocket> ListenForService(int port) override {
     return nullptr;

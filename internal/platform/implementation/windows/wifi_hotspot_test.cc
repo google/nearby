@@ -27,6 +27,7 @@
 
 namespace nearby::windows {
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 
 TEST(WifiHotspotMedium, DISABLED_StartWifiHotspot) {
   int run_test;
@@ -34,7 +35,8 @@ TEST(WifiHotspotMedium, DISABLED_StartWifiHotspot) {
   std::cin >> run_test;
 
   if (run_test) {
-    HotspotCredentials hotspot_credentials;
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+        hotspot_credentials;
     WifiHotspotMedium hotspot_medium;
 
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -66,7 +68,8 @@ TEST(WifiHotspotMedium, DISABLED_WifiHotspotServerStartListen) {
   std::cin >> run_test;
 
   if (run_test) {
-    HotspotCredentials hotspot_credentials;
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+        hotspot_credentials;
     WifiHotspotMedium hotspot_medium;
 
     EXPECT_TRUE(hotspot_medium.IsInterfaceValid());
@@ -100,7 +103,8 @@ TEST(WifiHotspotMedium, DISABLED_ConnectWifiHotspot) {
   std::cin >> run_test;
 
   if (run_test) {
-    HotspotCredentials hotspot_credentials;
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+        hotspot_credentials;
     WifiHotspotMedium hotspot_medium;
     LOG(INFO) << "Enter Network SSID to be connected: ";
     std::string ssid;
@@ -112,9 +116,9 @@ TEST(WifiHotspotMedium, DISABLED_ConnectWifiHotspot) {
     int frequency;
     std::cin >> frequency;
 
-    hotspot_credentials.SetSSID(ssid);
-    hotspot_credentials.SetPassword(password);
-    hotspot_credentials.SetFrequency(frequency);
+    hotspot_credentials.set_ssid(ssid);
+    hotspot_credentials.set_password(password);
+    hotspot_credentials.set_frequency(frequency);
 
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         platform::config_package_nearby::nearby_platform_feature::

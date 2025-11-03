@@ -68,9 +68,10 @@ const char kIPAddress[] = "192.168.1.2";
 }
 
 - (void)testConnectWifiHotspot {
-  nearby::HotspotCredentials hotspotCredentials;
-  hotspotCredentials.SetSSID("TestSSID");
-  hotspotCredentials.SetPassword("TestPassword");
+  location::nearby::connections::BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+      WifiHotspotCredentials hotspotCredentials;
+  hotspotCredentials.set_ssid("TestSSID");
+  hotspotCredentials.set_password("TestPassword");
 
   XCTAssertFalse(_hotspotMedium->ConnectWifiHotspot(hotspotCredentials));
 }

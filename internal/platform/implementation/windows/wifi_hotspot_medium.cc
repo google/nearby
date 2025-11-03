@@ -44,14 +44,24 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
 namespace {
 using ::absl::Milliseconds;
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
+using ::winrt::fire_and_forget;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectAdvertisementPublisher;
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectAdvertisementPublisherStatusChangedEventArgs;
 using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectAdvertisementPublisherStatus;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionListener;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
+using ::winrt::Windows::Devices::WiFiDirect::
+    WiFiDirectConnectionRequestedEventArgs;
+using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectDevice;
 using ::winrt::Windows::Security::Credentials::PasswordCredential;
 }  // namespace
 
@@ -196,7 +206,8 @@ WifiHotspotMedium::ListenForService(int port) {
 }
 
 bool WifiHotspotMedium::StartWifiHotspot(
-    HotspotCredentials* hotspot_credentials) {
+    BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials*
+        hotspot_credentials) {
   absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Start to create WiFi Hotspot.";
 
@@ -220,13 +231,13 @@ bool WifiHotspotMedium::StartWifiHotspot(
     Prng prng;
     publisher_.Advertisement().LegacySettings().IsEnabled(true);
     std::string password = absl::StrFormat("%08x", prng.NextUint32());
-    hotspot_credentials->SetPassword(password);
+    hotspot_credentials->set_password(password);
     PasswordCredential creds;
     creds.Password(winrt::to_hstring(password));
     publisher_.Advertisement().LegacySettings().Passphrase(creds);
 
     std::string ssid = "DIRECT-" + std::to_string(prng.NextUint32());
-    hotspot_credentials->SetSSID(ssid);
+    hotspot_credentials->set_ssid(ssid);
     publisher_.Advertisement().LegacySettings().Ssid(winrt::to_hstring(ssid));
 
     publisher_.Start();
@@ -243,13 +254,13 @@ bool WifiHotspotMedium::StartWifiHotspot(
           LOG(INFO) << "Intel PIE enabled, Hotspot is running on channel: "
                     << GO_channel;
           intel_wifi.Stop();
-          hotspot_credentials->SetFrequency(
+          hotspot_credentials->set_frequency(
               WifiUtils::ConvertChannelToFrequencyMhz(GO_channel,
                                                       WifiBandType::kUnknown));
         }
       } else {
         LOG(INFO) << "Intel PIE disabled, Can't extract Hotspot channel info!";
-        hotspot_credentials->SetFrequency(-1);
+        hotspot_credentials->set_frequency(-1);
       }
       return true;
     }
@@ -385,11 +396,12 @@ fire_and_forget WifiHotspotMedium::OnConnectionRequested(
 }
 
 bool WifiHotspotMedium::ConnectWifiHotspot(
-    const HotspotCredentials& hotspot_credentials) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+        WifiHotspotCredentials& hotspot_credentials) {
   absl::MutexLock lock(mutex_);
 
-  std::string ssid = hotspot_credentials.GetSSID();
-  std::string password = hotspot_credentials.GetPassword();
+  std::string ssid = hotspot_credentials.ssid();
+  std::string password = hotspot_credentials.password();
   try {
     if (IsConnected()) {
       LOG(WARNING) << "Already connected to Hotspot, disconnect first.";
@@ -402,7 +414,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
             platform::config_package_nearby::nearby_platform_feature::
                 kEnableIntelPieSdk)) {
       auto channel = WifiUtils::ConvertFrequencyMhzToChannel(
-          hotspot_credentials.GetFrequency());
+          hotspot_credentials.frequency());
       WifiIntel& intel_wifi{WifiIntel::GetInstance()};
       intel_wifi_started = intel_wifi.Start();
       if (intel_wifi_started) {
@@ -410,8 +422,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
       }
     }
 
-    bool connected =
-        wifi_hotspot_native_.ConnectToWifiNetwork(ssid, password);
+    bool connected = wifi_hotspot_native_.ConnectToWifiNetwork(ssid, password);
 
     if (intel_wifi_started) {
       WifiIntel& intel_wifi{WifiIntel::GetInstance()};
@@ -441,7 +452,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
             << ", IP check interval=" << ip_address_retry_interval_millis
             << "ms, timeout=" << connection_timeout;
-    absl::Time start_time = SystemClock::ElapsedRealtime();;
+    absl::Time start_time = SystemClock::ElapsedRealtime();
+    ;
     for (int i = 0; i < ip_address_max_retries; i++) {
       LOG(INFO) << "Check IP address at attempt " << i;
 

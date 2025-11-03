@@ -16,6 +16,7 @@
 
 #include <array>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -28,6 +29,7 @@ namespace connections {
 namespace parser {
 namespace {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
@@ -591,9 +593,15 @@ TEST(OfflineFramesValidatorTest,
      ValidatesAsOkWithValidBandwidthUpgradeNegotiationFrame) {
   OfflineFrame offline_frame;
 
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_port(kPort);
+  credentials.set_frequency(kHotspotFrequency);
+  credentials.set_gateway(kWifiHotspotGateway);
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
-      std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
+      std::move(credentials), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -605,9 +613,15 @@ TEST(OfflineFramesValidatorTest,
      ValidatesAsFailWithNullBandwidthUpgradeNegotiationFrame) {
   OfflineFrame offline_frame;
 
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_port(kPort);
+  credentials.set_frequency(kHotspotFrequency);
+  credentials.set_gateway(kWifiHotspotGateway);
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
-      std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
+      std::move(credentials), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 
