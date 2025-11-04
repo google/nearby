@@ -1005,6 +1005,28 @@ enum CloudCreateSharingResult {
 //     //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/cloud/data/CreateSharingRequestResultStatus.kt
 // )
 
+// The result of registering a receiver for a cloud sharing. Used by
+// CLOUD_REGISTER_RECEIVER.
+enum CloudRegisterReceiverResult {
+  CLOUD_REGISTER_RECEIVER_RESULT_UNKNOWN = 0;
+  // The request was successful.
+  CLOUD_REGISTER_RECEIVER_RESULT_SUCCESS = 1;
+  // The request contains invalid arguments.
+  CLOUD_REGISTER_RECEIVER_RESULT_INVALID_ARGUMENT = 2;
+  // Deadline expired before the request could complete.
+  CLOUD_REGISTER_RECEIVER_RESULT_DEADLINE_EXCEEDED = 3;
+  // An internal error occurred during the request.
+  CLOUD_REGISTER_RECEIVER_RESULT_INTERNAL = 4;
+  // The request was rejected due to too many receivers.
+  CLOUD_REGISTER_RECEIVER_RESULT_RESOURCE_EXHAUSTED = 5;
+  // The service is currently unavailable.
+  CLOUD_REGISTER_RECEIVER_RESULT_UNAVAILABLE = 6;
+  // The caller does not have permission to register a receiver.
+  CLOUD_REGISTER_RECEIVER_RESULT_PERMISSION_DENIED = 7;
+  // An error occurred that is not covered by the other results.
+  CLOUD_REGISTER_RECEIVER_RESULT_OTHER_FAILURE = 8;
+}
+
 // The action type of uploading files to the cloud. Used by CLOUD_UPLOAD_START
 // and CLOUD_UPLOAD_END.
 enum CloudActionType {
