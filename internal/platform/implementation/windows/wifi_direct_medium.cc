@@ -26,10 +26,10 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
-#include "internal/platform/implementation/wifi_direct_service.h"
+#include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/implementation/windows/wifi_direct_service.h"
+#include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {
@@ -40,8 +40,8 @@ constexpr std::wstring_view kPin = L"1234";
 constexpr int kWaitingForConnectionTimeoutSeconds = 90;  // seconds
 }  // namespace
 
-WifiDirectServiceMedium::WifiDirectServiceMedium() {
-  LOG(INFO) << "WifiDirectServiceMedium::WifiDirectServiceMedium";
+WifiDirectMedium::WifiDirectMedium() {
+  LOG(INFO) << "WifiDirectMedium::WifiDirectMedium";
   // Create a DispatcherQueue for this thread.
   controller_ = winrt::Windows::System::DispatcherQueueController::
       CreateOnDedicatedThread();
@@ -52,10 +52,10 @@ WifiDirectServiceMedium::WifiDirectServiceMedium() {
   }
 }
 
-WifiDirectServiceMedium::~WifiDirectServiceMedium() {
+WifiDirectMedium::~WifiDirectMedium() {
   listener_executor_.Shutdown();
-  StopWifiDirectService();
-  DisconnectWifiDirectService();
+  StopWifiDirect();
+  DisconnectWifiDirect();
   if (controller_) {
     // Asynchronously shut down the dispatcher queue.
     winrt::Windows::Foundation::IAsyncAction shutdown_async =
@@ -68,7 +68,7 @@ WifiDirectServiceMedium::~WifiDirectServiceMedium() {
   }
 }
 
-bool WifiDirectServiceMedium::IsInterfaceValid() const {
+bool WifiDirectMedium::IsInterfaceValid() const {
   HANDLE wifi_direct_handle = nullptr;
   DWORD negotiated_version = 0;
   DWORD result = 0;
@@ -86,11 +86,10 @@ bool WifiDirectServiceMedium::IsInterfaceValid() const {
 }
 
 // Discoverer connects to server socket
-std::unique_ptr<api::WifiDirectServiceSocket>
-WifiDirectServiceMedium::ConnectToService(absl::string_view ip_address,
-                                          int port,
-                                          CancellationFlag* cancellation_flag) {
-  LOG(INFO) << "WifiDirectServiceMedium::ConnectToService Server Socket";
+std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
+    absl::string_view ip_address, int port,
+    CancellationFlag* cancellation_flag) {
+  LOG(INFO) << "WifiDirectMedium::ConnectToService Server Socket";
   // check current status
   if (!IsConnecting()) {
     LOG(WARNING) << "GC is not connecting to GO, skip.";
@@ -157,7 +156,7 @@ WifiDirectServiceMedium::ConnectToService(absl::string_view ip_address,
 
   LOG(INFO) << "Connect to service ";
   for (int i = 0; i < wifi_direct_max_connection_retries; ++i) {
-    auto wifi_direct_socket = std::make_unique<WifiDirectServiceSocket>();
+    auto wifi_direct_socket = std::make_unique<WifiDirectSocket>();
 
     // setup cancel listener
     std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
@@ -192,9 +191,9 @@ WifiDirectServiceMedium::ConnectToService(absl::string_view ip_address,
 }
 
 // Advertiser starts to listen on server socket
-std::unique_ptr<api::WifiDirectServiceServerSocket>
-WifiDirectServiceMedium::ListenForService(int port) {
-  LOG(INFO) << "WifiDirectServiceMedium::ListenForService";
+std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
+    int port) {
+  LOG(INFO) << "WifiDirectMedium::ListenForService";
 
   absl::MutexLock lock(mutex_);
   if (!IsServiceStarted()) {
@@ -208,7 +207,7 @@ WifiDirectServiceMedium::ListenForService(int port) {
     return nullptr;
   }
 
-  auto server_socket = std::make_unique<WifiDirectServiceServerSocket>(port);
+  auto server_socket = std::make_unique<WifiDirectServerSocket>(port);
   server_socket_ptr_ = server_socket.get();
 
   // Start to listen on server socket in a separate thread. Before GC
@@ -268,8 +267,8 @@ WifiDirectServiceMedium::ListenForService(int port) {
   return server_socket;
 }
 
-bool WifiDirectServiceMedium::StartWifiDirectService() {
-  LOG(INFO) << "WifiDirectServiceMedium::StartWifiDirectService";
+bool WifiDirectMedium::StartWifiDirect() {
+  LOG(INFO) << "WifiDirectMedium::StartWifiDirect";
 
   absl::MutexLock lock(mutex_);
   if (IsServiceStarted()) {
@@ -280,11 +279,11 @@ bool WifiDirectServiceMedium::StartWifiDirectService() {
   // Create Advertiser object
   advertiser_ = WiFiDirectServiceAdvertiser(kServiceName);
   advertisement_status_changed_token_ = advertiser_.AdvertisementStatusChanged(
-      {this, &WifiDirectServiceMedium::OnAdvertisementStatusChanged});
+      {this, &WifiDirectMedium::OnAdvertisementStatusChanged});
   auto_accept_session_connected_token_ = advertiser_.AutoAcceptSessionConnected(
-      {this, &WifiDirectServiceMedium::OnAutoAcceptSessionConnected});
+      {this, &WifiDirectMedium::OnAutoAcceptSessionConnected});
   session_requested_token_ = advertiser_.SessionRequested(
-      {this, &WifiDirectServiceMedium::OnSessionRequested});
+      {this, &WifiDirectMedium::OnSessionRequested});
 
   advertiser_.AutoAcceptSession(false);
   advertiser_.PreferGroupOwnerMode(true);
@@ -329,8 +328,8 @@ bool WifiDirectServiceMedium::StartWifiDirectService() {
   return false;
 }
 
-bool WifiDirectServiceMedium::StopWifiDirectService() {
-  LOG(INFO) << "WifiDirectServiceMedium::StopWifiDirectService";
+bool WifiDirectMedium::StopWifiDirect() {
+  LOG(INFO) << "WifiDirectMedium::StopWifiDirect";
   absl::MutexLock lock(mutex_);
   if (!IsServiceStarted()) {
     LOG(WARNING) << "Cannot stop Service because no Service is started.";
@@ -366,7 +365,7 @@ bool WifiDirectServiceMedium::StopWifiDirectService() {
   return false;
 }
 
-std::string WifiDirectServiceMedium::ConfigMethodToString(
+std::string WifiDirectMedium::ConfigMethodToString(
     WiFiDirectServiceConfigurationMethod config_method) {
   switch (config_method) {
     case WiFiDirectServiceConfigurationMethod::Default:
@@ -380,26 +379,26 @@ std::string WifiDirectServiceMedium::ConfigMethodToString(
   }
 }
 
-fire_and_forget WifiDirectServiceMedium::OnAdvertisementStatusChanged(
+fire_and_forget WifiDirectMedium::OnAdvertisementStatusChanged(
     WiFiDirectServiceAdvertiser sender, IInspectable const& event) {
   LOG(INFO) << "WiFiDirectServiceAdvertiser status changed: "
             << (int)sender.AdvertisementStatus();
   auto status = sender.ServiceStatus();
   switch (status) {
     case WiFiDirectServiceStatus ::Available:
-      LOG(INFO) << "WiFiDirectServiceAdvertiser service status changed: "
+      LOG(INFO) << "WifiDirectAdvertiser service status changed: "
                    "status: Available";
       break;
     case WiFiDirectServiceStatus ::Busy:
-      LOG(INFO) << "WiFiDirectServiceAdvertiser service status changed: "
+      LOG(INFO) << "WifiDirectAdvertiser service status changed: "
                    "status: Busy";
       break;
     case WiFiDirectServiceStatus ::Custom:
-      LOG(INFO) << "WiFiDirectServiceAdvertiser service status changed: "
+      LOG(INFO) << "WifiDirectAdvertiser service status changed: "
                    "status: Custom";
       break;
     default:
-      LOG(INFO) << "WiFiDirectServiceAdvertiser service status changed: "
+      LOG(INFO) << "WifiDirectAdvertiser service status changed: "
                    "Code: "
                 << (int)status;
       break;
@@ -407,10 +406,10 @@ fire_and_forget WifiDirectServiceMedium::OnAdvertisementStatusChanged(
   return winrt::fire_and_forget();
 }
 
-fire_and_forget WifiDirectServiceMedium::OnAutoAcceptSessionConnected(
+fire_and_forget WifiDirectMedium::OnAutoAcceptSessionConnected(
     WiFiDirectServiceAdvertiser sender,
     WiFiDirectServiceAutoAcceptSessionConnectedEventArgs const& args) {
-  LOG(INFO) << "WifiDirectServiceMedium::OnAutoAcceptSessionConnected";
+  LOG(INFO) << "WifiDirectMedium::OnAutoAcceptSessionConnected";
   try {
     auto session = args.Session();
     if (!session) {
@@ -442,7 +441,7 @@ fire_and_forget WifiDirectServiceMedium::OnAutoAcceptSessionConnected(
   }
 }
 
-fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
+fire_and_forget WifiDirectMedium::OnSessionRequested(
     WiFiDirectServiceAdvertiser const& sender,
     WiFiDirectServiceSessionRequestedEventArgs const& args) {
   try {
@@ -520,8 +519,8 @@ fire_and_forget WifiDirectServiceMedium::OnSessionRequested(
   }
 }
 
-bool WifiDirectServiceMedium::ConnectWifiDirectService() {
-  LOG(INFO) << "WifiDirectServiceMedium::ConnectWifiDirectService";
+bool WifiDirectMedium::ConnectWifiDirect() {
+  LOG(INFO) << "WifiDirectMedium::ConnectWifiDirect";
   absl::MutexLock lock(mutex_);
   if (IsConnecting()) {
     LOG(WARNING) << "Service discovery already running";
@@ -552,24 +551,24 @@ bool WifiDirectServiceMedium::ConnectWifiDirectService() {
   LOG(INFO) << "Create device watcher";
   device_watcher_ =
       DeviceInformation::CreateWatcher(device_selector, requested_properties);
-  device_watcher_added_event_token_ = device_watcher_.Added(
-      {this, &WifiDirectServiceMedium::Watcher_DeviceAdded});
-  device_watcher_updated_event_token_ = device_watcher_.Updated(
-      {this, &WifiDirectServiceMedium::Watcher_DeviceUpdated});
-  device_watcher_removed_event_token_ = device_watcher_.Removed(
-      {this, &WifiDirectServiceMedium::Watcher_DeviceRemoved});
+  device_watcher_added_event_token_ =
+      device_watcher_.Added({this, &WifiDirectMedium::Watcher_DeviceAdded});
+  device_watcher_updated_event_token_ =
+      device_watcher_.Updated({this, &WifiDirectMedium::Watcher_DeviceUpdated});
+  device_watcher_removed_event_token_ =
+      device_watcher_.Removed({this, &WifiDirectMedium::Watcher_DeviceRemoved});
   device_watcher_enumeration_completed_event_token_ =
       device_watcher_.EnumerationCompleted(
-          {this, &WifiDirectServiceMedium::Watcher_DeviceEnumerationCompleted});
-  device_watcher_stopped_event_token_ = device_watcher_.Stopped(
-      {this, &WifiDirectServiceMedium::Watcher_DeviceStopped});
+          {this, &WifiDirectMedium::Watcher_DeviceEnumerationCompleted});
+  device_watcher_stopped_event_token_ =
+      device_watcher_.Stopped({this, &WifiDirectMedium::Watcher_DeviceStopped});
   device_watcher_.Start();
   medium_status_ |= kMediumStatusConnecting;
   LOG(INFO) << "Started to discover WifiDirect service and connect.";
   return true;
 }
 
-fire_and_forget WifiDirectServiceMedium::Watcher_DeviceAdded(
+fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
     DeviceWatcher sender, DeviceInformation device_info) {
   LOG(INFO) << "Device Service founded for device ID "
             << winrt::to_string(device_info.Id())
@@ -659,31 +658,31 @@ fire_and_forget WifiDirectServiceMedium::Watcher_DeviceAdded(
   }
 }
 
-fire_and_forget WifiDirectServiceMedium::Watcher_DeviceUpdated(
+fire_and_forget WifiDirectMedium::Watcher_DeviceUpdated(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  VLOG(1) << "WifiDirectServiceMedium::Watcher_DeviceUpdated";
+  VLOG(1) << "WifiDirectMedium::Watcher_DeviceUpdated";
   return fire_and_forget();
 }
 
-fire_and_forget WifiDirectServiceMedium::Watcher_DeviceRemoved(
+fire_and_forget WifiDirectMedium::Watcher_DeviceRemoved(
     DeviceWatcher sender, DeviceInformationUpdate deviceInfoUpdate) {
-  LOG(INFO) << "WifiDirectServiceMedium::Watcher_DeviceRemoved";
+  LOG(INFO) << "WifiDirectMedium::Watcher_DeviceRemoved";
   return fire_and_forget();
 }
 
-fire_and_forget WifiDirectServiceMedium::Watcher_DeviceEnumerationCompleted(
+fire_and_forget WifiDirectMedium::Watcher_DeviceEnumerationCompleted(
     DeviceWatcher sender, IInspectable inspectable) {
-  LOG(INFO) << "WifiDirectServiceMedium::Watcher_DeviceEnumerationCompleted";
+  LOG(INFO) << "WifiDirectMedium::Watcher_DeviceEnumerationCompleted";
   return fire_and_forget();
 }
 
-fire_and_forget WifiDirectServiceMedium::Watcher_DeviceStopped(
+fire_and_forget WifiDirectMedium::Watcher_DeviceStopped(
     DeviceWatcher sender, IInspectable inspectable) {
   medium_status_ &= (~kMediumStatusConnecting);
   return fire_and_forget();
 }
 
-bool WifiDirectServiceMedium::DisconnectWifiDirectService() {
+bool WifiDirectMedium::DisconnectWifiDirect() {
   LOG(WARNING) << "Stop connecting.";
   absl::MutexLock lock(mutex_);
   if (!IsConnecting()) {

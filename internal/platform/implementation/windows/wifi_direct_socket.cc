@@ -17,23 +17,23 @@
 
 #include "absl/base/nullability.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
-#include "internal/platform/implementation/windows/wifi_direct_service.h"
+#include "internal/platform/implementation/windows/wifi_direct.h"
 
 namespace nearby {
 namespace windows {
 
-WifiDirectServiceSocket::WifiDirectServiceSocket()
+WifiDirectSocket::WifiDirectSocket()
     : client_socket_(std::make_unique<NearbyClientSocket>()),
       input_stream_(client_socket_.get()),
       output_stream_(client_socket_.get()) {}
 
-WifiDirectServiceSocket::WifiDirectServiceSocket(
+WifiDirectSocket::WifiDirectSocket(
     absl_nonnull std::unique_ptr<NearbyClientSocket> socket)
     : client_socket_(std::move(socket)),
       input_stream_(client_socket_.get()),
       output_stream_(client_socket_.get()) {}
 
-WifiDirectServiceSocket::~WifiDirectServiceSocket() { Close(); }
+WifiDirectSocket::~WifiDirectSocket() { Close(); }
 
 }  // namespace windows
 }  // namespace nearby

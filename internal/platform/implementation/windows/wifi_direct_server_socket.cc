@@ -14,7 +14,6 @@
 
 #include <windows.h>
 
-#include <cstdint>
 #include <exception>
 #include <memory>
 #include <string>
@@ -24,52 +23,43 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/wifi_direct_service.h"
+#include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
-#include "internal/platform/implementation/windows/wifi_direct_service.h"
+#include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
 
-namespace {
-using ::winrt::Windows::Networking::Connectivity::NetworkInformation;
-using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
-}  // namespace
+WifiDirectServerSocket::WifiDirectServerSocket(int port) : port_(port) {}
 
-WifiDirectServiceServerSocket::WifiDirectServiceServerSocket(int port)
-    : port_(port) {}
+WifiDirectServerSocket::~WifiDirectServerSocket() { Close(); }
 
-WifiDirectServiceServerSocket::~WifiDirectServiceServerSocket() { Close(); }
-
-std::string WifiDirectServiceServerSocket::GetIPAddress() const {
-  return wifi_direct_service_ipaddr_;
+std::string WifiDirectServerSocket::GetIPAddress() const {
+  return wifi_direct_ipaddr_;
 }
 
-int WifiDirectServiceServerSocket::GetPort() const {
-  return server_socket_.GetPort();
-}
+int WifiDirectServerSocket::GetPort() const { return server_socket_.GetPort(); }
 
-std::unique_ptr<api::WifiDirectServiceSocket>
-WifiDirectServiceServerSocket::Accept() {
+std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   auto client_socket = server_socket_.Accept();
   if (client_socket == nullptr) {
     return nullptr;
   }
 
   LOG(INFO) << __func__ << ": Accepted a remote connection.";
-  return std::make_unique<WifiDirectServiceSocket>(std::move(client_socket));
+  return std::make_unique<WifiDirectSocket>(std::move(client_socket));
 }
 
-void WifiDirectServiceServerSocket::SetCloseNotifier(
+void WifiDirectServerSocket::SetCloseNotifier(
     absl::AnyInvocable<void()> notifier) {
   close_notifier_ = std::move(notifier);
 }
 
-Exception WifiDirectServiceServerSocket::Close() {
+Exception WifiDirectServerSocket::Close() {
   absl::MutexLock lock(&mutex_);
   if (closed_) {
     return {Exception::kSuccess};
@@ -86,19 +76,17 @@ Exception WifiDirectServiceServerSocket::Close() {
   return {Exception::kSuccess};
 }
 
-bool WifiDirectServiceServerSocket::Listen(bool dual_stack,
-                                           std::string& ip_address) {
+bool WifiDirectServerSocket::Listen(bool dual_stack, std::string& ip_address) {
   // Get current IP addresses of the device.
   if (ip_address.empty()) {
     return false;
   }
-  wifi_direct_service_ipaddr_ = ip_address;
-  LOG(INFO) << "Listen wifi_direct_service on IP:port " << ip_address << ":"
-            << port_;
+  wifi_direct_ipaddr_ = ip_address;
+  LOG(INFO) << "Listen wifi_direct on IP:port " << ip_address << ":" << port_;
   SocketAddress address(dual_stack);
   if (!SocketAddress::FromString(address, ip_address, port_)) {
-    LOG(ERROR) << "Failed to parse wifi_direct_service IP address: "
-               << ip_address << " and port: " << port_;
+    LOG(ERROR) << "Failed to parse wifi_direct IP address: " << ip_address
+               << " and port: " << port_;
     return false;
   }
   if (!server_socket_.Listen(address)) {
@@ -109,9 +97,8 @@ bool WifiDirectServiceServerSocket::Listen(bool dual_stack,
   return true;
 }
 
-std::string WifiDirectServiceServerSocket::GetWifiDirectServiceIpAddress()
-    const {
-  return wifi_direct_service_ipaddr_;
+std::string WifiDirectServerSocket::GetWifiDirectIpAddress() const {
+  return wifi_direct_ipaddr_;
 }
 
 }  // namespace nearby::windows

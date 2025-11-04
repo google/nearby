@@ -161,7 +161,6 @@ cc_library(
         "webrtc.h",
         "wifi.h",
         "wifi_direct.h",
-        "wifi_direct_service.h",
         "wifi_hotspot.h",
         "wifi_lan.h",
     ],
