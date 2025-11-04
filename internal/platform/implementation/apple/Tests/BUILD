@@ -94,6 +94,36 @@ objc_library(
     ],
 )
 
+objc_library(
+    name = "AppLifecycleMonitorTestLibrary",
+    testonly = True,
+    srcs = [
+        "GNCFakeNotificationCenter.m",
+        "app_lifecycle_monitor_test.mm",
+    ],
+    hdrs = [
+        "GNCFakeNotificationCenter.h",
+    ],
+    deps = [
+        ":PlatformTestsLibrary",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/apple:GNCNotificationCenter",
+        "//internal/platform/implementation/apple:app_lifecycle_monitor",
+        "//third_party/apple_frameworks:UIKit",
+        "//third_party/apple_frameworks:XCTest",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+ios_unit_test(
+    name = "AppLifecycleMonitorTest",
+    minimum_os_version = IOS_MINIMUM_OS,
+    runner = IOS_LATEST_TEST_RUNNER,
+    deps = [
+        ":AppLifecycleMonitorTestLibrary",
+    ],
+)
+
 ios_unit_test(
     name = "PlatformTest",
     minimum_os_version = IOS_MINIMUM_OS,
