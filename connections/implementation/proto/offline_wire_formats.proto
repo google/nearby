@@ -217,6 +217,16 @@ message PayloadTransferFrame {
   optional ControlMessage control_message = 4;
 }
 
+// Represents the network tuple a service can be reached at.
+message ServiceAddress {
+  // This can be either IPv4 or IPv6 address.
+  // IPv4 address are 4 bytes long, and IPv6 addresses are 16 bytes long.
+  // Field with anything other than 4 or 16 bytes is invalid.
+  // Addresses are represented in MSB-first order.
+  optional bytes ip_address = 1;
+  optional int32 port = 2;
+}
+
 message BandwidthUpgradeNegotiationFrame {
   enum EventType {
     UNKNOWN_EVENT_TYPE = 0;
@@ -260,12 +270,34 @@ message BandwidthUpgradeNegotiationFrame {
       optional string gateway = 4 [default = "0.0.0.0"];
       // This field can be a band or frequency
       optional int32 frequency = 5 [default = -1];
+      // This replaces gateway and port fields for new clients.
+      // The addresses list is ordered and should contain IPv6 addresses
+      // followed by IPv4 addresses.
+      // Link local addresses are acceptable here.  Receivers should scope these
+      // addresses to the network interface used to connect to the hotspot.
+      // Senders should continue to set gateway and port fields to the same
+      // value as the last item in the list.
+      // Receivers should ignore gateway and port fields if this field is set.
+      // Receivers should attempt to connect to each of the address candidates
+      // in order until a connection can be established.
+      repeated ServiceAddress addresse_candidates = 6;
     }
 
     // Accompanies Medium.WIFI_LAN.
     message WifiLanSocket {
       optional bytes ip_address = 1;
       optional int32 wifi_port = 2;
+      // This replaces ip_address and wifi_port fields for new clients.
+      // The addresses list is ordered and should contain IPv6 addresses
+      // followed by IPv4 addresses.
+      // Link local addresses cannot be used here.
+      // Senders should continue to set ip_address and wifi_port fields to the
+      // same value as the last item in the list.
+      // Receivers should ignore ip_address and wifi_port fields if this field
+      // is set.
+      // Receivers should attempt to connect to each of the address candidates
+      // in order until a connection can be established.
+      repeated ServiceAddress addresse_candidates = 3;
     }
 
     // Accompanies Medium.BLUETOOTH.
