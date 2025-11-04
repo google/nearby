@@ -74,10 +74,10 @@ class WifiHotspot {
   // bandwidth upgradation.
   // Returns socket instance. On success, WifiHotspotSocket.IsValid() return
   // true.
-  ErrorOr<WifiHotspotSocket> Connect(const std::string& service_id,
-                                     const std::string& ip_address, int port,
-                                     CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<WifiHotspotSocket> Connect(
+      const std::string& service_id,
+      const HotspotCredentials& hotspot_credentials,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets SoftAP ssid + password + ip address + gateway + port etc for remote
   // services on the network to identify and connect to this service.

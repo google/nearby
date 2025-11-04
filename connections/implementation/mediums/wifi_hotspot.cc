@@ -256,7 +256,8 @@ bool WifiHotspot::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
-    const std::string& service_id, const std::string& ip_address, int port,
+    const std::string& service_id,
+    const HotspotCredentials& hotspot_credentials,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   if (service_id.empty()) {
@@ -288,15 +289,21 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiHotspotSocket socket;
   for (int i = 0; i < wifi_hotspot_max_connection_retries; ++i) {
-    if (cancellation_flag->Cancelled()) {
-      LOG(INFO) << "connect to service has been cancelled.";
-      return {Error(
-          OperationResultCode::
-              CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
-    }
-    socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
-    if (socket.IsValid()) {
-      break;
+    for (const ServiceAddress& service_address :
+         hotspot_credentials.GetServiceAddresses()) {
+      if (cancellation_flag->Cancelled()) {
+        LOG(INFO) << "connect to service has been cancelled.";
+        return {Error(
+            OperationResultCode::
+                CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
+      }
+      socket =
+          medium_.ConnectToService(std::string(service_address.address.begin(),
+                                               service_address.address.end()),
+                                   service_address.port, cancellation_flag);
+      if (socket.IsValid()) {
+        break;
+      }
     }
     LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
     absl::SleepFor(wifi_hotspot_retry_interval);

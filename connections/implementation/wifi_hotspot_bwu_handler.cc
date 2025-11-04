@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
@@ -25,6 +26,7 @@
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
+#include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/implementation/wifi_hotspot_endpoint_channel.h"
 #include "connections/strategy.h"
 #include "internal/base/masker.h"
@@ -38,6 +40,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -92,10 +95,25 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
             << ",  Password:" << masker::Mask(password) << ",  Port:" << port
             << ",  Gateway:" << gateway << ",  Frequency:" << frequency;
 
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(ssid);
+  credentials.set_password(password);
+  credentials.set_port(port);
+  credentials.set_gateway(gateway);
+  credentials.set_frequency(frequency);
+  for (const auto& service_address :
+       hotspot_crendential->GetServiceAddresses()) {
+    auto* service_address_proto = credentials.add_addresse_candidates();
+    service_address_proto->set_ip_address(
+        std::string(service_address.address.begin(),
+                    service_address.address.end()));
+    service_address_proto->set_port(service_address.port);
+  }
+
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
-  return parser::ForBwuWifiHotspotPathAvailable(
-      ssid, password, port, frequency, gateway,
+  return parser::ForBwuWifiHotspotPathAvailable(credentials,
       /* supports_disabling_encryption */ disabling_encryption);
 }
 
@@ -129,6 +147,16 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   hotspot_credentials.SetGateway(upgrade_path_info_credentials.gateway());
   hotspot_credentials.SetPort(upgrade_path_info_credentials.port());
   hotspot_credentials.SetFrequency(upgrade_path_info_credentials.frequency());
+  std::vector<ServiceAddress> service_addresses;
+  for (const auto& service_address :
+       upgrade_path_info_credentials.addresse_candidates()) {
+    service_addresses.push_back(ServiceAddress{
+        .address = {service_address.ip_address().begin(),
+                    service_address.ip_address().end()},
+        .port = static_cast<uint16_t>(service_address.port()),
+    });
+  }
+  hotspot_credentials.SetServiceAddresses(std::move(service_addresses));
 
   LOG(INFO) << "Received Hotspot credential SSID: "
             << hotspot_credentials.GetSSID()
@@ -143,9 +171,9 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
         OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
   }
 
-  ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
-      service_id, hotspot_credentials.GetGateway(),
-      hotspot_credentials.GetPort(), client->GetCancellationFlag(endpoint_id));
+  ErrorOr<WifiHotspotSocket> socket_result =
+      wifi_hotspot_medium_.Connect(service_id, hotspot_credentials,
+                                   client->GetCancellationFlag(endpoint_id));
   if (socket_result.has_error()) {
     LOG(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("

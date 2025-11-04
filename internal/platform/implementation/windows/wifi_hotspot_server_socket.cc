@@ -33,6 +33,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
+#include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
@@ -88,6 +89,31 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
   }
   hotspot_credentials.SetGateway(hotspot_ipaddr);
   hotspot_credentials.SetPort(GetPort());
+  std::vector<ServiceAddress> service_addresses;
+  for (const auto& interface : NetworkInfo::GetNetworkInfo().GetInterfaces()) {
+    if (interface.type == InterfaceType::kWifiHotspot) {
+      LOG(INFO) << "Found Wifi Hotspot interface, index: " << interface.index;
+      for (const auto& ipaddress : interface.ipv6_addresses) {
+        const sockaddr_in6* ipv6_address =
+            reinterpret_cast<const sockaddr_in6*>(&ipaddress);
+        service_addresses.push_back(ServiceAddress{
+            .address = {ipv6_address->sin6_addr.u.Byte[0],
+                        ipv6_address->sin6_addr.u.Byte[16]},
+            .port = static_cast<uint16_t>(GetPort()),
+        });
+      }
+      for (const auto& ipaddress : interface.ipv4_addresses) {
+        const sockaddr_in* ipv4_address =
+            reinterpret_cast<const sockaddr_in*>(&ipaddress);
+        service_addresses.push_back(ServiceAddress{
+            .address = {ipv4_address->sin_addr.S_un.S_un_b.s_b1,
+                        sizeof(ipv4_address->sin_addr.S_un.S_un_b.s_b4)},
+            .port = static_cast<uint16_t>(GetPort()),
+        });
+      }
+    }
+  }
+  hotspot_credentials.SetServiceAddresses(std::move(service_addresses));
 }
 
 bool WifiHotspotServerSocket::Listen(int port, bool dual_stack) {
