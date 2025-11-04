@@ -30,7 +30,7 @@ option objc_class_prefix = "GNCP";
 
 // Top-level log proto for all NearbySharing logging.
 // Each log contains a key (event_type), value (a verb-noun event) pair.
-// Next Tag: 89
+// Next Tag: 90
 // LINT.IfChange
 message SharingLog {
   /* justification = {
@@ -238,6 +238,9 @@ message SharingLog {
   optional CloudDownloadStart cloud_download_start = 87;
 
   optional CloudDownloadEnd cloud_download_end = 88;
+
+  // Cloud sharing RPC call event.
+  optional CloudSharingRpcResult cloud_sharing_rpc_result = 89;
 
   // Used only for Nearby Share Windows app now.
   message AppInfo {
@@ -1085,6 +1088,23 @@ message SharingLog {
   // event_metadata into the anonymous logs.
   message CloudDownloadEnd {
     repeated CloudAttachmentInfo download_infos = 1;
+  }
+
+  // EventType: CLOUD_SHARING_RPC_RESULT
+  // Event logging the result of a Cloud Sharing RPC call. This event captures
+  // the type of RPC, its outcome, and performance metrics.
+  message CloudSharingRpcResult {
+    // The specific RPC method that was called.
+    optional string rpc_name = 1;
+    // The canonical gRPC status code (io.grpc.Status.Code) resulting from the
+    // call.
+    optional int32 status_code = 2;
+    // The total time taken for the RPC call to complete, in milliseconds.
+    optional int64 latency_millis = 3;
+    // The unique identifier for the cloud sharing session, if available at the
+    // time of the call. This helps correlate RPC events to a specific sharing
+    // session.
+    optional string cloud_sharing_id = 4;
   }
 }
 // LINT.ThenChange(//depot/google3/logs/proto/location/nearby/nearby_client_log.proto)
