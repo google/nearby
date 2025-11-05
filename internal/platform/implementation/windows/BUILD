@@ -532,3 +532,34 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "nearby_client_socket_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "nearby_client_socket_test.cc",
+    ],
+    deps = [
+        ":socket_address",
+        ":windows",
+        "//internal/platform:base",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "nearby_server_socket_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "nearby_server_socket_test.cc",
+    ],
+    deps = [
+        ":socket_address",
+        ":windows",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

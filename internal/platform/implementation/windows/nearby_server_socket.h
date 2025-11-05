@@ -18,8 +18,10 @@
 #include <winsock2.h>
 
 #include <memory>
-#include <string>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 
@@ -36,10 +38,15 @@ class NearbyServerSocket {
 
   int GetPort() const { return port_; }
 
+  // Sets a callback to be called when the socket is closed.
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
+
  private:
+  mutable absl::Mutex mutex_;
   bool is_socket_initiated_ = false;
-  SOCKET socket_ = INVALID_SOCKET;
+  SOCKET socket_ ABSL_GUARDED_BY(mutex_) = INVALID_SOCKET;
   int port_ = 0;
+  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
 };
 
 }  // namespace nearby::windows

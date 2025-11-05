@@ -31,9 +31,6 @@
 // Nearby connections headers
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
-#include "absl/functional/any_invocable.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
@@ -54,7 +51,7 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   explicit WifiHotspotSocket(
       absl_nonnull std::unique_ptr<NearbyClientSocket> socket);
   WifiHotspotSocket(WifiHotspotSocket&&) = default;
-  ~WifiHotspotSocket() override;
+  ~WifiHotspotSocket() override = default;
   WifiHotspotSocket& operator=(WifiHotspotSocket&&) = default;
 
   // Returns the InputStream of the WifiHotspotSocket.
@@ -79,42 +76,6 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   }
 
  private:
-  // A simple wrapper to handle input stream of socket
-  class SocketInputStream : public InputStream {
-   public:
-    explicit SocketInputStream(NearbyClientSocket* absl_nonnull client_socket)
-        : client_socket_(client_socket) {}
-    ~SocketInputStream() override = default;
-
-    ExceptionOr<ByteArray> Read(std::int64_t size) override {
-      return client_socket_->Read(size);
-    }
-    ExceptionOr<size_t> Skip(size_t offset) override {
-      return client_socket_->Skip(offset);
-    }
-    Exception Close() override { return client_socket_->Close(); }
-
-   private:
-    NearbyClientSocket* absl_nonnull const client_socket_;
-  };
-
-  // A simple wrapper to handle output stream of socket
-  class SocketOutputStream : public OutputStream {
-   public:
-    explicit SocketOutputStream(NearbyClientSocket* absl_nonnull client_socket)
-        : client_socket_(client_socket) {}
-    ~SocketOutputStream() override = default;
-
-    Exception Write(const ByteArray& data) override {
-      return client_socket_->Write(data);
-    }
-    Exception Flush() override { return client_socket_->Flush(); }
-    Exception Close() override { return client_socket_->Close(); }
-
-   private:
-    NearbyClientSocket* absl_nonnull const client_socket_;
-  };
-
   absl_nonnull std::unique_ptr<NearbyClientSocket> client_socket_;
   SocketInputStream input_stream_;
   SocketOutputStream output_stream_;

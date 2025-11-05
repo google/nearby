@@ -31,8 +31,6 @@
 
 namespace nearby::windows {
 
-WifiLanServerSocket::~WifiLanServerSocket() { Close(); }
-
 // Returns the first IP address.
 std::string WifiLanServerSocket::GetIPAddress() const {
   // Just pick an IP address from the list of available addresses.
@@ -43,9 +41,6 @@ std::string WifiLanServerSocket::GetIPAddress() const {
   }
   return ipaddr_dotdecimal_to_4bytes_string(ip_addresses.front());
 }
-
-// Returns socket port.
-int WifiLanServerSocket::GetPort() const { return server_socket_.GetPort(); }
 
 // Blocks until either:
 // - at least one incoming connection request is available, or
@@ -62,37 +57,6 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
   LOG(INFO) << __func__ << ": Accepted a remote connection.";
 
   return std::make_unique<WifiLanSocket>(std::move(client_socket));
-}
-
-void WifiLanServerSocket::SetCloseNotifier(
-    absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(mutex_);
-  close_notifier_ = std::move(notifier);
-}
-
-// Returns Exception::kIo on error, Exception::kSuccess otherwise.
-Exception WifiLanServerSocket::Close() {
-  absl::AnyInvocable<void()> close_callback;
-  {
-    absl::MutexLock lock(mutex_);
-    VLOG(1) << __func__ << ": Close is called.";
-    if (closed_) {
-      return {Exception::kSuccess};
-    }
-
-    LOG(INFO) << __func__ << ": closing blocking socket.";
-
-    server_socket_.Close();
-    closed_ = true;
-    close_callback = std::move(close_notifier_);
-  }
-
-  if (close_callback) {
-    close_callback();
-  }
-
-  LOG(INFO) << __func__ << ": Close completed succesfully.";
-  return {Exception::kSuccess};
 }
 
 bool WifiLanServerSocket::Listen(int port, bool dual_stack) {

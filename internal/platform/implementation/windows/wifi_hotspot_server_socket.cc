@@ -28,7 +28,6 @@
 // Nearby connections headers
 #include "absl/synchronization/mutex.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
@@ -48,12 +47,6 @@ using ::winrt::Windows::Networking::HostNameType;
 using ::winrt::Windows::Networking::Sockets::SocketQualityOfService;
 }  // namespace
 
-WifiHotspotServerSocket::~WifiHotspotServerSocket() { Close(); }
-
-int WifiHotspotServerSocket::GetPort() const {
-  return server_socket_.GetPort();
-}
-
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
   auto client_socket = server_socket_.Accept();
   if (client_socket == nullptr) {
@@ -62,33 +55,6 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
 
   LOG(INFO) << __func__ << ": Accepted a remote connection.";
   return std::make_unique<WifiHotspotSocket>(std::move(client_socket));
-}
-
-void WifiHotspotServerSocket::SetCloseNotifier(
-    absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
-  close_notifier_ = std::move(notifier);
-}
-
-Exception WifiHotspotServerSocket::Close() {
-  absl::AnyInvocable<void()> close_callback;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (closed_) {
-      return {Exception::kSuccess};
-    }
-
-    server_socket_.Close();
-    closed_ = true;
-    close_callback = std::move(close_notifier_);
-  }
-
-  if (close_callback) {
-    close_callback();
-  }
-
-  LOG(INFO) << __func__ << ": Close completed succesfully.";
-  return {Exception::kSuccess};
 }
 
 void WifiHotspotServerSocket::PopulateHotspotCredentials(

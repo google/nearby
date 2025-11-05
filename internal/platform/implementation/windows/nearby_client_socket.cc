@@ -31,19 +31,21 @@
 
 namespace nearby::windows {
 
-NearbyClientSocket::NearbyClientSocket() {
+NearbyClientSocket::NearbyClientSocket()
+    : NearbyClientSocket(INVALID_SOCKET) {
+}
+
+NearbyClientSocket::NearbyClientSocket(SOCKET socket) : socket_(socket) {
   WSADATA wsa_data;
   int result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
   if (result != 0) {
     LOG(WARNING) << "WSAStartup failed with error " << result;
   }
-
   is_socket_initiated_ = (result == 0);
 }
 
-NearbyClientSocket::NearbyClientSocket(SOCKET socket) : socket_(socket) {}
-
 NearbyClientSocket::~NearbyClientSocket() {
+  Close();
   if (is_socket_initiated_) {
     WSACleanup();
   }
@@ -206,8 +208,8 @@ Exception NearbyClientSocket::Flush() {
 
 Exception NearbyClientSocket::Close() {
   if (socket_ == INVALID_SOCKET) {
-    LOG(WARNING) << "Trying to close an invalid socket.";
-    return {Exception::kIo};
+    VLOG(1) << "Socket already closed.";
+    return {Exception::kSuccess};
   }
 
   shutdown(socket_, SD_BOTH);

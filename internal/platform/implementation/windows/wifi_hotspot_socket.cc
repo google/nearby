@@ -33,7 +33,5 @@ WifiHotspotSocket::WifiHotspotSocket(
       input_stream_(client_socket_.get()),
       output_stream_(client_socket_.get()) {}
 
-WifiHotspotSocket::~WifiHotspotSocket() { Close(); }
-
 }  // namespace windows
 }  // namespace nearby

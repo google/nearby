@@ -18,8 +18,10 @@
 #include <ws2tcpip.h>
 
 #include <memory>
-#include <string>
+#include <utility>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/logging.h"
@@ -38,6 +40,7 @@ NearbyServerSocket::NearbyServerSocket() {
 }
 
 NearbyServerSocket::~NearbyServerSocket() {
+  Close();
   if (is_socket_initiated_) {
     WSACleanup();
   }
@@ -51,6 +54,7 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
     return false;
   }
 
+  absl::MutexLock lock( mutex_ );
   socket_ = socket(address.dual_stack() ? AF_INET6 : AF_INET, SOCK_STREAM,
                    IPPROTO_TCP);
   if (socket_ == INVALID_SOCKET) {
@@ -92,6 +96,7 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
       SOCKET_ERROR) {
     LOG(ERROR) << "Failed to bind socket with error " << WSAGetLastError();
     closesocket(socket_);
+    socket_ = INVALID_SOCKET;
     return false;
   }
 
@@ -101,6 +106,7 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
       SOCKET_ERROR) {
     LOG(ERROR) << "Failed to get socket name with error " << WSAGetLastError();
     closesocket(socket_);
+    socket_ = INVALID_SOCKET;
     return false;
   }
 
@@ -111,6 +117,7 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
   if (::listen(socket_, /*backlog=*/SOMAXCONN) == SOCKET_ERROR) {
     LOG(ERROR) << "Failed to listen socket with error " << WSAGetLastError();
     closesocket(socket_);
+    socket_ = INVALID_SOCKET;
     return false;
   }
 
@@ -119,15 +126,21 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
 
 std::unique_ptr<NearbyClientSocket> NearbyServerSocket::Accept() {
   LOG(INFO) << "Accept is called on NearbyServerSocket.";
-  if (!is_socket_initiated_) {
-    LOG(WARNING) << "Windows socket is not initiated";
-    return nullptr;
+  SOCKET socket = INVALID_SOCKET;
+  {
+    absl::MutexLock lock( mutex_ );
+    if (!is_socket_initiated_ || socket_ == INVALID_SOCKET) {
+      LOG(WARNING) << "Windows socket is not initiated";
+      return nullptr;
+    }
+    socket = socket_;
   }
 
   SocketAddress peer_address;
   int peer_address_length = sizeof(sockaddr_storage);
-
-  SOCKET client_socket = accept(socket_, peer_address.address(),
+  // Release lock before calling accept.  Otherwise the accept call blocks and
+  // prevents other calls from using the socket.
+  SOCKET client_socket = accept(socket, peer_address.address(),
                                 /*addrlen=*/&peer_address_length);
   if (client_socket == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to accept socket with error: " << WSAGetLastError();
@@ -140,23 +153,27 @@ std::unique_ptr<NearbyClientSocket> NearbyServerSocket::Accept() {
 }
 
 bool NearbyServerSocket::Close() {
-  bool result = true;
-  if (socket_ != INVALID_SOCKET) {
-    if (shutdown(/*s=*/socket_, /*how=*/SD_BOTH) == SOCKET_ERROR) {
-      LOG(WARNING) << "Shutdown failed with error:" << WSAGetLastError();
-      result = false;
+  absl::AnyInvocable<void()> close_callback;
+  {
+    absl::MutexLock lock( mutex_ );
+    if (socket_ != INVALID_SOCKET) {
+      if (closesocket(/*s=*/socket_) == SOCKET_ERROR) {
+        LOG(WARNING) << "Close socket failed with error:" << WSAGetLastError();
+      }
+      socket_ = INVALID_SOCKET;
+      close_callback = std::move(close_notifier_);
     }
-
-    if (closesocket(/*s=*/socket_) == SOCKET_ERROR) {
-      LOG(WARNING) << "Close socket failed with error:" << WSAGetLastError();
-      result = false;
-    }
-
-    socket_ = INVALID_SOCKET;
   }
-
+  if (close_callback) {
+    close_callback();
+  }
   LOG(INFO) << "Closed NearbyServerSocket.";
-  return result;
+  return true;
+}
+
+void NearbyServerSocket::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+  absl::MutexLock lock( mutex_ );
+  close_notifier_ = std::move(notifier);
 }
 
 }  // namespace nearby::windows

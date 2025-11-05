@@ -46,10 +46,10 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
  public:
   WifiHotspotServerSocket() = default;
   WifiHotspotServerSocket(WifiHotspotServerSocket&&) = default;
-  ~WifiHotspotServerSocket() override;
+  ~WifiHotspotServerSocket() override = default;
   WifiHotspotServerSocket& operator=(WifiHotspotServerSocket&&) = default;
 
-  int GetPort() const override;
+  int GetPort() const override { return server_socket_.GetPort(); }
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -62,10 +62,15 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiHotspotServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    server_socket_.SetCloseNotifier(std::move(notifier));
+  }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
+  Exception Close() override {
+    server_socket_.Close();
+    return {Exception::kSuccess};
+  }
 
   void PopulateHotspotCredentials(
       HotspotCredentials& hotspot_credentials) override;
@@ -76,13 +81,7 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
  private:
   // Retrieves hotspot IP address from local machine
   std::string GetHotspotIpAddress() const;
-
-  mutable absl::Mutex mutex_;
   NearbyServerSocket server_socket_;
-
-  // Close notifier
-  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
-  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
 }  // namespace nearby::windows

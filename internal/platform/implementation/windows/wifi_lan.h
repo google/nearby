@@ -70,7 +70,7 @@ class WifiLanSocket : public api::WifiLanSocket {
   explicit WifiLanSocket(
       absl_nonnull std::unique_ptr<NearbyClientSocket> socket);
   WifiLanSocket(WifiLanSocket&&) = default;
-  ~WifiLanSocket() override;
+  ~WifiLanSocket() override = default;
   WifiLanSocket& operator=(WifiLanSocket&&) = default;
 
   // Returns the InputStream of the WifiLanSocket.
@@ -78,49 +78,23 @@ class WifiLanSocket : public api::WifiLanSocket {
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  InputStream& GetInputStream() override;
+  InputStream& GetInputStream() override { return input_stream_; };
 
   // Returns the OutputStream of the WifiLanSocket.
   // On error, returned stream will report Exception::kIo on any operation.
   //
   // The returned object is not owned by the caller, and can be invalidated once
   // the WifiLanSocket object is destroyed.
-  OutputStream& GetOutputStream() override;
+  OutputStream& GetOutputStream() override { return output_stream_; };
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
+  Exception Close() override { return client_socket_->Close(); };
 
-  bool Connect(const SocketAddress& server_address);
+  bool Connect(const SocketAddress& server_address) {
+    return client_socket_->Connect(server_address);
+  };
 
  private:
-  // A simple wrapper to handle input stream of socket
-  class SocketInputStream : public InputStream {
-   public:
-    explicit SocketInputStream(NearbyClientSocket* absl_nonnull client_socket);
-    ~SocketInputStream() = default;
-
-    ExceptionOr<ByteArray> Read(std::int64_t size) override;
-    ExceptionOr<size_t> Skip(size_t offset) override;
-    Exception Close() override;
-
-   private:
-    NearbyClientSocket* absl_nonnull const client_socket_;
-  };
-
-  // A simple wrapper to handle output stream of socket
-  class SocketOutputStream : public OutputStream {
-   public:
-    explicit SocketOutputStream(NearbyClientSocket* absl_nonnull client_socket);
-    ~SocketOutputStream() = default;
-
-    Exception Write(const ByteArray& data) override;
-    Exception Flush() override;
-    Exception Close() override;
-
-   private:
-    NearbyClientSocket* absl_nonnull const client_socket_;
-  };
-
   // Internal properties
   absl_nonnull std::unique_ptr<NearbyClientSocket> client_socket_;
   SocketInputStream input_stream_;
@@ -133,14 +107,14 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
  public:
   WifiLanServerSocket() = default;
   WifiLanServerSocket(WifiLanServerSocket&&) = default;
-  ~WifiLanServerSocket() override;
+  ~WifiLanServerSocket() override = default;
   WifiLanServerSocket& operator=(WifiLanServerSocket&&) = default;
 
   // Returns ip address.
   std::string GetIPAddress() const override;
 
   // Returns port.
-  int GetPort() const override;
+  int GetPort() const override { return server_socket_.GetPort(); };
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -153,21 +127,20 @@ class WifiLanServerSocket : public api::WifiLanServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiLanServerSocker to user, to track validity of a pointer to this
   // server socket.
-  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    server_socket_.SetCloseNotifier(std::move(notifier));
+  };
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Close() override;
+  Exception Close() override {
+    server_socket_.Close();
+    return {Exception::kSuccess};
+  }
 
   // Binds to local port
   bool Listen(int port, bool dual_stack);
 
  private:
-  mutable absl::Mutex mutex_;
-  // Close notifier
-  absl::AnyInvocable<void()> close_notifier_ ABSL_GUARDED_BY(mutex_);
-
-  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
-
   NearbyServerSocket server_socket_;
 };
 
@@ -202,8 +175,7 @@ class WifiLanMedium : public api::WifiLanMedium {
       const std::string& ip_address, int port,
       CancellationFlag* cancellation_flag) override;
 
-  std::unique_ptr<api::WifiLanServerSocket> ListenForService(
-      int port) override;
+  std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override;
 
   absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
       override {
