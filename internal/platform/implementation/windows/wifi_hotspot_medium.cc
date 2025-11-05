@@ -98,62 +98,28 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     return nullptr;
   }
   VLOG(1) << "ConnectToService address: " << server_address.ToString();
+  LOG(INFO) << "Connecting to service.";
+  auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>();
 
-  // Try connecting to the service up to wifi_hotspot_max_connection_retries,
-  // because it may fail first time if DHCP procedure is not finished yet.
-  int64_t wifi_hotspot_max_connection_retries =
-      NearbyFlags::GetInstance().GetInt64Flag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kWifiHotspotConnectionMaxRetries);
-  int64_t wifi_hotspot_retry_interval_millis =
-      NearbyFlags::GetInstance().GetInt64Flag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kWifiHotspotConnectionIntervalMillis);
-  int64_t wifi_hotspot_client_socket_connect_timeout_millis =
-      NearbyFlags::GetInstance().GetInt64Flag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kWifiHotspotConnectionTimeoutMillis);
-
-  VLOG(1) << "maximum connection retries="
-          << wifi_hotspot_max_connection_retries
-          << ", connection interval=" << wifi_hotspot_retry_interval_millis
-          << "ms, connection timeout="
-          << wifi_hotspot_client_socket_connect_timeout_millis << "ms";
-
-  LOG(INFO) << "Connect to service.";
-  for (int i = 0; i < wifi_hotspot_max_connection_retries; ++i) {
-    auto wifi_hotspot_socket = std::make_unique<WifiHotspotSocket>();
-
-    // setup cancel listener
-    std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
-        nullptr;
-    if (cancellation_flag != nullptr) {
-      if (cancellation_flag->Cancelled()) {
-        LOG(INFO) << "connect to service has been cancelled.";
-        return nullptr;
-      }
-
-      connection_cancellation_listener =
-          std::make_unique<nearby::CancellationFlagListener>(
-              cancellation_flag, [socket = wifi_hotspot_socket.get()]() {
-                LOG(WARNING) << "connect is closed due to it is cancelled.";
-                socket->Close();
-              });
-    }
-
-    bool result = wifi_hotspot_socket->Connect(server_address);
-    if (!result) {
-      LOG(WARNING) << "reconnect to service at " << (i + 1) << "th times";
-      Sleep(wifi_hotspot_retry_interval_millis);
-      continue;
-    }
-
-    LOG(INFO) << "connected to remote service.";
-    return wifi_hotspot_socket;
+  // setup cancel listener
+  std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
+      nullptr;
+  if (cancellation_flag != nullptr) {
+    connection_cancellation_listener =
+        std::make_unique<nearby::CancellationFlagListener>(
+            cancellation_flag, [socket = wifi_hotspot_socket.get()]() {
+              LOG(WARNING) << "connect is closed due to it is cancelled.";
+              socket->Close();
+            });
   }
 
-  LOG(ERROR) << "Failed to connect to service.";
-  return nullptr;
+  bool result = wifi_hotspot_socket->Connect(server_address);
+  if (!result) {
+    LOG(ERROR) << "Failed to connect to service.";
+    return nullptr;
+  }
+  LOG(INFO) << "connected to remote service.";
+  return wifi_hotspot_socket;
 }
 
 std::unique_ptr<api::WifiHotspotServerSocket>
