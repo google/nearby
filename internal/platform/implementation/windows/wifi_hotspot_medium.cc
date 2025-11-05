@@ -44,6 +44,7 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/implementation/windows/wifi_intel.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
