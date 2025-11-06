@@ -86,6 +86,12 @@ constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
         .bluetooth = true,
         .ble = true,
+        .wifi_lan = true,
+        .wifi_direct = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .web_rtc = true,
         .wifi_lan = true,
         .wifi_direct = true,

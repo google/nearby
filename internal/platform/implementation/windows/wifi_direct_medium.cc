@@ -19,24 +19,25 @@
 #include <string_view>
 #include <utility>
 
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/prng.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace windows {
 namespace {
-constexpr std::wstring_view kServiceName = L"QuickShare";
-constexpr std::wstring_view kPin = L"1234";
 constexpr int kWaitingForConnectionTimeoutSeconds = 90;  // seconds
 }  // namespace
 
@@ -193,11 +194,12 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
 // Advertiser starts to listen on server socket
 std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
     int port) {
-  LOG(INFO) << "WifiDirectMedium::ListenForService";
+  LOG(INFO) << __func__
+            << " :Start to listen connection from WiFiDirect client.";
 
   absl::MutexLock lock(mutex_);
-  if (!IsServiceStarted()) {
-    LOG(WARNING) << "WifiDirect service is not started, skip.";
+  if (!IsGOStarted()) {
+    LOG(WARNING) << "WifiDirect GO is not started, skip.";
     return nullptr;
   }
   // check current status
@@ -207,14 +209,14 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
     return nullptr;
   }
 
-  auto server_socket = std::make_unique<WifiDirectServerSocket>(port);
+  auto server_socket = std::make_unique<WifiDirectServerSocket>();
   server_socket_ptr_ = server_socket.get();
 
   // Start to listen on server socket in a separate thread. Before GC
   // connects to GO, GO doesn't have IP address. BWU calls this API right away
   // after it starts GO, we need to spin out the following logic to another
   // thread to avoid blocking BWU sending out of band upgrade frame to GC.
-  listener_executor_.Execute([this]() mutable {
+  listener_executor_.Execute([this, port]() mutable {
     absl::MutexLock lock(mutex_);
     bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
         platform::config_package_nearby::nearby_platform_feature::
@@ -239,9 +241,12 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
         LOG(INFO) << "IP address is ready.";
       }
     }
-
+    server_socket_ptr_->SetIPAddress(ip_address_local_);
+    if (port == 0) {
+      port = FeatureFlags::GetInstance().GetFlags().wifi_direct_default_port;
+    }
     if (server_socket_ptr_ &&
-        server_socket_ptr_->Listen(dual_stack, ip_address_local_)) {
+        server_socket_ptr_->Listen(port, dual_stack)) {
       medium_status_ |= kMediumStatusAccepting;
 
       // Setup close notifier after listen started.
@@ -267,17 +272,27 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
   return server_socket;
 }
 
-bool WifiDirectMedium::StartWifiDirect() {
+bool WifiDirectMedium::StartWifiDirect(
+    WifiDirectCredentials* wifi_direct_credentials) {
   LOG(INFO) << "WifiDirectMedium::StartWifiDirect";
 
   absl::MutexLock lock(mutex_);
-  if (IsServiceStarted()) {
-    LOG(WARNING) << "Already started WifiDirect service, skip.";
+  if (IsGOStarted()) {
+    LOG(WARNING) << "Already started WifiDirect GO, skip.";
     return true;
   }
 
+  credentials_go_ = wifi_direct_credentials;
+  Prng prng;
+  std::string pin = absl::StrFormat("%04x", prng.NextUint32());
+  credentials_go_->SetPin(pin);
+
+  std::string service_name = "NC-" + std::to_string(prng.NextUint32());
+  credentials_go_->SetServiceName(service_name);
+  LOG(INFO) << "service_name:pin " << service_name << ":" << pin;
+
   // Create Advertiser object
-  advertiser_ = WiFiDirectServiceAdvertiser(kServiceName);
+  advertiser_ = WiFiDirectServiceAdvertiser(winrt::to_hstring(service_name));
   advertisement_status_changed_token_ = advertiser_.AdvertisementStatusChanged(
       {this, &WifiDirectMedium::OnAdvertisementStatusChanged});
   auto_accept_session_connected_token_ = advertiser_.AutoAcceptSessionConnected(
@@ -290,7 +305,7 @@ bool WifiDirectMedium::StartWifiDirect() {
   advertiser_.ServiceStatus(WiFiDirectServiceStatus::Available);
   // Config Methods
   WiFiDirectServiceConfigurationMethod config_method;
-  if (kPin.empty()) {
+  if (pin.empty()) {
     config_method = WiFiDirectServiceConfigurationMethod::Default;  // NOLINT
   } else {
     config_method = WiFiDirectServiceConfigurationMethod::PinDisplay;
@@ -306,7 +321,7 @@ bool WifiDirectMedium::StartWifiDirect() {
          WiFiDirectServiceAdvertisementStatus::Created) ||
         (advertiser_.AdvertisementStatus() ==
          WiFiDirectServiceAdvertisementStatus::Started)) {
-      medium_status_ |= kMediumStatusServiceStarted;
+      medium_status_ |= kMediumStatusGOStarted;
       return true;
     }
     LOG(ERROR) << "Start WifiDirect GO failed.";
@@ -331,7 +346,7 @@ bool WifiDirectMedium::StartWifiDirect() {
 bool WifiDirectMedium::StopWifiDirect() {
   LOG(INFO) << "WifiDirectMedium::StopWifiDirect";
   absl::MutexLock lock(mutex_);
-  if (!IsServiceStarted()) {
+  if (!IsGOStarted()) {
     LOG(WARNING) << "Cannot stop Service because no Service is started.";
     return true;
   }
@@ -348,9 +363,11 @@ bool WifiDirectMedium::StopWifiDirect() {
       device_info_ = nullptr;
       session_ = nullptr;
     }
-    medium_status_ &= (~kMediumStatusServiceStarted);
+    medium_status_ &= (~kMediumStatusGOStarted);
     medium_status_ &= (~kMediumStatusConnected);
     server_socket_ptr_ = nullptr;
+    ip_address_local_.clear();
+    ip_address_remote_.clear();
     listener_executor_.Shutdown();
     return true;
   } catch (std::exception exception) {
@@ -465,10 +482,12 @@ fire_and_forget WifiDirectMedium::OnSessionRequested(
 
       absl::MutexLock lock(mutex_);
       WiFiDirectServiceSession session = nullptr;
-      if (kPin.empty()) {
+      auto pin = credentials_go_->GetPin();
+      if (pin.empty()) {
         session = advertiser_.ConnectAsync(device_info_).get();  // NOLINT
       } else {
-        session = advertiser_.ConnectAsync(device_info_, kPin).get();
+        session = advertiser_.ConnectAsync(device_info_, winrt::to_hstring(pin))
+                      .get();
       }
       LOG(INFO) << "GO: TryEnqueue: Wait for ConnectAsync finish";
       if (!session) {
@@ -519,7 +538,8 @@ fire_and_forget WifiDirectMedium::OnSessionRequested(
   }
 }
 
-bool WifiDirectMedium::ConnectWifiDirect() {
+bool WifiDirectMedium::ConnectWifiDirect(
+    const WifiDirectCredentials& credentials) {
   LOG(INFO) << "WifiDirectMedium::ConnectWifiDirect";
   absl::MutexLock lock(mutex_);
   if (IsConnecting()) {
@@ -533,10 +553,9 @@ bool WifiDirectMedium::ConnectWifiDirect() {
     return false;
   }
 
-  discovered_devices_by_id_.clear();
-  connection_requested_devices_by_id_.clear();
-
-  winrt::hstring device_selector = WiFiDirectService::GetSelector(kServiceName);
+  credentials_gc_ = credentials;
+  winrt::hstring device_selector = WiFiDirectService::GetSelector(
+      winrt::to_hstring(credentials_gc_.GetServiceName()));
   const winrt::param::iterable<winrt::hstring> requested_properties =
       winrt::single_threaded_vector<winrt::hstring>({
           winrt::to_hstring("System.Devices.WiFiDirectServices.ServiceAddress"),
@@ -590,7 +609,8 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
     service_.PreferGroupOwnerMode(false);
 
     WiFiDirectServiceSession session = nullptr;
-    if (kPin.empty()) {
+    auto pin = credentials_gc_.GetPin();
+    if (pin.empty()) {
       session = service_.ConnectAsync().get();  // NOLINT
     } else {
       auto prov_info = co_await service_.GetProvisioningInfoAsync(
@@ -605,7 +625,7 @@ fire_and_forget WifiDirectMedium::Watcher_DeviceAdded(
                 << ConfigMethodToString(
                        prov_info.SelectedConfigurationMethod());
 
-      session = service_.ConnectAsync(kPin).get();
+      session = service_.ConnectAsync(winrt::to_hstring(pin)).get();
     }
 
     if (!session) {
@@ -702,7 +722,9 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
     device_watcher_ = nullptr;
     service_ = nullptr;
     session_ = nullptr;
-    return true;
+    ip_address_local_.clear();
+    ip_address_remote_.clear();
+  return true;
   } catch (std::exception exception) {
     LOG(ERROR) << __func__ << ": Stop WifiDirect GC failed. Exception: "
                << exception.what();

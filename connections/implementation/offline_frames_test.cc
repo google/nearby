@@ -536,11 +536,13 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
         upgrade_path_info: <
           medium: WIFI_DIRECT
           wifi_direct_credentials: <
-            ssid: "DIRECT-A0-0123456789AB"
-            password: "password"
+            ssid: ""
+            password: ""
             port: 1000
             frequency: 2412
             gateway: "192.168.1.1"
+            service_name: "NC-WifiDirectTest"
+            pin: "b592f7d3"
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
@@ -548,7 +550,8 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiDirectPathAvailable) {
       >
     >)pb";
   ByteArray bytes = ForBwuWifiDirectPathAvailable(
-      "DIRECT-A0-0123456789AB", "password", 1000, 2412, false, "192.168.1.1");
+      "", "", 1000, 2412, false, "192.168.1.1",
+      "NC-WifiDirectTest", "b592f7d3");
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
