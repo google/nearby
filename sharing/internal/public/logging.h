@@ -24,6 +24,9 @@
 // IWYU pragma: begin_exports
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/log/log_entry.h"
+#include "absl/log/log_sink.h"
+#include "absl/log/log_sink_registry.h"
 #include "absl/log/vlog_is_on.h"
 // IWYU pragma: end_exports
 #endif  // defined(NEARBY_CHROMIUM)
