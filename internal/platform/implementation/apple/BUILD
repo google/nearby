@@ -260,7 +260,9 @@ objc_library(
     # Prevent Objective-C++ headers from being pulled into swift.
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
-        "//internal/platform:logging",
+        "//third_party/apple_frameworks:os",
+        "@com_google_absl//absl/log:log_entry",
+        "@com_google_absl//absl/log:log_sink",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -277,7 +279,7 @@ objc_library(
     aspect_hints = ["//tools/build_defs/swift:no_module"],
     deps = [
         ":os_log_sink",
-        "//internal/platform:logging",
+        "@com_google_absl//absl/log:log_sink_registry",
     ],
 )
 

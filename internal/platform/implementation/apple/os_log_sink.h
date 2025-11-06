@@ -17,7 +17,8 @@
 
 #include <os/log.h>
 
-#include "internal/platform/logging.h"
+#include "absl/log/log_entry.h"
+#include "absl/log/log_sink.h"
 
 namespace nearby {
 namespace apple {

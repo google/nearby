@@ -16,8 +16,8 @@
 
 #include <os/log.h>
 
+#include "absl/log/log_entry.h"
 #include "absl/strings/str_cat.h"
-#include "internal/platform/logging.h"
 
 namespace nearby {
 namespace apple {
