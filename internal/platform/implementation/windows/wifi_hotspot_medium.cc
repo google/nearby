@@ -54,6 +54,8 @@ using ::winrt::Windows::Devices::WiFiDirect::
     WiFiDirectAdvertisementPublisherStatus;
 using ::winrt::Windows::Devices::WiFiDirect::WiFiDirectConnectionRequest;
 using ::winrt::Windows::Security::Credentials::PasswordCredential;
+
+constexpr absl::Duration kConnectTimeout = absl::Milliseconds(500);
 }  // namespace
 
 WifiHotspotMedium::~WifiHotspotMedium() {
@@ -114,7 +116,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
             });
   }
 
-  bool result = wifi_hotspot_socket->Connect(server_address);
+  bool result = wifi_hotspot_socket->Connect(server_address, kConnectTimeout);
   if (!result) {
     LOG(ERROR) << "Failed to connect to service.";
     return nullptr;

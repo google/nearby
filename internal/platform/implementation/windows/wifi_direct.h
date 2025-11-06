@@ -109,7 +109,7 @@ class WifiDirectSocket : public api::WifiDirectSocket {
   Exception Close() override { return client_socket_->Close(); }
 
   bool Connect(const SocketAddress& server_address) {
-    return client_socket_->Connect(server_address);
+    return client_socket_->Connect(server_address, absl::InfiniteDuration());
   }
 
  private:

@@ -15,9 +15,9 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 
 // Windows headers
+#include <iphlpapi.h>
 #include <windows.h>
 #include <winsock2.h>
-#include <iphlpapi.h>
 
 // Standard C/C++ headers
 #include <cstdint>
@@ -29,16 +29,11 @@
 #include <utility>
 #include <vector>
 
-// ABSL headers
+#include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-
-// Nearby connections headers
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
-
-// Nearby connections headers
-#include "absl/container/flat_hash_map.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
@@ -49,13 +44,13 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
+#include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/runnable.h"
 
 namespace nearby::windows {
 namespace {
@@ -78,10 +73,10 @@ constexpr absl::string_view kMdnsDeviceSelectorFormat =
     "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
     "System.Devices.Dnssd.Domain:=\"local\"";
 
-constexpr absl::Duration kConnectTimeout = absl::Seconds(1);
+constexpr absl::Duration kConnectTimeout = absl::Milliseconds(500);
 
 bool IsSelfInstance(IMapView<winrt::hstring, IInspectable> properties,
-                     absl::string_view self_instance_name) {
+                    absl::string_view self_instance_name) {
   IInspectable inspectable =
       properties.TryLookup(L"System.Devices.Dnssd.InstanceName");
   if (inspectable == nullptr) {
@@ -110,7 +105,7 @@ bool GetMdnsIpv4Address(const std::string& address_str,
     const sockaddr_in* ipv4_addr = ipv4_address.ipv4_address();
     std::memcpy(ip_address_bytes.data(), &ipv4_addr->sin_addr.s_addr, 4);
     nsd_service_info.SetIPAddress(ip_address_bytes);
-    VLOG(1) << "Found ipv4 address: " <<ipv4_address.ToString();
+    VLOG(1) << "Found ipv4 address: " << ipv4_address.ToString();
     return true;
   }
   // Should not reach here.
@@ -136,13 +131,11 @@ bool GetMdnsIpv6Address(const std::string& address_str,
       }
       GUID network_adapter_id = InspectableReader::ReadGuid(inspectable);
       NET_LUID luid;
-      if (ConvertInterfaceGuidToLuid(&network_adapter_id, &luid) !=
-          NO_ERROR) {
+      if (ConvertInterfaceGuidToLuid(&network_adapter_id, &luid) != NO_ERROR) {
         VLOG(1) << "Failed to get interface luid";
         return false;
       }
-      if (ConvertInterfaceLuidToIndex(&luid, &interface_index) !=
-          NO_ERROR) {
+      if (ConvertInterfaceLuidToIndex(&luid, &interface_index) != NO_ERROR) {
         VLOG(1) << "Failed to get interface index";
         return false;
       }
@@ -151,7 +144,7 @@ bool GetMdnsIpv6Address(const std::string& address_str,
       ipv6_address.SetScopeId(interface_index);
     }
     nsd_service_info.SetIPv6Address(ipv6_address.ToString());
-    VLOG(1) << "Found ipv6 address: " <<ipv6_address.ToString();
+    VLOG(1) << "Found ipv6 address: " << ipv6_address.ToString();
     return true;
   }
   // Should not reach here.
@@ -160,55 +153,13 @@ bool GetMdnsIpv6Address(const std::string& address_str,
 
 // Returns true if a connection can be established to the given address within
 // the given timeout.
-bool TestConnection(
-    const SocketAddress& address, absl::Duration timeout) {
-  bool result = false;
-  int error = -1;
-  int size = sizeof(int);
-  timeval tm;
-  fd_set set;
-  unsigned long non_blocking = 1;  // NOLINT
+bool TestConnection(const SocketAddress& address, absl::Duration timeout) {
   VLOG(1) << "Checking connection to: " << address.ToString();
-  SOCKET sock = socket(address.dual_stack() ? AF_INET6 : AF_INET, SOCK_STREAM,
-                       IPPROTO_TCP);
-  if (address.dual_stack()) {
-    // On Windows dual stack is not the default.
-    // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
-    DWORD v6_only = 0;
-    if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
-                   reinterpret_cast<const char*>(&v6_only),
-                   sizeof(v6_only)) == SOCKET_ERROR) {
-      LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
-                   << WSAGetLastError();
-    }
+  NearbyClientSocket client_socket;
+  if (!client_socket.Connect(address, timeout)) {
+    return false;
   }
-  ioctlsocket(sock, /*cmd=*/FIONBIO, /*argp=*/&non_blocking);
-  if (connect(sock, address.address(), sizeof(sockaddr_storage)) ==
-      SOCKET_ERROR) {
-    tm.tv_sec = timeout / absl::Seconds(1);
-    tm.tv_usec = 0;
-    FD_ZERO(&set);
-    FD_SET(sock, &set);
-
-    if (select(sock + 1, nullptr, &set, nullptr, &tm) > 0) {
-      getsockopt(sock, SOL_SOCKET, SO_ERROR, (char*)&error,
-                 /*(socklen_t *)*/ &size);
-      result = error == 0;
-    } else {
-      result = false;
-    }
-  } else {
-    result = true;
-  }
-
-  non_blocking = 0;
-  ioctlsocket(sock, /*cmd=*/FIONBIO, /*argp=*/&non_blocking);
-
-  if (result) {
-    closesocket(sock);
-  }
-
-  return result;
+  return true;
 }
 
 }  // namespace
@@ -379,12 +330,11 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     return nullptr;
   }
   std::unique_ptr<api::WifiLanSocket> socket =
-      ConnectToSocket(server_address, cancellation_flag);
+      ConnectToSocket(server_address, cancellation_flag, kConnectTimeout);
   if (socket != nullptr) {
     return socket;
   }
-  VLOG(1) << "Failed to connect to service by IPv6 address: "
-          << ipv6_address;
+  VLOG(1) << "Failed to connect to service by IPv6 address: " << ipv6_address;
   return nullptr;
 }
 
@@ -400,12 +350,12 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }
-  return ConnectToSocket(server_address, cancellation_flag);
+  return ConnectToSocket(server_address, cancellation_flag, kConnectTimeout);
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToSocket(
-    const SocketAddress& address,
-    CancellationFlag* cancellation_flag) {
+    const SocketAddress& address, CancellationFlag* cancellation_flag,
+    absl::Duration timeout) {
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
     LOG(INFO) << "connect to service has been cancelled.";
     return nullptr;
@@ -425,7 +375,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToSocket(
               socket->Close();
             });
   }
-  bool result = wifi_lan_socket->Connect(address);
+  bool result = wifi_lan_socket->Connect(address, timeout);
   if (!result) {
     LOG(ERROR) << "failed to connect to service.";
     return nullptr;
@@ -605,8 +555,8 @@ fire_and_forget WifiLanMedium::Watcher_DeviceAdded(
 
   NsdServiceInfo nsd_service_info = nsd_service_info_except.GetResult();
   LOG(INFO) << "device found for service name "
-            << nsd_service_info.GetServiceName()
-            << " on port " << nsd_service_info.GetPort();
+            << nsd_service_info.GetServiceName() << " on port "
+            << nsd_service_info.GetPort();
 
   if (!IsConnectableIpAddress(nsd_service_info, kConnectTimeout)) {
     VLOG(1) << "mDNS service " << nsd_service_info.GetServiceName()
@@ -642,8 +592,8 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
       GetDiscoveredService(winrt::to_string(deviceInfoUpdate.Id()));
   if (!last_nsd_service_info.has_value()) {
     LOG(INFO) << "device updated for service name "
-              << nsd_service_info.GetServiceName()
-              << " on port " << nsd_service_info.GetPort();
+              << nsd_service_info.GetServiceName() << " on port "
+              << nsd_service_info.GetPort();
     if (IsConnectableIpAddress(nsd_service_info, kConnectTimeout)) {
       // If the device is not in the discovered service list, but it is
       // connectable during update, we add it to the discovered service list.
@@ -671,14 +621,15 @@ fire_and_forget WifiLanMedium::Watcher_DeviceUpdated(
     return fire_and_forget{};
   }
 
-  LOG(INFO)
-      << "Device is changed from (service name:"
-      << last_nsd_service_info->GetServiceName() << ", endpoint info:"
-      << last_nsd_service_info->GetTxtRecord(std::string(kDeviceEndpointInfo))
-      << ", port: " << last_nsd_service_info->GetPort()
-      << ") to (service name:" << nsd_service_info.GetServiceName() << ", "
-      << nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo))
-      << ", port: " << nsd_service_info.GetPort() << ").";
+  LOG(INFO) << "Device is changed from (service name:"
+            << last_nsd_service_info->GetServiceName() << ", endpoint info:"
+            << last_nsd_service_info->GetTxtRecord(
+                   std::string(kDeviceEndpointInfo))
+            << ", port: " << last_nsd_service_info->GetPort()
+            << ") to (service name:" << nsd_service_info.GetServiceName()
+            << ", "
+            << nsd_service_info.GetTxtRecord(std::string(kDeviceEndpointInfo))
+            << ", port: " << nsd_service_info.GetPort() << ").";
 
   // Report device lost first.
   discovered_service_callback_.service_lost_cb(*last_nsd_service_info);
@@ -764,8 +715,8 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
   }
 
   if (!NearbyFlags::GetInstance().GetBoolFlag(
-    platform::config_package_nearby::nearby_platform_feature::
-        kEnableMdnsIpv6)) {
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableMdnsIpv6)) {
     return false;
   }
   std::string ipv6_address = nsd_service_info.GetIPv6Address();

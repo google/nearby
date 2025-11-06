@@ -31,6 +31,7 @@
 // Nearby connections headers
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
@@ -71,8 +72,8 @@ class WifiHotspotSocket : public api::WifiHotspotSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override { return client_socket_->Close(); }
 
-  bool Connect(const SocketAddress& server_address) {
-    return client_socket_->Connect(server_address);
+  bool Connect(const SocketAddress& server_address, absl::Duration timeout) {
+    return client_socket_->Connect(server_address, timeout);
   }
 
  private:

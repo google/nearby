@@ -90,8 +90,8 @@ class WifiLanSocket : public api::WifiLanSocket {
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override { return client_socket_->Close(); };
 
-  bool Connect(const SocketAddress& server_address) {
-    return client_socket_->Connect(server_address);
+  bool Connect(const SocketAddress& server_address, absl::Duration timeout) {
+    return client_socket_->Connect(server_address, timeout);
   };
 
  private:
@@ -210,7 +210,8 @@ class WifiLanMedium : public api::WifiLanMedium {
                               absl::Duration timeout);
 
   std::unique_ptr<api::WifiLanSocket> ConnectToSocket(
-      const SocketAddress& address, CancellationFlag* cancellation_flag);
+      const SocketAddress& address, CancellationFlag* cancellation_flag,
+      absl::Duration timeout);
 
   // Methods to manage discovred services.
   void ClearDiscoveredServices() ABSL_LOCKS_EXCLUDED(mutex_);

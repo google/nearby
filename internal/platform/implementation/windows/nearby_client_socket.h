@@ -21,6 +21,7 @@
 #include <cstdint>
 
 #include "absl/base/nullability.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/socket_address.h"
@@ -41,7 +42,7 @@ class NearbyClientSocket {
   explicit NearbyClientSocket(SOCKET socket);
   ~NearbyClientSocket();
 
-  bool Connect(const SocketAddress& server_address);
+  bool Connect(const SocketAddress& server_address, absl::Duration timeout);
   ExceptionOr<ByteArray> Read(std::int64_t size);
   ExceptionOr<size_t> Skip(size_t offset);
   Exception Write(const ByteArray& data);

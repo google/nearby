@@ -22,6 +22,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -51,7 +52,8 @@ NearbyClientSocket::~NearbyClientSocket() {
   }
 }
 
-bool NearbyClientSocket ::Connect(const SocketAddress& server_address) {
+bool NearbyClientSocket ::Connect(const SocketAddress& server_address,
+                                  absl::Duration timeout) {
   if (!is_socket_initiated_) {
     LOG(WARNING) << "Windows socket is not initiated.";
     return false;
@@ -102,14 +104,49 @@ bool NearbyClientSocket ::Connect(const SocketAddress& server_address) {
   setsockopt(socket_, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<char*>(&flag),
              sizeof(flag));
 
+  bool has_timeout = (timeout != absl::InfiniteDuration());
+  if (has_timeout) {
+    unsigned long non_blocking = 1;  // NOLINT
+    if (ioctlsocket(socket_, FIONBIO, &non_blocking) == SOCKET_ERROR) {
+      LOG(WARNING) << "Failed to set socket to non-blocking, error: "
+                   << WSAGetLastError();
+      // turn off timeout if we can't set the socket to non-blocking.
+      has_timeout = false;
+    }
+  }
   if (connect(socket_, server_address.address(), sizeof(sockaddr_storage)) ==
       SOCKET_ERROR) {
-    LOG(ERROR) << "Failed to connect socket with error: " << WSAGetLastError();
-    closesocket(socket_);
-    socket_ = INVALID_SOCKET;
-    return false;
+    bool connected = false;
+    if (has_timeout && WSAGetLastError() == WSAEWOULDBLOCK) {
+      // Wait until timeout or socket is connected.
+      timeval tm = absl::ToTimeval(timeout);
+      fd_set set;
+      FD_ZERO(&set);
+      FD_SET(socket_, &set);
+      if (select(/*nfds=*/0, /*readfds=*/nullptr, &set, /*exceptfds=*/nullptr,
+                 &tm) > 0) {
+        int error = -1;
+        int size = sizeof(int);
+        getsockopt(socket_, SOL_SOCKET, SO_ERROR, (char*)&error,
+                  /*(socklen_t *)*/ &size);
+        connected = (error == 0);
+      }
+    }
+    if (!connected) {
+      LOG(ERROR) << "Failed to connect socket with error: "
+                 << WSAGetLastError();
+      closesocket(socket_);
+      socket_ = INVALID_SOCKET;
+      return false;
+    }
   }
-
+  if (has_timeout) {
+    unsigned long non_blocking = 0;  // NOLINT
+    if (ioctlsocket(socket_, FIONBIO, /*argp=*/&non_blocking) == SOCKET_ERROR) {
+      LOG(ERROR) << "Failed to set socket to blocking, error: "
+                 << WSAGetLastError();
+    }
+  }
   LOG(INFO) << "Client socket connected successfully";
   if (VLOG_IS_ON(1)) {
     SocketAddress local_address;
@@ -120,7 +157,6 @@ bool NearbyClientSocket ::Connect(const SocketAddress& server_address) {
               << local_address.ToString();
     }
   }
-
   return true;
 }
 

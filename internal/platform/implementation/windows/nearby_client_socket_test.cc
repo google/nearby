@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 
@@ -49,7 +50,7 @@ TEST(NearbyClientSocketTest, ConnectWithBoundSocketFails) {
   SocketAddress server_address(/*dual_stack=*/true);
   SocketAddress::FromString(server_address, "::1", 8080);
 
-  EXPECT_FALSE(client_socket.Connect(server_address));
+  EXPECT_FALSE(client_socket.Connect(server_address, absl::InfiniteDuration()));
 
   closesocket(socket_handle);
 }
@@ -64,7 +65,7 @@ TEST(NearbyClientSocketTest, Connect) {
   SocketAddress server_address(/*dual_stack=*/true);
   SocketAddress::FromString(server_address, "::1", bound_address.port());
 
-  EXPECT_TRUE(client_socket.Connect(server_address));
+  EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
 
   closesocket(socket_handle);
 }
@@ -83,7 +84,7 @@ TEST(NearbyClientSocketTest, Read) {
   NearbyClientSocket client_socket;
   SocketAddress server_address(/*dual_stack=*/true);
   SocketAddress::FromString(server_address, "::1", bound_address.port());
-  EXPECT_TRUE(client_socket.Connect(server_address));
+  EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
   SocketAddress peer_address;
   int peer_address_length = sizeof(sockaddr_storage);
   SOCKET accept_socket = accept(socket_handle, peer_address.address(),
@@ -105,7 +106,7 @@ TEST(NearbyClientSocketTest, Skip) {
   NearbyClientSocket client_socket;
   SocketAddress server_address(/*dual_stack=*/true);
   SocketAddress::FromString(server_address, "::1", bound_address.port());
-  EXPECT_TRUE(client_socket.Connect(server_address));
+  EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
   SocketAddress peer_address;
   int peer_address_length = sizeof(sockaddr_storage);
   SOCKET accept_socket = accept(socket_handle, peer_address.address(),
@@ -128,7 +129,7 @@ TEST(NearbyClientSocketTest, Write) {
   NearbyClientSocket client_socket;
   SocketAddress server_address(/*dual_stack=*/true);
   SocketAddress::FromString(server_address, "::1", bound_address.port());
-  EXPECT_TRUE(client_socket.Connect(server_address));
+  EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
   SocketAddress peer_address;
   int peer_address_length = sizeof(sockaddr_storage);
   SOCKET accept_socket = accept(socket_handle, peer_address.address(),

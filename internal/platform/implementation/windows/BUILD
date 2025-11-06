@@ -545,6 +545,7 @@ cc_test(
         ":windows",
         "//internal/platform:base",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )
