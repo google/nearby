@@ -1060,7 +1060,10 @@ message SharingLog {
     optional location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
   }
   // EventType: CLOUD_REGISTER_RECEIVER used by QR code cloud web receiver
-  message CloudRegisterReceiver {}
+  message CloudRegisterReceiver {
+    optional location.nearby.proto.sharing.CloudRegisterReceiverResult result =
+        1;
+  }
 
   // EventType: CLOUD_UPLOAD_START used by QR code cloud web sender
   // The cloud_sharing_id and flow_id are logged in the event metadata.
