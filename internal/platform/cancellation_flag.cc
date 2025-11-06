@@ -28,7 +28,7 @@ CancellationFlag::CancellationFlag(bool cancelled) {
 }
 
 CancellationFlag::~CancellationFlag() {
-  absl::MutexLock lock(mutex_.get());
+  absl::MutexLock lock(*mutex_.get());
   listeners_.clear();
 }
 
@@ -40,7 +40,7 @@ void CancellationFlag::Cancel() {
 
   absl::flat_hash_set<CancelListener *> listeners;
   {
-    absl::MutexLock lock(mutex_.get());
+    absl::MutexLock lock(*mutex_.get());
     if (cancelled_) {
       // Someone already cancelled. Return immediately.
       return;
@@ -62,14 +62,14 @@ void CancellationFlag::Uncancel() {
   }
 
   {
-    absl::MutexLock lock(mutex_.get());
+    absl::MutexLock lock(*mutex_.get());
     assert(cancelled_);
     cancelled_ = false;
   }
 }
 
 bool CancellationFlag::Cancelled() const {
-  absl::MutexLock lock(mutex_.get());
+  absl::MutexLock lock(*mutex_.get());
 
   // Return false as no-op if feature flag is not enabled.
   if (!FeatureFlags::GetInstance().GetFlags().enable_cancellation_flag) {
@@ -80,13 +80,13 @@ bool CancellationFlag::Cancelled() const {
 }
 
 void CancellationFlag::RegisterOnCancelListener(CancelListener *listener) {
-  absl::MutexLock lock(mutex_.get());
+  absl::MutexLock lock(*mutex_.get());
 
   listeners_.emplace(listener);
 }
 
 void CancellationFlag::UnregisterOnCancelListener(CancelListener *listener) {
-  absl::MutexLock lock(mutex_.get());
+  absl::MutexLock lock(*mutex_.get());
 
   listeners_.erase(listener);
 }
