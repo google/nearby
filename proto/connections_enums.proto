@@ -1058,6 +1058,14 @@ enum OperationResultCode {
   // Payloads IOError due to endpoint get IOException on AWDL medium
   // (IOException on Channel#write)
   CONNECTIVITY_CHANNEL_IO_ERROR_ON_AWDL = 3606;
+  // Failed to join Wifi Aware network dur to network unavailable
+  CONNECTIVITY_WIFI_AWARE_DO_UNAVAILABLE = 3607;
+  // The discovered Wifi Aware peer is null and screen off
+  CONNECTIVITY_WIFI_AWARE_DISCOVER_PEER_NULL_SCREEN_OFF = 3608;
+  // The discovered Wifi Aware peer is null due to timeout
+  CONNECTIVITY_WIFI_AWARE_DISCOVER_PEER_NULL_TIMEOUT = 3609;
+  // Failed to join Wifi Aware network
+  CONNECTIVITY_WIFI_AWARE_JOIN_NETWORK_FAILED = 3610;
 
   // Section of CATEGORY_NEARBY_ERROR, from 4500
   // NO BLE MAC address associated to the GATT advertisement
