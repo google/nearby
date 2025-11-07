@@ -36,7 +36,7 @@ constexpr char kPreferencesBackupFileName[] = "preferences_bak.json";
 }  // namespace
 
 json PreferencesRepository::LoadPreferences() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   std::optional<json> preferences = AttemptLoad();
   if (preferences.has_value()) {
     // The top level root should be an object, if it's not then something went
@@ -67,7 +67,7 @@ json PreferencesRepository::LoadPreferences() {
 }
 
 bool PreferencesRepository::SavePreferences(json preferences) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   try {
     if (!Files::FileExists(path_) && !Files::CreateDirectories(path_)) {
       LOG(ERROR) << "Failed to create preferences path.";

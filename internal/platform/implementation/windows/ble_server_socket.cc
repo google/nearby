@@ -37,7 +37,7 @@ BleServerSocket::BleServerSocket(api::BluetoothAdapter* adapter)
 }
 
 std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Accept is called.";
 
   while (!closed_ && pending_sockets_.empty()) {
@@ -54,7 +54,7 @@ std::unique_ptr<api::ble::BleSocket> BleServerSocket::Accept() {
 
 Exception BleServerSocket::Close() {
   // TODO(b/271031645): implement BLE socket using weave
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Close is called.";
 
   if (closed_) {

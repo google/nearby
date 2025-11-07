@@ -70,25 +70,25 @@ class AwdlServerSocket : public api::AwdlServerSocket {
 
   // Gets ip address.
   std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return ip_address_;
   }
 
   // Sets the ip address.
   void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ip_address_ = ip_address;
   }
 
   // Gets the port.
   int GetPort() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return port_;
   }
 
   // Sets the port.
   void SetPort(int port) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     port_ = port;
   }
 

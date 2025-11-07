@@ -173,7 +173,7 @@ void BleMedium::AdvertisementWatcher::Initialize(
     const TypedEventHandler<BluetoothLEAdvertisementWatcher,
                             BluetoothLEAdvertisementWatcherStoppedEventArgs>&
         stopped_handler) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   try {
     watcher_token_ = watcher_.Stopped(stopped_handler);
     advertisement_received_token_ = watcher_.Received(received_handler);
@@ -206,7 +206,7 @@ void BleMedium::AdvertisementWatcher::InitializeWithServiceFilter(
     const TypedEventHandler<BluetoothLEAdvertisementWatcher,
                             BluetoothLEAdvertisementWatcherStoppedEventArgs>&
         stopped_handler) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   try {
     watcher_token_ = watcher_.Stopped(stopped_handler);
     advertisement_received_token_ = watcher_.Received(received_handler);
@@ -240,7 +240,7 @@ void BleMedium::AdvertisementWatcher::InitializeWithServiceFilter(
 }
 
 bool BleMedium::AdvertisementWatcher::Start() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (!initialized_) {
     LOG(ERROR) << __func__ << ": Failed to start BLE watcher: not initialized.";
     return false;
@@ -277,7 +277,7 @@ bool BleMedium::AdvertisementWatcher::Start() {
 }
 
 void BleMedium::AdvertisementWatcher::Stop() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   try {
     watcher_.Stop();
     if (watcher_token_) {
@@ -305,7 +305,7 @@ BleMedium::BleMedium(api::BluetoothAdapter& adapter)
 // Advertisement packet and populate accordingly.
 bool BleMedium::StartAdvertising(const BleAdvertisementData& advertising_data,
                                  AdvertiseParameters advertising_parameters) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   std::string service_data_info;
   for (const auto& it : advertising_data.service_data) {
     service_data_info += "{uuid:" + std::string(it.first) +
@@ -328,7 +328,7 @@ bool BleMedium::StartAdvertising(const BleAdvertisementData& advertising_data,
 }
 
 bool BleMedium::StopAdvertising() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": Stop advertising.";
   bool result = true;
   if (is_gatt_publisher_started_) {
@@ -405,7 +405,7 @@ std::unique_ptr<BleMedium::AdvertisementWatcher> BleMedium::CreateBleWatcher(
 bool BleMedium::StartScanning(const Uuid& service_uuid,
                               TxPowerLevel tx_power_level,
                               ScanCallback callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": service UUID: " << std::string(service_uuid)
             << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
   if (!adapter_->IsEnabled()) {
@@ -465,7 +465,7 @@ bool BleMedium::StartScanning(const Uuid& service_uuid,
 std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid& service_uuid, TxPowerLevel tx_power_level,
     BleMedium::ScanningCallback callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": service UUID: " << std::string(service_uuid)
             << ", TxPowerLevel: " << TxPowerLevelToName(tx_power_level);
   if (!adapter_->IsEnabled()) {
@@ -504,7 +504,7 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
               [this, session_id, service_uuid]() {
                 size_t num_erased_from_service_and_session_map = 0u;
                 {
-                  absl::MutexLock lock(&mutex_);
+                  absl::MutexLock lock(mutex_);
                   auto iter = service_uuid_to_session_map_.find(service_uuid);
                   if (iter != service_uuid_to_session_map_.end()) {
                     num_erased_from_service_and_session_map =
@@ -553,7 +553,7 @@ std::unique_ptr<BleMedium::ScanningSession> BleMedium::StartScanning(
 
 std::unique_ptr<api::ble::GattServer> BleMedium::StartGattServer(
     api::ble::ServerGattConnectionCallback callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": Start GATT server.";
 
   auto gatt_server =
@@ -576,7 +576,7 @@ std::unique_ptr<api::ble::GattClient> BleMedium::ConnectToGattServer(
     api::ble::BlePeripheral::UniqueId peripheral_id,
     TxPowerLevel tx_power_level,
     api::ble::ClientGattConnectionCallback callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << "ConnectToGattServer is called with peripheral id: "
             << peripheral_id
             << ", power:" << TxPowerLevelToName(tx_power_level);
@@ -600,7 +600,7 @@ std::unique_ptr<api::ble::GattClient> BleMedium::ConnectToGattServer(
 }
 
 bool BleMedium::StopScanning() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   alternate_uuids_for_service_.clear();
 
@@ -1150,7 +1150,7 @@ void BleMedium::AdvertisementReceivedHandler(
       scan_callback_.advertisement_found_cb(bluetooth_address.address(),
                                             ble_advertisement_data);
     } else {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       const auto& alternate_it =
           alternate_uuids_for_service_.find(service_uuid16);
       if (alternate_it != alternate_uuids_for_service_.end()) {
@@ -1181,7 +1181,7 @@ void BleMedium::AdvertisementFoundHandler(
   std::vector<Uuid> service_uuid_list;
   bool found_matching_service_uuid = false;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     for (auto windows_service_uuid : advertisement.ServiceUuids()) {
       auto nearby_service_uuid =
           winrt_guid_to_nearby_uuid(windows_service_uuid);
@@ -1245,7 +1245,7 @@ void BleMedium::AdvertisementFoundHandler(
   // Invokes callbacks that matches the UUID.
   for (auto service_uuid : service_uuid_list) {
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       if (service_uuid_to_session_map_.find(service_uuid) !=
           service_uuid_to_session_map_.end()) {
         for (auto& id_session_pair :
@@ -1272,7 +1272,7 @@ uint64_t BleMedium::GenerateSessionId() {
 
 void BleMedium::AddAlternateUuidForService(uint16_t uuid,
                                            const std::string& service_id) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   alternate_uuids_for_service_[uuid] = service_id;
 }
 

@@ -60,7 +60,7 @@ void WifiDirectServerSocket::SetCloseNotifier(
 }
 
 Exception WifiDirectServerSocket::Close() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (closed_) {
     return {Exception::kSuccess};
   }

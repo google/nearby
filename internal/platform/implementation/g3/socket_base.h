@@ -37,14 +37,14 @@ class SocketBase {
  public:
   SocketBase() { std::tie(input_for_remote_, output_) = CreatePipe(); }
   virtual ~SocketBase() {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     DoClose();
   }
 
   // Connects to another Socket, to form a functional low-level
   // channel. From this point on, and until Close is called, connection exists.
   void Connect(SocketBase& other) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     remote_socket_ = &other;
     input_ = std::move(other.input_for_remote_);
   }
@@ -55,19 +55,19 @@ class SocketBase {
   // Returns the OutputStream of this connected socket.
   // This stream is for local side to write.
   OutputStream& GetOutputStream() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return *output_;
   }
 
   // Returns true if connection exists to the (possibly closed) remote socket.
   bool IsConnected() const ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return IsConnectedLocked();
   }
 
   // Returns true if socket is closed.
   bool IsClosed() const ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return closed_;
   }
 
@@ -75,13 +75,13 @@ class SocketBase {
   // After this call object should be treated as not connected.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     DoClose();
     return {Exception::kSuccess};
   }
 
   SocketBase* GetRemoteSocket() ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return remote_socket_;
   }
 

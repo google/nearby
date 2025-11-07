@@ -292,7 +292,7 @@ TEST(ExecutorTests,
     executor->Execute([&]() mutable {
       DWORD id = GetCurrentThreadId();
       {
-        absl::MutexLock lock(&mutex);
+        absl::MutexLock lock(mutex);
         threadIds.push_back(id);
       }
 

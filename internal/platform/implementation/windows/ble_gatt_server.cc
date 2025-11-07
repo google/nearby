@@ -124,7 +124,7 @@ BleGattServer::CreateCharacteristic(
     const Uuid& service_uuid, const Uuid& characteristic_uuid,
     api::ble::GattCharacteristic::Permission permission,
     api::ble::GattCharacteristic::Property property) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__ << ": create characteristic, service_uuid: "
             << std::string(service_uuid)
             << ", characteristic_uuid: " << std::string(characteristic_uuid);
@@ -153,7 +153,7 @@ BleGattServer::CreateCharacteristic(
 bool BleGattServer::UpdateCharacteristic(
     const api::ble::GattCharacteristic& characteristic,
     const nearby::ByteArray& value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   LOG(INFO) << __func__
             << ": update characteristic: " << std::string(characteristic.uuid);
 
@@ -194,7 +194,7 @@ bool BleGattServer::UpdateCharacteristic(
 absl::Status BleGattServer::NotifyCharacteristicChanged(
     const api::ble::GattCharacteristic& characteristic, bool confirm,
     const ByteArray& new_value) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   // Currently, the method is not hooked up at platform layer.
   VLOG(1) << __func__
           << ": Notify characteristic=" << std::string(characteristic.uuid)
@@ -205,7 +205,7 @@ absl::Status BleGattServer::NotifyCharacteristicChanged(
 void BleGattServer::Stop() {
   absl::AnyInvocable<void()> close_notifier = nullptr;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     VLOG(1) << __func__ << ": Start to stop GATT server.";
     if (gatt_service_provider_ != nullptr) {
       try {
@@ -396,7 +396,7 @@ bool BleGattServer::InitializeGattServer() {
 
 bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
                                        bool is_connectable) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   try {
     VLOG(1) << __func__ << ": service_data="
@@ -475,7 +475,7 @@ bool BleGattServer::StartAdvertisement(const ByteArray& service_data,
 }
 
 bool BleGattServer::StopAdvertisement() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   try {
     LOG(INFO) << __func__ << ": stop advertisement.";
@@ -520,7 +520,7 @@ bool BleGattServer::StopAdvertisement() {
 }
 
 void BleGattServer::SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   close_notifier_ = std::move(notifier);
 }
 

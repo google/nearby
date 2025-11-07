@@ -58,7 +58,7 @@ class WorkerQueue {
     }
     callback_ = std::move(callback);
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       if (!queue_.empty()) {
         ScheduleCallback();
       }
@@ -78,7 +78,7 @@ class WorkerQueue {
   // Queues an item to be processed by the callback.
   // Callback are edge triggered.
   void Queue(T item) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     queue_.push(std::move(item));
     ScheduleCallback();
   }
@@ -88,7 +88,7 @@ class WorkerQueue {
   // scheduled when new items are queued.
   std::queue<T> ReadAll() {
     is_scheduled_ = false;
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     std::queue<T> queue;
     queue.swap(queue_);
     return queue;

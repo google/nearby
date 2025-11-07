@@ -30,7 +30,7 @@ Timer::~Timer() { Stop(); }
 
 bool Timer::Create(int delay, int interval,
                    absl::AnyInvocable<void()> callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if ((delay < 0) || (interval < 0)) {
     LOG(WARNING) << "Delay and interval shouldn\'t be negative value.";
     return false;
@@ -52,7 +52,7 @@ bool Timer::Create(int delay, int interval,
 }
 
 bool Timer::Stop() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (cancelable_task_ == nullptr) {
     return true;
   }

@@ -85,7 +85,7 @@ std::unique_ptr<ThreadPool> ThreadPool::Create(uint32_t max_pool_size) {
 }
 
 bool ThreadPool::Run(Runnable task) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (task == nullptr) {
     LOG(WARNING) << __func__ << ": Invalid task.";
@@ -124,7 +124,7 @@ std::optional<uint64_t> ThreadPool::Run(Runnable task, absl::Duration delay) {
 
 std::optional<uint64_t> ThreadPool::Run(Runnable task, absl::Duration delay,
                                         absl::Duration period) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (task == nullptr) {
     LOG(WARNING) << __func__ << ": Invalid task.";
@@ -174,7 +174,7 @@ std::optional<uint64_t> ThreadPool::Run(Runnable task, absl::Duration delay,
 }
 
 void ThreadPool::ShutDown() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Thread pool(" << this << ") is shutting down.";
   if (is_shut_down_) {
     LOG(INFO) << __func__ << ": Thread pool(" << this
@@ -264,7 +264,7 @@ void ThreadPool::RunTimerCallback(PTP_TIMER timer) {
 }
 
 bool ThreadPool::CancelDelayedTask(uint64_t delayed_task_id) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   if (is_shut_down_) {
     LOG(WARNING)
@@ -311,12 +311,12 @@ bool ThreadPool::CancelDelayedTask(uint64_t delayed_task_id) {
 }
 
 void ThreadPool::TaskQueue::enqueue(Runnable task) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   queue_.push(std::move(task));
 }
 
 std::optional<Runnable> ThreadPool::TaskQueue::dequeue() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (queue_.empty()) {
     return std::nullopt;
   }
@@ -327,18 +327,18 @@ std::optional<Runnable> ThreadPool::TaskQueue::dequeue() {
 }
 
 void ThreadPool::TaskQueue::clear() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   queue_ = {};
 }
 
 void ThreadPool::DelayedTaskMap::put(
     PTP_TIMER timer, std::unique_ptr<DelayedTaskInfo> task_info) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   task_map_[timer] = std::move(task_info);
 }
 
 ThreadPool::DelayedTaskInfo* ThreadPool::DelayedTaskMap::get(PTP_TIMER timer) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto it = task_map_.find(timer);
   if (it == task_map_.end()) {
     return nullptr;
@@ -348,12 +348,12 @@ ThreadPool::DelayedTaskInfo* ThreadPool::DelayedTaskMap::get(PTP_TIMER timer) {
 }
 
 void ThreadPool::DelayedTaskMap::erase(PTP_TIMER timer) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   task_map_.erase(timer);
 }
 
 void ThreadPool::DelayedTaskMap::clean_completed_tasks() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   for (auto it = task_map_.begin(); it != task_map_.end();) {
     if (it->second->is_done) {
       CloseThreadpoolTimer(it->first);
@@ -365,7 +365,7 @@ void ThreadPool::DelayedTaskMap::clean_completed_tasks() {
 }
 
 void ThreadPool::DelayedTaskMap::clear() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   task_map_.clear();
 }
 

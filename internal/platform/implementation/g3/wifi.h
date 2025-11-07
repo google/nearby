@@ -57,11 +57,11 @@ class WifiMedium : public api::WifiMedium {
   // If the WiFi Adaptor supports to start a Wifi interface.
   bool IsInterfaceValid() const override { return true; }
   api::WifiCapability& GetCapability() override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return wifi_capability_;
   }
   api::WifiInformation& GetInformation() override {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return wifi_information_;
   }
   class ScanResultCallback : public api::WifiMedium::ScanResultCallback {

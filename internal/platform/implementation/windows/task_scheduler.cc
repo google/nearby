@@ -53,7 +53,7 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
 std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
     Runnable&& runnable, absl::Duration duration,
     absl::Duration repeat_interval) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Scheduling task on task scheduler:" << this
           << ", duration: " << absl::ToInt64Milliseconds(duration)
           << "ms, repeat_interval: "
@@ -93,7 +93,7 @@ std::shared_ptr<api::Cancelable> TaskScheduler::Schedule(
 }
 
 void TaskScheduler::Shutdown() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   VLOG(1) << __func__ << ": Shutting down task scheduler:" << this;
   if (is_shutdown_) {
     return;
@@ -124,7 +124,7 @@ TaskScheduler::ScheduledTask::ScheduledTask(TaskScheduler& task_scheduler,
     : task_scheduler_(&task_scheduler), is_repeated_(is_repeated) {
   runnable_ = [this, runnable = std::move(runnable)]() mutable {
     {
-      absl::MutexLock lock(&mutex_);
+      absl::MutexLock lock(mutex_);
       is_executed_ = true;
     }
     if (runnable) {
@@ -137,7 +137,7 @@ bool TaskScheduler::ScheduledTask::Cancel() {
   VLOG(1) << __func__ << ": Cancelling timer " << timer_handle()
           << " from task scheduler:" << this;
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (is_cancelled_) {
       return false;
     }
@@ -146,7 +146,7 @@ bool TaskScheduler::ScheduledTask::Cancel() {
 
   bool result = task_scheduler_->CancelScheduledTask(timer_handle());
   {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (!is_repeated_ && is_executed_) {
       result = false;
     }
@@ -155,27 +155,27 @@ bool TaskScheduler::ScheduledTask::Cancel() {
 }
 
 void TaskScheduler::ScheduledTask::set_timer_handle(intptr_t timer_handle) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   timer_handle_ = timer_handle;
 }
 
 Runnable* TaskScheduler::ScheduledTask::runnable() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return &runnable_;
 }
 
 intptr_t TaskScheduler::ScheduledTask::timer_handle() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return timer_handle_;
 }
 
 bool TaskScheduler::ScheduledTask::is_cancelled() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return is_cancelled_;
 }
 
 bool TaskScheduler::CancelScheduledTask(intptr_t timer_handle) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   auto it = scheduled_tasks_.find(timer_handle);
   if (it == scheduled_tasks_.end()) {
     return false;

@@ -63,7 +63,7 @@ class BleMediumTest : public ::testing::Test {
 
  protected:
   size_t GetWatchersCount() {
-    absl::MutexLock lock(&ble_medium_->mutex_);
+    absl::MutexLock lock(ble_medium_->mutex_);
     return ble_medium_->watchers_.size();
   }
 

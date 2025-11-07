@@ -113,14 +113,14 @@ std::optional<FilePath> DeviceInfo::GetCrashDumpPath() const {
 }
 
 bool DeviceInfo::IsScreenLocked() const {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return session_manager_.IsScreenLocked();
 }
 
 void DeviceInfo::RegisterScreenLockedListener(
     absl::string_view listener_name,
     std::function<void(api::DeviceInfo::ScreenStatus)> callback) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   session_manager_.RegisterSessionListener(
       listener_name,
       [callback = std::move(callback)](SessionManager::SessionState state) {
@@ -134,17 +134,17 @@ void DeviceInfo::RegisterScreenLockedListener(
 
 void DeviceInfo::UnregisterScreenLockedListener(
     absl::string_view listener_name) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   session_manager_.UnregisterSessionListener(listener_name);
 }
 
 bool DeviceInfo::PreventSleep() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return session_manager_.PreventSleep();
 }
 
 bool DeviceInfo::AllowSleep() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   return session_manager_.AllowSleep();
 }
 

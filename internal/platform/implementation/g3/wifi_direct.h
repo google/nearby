@@ -65,22 +65,22 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   static std::string GetName(absl::string_view ip_address, int port);
 
   std::string GetIPAddress() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return ip_address_;
   }
 
   void SetIPAddress(const std::string& ip_address) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     ip_address_ = ip_address;
   }
 
   int GetPort() const override ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     return port_;
   }
 
   void SetPort(int port) ABSL_LOCKS_EXCLUDED(mutex_) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     port_ = port;
   }
 

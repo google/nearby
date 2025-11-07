@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/g3/scheduled_executor.h"
 #include "internal/platform/implementation/timer.h"
@@ -45,7 +46,7 @@ class Timer : public api::Timer {
 
   bool Stop() override {
     is_stopped_ = true;
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     if (task_) {
       bool result = task_->Cancel();
       task_.reset();
@@ -56,7 +57,7 @@ class Timer : public api::Timer {
 
  private:
   bool Schedule(absl::Duration delay) {
-    absl::MutexLock lock(&mutex_);
+    absl::MutexLock lock(mutex_);
     task_ = executor_.Schedule([this]() { TriggerCallback(); }, delay);
     return true;
   }
