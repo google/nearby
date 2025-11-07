@@ -104,9 +104,6 @@ constexpr auto kConflictBannerTimeout =
 // Enable a persistent BETA label.
 constexpr auto kEnableBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
-// Enable the info banner to display duplicate Quick Share apps.
-constexpr auto kEnableConflictBanner =
-    flags::Flag<bool>(kConfigPackage, "45661130", true);
 // When true, enables use of Flutter hooks.
 constexpr auto kEnableFlutterHooks =
     flags::Flag<bool>(kConfigPackage, "45720206", false);
@@ -137,7 +134,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45683539, kUseAlternateServiceUuidForDiscovery},
       {45410558, kShowAdminModeWarning},
       {45662570, kEnableBetaLabel},
-      {45661130, kEnableConflictBanner},
       {45720206, kEnableFlutterHooks},
       {45724244, kEnableMiniPulse},
       {45727212, kEnableResponsiveUi},
