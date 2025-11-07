@@ -109,7 +109,7 @@ constexpr auto kEnableBetaLabel =
     flags::Flag<bool>(kConfigPackage, "45662570", true);
 // Enable the info banner to display duplicate Quick Share apps.
 constexpr auto kEnableConflictBanner =
-    flags::Flag<bool>(kConfigPackage, "45661130", false);
+    flags::Flag<bool>(kConfigPackage, "45661130", true);
 // When true, enables use of Flutter hooks.
 constexpr auto kEnableFlutterHooks =
     flags::Flag<bool>(kConfigPackage, "45720206", false);
