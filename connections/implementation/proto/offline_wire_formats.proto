@@ -280,7 +280,7 @@ message BandwidthUpgradeNegotiationFrame {
       // Receivers should ignore gateway and port fields if this field is set.
       // Receivers should attempt to connect to each of the address candidates
       // in order until a connection can be established.
-      repeated ServiceAddress addresse_candidates = 6;
+      repeated ServiceAddress address_candidates = 6;
     }
 
     // Accompanies Medium.WIFI_LAN.
@@ -297,7 +297,7 @@ message BandwidthUpgradeNegotiationFrame {
       // is set.
       // Receivers should attempt to connect to each of the address candidates
       // in order until a connection can be established.
-      repeated ServiceAddress addresse_candidates = 3;
+      repeated ServiceAddress address_candidates = 3;
     }
 
     // Accompanies Medium.BLUETOOTH.
