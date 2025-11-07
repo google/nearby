@@ -16,6 +16,7 @@
 
 #import <Foundation/Foundation.h>
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEL2CAPStream.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCLeaks.h"
@@ -98,8 +99,12 @@ static NSData *PrefixLengthData(NSData *data) {
   dispatch_async(_selfQueue, ^{
     NSData *packet;
 
-    // Prefix the service ID hash.
-    packet = PrefixLengthData(PrefixDataWithServiceIDHash(_serviceIDHash, data));
+    if (GNCFeatureFlags.refactorBleL2capEnabled) {
+      packet = PrefixLengthData(data);
+    } else {
+      // Prefix the service ID hash.
+      packet = PrefixLengthData(PrefixDataWithServiceIDHash(_serviceIDHash, data));
+    }
     if (_verboseLoggingEnabled) {
       GNCLoggerDebug(@"GNCBLEL2CAPConnection data to be sent: %@", [packet description]);
     }
@@ -202,42 +207,49 @@ static NSData *PrefixLengthData(NSData *data) {
   }
   bytesProcessed = realData.length + kL2CAPPacketLength;
 
-  // TODO: b/399815436 - Refactor the validation logic to connections layer.
-  if ([self handleL2CAPPacketFromData:realData]) {
-    return bytesProcessed;
-  }
+  if (GNCFeatureFlags.refactorBleL2capEnabled) {
+    if (_connectionHandlers.payloadHandler) {
+      dispatch_async(_callbackQueue, ^{
+        _connectionHandlers.payloadHandler([realData copy]);
+      });
+    }
+  } else {
+    // TODO: b/399815436 - Refactor the validation logic to connections layer.
+    if ([self handleL2CAPPacketFromData:realData]) {
+      return bytesProcessed;
+    }
 
-  // TODO: b/399815436 - All BLE control packets should be handled here and not passed to
-  // upper layer. Need to refine the flow after refactoring.
-  if (_incomingConnection && !_handledReceivedBLEIntroPacket) {
-    [self handleBLEIntroPacketFromData:realData];
-    return bytesProcessed;
-  }
+    // TODO: b/399815436 - All BLE control packets should be handled here and not passed to
+    // upper layer. Need to refine the flow after refactoring.
+    if (_incomingConnection && !_handledReceivedBLEIntroPacket) {
+      [self handleBLEIntroPacketFromData:realData];
+      return bytesProcessed;
+    }
 
-  if (realData.length < _serviceIDHash.length) {
-    GNCLoggerError(@"Data length mismatch. Expected size: > %lu, Data: %@", _serviceIDHash.length,
-                   realData);
-    return bytesProcessed;
-  }
+    if (realData.length < _serviceIDHash.length) {
+      GNCLoggerError(@"Data length mismatch. Expected size: > %lu, Data: %@", _serviceIDHash.length,
+                     realData);
+      return bytesProcessed;
+    }
 
-  // Extract the service ID prefix from each data packet and validate it.
-  NSUInteger prefixLength = _serviceIDHash.length;
-  if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
-    return bytesProcessed;
-  }
+    // Extract the service ID prefix from each data packet and validate it.
+    NSUInteger prefixLength = _serviceIDHash.length;
+    if (![[realData subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
+      return bytesProcessed;
+    }
 
-  dispatch_async(_selfQueue, ^{
-    [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesPacketAcknowledgementPacket(
-                          _serviceIDHash, realData.length))
-        completionBlock:^(BOOL result){
-        }];
-  });
-  if (_connectionHandlers.payloadHandler) {
-    dispatch_async(_callbackQueue, ^{
-      _connectionHandlers.payloadHandler([NSData
-          dataWithData:[realData subdataWithRange:NSMakeRange(prefixLength,
-                                                              realData.length - prefixLength)]]);
+    dispatch_async(_selfQueue, ^{
+      [_stream sendData:PrefixLengthData(GNCMGenerateBLEFramesPacketAcknowledgementPacket(
+                            _serviceIDHash, realData.length))
+          completionBlock:^(BOOL result){
+          }];
     });
+    if (_connectionHandlers.payloadHandler) {
+      dispatch_async(_callbackQueue, ^{
+        _connectionHandlers.payloadHandler(
+            [realData subdataWithRange:NSMakeRange(prefixLength, realData.length - prefixLength)]);
+      });
+    }
   }
   return bytesProcessed;
 }

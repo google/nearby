@@ -52,6 +52,9 @@ constexpr auto kEnableBleL2cap =
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
     flags::Flag<bool>(kConfigPackage, "45401515", true);
+// When true, refactor the BLE/L2CAP logic in Nearby Connections SDK.
+constexpr auto kRefactorBleL2cap =
+    flags::Flag<bool>(kConfigPackage, "45713654", false);
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);

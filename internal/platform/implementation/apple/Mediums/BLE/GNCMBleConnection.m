@@ -14,6 +14,7 @@
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleConnection.h"
 
+#import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCLeaks.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCMBleUtils.h"
@@ -58,14 +59,18 @@ NS_ASSUME_NONNULL_BEGIN
          completion:(GNCMPayloadResultHandler)completion {
   dispatch_async(_selfQueue, ^{
     NSMutableData *packet;
-    if (data.length == 0) {
-      // Get the Control introduction packet if data length is 0.
-      NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
-      packet = [NSMutableData dataWithData:introData];
+    if (GNCFeatureFlags.refactorBleL2capEnabled) {
+      packet = [NSMutableData dataWithData:data];
     } else {
-      // Prefix the service ID hash.
-      packet = [NSMutableData dataWithData:_serviceIDHash];
-      [packet appendData:data];
+      if (data.length == 0) {
+        // Get the Control introduction packet if data length is 0.
+        NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
+        packet = [NSMutableData dataWithData:introData];
+      } else {
+        // Prefix the service ID hash.
+        packet = [NSMutableData dataWithData:_serviceIDHash];
+        [packet appendData:data];
+      }
     }
 
     [_socket sendData:packet
@@ -100,46 +105,55 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)socket:(GNSSocket *)socket didReceiveData:(NSData *)data {
-  // Extract the service ID prefix from each data packet.
-  NSMutableData *packet;
-  NSUInteger prefixLength = _serviceIDHash.length;
-  if (_expectedIntroPacket && !_receivedIntroPacket) {
-    // Check if the first packet is intro packet.
-    if (!_serviceIDHash) {
-      // If _serviceIdHash is nil, then we need to parse the first incoming packet if it conforms to
-      // introducion packet and extract the serviceIdHash for coming packets.
-      NSData *serviceIDHash = GNCMParseBLEFramesIntroductionPacket(data);
-      if (serviceIDHash) {
-        _serviceIDHash = serviceIDHash;
-        _receivedIntroPacket = YES;
-      } else {
-        GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+  if (GNCFeatureFlags.refactorBleL2capEnabled) {
+    dispatch_async(_selfQueue, ^{
+      if (_connectionHandlers.payloadHandler) {
+        dispatch_async(_callbackQueue, ^{
+          _connectionHandlers.payloadHandler([data copy]);
+        });
       }
-    } else {
-      NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
-      if ([data isEqual:introData]) {
-        _receivedIntroPacket = YES;
+    });
+  } else {
+    // Extract the service ID prefix from each data packet.
+    NSData *packet;
+    NSUInteger prefixLength = _serviceIDHash.length;
+    if (_expectedIntroPacket && !_receivedIntroPacket) {
+      // Check if the first packet is intro packet.
+      if (!_serviceIDHash) {
+        // If _serviceIdHash is nil, then we need to parse the first incoming packet if it conforms
+        // to introducion packet and extract the serviceIdHash for coming packets.
+        NSData *serviceIDHash = GNCMParseBLEFramesIntroductionPacket(data);
+        if (serviceIDHash) {
+          _serviceIDHash = serviceIDHash;
+          _receivedIntroPacket = YES;
+        } else {
+          GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+        }
       } else {
-        GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+        NSData *introData = GNCMGenerateBLEFramesIntroductionPacket(_serviceIDHash);
+        if ([data isEqual:introData]) {
+          _receivedIntroPacket = YES;
+        } else {
+          GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong intro packet and discarded");
+        }
       }
+      return;
     }
-    return;
-  }
 
-  if (![[data subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
-    GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong data packet and discarded");
-    return;
-  }
-  packet = [NSMutableData
-      dataWithData:[data subdataWithRange:NSMakeRange(prefixLength, data.length - prefixLength)]];
-
-  dispatch_async(_selfQueue, ^{
-    if (_connectionHandlers.payloadHandler) {
-      dispatch_async(_callbackQueue, ^{
-        _connectionHandlers.payloadHandler(packet);
-      });
+    if (![[data subdataWithRange:NSMakeRange(0, prefixLength)] isEqual:_serviceIDHash]) {
+      GNCLoggerInfo(@"[NEARBY] Input stream: Received wrong data packet and discarded");
+      return;
     }
-  });
+    packet = [data subdataWithRange:NSMakeRange(prefixLength, data.length - prefixLength)];
+
+    dispatch_async(_selfQueue, ^{
+      if (_connectionHandlers.payloadHandler) {
+        dispatch_async(_callbackQueue, ^{
+          _connectionHandlers.payloadHandler(packet);
+        });
+      }
+    });
+  }
 }
 
 @end
