@@ -3250,30 +3250,30 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials fi
   // accessors -------------------------------------------------------
 
   enum : int {
-    kAddresseCandidatesFieldNumber = 6,
+    kAddressCandidatesFieldNumber = 6,
     kSsidFieldNumber = 1,
     kPasswordFieldNumber = 2,
     kGatewayFieldNumber = 4,
     kPortFieldNumber = 3,
     kFrequencyFieldNumber = 5,
   };
-  // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 6;
-  int addresse_candidates_size() const;
+  // repeated .location.nearby.connections.ServiceAddress address_candidates = 6;
+  int address_candidates_size() const;
   private:
-  int _internal_addresse_candidates_size() const;
+  int _internal_address_candidates_size() const;
   public:
-  void clear_addresse_candidates();
-  ::location::nearby::connections::ServiceAddress* mutable_addresse_candidates(int index);
+  void clear_address_candidates();
+  ::location::nearby::connections::ServiceAddress* mutable_address_candidates(int index);
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >*
-      mutable_addresse_candidates();
+      mutable_address_candidates();
   private:
-  const ::location::nearby::connections::ServiceAddress& _internal_addresse_candidates(int index) const;
-  ::location::nearby::connections::ServiceAddress* _internal_add_addresse_candidates();
+  const ::location::nearby::connections::ServiceAddress& _internal_address_candidates(int index) const;
+  ::location::nearby::connections::ServiceAddress* _internal_add_address_candidates();
   public:
-  const ::location::nearby::connections::ServiceAddress& addresse_candidates(int index) const;
-  ::location::nearby::connections::ServiceAddress* add_addresse_candidates();
+  const ::location::nearby::connections::ServiceAddress& address_candidates(int index) const;
+  ::location::nearby::connections::ServiceAddress* add_address_candidates();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >&
-      addresse_candidates() const;
+      address_candidates() const;
 
   // optional string ssid = 1;
   bool has_ssid() const;
@@ -3364,7 +3364,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials fi
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress > addresse_candidates_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress > address_candidates_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ssid_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr password_;
   static const ::PROTOBUF_NAMESPACE_ID::internal::LazyString _i_give_permission_to_break_this_code_default_gateway_;
@@ -3488,27 +3488,27 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kAddresseCandidatesFieldNumber = 3,
+    kAddressCandidatesFieldNumber = 3,
     kIpAddressFieldNumber = 1,
     kWifiPortFieldNumber = 2,
   };
-  // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 3;
-  int addresse_candidates_size() const;
+  // repeated .location.nearby.connections.ServiceAddress address_candidates = 3;
+  int address_candidates_size() const;
   private:
-  int _internal_addresse_candidates_size() const;
+  int _internal_address_candidates_size() const;
   public:
-  void clear_addresse_candidates();
-  ::location::nearby::connections::ServiceAddress* mutable_addresse_candidates(int index);
+  void clear_address_candidates();
+  ::location::nearby::connections::ServiceAddress* mutable_address_candidates(int index);
   ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >*
-      mutable_addresse_candidates();
+      mutable_address_candidates();
   private:
-  const ::location::nearby::connections::ServiceAddress& _internal_addresse_candidates(int index) const;
-  ::location::nearby::connections::ServiceAddress* _internal_add_addresse_candidates();
+  const ::location::nearby::connections::ServiceAddress& _internal_address_candidates(int index) const;
+  ::location::nearby::connections::ServiceAddress* _internal_add_address_candidates();
   public:
-  const ::location::nearby::connections::ServiceAddress& addresse_candidates(int index) const;
-  ::location::nearby::connections::ServiceAddress* add_addresse_candidates();
+  const ::location::nearby::connections::ServiceAddress& address_candidates(int index) const;
+  ::location::nearby::connections::ServiceAddress* add_address_candidates();
   const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >&
-      addresse_candidates() const;
+      address_candidates() const;
 
   // optional bytes ip_address = 1;
   bool has_ip_address() const;
@@ -3550,7 +3550,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket final :
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::HasBits<1> _has_bits_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress > addresse_candidates_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress > address_candidates_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr ip_address_;
   int32_t wifi_port_;
   friend struct ::TableStruct_connections_2fimplementation_2fproto_2foffline_5fwire_5fformats_2eproto;
@@ -13253,44 +13253,44 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredenti
   // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.frequency)
 }
 
-// repeated .location.nearby.connections.ServiceAddress addresse_candidates = 6;
-inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::_internal_addresse_candidates_size() const {
-  return addresse_candidates_.size();
+// repeated .location.nearby.connections.ServiceAddress address_candidates = 6;
+inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::_internal_address_candidates_size() const {
+  return address_candidates_.size();
 }
-inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::addresse_candidates_size() const {
-  return _internal_addresse_candidates_size();
+inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::address_candidates_size() const {
+  return _internal_address_candidates_size();
 }
-inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::clear_addresse_candidates() {
-  addresse_candidates_.Clear();
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::clear_address_candidates() {
+  address_candidates_.Clear();
 }
-inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::mutable_addresse_candidates(int index) {
-  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.addresse_candidates)
-  return addresse_candidates_.Mutable(index);
+inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::mutable_address_candidates(int index) {
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.address_candidates)
+  return address_candidates_.Mutable(index);
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >*
-BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::mutable_addresse_candidates() {
-  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.addresse_candidates)
-  return &addresse_candidates_;
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::mutable_address_candidates() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.address_candidates)
+  return &address_candidates_;
 }
-inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::_internal_addresse_candidates(int index) const {
-  return addresse_candidates_.Get(index);
+inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::_internal_address_candidates(int index) const {
+  return address_candidates_.Get(index);
 }
-inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::addresse_candidates(int index) const {
-  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.addresse_candidates)
-  return _internal_addresse_candidates(index);
+inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::address_candidates(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.address_candidates)
+  return _internal_address_candidates(index);
 }
-inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::_internal_add_addresse_candidates() {
-  return addresse_candidates_.Add();
+inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::_internal_add_address_candidates() {
+  return address_candidates_.Add();
 }
-inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::add_addresse_candidates() {
-  ::location::nearby::connections::ServiceAddress* _add = _internal_add_addresse_candidates();
-  // @@protoc_insertion_point(field_add:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.addresse_candidates)
+inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::add_address_candidates() {
+  ::location::nearby::connections::ServiceAddress* _add = _internal_add_address_candidates();
+  // @@protoc_insertion_point(field_add:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.address_candidates)
   return _add;
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >&
-BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::addresse_candidates() const {
-  // @@protoc_insertion_point(field_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.addresse_candidates)
-  return addresse_candidates_;
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::address_candidates() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiHotspotCredentials.address_candidates)
+  return address_candidates_;
 }
 
 // -------------------------------------------------------------------
@@ -13394,44 +13394,44 @@ inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::set_
   // @@protoc_insertion_point(field_set:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.wifi_port)
 }
 
-// repeated .location.nearby.connections.ServiceAddress addresse_candidates = 3;
-inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_internal_addresse_candidates_size() const {
-  return addresse_candidates_.size();
+// repeated .location.nearby.connections.ServiceAddress address_candidates = 3;
+inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_internal_address_candidates_size() const {
+  return address_candidates_.size();
 }
-inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::addresse_candidates_size() const {
-  return _internal_addresse_candidates_size();
+inline int BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::address_candidates_size() const {
+  return _internal_address_candidates_size();
 }
-inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::clear_addresse_candidates() {
-  addresse_candidates_.Clear();
+inline void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::clear_address_candidates() {
+  address_candidates_.Clear();
 }
-inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::mutable_addresse_candidates(int index) {
-  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.addresse_candidates)
-  return addresse_candidates_.Mutable(index);
+inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::mutable_address_candidates(int index) {
+  // @@protoc_insertion_point(field_mutable:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.address_candidates)
+  return address_candidates_.Mutable(index);
 }
 inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >*
-BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::mutable_addresse_candidates() {
-  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.addresse_candidates)
-  return &addresse_candidates_;
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::mutable_address_candidates() {
+  // @@protoc_insertion_point(field_mutable_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.address_candidates)
+  return &address_candidates_;
 }
-inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_internal_addresse_candidates(int index) const {
-  return addresse_candidates_.Get(index);
+inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_internal_address_candidates(int index) const {
+  return address_candidates_.Get(index);
 }
-inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::addresse_candidates(int index) const {
-  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.addresse_candidates)
-  return _internal_addresse_candidates(index);
+inline const ::location::nearby::connections::ServiceAddress& BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::address_candidates(int index) const {
+  // @@protoc_insertion_point(field_get:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.address_candidates)
+  return _internal_address_candidates(index);
 }
-inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_internal_add_addresse_candidates() {
-  return addresse_candidates_.Add();
+inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_internal_add_address_candidates() {
+  return address_candidates_.Add();
 }
-inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::add_addresse_candidates() {
-  ::location::nearby::connections::ServiceAddress* _add = _internal_add_addresse_candidates();
-  // @@protoc_insertion_point(field_add:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.addresse_candidates)
+inline ::location::nearby::connections::ServiceAddress* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::add_address_candidates() {
+  ::location::nearby::connections::ServiceAddress* _add = _internal_add_address_candidates();
+  // @@protoc_insertion_point(field_add:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.address_candidates)
   return _add;
 }
 inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::location::nearby::connections::ServiceAddress >&
-BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::addresse_candidates() const {
-  // @@protoc_insertion_point(field_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.addresse_candidates)
-  return addresse_candidates_;
+BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::address_candidates() const {
+  // @@protoc_insertion_point(field_list:location.nearby.connections.BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiLanSocket.address_candidates)
+  return address_candidates_;
 }
 
 // -------------------------------------------------------------------

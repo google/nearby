@@ -181,7 +181,7 @@ struct ServiceAddressDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ServiceAddressDefaultTypeInternal _ServiceAddress_default_instance_;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
-  : addresse_candidates_()
+  : address_candidates_()
   , ssid_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , password_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , gateway_(nullptr)
@@ -198,7 +198,7 @@ struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentialsDe
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentialsDefaultTypeInternal _BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials_default_instance_;
 constexpr BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
-  : addresse_candidates_()
+  : address_candidates_()
   , ip_address_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , wifi_port_(0){}
 struct BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocketDefaultTypeInternal {
@@ -5977,7 +5977,7 @@ const ::PROTOBUF_NAMESPACE_ID::internal::LazyString BandwidthUpgradeNegotiationF
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
-  addresse_candidates_(arena) {
+  address_candidates_(arena) {
   SharedCtor();
   if (!is_message_owned) {
     RegisterArenaDtor(arena);
@@ -5987,7 +5987,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::Bandwid
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _has_bits_(from._has_bits_),
-      addresse_candidates_(from.addresse_candidates_) {
+      address_candidates_(from.address_candidates_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   ssid_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -6060,7 +6060,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::Cl
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  addresse_candidates_.Clear();
+  address_candidates_.Clear();
   cached_has_bits = _has_bits_[0];
   if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
@@ -6133,13 +6133,13 @@ const char* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredenti
         } else
           goto handle_unusual;
         continue;
-      // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 6;
+      // repeated .location.nearby.connections.ServiceAddress address_candidates = 6;
       case 6:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
           ptr -= 1;
           do {
             ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_addresse_candidates(), ptr);
+            ptr = ctx->ParseMessage(_internal_add_address_candidates(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<50>(ptr));
@@ -6207,12 +6207,12 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_frequency(), target);
   }
 
-  // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 6;
+  // repeated .location.nearby.connections.ServiceAddress address_candidates = 6;
   for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->_internal_addresse_candidates_size()); i < n; i++) {
+      n = static_cast<unsigned int>(this->_internal_address_candidates_size()); i < n; i++) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(6, this->_internal_addresse_candidates(i), target, stream);
+      InternalWriteMessage(6, this->_internal_address_candidates(i), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6231,9 +6231,9 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 6;
-  total_size += 1UL * this->_internal_addresse_candidates_size();
-  for (const auto& msg : this->addresse_candidates_) {
+  // repeated .location.nearby.connections.ServiceAddress address_candidates = 6;
+  total_size += 1UL * this->_internal_address_candidates_size();
+  for (const auto& msg : this->address_candidates_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
@@ -6292,7 +6292,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::Me
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  addresse_candidates_.MergeFrom(from.addresse_candidates_);
+  address_candidates_.MergeFrom(from.address_candidates_);
   cached_has_bits = from._has_bits_[0];
   if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
@@ -6332,7 +6332,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiHotspotCredentials::In
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  addresse_candidates_.InternalSwap(&other->addresse_candidates_);
+  address_candidates_.InternalSwap(&other->address_candidates_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &ssid_, lhs_arena,
@@ -6373,7 +6373,7 @@ class BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_Internal 
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
-  addresse_candidates_(arena) {
+  address_candidates_(arena) {
   SharedCtor();
   if (!is_message_owned) {
     RegisterArenaDtor(arena);
@@ -6383,7 +6383,7 @@ BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::BandwidthUpgrade
 BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket(const BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket& from)
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _has_bits_(from._has_bits_),
-      addresse_candidates_(from.addresse_candidates_) {
+      address_candidates_(from.address_candidates_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   ip_address_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
@@ -6433,7 +6433,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  addresse_candidates_.Clear();
+  address_candidates_.Clear();
   cached_has_bits = _has_bits_[0];
   if (cached_has_bits & 0x00000001u) {
     ip_address_.ClearNonDefaultToEmpty();
@@ -6468,13 +6468,13 @@ const char* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_Int
         } else
           goto handle_unusual;
         continue;
-      // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 3;
+      // repeated .location.nearby.connections.ServiceAddress address_candidates = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr -= 1;
           do {
             ptr += 1;
-            ptr = ctx->ParseMessage(_internal_add_addresse_candidates(), ptr);
+            ptr = ctx->ParseMessage(_internal_add_address_candidates(), ptr);
             CHK_(ptr);
             if (!ctx->DataAvailable(ptr)) break;
           } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<26>(ptr));
@@ -6524,12 +6524,12 @@ uint8_t* BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::_Intern
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_wifi_port(), target);
   }
 
-  // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 3;
+  // repeated .location.nearby.connections.ServiceAddress address_candidates = 3;
   for (unsigned int i = 0,
-      n = static_cast<unsigned int>(this->_internal_addresse_candidates_size()); i < n; i++) {
+      n = static_cast<unsigned int>(this->_internal_address_candidates_size()); i < n; i++) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(3, this->_internal_addresse_candidates(i), target, stream);
+      InternalWriteMessage(3, this->_internal_address_candidates(i), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6548,9 +6548,9 @@ size_t BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::ByteSizeL
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // repeated .location.nearby.connections.ServiceAddress addresse_candidates = 3;
-  total_size += 1UL * this->_internal_addresse_candidates_size();
-  for (const auto& msg : this->addresse_candidates_) {
+  // repeated .location.nearby.connections.ServiceAddress address_candidates = 3;
+  total_size += 1UL * this->_internal_address_candidates_size();
+  for (const auto& msg : this->address_candidates_) {
     total_size +=
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
   }
@@ -6590,7 +6590,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::MergeFrom(c
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  addresse_candidates_.MergeFrom(from.addresse_candidates_);
+  address_candidates_.MergeFrom(from.address_candidates_);
   cached_has_bits = from._has_bits_[0];
   if (cached_has_bits & 0x00000003u) {
     if (cached_has_bits & 0x00000001u) {
@@ -6621,7 +6621,7 @@ void BandwidthUpgradeNegotiationFrame_UpgradePathInfo_WifiLanSocket::InternalSwa
   auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  addresse_candidates_.InternalSwap(&other->addresse_candidates_);
+  address_candidates_.InternalSwap(&other->address_candidates_);
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &ip_address_, lhs_arena,
