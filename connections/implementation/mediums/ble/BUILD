@@ -53,6 +53,39 @@ cc_library(
 )
 
 cc_library(
+    name = "ble_socket",
+    srcs = ["ble_socket.cc"],
+    hdrs = ["ble_socket.h"],
+    compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [
+        "//connections/implementation:__subpackages__",
+        "//internal/platform/implementation/windows:__pkg__",
+    ],
+    deps = [
+        "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform:logging",
+        "//internal/platform:types",
+        "@com_google_absl//absl/base:core_headers",
+    ],
+)
+
+cc_test(
+    name = "ble_socket_test",
+    srcs = ["ble_socket_test.cc"],
+    deps = [
+        ":ble_socket",
+        "//internal/platform:base",
+        "//internal/platform:comm",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation/g3",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "ble",
     srcs = [
         "advertisement_read_result.cc",
