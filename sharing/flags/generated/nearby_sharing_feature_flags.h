@@ -118,7 +118,7 @@ constexpr auto kEnableResponsiveUi =
     flags::Flag<bool>(kConfigPackage, "45727212", false);
 // When true, enables UI experiments.
 constexpr auto kEnableUiExperiments =
-    flags::Flag<bool>(kConfigPackage, "45678202", false);
+    flags::Flag<bool>(kConfigPackage, "45678202", true);
 
 inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
   return {
