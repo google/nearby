@@ -42,6 +42,26 @@ ios_unit_test(
 )
 
 objc_library(
+    name = "PeripheralTestsLib",
+    testonly = 1,
+    srcs = [
+        "Peripheral/GNSFakePeripheralManager.m",
+    ],
+    hdrs = [
+        "Peripheral/GNSFakePeripheralManager.h",
+    ],
+    deps = [
+        "//internal/platform/implementation/apple/Log:GNCLogger",
+        "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Peripheral",
+        "//internal/platform/implementation/apple/Mediums/BLE/Sockets:Shared",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:Foundation",
+        "//third_party/apple_frameworks:XCTest",
+        "//third_party/objective_c/ocmock/v3:OCMock",
+    ],
+)
+
+objc_library(
     name = "SharedTestsLib",
     testonly = 1,
     srcs = [
