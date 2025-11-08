@@ -46,7 +46,14 @@ class InjectedBluetoothDevice : public api::BluetoothDevice {
   // api::BluetoothDevice:
   std::string GetName() const override { return name_; }
 
-  std::string GetMacAddress() const override { return mac_address_; }
+  MacAddress GetAddress() const override {
+    if (mac_address_.empty()) {
+      return MacAddress();
+    }
+    MacAddress address;
+    MacAddress::FromString(mac_address_, address);
+    return address;
+  }
 
  private:
   const std::string name_;

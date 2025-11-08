@@ -66,21 +66,7 @@ class BluetoothAdapter {
   virtual bool SetName(absl::string_view name) = 0;
   virtual bool SetName(absl::string_view name, bool persist) = 0;
 
-  // Returns BT MAC address assigned to this adapter.
-  ABSL_DEPRECATED("Use GetAddress() instead.")
-  virtual std::string GetMacAddress() const = 0;
-
-  // Implementation for migration only.  Once subclasses implement this, the
-  // above GetMacAddress() can be removed.
-  virtual MacAddress GetAddress() const {
-    std::string mac_address = GetMacAddress();
-    if (mac_address.empty()) {
-      return MacAddress();
-    }
-    MacAddress address;
-    MacAddress::FromString(mac_address, address);
-    return address;
-  }
+  virtual MacAddress GetAddress() const = 0;
 };
 
 }  // namespace api

@@ -841,14 +841,6 @@ MacAddress BluetoothAdapter::GetAddress() const {
   return mac_address;
 }
 
-std::string BluetoothAdapter::GetMacAddress() const {
-  MacAddress address = GetAddress();
-  if (!address.IsSet()) {
-    return "";
-  }
-  return address.ToString();
-}
-
 std::string BluetoothAdapter::GetNameFromRegistry(PHKEY hKey) const {
   DWORD local_name_size = 0;
   DWORD value_type;

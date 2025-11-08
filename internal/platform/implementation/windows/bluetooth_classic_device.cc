@@ -72,10 +72,6 @@ BluetoothDevice::BluetoothDevice(
 }
 
 // Returns BT MAC address assigned to this device.
-std::string BluetoothDevice::GetMacAddress() const {
-  return mac_address_.ToString();
-}
-
 MacAddress BluetoothDevice::GetAddress() const { return mac_address_; }
 
 // Checks cache first, will check uncached if no result.

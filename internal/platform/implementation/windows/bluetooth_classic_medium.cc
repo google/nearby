@@ -293,7 +293,7 @@ api::BluetoothDevice* BluetoothClassicMedium::GetRemoteDevice(
 std::unique_ptr<api::BluetoothPairing> BluetoothClassicMedium::CreatePairing(
     api::BluetoothDevice& remote_device) {
   VLOG(1) << __func__ << ": Start to createPairing with device: "
-          << remote_device.GetMacAddress();
+          << remote_device.GetAddress().ToString();
   try {
     winrt::Windows::Devices::Bluetooth::BluetoothDevice bluetooth_device =
         winrt::Windows::Devices::Bluetooth::BluetoothDevice::

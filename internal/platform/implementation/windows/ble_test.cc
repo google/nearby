@@ -28,6 +28,7 @@
 #include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/windows/bluetooth_adapter.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -50,7 +51,7 @@ class MockBluetoothAdapter : public BluetoothAdapter {
   MOCK_METHOD(bool, SetName, (absl::string_view name), (override));
   MOCK_METHOD(bool, SetName, (absl::string_view name, bool persist),
               (override));
-  MOCK_METHOD(std::string, GetMacAddress, (), (const, override));
+  MOCK_METHOD(MacAddress, GetAddress, (), (const, override));
 };
 
 }  // namespace

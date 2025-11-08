@@ -25,6 +25,7 @@
 #include "internal/platform/implementation/ble.h"
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/uuid.h"
 
 namespace nearby {
@@ -47,7 +48,7 @@ class MockBluetoothAdapter : public BluetoothAdapter {
   MOCK_METHOD(bool, SetName, (absl::string_view name, bool persist),
               (override));
   MOCK_METHOD(std::string, GetName, (), (const, override));
-  MOCK_METHOD(std::string, GetMacAddress, (), (const, override));
+  MOCK_METHOD(MacAddress, GetAddress, (), (const, override));
   MOCK_METHOD(bool, SetScanMode, (api::BluetoothAdapter::ScanMode scan_mode),
               (override));
   MOCK_METHOD(api::BluetoothAdapter::ScanMode, GetScanMode, (),

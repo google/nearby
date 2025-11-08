@@ -414,6 +414,7 @@ cc_test(
         ":windows",
         "//internal/platform:base",
         "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:types",

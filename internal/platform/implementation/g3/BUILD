@@ -140,6 +140,7 @@ cc_test(
         ":g3",
         "//internal/platform:base",
         "//internal/platform:cancellation_flag",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
