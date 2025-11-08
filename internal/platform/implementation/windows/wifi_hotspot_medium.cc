@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "absl/strings/str_format.h"
@@ -98,6 +99,17 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
                                  service_address.port)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
+  }
+  if (server_address.IsV6LinkLocal()) {
+    // Link local address need to be scoped to the wifi interface.
+    std::optional<uint32_t> wifi_interface_index =
+        wifi_hotspot_native_.GetWifiInterfaceIndex();
+    if (!wifi_interface_index.has_value()) {
+      LOG(ERROR)
+          << "Wifi interface index is not available, skip link local address.";
+      return nullptr;
+    }
+    server_address.SetScopeId(wifi_interface_index.value());
   }
   VLOG(1) << "ConnectToService address: " << server_address.ToString();
   LOG(INFO) << "Connecting to service.";

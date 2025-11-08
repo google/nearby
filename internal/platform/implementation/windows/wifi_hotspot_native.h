@@ -22,7 +22,9 @@
 #include <wlanapi.h>
 // clang-format on
 
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "absl/base/nullability.h"
@@ -48,6 +50,10 @@ class WifiHotspotNative {
   // Returns true if the interface has a non local scoped IPv4 address.
   bool HasAssignedAddress();
   bool RenewIpv4Address() const;
+  // Return the interface index of the wifi interface used to connect to the
+  // hotspot.
+  // On error, returns std::nullopt.
+  std::optional<uint32_t> GetWifiInterfaceIndex() const;
 
  private:
   // Context for WLAN notification callback.

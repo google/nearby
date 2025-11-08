@@ -22,9 +22,11 @@
 #include <cguid.h>
 // clang-format on
 
+#include <cstdint>
 #include <cstring>
 #include <cwchar>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -432,6 +434,23 @@ bool WifiHotspotNative::RenewIpv4Address() const {
   }
   LOG(ERROR) << "Failed to convert interface guid to luid.";
   return false;
+}
+
+std::optional<uint32_t> WifiHotspotNative::GetWifiInterfaceIndex() const {
+  GUID interface_guid = GetInterfaceGuid();
+  if (interface_guid == GUID_NULL) {
+    LOG(ERROR) << __func__ << ": No available WLAN Interface to use.";
+    return std::nullopt;
+  }
+  NET_LUID luid;
+  if (ConvertInterfaceGuidToLuid(&interface_guid, &luid) == NO_ERROR) {
+    NET_IFINDEX interface_index = 0;
+    if (ConvertInterfaceLuidToIndex(&luid, &interface_index) == NO_ERROR) {
+      return interface_index;
+    }
+  }
+  LOG(ERROR) << "Failed to convert interface guid to interface index.";
+  return std::nullopt;
 }
 
 }  // namespace nearby::windows
