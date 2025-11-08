@@ -81,13 +81,12 @@ bool WifiHotspotMedium::IsInterfaceValid() const {
 }
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
-    absl::string_view ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(WARNING) << __func__ << " : Connect to remote service.";
 
-  if (ip_address.empty() || port == 0) {
-    LOG(ERROR) << "no valid service address and port to connect: "
-               << "ip_address = " << ip_address << ", port = " << port;
+  if (service_address.address.empty() || service_address.port == 0) {
+    LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }
 
@@ -95,8 +94,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableIpv6DualStack);
   SocketAddress server_address(dual_stack);
-  if (!server_address.FromString(server_address, std::string(ip_address),
-                                 port)) {
+  if (!server_address.FromBytes(server_address, service_address.address,
+                                 service_address.port)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }

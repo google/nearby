@@ -75,7 +75,7 @@ class WifiHotspot {
   // Returns socket instance. On success, WifiHotspotSocket.IsValid() return
   // true.
   ErrorOr<WifiHotspotSocket> Connect(const std::string& service_id,
-                                     const std::string& ip_address, int port,
+                                     const ServiceAddress& service_address,
                                      CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 

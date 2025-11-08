@@ -14,9 +14,11 @@
 
 #include "internal/platform/implementation/g3/wifi_hotspot.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
@@ -27,6 +29,7 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
@@ -113,8 +116,14 @@ Exception WifiHotspotServerSocket::DoClose() {
 void WifiHotspotServerSocket::PopulateHotspotCredentials(
     HotspotCredentials& hotspot_credentials) {
   absl::MutexLock lock(mutex_);
-  hotspot_credentials.SetGateway(ip_address_);
-  hotspot_credentials.SetPort(port_);
+  std::vector<ServiceAddress> service_addresses = {
+    {
+      .port = static_cast<uint16_t>(port_),
+    },
+  };
+  service_addresses.back().address.assign(ip_address_.begin(),
+                                          ip_address_.end());
+  hotspot_credentials.SetAddressCandidates(std::move(service_addresses));
 }
 
 // Code for WifiHotspotMedium
@@ -199,15 +208,20 @@ bool WifiHotspotMedium::DisconnectWifiHotspot() {
 }
 
 std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
-    absl::string_view ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
-  std::string socket_name = WifiHotspotServerSocket::GetName(ip_address, port);
+  std::string ip_address = std::string(service_address.address.data(),
+                                       service_address.address.size());
+  std::string socket_name =
+      WifiHotspotServerSocket::GetName(ip_address, service_address.port);
   LOG(INFO) << "G3 WifiHotspot ConnectToService [self]: medium=" << this
             << ", ip address + port=" << socket_name;
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
-  auto* remote_medium =
-      static_cast<WifiHotspotMedium*>(env.GetWifiHotspotMedium({}, ip_address));
+  auto* remote_medium = static_cast<WifiHotspotMedium*>(
+      env.GetWifiHotspotMedium({}, WifiUtils::GetHumanReadableIpAddress(
+                                       {service_address.address.data(),
+                                        service_address.address.size()})));
   if (remote_medium == nullptr) {
     return {};
   }
@@ -260,20 +274,14 @@ WifiHotspotMedium::ListenForService(int port) {
   auto& env = MediumEnvironment::Instance();
   auto server_socket = std::make_unique<WifiHotspotServerSocket>();
 
-  std::string dot_decimal_ip;
   std::string ip_address = env.GetFakeIPAddress();
   if (ip_address.empty()) return nullptr;
 
-  for (auto byte : ip_address) {
-    absl::StrAppend(&dot_decimal_ip, absl::StrFormat("%d", byte), ".");
-  }
-  dot_decimal_ip.pop_back();
-
-  server_socket->SetIPAddress(dot_decimal_ip);
+  server_socket->SetIPAddress(ip_address);
   int port_to_use = port == 0 ? env.GetFakePort() : port;
   server_socket->SetPort(port_to_use);
   std::string socket_name =
-      WifiHotspotServerSocket::GetName(dot_decimal_ip, port_to_use);
+      WifiHotspotServerSocket::GetName(ip_address, port_to_use);
   server_socket->SetCloseNotifier([this, socket_name]() {
     absl::MutexLock lock(mutex_);
     server_sockets_.erase(socket_name);

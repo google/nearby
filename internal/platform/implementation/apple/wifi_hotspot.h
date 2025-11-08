@@ -120,7 +120,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
    * otherwise.
    */
   std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
-      absl::string_view ip_address, int port, CancellationFlag* cancellation_flag) override;
+      const ServiceAddress& service_address, CancellationFlag* cancellation_flag) override;
 
   // IOS is not supporting WifiHotspot Server yet.
   bool StartWifiHotspot(HotspotCredentials* hotspot_credentials) override { return false; }

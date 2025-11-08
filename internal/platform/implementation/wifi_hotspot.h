@@ -15,9 +15,13 @@
 #ifndef PLATFORM_API_WIFI_HOTSPOT_H_
 #define PLATFORM_API_WIFI_HOTSPOT_H_
 
-#include <string>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <utility>
 
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/wifi_credential.h"
@@ -82,7 +86,7 @@ class WifiHotspotMedium {
   // On success, returns a new WifiHotspotSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiHotspotSocket> ConnectToService(
-      absl::string_view ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) = 0;
 
   // Listens for incoming connection.
@@ -108,7 +112,7 @@ class WifiHotspotMedium {
   virtual bool DisconnectWifiHotspot() = 0;
 
   // Returns the port range as a pair of min and max port.
-  virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
+  virtual std::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() = 0;
 };
 

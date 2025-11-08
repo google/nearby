@@ -15,11 +15,22 @@
 #ifndef PLATFORM_BASE_WIFI_CREDENTIAL_H_
 #define PLATFORM_BASE_WIFI_CREDENTIAL_H_
 
+#include <cstdint>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "proto/connections_enums.pb.h"
+#include "internal/platform/implementation/wifi_utils.h"
 
 namespace nearby {
+
+struct ServiceAddress {
+  // IP address in MSB-first order.
+  // IPv4 address is 4 bytes, and IPv6 address is 16 bytes.
+  std::vector<char> address;
+  uint16_t port;
+};
 
 // Credentials for the currently-hosted Wifi hotspot (if any)
 // Class HotspotCredentials is copyable & movable
@@ -41,31 +52,43 @@ class HotspotCredentials {
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
 
+  // Get/Set Gateway and Port have been superceded by Get/SetAddressCandidates.
+
   // Gets IP Address in string format.
   // This is the IP address at which the service is provided.
-  std::string GetGateway() const { return gateway_; }
+  std::string GetGateway() const {
+    if (gateway_.empty() && !address_candidates_.empty()) {
+      return WifiUtils::GetHumanReadableIpAddress(
+          {reinterpret_cast<const char*>(
+               address_candidates_.back().address.data()),
+           address_candidates_.back().address.size()});
+    }
+    return gateway_;
+  }
   void SetGateway(const std::string& gateway) { gateway_ = gateway; }
 
   // Gets the Port number
-  int GetPort() const { return port_; }
+  int GetPort() const {
+    if (port_ == 0 && !address_candidates_.empty()) {
+      return address_candidates_.back().port;
+    }
+    return port_;
+  }
+
   // Set port_
   void SetPort(const int port) { port_ = port; }
+
+  std::vector<ServiceAddress> GetAddressCandidates() const {
+    return address_candidates_;
+  }
+  void SetAddressCandidates(std::vector<ServiceAddress> address_candidates) {
+    address_candidates_ = std::move(address_candidates);
+  }
 
   // Gets the Frequency
   int GetFrequency() const { return frequency_; }
   // Set frequency_
   void SetFrequency(int frequency) { frequency_ = frequency; }
-
-  // Gets the Band
-  location::nearby::proto::connections::ConnectionBand GetBand() const {
-    return band_;
-  }
-
-  // Gets the Technology
-  location::nearby::proto::connections::ConnectionTechnology GetTechnology()
-      const {
-    return technology_;
-  }
 
  private:
   std::string ssid_;
@@ -73,8 +96,7 @@ class HotspotCredentials {
   std::string gateway_;
   int port_ = 0;
   int frequency_ = -1;
-  location::nearby::proto::connections::ConnectionBand band_;
-  location::nearby::proto::connections::ConnectionTechnology technology_;
+  std::vector<ServiceAddress> address_candidates_;
 };
 
 // Credentials for the currently-hosted WifiDirect GO (if any)

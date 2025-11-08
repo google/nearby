@@ -256,7 +256,7 @@ bool WifiHotspot::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
-    const std::string& service_id, const std::string& ip_address, int port,
+    const std::string& service_id, const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   if (service_id.empty()) {
@@ -294,7 +294,7 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
           OperationResultCode::
               CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
     }
-    socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
+    socket = medium_.ConnectToService(service_address, cancellation_flag);
     if (socket.IsValid()) {
       break;
     }

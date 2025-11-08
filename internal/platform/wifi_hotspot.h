@@ -156,7 +156,7 @@ class WifiHotspotMedium {
 
   // Returns a new WifiHotspotSocket by ip address and port.
   // On Success, WifiHotspotSocket::IsValid()returns true.
-  WifiHotspotSocket ConnectToService(absl::string_view ip_address, int port,
+  WifiHotspotSocket ConnectToService(const ServiceAddress& service_address,
                                      CancellationFlag* cancellation_flag);
 
   // Returns a new WifiHotspotServerSocket.

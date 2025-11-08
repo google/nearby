@@ -47,6 +47,7 @@ const char kIPAddress[] = "192.168.1.2";
   GNCHotspotMedium *_medium;
   CLLocationManagerFake *_fakeLocationManager;
   std::unique_ptr<nearby::apple::WifiHotspotMedium> _hotspotMedium;
+  nearby::ServiceAddress _service_address;
 }
 
 - (void)setUp {
@@ -57,6 +58,10 @@ const char kIPAddress[] = "192.168.1.2";
   _fakeLocationManager = [[CLLocationManagerFake alloc] init];
   _medium.locationManager = _fakeLocationManager;
   _hotspotMedium = std::make_unique<nearby::apple::WifiHotspotMedium>(_medium);
+  _service_address = {
+    .address = {static_cast<char>(192), static_cast<char>(168), 1, 2},
+    .port = 1234,
+  };
 }
 
 - (void)tearDown {
@@ -82,9 +87,8 @@ const char kIPAddress[] = "192.168.1.2";
 
 - (void)testConnectToService {
   nearby::CancellationFlag cancellationFlag;
-
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
 
   XCTAssertTrue(socket != nullptr);
   XCTAssertEqualObjects(_fakeNWFramework.connectedToHost.dottedRepresentation,
@@ -96,7 +100,7 @@ const char kIPAddress[] = "192.168.1.2";
 - (void)testInputStreamRead {
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
   GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
   NSData *data = [@"TestData" dataUsingEncoding:NSUTF8StringEncoding];
   fakeSocket.dataToRead = data;
@@ -111,7 +115,7 @@ const char kIPAddress[] = "192.168.1.2";
 - (void)testInputStreamClose {
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
   GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
 
   nearby::Exception closeResult = socket->GetInputStream().Close();
@@ -123,7 +127,7 @@ const char kIPAddress[] = "192.168.1.2";
 - (void)testOutputStreamWrite {
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
   GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
   NSData *data = [@"TestData" dataUsingEncoding:NSUTF8StringEncoding];
   nearby::ByteArray byteArray(reinterpret_cast<const char *>(data.bytes), data.length);
@@ -137,7 +141,7 @@ const char kIPAddress[] = "192.168.1.2";
 - (void)testSocketClose {
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
   GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
 
   nearby::Exception closeResult = socket->Close();
@@ -149,7 +153,7 @@ const char kIPAddress[] = "192.168.1.2";
 - (void)testOutputStreamFlush {
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
 
   nearby::Exception flushResult = socket->GetOutputStream().Flush();
 
@@ -159,7 +163,7 @@ const char kIPAddress[] = "192.168.1.2";
 - (void)testOutputStreamClose {
   nearby::CancellationFlag cancellationFlag;
   std::unique_ptr<nearby::api::WifiHotspotSocket> socket =
-      _hotspotMedium->ConnectToService(kIPAddress, kPort, &cancellationFlag);
+      _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
   GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
 
   nearby::Exception closeResult = socket->GetOutputStream().Close();

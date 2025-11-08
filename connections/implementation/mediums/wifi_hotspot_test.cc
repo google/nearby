@@ -46,9 +46,7 @@ constexpr FeatureFlags kTestCases[] = {
 constexpr absl::string_view kServiceID{"com.google.location.nearby.apps.test"};
 constexpr absl::string_view kSsid{"Direct-357a2d8c"};
 constexpr absl::string_view kPassword{"12345678"};
-constexpr absl::string_view kIp = "123.234.23.1";
 constexpr int kFrequency = 2412;
-constexpr const size_t kPort = 20;
 
 class WifiHotspotTest : public testing::TestWithParam<FeatureFlags> {
  protected:
@@ -100,7 +98,6 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
   env_.SetFeatureFlags(feature_flags);
 
   std::string service_id(kServiceID);
-  std::string ip(kIp);
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspot>();
 
@@ -117,14 +114,17 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
   WifiHotspotSocket socket_client;
   EXPECT_FALSE(socket_client.IsValid());
 
+  ServiceAddress service_address = {
+    .address = {123, 234, 23, 1},
+    .port = 20,
+  };
   CancellationFlag flag;
   ErrorOr<WifiHotspotSocket> socket_result =
-      wifi_hotspot_b->Connect(service_id, ip, kPort, &flag);
+      wifi_hotspot_b->Connect(service_id, service_address, &flag);
   EXPECT_TRUE(socket_result.has_error());
 
-  socket_result =
-      wifi_hotspot_b->Connect(service_id, hotspot_credentials->GetGateway(),
-                              hotspot_credentials->GetPort(), &flag);
+  socket_result = wifi_hotspot_b->Connect(
+      service_id, hotspot_credentials->GetAddressCandidates().back(), &flag);
   EXPECT_TRUE(socket_result.has_value());
   EXPECT_TRUE(socket_result.value().IsValid());
 
@@ -137,7 +137,6 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
   env_.SetFeatureFlags(feature_flags);
 
   std::string service_id(kServiceID);
-  std::string ip(kIp);
   auto wifi_hotspot_a = std::make_unique<WifiHotspot>();
   auto wifi_hotspot_b = std::make_unique<WifiHotspot>();
 
@@ -155,9 +154,8 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
   EXPECT_FALSE(socket_client.IsValid());
 
   CancellationFlag flag(true);
-  ErrorOr<WifiHotspotSocket> socket_result =
-      wifi_hotspot_b->Connect(service_id, hotspot_credentials->GetGateway(),
-                              hotspot_credentials->GetPort(), &flag);
+  ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_b->Connect(
+      service_id, hotspot_credentials->GetAddressCandidates().back(), &flag);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {

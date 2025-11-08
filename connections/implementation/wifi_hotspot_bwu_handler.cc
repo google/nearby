@@ -14,10 +14,18 @@
 
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 
+#if !defined(_WIN32)
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
+
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "connections/implementation/base_bwu_handler.h"
@@ -39,6 +47,20 @@ namespace connections {
 
 namespace {
 using ::location::nearby::proto::connections::OperationResultCode;
+
+std::vector<char> GatewayToAddressBytes(const std::string& gateway) {
+  std::vector<char> address_bytes;
+  // Gateway address is IPv4 only.
+  uint32_t address_int = inet_addr(gateway.c_str());
+  if (address_int == INADDR_NONE) {
+    LOG(ERROR) << "Invalid gateway address";
+    return address_bytes;
+  }
+  address_bytes.resize(4);
+  std::memcpy(address_bytes.data(),
+              reinterpret_cast<char*>(&address_int), 4);
+  return address_bytes;
+}
 }  // namespace
 
 WifiHotspotBwuHandler::WifiHotspotBwuHandler(
@@ -143,9 +165,12 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
         OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
   }
 
+  ServiceAddress service_address;
+  service_address.address =
+      GatewayToAddressBytes(hotspot_credentials.GetGateway());
+  service_address.port = hotspot_credentials.GetPort();
   ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
-      service_id, hotspot_credentials.GetGateway(),
-      hotspot_credentials.GetPort(), client->GetCancellationFlag(endpoint_id));
+      service_id, service_address, client->GetCancellationFlag(endpoint_id));
   if (socket_result.has_error()) {
     LOG(ERROR)
         << "WifiHotspotBwuHandler failed to connect to the WifiHotspot service("
@@ -153,7 +178,6 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
         << hotspot_credentials.GetPort() << ") for endpoint " << endpoint_id;
     return {Error(socket_result.error().operation_result_code().value())};
   }
-
   VLOG(1)
       << "WifiHotspotBwuHandler successfully connected to WifiHotspot service ("
       << hotspot_credentials.GetGateway() << ":"

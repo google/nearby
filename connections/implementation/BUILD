@@ -265,6 +265,7 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/flags:platform_flags",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",

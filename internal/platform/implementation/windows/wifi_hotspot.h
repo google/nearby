@@ -69,7 +69,7 @@ class WifiHotspotMedium : public api::WifiHotspotMedium {
 
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiHotspotSocket> ConnectToService(
-      absl::string_view ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) override;
 
   // Advertiser starts to listen on server socket

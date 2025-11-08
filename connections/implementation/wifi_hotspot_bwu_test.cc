@@ -26,10 +26,12 @@
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
@@ -51,6 +53,14 @@ class WifiHotspotTest : public testing::Test {
  protected:
   WifiHotspotTest() { env_.Start(); }
   ~WifiHotspotTest() override { env_.Stop(); }
+  void SetUp() override {
+    nearby::NearbyFlags::GetInstance().OverrideInt64FlagValue(
+      platform::config_package_nearby::nearby_platform_feature::
+              kWifiHotspotConnectionIntervalMillis, 1);
+  }
+  void TearDown() override {
+    nearby::NearbyFlags::GetInstance().ResetOverridedValues();
+  }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};
 };

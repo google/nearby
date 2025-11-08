@@ -51,8 +51,6 @@ constexpr FeatureFlags kTestCases[] = {
 
 constexpr absl::string_view kSsid = "Direct-357a2d8c";
 constexpr absl::string_view kPassword = "b592f7d3";
-constexpr absl::string_view kIp = "123.234.23.1";
-constexpr const size_t kPort = 20;
 constexpr int kFrequency = 2412;
 constexpr absl::string_view kData = "ABCD";
 constexpr const size_t kChunkSize = 10;
@@ -141,8 +139,6 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
   server_socket.PopulateHotspotCredentials(*wifi_hotspot_a->GetCredential());
-  std::string hotspot_a_ip = wifi_hotspot_a->GetCredential()->GetGateway();
-  int hotspot_a_port = wifi_hotspot_a->GetCredential()->GetPort();
 
   WifiHotspotSocket socket_a;
   WifiHotspotSocket socket_b;
@@ -153,12 +149,17 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
     CancellationFlag flag;
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
-    client_executor.Execute([&wifi_hotspot_b, &socket_b, hotspot_a_ip,
-                             hotspot_a_port, &server_socket, &flag]() {
-      socket_b = wifi_hotspot_b->ConnectToService(kIp, kPort, &flag);
+    client_executor.Execute([&wifi_hotspot_b, &socket_b, &wifi_hotspot_a,
+                            &server_socket, &flag]() {
+      ServiceAddress service_address = {
+        .address = {123, 234, 23, 1},
+        .port = 20,
+      };
+      socket_b = wifi_hotspot_b->ConnectToService(service_address, &flag);
       EXPECT_FALSE(socket_b.IsValid());
-      socket_b =
-          wifi_hotspot_b->ConnectToService(hotspot_a_ip, hotspot_a_port, &flag);
+      socket_b = wifi_hotspot_b->ConnectToService(
+          wifi_hotspot_a->GetCredential()->GetAddressCandidates().back(),
+          &flag);
       if (!socket_b.IsValid()) {
         server_socket.Close();
       }
@@ -208,8 +209,6 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
   WifiHotspotServerSocket server_socket = wifi_hotspot_a->ListenForService();
   EXPECT_TRUE(server_socket.IsValid());
   server_socket.PopulateHotspotCredentials(*wifi_hotspot_a->GetCredential());
-  std::string hotspot_a_ip = wifi_hotspot_a->GetCredential()->GetGateway();
-  int hotspot_a_port = wifi_hotspot_a->GetCredential()->GetPort();
 
   WifiHotspotSocket socket_a;
   WifiHotspotSocket socket_b;
@@ -220,12 +219,17 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherCanCancelConnect) {
     CancellationFlag flag(true);
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
-    client_executor.Execute([&wifi_hotspot_b, &socket_b, hotspot_a_ip,
-                             hotspot_a_port, &server_socket, &flag]() {
-      socket_b = wifi_hotspot_b->ConnectToService(kIp, kPort, &flag);
+    client_executor.Execute([&wifi_hotspot_b, &socket_b, &wifi_hotspot_a,
+                             &server_socket, &flag]() {
+      ServiceAddress service_address = {
+          .address = {123, 234, 23, 1},
+          .port = 20,
+      };
+      socket_b = wifi_hotspot_b->ConnectToService(service_address, &flag);
       EXPECT_FALSE(socket_b.IsValid());
-      socket_b =
-          wifi_hotspot_b->ConnectToService(hotspot_a_ip, hotspot_a_port, &flag);
+      socket_b = wifi_hotspot_b->ConnectToService(
+          wifi_hotspot_a->GetCredential()->GetAddressCandidates().back(),
+          &flag);
       if (!socket_b.IsValid()) {
         server_socket.Close();
       }

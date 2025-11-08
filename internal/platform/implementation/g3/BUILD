@@ -110,6 +110,7 @@ cc_library(
         "//internal/platform:types",
         "//internal/platform:uuid",
         "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:wifi_utils",
         "//internal/proto:credential_cc_proto",
         "//third_party/webrtc/files/stable/webrtc/api:create_modular_peer_connection_factory",
         "//third_party/webrtc/files/stable/webrtc/api:libjingle_peerconnection_api",
