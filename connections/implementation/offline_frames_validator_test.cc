@@ -16,18 +16,23 @@
 
 #include <array>
 #include <string>
+#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/connection_options.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
+#include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
 namespace parser {
 namespace {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
@@ -588,12 +593,18 @@ TEST(OfflineFramesValidatorTest,
 }
 
 TEST(OfflineFramesValidatorTest,
-     ValidatesAsOkWithValidBandwidthUpgradeNegotiationFrame) {
+     ValidateHotspotUpgradeFrameWithGatewaySucceeds) {
   OfflineFrame offline_frame;
 
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_port(kPort);
+  credentials.set_frequency(kHotspotFrequency);
+  credentials.set_gateway(kWifiHotspotGateway);
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
-      std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
+      std::move(credentials), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
 
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
@@ -602,12 +613,86 @@ TEST(OfflineFramesValidatorTest,
 }
 
 TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithAddressCandidatesSucceeds) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  auto* candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address(std::string(
+      "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1", 16));
+  candidate->set_port(kPort);
+  candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address(std::string("\xc0\xa8\x00\x01", 4));
+  candidate->set_port(kPort);
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_TRUE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithInvlaidAddressCandidatesLengthFails) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  auto* candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address(std::string(
+      "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1", 12));
+  candidate->set_port(kPort);
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateHotspotUpgradeFrameWithAddressCandidatesNoPortFails) {
+  OfflineFrame offline_frame;
+
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_frequency(kHotspotFrequency);
+  auto* candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address(std::string(
+      "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1", 16));
+  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
+      std::move(credentials), kSupportsDisablingEncryption);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
      ValidatesAsFailWithNullBandwidthUpgradeNegotiationFrame) {
   OfflineFrame offline_frame;
 
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid(kSsid);
+  credentials.set_password(kPassword);
+  credentials.set_port(kPort);
+  credentials.set_frequency(kHotspotFrequency);
+  credentials.set_gateway(kWifiHotspotGateway);
   ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      std::string(kSsid), std::string(kPassword), kPort, kHotspotFrequency,
-      std::string(kWifiHotspotGateway), kSupportsDisablingEncryption);
+      std::move(credentials), kSupportsDisablingEncryption);
   offline_frame.ParseFromString(std::string(bytes));
   auto* v1_frame = offline_frame.mutable_v1();
 

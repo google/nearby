@@ -120,11 +120,11 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherConnect) {
   };
   CancellationFlag flag;
   ErrorOr<WifiHotspotSocket> socket_result =
-      wifi_hotspot_b->Connect(service_id, service_address, &flag);
+      wifi_hotspot_b->Connect(service_id, {service_address}, &flag);
   EXPECT_TRUE(socket_result.has_error());
 
   socket_result = wifi_hotspot_b->Connect(
-      service_id, hotspot_credentials->GetAddressCandidates().back(), &flag);
+      service_id, hotspot_credentials->GetAddressCandidates(), &flag);
   EXPECT_TRUE(socket_result.has_value());
   EXPECT_TRUE(socket_result.value().IsValid());
 
@@ -155,7 +155,7 @@ TEST_P(WifiHotspotTest, CanStartHotspotThatOtherCanCancelConnect) {
 
   CancellationFlag flag(true);
   ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_b->Connect(
-      service_id, hotspot_credentials->GetAddressCandidates().back(), &flag);
+      service_id, hotspot_credentials->GetAddressCandidates(), &flag);
 
   // If FeatureFlag is disabled, Cancelled is false as no-op.
   if (!feature_flags.enable_cancellation_flag) {

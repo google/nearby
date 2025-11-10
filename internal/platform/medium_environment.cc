@@ -21,6 +21,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
@@ -50,6 +51,15 @@
 #include "internal/test/fake_clock.h"
 
 namespace nearby {
+namespace {
+std::string LastAddressCandidateToString(
+    const std::vector<ServiceAddress>& address_candidates) {
+  if (address_candidates.empty()) return "";
+  return std::string(address_candidates.back().address.begin(),
+                     address_candidates.back().address.end());
+}
+}  // namespace
+
 
 MediumEnvironment& MediumEnvironment::Instance() {
   alignas(MediumEnvironment) static char storage[sizeof(MediumEnvironment)];
@@ -1045,7 +1055,9 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
     if (info.is_ap && info.hotspot_credentials) {
       if ((info.hotspot_credentials->GetSSID() == ssid) ||
           (!ip_address.empty() &&
-           (info.hotspot_credentials->GetGateway() == ip_address))) {
+           LastAddressCandidateToString(
+               info.hotspot_credentials->GetAddressCandidates()) ==
+               ip_address)) {
         LOG(INFO) << "Found Remote WifiHotspot medium=" << medium_found;
         return medium_found;
       }

@@ -21,7 +21,6 @@
 #include <vector>
 
 #include "proto/connections_enums.pb.h"
-#include "internal/platform/implementation/wifi_utils.h"
 
 namespace nearby {
 
@@ -52,33 +51,7 @@ class HotspotCredentials {
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
 
-  // Get/Set Gateway and Port have been superceded by Get/SetAddressCandidates.
-
-  // Gets IP Address in string format.
-  // This is the IP address at which the service is provided.
-  std::string GetGateway() const {
-    if (gateway_.empty() && !address_candidates_.empty()) {
-      return WifiUtils::GetHumanReadableIpAddress(
-          {reinterpret_cast<const char*>(
-               address_candidates_.back().address.data()),
-           address_candidates_.back().address.size()});
-    }
-    return gateway_;
-  }
-  void SetGateway(const std::string& gateway) { gateway_ = gateway; }
-
-  // Gets the Port number
-  int GetPort() const {
-    if (port_ == 0 && !address_candidates_.empty()) {
-      return address_candidates_.back().port;
-    }
-    return port_;
-  }
-
-  // Set port_
-  void SetPort(const int port) { port_ = port; }
-
-  std::vector<ServiceAddress> GetAddressCandidates() const {
+  const std::vector<ServiceAddress>& GetAddressCandidates() const {
     return address_candidates_;
   }
   void SetAddressCandidates(std::vector<ServiceAddress> address_candidates) {

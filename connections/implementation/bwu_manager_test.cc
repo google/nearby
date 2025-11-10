@@ -19,8 +19,10 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "connections/connection_options.h"
+#include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/endpoint_channel_manager.h"
@@ -32,8 +34,10 @@
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/service_id_constants.h"
 #include "connections/listeners.h"
+#include "connections/medium_selector.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/proto/analytics/connections_log.pb.h"
@@ -59,6 +63,25 @@ constexpr absl::string_view kEndpointId2 = "Endpoint2";
 constexpr absl::string_view kEndpointId3 = "Endpoint3";
 constexpr absl::string_view kEndpointId4 = "Endpoint4";
 constexpr absl::string_view kEndpointId5 = "Endpoint5";
+
+BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+CreateWifiHotspotCredentials() {
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("Direct-357a2d8c");
+  credentials.set_password("b592f7d3");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("123.234.23.1");
+  auto* candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address(std::string(
+      "\xfe\x80\\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1", 16));
+  candidate->set_port(1234);
+  candidate = credentials.mutable_address_candidates()->Add();
+  candidate->set_ip_address("\x7b\xea\x17\x01");
+  candidate->set_port(2412);
+  return credentials;
+}
 
 class BwuManagerTest : public ::testing::Test {
  protected:
@@ -928,9 +951,9 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Hotspot) {
 
   ExceptionOr<OfflineFrame> hotspot_path_available_frame =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
-          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1",
-          false));
+          CreateWifiHotspotCredentials(),
+          /*supports_disabling_encryption=*/false));
+  ASSERT_TRUE(hotspot_path_available_frame.ok());
   OfflineFrame frame = hotspot_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();
@@ -995,8 +1018,8 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
 
   ExceptionOr<OfflineFrame> hotspot_path_available_frame2 =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
-          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1", true));
+          CreateWifiHotspotCredentials(),
+          /*supports_disabling_encryption=*/true));
   OfflineFrame frame2 = hotspot_path_available_frame2.result();
   frame2.set_version(OfflineFrame::V1);
   auto* v1_frame2 = frame2.mutable_v1();
@@ -1018,8 +1041,8 @@ TEST_F(BwuManagerTest, BlockBwuFrameBeforeAccept) {
 TEST_F(BwuManagerTest, BlockBwuFrameFromAdvertiser) {
   ExceptionOr<OfflineFrame> hotspot_path_available_frame =
       parser::FromBytes(parser::ForBwuWifiHotspotPathAvailable(
-          /*ssid=*/"Direct-357a2d8c", /*password=*/"b592f7d3",
-          /*port=*/1234, /*frequency=*/2412, /*gateway=*/"123.234.23.1", true));
+          CreateWifiHotspotCredentials(),
+          /*supports_disabling_encryption=*/true));
   OfflineFrame frame = hotspot_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();

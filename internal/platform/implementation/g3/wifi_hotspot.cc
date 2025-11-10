@@ -29,7 +29,6 @@
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
-#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
@@ -219,9 +218,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
   auto* remote_medium = static_cast<WifiHotspotMedium*>(
-      env.GetWifiHotspotMedium({}, WifiUtils::GetHumanReadableIpAddress(
-                                       {service_address.address.data(),
-                                        service_address.address.size()})));
+      env.GetWifiHotspotMedium({}, std::string(service_address.address.begin(),
+                                               service_address.address.end())));
   if (remote_medium == nullptr) {
     return {};
   }

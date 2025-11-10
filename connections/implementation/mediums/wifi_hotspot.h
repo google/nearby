@@ -16,6 +16,7 @@
 #define CORE_INTERNAL_MEDIUMS_WIFI_HOTSPOT_H_
 
 #include <string>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -74,10 +75,10 @@ class WifiHotspot {
   // bandwidth upgradation.
   // Returns socket instance. On success, WifiHotspotSocket.IsValid() return
   // true.
-  ErrorOr<WifiHotspotSocket> Connect(const std::string& service_id,
-                                     const ServiceAddress& service_address,
-                                     CancellationFlag* cancellation_flag)
-      ABSL_LOCKS_EXCLUDED(mutex_);
+  ErrorOr<WifiHotspotSocket> Connect(
+      const std::string& service_id,
+      const std::vector<ServiceAddress>& service_addresses,
+      CancellationFlag* cancellation_flag) ABSL_LOCKS_EXCLUDED(mutex_);
 
   // Gets SoftAP ssid + password + ip address + gateway + port etc for remote
   // services on the network to identify and connect to this service.

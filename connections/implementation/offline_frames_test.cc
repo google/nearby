@@ -17,6 +17,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -35,6 +36,7 @@ namespace connections {
 namespace parser {
 namespace {
 
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
@@ -396,14 +398,33 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiHotspotPathAvailable) {
             port: 1234
             gateway: "0.0.0.0"
             frequency: 2412
+            address_candidates: <
+              ip_address: "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1"
+              port: 1234
+            >
+            address_candidates: < ip_address: "\xc0\xa8\x00\x01" port: 5678 >
           >
           supports_disabling_encryption: false
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiHotspotPathAvailable(
-      "ssid", "password", 1234, /*frequency=*/2412, "0.0.0.0", false);
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiHotspotCredentials
+      credentials;
+  credentials.set_ssid("ssid");
+  credentials.set_password("password");
+  credentials.set_port(1234);
+  credentials.set_frequency(2412);
+  credentials.set_gateway("0.0.0.0");
+  auto* address_candidate = credentials.add_address_candidates();
+  address_candidate->set_ip_address(std::string(
+      "\xfe\x80\x00\x00\x00\x00\x00\x00\x4d\xb2\xb3\x5c\x22\x03\x98\xa1", 16));
+  address_candidate->set_port(1234);
+  address_candidate = credentials.add_address_candidates();
+  address_candidate->set_ip_address(std::string("\xc0\xa8\x00\x01", 4));
+  address_candidate->set_port(5678);
+  ByteArray bytes =
+      ForBwuWifiHotspotPathAvailable(std::move(credentials), false);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

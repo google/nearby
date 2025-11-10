@@ -232,13 +232,24 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
       !WithinRange(wifi_hotspot_credentials.password().length(),
                    kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
     return {Exception::kInvalidProtocolBuffer};
-  if (!wifi_hotspot_credentials.has_gateway())
+  if (!wifi_hotspot_credentials.has_gateway() &&
+      wifi_hotspot_credentials.address_candidates_size() == 0)
     return {Exception::kInvalidProtocolBuffer};
   const std::regex ip4_pattern(std::string(kIpv4PatternString).c_str());
-  const std::regex ip6_pattern(std::string(kIpv6PatternString).c_str());
-  if (!(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern) ||
-        std::regex_match(wifi_hotspot_credentials.gateway(), ip6_pattern)))
-    return {Exception::kInvalidProtocolBuffer};
+  if (!wifi_hotspot_credentials.gateway().empty() &&
+      !(std::regex_match(wifi_hotspot_credentials.gateway(), ip4_pattern))) {
+      return {Exception::kInvalidProtocolBuffer};
+  }
+  for (const auto& address_candidate :
+       wifi_hotspot_credentials.address_candidates()) {
+    if (!address_candidate.has_ip_address() || !address_candidate.has_port()) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+    if (address_candidate.ip_address().size() != 4 &&
+        address_candidate.ip_address().size() != 16) {
+      return {Exception::kInvalidProtocolBuffer};
+    }
+  }
 
   // For backwards compatibility reasons, no other fields should be null-checked
   // for this frame. Parameter checking (eg. must be within this range) is fine.

@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
@@ -256,13 +257,19 @@ bool WifiHotspot::IsAcceptingConnectionsLocked(const std::string& service_id) {
 }
 
 ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
-    const std::string& service_id, const ServiceAddress& service_address,
+    const std::string& service_id,
+    const std::vector<ServiceAddress>& service_addresses,
     CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   if (service_id.empty()) {
     LOG(INFO) << "Refusing to create client WifiHotspot socket because "
                  "service_id is empty.";
     return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  }
+  if (service_addresses.empty()) {
+    LOG(INFO) << "No service address found for service_id: " << service_id;
+    return {Error(
+        OperationResultCode::MEDIUM_UNAVAILABLE_WIFI_HOTSPOT_NOT_AVAILABLE)};
   }
 
   if (!IsClientAvailableLocked()) {
@@ -288,13 +295,18 @@ ErrorOr<WifiHotspotSocket> WifiHotspot::Connect(
   // Socket to return. To allow for NRVO to work, it has to be a single object.
   WifiHotspotSocket socket;
   for (int i = 0; i < wifi_hotspot_max_connection_retries; ++i) {
-    if (cancellation_flag->Cancelled()) {
-      LOG(INFO) << "connect to service has been cancelled.";
-      return {Error(
-          OperationResultCode::
-              CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
+    for (const auto& service_address : service_addresses) {
+      if (cancellation_flag->Cancelled()) {
+        LOG(INFO) << "connect to service has been cancelled.";
+        return {Error(
+            OperationResultCode::
+                CLIENT_CANCELLATION_CANCEL_WIFI_HOTSPOT_OUTGOING_CONNECTION)};
+      }
+      socket = medium_.ConnectToService(service_address, cancellation_flag);
+      if (socket.IsValid()) {
+        break;
+      }
     }
-    socket = medium_.ConnectToService(service_address, cancellation_flag);
     if (socket.IsValid()) {
       break;
     }

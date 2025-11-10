@@ -15,6 +15,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <memory>
 #include <string>
@@ -86,8 +87,18 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
                     "addresses configured on computer.";
     return;
   }
-  hotspot_credentials.SetGateway(hotspot_ipaddr);
-  hotspot_credentials.SetPort(GetPort());
+  std::vector<char> hotspot_ipaddr_bytes;
+  uint32_t address_int = inet_addr(hotspot_ipaddr.c_str());
+  if (address_int != INADDR_NONE) {
+    hotspot_ipaddr_bytes.resize(4);
+    std::memcpy(hotspot_ipaddr_bytes.data(),
+                reinterpret_cast<char*>(&address_int), 4);
+  }
+  ServiceAddress service_address = {
+    .address = hotspot_ipaddr_bytes,
+    .port = static_cast<uint16_t>(GetPort()),
+  };
+  hotspot_credentials.SetAddressCandidates({service_address});
 }
 
 bool WifiHotspotServerSocket::Listen(int port, bool dual_stack) {
