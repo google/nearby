@@ -409,6 +409,14 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
 
     // Make sure IP address is ready.
     bool has_address = false;
+    bool has_ipv6_candidates = false;
+    for (const auto& address_candidate :
+         hotspot_credentials.GetAddressCandidates()) {
+      if (address_candidate.address.size() == 16) {
+        has_ipv6_candidates = true;
+        break;
+      }
+    }
     int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
         platform::config_package_nearby::nearby_platform_feature::
             kWifiHotspotCheckIpMaxRetries);
@@ -425,7 +433,7 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
     for (int i = 0; i < ip_address_max_retries; i++) {
       LOG(INFO) << "Check IP address at attempt " << i;
 
-      if (wifi_hotspot_native_.HasAssignedAddress()) {
+      if (wifi_hotspot_native_.HasAssignedAddress(has_ipv6_candidates)) {
         has_address = true;
         break;
       }

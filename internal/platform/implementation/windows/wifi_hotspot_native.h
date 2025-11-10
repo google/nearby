@@ -47,8 +47,10 @@ class WifiHotspotNative {
 
   bool RestoreWifiProfile() ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Returns true if the interface has a non local scoped IPv4 address.
-  bool HasAssignedAddress();
+  // Returns true if the interface has required IP address assigned.
+  // If `include_ipv6` is false, check for non local scoped IPv4 address only.
+  // Otherwise, check for any IPv6 address or non local scoped IPv4 address.
+  bool HasAssignedAddress(bool include_ipv6);
   bool RenewIpv4Address() const;
   // Return the interface index of the wifi interface used to connect to the
   // hotspot.

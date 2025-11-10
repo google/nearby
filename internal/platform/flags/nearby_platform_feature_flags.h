@@ -53,6 +53,10 @@ constexpr auto kWifiHotspotConnectionIntervalMillis =
 constexpr auto kWifiHotspotConnectionTimeoutMillis =
     flags::Flag<int64_t>(kConfigPackage, "45415888", 10000);
 
+// Enable/Disable use of address candidates for hotspot upgrade in Windows.
+constexpr auto kEnableHotspotAddressCandidates =
+    flags::Flag<bool>(kConfigPackage, "45739567", false);
+
 // Enable/Disable DHCP renewal when connecting to hotspot.
 constexpr auto kEnableHotspotDhcpRenew =
     flags::Flag<bool>(kConfigPackage, "45731858", false);

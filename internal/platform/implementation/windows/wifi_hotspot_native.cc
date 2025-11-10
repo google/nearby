@@ -393,7 +393,7 @@ bool WifiHotspotNative::RestoreWifiProfile() {
   return ConnectToWifiNetworkInternal(interface_guid, backup_profile_name_);
 }
 
-bool WifiHotspotNative::HasAssignedAddress() {
+bool WifiHotspotNative::HasAssignedAddress(bool include_ipv6) {
   if (!network_info_.Refresh()) {
     return false;
   }
@@ -407,6 +407,11 @@ bool WifiHotspotNative::HasAssignedAddress() {
   for (const auto& interface : network_info_.GetInterfaces()) {
     if (interface.luid.Value != luid.Value) {
       continue;
+    }
+    if (include_ipv6) {
+      if (!interface.ipv6_addresses.empty()) {
+        return true;
+      }
     }
     for (const auto& address : interface.ipv4_addresses) {
       DCHECK(address.ss_family == AF_INET);
