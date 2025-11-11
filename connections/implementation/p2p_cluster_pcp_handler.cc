@@ -2173,7 +2173,26 @@ void P2pClusterPcpHandler::BleConnectionAcceptedHandler2(
                  << "), client=" << client->GetClientId();
     return;
   }
-  // TODO: edwinwu - Implement Ble endpoint channel for refactored version.
+  RunOnPcpHandlerThread(
+      "p2p-ble-on-incoming-connection",
+      [this, client, service_id, device_type, socket = std::move(socket)]()
+          RUN_ON_PCP_HANDLER_THREAD() mutable {
+            ByteArray remote_peripheral_info =
+                socket->GetRemotePeripheral().GetId();
+            if (socket->GetMedium() == Medium::BLE) {
+              auto channel = std::make_unique<BleEndpointChannel>(
+                  service_id, std::string(remote_peripheral_info),
+                  std::move(socket));
+              OnIncomingConnection(client, remote_peripheral_info,
+                                   std::move(channel), BLE, device_type);
+            } else {
+              auto channel = std::make_unique<BleL2capEndpointChannel>(
+                  service_id, std::string(remote_peripheral_info),
+                  std::move(socket));
+              OnIncomingConnection(client, remote_peripheral_info,
+                                   std::move(channel), BLE, device_type);
+            }
+          });
 }
 
 ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
@@ -2454,12 +2473,14 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
         LOG(INFO) << "In BleV2ConnectImpl(), connected to Ble L2CAP device "
                   << absl::BytesToHexString(peripheral.GetId().data())
                   << " for endpoint(id=" << endpoint->endpoint_id << ").";
-        // TODO: edwinwu - Change to refactored version of
-        // BleL2capEndpointChannel
+        auto channel = std::make_unique<BleL2capEndpointChannel>(
+            endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+            std::move(ble_l2cap_socket_result.value()));
         return BasePcpHandler::ConnectImplResult{
-            .status = {Status::kBleError},
-            .operation_result_code =
-                ble_l2cap_socket_result.error().operation_result_code().value(),
+            .medium = BLE,
+            .status = {Status::kSuccess},
+            .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
+            .endpoint_channel = std::move(channel),
         };
       } else {
         LOG(WARNING) << "In BleConnectImpl(), failed to connect to Ble L2CAP "
@@ -2510,12 +2531,9 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
               ble_socket_result.error().operation_result_code().value(),
       };
     }
-    // TODO: edwinwu - Change to refactor version of
-    // BleV2EndpointChannel
-    return BasePcpHandler::ConnectImplResult{
-        .status = {Status::kBleError},
-        .operation_result_code = OperationResultCode::DETAIL_UNKNOWN,
-    };
+    channel = std::make_unique<BleEndpointChannel>(
+        endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
+        std::move(ble_socket_result.value()));
   } else {
     ErrorOr<BleSocket> ble_socket_result =
         ble_medium_.Connect(endpoint->service_id, peripheral,
