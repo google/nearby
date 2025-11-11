@@ -257,6 +257,12 @@ class P2pClusterPcpHandlerTestWithParam
         is_disable_bluetooth_scanning);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableDct, true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
+        true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+        false);
     if (advertising_options_.allowed.ble) {
       LOG(INFO) << "SetUp: BLE enabled";
     }
@@ -330,6 +336,26 @@ TEST_P(P2pClusterPcpHandlerTestWithParam, CanConstructMultiple) {
 }
 
 TEST_P(P2pClusterPcpHandlerTestWithParam, CanAdvertise) {
+  env_.Start();
+  std::string endpoint_name{"endpoint_name"};
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+  EXPECT_EQ(
+      handler_a.StartAdvertising(&client_a_, service_id_, advertising_options_,
+                                 {.endpoint_info = ByteArray{endpoint_name}}),
+      Status{Status::kSuccess});
+  handler_a.StopAdvertising(&client_a_);
+  env_.Stop();
+}
+
+TEST_P(P2pClusterPcpHandlerTestWithParam, CanAdvertiseWithBleL2capRefactor) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
+      true);
   env_.Start();
   std::string endpoint_name{"endpoint_name"};
   Mediums mediums_a;

@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,7 @@
 #include "connections/implementation/injected_bluetooth_device_store.h"
 #include "connections/implementation/mediums/awdl.h"
 #include "connections/implementation/mediums/ble.h"
+#include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/bluetooth_classic.h"
 #include "connections/implementation/mediums/bluetooth_radio.h"
 #include "connections/implementation/mediums/mediums.h"
@@ -241,6 +243,13 @@ class P2pClusterPcpHandler : public BasePcpHandler {
                                          NearbyDevice::Type device_type,
                                          BleL2capSocket socket,
                                          const std::string& service_id);
+  // The refactor version of BleConnectionAcceptedHandler() and
+  // BleL2capConnectionAcceptedHandler above.
+  void BleConnectionAcceptedHandler2(ClientProxy* client,
+                                     absl::string_view local_endpoint_info,
+                                     NearbyDevice::Type device_type,
+                                     std::unique_ptr<mediums::BleSocket> socket,
+                                     const std::string& service_id);
   ErrorOr<location::nearby::proto::connections::Medium> StartBleAdvertising(
       ClientProxy* client, const std::string& service_id,
       const std::string& local_endpoint_id,

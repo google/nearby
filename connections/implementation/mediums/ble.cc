@@ -35,6 +35,7 @@
 #include "connections/implementation/mediums/ble/advertisement_read_result.h"
 #include "connections/implementation/mediums/ble/ble_advertisement.h"
 #include "connections/implementation/mediums/ble/ble_advertisement_header.h"
+#include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/ble/ble_utils.h"
 #include "connections/implementation/mediums/ble/bloom_filter.h"
 #include "connections/implementation/mediums/ble/discovered_peripheral_tracker.h"
@@ -47,6 +48,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancelable_alarm.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/ble.h"
@@ -743,6 +745,184 @@ ErrorOr<int> Ble::StartAcceptingL2capConnections(
   return {psm};
 }
 
+ErrorOr<bool> Ble::StartAcceptingConnections(
+    const std::string& service_id, AcceptedConnectionCallback2 callback) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    LOG(WARNING)
+        << "Refusing to start accepting BLE connections with empty service id.";
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
+  }
+
+  if (IsAcceptingConnectionsLocked(service_id)) {
+    LOG(WARNING)
+        << "Refusing to start accepting BLE connections for " << service_id
+        << " because another BLE peripheral socket is already in-progress.";
+    return {Error(OperationResultCode::
+                      CLIENT_DUPLICATE_ACCEPTING_BLE_CONNECTION_REQUEST)};
+  }
+
+  if (!radio_.IsEnabled()) {
+    LOG(INFO) << "Can't start accepting BLE connections for " << service_id
+              << " because Bluetooth isn't enabled.";
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't start accepting BLE connections for " << service_id
+              << " because BLE isn't available.";
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
+  }
+
+  BleServerSocket server_socket = medium_.OpenServerSocket(service_id);
+  if (server_socket.IsValid()) {
+    // Mark the fact that there's an in-progress Ble server accepting
+    // connections.
+    auto owned_server_socket =
+        server_sockets_.insert({service_id, std::move(server_socket)})
+            .first->second;
+    // Start the accept loop on a dedicated thread - this stays alive and
+    // listening for new incoming connections until
+    // StopAcceptingL2capConnections() is invoked.
+    accept_loops_runner_.Execute(
+        "ble-accept",
+        [this, service_id, callback = std::move(callback),
+         server_socket = std::move(owned_server_socket)]() mutable {
+          while (true) {
+            BleSocket client_socket = server_socket.Accept();
+            if (!client_socket.IsValid()) {
+              LOG(WARNING) << "The client socket to accept is invalid.";
+              server_socket.Close();
+              break;
+            } else {
+              LOG(INFO) << "The client Ble GATT socket has been accepted.";
+            }
+            {
+              MutexLock lock(&mutex_);
+              client_socket.SetCloseNotifier([this, service_id]() {
+                MutexLock lock(&mutex_);
+                incoming_sockets_.erase(service_id);
+              });
+              incoming_sockets_.insert({service_id, client_socket});
+            }
+            if (callback) {
+              auto ble_socket = mediums::BleSocket::CreateWithBleSocket(
+                  std::move(client_socket),
+                  mediums::bleutils::GenerateHash(
+                      service_id,
+                      mediums::BleAdvertisement::kServiceIdHashLength));
+              callback(std::move(ble_socket), service_id);
+            }
+          }
+        });
+  } else {
+    LOG(INFO)
+        << "Failed to start accepting Ble GATT connections for service_id="
+        << service_id;
+  }
+  LOG(INFO) << "Start accepting Ble GATT connections for service_id="
+            << service_id;
+  return {true};
+}
+
+ErrorOr<int> Ble::StartAcceptingL2capConnections(
+    const std::string& service_id, AcceptedConnectionCallback2 callback) {
+  MutexLock lock(&mutex_);
+  if (service_id.empty()) {
+    LOG(WARNING)
+        << "Refusing to start accepting Ble L2CAP connections with empty "
+           "service id.";
+    return {Error(OperationResultCode::CLIENT_BLE_DUPLICATE_DISCOVERING)};
+  }
+
+  if (IsAcceptingL2capConnectionsLocked(service_id)) {
+    LOG(WARNING)
+        << "Refusing to start accepting Ble L2CAP connections for "
+        << service_id
+        << " because another Ble peripheral socket is already in-progress.";
+    return {Error(OperationResultCode::
+                      CLIENT_DUPLICATE_ACCEPTING_BLE_CONNECTION_REQUEST)};
+  }
+
+  if (!radio_.IsEnabled()) {
+    LOG(INFO) << "Can't start accepting Ble L2CAP connections for "
+              << service_id << " because Bluetooth isn't enabled.";
+    return {Error(OperationResultCode::MISCELLEANEOUS_BT_SYSTEM_SERVICE_NULL)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't start accepting Ble L2CAP connections for "
+              << service_id << " because Ble isn't available.";
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
+  }
+
+  BleL2capServerSocket server_socket =
+      medium_.OpenL2capServerSocket(service_id);
+  if (!server_socket.IsValid()) {
+    LOG(INFO)
+        << "Failed to start accepting Ble L2CAP connections for service_id="
+        << service_id;
+    return {Error(OperationResultCode::
+                      CONNECTIVITY_L2CAP_SERVER_SOCKET_CREATION_FAILURE)};
+  }
+
+  int psm = server_socket.GetPSM();
+
+  // Mark the fact that there's an in-progress Ble server accepting
+  // connections.
+  auto owned_server_socket =
+      l2cap_server_sockets_.insert({service_id, std::move(server_socket)})
+          .first->second;
+  // Start the accept loop on a dedicated thread - this stays alive and
+  // listening for new incoming connections until StopAcceptingConnections()
+  // is invoked.
+  accept_loops_runner_.Execute(
+      "ble-l2cap-accept",
+      [this, service_id, callback = std::move(callback),
+       server_socket = std::move(owned_server_socket)]() mutable {
+        while (true) {
+          BleL2capSocket client_socket = server_socket.Accept();
+          if (!client_socket.IsValid()) {
+            LOG(WARNING) << "The client L2CAP socket to accept is invalid.";
+            server_socket.Close();
+            break;
+          } else {
+            LOG(INFO) << "The client L2CAP socket has been accepted.";
+          }
+          {
+            MutexLock lock(&mutex_);
+            client_socket.SetCloseNotifier([this, service_id]() {
+              MutexLock lock(&mutex_);
+              incoming_sockets_.erase(service_id);
+            });
+            l2cap_incoming_service_id_to_sockets_.insert(
+                {service_id, client_socket});
+          }
+          if (callback) {
+            auto ble_socket = mediums::BleSocket::CreateWithL2capSocket(
+                std::move(client_socket),
+                mediums::bleutils::GenerateHash(
+                    service_id,
+                    mediums::BleAdvertisement::kServiceIdHashLength));
+            Exception exception =
+                ble_socket->ProcessIncomingL2capPacketValidation();
+            if (!exception.Ok()) {
+              LOG(WARNING)
+                  << "Failed to process incoming L2CAP packet validation: "
+                  << exception.value;
+              return;
+            }
+            callback(std::move(ble_socket), service_id);
+          }
+        }
+      });
+
+  LOG(INFO) << "Start accepting Ble L2CAP connections for service_id="
+            << service_id;
+  return {psm};
+}
+
 bool Ble::StopAcceptingConnections(const std::string& service_id) {
   MutexLock lock(&mutex_);
 
@@ -852,11 +1032,11 @@ ErrorOr<BleSocket> Ble::Connect(const std::string& service_id,
                            PowerLevelToTxPowerLevel(PowerLevel::kHighPower),
                            peripheral, cancellation_flag);
   if (!socket.IsValid()) {
-    LOG(INFO) << "Failed to Connect via Ble [service_id=" << service_id << "]";
+    LOG(WARNING) << "Failed to Connect via Ble [service_id=" << service_id
+                 << "]";
     return {Error(
         OperationResultCode::CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-
   return socket;
 }
 
@@ -893,8 +1073,112 @@ ErrorOr<BleL2capSocket> Ble::ConnectOverL2cap(
     return {Error(OperationResultCode::
                       CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
   }
-
   return socket;
+}
+
+ErrorOr<std::unique_ptr<mediums::BleSocket>> Ble::Connect2(
+    const std::string& service_id, const BlePeripheral& peripheral,
+    CancellationFlag* cancellation_flag) {
+  MutexLock lock(&mutex_);
+  // Socket to return. To allow for NRVO to work, it has to be a single object.
+  BleSocket socket;
+
+  if (service_id.empty()) {
+    LOG(INFO) << "Refusing to create client Ble socket because "
+                 "service_id is empty.";
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't create client Ble socket [service_id=" << service_id
+              << "]; Ble isn't available.";
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    LOG(INFO) << "Can't create client Ble socket due to cancel.";
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_BLE_OUTGOING_CONNECTION)};
+  }
+
+  socket = medium_.Connect(service_id,
+                           PowerLevelToTxPowerLevel(PowerLevel::kHighPower),
+                           peripheral, cancellation_flag);
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Failed to Connect via Ble [service_id=" << service_id
+                 << "], peripheral:"
+                 << absl::BytesToHexString(peripheral.GetId().data());
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+
+  auto ble_socket = mediums::BleSocket::CreateWithBleSocket(
+      std::move(socket),
+      mediums::bleutils::GenerateHash(
+          service_id, mediums::BleAdvertisement::kServiceIdHashLength));
+  Exception send_introduction_result = ble_socket->SendIntroduction();
+  if (!send_introduction_result.Ok()) {
+    LOG(WARNING) << "Failed to send introduction packet on BLE socket: "
+                 << send_introduction_result.value;
+    return {Error(
+        OperationResultCode::CONNECTIVITY_BLE_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+  return std::move(ble_socket);
+}
+
+ErrorOr<std::unique_ptr<mediums::BleSocket>> Ble::ConnectOverL2cap2(
+    const std::string& service_id, const BlePeripheral& peripheral,
+    CancellationFlag* cancellation_flag) {
+  MutexLock lock(&mutex_);
+
+  if (service_id.empty()) {
+    LOG(WARNING) << "Refusing to create client Ble L2CAP socket because "
+                    "service_id is empty.";
+    return {Error(OperationResultCode::NEARBY_LOCAL_CLIENT_STATE_WRONG)};
+  }
+
+  if (!IsAvailableLocked()) {
+    LOG(INFO) << "Can't create client Ble L2CAP socket [service_id="
+              << service_id << "]; Ble isn't available.";
+    return {Error(OperationResultCode::MEDIUM_UNAVAILABLE_BLE_NOT_AVAILABLE)};
+  }
+
+  if (cancellation_flag->Cancelled()) {
+    LOG(WARNING) << "Can't create client Ble L2CAP socket due to cancel.";
+    return {Error(OperationResultCode::
+                      CLIENT_CANCELLATION_CANCEL_BLE_OUTGOING_CONNECTION)};
+  }
+
+  BleL2capSocket socket = medium_.ConnectOverL2cap(
+      service_id, PowerLevelToTxPowerLevel(PowerLevel::kHighPower), peripheral,
+      cancellation_flag);
+
+  if (!socket.IsValid()) {
+    LOG(WARNING) << "Failed to Connect via Ble L2CAP [service_id=" << service_id
+                 << "]";
+    return {Error(OperationResultCode::
+                      CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+
+  auto ble_socket = mediums::BleSocket::CreateWithL2capSocket(
+      std::move(socket),
+      mediums::bleutils::GenerateHash(
+          service_id, mediums::BleAdvertisement::kServiceIdHashLength));
+  Exception result = ble_socket->ProcessOutgoingL2capPacketValidation();
+  if (!result.Ok()) {
+    LOG(WARNING) << "Failed to process outgoing L2CAP packet validation: "
+                 << result.value;
+    return {Error(OperationResultCode::
+                      CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+  Exception send_introduction_result = ble_socket->SendIntroduction();
+  if (!send_introduction_result.Ok()) {
+    LOG(WARNING) << "Failed to send introduction packet on L2CAP socket: "
+                 << send_introduction_result.value;
+    return {Error(OperationResultCode::
+                      CONNECTIVITY_L2CAP_CLIENT_SOCKET_CREATION_FAILURE)};
+  }
+  return std::move(ble_socket);
 }
 
 bool Ble::IsAvailableLocked() const { return medium_.IsValid(); }

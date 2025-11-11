@@ -162,6 +162,7 @@ cc_library(
         "//connections/implementation/mediums/advertisements:dct_advertisement",
         "//connections/implementation/mediums/advertisements:util",
         "//connections/implementation/mediums/ble:ble_advertisement_header",
+        "//connections/implementation/mediums/ble:ble_socket",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//connections/v3:v3_types",
         "//internal/analytics:event_logger",
@@ -325,6 +326,7 @@ cc_test(
         "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",

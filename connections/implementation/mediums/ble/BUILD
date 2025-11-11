@@ -56,7 +56,6 @@ cc_library(
     name = "ble_socket",
     srcs = ["ble_socket.cc"],
     hdrs = ["ble_socket.h"],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//connections/implementation:__subpackages__",
         "//internal/platform/implementation/windows:__pkg__",
