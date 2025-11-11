@@ -1348,18 +1348,20 @@ TEST_P(DiscoveredPeripheralTrackerTest,
 
   CountDownLatch fetch_latch(1);
   MockDiscoveredPeripheralCallback mock_callback;
+  CountDownLatch discovered_latch(1);
 
   discovered_peripheral_tracker_->StartTracking(
       std::string(kServiceIdA), false, Pcp::kP2pPointToPoint,
       {
           .peripheral_discovered_cb =
-              [&mock_callback](BlePeripheral peripheral,
-                               const std::string& service_id,
-                               const ByteArray& advertisement_bytes,
-                               bool fast_advertisement) {
+              [&mock_callback, &discovered_latch](
+                  BlePeripheral peripheral, const std::string& service_id,
+                  const ByteArray& advertisement_bytes,
+                  bool fast_advertisement) {
                 mock_callback.OnPeripheralDiscovered(peripheral, service_id,
                                                      advertisement_bytes,
                                                      fast_advertisement);
+                discovered_latch.CountDown();
               },
           .instant_lost_cb =
               [&mock_callback](BlePeripheral peripheral,
@@ -1382,6 +1384,7 @@ TEST_P(DiscoveredPeripheralTrackerTest,
   EXPECT_CALL(mock_callback, OnPeripheralDiscovered).Times(1);
   FindAdvertisement(advertisement_data, {advertisement_bytes}, fetch_latch);
   fetch_latch.Await(kWaitDuration);
+  EXPECT_TRUE(discovered_latch.Await(kWaitDuration).result());
 
   // We should receive a client callback of a peripheral discovery.
   EXPECT_EQ(GetFetchAdvertisementCallbackCount(), 1);
