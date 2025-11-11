@@ -181,6 +181,7 @@ class WifiHotspotMedium {
     hotspot_credentials_ = hotspot_credentials;
     return impl_->ConnectWifiHotspot(hotspot_credentials);
   }
+
   bool DisconnectWifiHotspot() { return impl_->DisconnectWifiHotspot(); }
 
   HotspotCredentials* GetCredential() { return &hotspot_credentials_; }

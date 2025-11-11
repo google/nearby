@@ -217,8 +217,8 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
 
   if (!wifi_hotspot_medium_.ConnectWifiHotspot(hotspot_credentials)) {
     LOG(ERROR) << "Connect to Hotspot failed";
-    return {Error(
-        OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
+    return {Error(OperationResultCode::
+                      CONNECTIVITY_WIFI_HOTSPOT_LEGACY_STA_CONNECTION_FAILURE)};
   }
 
   ErrorOr<WifiHotspotSocket> socket_result = wifi_hotspot_medium_.Connect(
