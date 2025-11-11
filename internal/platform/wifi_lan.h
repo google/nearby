@@ -37,6 +37,7 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
@@ -275,7 +276,7 @@ class WifiLanMedium {
   // requests.
   // Returned adddress list is sorted so IPv6 addresses are first.  Both IPv4
   // and IPv6 addresses are represented as network order byte sequence.
-  std::vector<std::string> GetUpgradeAddressCandidates(
+  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
       const WifiLanServerSocket& server_socket);
 
  private:

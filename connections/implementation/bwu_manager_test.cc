@@ -40,6 +40,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 #include "proto/connections_enums.pb.h"
 
@@ -984,9 +985,9 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_Wlan) {
 
   CreateInitialEndpoint(&client_, kServiceIdA, kEndpointId1, Medium::BLUETOOTH);
 
-  ExceptionOr<OfflineFrame> wlan_path_available_frame = parser::FromBytes(
-      parser::ForBwuWifiLanPathAvailable(/*ip_addresses=*/{"ABCD"},
-                                         /*port=*/1234));
+  ExceptionOr<OfflineFrame> wlan_path_available_frame =
+      parser::FromBytes(parser::ForBwuWifiLanPathAvailable(
+          {ServiceAddress{.address = {'A', 'B', 'C', 'D'}, .port = 1234}}));
   OfflineFrame frame = wlan_path_available_frame.result();
   frame.set_version(OfflineFrame::V1);
   auto* v1_frame = frame.mutable_v1();
