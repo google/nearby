@@ -568,6 +568,7 @@ enum OSType {
   IOS = 3;
   WINDOWS = 4;
   MACOS = 5;
+  VISION_OS = 6;
 }
 
 // Relationship of remote device to sender device.
