@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/g3/wifi_lan.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -28,6 +29,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -282,9 +284,12 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
   return server_socket;
 }
 
-std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
     const api::WifiLanServerSocket& server_socket) {
-  return { server_socket.GetIPAddress() };
+  std::string ip_address = server_socket.GetIPAddress();
+  return {ServiceAddress{
+      .address = std::vector<char>(ip_address.begin(), ip_address.end()),
+      .port = static_cast<uint16_t>(server_socket.GetPort())}};
 }
 
 }  // namespace g3

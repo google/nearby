@@ -80,6 +80,7 @@
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
 #include "internal/platform/wifi.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 #include "proto/connections_enums.pb.h"
 
@@ -194,25 +195,22 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
       BleConnectionInfo info("", "", "", {});
       connection_infos.push_back(info);
     } else if (medium == location::nearby::proto::connections::WIFI_LAN) {
-      std::pair<std::vector<std::string>, int> upgrade_candidates =
+      std::vector<ServiceAddress> upgrade_candidates =
           mediums_->GetWifiLan().GetUpgradeAddressCandidates(
               std::string(service_id));
-      const std::vector<std::string>& ip_addresses = upgrade_candidates.first;
-      std::string ip_address;
       // Only use IPv4 address.  IPv4 addresses are always at the end of the
       // list.
-      if (!ip_addresses.empty()) {
-        ip_address = ip_addresses.back();
-        if (ip_address.size() != 4) {
-          ip_address.clear();
+      if (!upgrade_candidates.empty()) {
+        const auto& ip_address = upgrade_candidates.back().address;
+        if (ip_address.size() == 4) {
+          int port = upgrade_candidates.back().port;
+          WifiLanConnectionInfo info(
+              std::string(ip_address.begin(), ip_address.end()),
+              absl::StrCat(absl::Hex(port, absl::kZeroPad16)), "",
+              {});
+          connection_infos.push_back(info);
         }
       }
-      int port = upgrade_candidates.second;
-      WifiLanConnectionInfo info(
-          ip_address,
-          absl::StrCat(absl::Hex(port, absl::kZeroPad16)), "",
-          {});
-      connection_infos.push_back(info);
     }
   }
   return connection_infos;
