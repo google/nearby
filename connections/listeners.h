@@ -49,7 +49,7 @@ using ResultCallback = absl::AnyInvocable<void(Status)>;
 
 struct ConnectionResponseInfo {
   std::string GetAuthenticationDigits() {
-    return ByteUtils::ToFourDigitString(raw_authentication_token);
+    return byte_utils::ToFourDigitString(raw_authentication_token);
   }
 
   ByteArray remote_endpoint_info;

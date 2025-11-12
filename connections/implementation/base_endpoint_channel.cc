@@ -31,6 +31,7 @@
 #include "connections/implementation/offline_frames.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/byte_utils.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
@@ -49,38 +50,17 @@ using ::location::nearby::proto::connections::Medium::BLE_L2CAP;
 using DisconnectionReason =
     ::location::nearby::proto::connections::DisconnectionReason;
 
-std::int32_t BytesToInt(const ByteArray& bytes) {
-  const char* int_bytes = bytes.data();
-
-  std::int32_t result = 0;
-  result |= (static_cast<std::int32_t>(int_bytes[0]) & 0x0FF) << 24;
-  result |= (static_cast<std::int32_t>(int_bytes[1]) & 0x0FF) << 16;
-  result |= (static_cast<std::int32_t>(int_bytes[2]) & 0x0FF) << 8;
-  result |= (static_cast<std::int32_t>(int_bytes[3]) & 0x0FF);
-
-  return result;
-}
-
-ByteArray IntToBytes(std::int32_t value) {
-  char int_bytes[sizeof(std::int32_t)];
-  int_bytes[0] = static_cast<char>((value >> 24) & 0x0FF);
-  int_bytes[1] = static_cast<char>((value >> 16) & 0x0FF);
-  int_bytes[2] = static_cast<char>((value >> 8) & 0x0FF);
-  int_bytes[3] = static_cast<char>((value) & 0x0FF);
-
-  return ByteArray(int_bytes, sizeof(int_bytes));
-}
-
 ExceptionOr<std::int32_t> ReadInt(InputStream* reader) {
   ExceptionOr<ByteArray> read_bytes = reader->ReadExactly(sizeof(std::int32_t));
   if (!read_bytes.ok()) {
     return ExceptionOr<std::int32_t>(read_bytes.exception());
   }
-  return ExceptionOr<std::int32_t>(BytesToInt(std::move(read_bytes.result())));
+  return ExceptionOr<std::int32_t>(
+      byte_utils::BytesToInt(std::move(read_bytes.result())));
 }
 
 Exception WriteInt(OutputStream* writer, std::int32_t value) {
-  return writer->Write(IntToBytes(value));
+  return writer->Write(byte_utils::IntToBytes(value));
 }
 
 }  // namespace
