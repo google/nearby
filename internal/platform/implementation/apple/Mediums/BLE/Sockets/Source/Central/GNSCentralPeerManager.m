@@ -13,11 +13,11 @@
 // limitations under the License.
 
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralPeerManager.h"
-#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralManager.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Central/GNSCentralPeerManager+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket+Private.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSSocket.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/Sockets/Source/Shared/GNSUtils+Private.h"
@@ -115,19 +115,6 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 @synthesize cbPeripheral = _cbPeripheral;
 
-// Used for testing. A test subclass can override this method so a mock timer can be returned.
-+ (NSTimer *)scheduledTimerWithTimeInterval:(NSTimeInterval)timeInterval
-                                     target:(id)target
-                                   selector:(SEL)selector
-                                   userInfo:(nullable id)userInfo
-                                    repeats:(BOOL)yesOrNo {
-  return [NSTimer scheduledTimerWithTimeInterval:timeInterval
-                                          target:target
-                                        selector:selector
-                                        userInfo:userInfo
-                                         repeats:yesOrNo];
-}
-
 - (instancetype)initWithPeripheral:(CBPeripheral *)peripheral
                     centralManager:(GNSCentralManager *)centralManager
                              queue:(dispatch_queue_t)queue {
@@ -153,6 +140,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 
 - (void)dealloc {
   GNCLoggerDebug(@"Dealloc CentralPeerManager with _cbPeripheral %@", _cbPeripheral);
+  [_connectionConfirmTimer invalidate];
   _cbPeripheral.delegate = nil;
   if (_cbPeripheral.state != CBPeripheralStateDisconnected) {
     [_centralManager cancelPeripheralConnectionForPeer:self];
@@ -415,11 +403,7 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
 // If error is nil, kGNSNoConnection |error| is passed to the rssi completion.
 - (void)cleanRSSICompletionAfterDisconnectionWithError:(NSError *)error {
   if (_readRSSIValueCompletions) {
-    NSError *rssiCompletionError = error;
-    if (rssiCompletionError) {
-      rssiCompletionError = GNSErrorWithCode(GNSErrorNoConnection);
-    }
-    [self callRSSICompletionWithRSSIValue:nil error:rssiCompletionError];
+    [self callRSSICompletionWithRSSIValue:nil error:GNSErrorWithCode(GNSErrorNoConnection)];
   }
 }
 
@@ -589,11 +573,12 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   // Note: Avoid using |characteristic.value| here as it seems it is always nil.
   if (error) {
     GNCLoggerInfo(@"Characteristic write failed with error: %@", error);
+    [self callDataWriteCompletionWithError:error];
     [self disconnectingWithError:error];
   } else {
     GNCLoggerInfo(@"Characteristic write succeeded");
+    [self callDataWriteCompletionWithError:error];
   }
-  [self callDataWriteCompletionWithError:error];
 }
 
 // This method sends |packet| fitting a single characteristic write to |socket|. All packets sent by
@@ -632,9 +617,11 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
   GNSCentralSocketCompletion completion = _discoveringServiceSocketCompletion;
   _discoveringServiceSocketCompletion = nil;
   _socket = socket;
-  dispatch_async(_queue, ^{
-    completion(socket, nil);
-  });
+  if (completion) {
+    dispatch_async(_queue, ^{
+      completion(socket, nil);
+    });
+  }
   if (!_socket) {
     [self disconnectingWithError:nil];
     return;
@@ -650,11 +637,11 @@ static NSString *PeripheralStateString(CBPeripheralState state) {
                                                              data:_connectionRequestData];
   [self sendPacket:connectionRequest];
   _connectionConfirmTimer =
-      [[self class] scheduledTimerWithTimeInterval:kMaxConnectionConfirmWaitTimeInSeconds
-                                            target:self
-                                          selector:@selector(timeOutConnectionForTimer:)
-                                          userInfo:nil
-                                           repeats:NO];
+      [NSTimer scheduledTimerWithTimeInterval:kMaxConnectionConfirmWaitTimeInSeconds
+                                       target:self
+                                     selector:@selector(timeOutConnectionForTimer:)
+                                     userInfo:nil
+                                      repeats:NO];
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didReadRSSI:(NSNumber *)RSSI error:(NSError *)error {

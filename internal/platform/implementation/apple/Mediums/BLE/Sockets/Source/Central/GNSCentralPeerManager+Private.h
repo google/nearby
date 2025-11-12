@@ -46,6 +46,11 @@ NS_ASSUME_NONNULL_BEGIN
                              centralManager:(GNSCentralManager *)centralManager;
 
 /**
+ * Connects the peripheral with BLE.
+ */
+- (void)bleConnect;
+
+/**
  * Called by the central manager when the peripheral is connected with BLE.
  */
 - (void)bleConnected;
@@ -67,6 +72,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GNSCentralPeerManager (TestingHelpers)
 
 - (NSTimer *)testing_connectionConfirmTimer;
+- (BOOL)isBLEConnected;
 
 @end
 
