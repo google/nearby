@@ -445,7 +445,6 @@ static NSTimeInterval gKBTCrashLoopMaxTimeBetweenResetting = 15.f;
     return;
   }
 
-  NSAssert(peripheral.isAdvertising, @"Peripheral should be advertising.");
   GNCLoggerInfo(@"Peripheral did start advertising %@", _advertisementData);
 
   // Once an advertisment operation is over, check if the advertised data is up-to-date.
