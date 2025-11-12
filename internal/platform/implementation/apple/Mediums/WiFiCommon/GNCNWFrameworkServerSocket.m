@@ -66,6 +66,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation GNCNWFrameworkServerSocket {
   NSInteger _port;
+  // TODO: b/434870979 - Use a dispatch_semaphore instead of a condition to simplify the logic.
   NSCondition *_condition;
   dispatch_queue_t _dispatchQueue;
   id<GNCNWListener> _listener;
@@ -288,17 +289,18 @@ NS_ASSUME_NONNULL_BEGIN
 
   // This doesn't start flaking until 0.0005 seconds, so 0.5 should be plenty of time.
   BOOL didSignal = [_condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.5]];
+  // We timed out waiting for the listener to transition into a state.
+  if (!didSignal) {
+    _listenerError = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
+                                         code:GNCNWFrameworkErrorTimedOut
+                                     userInfo:nil];
+  }
   if (error != nil) {
     *error = [_listenerError copy];
   }
   [_condition unlock];
-
-  // We timed out waiting for the listener to transition into a state.
   if (!didSignal) {
     [self close];
-    _listenerError = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
-                                         code:GNCNWFrameworkErrorTimedOut
-                                     userInfo:nil];
     return NO;
   }
 
@@ -322,7 +324,10 @@ NS_ASSUME_NONNULL_BEGIN
   // Keep track of any incoming connections. We must keep a reference otherwise the connection will
   // be dropped.
   [self.pendingConnections addObject:connection];
+  [self configureAndStartConnection:connection];
+}
 
+- (void)configureAndStartConnection:(nw_connection_t)connection {
   // Register for state changes so we can clean up any failed/canceled connections and inform Nearby
   // of any ready connections when asked.
   nw_connection_set_queue(connection, _dispatchQueue);

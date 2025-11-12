@@ -96,6 +96,21 @@ NS_ASSUME_NONNULL_BEGIN
                               state:(nw_connection_state_t)state
                               error:(nullable nw_error_t)error;
 
+/**
+ * Handles a new incoming connection from the listener.
+ *
+ * @param connection The new connection object.
+ */
+- (void)handleNewConnection:(nw_connection_t)connection;
+
+/**
+ * Configures a connection's queue and state handler, then starts it.
+ * NOTE: This method should not be called directly except for testing purposes.
+ *
+ * @param connection The connection to configure and start.
+ */
+- (void)configureAndStartConnection:(nw_connection_t)connection;
+
 @end
 
 NS_ASSUME_NONNULL_END
