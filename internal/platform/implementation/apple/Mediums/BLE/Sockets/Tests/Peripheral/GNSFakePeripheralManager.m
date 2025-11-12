@@ -22,18 +22,28 @@
   self = [super init];
   if (self) {
     _delegate = delegate;
+    _state = CBManagerStatePoweredOn;
     _services = [NSMutableArray array];
-    _state = CBPeripheralManagerStateUnknown;
   }
   return self;
 }
 
+- (instancetype)init {
+  return [self initWithDelegate:nil queue:nil options:nil];
+}
+
 - (void)addService:(CBMutableService *)service {
-  [_services addObject:service];
   _addServiceCount++;
-  if ([_delegate respondsToSelector:@selector(peripheralManager:didAddService:error:)]) {
-    [_delegate peripheralManager:(CBPeripheralManager *)self didAddService:service error:nil];
-  }
+  [_services addObject:service];
+  dispatch_async(dispatch_get_main_queue(), ^{
+    id<CBPeripheralManagerDelegate> delegate = self.delegate;
+    if ([delegate respondsToSelector:@selector(peripheralManagerDidUpdateState:)]) {
+      [delegate peripheralManagerDidUpdateState:(CBPeripheralManager *)self];
+    }
+    if ([delegate respondsToSelector:@selector(peripheralManager:didAddService:error:)]) {
+      [delegate peripheralManager:(CBPeripheralManager *)self didAddService:service error:nil];
+    }
+  });
 }
 
 - (void)removeService:(CBMutableService *)service {
@@ -41,23 +51,45 @@
 }
 
 - (void)removeAllServices {
-  [_services removeAllObjects];
   _removeAllServicesCount++;
+  [_services removeAllObjects];
 }
 
 - (void)startAdvertising:(NSDictionary<NSString *, id> *)advertisementData {
   _advertisementData = advertisementData;
-  _advertising = YES;
   _startAdvertisingCount++;
-  if ([_delegate respondsToSelector:@selector(peripheralManagerDidStartAdvertising:error:)]) {
-    [_delegate peripheralManagerDidStartAdvertising:(CBPeripheralManager *)self error:nil];
+  _advertising = YES;
+  id<CBPeripheralManagerDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(peripheralManagerDidStartAdvertising:error:)]) {
+    [delegate peripheralManagerDidStartAdvertising:(CBPeripheralManager *)self error:nil];
   }
 }
 
 - (void)stopAdvertising {
   _advertisementData = nil;
-  _advertising = NO;
   _stopAdvertisingCount++;
+  _advertising = NO;
+}
+
+- (BOOL)updateValue:(NSData *)value
+       forCharacteristic:(CBMutableCharacteristic *)characteristic
+    onSubscribedCentrals:(NSArray<CBCentral *> *)centrals {
+  _updateValueCount++;
+  _lastValueUpdated = value;
+  _lastCharacteristicUpdated = characteristic;
+  _lastCentralsUpdated = centrals;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    id<CBPeripheralManagerDelegate> delegate = self.delegate;
+    if ([delegate respondsToSelector:@selector(peripheralManagerIsReadyToUpdateSubscribers:)]) {
+      [delegate peripheralManagerIsReadyToUpdateSubscribers:(CBPeripheralManager *)self];
+    }
+  });
+  return YES;
+}
+
+- (void)setDesiredConnectionLatency:(CBPeripheralManagerConnectionLatency)latency
+                         forCentral:(CBCentral *)central {
+  _setDesiredConnectionLatencyCount++;
 }
 
 - (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result {
@@ -65,10 +97,18 @@
   _lastRespondResult = result;
 }
 
-- (BOOL)updateValue:(NSData *)value
-       forCharacteristic:(CBMutableCharacteristic *)characteristic
-    onSubscribedCentrals:(NSArray<CBCentral *> *)centrals {
-  return YES;
+- (void)didSubscribeToCharacteristic:(CBCharacteristic *)characteristic
+                             central:(CBCentral *)central {
+  id<CBPeripheralManagerDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(peripheralManager:
+                                                       central:didSubscribeToCharacteristic:)]) {
+    [delegate peripheralManager:(CBPeripheralManager *)self
+                             central:central
+        didSubscribeToCharacteristic:characteristic];
+  }
+  if ([delegate respondsToSelector:@selector(peripheralManagerIsReadyToUpdateSubscribers:)]) {
+    [delegate peripheralManagerIsReadyToUpdateSubscribers:(CBPeripheralManager *)self];
+  }
 }
 
 @end

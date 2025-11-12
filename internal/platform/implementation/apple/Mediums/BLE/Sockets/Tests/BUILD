@@ -48,6 +48,7 @@ objc_library(
         "Peripheral/GNSFakePeripheralManager.m",
         "Peripheral/GNSFakePeripheralServiceManager.m",
         "Peripheral/GNSPeripheralManagerTest.m",
+        "Peripheral/GNSPeripheralServiceManagerTest.m",
     ],
     hdrs = [
         "Peripheral/GNSFakePeripheralManager.h",

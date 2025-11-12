@@ -19,29 +19,38 @@
 @interface GNSFakePeripheralManager : NSObject
 
 @property(nonatomic, weak) id<CBPeripheralManagerDelegate> delegate;
-@property(nonatomic) CBPeripheralManagerState state;
-@property(nonatomic, getter=isAdvertising) BOOL advertising;
+@property(nonatomic) NSInteger state;
 @property(nonatomic, copy) NSDictionary<NSString *, id> *advertisementData;
-@property(nonatomic) NSMutableArray<CBMutableService *> *services;
 @property(nonatomic) int removeAllServicesCount;
 @property(nonatomic) int addServiceCount;
-@property(nonatomic, assign) int startAdvertisingCount;
-@property(nonatomic, assign) int stopAdvertisingCount;
-@property(nonatomic) BOOL failAddService;
+@property(nonatomic) int startAdvertisingCount;
+@property(nonatomic) int stopAdvertisingCount;
+@property(nonatomic) int updateValueCount;
+@property(nonatomic) int setDesiredConnectionLatencyCount;
+@property(nonatomic) CBMutableCharacteristic *lastCharacteristicUpdated;
+@property(nonatomic) NSData *lastValueUpdated;
+@property(nonatomic) NSArray<CBCentral *> *lastCentralsUpdated;
+@property(nonatomic, readonly) NSMutableArray<CBMutableService *> *services;
+@property(nonatomic, getter=isAdvertising) BOOL advertising;
 @property(nonatomic) CBATTRequest *lastRespondRequest;
 @property(nonatomic) CBATTError lastRespondResult;
 
 - (instancetype)initWithDelegate:(id<CBPeripheralManagerDelegate>)delegate
                            queue:(dispatch_queue_t)queue
                          options:(NSDictionary<NSString *, id> *)options;
+- (instancetype)init;
 - (void)addService:(CBMutableService *)service;
 - (void)removeService:(CBMutableService *)service;
 - (void)removeAllServices;
 - (void)startAdvertising:(NSDictionary<NSString *, id> *)advertisementData;
 - (void)stopAdvertising;
-- (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result;
 - (BOOL)updateValue:(NSData *)value
        forCharacteristic:(CBMutableCharacteristic *)characteristic
     onSubscribedCentrals:(NSArray<CBCentral *> *)centrals;
+- (void)setDesiredConnectionLatency:(CBPeripheralManagerConnectionLatency)latency
+                         forCentral:(CBCentral *)central;
+- (void)respondToRequest:(CBATTRequest *)request withResult:(CBATTError)result;
+- (void)didSubscribeToCharacteristic:(CBCharacteristic *)characteristic
+                             central:(CBCentral *)central;
 
 @end
