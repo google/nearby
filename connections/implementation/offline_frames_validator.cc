@@ -258,10 +258,10 @@ Exception EnsureValidBandwidthUpgradeWifiHotspotPathAvailableFrame(
 
 Exception EnsureValidBandwidthUpgradeWifiLanPathAvailableFrame(
     const WifiLanSocket& wifi_lan_socket) {
-  if (!wifi_lan_socket.has_ip_address())
+  if ((!wifi_lan_socket.has_ip_address() || wifi_lan_socket.wifi_port() <= 0) &&
+      wifi_lan_socket.address_candidates_size() == 0) {
     return {Exception::kInvalidProtocolBuffer};
-  if (!wifi_lan_socket.has_wifi_port() || wifi_lan_socket.wifi_port() < 0)
-    return {Exception::kInvalidProtocolBuffer};
+  }
 
   // For backwards compatibility reasons, no other fields should be null-checked
   // for this frame. Parameter checking (eg. must be within this range) is fine.

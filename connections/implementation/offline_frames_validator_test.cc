@@ -17,6 +17,7 @@
 #include <array>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
@@ -678,6 +679,23 @@ TEST(OfflineFramesValidatorTest,
   auto ret_value = EnsureValidOfflineFrame(offline_frame);
 
   EXPECT_FALSE(ret_value.Ok());
+}
+
+TEST(OfflineFramesValidatorTest,
+     ValidateWifiLanUpgradeFrameWithAddressCandidatesSucceeds) {
+  OfflineFrame offline_frame;
+  std::vector<std::string> address_candidates = {
+      std::string(
+          "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53",
+          16),
+      std::string("\xc0\xa8\x00\x01", 4),
+  };
+  ByteArray bytes = ForBwuWifiLanPathAvailable(address_candidates, kPort);
+  offline_frame.ParseFromString(std::string(bytes));
+
+  auto ret_value = EnsureValidOfflineFrame(offline_frame);
+
+  EXPECT_TRUE(ret_value.Ok());
 }
 
 TEST(OfflineFramesValidatorTest,
