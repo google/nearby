@@ -60,7 +60,7 @@ void WebRtcSignalingMessenger::StopReceivingMessages() {
 
 WebRtcMedium::~WebRtcMedium() { single_thread_executor_.Shutdown(); }
 
-const std::string WebRtcMedium::GetDefaultCountryCode() { return "US"; }
+std::string WebRtcMedium::GetDefaultCountryCode() { return "US"; }
 
 void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {

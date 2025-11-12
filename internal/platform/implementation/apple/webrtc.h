@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_WEBRTC_H_
-#define PLATFORM_IMPL_G3_WEBRTC_H_
+#ifndef PLATFORM_IMPL_APPLE_WEBRTC_H_
+#define PLATFORM_IMPL_APPLE_WEBRTC_H_
 
 #include <memory>
 #include <optional>
@@ -21,13 +21,13 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
+#include "internal/platform/tachyon_messaging_client.h"
 #include "webrtc/api/peer_connection_interface.h"
 
 namespace nearby {
-namespace g3 {
-
+namespace apple {
 class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  public:
   using OnSignalingMessageCallback =
@@ -50,15 +50,17 @@ class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
  private:
   std::string self_id_;
   location::nearby::connections::LocationHint location_hint_;
+  AccountManager* const account_manager_;
+  std::unique_ptr<TachyonMessagingClient> client_;
 };
 
 class WebRtcMedium : public api::WebRtcMedium {
  public:
-  using PeerConnectionCallback = api::WebRtcMedium::PeerConnectionCallback;
+  ~WebRtcMedium() override = default;
 
-  WebRtcMedium() = default;
-  ~WebRtcMedium() override;
-
+  // Gets the default two-letter country code associated with current locale.
+  // For example, en_US locale resolves to "US".
+  // This follows the ISO 3166-1 Alpha-2 standard.
   std::string GetDefaultCountryCode() override;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
@@ -78,13 +80,9 @@ class WebRtcMedium : public api::WebRtcMedium {
       absl::string_view self_id,
       const location::nearby::connections::LocationHint& location_hint)
       override;
-
- private:
-  // Executor for handling calls to create a peer connection.
-  SingleThreadExecutor single_thread_executor_;
 };
 
-}  // namespace g3
+}  // namespace apple
 }  // namespace nearby
 
-#endif  // PLATFORM_IMPL_G3_WEBRTC_H_
+#endif  // PLATFORM_IMPL_APPLE_WEBRTC_H_

@@ -321,7 +321,7 @@ void GNCEnsureFileAtPath(std::string path) {
 
 - (void)testCreateWebRtcMedium {
   auto webrtc_medium = nearby::api::ImplementationPlatform::CreateWebRtcMedium();
-  XCTAssertEqual(webrtc_medium.get(), nullptr);
+  XCTAssertNotEqual(webrtc_medium.get(), nullptr);
 }
 
 - (void)testCreateInputFileWithPayloadID {

@@ -61,7 +61,7 @@ class WebRtcMedium : public api::WebRtcMedium {
   // Gets the default two-letter country code associated with current locale.
   // For example, en_US locale resolves to "US".
   // This follows the ISO 3166-1 Alpha-2 standard.
-  const std::string GetDefaultCountryCode() override;
+  std::string GetDefaultCountryCode() override;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
   // |callback|.
