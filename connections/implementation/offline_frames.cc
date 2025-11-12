@@ -19,7 +19,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/strings/str_cat.h"
 #include "connections/connection_options.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/internal_payload.h"
@@ -30,6 +29,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 
@@ -283,16 +283,6 @@ ByteArray ForBwuWifiHotspotPathAvailable(
 
 ByteArray ForBwuWifiLanPathAvailable(
     const std::vector<std::string>& ip_addresses, std::int32_t port) {
-  // For compatibility with Android versions, only use IPv4 address.
-  // IPv4 addresses are always at the end of the list.
-  std::string ip_address = ip_addresses.back();
-  if (ip_address.size() != 4) {
-    return {};
-  }
-  VLOG(1) << "WifiLanBwuPath retrieved WIFI_LAN credentials. IP addr: "
-          << absl::Hex(ip_address[0]) << "." << absl::Hex(ip_address[1]) << "."
-          << absl::Hex(ip_address[2]) << "." << absl::Hex(ip_address[3])
-          << ",  Port: " << port;
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -305,9 +295,21 @@ ByteArray ForBwuWifiLanPathAvailable(
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
   upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
-  wifi_lan_socket->set_ip_address(ip_address);
-  wifi_lan_socket->set_wifi_port(port);
-
+  // For compatibility with Android versions, only use IPv4 address.
+  // IPv4 addresses are always at the end of the list.
+  std::string ip_address = ip_addresses.back();
+  if (ip_address.size() == 4) {
+    wifi_lan_socket->set_ip_address(ip_address);
+    wifi_lan_socket->set_wifi_port(port);
+  }
+  for (const auto& address : ip_addresses) {
+    auto* address_candidate = wifi_lan_socket->add_address_candidates();
+    std::string ip_address = std::string(address.begin(), address.end());
+    address_candidate->set_ip_address(ip_address);
+    address_candidate->set_port(port);
+    VLOG(1) << "ForBwuWifiLanPathAvailable: "
+            << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port;
+  }
   return ToBytes(std::move(frame));
 }
 

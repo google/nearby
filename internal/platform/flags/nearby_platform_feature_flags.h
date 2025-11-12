@@ -73,9 +73,13 @@ constexpr auto kEnableIpv6DualStack =
 constexpr auto kEnableMdnsIpv6 =
     flags::Flag<bool>(kConfigPackage, "45735181", false);
 
-    // Enable/Disable new Bluetooth refactor
+// Enable/Disable new Bluetooth refactor
 constexpr auto kEnableNewBluetoothRefactor =
     flags::Flag<bool>(kConfigPackage, "45615156", false);
+
+// Enable/Disable use of address candidates for WifiLan upgrade in Windows.
+constexpr auto kEnableWifiLanAddressCandidates =
+    flags::Flag<bool>(kConfigPackage, "45739995", false);
 
 // The send buffer size of blocking socket
 constexpr auto kSocketSendBufferSize =

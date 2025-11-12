@@ -441,12 +441,28 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
         event_type: UPGRADE_PATH_AVAILABLE
         upgrade_path_info: <
           medium: WIFI_LAN
-          wifi_lan_socket: < ip_address: "\x01\x02\x03\x04" wifi_port: 1234 >
+          wifi_lan_socket: <
+            ip_address: "\x01\x02\x03\x04"
+            wifi_port: 1234
+            address_candidates: <
+              ip_address: "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53"
+              port: 1234
+            >
+            address_candidates: <
+              ip_address: "\001\002\003\004"
+              port: 1234
+            >
+          >
           supports_client_introduction_ack: true
         >
       >
     >)pb";
-  ByteArray bytes = ForBwuWifiLanPathAvailable({"\x01\x02\x03\x04"}, 1234);
+  ByteArray bytes = ForBwuWifiLanPathAvailable(
+      {std::string(
+           "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53",
+           16),
+       "\x01\x02\x03\x04"},
+      1234);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

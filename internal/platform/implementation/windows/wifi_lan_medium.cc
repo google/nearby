@@ -765,10 +765,15 @@ std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
           4));
     }
   }
-  // Append v4 addresses to the end of the list.
-  ip_addresses.insert(ip_addresses.end(), ipv4_addresses.begin(),
-                      ipv4_addresses.end());
-  return ip_addresses;
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          platform::config_package_nearby::nearby_platform_feature::
+              kEnableWifiLanAddressCandidates)) {
+    // Append v4 addresses to the end of the list.
+    ip_addresses.insert(ip_addresses.end(), ipv4_addresses.begin(),
+                        ipv4_addresses.end());
+    return ip_addresses;
+  }
+  return { ip_addresses.back() };
 }
 
 }  // namespace nearby::windows
