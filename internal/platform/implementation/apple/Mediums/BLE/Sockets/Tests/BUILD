@@ -46,9 +46,11 @@ objc_library(
     testonly = 1,
     srcs = [
         "Peripheral/GNSFakePeripheralManager.m",
+        "Peripheral/GNSFakePeripheralServiceManager.m",
     ],
     hdrs = [
         "Peripheral/GNSFakePeripheralManager.h",
+        "Peripheral/GNSFakePeripheralServiceManager.h",
     ],
     deps = [
         "//internal/platform/implementation/apple/Log:GNCLogger",
