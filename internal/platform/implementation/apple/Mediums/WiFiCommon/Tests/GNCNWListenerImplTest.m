@@ -17,28 +17,24 @@
 #import <Network/Network.h>
 #import <XCTest/XCTest.h>
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWParameters.h"
-
 @interface GNCNWListenerImplTest : XCTestCase
 @end
 
-@implementation GNCNWListenerImplTest {
-  GNCNWListenerImpl *_listenerImpl;
+@implementation GNCNWListenerImplTest
+
+- (void)testInitWithParameters {
+  nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DEFAULT_CONFIGURATION,
+                                                               NW_PARAMETERS_DEFAULT_CONFIGURATION);
+  GNCNWListenerImpl *listener = [[GNCNWListenerImpl alloc] initWithParameters:parameters];
+  XCTAssertNotNil(listener);
 }
 
-- (void)setUp {
-  [super setUp];
-  if (@available(iOS 13.0, *)) {
-    // Note: GNCBuildNonTLSParameters is not available in tests, so we can't fully initialize.
-    // This test is limited to checking basic allocation.
-  }
+- (void)testInitWithPortAndParameters {
+  nw_parameters_t parameters = nw_parameters_create_secure_tcp(NW_PARAMETERS_DEFAULT_CONFIGURATION,
+                                                               NW_PARAMETERS_DEFAULT_CONFIGURATION);
+  GNCNWListenerImpl *listener = [[GNCNWListenerImpl alloc] initWithPort:"1234"
+                                                             parameters:parameters];
+  XCTAssertNotNil(listener);
 }
-
-// No tests here. The functionality is tested through GNCNWFrameworkServerSocketTest.
-
-// NOTE: Testing the interaction with the Network.framework C functions
-// is difficult without a way to mock or intercept C function calls.
-// The main test coverage for the listener logic is achieved through
-// GNCFakeNWListener in GNCNWFrameworkServerSocketTest.m.
 
 @end

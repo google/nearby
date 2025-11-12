@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResult.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResultImpl.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic) nw_interface_type_t type;
 @end
 
-@interface GNCFakeNWBrowseResult : NSObject <GNCNWBrowseResult>
+@interface GNCFakeNWBrowseResult : GNCNWBrowseResultImpl
 @property(nonatomic, copy) NSArray<GNCFakeNWInterface *> *interfaces;
 @property(nonatomic, nullable) NSDictionary<NSString *, NSString *> *txtRecord;
 

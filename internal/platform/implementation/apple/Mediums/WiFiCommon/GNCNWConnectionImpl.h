@@ -25,8 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface GNCNWConnectionImpl : NSObject <GNCNWConnection>
 
-- (instancetype)initWithNWConnection:(nw_connection_t)connection NS_DESIGNATED_INITIALIZER;
-- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithNWConnection:(nw_connection_t)connection;
 
 @end
 

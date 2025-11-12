@@ -20,6 +20,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation GNCNWBrowseResultImpl
 
++ (instancetype)sharedInstance {
+  static GNCNWBrowseResultImpl *sharedInstance = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    sharedInstance = [[self alloc] init];
+  });
+  return sharedInstance;
+}
+
 - (void)enumerateInterfaces:(nw_browse_result_t)browseResult
                  usingBlock:(nw_browse_result_enumerate_interface_t)block {
   nw_browse_result_enumerate_interfaces(browseResult, block);

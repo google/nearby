@@ -19,10 +19,50 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@implementation GNCFakeNWConnection
+@implementation GNCFakeNWConnection {
+  nw_connection_t _fakeNWConnection;
+}
 
-- (instancetype)init {
-  return [super init];
+- (instancetype)initWithNWConnection:(nw_connection_t)connection {
+  self = [super init];
+  if (self) {
+    _fakeNWConnection = connection;
+  }
+  return self;
+}
+
+- (nw_connection_t)createConnectionWithEndpoint:(nw_endpoint_t)endpoint
+                                     parameters:(nw_parameters_t)parameters {
+  // Return a non-nil, unique-ish value to represent the connection.
+  _fakeNWConnection = (nw_connection_t)[[NSObject alloc] init];
+  return _fakeNWConnection;
+}
+
+- (void)setQueue:(dispatch_queue_t)queue {
+  // No-op for fake.
+}
+
+- (void)setStateChangedHandler:(nullable nw_connection_state_changed_handler_t)handler {
+  // Capture the handler passed to the method.
+  _stateChangedHandler = handler;
+}
+
+- (void)start {
+  // Simulate immediate transition to ready or failed.
+  if (self.stateChangedHandler) {
+    nw_connection_state_t state =
+        self.simulateStartFailure ? nw_connection_state_failed : nw_connection_state_ready;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+      self.stateChangedHandler(state, nil);
+    });
+  }
+}
+
+- (void)cancel {
+  self.cancelCalled = YES;
+  if (self.stateChangedHandler) {
+    self.stateChangedHandler(nw_connection_state_cancelled, nil);
+  }
 }
 
 - (void)receiveMessageWithMinLength:(uint32_t)minIncompleteLength
@@ -53,12 +93,8 @@ NS_ASSUME_NONNULL_BEGIN
   });
 }
 
-- (void)cancel {
-  self.cancelCalled = YES;
-}
-
 - (nullable nw_connection_t)nwConnection {
-  return nil;  // Fake doesn't wrap a real connection
+  return _fakeNWConnection;
 }
 
 @end

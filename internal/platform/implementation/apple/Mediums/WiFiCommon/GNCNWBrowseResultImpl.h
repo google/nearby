@@ -19,6 +19,12 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface GNCNWBrowseResultImpl : NSObject <GNCNWBrowseResult>
+
+/**
+ * Returns the shared singleton instance of this class.
+ */
++ (instancetype)sharedInstance;
+
 @end
 
 NS_ASSUME_NONNULL_END

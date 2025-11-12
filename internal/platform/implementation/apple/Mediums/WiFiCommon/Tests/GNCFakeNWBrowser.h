@@ -14,11 +14,11 @@
 
 #import <Network/Network.h>
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowser.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowserImpl.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GNCFakeNWBrowser : NSObject <GNCNWBrowser>
+@interface GNCFakeNWBrowser : GNCNWBrowserImpl
 
 @property(nonatomic, nullable) nw_browser_t createWithDescriptorResult;
 @property(nonatomic) BOOL simulateTimeout;

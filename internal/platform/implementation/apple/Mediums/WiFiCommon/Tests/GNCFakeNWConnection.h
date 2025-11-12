@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnectionImpl.h"
 
 #import <Foundation/Foundation.h>
 #import <Network/Network.h>
@@ -22,7 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * A fake implementation of GNCNWConnection for testing purposes.
  */
-@interface GNCFakeNWConnection : NSObject <GNCNWConnection>
+@interface GNCFakeNWConnection : GNCNWConnectionImpl
 
 /** The data to be received by the fake connection. */
 @property(nonatomic, nullable) dispatch_data_t dataToReceive;
@@ -30,15 +30,19 @@ NS_ASSUME_NONNULL_BEGIN
 /** Whether cancel has been called on the fake connection. */
 @property(nonatomic) BOOL cancelCalled;
 
+/** Property to simulate start failure. */
+@property(nonatomic) BOOL simulateStartFailure;
+
 /** Property to simulate send failure. */
 @property(nonatomic) BOOL simulateSendFailure;
 
 /** Property to simulate receive failure. */
 @property(nonatomic) BOOL simulateReceiveFailure;
 
-- (instancetype)init NS_DESIGNATED_INITIALIZER;
+/** The state changed handler for the fake connection. */
+@property(nonatomic, nullable) nw_connection_state_changed_handler_t stateChangedHandler;
 
-- (instancetype)initWithNWConnection:(nw_connection_t)connection NS_UNAVAILABLE;
+- (instancetype)initWithNWConnection:(nw_connection_t)connection;
 
 @end
 

@@ -19,6 +19,11 @@
 
 #import "internal/platform/implementation/apple/Log/GNCLogger.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCIPv4Address.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResult.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowseResultImpl.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowser.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWBrowserImpl.h"
+#import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnection.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWConnectionImpl.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkError.h"
 #import "internal/platform/implementation/apple/Mediums/WiFiCommon/GNCNWFrameworkServerSocket+Internal.h"
@@ -36,31 +41,36 @@ NSTimeInterval const GNCStartDiscoveryTimeoutInSeconds = 0.5;
 
 BOOL GNCHasLoopbackInterface(nw_browse_result_t browseResult) {
   __block BOOL isLoopback = NO;
-  nw_browse_result_enumerate_interfaces(browseResult, ^bool(nw_interface_t interface) {
-    nw_interface_type_t type = nw_interface_get_type(interface);
-    if (type == nw_interface_type_loopback) {
-      isLoopback = YES;
-      return NO;
-    }
-    return YES;
-  });
+  id<GNCNWBrowseResult> wrapper = [GNCNWBrowseResultImpl sharedInstance];
+  [wrapper enumerateInterfaces:browseResult
+                    usingBlock:^bool(nw_interface_t interface) {
+                      nw_interface_type_t type = [wrapper interfaceGetType:interface];
+                      if (type == nw_interface_type_loopback) {
+                        isLoopback = YES;
+                        return NO;
+                      }
+                      return YES;
+                    }];
   return isLoopback;
 }
 
 NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_result_t browseResult) {
-  nw_txt_record_t txt_record = nw_browse_result_copy_txt_record_object(browseResult);
+  id<GNCNWBrowseResult> wrapper = [GNCNWBrowseResultImpl sharedInstance];
+  nw_txt_record_t txt_record = [wrapper copyTXTRecordObject:browseResult];
   NSMutableDictionary<NSString *, NSString *> *txtRecords =
       [[NSMutableDictionary<NSString *, NSString *> alloc] init];
-  nw_txt_record_apply(txt_record, ^bool(const char *key, const nw_txt_record_find_key_t found,
-                                        const uint8_t *value, const size_t value_len) {
-    if (found == nw_txt_record_find_key_non_empty_value) {
-      NSString *valueString = [[NSString alloc] initWithBytes:value
-                                                       length:value_len
-                                                     encoding:NSUTF8StringEncoding];
-      [txtRecords setValue:valueString forKey:@(key)];
-    }
-    return YES;
-  });
+  [wrapper applyTXTRecord:txt_record
+                    block:^bool(const char *key, const nw_txt_record_find_key_t found,
+                                const uint8_t *value, const size_t value_len) {
+                      if (found == nw_txt_record_find_key_non_empty_value) {
+                        NSString *valueString =
+                            [[NSString alloc] initWithBytes:value
+                                                     length:value_len
+                                                   encoding:NSUTF8StringEncoding];
+                        [txtRecords setValue:valueString forKey:@(key)];
+                      }
+                      return YES;
+                    }];
   return txtRecords;
 }
 
@@ -189,71 +199,90 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   nw_browse_descriptor_t descriptor =
       nw_browse_descriptor_create_bonjour_service([serviceType UTF8String], /*domain=*/nil);
   nw_browse_descriptor_set_include_txt_record(descriptor, YES);
-  nw_browser_t browser = nw_browser_create(descriptor, parameters);
 
-  nw_browser_set_queue(browser, _dispatchQueue);
+  id<GNCNWBrowser> browserWrapper = [[GNCNWBrowserImpl alloc] init];
+  nw_browser_t browser = [browserWrapper createWithDescriptor:descriptor parameters:parameters];
 
-  nw_browser_set_browse_results_changed_handler(browser, ^(nw_browse_result_t old_result,
-                                                           nw_browse_result_t new_result,
-                                                           bool batch_complete) {
-    nw_browse_result_change_t change = nw_browse_result_get_changes(old_result, new_result);
-    switch (change) {
-      case nw_browse_result_change_identical:
-      case nw_browse_result_change_interface_added:
-      case nw_browse_result_change_interface_removed:
-        break;
-      case nw_browse_result_change_result_added: {
-        // If the service has a loopback interface, we probably discovered our own
-        // advertisement, so we ignore it.
-        BOOL hasLoopback = GNCHasLoopbackInterface(new_result);
-        if (hasLoopback) {
-          GNCLoggerInfo(@"Ignoring a service discovered with loopback interface.");
-          break;
-        }
-        nw_endpoint_t endpoint = nw_browse_result_copy_endpoint(new_result);
-        NSString *name = @(nw_endpoint_get_bonjour_service_name(endpoint));
-        NSDictionary<NSString *, NSString *> *txtRecords = GNCTXTRecordForBrowseResult(new_result);
-        serviceFoundHandler(name, txtRecords);
-        break;
-      }
-      case nw_browse_result_change_txt_record_changed: {
-        // If the service has a loopback interface, we probably lost our own advertisement, so
-        // we ignore it.
-        BOOL oldHasLoopback = GNCHasLoopbackInterface(old_result);
-        BOOL newHasLoopback = GNCHasLoopbackInterface(new_result);
-        if (oldHasLoopback || newHasLoopback) {
-          GNCLoggerInfo(@"Ignoring a service change with loopback interface.");
-          break;
-        }
-        nw_endpoint_t old_endpoint = nw_browse_result_copy_endpoint(old_result);
-        NSString *oldName = @(nw_endpoint_get_bonjour_service_name(old_endpoint));
-        NSDictionary<NSString *, NSString *> *oldTXTRecords =
-            GNCTXTRecordForBrowseResult(old_result);
-        serviceLostHandler(oldName, oldTXTRecords);
+  [browserWrapper setQueue:browser queue:_dispatchQueue];
 
-        nw_endpoint_t new_endpoint = nw_browse_result_copy_endpoint(new_result);
-        NSString *newName = @(nw_endpoint_get_bonjour_service_name(new_endpoint));
-        NSDictionary<NSString *, NSString *> *newTXTRecords =
-            GNCTXTRecordForBrowseResult(new_result);
-        serviceFoundHandler(newName, newTXTRecords);
-        break;
-      }
-      case nw_browse_result_change_result_removed: {
-        // If the service has a loopback interface, we probably lost our own advertisement, so
-        // we ignore it.
-        BOOL hasLoopback = GNCHasLoopbackInterface(old_result);
-        if (hasLoopback) {
-          GNCLoggerInfo(@"Ignoring a service lost with loopback interface.");
-          break;
-        }
-        nw_endpoint_t endpoint = nw_browse_result_copy_endpoint(old_result);
-        NSString *name = @(nw_endpoint_get_bonjour_service_name(endpoint));
-        NSDictionary<NSString *, NSString *> *txtRecords = GNCTXTRecordForBrowseResult(old_result);
-        serviceLostHandler(name, txtRecords);
-        break;
-      }
-    }
-  });
+  [browserWrapper
+      setBrowseResultsChangedHandler:browser
+                             handler:^(nw_browse_result_t old_result, nw_browse_result_t new_result,
+                                       bool batch_complete) {
+                               id<GNCNWBrowseResult> browseResultWrapper =
+                                   [GNCNWBrowseResultImpl sharedInstance];
+                               nw_browse_result_change_t change =
+                                   [browseResultWrapper getChangesFrom:old_result to:new_result];
+                               switch (change) {
+                                 case nw_browse_result_change_identical:
+                                 case nw_browse_result_change_interface_added:
+                                 case nw_browse_result_change_interface_removed:
+                                   break;
+                                 case nw_browse_result_change_result_added: {
+                                   // If the service has a loopback interface, we probably
+                                   // discovered our own advertisement, so we ignore it.
+                                   BOOL hasLoopback = GNCHasLoopbackInterface(new_result);
+                                   if (hasLoopback) {
+                                     GNCLoggerInfo(
+                                         @"Ignoring a service discovered with loopback interface.");
+                                     break;
+                                   }
+                                   nw_endpoint_t endpoint =
+                                       [browseResultWrapper copyEndpointFromResult:new_result];
+                                   NSString *name = [browseResultWrapper
+                                       getBonjourServiceNameFromEndpoint:endpoint];
+                                   NSDictionary<NSString *, NSString *> *txtRecords =
+                                       GNCTXTRecordForBrowseResult(new_result);
+                                   serviceFoundHandler(name, txtRecords);
+                                   break;
+                                 }
+                                 case nw_browse_result_change_txt_record_changed: {
+                                   // If the service has a loopback interface, we probably lost our
+                                   // own advertisement, so we ignore it.
+                                   BOOL oldHasLoopback = GNCHasLoopbackInterface(old_result);
+                                   BOOL newHasLoopback = GNCHasLoopbackInterface(new_result);
+                                   if (oldHasLoopback || newHasLoopback) {
+                                     GNCLoggerInfo(
+                                         @"Ignoring a service change with loopback interface.");
+                                     break;
+                                   }
+                                   nw_endpoint_t old_endpoint =
+                                       [browseResultWrapper copyEndpointFromResult:old_result];
+                                   NSString *oldName = [browseResultWrapper
+                                       getBonjourServiceNameFromEndpoint:old_endpoint];
+                                   NSDictionary<NSString *, NSString *> *oldTXTRecords =
+                                       GNCTXTRecordForBrowseResult(old_result);
+                                   serviceLostHandler(oldName, oldTXTRecords);
+
+                                   nw_endpoint_t new_endpoint =
+                                       [browseResultWrapper copyEndpointFromResult:new_result];
+                                   NSString *newName = [browseResultWrapper
+                                       getBonjourServiceNameFromEndpoint:new_endpoint];
+                                   NSDictionary<NSString *, NSString *> *newTXTRecords =
+                                       GNCTXTRecordForBrowseResult(new_result);
+                                   serviceFoundHandler(newName, newTXTRecords);
+                                   break;
+                                 }
+                                 case nw_browse_result_change_result_removed: {
+                                   // If the service has a loopback interface, we probably lost our
+                                   // own advertisement, so we ignore it.
+                                   BOOL hasLoopback = GNCHasLoopbackInterface(old_result);
+                                   if (hasLoopback) {
+                                     GNCLoggerInfo(
+                                         @"Ignoring a service lost with loopback interface.");
+                                     break;
+                                   }
+                                   nw_endpoint_t endpoint =
+                                       [browseResultWrapper copyEndpointFromResult:old_result];
+                                   NSString *name = [browseResultWrapper
+                                       getBonjourServiceNameFromEndpoint:endpoint];
+                                   NSDictionary<NSString *, NSString *> *txtRecords =
+                                       GNCTXTRecordForBrowseResult(old_result);
+                                   serviceLostHandler(name, txtRecords);
+                                   break;
+                                 }
+                               }
+                             }];
 
   NSCondition *condition = [[NSCondition alloc] init];
   [condition lock];
@@ -261,18 +290,20 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   __block nw_browser_state_t blockResult = nw_browser_state_invalid;
   __block NSError *blockError = nil;
 
-  nw_browser_set_state_changed_handler(browser, ^(nw_browser_state_t state, nw_error_t error) {
-    [condition lock];
-    blockResult = state;
-    if (error != nil) {
-      blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-    }
-    [condition signal];
-    [condition unlock];
-  });
+  [browserWrapper setStateChangedHandler:browser
+                                 handler:^(nw_browser_state_t state, nw_error_t error) {
+                                   [condition lock];
+                                   blockResult = state;
+                                   if (error != nil) {
+                                     blockError =
+                                         (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
+                                   }
+                                   [condition signal];
+                                   [condition unlock];
+                                 }];
 
   [_serviceBrowsers setObject:browser forKey:serviceType];
-  nw_browser_start(browser);
+  [browserWrapper start:browser];
 
   BOOL didSignal = [condition
       waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:GNCStartDiscoveryTimeoutInSeconds]];
@@ -306,8 +337,11 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
 
 - (void)stopDiscoveryForServiceType:(nonnull NSString *)serviceType {
   nw_browser_t browser = [_serviceBrowsers objectForKey:serviceType];
-  [_serviceBrowsers removeObjectForKey:serviceType];
-  nw_browser_cancel(browser);
+  if (browser) {
+    [_serviceBrowsers removeObjectForKey:serviceType];
+    id<GNCNWBrowser> browserWrapper = [[GNCNWBrowserImpl alloc] init];
+    [browserWrapper cancel:browser];
+  }
 }
 
 - (nullable GNCNWFrameworkSocket *)connectToServiceName:(NSString *)serviceName
@@ -391,10 +425,12 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     GNCLoggerError(@"[GNCNWFramework] Failed to create NW parameters.");
     return nil;
   }
-  nw_connection_t connection = nw_connection_create(endpoint, parameters);
-  nw_connection_set_queue(connection, queue ? queue : dispatch_get_main_queue());
-  nw_connection_set_state_changed_handler(
-      connection, ^(nw_connection_state_t state, nw_error_t error) {
+
+  id<GNCNWConnection> connectionWrapper = [[GNCNWConnectionImpl alloc] init];
+  [connectionWrapper createConnectionWithEndpoint:endpoint parameters:parameters];
+  [connectionWrapper setQueue:queue ?: _dispatchQueue];
+  [connectionWrapper
+      setStateChangedHandler:^(nw_connection_state_t state, nw_error_t error) {
         [condition lock];
         // Ignore the preparing state, because it is not a final state.
         if (state != nw_connection_state_preparing) {
@@ -405,24 +441,23 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
           [condition signal];
         }
         [condition unlock];
-      });
+      }];
   if (cancelSource) {
     dispatch_source_set_event_handler(cancelSource, ^{
       GNCLoggerInfo(
           @"[GNCNWFramework] Connection to endpoint was cancelled before it could be established.");
-      nw_connection_cancel(connection);
+      [connectionWrapper cancel];
       dispatch_source_cancel(cancelSource);
     });
   }
-  nw_connection_start(connection);
+  [connectionWrapper start];
 
   BOOL didSignal =
       [condition waitUntilDate:[NSDate dateWithTimeIntervalSinceNow:GNCConnectionTimeoutInSeconds]];
   [condition unlock];
-
   // We timed out waiting for the connection to transition into a state.
   if (!didSignal) {
-    nw_connection_cancel(connection);
+    [connectionWrapper cancel];
     if (error != nil) {
       *error = [NSError errorWithDomain:GNCNWFrameworkErrorDomain
                                    code:GNCNWFrameworkErrorTimedOut
@@ -443,9 +478,9 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
     case nw_connection_state_failed:
     case nw_connection_state_cancelled:
       return nil;
-    case nw_connection_state_ready:
-      return [[GNCNWFrameworkSocket alloc]
-          initWithConnection:[[GNCNWConnectionImpl alloc] initWithNWConnection:connection]];
+    case nw_connection_state_ready: {
+      return [[GNCNWFrameworkSocket alloc] initWithConnection:connectionWrapper];
+    }
   }
 }
 
