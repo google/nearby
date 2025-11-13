@@ -91,11 +91,16 @@ Exception BleSocket::Close() {
 }
 
 Exception BleSocket::CloseLocked() {
+  if (!ble_input_stream_ && !ble_output_stream_) {
+    return {Exception::kSuccess};
+  }
   if (ble_input_stream_) {
     ble_input_stream_->Close();
+    ble_input_stream_.reset();
   }
   if (ble_output_stream_) {
     ble_output_stream_->Close();
+    ble_output_stream_.reset();
   }
   Medium medium = GetMediumLocked();
   switch (medium) {

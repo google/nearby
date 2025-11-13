@@ -118,10 +118,10 @@ class BleSocketBleMediumTest : public ::testing::Test {
     ASSERT_NE(socket_, nullptr);
   }
 
-  FakeBleSocketImpl* fake_socket_impl_;
-  std::unique_ptr<BleSocket> socket_;
   FakeInputStream fake_input_stream_;
   FakeOutputStream fake_output_stream_;
+  FakeBleSocketImpl* fake_socket_impl_;
+  std::unique_ptr<BleSocket> socket_;
 };
 
 TEST_F(BleSocketBleMediumTest, CloseSucceeds) {
@@ -176,10 +176,10 @@ class BleL2capSocketBleMediumTest : public ::testing::Test {
     ASSERT_NE(socket_, nullptr);
   }
 
-  FakeBleL2capSocketImpl* fake_l2cap_socket_impl_;
-  std::unique_ptr<BleSocket> socket_;
   FakeInputStream fake_input_stream_;
   FakeOutputStream fake_output_stream_;
+  FakeBleL2capSocketImpl* fake_l2cap_socket_impl_;
+  std::unique_ptr<BleSocket> socket_;
 };
 
 TEST_F(BleL2capSocketBleMediumTest, CloseSucceeds) {
