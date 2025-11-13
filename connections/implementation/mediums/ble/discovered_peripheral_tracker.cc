@@ -85,30 +85,27 @@ DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
 
 DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
   if (is_fetching_in_thread_) {
-    if (is_read_gatt_for_extended_advertisement_enabled_) {
-      Shutdown();
-    } else {
-      MutexLock lock(&mutex_);
-      if (executor_ != nullptr) {
-        executor_->Shutdown();
-      }
-    }
+    Shutdown();
   }
 }
 
 void DiscoveredPeripheralTracker::Shutdown() {
-  MutexLock lock(&mutex_);
   if (shutting_down_.Set(true)) {
     return;
   }
-
+  std::unique_ptr<MultiThreadExecutor> executor_to_shutdown;
   {
+    MutexLock lock(&mutex_);
+    executor_to_shutdown = std::move(executor_);
+  }
+
+  if (is_read_gatt_for_extended_advertisement_enabled_) {
     MutexLock lock(&task_mutex_);
     cond_.Notify();
   }
 
-  if (executor_ != nullptr) {
-    executor_->Shutdown();
+  if (executor_to_shutdown != nullptr) {
+    executor_to_shutdown->Shutdown();
   }
 }
 
@@ -164,6 +161,9 @@ void DiscoveredPeripheralTracker::ProcessFoundBleAdvertisement(
     BlePeripheral peripheral, BleAdvertisementData advertisement_data,
     AdvertisementFetcher advertisement_fetcher) {
   MutexLock lock(&mutex_);
+  if (shutting_down_.Get()) {
+    return;
+  }
 
   if (service_id_infos_.empty()) {
     LOG(INFO) << "Ignoring BLE advertisement header because we are not "
