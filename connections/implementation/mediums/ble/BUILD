@@ -61,11 +61,18 @@ cc_library(
         "//internal/platform/implementation/windows:__pkg__",
     ],
     deps = [
+        ":ble",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
         "//internal/platform:logging",
         "//internal/platform:types",
+        "//internal/platform:util",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -73,6 +80,7 @@ cc_test(
     name = "ble_socket_test",
     srcs = ["ble_socket_test.cc"],
     deps = [
+        ":ble",
         ":ble_socket",
         "//internal/platform:base",
         "//internal/platform:comm",

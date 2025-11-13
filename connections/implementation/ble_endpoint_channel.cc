@@ -21,6 +21,7 @@
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "internal/platform/ble.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -114,6 +115,14 @@ void BleEndpointChannel::CloseImpl() {
   }
 
   LOG(INFO) << "BleEndpointChannel " << GetName() << " is already closed.";
+}
+
+ExceptionOr<ByteArray> BleEndpointChannel::DispatchPacket() {
+  return ble_socket_2_->DispatchPacket();
+}
+
+Exception BleEndpointChannel::WritePayloadLength(int payload_length) {
+  return ble_socket_2_->WritePayloadLength(payload_length);
 }
 
 }  // namespace connections

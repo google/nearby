@@ -14,6 +14,7 @@
 
 #include "connections/implementation/ble_l2cap_endpoint_channel.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,6 +26,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
@@ -116,6 +118,18 @@ void BleL2capEndpointChannel::CloseImpl() {
   }
 
   LOG(INFO) << "BleL2capEndpointChannel " << GetName() << " is already closed.";
+}
+
+ExceptionOr<ByteArray> BleL2capEndpointChannel::DispatchPacket() {
+  return ble_l2cap_socket_2_->DispatchPacket();
+}
+
+ExceptionOr<std::int32_t> BleL2capEndpointChannel::ReadPayloadLength() {
+  return ble_l2cap_socket_2_->ReadPayloadLength();
+}
+
+Exception BleL2capEndpointChannel::WritePayloadLength(int payload_length) {
+  return ble_l2cap_socket_2_->WritePayloadLength(payload_length);
 }
 
 }  // namespace connections

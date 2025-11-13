@@ -459,6 +459,8 @@ cc_test(
     ],
     deps = [
         ":internal",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:logging",
         "//internal/platform:types",

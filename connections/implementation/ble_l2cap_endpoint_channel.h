@@ -15,12 +15,15 @@
 #ifndef CORE_INTERNAL_BLE_L2CAP_ENDPOINT_CHANNEL_H_
 #define CORE_INTERNAL_BLE_L2CAP_ENDPOINT_CHANNEL_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "internal/platform/ble.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -42,6 +45,10 @@ class BleL2capEndpointChannel final : public BaseEndpointChannel {
 
   // Returns the maximum transmit packet size of this endpoint channel.
   int GetMaxTransmitPacketSize() const override;
+
+  ExceptionOr<ByteArray> DispatchPacket() override;
+  ExceptionOr<std::int32_t> ReadPayloadLength() override;
+  Exception WritePayloadLength(int payload_length) override;
 
  private:
   void CloseImpl() override;

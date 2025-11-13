@@ -16,10 +16,17 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble/ble_packet.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/byte_utils.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
@@ -39,13 +46,43 @@ ExceptionOr<ByteArray> BleInputStream::Read(std::int64_t size) {
 Exception BleInputStream::Close() { return source_.Close(); }
 
 Exception BleOutputStream::Write(const ByteArray& data) {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kRefactorBleL2cap)) {
+    if (!payload_length_) {
+      return {Exception::kFailed};
+    }
+    // Prepend the packet length to the data.
+    std::string packet_str =
+        absl::StrCat(std::string(byte_utils::IntToBytes(payload_length_)),
+                     std::string(data));
+    payload_length_ = 0;
+
+    // Prepend the service id hash to the data with the payload length.
+    absl::StatusOr<BlePacket> ble_packet_status_or =
+        BlePacket::CreateDataPacket(service_id_hash_,
+                                    ByteArray(std::move(packet_str)));
+    if (!ble_packet_status_or.ok()) {
+      return {Exception::kFailed};
+    }
+    return source_.Write(ByteArray(ble_packet_status_or.value()));
+  } else {
+    return source_.Write(data);
+  }
 }
 
 Exception BleOutputStream::Flush() { return source_.Flush(); }
 
 Exception BleOutputStream::Close() { return source_.Close(); }
+
+Exception BleOutputStream::WritePayloadLength(int payload_length) {
+  if (payload_length_ != 0) {
+    return {Exception::kFailed};
+  }
+  // Store the payload length to be prepended to the data later.
+  payload_length_ = payload_length;
+  return {Exception::kSuccess};
+}
 
 BleSocket::BleSocket(const ByteArray& service_id_hash,
                      std::unique_ptr<BleInputStream> ble_input_stream,
@@ -164,13 +201,27 @@ ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
 }
 
 ExceptionOr<std::int32_t> BleSocket::ReadPayloadLength() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_input_stream_) {
+    return {Exception::kIo};
+  }
+
+  ExceptionOr<ByteArray> read_bytes =
+      ble_input_stream_->Read(sizeof(std::int32_t));
+  if (!read_bytes.ok()) {
+    return read_bytes.exception();
+  }
+
+  int payload_length = byte_utils::BytesToInt(std::move(read_bytes.result()));
+  return ExceptionOr<std::int32_t>(payload_length);
 }
 
 Exception BleSocket::WritePayloadLength(int payload_length) {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_output_stream_) {
+    return {Exception::kIo};
+  }
+  return ble_output_stream_->WritePayloadLength(payload_length);
 }
 
 Exception BleSocket::SendIntroduction() {

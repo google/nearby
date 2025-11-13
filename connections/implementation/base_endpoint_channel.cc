@@ -116,8 +116,15 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kRefactorBleL2cap)) {
-      // TODO(edwinwu): Implement the new read logic.
-      return ExceptionOr<ByteArray>(Exception::kFailed);
+      ExceptionOr<ByteArray> read_control_block_bytes = DispatchPacket();
+      if (!read_control_block_bytes.ok()) {
+        LOG(WARNING) << __func__ << ": Failed to dispatch packet: "
+                     << read_control_block_bytes.exception();
+        return ExceptionOr<ByteArray>(read_control_block_bytes.exception());
+      }
+
+      read_int =
+          (GetMedium() == BLE_L2CAP) ? ReadPayloadLength() : ReadInt(reader_);
     } else {
       read_int = ReadInt(reader_);
     }
@@ -244,8 +251,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
             config_package_nearby::nearby_connections_feature::
                 kRefactorBleL2cap) &&
         (GetMedium() == BLE || GetMedium() == BLE_L2CAP)) {
-      // TODO(edwinwu): Implement the new write logic.
-      write_exception = {Exception::kFailed};
+      write_exception = WritePayloadLength(data_size);
     } else {
       write_exception = WriteInt(writer_, static_cast<std::int32_t>(data_size));
     }

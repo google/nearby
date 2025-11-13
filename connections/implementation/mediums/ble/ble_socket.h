@@ -105,6 +105,21 @@ class BleOutputStream : public OutputStream {
   Exception Flush() override;
   Exception Close() override;
 
+  /**
+   * Sends the length of a data payload to the remote endpoint.
+   *
+   * This method prepares the socket for an upcoming data payload by sending its
+   * length, including the necessary `service_id_hash` prefix.
+   *
+   * This method must be called immediately before sending the corresponding
+   * payload.
+   *
+   * @param payload_length The length, in bytes, of the upcoming payload.
+   * @return An `Exception` object indicating the status of the write
+   * operation. `{Exception::kSuccess}` on success.
+   */
+  Exception WritePayloadLength(int payload_length);
+
  private:
   OutputStream& source_;
   const ByteArray service_id_hash_;

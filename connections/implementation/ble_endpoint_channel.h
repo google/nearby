@@ -21,6 +21,8 @@
 #include "connections/implementation/base_endpoint_channel.h"
 #include "connections/implementation/mediums/ble/ble_socket.h"
 #include "internal/platform/ble.h"
+#include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace connections {
@@ -39,6 +41,9 @@ class BleEndpointChannel final : public BaseEndpointChannel {
   location::nearby::proto::connections::Medium GetMedium() const override;
 
   int GetMaxTransmitPacketSize() const override;
+
+  ExceptionOr<ByteArray> DispatchPacket() override;
+  Exception WritePayloadLength(int payload_length) override;
 
  private:
   static constexpr int kDefaultBleMaxTransmitPacketSize = 512;  // 512 bytes
