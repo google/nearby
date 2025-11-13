@@ -14,10 +14,13 @@
 
 #include "connections/implementation/base_bwu_handler.h"
 
+#include <memory>
 #include <string>
 #include <utility>
 
+#include "connections/implementation/client_proxy.h"
 #include "connections/implementation/service_id_constants.h"
+#include "internal/platform/byte_array.h"
 #include "internal/platform/logging.h"
 
 namespace nearby {

@@ -66,8 +66,6 @@ namespace connections {
 //     other, and upon doing so, close the prior EndpointChannel.
 class BwuManager : public EndpointManager::FrameProcessor {
  public:
-  using UpgradePathInfo = BwuHandler::UpgradePathInfo;
-
   struct Config {
     BooleanMediumSelector allow_upgrade_to;
     absl::Duration bandwidth_upgrade_retry_delay;
@@ -139,13 +137,16 @@ class BwuManager : public EndpointManager::FrameProcessor {
                                  const std::vector<Medium>& mediums) const;
 
   // BaseBwuHandler
-  using ClientIntroduction = BwuNegotiationFrame::ClientIntroduction;
 
-  // Processes the BwuNegotiationFrames that come over the EndpointChannel on
-  // both initiator and responder side of the upgrade.
-  void OnBwuNegotiationFrame(ClientProxy* client,
-                             const BwuNegotiationFrame frame,
-                             const string& endpoint_id);
+  // Processes the
+  // location::nearby::connections::BandwidthUpgradeNegotiationFrames that come
+  // over the EndpointChannel on both initiator and responder side of the
+  // upgrade.
+  void OnBwuNegotiationFrame(
+      ClientProxy* client,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame
+          frame,
+      const string& endpoint_id);
 
   // Called to revert any state changed in the course of setting up the upgraded
   // medium for an endpoint.
@@ -170,22 +171,27 @@ class BwuManager : public EndpointManager::FrameProcessor {
   void RunUpgradeProtocol(ClientProxy* client, const std::string& endpoint_id,
                           std::unique_ptr<EndpointChannel> new_channel,
                           bool enable_encryption);
-  void RunUpgradeFailedProtocol(ClientProxy* client,
-                                const std::string& endpoint_id,
-                                const UpgradePathInfo& upgrade_path_info);
-  void ProcessBwuPathAvailableEvent(ClientProxy* client,
-                                    const std::string& endpoint_id,
-                                    const UpgradePathInfo& upgrade_path_info);
+  void RunUpgradeFailedProtocol(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
+  void ProcessBwuPathAvailableEvent(
+      ClientProxy* client, const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
   ErrorOr<std::unique_ptr<EndpointChannel>>
   ProcessBwuPathAvailableEventInternal(
       ClientProxy* client, const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info);
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info);
   void ProcessLastWriteToPriorChannelEvent(ClientProxy* client,
                                            const std::string& endpoint_id);
   void ProcessSafeToClosePriorChannelEvent(ClientProxy* client,
                                            const std::string& endpoint_id);
-  bool ReadClientIntroductionFrame(EndpointChannel* endpoint_channel,
-                                   ClientIntroduction& introduction);
+  bool ReadClientIntroductionFrame(
+      EndpointChannel* endpoint_channel,
+      location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          ClientIntroduction& introduction);
   bool ReadClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   bool WriteClientIntroductionAckFrame(EndpointChannel* endpoint_channel);
   void ProcessEndpointDisconnection(ClientProxy* client,
@@ -193,7 +199,8 @@ class BwuManager : public EndpointManager::FrameProcessor {
                                     CountDownLatch* barrier);
   void ProcessUpgradeFailureEvent(
       ClientProxy* client, const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_info,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_info,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
       bool record_analytic,
       location::nearby::proto::connections::OperationResultCode

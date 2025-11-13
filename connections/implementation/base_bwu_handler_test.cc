@@ -30,7 +30,7 @@
 namespace nearby {
 namespace connections {
 namespace {
-
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 
 //  Because BaseBwuHandler is still an abstract class, we need to implement the
@@ -61,11 +61,11 @@ class BwuHandlerImpl : public BaseBwuHandler {
 
  private:
   // BwuHandler implementation:
-  ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(
+  ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final {
+      const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+          upgrade_path_info) final {
     return {Error(OperationResultCode::DETAIL_UNKNOWN)};
   }
   Medium GetUpgradeMedium() const final { return Medium::UNKNOWN_MEDIUM; }

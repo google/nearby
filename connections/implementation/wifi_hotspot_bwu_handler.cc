@@ -15,9 +15,9 @@
 #include "connections/implementation/wifi_hotspot_bwu_handler.h"
 
 #if !defined(_WIN32)
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #endif
 
 #include <cstdint>
@@ -60,8 +60,7 @@ std::vector<char> GatewayToAddressBytes(const std::string& gateway) {
     return address_bytes;
   }
   address_bytes.resize(4);
-  std::memcpy(address_bytes.data(),
-              reinterpret_cast<char*>(&address_int), 4);
+  std::memcpy(address_bytes.data(), reinterpret_cast<char*>(&address_int), 4);
   return address_bytes;
 }
 }  // namespace
@@ -163,14 +162,17 @@ void WifiHotspotBwuHandler::HandleRevertInitiatorStateForService(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_hotspot_credentials()) {
     LOG(INFO) << "No Hotspot Credential";
     return {Error(
         OperationResultCode::CONNECTIVITY_WIFI_HOTSPOT_INVALID_CREDENTIAL)};
   }
-  const UpgradePathInfo::WifiHotspotCredentials& upgrade_path_info_credentials =
-      upgrade_path_info.wifi_hotspot_credentials();
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+      WifiHotspotCredentials& upgrade_path_info_credentials =
+          upgrade_path_info.wifi_hotspot_credentials();
 
   HotspotCredentials hotspot_credentials;
   hotspot_credentials.SetSSID(upgrade_path_info_credentials.ssid());

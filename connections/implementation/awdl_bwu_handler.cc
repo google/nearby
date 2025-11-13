@@ -45,6 +45,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 
 constexpr absl::Duration kAwdlDiscoveryTimeout = absl::Seconds(5);
@@ -64,14 +65,16 @@ AwdlBwuHandler::AwdlBwuHandler(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 AwdlBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   std::string upgrade_service_id = WrapInitiatorUpgradeServiceId(service_id);
   if (!upgrade_path_info.has_awdl_credentials()) {
     return {Error(OperationResultCode::CONNECTIVITY_AWDL_INVALID_CREDENTIAL)};
   }
 
-  const UpgradePathInfo::AwdlCredentials& awdl_credentials =
-      upgrade_path_info.awdl_credentials();
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::AwdlCredentials&
+      awdl_credentials = upgrade_path_info.awdl_credentials();
   if (!awdl_credentials.has_service_name() ||
       !awdl_credentials.has_service_type() ||
       !awdl_credentials.has_password()) {

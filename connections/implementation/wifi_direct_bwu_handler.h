@@ -61,11 +61,11 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
   // WFD protocol to established connection while WINRT follow the standard WFD
   // spec to achieve the connection. So return fail to stop the upgrade request
   // from phone side.
-  ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(ClientProxy* client,
-                                const std::string& service_id,
-                                const std::string& endpoint_id,
-                                const UpgradePathInfo& upgrade_path_info) final;
+  ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info) final;
   location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
     return location::nearby::proto::connections::Medium::WIFI_DIRECT;
   }

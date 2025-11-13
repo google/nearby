@@ -31,6 +31,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -52,7 +53,9 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   return {Error(OperationResultCode::DETAIL_UNKNOWN)};
 }
 

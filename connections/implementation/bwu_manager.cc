@@ -352,7 +352,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
                         proposed_medium)
                  << " because it failed to initialize the "
                     "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
-      UpgradePathInfo info;
+      BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
       info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
 
       ProcessUpgradeFailureEvent(
@@ -373,7 +373,7 @@ void BwuManager::InitiateBwuForEndpoint(ClientProxy* client,
                         proposed_medium)
                  << " because it failed to write the "
                     "BWU_NEGOTIATION.UPGRADE_PATH_AVAILABLE OfflineFrame.";
-      UpgradePathInfo info;
+      BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
       info.set_medium(parser::MediumToUpgradePathInfoMedium(proposed_medium));
 
       ProcessUpgradeFailureEvent(
@@ -547,11 +547,12 @@ BwuHandler* BwuManager::GetHandlerForMedium(Medium medium) const {
   return it->second.get();
 }
 
-void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
-                                       const BwuNegotiationFrame frame,
-                                       const std::string& endpoint_id) {
+void BwuManager::OnBwuNegotiationFrame(
+    ClientProxy* client, const BandwidthUpgradeNegotiationFrame frame,
+    const std::string& endpoint_id) {
   LOG(INFO) << "OnBwuNegotiationFrame: processing incoming "
-            << BwuNegotiationFrame::EventType_Name(frame.event_type())
+            << BandwidthUpgradeNegotiationFrame::EventType_Name(
+                   frame.event_type())
             << " frame for endpoint " << endpoint_id;
 
   if (!client->IsConnectedToEndpoint(endpoint_id)) {
@@ -564,28 +565,29 @@ void BwuManager::OnBwuNegotiationFrame(ClientProxy* client,
     // advertise side already get, discover side should inform advertise side
     // the upgrade failed, so the advertise side could have chance to initialize
     // another upgrade flow again.
-    if (frame.event_type() == BwuNegotiationFrame::UPGRADE_PATH_AVAILABLE) {
+    if (frame.event_type() ==
+        BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE) {
       RunUpgradeFailedProtocol(client, endpoint_id, frame.upgrade_path_info());
     }
     return;
   }
 
   switch (frame.event_type()) {
-    case BwuNegotiationFrame::UPGRADE_PATH_AVAILABLE:
+    case BandwidthUpgradeNegotiationFrame::UPGRADE_PATH_AVAILABLE:
       ProcessBwuPathAvailableEvent(client, endpoint_id,
                                    frame.upgrade_path_info());
       break;
-    case BwuNegotiationFrame::UPGRADE_FAILURE:
+    case BandwidthUpgradeNegotiationFrame::UPGRADE_FAILURE:
       ProcessUpgradeFailureEvent(
           client, endpoint_id, frame.upgrade_path_info(),
           BandwidthUpgradeResult::REMOTE_CONNECTION_ERROR,
           /* record_analytic= */ true,
           OperationResultCode::NEARBY_GENERIC_REMOTE_UPGRADE_FAILURE);
       break;
-    case BwuNegotiationFrame::LAST_WRITE_TO_PRIOR_CHANNEL:
+    case BandwidthUpgradeNegotiationFrame::LAST_WRITE_TO_PRIOR_CHANNEL:
       ProcessLastWriteToPriorChannelEvent(client, endpoint_id);
       break;
-    case BwuNegotiationFrame::SAFE_TO_CLOSE_PRIOR_CHANNEL:
+    case BandwidthUpgradeNegotiationFrame::SAFE_TO_CLOSE_PRIOR_CHANNEL:
       ProcessSafeToClosePriorChannelEvent(client, endpoint_id);
       break;
     default:
@@ -623,7 +625,7 @@ void BwuManager::OnIncomingConnection(
     VLOG(1) << "BwuManager successfully created new EndpointChannel for "
                "incoming socket";
 
-    ClientIntroduction introduction;
+    BandwidthUpgradeNegotiationFrame::ClientIntroduction introduction;
     if (!ReadClientIntroductionFrame(channel, introduction)) {
       // This was never a fully EstablishedConnection, no need to provide a
       // closure reason.
@@ -776,7 +778,8 @@ void BwuManager::RunUpgradeProtocol(
 // Outgoing BWU session.
 void BwuManager::ProcessBwuPathAvailableEvent(
     ClientProxy* client, const std::string& endpoint_id,
-    const UpgradePathInfo& upgrade_path_info) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   Medium upgrade_medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
   LOG(INFO) << "ProcessBwuPathAvailableEvent for endpoint " << endpoint_id
@@ -925,7 +928,8 @@ void BwuManager::ProcessBwuPathAvailableEvent(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 BwuManager::ProcessBwuPathAvailableEventInternal(
     ClientProxy* client, const std::string& endpoint_id,
-    const UpgradePathInfo& upgrade_path_info) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   Medium medium =
       parser::UpgradePathInfoMediumToMedium(upgrade_path_info.medium());
   if (medium != GetBwuMediumForEndpoint(endpoint_id)) {
@@ -1064,7 +1068,8 @@ BwuManager::ProcessBwuPathAvailableEventInternal(
 
 void BwuManager::RunUpgradeFailedProtocol(
     ClientProxy* client, const std::string& endpoint_id,
-    const UpgradePathInfo& upgrade_path_info) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   LOG(INFO) << "RunUpgradeFailedProtocol for endpoint " << endpoint_id
             << " medium "
             << location::nearby::proto::connections::Medium_Name(
@@ -1111,8 +1116,9 @@ void BwuManager::RunUpgradeFailedProtocol(
             << " that the bandwidth upgrade failed.";
 }
 
-bool BwuManager::ReadClientIntroductionFrame(EndpointChannel* channel,
-                                             ClientIntroduction& introduction) {
+bool BwuManager::ReadClientIntroductionFrame(
+    EndpointChannel* channel,
+    BandwidthUpgradeNegotiationFrame::ClientIntroduction& introduction) {
   LOG(INFO) << "ReadClientIntroductionFrame with channel name: "
             << channel->GetName() << ", medium: "
             << location::nearby::proto::connections::Medium_Name(
@@ -1346,8 +1352,9 @@ void BwuManager::ProcessSafeToClosePriorChannelEvent(
 
 void BwuManager::ProcessUpgradeFailureEvent(
     ClientProxy* client, const std::string& endpoint_id,
-    const UpgradePathInfo& upgrade_info, BandwidthUpgradeResult result,
-    bool record_analytic, OperationResultCode operation_result_code) {
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo& upgrade_info,
+    BandwidthUpgradeResult result, bool record_analytic,
+    OperationResultCode operation_result_code) {
   LOG(INFO) << "ProcessUpgradeFailureEvent for endpoint " << endpoint_id
             << " from medium: "
             << location::nearby::proto::connections::Medium_Name(

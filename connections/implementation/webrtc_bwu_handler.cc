@@ -21,7 +21,6 @@
 #include <utility>
 
 #include "absl/functional/bind_front.h"
-#include "absl/strings/str_cat.h"
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -39,6 +38,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::LocationHint;
 using ::location::nearby::connections::LocationStandard;
 using ::location::nearby::proto::connections::OperationResultCode;
@@ -78,9 +78,11 @@ WebrtcBwuHandler::WebrtcBwuHandler(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 WebrtcBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
-  const UpgradePathInfo::WebRtcCredentials& web_rtc_credentials =
-      upgrade_path_info.web_rtc_credentials();
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WebRtcCredentials&
+      web_rtc_credentials = upgrade_path_info.web_rtc_credentials();
   mediums::WebrtcPeerId peer_id(web_rtc_credentials.peer_id());
 
   LocationHint location_hint;

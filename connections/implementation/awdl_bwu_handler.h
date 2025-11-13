@@ -59,7 +59,8 @@ class AwdlBwuHandler : public BaseBwuHandler {
   ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) override;
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info) override;
   location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
     return location::nearby::proto::connections::Medium::AWDL;
   }

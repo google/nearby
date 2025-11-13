@@ -39,6 +39,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -53,9 +54,11 @@ BluetoothBwuHandler::BluetoothBwuHandler(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 BluetoothBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
-  const UpgradePathInfo::BluetoothCredentials& bluetooth_credentials =
-      upgrade_path_info.bluetooth_credentials();
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::BluetoothCredentials&
+      bluetooth_credentials = upgrade_path_info.bluetooth_credentials();
   if (!bluetooth_credentials.has_service_name() ||
       !bluetooth_credentials.has_mac_address()) {
     LOG(ERROR) << "BluetoothBwuHandler failed to parse UpgradePathInfo.";

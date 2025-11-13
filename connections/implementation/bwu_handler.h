@@ -21,22 +21,16 @@
 #include "absl/functional/any_invocable.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
-#include "connections/implementation/offline_frames.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 
 namespace nearby {
 namespace connections {
 
-using BwuNegotiationFrame =
-    location::nearby::connections::BandwidthUpgradeNegotiationFrame;
-
 // Defines the set of methods that need to be implemented to handle the
 // per-Medium-specific operations needed to upgrade an EndpointChannel.
 class BwuHandler {
  public:
-  using UpgradePathInfo = parser::UpgradePathInfo;
-
   class IncomingSocket {
    public:
     virtual ~IncomingSocket() = default;
@@ -83,10 +77,11 @@ class BwuHandler {
   // Initiator, and returns a new EndpointChannel for the upgraded medium.
   // @BwuHandlerThread
   virtual ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(ClientProxy* client,
-                                const std::string& service_id,
-                                const std::string& endpoint_id,
-                                const UpgradePathInfo& upgrade_path_info) = 0;
+  CreateUpgradedEndpointChannel(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info) = 0;
 
   // Returns the upgrade medium of the BwuHandler.
   // @BwuHandlerThread

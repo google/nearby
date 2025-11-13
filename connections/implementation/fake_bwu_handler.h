@@ -32,6 +32,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 
 namespace nearby {
@@ -115,7 +116,8 @@ class FakeBwuHandler : public BaseBwuHandler {
   ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
       ClientProxy* client, const std::string& service_id,
       const std::string& endpoint_id,
-      const UpgradePathInfo& upgrade_path_info) final {
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info) final {
     create_calls_.push_back({.client = client,
                              .service_id = service_id,
                              .endpoint_id = endpoint_id});

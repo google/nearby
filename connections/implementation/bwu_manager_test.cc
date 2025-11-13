@@ -48,8 +48,6 @@ namespace connections {
 namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
-using ::location::nearby::connections::
-    BandwidthUpgradeNegotiationFrame_UpgradePathInfo;
 using ::location::nearby::connections::MediumRole;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::OsInfo;
@@ -856,8 +854,8 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagEnabled) {
       /*initialize_call_index=*/2u, bwu_manager_.get());
 
   // This upgrade fails.
-  BwuHandler::UpgradePathInfo info;
-  info.set_medium(BwuHandler::UpgradePathInfo::WEB_RTC);
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
+  info.set_medium(BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WEB_RTC);
   ExceptionOr<OfflineFrame> upgrade_failure =
       parser::FromBytes(parser::ForBwuFailure(info));
   bwu_manager_->OnIncomingFrame(upgrade_failure.result(),
@@ -894,8 +892,8 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnUpgradeFailure_FlagDisabled) {
       /*initialize_call_index=*/2u, bwu_manager_.get());
 
   // This upgrade fails.
-  BwuHandler::UpgradePathInfo info;
-  info.set_medium(BwuHandler::UpgradePathInfo::WEB_RTC);
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo info;
+  info.set_medium(BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WEB_RTC);
   ExceptionOr<OfflineFrame> upgrade_failure =
       parser::FromBytes(parser::ForBwuFailure(info));
   bwu_manager_->OnIncomingFrame(upgrade_failure.result(),
@@ -925,7 +923,7 @@ TEST_F(BwuManagerTest, InitiateBwu_Revert_OnDisconnect_WifiDirect) {
   ::nearby::connections::V1Frame* v1_frame = frame.mutable_v1();
   ::nearby::connections::BandwidthUpgradeNegotiationFrame* sub_frame =
       v1_frame->mutable_bandwidth_upgrade_negotiation();
-  ::nearby::connections::BandwidthUpgradeNegotiationFrame_UpgradePathInfo*
+  BandwidthUpgradeNegotiationFrame::UpgradePathInfo*
       upgrade_path_info = sub_frame->mutable_upgrade_path_info();
   upgrade_path_info->set_supports_client_introduction_ack(false);
   bwu_manager_->OnIncomingFrame(frame, std::string(kEndpointId1), &client_,

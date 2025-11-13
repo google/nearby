@@ -19,9 +19,10 @@
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
+#include "absl/container/flat_hash_set.h"
 #include "connections/implementation/bwu_handler.h"
-#include "connections/implementation/endpoint_channel_manager.h"
+#include "connections/implementation/client_proxy.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {

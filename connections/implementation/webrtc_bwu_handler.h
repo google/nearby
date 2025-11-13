@@ -19,7 +19,6 @@
 
 #include <memory>
 #include <string>
-#include <utility>
 
 #include "connections/implementation/base_bwu_handler.h"
 #include "connections/implementation/bwu_handler.h"
@@ -58,11 +57,11 @@ class WebrtcBwuHandler : public BaseBwuHandler {
   };
 
   // BwuHandler implementation:
-  ErrorOr<std::unique_ptr<EndpointChannel>>
-  CreateUpgradedEndpointChannel(ClientProxy* client,
-                                const std::string& service_id,
-                                const std::string& endpoint_id,
-                                const UpgradePathInfo& upgrade_path_info) final;
+  ErrorOr<std::unique_ptr<EndpointChannel>> CreateUpgradedEndpointChannel(
+      ClientProxy* client, const std::string& service_id,
+      const std::string& endpoint_id,
+      const location::nearby::connections::BandwidthUpgradeNegotiationFrame::
+          UpgradePathInfo& upgrade_path_info) final;
   location::nearby::proto::connections::Medium GetUpgradeMedium() const final {
     return Medium::WEB_RTC;
   }

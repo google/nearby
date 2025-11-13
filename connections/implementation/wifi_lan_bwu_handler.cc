@@ -38,6 +38,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -51,13 +52,15 @@ WifiLanBwuHandler::WifiLanBwuHandler(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 WifiLanBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_lan_socket()) {
     return {
         Error(OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL)};
   }
-  const UpgradePathInfo::WifiLanSocket& upgrade_path_info_socket =
-      upgrade_path_info.wifi_lan_socket();
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::WifiLanSocket&
+      upgrade_path_info_socket = upgrade_path_info.wifi_lan_socket();
   if ((!upgrade_path_info_socket.has_ip_address() ||
        !upgrade_path_info_socket.has_wifi_port()) &&
       upgrade_path_info_socket.address_candidates_size() == 0) {
@@ -70,9 +73,8 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
        upgrade_path_info_socket.address_candidates()) {
     if (address_candidate.has_ip_address() && address_candidate.has_port()) {
       address_candidates.push_back(ServiceAddress{
-          .address =
-              std::vector<char>(address_candidate.ip_address().begin(),
-                                address_candidate.ip_address().end()),
+          .address = std::vector<char>(address_candidate.ip_address().begin(),
+                                       address_candidate.ip_address().end()),
           .port = static_cast<uint16_t>(address_candidate.port())});
     }
   }
@@ -150,8 +152,7 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   if (ip_addresses.empty()) {
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
-              << endpoint_id
-              << " because there are no available ip addresses.";
+              << endpoint_id << " because there are no available ip addresses.";
     return {};
   }
   return parser::ForBwuWifiLanPathAvailable(ip_addresses, port);

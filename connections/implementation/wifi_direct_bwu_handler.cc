@@ -38,6 +38,7 @@ namespace nearby {
 namespace connections {
 
 namespace {
+using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
@@ -109,14 +110,17 @@ void WifiDirectBwuHandler::HandleRevertInitiatorStateForService(
 ErrorOr<std::unique_ptr<EndpointChannel>>
 WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     ClientProxy* client, const std::string& service_id,
-    const std::string& endpoint_id, const UpgradePathInfo& upgrade_path_info) {
+    const std::string& endpoint_id,
+    const BandwidthUpgradeNegotiationFrame::UpgradePathInfo&
+        upgrade_path_info) {
   if (!upgrade_path_info.has_wifi_direct_credentials()) {
     LOG(INFO) << "No WifiDirect Credential";
     return {Error(
         OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
   }
-  const UpgradePathInfo::WifiDirectCredentials& upgrade_path_info_credentials =
-      upgrade_path_info.wifi_direct_credentials();
+  const BandwidthUpgradeNegotiationFrame::UpgradePathInfo::
+      WifiDirectCredentials& upgrade_path_info_credentials =
+          upgrade_path_info.wifi_direct_credentials();
 
   const std::string& ssid = upgrade_path_info_credentials.ssid();
   const std::string& password = upgrade_path_info_credentials.password();
