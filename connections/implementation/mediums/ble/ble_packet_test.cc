@@ -14,36 +14,24 @@
 
 #include "connections/implementation/mediums/ble/ble_packet.h"
 
-#include <algorithm>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/status/statusor.h"
-#include "proto/mediums/ble_frames.proto.h"
+#include "absl/strings/string_view.h"
+#include "internal/platform/byte_array.h"
 
 namespace nearby {
 namespace connections {
 namespace mediums {
 namespace {
 using ::location::nearby::mediums::SocketControlFrame;
-using ::protobuf_matchers::EqualsProto;
+using ::location::nearby::mediums::SocketVersion;
 
 constexpr absl::string_view kServiceIDHash = {"\x01\x02\x03"};
 constexpr absl::string_view kData = {"\x01\x02\x03\x04\x05"};
-
-TEST(BlePacketTest, CreatingControlPacketWorks) {
-  ByteArray data((std::string(kData)));
-
-  absl::StatusOr<BlePacket> ble_packet_status_or =
-      BlePacket::CreateControlPacket(data);
-
-  ASSERT_OK(ble_packet_status_or);
-  EXPECT_TRUE(ble_packet_status_or.value().IsValid());
-  EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
-  EXPECT_EQ(data, ble_packet_status_or.value().GetData());
-}
 
 TEST(BlePacketTest, CreatingControlIntroductionFramePacketWorks) {
   ByteArray service_id_hash((std::string(kServiceIDHash)));
@@ -54,16 +42,13 @@ TEST(BlePacketTest, CreatingControlIntroductionFramePacketWorks) {
   ASSERT_OK(ble_packet_status_or);
   EXPECT_TRUE(ble_packet_status_or.value().IsValid());
   EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
-
-  constexpr absl::string_view kExpected =
-      R"pb(
-    type: INTRODUCTION
-    introduction: < service_id_hash: "\001\002\003" socket_version: V2 >)pb";
-
-  SocketControlFrame frame;
-  frame.ParseFromString(std::string(ble_packet_status_or.value().GetData()));
-
-  EXPECT_THAT(frame, EqualsProto(kExpected));
+  EXPECT_EQ(ble_packet_status_or.value().GetControlFrameType(),
+            SocketControlFrame::INTRODUCTION);
+  ASSERT_OK_AND_ASSIGN(
+      SocketVersion version,
+      ble_packet_status_or.value().GetIntroductonSocketVersion());
+  EXPECT_EQ(version, SocketVersion::V2);
+  EXPECT_EQ(ble_packet_status_or.value().GetServiceIdHash(), service_id_hash);
 }
 
 TEST(BlePacketTest, CreatingControlDisconnectionFramePacketWorks) {
@@ -75,40 +60,29 @@ TEST(BlePacketTest, CreatingControlDisconnectionFramePacketWorks) {
   ASSERT_OK(ble_packet_status_or);
   EXPECT_TRUE(ble_packet_status_or.value().IsValid());
   EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
-
-  constexpr absl::string_view kExpected =
-      R"pb(
-    type: DISCONNECTION
-    disconnection: < service_id_hash: "\001\002\003" >)pb";
-
-  SocketControlFrame frame;
-  frame.ParseFromString(std::string(ble_packet_status_or.value().GetData()));
-
-  EXPECT_THAT(frame, EqualsProto(kExpected));
+  EXPECT_EQ(ble_packet_status_or.value().GetControlFrameType(),
+            SocketControlFrame::DISCONNECTION);
+  EXPECT_EQ(ble_packet_status_or.value().GetServiceIdHash(), service_id_hash);
 }
 
 TEST(BlePacketTest, CreatingControlPacketAcknowledgementFramePacketWorks) {
+  constexpr int kReceivedSize = 100;
   ByteArray service_id_hash((std::string(kServiceIDHash)));
 
   absl::StatusOr<BlePacket> ble_packet_status_or =
-      BlePacket::CreateControlPacketAcknowledgementPacket(service_id_hash, 100);
+      BlePacket::CreateControlPacketAcknowledgementPacket(service_id_hash,
+                                                          kReceivedSize);
 
   ASSERT_OK(ble_packet_status_or);
   EXPECT_TRUE(ble_packet_status_or.value().IsValid());
   EXPECT_TRUE(ble_packet_status_or.value().IsControlPacket());
-
-  constexpr absl::string_view kExpected =
-      R"pb(
-    type: PACKET_ACKNOWLEDGEMENT
-    packet_acknowledgement: <
-      service_id_hash: "\001\002\003"
-      received_size: 100
-    >)pb";
-
-  SocketControlFrame frame;
-  frame.ParseFromString(std::string(ble_packet_status_or.value().GetData()));
-
-  EXPECT_THAT(frame, EqualsProto(kExpected));
+  EXPECT_EQ(ble_packet_status_or.value().GetControlFrameType(),
+            SocketControlFrame::PACKET_ACKNOWLEDGEMENT);
+  EXPECT_EQ(ble_packet_status_or.value().GetServiceIdHash(), service_id_hash);
+  ASSERT_OK_AND_ASSIGN(
+      int received_size,
+      ble_packet_status_or.value().GetPacketAcknowledgementReceivedSize());
+  EXPECT_EQ(received_size, kReceivedSize);
 }
 
 TEST(BlePacketTest, CreatingDataPacketWorks) {
@@ -200,23 +174,11 @@ TEST(BlePacketTest, ConstructionFromSerializedShortLengthDataBytesFails) {
   EXPECT_FALSE(short_ble_packet.IsValid());
 }
 
-TEST(BlePacketTest,
-     ConstructionFromSerializedBytesAsDataByteWithInvalidControlBytes) {
-  ByteArray data((std::string(kData)));
-
-  // Construct a control packet.
-  absl::StatusOr<BlePacket> ble_packet_status_or =
-      BlePacket::CreateControlPacket(data);
-  ByteArray ble_packet_bytes(ble_packet_status_or.value());
-
-  // Corrupt the first byte of ble_packet_bytes.
-  memset(ble_packet_bytes.data(), 0x01, 1);
-
-  BlePacket new_ble_packet(ble_packet_bytes);
-
-  EXPECT_TRUE(new_ble_packet.IsValid());
-  // It is not control packet eventually.
-  EXPECT_FALSE(new_ble_packet.IsControlPacket());
+TEST(BlePacketTest, IsControlPacketBytes) {
+  EXPECT_TRUE(BlePacket::IsControlPacketBytes(ByteArray("\x00\x00\x00", 3)));
+  EXPECT_FALSE(
+      BlePacket::IsControlPacketBytes(ByteArray(std::string(kServiceIDHash))));
+  EXPECT_FALSE(BlePacket::IsControlPacketBytes(ByteArray("invalid", 7)));
 }
 
 }  // namespace

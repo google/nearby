@@ -15,8 +15,13 @@
 #ifndef CORE_INTERNAL_MEDIUMS_BLE_BLE_PACKET_H_
 #define CORE_INTERNAL_MEDIUMS_BLE_BLE_PACKET_H_
 
+#include <string>
+
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "proto/mediums/ble_frames.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -72,6 +77,25 @@ class BlePacket {
   static absl::StatusOr<BlePacket> CreateDataPacket(
       const ByteArray& service_id_hash, const ByteArray& data);
 
+  static bool IsControlPacketBytes(const ByteArray& packet_bytes);
+
+  static std::string SocketControlFrameTypeToString(
+      ::location::nearby::mediums::SocketControlFrame::ControlFrameType
+          control_frame_type) {
+    switch (control_frame_type) {
+      case ::location::nearby::mediums::SocketControlFrame::INTRODUCTION:
+        return "INTRODUCTION";
+      case ::location::nearby::mediums::SocketControlFrame::DISCONNECTION:
+        return "DISCONNECTION";
+      case ::location::nearby::mediums::SocketControlFrame::
+          PACKET_ACKNOWLEDGEMENT:
+        return "PACKET_ACKNOWLEDGEMENT";
+      case ::location::nearby::mediums::SocketControlFrame::
+          UNKNOWN_CONTROL_FRAME_TYPE:
+        return "UNKNOWN_FRAME_TYPE";
+    }
+  }
+
   explicit BlePacket(const ByteArray& ble_packet_byte);
   BlePacket(const BlePacket&) = default;
   BlePacket& operator=(const BlePacket&) = default;
@@ -86,6 +110,27 @@ class BlePacket {
   ByteArray GetData() const { return data_; }
   int GetPacketSize() const { return data_.size() + kServiceIdHashLength; }
   bool IsControlPacket() const;
+  void ParseControlPacketData(absl::string_view data);
+  ::location::nearby::mediums::SocketControlFrame::ControlFrameType
+  GetControlFrameType() const {
+    return control_frame_type_;
+  }
+  absl::StatusOr<::location::nearby::mediums::SocketVersion>
+  GetIntroductonSocketVersion() const {
+    if (control_frame_type_ !=
+        ::location::nearby::mediums::SocketControlFrame::INTRODUCTION) {
+      return absl::NotFoundError("Introduction socket version is not set.");
+    }
+    return introducton_socket_version_;
+  }
+  absl::StatusOr<int> GetPacketAcknowledgementReceivedSize() const {
+    if (control_frame_type_ != ::location::nearby::mediums::SocketControlFrame::
+                                   PACKET_ACKNOWLEDGEMENT) {
+      return absl::NotFoundError(
+          "Packet acknowledgement received size is not set.");
+    }
+    return packet_acknowledgement_received_size_;
+  }
 
  private:
   enum class BlePacketType {
@@ -99,6 +144,12 @@ class BlePacket {
   BlePacketType packet_type_ = BlePacketType::kInvalid;
   ByteArray service_id_hash_;
   ByteArray data_;
+  ::location::nearby::mediums::SocketControlFrame::ControlFrameType
+      control_frame_type_ = ::location::nearby::mediums::SocketControlFrame::
+          UNKNOWN_CONTROL_FRAME_TYPE;
+  ::location::nearby::mediums::SocketVersion introducton_socket_version_ =
+      ::location::nearby::mediums::SocketVersion::UNKNOWN_SOCKET_VERSION;
+  int packet_acknowledgement_received_size_ = 0;
 };
 
 }  // namespace mediums
