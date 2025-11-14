@@ -705,7 +705,7 @@ enum ClientRole {
 enum ScanType {
   UNKNOWN_SCAN_TYPE = 0;
   FOREGROUND_SCAN = 1;
-  FOREGROUND_RETRY_SCAN = 2;
+  FOREGROUND_RETRY_SCAN = 2 [deprecated = true];
   DIRECT_SHARE_SCAN = 3;
   BACKGROUND_SCAN = 4;
 }
