@@ -283,6 +283,7 @@ let package = Package(
         "internal/analytics/BUILD",
         "internal/flags/BUILD",
         "internal/network/BUILD",
+        "internal/rpc/BUILD",
         "internal/base/BUILD",
         "internal/data/BUILD",
         "internal/test/BUILD",
