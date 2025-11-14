@@ -388,6 +388,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "mock_platform",
+    testonly = True,
+    hdrs = [
+        "mock_input_stream.h",
+        "mock_output_stream.h",
+        "mock_wifi_lan_medium.h",
+        "mock_wifi_lan_server_socket.h",
+        "mock_wifi_lan_socket.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":base",
+        ":cancellation_flag",
+        "//internal/platform/implementation:comm",
+        "@com_google_absl//absl/types:optional",
+        "@com_google_googletest//:gtest_for_library_testonly",
+    ],
+)
+
 cc_test(
     name = "platform_base_test",
     srcs = [

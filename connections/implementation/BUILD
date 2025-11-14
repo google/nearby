@@ -602,3 +602,22 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "wifi_lan_bwu_handler_test",
+    srcs = [
+        "wifi_lan_bwu_handler_test.cc",
+    ],
+    deps = [
+        ":internal",
+        "//connections/implementation/mediums",
+        "//internal/platform:base",
+        "//internal/platform:mock_platform",
+        "//internal/platform/implementation:comm",
+        "//internal/platform/implementation:platform",
+        "//internal/platform/implementation:platform_impl",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

@@ -66,8 +66,6 @@ class HotspotCredentials {
  private:
   std::string ssid_;
   std::string password_;
-  std::string gateway_;
-  int port_ = 0;
   int frequency_ = -1;
   std::vector<ServiceAddress> address_candidates_;
 };
