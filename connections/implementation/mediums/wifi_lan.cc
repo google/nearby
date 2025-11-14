@@ -410,6 +410,9 @@ bool WifiLan::StopAcceptingConnectionsLocked(const std::string& service_id) {
   // That may take some time to complete, but there's no particular reason to
   // wait around for it.
   auto item = server_sockets_.extract(it);
+  // ### Note: service_id should no longer be used after this as it was passed
+  // as a reference to the key in the server_sockets_ map.  It is still
+  // available as item.key().
 
   // Store a handle to the WifiLanServerSocket, so we can use it after
   // removing the entry from server_sockets_; making it scoped
@@ -423,7 +426,7 @@ bool WifiLan::StopAcceptingConnectionsLocked(const std::string& service_id) {
   // Finally, close the WifiLanServerSocket.
   if (!listening_socket.Close().Ok()) {
     LOG(INFO) << "Failed to close WifiLan server socket for service_id="
-              << service_id;
+              << item.key();
     return false;
   }
 
