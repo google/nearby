@@ -56,7 +56,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, nullable, readwrite) NSError *readValueForCharacteristicError;
 
 /** Similates a delay in all delegate calls by the specified amount. */
-@property(nonatomic, readwrite) NSTimeInterval delegateDelay;
+@property(readwrite) NSTimeInterval delegateDelay;
 
 /**
  * Similates a @c openL2CAPChannelWithPSM: error.

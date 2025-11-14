@@ -136,10 +136,11 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (void)delayDelegateUsingBlock:(void (^)())block {
-  if (_delegateDelay <= 0) {
+  NSTimeInterval delegateDelay = self.delegateDelay;
+  if (delegateDelay <= 0) {
     block();
   } else {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, _delegateDelay * NSEC_PER_SEC),
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delegateDelay * NSEC_PER_SEC),
                    dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
                      block();
                    });
