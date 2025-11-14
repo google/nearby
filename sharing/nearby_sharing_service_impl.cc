@@ -2619,16 +2619,9 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
       !NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_sharing_feature::
               kSenderSkipsConfirmation);
-  bool protection_enabled = mendel_advanced_protection_enabled;
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kEnableNearbyBackendTitaniumConfig)) {
-    protection_enabled = be_advanced_protection_enabled;
-  }
+  bool protection_enabled = be_advanced_protection_enabled;
   bool advanced_protection_mismatch =
       (be_advanced_protection_enabled != mendel_advanced_protection_enabled);
-  // Continue to use mendel flag until we have confidence that the Nearby BE
-  // flag has the same value.
   session->SetAdvancedProtectionStatus(protection_enabled,
                                        advanced_protection_mismatch);
   if (session->token().empty() || !mendel_advanced_protection_enabled) {
