@@ -14,6 +14,7 @@
 
 #include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -23,6 +24,8 @@
 #include "connections/implementation/mediums/ble/ble_advertisement.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/stream_reader.h"
 
@@ -40,6 +43,95 @@ BleL2capPacket::BleL2capPacket(Command command,
   if (data) {
     advertisement_ = *data;
   }
+}
+
+absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromStream(
+    InputStream& input_stream) {
+  // The first 1 byte is the command.
+  ExceptionOr<ByteArray> command_byte = input_stream.Read(kCommandLength);
+  if (!command_byte.ok()) {
+    LOG(WARNING) << "Cannot read BleL2capPacket: command byte not available.";
+    return absl::InvalidArgumentError(
+        "Cannot read BleL2capPacket: command byte not available.");
+  }
+  Command command_data =
+      static_cast<Command>((int)command_byte.result().data()[0]);
+  VLOG(1) << "command_data: " << static_cast<int>(command_data);
+
+  int data_length = 0;
+  if (command_data == Command::kRequestAdvertisement ||
+      command_data == Command::kResponseAdvertisement) {
+    ExceptionOr<ByteArray> length_byte = input_stream.Read(2);
+    if (!length_byte.ok()) {
+      LOG(WARNING) << "Cannot read BleL2capPacket: length byte not available.";
+      return absl::InvalidArgumentError(
+          "Cannot read BleL2capPacket: length byte not available.");
+    }
+    data_length = (static_cast<uint8_t>(length_byte.result().data()[0]) << 8) |
+                  (static_cast<uint8_t>(length_byte.result().data()[1]));
+    if (data_length == 0) {
+      LOG(WARNING) << "Cannot read BleL2capPacket: data length incorrect.";
+      return absl::InvalidArgumentError(
+          "Cannot read BleL2capPacket: data length incorrect.");
+    }
+  }
+
+  switch (command_data) {
+    case Command::kRequestAdvertisementFinish:
+    case Command::kRequestDataConnection:
+    case Command::kResponseServiceIdNotFound:
+    case Command::kResponseDataConnectionReady:
+    case Command::kResponseDataConnectionFailure:
+      return BleL2capPacket(command_data, nullptr, nullptr);
+    case Command::kRequestAdvertisement: {
+      if (data_length < BleAdvertisement::kServiceIdHashLength) {
+        LOG(WARNING)
+            << "Cannot read BleL2capPacket: service id hash length, got "
+            << data_length;
+        return absl::InvalidArgumentError(
+            "Cannot read BleL2capPacket: service id hash length "
+            "incorrect.");
+      }
+      ExceptionOr<ByteArray> service_id_hash_byte =
+          input_stream.Read(data_length);
+      if (!service_id_hash_byte.ok() ||
+          service_id_hash_byte.result().size() != data_length) {
+        LOG(WARNING) << "Cannot read BleL2capPacket: service id hash byte "
+                        "not available.";
+        return absl::InvalidArgumentError(
+            "Cannot read BleL2capPacket: service id hash byte not "
+            "available.");
+      }
+      return BleL2capPacket(command_data, &service_id_hash_byte.result(),
+                            nullptr);
+    }
+    case Command::kResponseAdvertisement: {
+      if (data_length > BleAdvertisement::kMaxAdvertisementLength) {
+        LOG(INFO) << "Cannot read BleL2capPacket: advertisement length, got "
+                  << data_length;
+        return absl::InvalidArgumentError(
+            "Cannot read BleL2capPacket: advertisement length incorrect.");
+      }
+      ExceptionOr<ByteArray> advertisement_data =
+          input_stream.Read(data_length);
+      if (!advertisement_data.ok() ||
+          advertisement_data.result().size() != data_length) {
+        LOG(WARNING)
+            << "Cannot read BleL2capPacket: advertisement not available.";
+        return absl::InvalidArgumentError(
+            "Cannot read BleL2capPacket: advertisement not available.");
+      }
+      return BleL2capPacket(command_data, nullptr,
+                            &advertisement_data.result());
+    }
+    default:
+      // fall through
+      break;
+  }
+  LOG(WARNING) << "Cannot read BleL2capPacket: unsupported command "
+               << static_cast<int>(command_data);
+  return absl::InvalidArgumentError(
+      "Cannot read BleL2capPacket: unsupported command.");
 }
 
 absl::StatusOr<BleL2capPacket> BleL2capPacket::CreateFromBytes(
@@ -182,7 +274,7 @@ ByteArray BleL2capPacket::ByteArrayForCommand(BleL2capPacket::Command command,
     out = absl::StrCat(std::string(1, static_cast<char>(command)),
                        std::string(length_bytes), std::string(*data));
   } else {
-    out = static_cast<char>(command);
+    out = std::string(1, static_cast<char>(command));
   }
   return ByteArray{std::move(out)};
 }

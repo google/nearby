@@ -184,12 +184,12 @@ cc_test(
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # buildcleaner: keep
         "//internal/test",
-        "//proto/mediums:ble_frames_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/hash:hash_testing",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",

@@ -20,6 +20,7 @@
 #include "absl/status/statusor.h"
 #include "connections/implementation/mediums/ble/ble_advertisement.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/input_stream.h"
 
 namespace nearby {
 namespace connections {
@@ -59,6 +60,9 @@ class BleL2capPacket {
 
   // Creates a BleL2capPacket from the raw bytes.
   static absl::StatusOr<BleL2capPacket> CreateFromBytes(const ByteArray& bytes);
+  // Creates a BleL2capPacket from the input stream.
+  static absl::StatusOr<BleL2capPacket> CreateFromStream(
+      InputStream& input_stream);
   // Creates a BleL2capPacket for requesting advertisement with service ID.
   static absl::StatusOr<ByteArray> ByteArrayForRequestAdvertisement(
       const std::string& service_id);

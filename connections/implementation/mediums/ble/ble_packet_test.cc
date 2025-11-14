@@ -174,6 +174,37 @@ TEST(BlePacketTest, ConstructionFromSerializedShortLengthDataBytesFails) {
   EXPECT_FALSE(short_ble_packet.IsValid());
 }
 
+TEST(BlePacketTest, ConstructionFromEmptyBytesIsInvalid) {
+  BlePacket ble_packet((ByteArray()));
+  EXPECT_FALSE(ble_packet.IsValid());
+}
+
+TEST(BlePacketTest, ConstructionFromSerializedControlBytesWorks) {
+  ByteArray service_id_hash{std::string(kServiceIDHash)};
+  absl::StatusOr<BlePacket> org_ble_packet_status_or =
+      BlePacket::CreateControlIntroductionPacket(service_id_hash);
+  ASSERT_OK(org_ble_packet_status_or);
+
+  ByteArray ble_packet_bytes(org_ble_packet_status_or.value());
+  BlePacket ble_packet(ble_packet_bytes);
+
+  EXPECT_TRUE(ble_packet.IsValid());
+  EXPECT_TRUE(ble_packet.IsControlPacket());
+  EXPECT_EQ(ble_packet.GetServiceIdHash(), service_id_hash);
+  EXPECT_EQ(ble_packet.GetControlFrameType(),
+            SocketControlFrame::INTRODUCTION);
+  ASSERT_OK_AND_ASSIGN(
+      SocketVersion version,
+      ble_packet.GetIntroductonSocketVersion());
+  EXPECT_EQ(version, SocketVersion::V2);
+}
+
+TEST(BlePacketTest, ConstructionFromInvalidControlPacketIsInvalid) {
+  ByteArray invalid_control_packet_bytes("\x00\x00\x00\x01\x02\x03", 6);
+  BlePacket ble_packet(invalid_control_packet_bytes);
+  EXPECT_FALSE(ble_packet.IsValid());
+}
+
 TEST(BlePacketTest, IsControlPacketBytes) {
   EXPECT_TRUE(BlePacket::IsControlPacketBytes(ByteArray("\x00\x00\x00", 3)));
   EXPECT_FALSE(
