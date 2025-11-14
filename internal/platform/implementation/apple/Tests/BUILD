@@ -71,6 +71,8 @@ objc_library(
         "//internal/platform/implementation/apple/Mediums/WiFiCommon",
         "//internal/platform/implementation/apple/Mediums/WiFiCommon/Tests:FakeNWFramework",
         "//third_party/apple_frameworks:CommonCrypto",
+        "//third_party/apple_frameworks:CoreBluetooth",
+        "//third_party/apple_frameworks:CoreLocation",
         "//third_party/apple_frameworks:Foundation",
         "//third_party/apple_frameworks:XCTest",
         "//third_party/objective_c/ocmock/v3:OCMock",

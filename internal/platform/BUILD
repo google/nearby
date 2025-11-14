@@ -16,6 +16,7 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 # Placeholder: load py_test
+# Placeholder: load cc_embed_data
 
 licenses(["notice"])
 
