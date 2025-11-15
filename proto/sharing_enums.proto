@@ -1041,12 +1041,13 @@ enum CloudRegisterReceiverResult {
 //     //depot/google3/javascript/net/grpc/web/statuscode.ts
 // )
 
-// The action type of uploading files to the cloud. Used by CLOUD_UPLOAD_START
-// and CLOUD_UPLOAD_END.
+// The action type of uploading/downloading files to/from the cloud. Used by
+// CLOUD_UPLOAD_START , CLOUD_UPLOAD_END, CLOUD_DOWNLOAD_START and
+// CLOUD_DOWNLOAD_END.
 enum CloudActionType {
   CLOUD_ACTION_TYPE_UNKNOWN = 0;
-  // The upload is a normal upload.
+  // The action is a normal upload/download.
   CLOUD_ACTION_TYPE_NORMAL = 1;
-  // The upload is a retry of a previous failed upload.
+  // The action is a retry of a previous failed upload/download.
   CLOUD_ACTION_TYPE_RETRY = 2;
 }

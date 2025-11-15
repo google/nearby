@@ -1084,6 +1084,7 @@ message SharingLog {
   // event_metadata into the anonymous logs.
   message CloudDownloadStart {
     optional AttachmentsInfo attachments_info = 1;
+    optional location.nearby.proto.sharing.CloudActionType action_type = 2;
   }
 
   // EventType: CLOUD_DOWNLOAD_END used by QR code cloud web receiver
@@ -1091,6 +1092,7 @@ message SharingLog {
   // event_metadata into the anonymous logs.
   message CloudDownloadEnd {
     repeated CloudAttachmentInfo download_infos = 1;
+    optional location.nearby.proto.sharing.CloudActionType action_type = 2;
   }
 
   // EventType: CLOUD_SHARING_RPC_RESULT
