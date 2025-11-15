@@ -295,7 +295,7 @@ class MediumEnvironment {
 
   // Returns WifiDirect medium that matches ssid or IP address with the role of
   // the Medium. Returns nullptr if not found.
-  api::WifiDirectMedium* GetWifiDirectMedium(absl::string_view ssid,
+  api::WifiDirectMedium* GetWifiDirectMedium(absl::string_view service_name,
                                              absl::string_view ip_address);
 
   // Updates credential and Medium role(GO or GC) to indicate the current

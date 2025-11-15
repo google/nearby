@@ -958,15 +958,15 @@ void MediumEnvironment::RegisterWifiDirectMedium(
 }
 
 api::WifiDirectMedium* MediumEnvironment::GetWifiDirectMedium(
-    absl::string_view ssid, absl::string_view ip_address) {
+    absl::string_view service_name, absl::string_view ip_address) {
   MutexLock lock(&mutex_);
   for (auto& medium_info : wifi_direct_mediums_) {
     auto* medium_found = medium_info.first;
     auto& info = medium_info.second;
     if (info.is_go && info.is_active) {
-      if ((info.wifi_direct_credentials->GetSSID() == ssid) ||
+      if ((info.wifi_direct_credentials->GetServiceName() == service_name) ||
           (!ip_address.empty() &&
-           (info.wifi_direct_credentials->GetIPAddress() == ip_address))) {
+           (info.wifi_direct_credentials->GetGateway() == ip_address))) {
         LOG(INFO) << "Found Remote WifiDirect medium=" << medium_found;
         return medium_found;
       }
@@ -995,8 +995,9 @@ void MediumEnvironment::UpdateWifiDirectMediumForStartOrConnect(
         if (wifi_direct_credentials) {
           LOG(INFO) << "Update WifiDirect medium for GO: this=" << this
                     << "; medium=" << &medium << role_status
-                    << "; ssid=" << wifi_direct_credentials->GetSSID()
-                    << "; password=" << wifi_direct_credentials->GetPassword();
+                    << "; service_name="
+                    << wifi_direct_credentials->GetServiceName()
+                    << "; pin=" << wifi_direct_credentials->GetPin();
         } else {
           LOG(INFO) << "Reset WifiDirect medium for GO: this=" << this
                     << "; medium=" << &medium << role_status;
@@ -1031,7 +1032,8 @@ void MediumEnvironment::UnregisterWifiDirectMedium(
   if (!enabled_) return;
   RunOnMediumEnvironmentThread([this, &medium]() {
     MutexLock lock(&mutex_);
-    wifi_direct_mediums_.extract(&medium);
+    auto item = wifi_direct_mediums_.extract(&medium);
+    if (item.empty()) return;
     LOG(INFO) << "Unregistered WifiDirect medium:" << &medium;
   });
 }
@@ -1064,6 +1066,7 @@ api::WifiHotspotMedium* MediumEnvironment::GetWifiHotspotMedium(
     }
   }
 
+  LOG(INFO) << "Can't find WifiHotspot medium!";
   return nullptr;
 }
 
