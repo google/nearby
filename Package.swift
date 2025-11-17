@@ -461,6 +461,10 @@ let package = Package(
         "connections/implementation/mediums/webrtc.cc",
         "connections/implementation/mediums/webrtc_peer_id.cc",
         "connections/implementation/mediums/webrtc",
+        "internal/platform/tachyon_express_signaling_messenger.cc",
+        "internal/platform/tachyon_express_signaling_messenger.h",
+        "internal/platform/implementation/apple/webrtc.h",
+        "internal/platform/implementation/apple/webrtc.mm",
         // This breaks the build, but seems to work fine without it?
         "internal/platform/medium_environment.cc",
       ],

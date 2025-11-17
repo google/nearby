@@ -35,7 +35,7 @@ WebRtc::WebRtc() = default;
 
 WebRtc::~WebRtc() {}
 
-const std::string WebRtc::GetDefaultCountryCode() { return "US"; }
+std::string WebRtc::GetDefaultCountryCode() { return "US"; }
 
 bool WebRtc::IsAvailable() { return false; }
 

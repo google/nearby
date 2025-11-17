@@ -42,6 +42,7 @@ cc_library(
     hdrs = ["account_manager.h"],
     visibility = [
         "//internal/account:__pkg__",
+        "//internal/platform:__pkg__",
         "//internal/platform/implementation:__subpackages__",
         "//internal/test:__subpackages__",
         "//location/nearby/cpp/sharing/clients/cpp:__subpackages__",

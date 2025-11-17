@@ -80,7 +80,7 @@ WebRtc::~WebRtc() {
   }
 }
 
-const std::string WebRtc::GetDefaultCountryCode() {
+std::string WebRtc::GetDefaultCountryCode() {
   return medium_->GetDefaultCountryCode();
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,53 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_G3_WEBRTC_H_
-#define PLATFORM_IMPL_G3_WEBRTC_H_
+#ifndef PLATFORM_IMPL_APPLE_WEBRTC_H_
+#define PLATFORM_IMPL_APPLE_WEBRTC_H_
 
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/webrtc.h"
-#include "internal/platform/implementation/g3/single_thread_executor.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace nearby {
-namespace g3 {
-
-class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
- public:
-  using OnSignalingMessageCallback =
-      api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
-  using OnSignalingCompleteCallback =
-      api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
-
-  explicit WebRtcSignalingMessenger(
-      absl::string_view self_id,
-      const location::nearby::connections::LocationHint& location_hint);
-  ~WebRtcSignalingMessenger() override = default;
-
-  bool SendMessage(absl::string_view peer_id,
-                   const ByteArray& message) override;
-  bool StartReceivingMessages(
-      OnSignalingMessageCallback on_message_callback,
-      OnSignalingCompleteCallback on_complete_callback) override;
-  void StopReceivingMessages() override;
-
- private:
-  std::string self_id_;
-  location::nearby::connections::LocationHint location_hint_;
-};
+namespace nearby::apple {
 
 class WebRtcMedium : public api::WebRtcMedium {
  public:
-  using PeerConnectionCallback = api::WebRtcMedium::PeerConnectionCallback;
+  ~WebRtcMedium() override = default;
 
-  WebRtcMedium() = default;
-  ~WebRtcMedium() override;
-
+  // Gets the default two-letter country code associated with current locale.
+  // For example, en_US locale resolves to "US".
+  // This follows the ISO 3166-1 Alpha-2 standard.
   std::string GetDefaultCountryCode() override;
 
   // Creates and returns a new webrtc::PeerConnectionInterface object via
@@ -78,13 +51,8 @@ class WebRtcMedium : public api::WebRtcMedium {
       absl::string_view self_id,
       const location::nearby::connections::LocationHint& location_hint)
       override;
-
- private:
-  // Executor for handling calls to create a peer connection.
-  SingleThreadExecutor single_thread_executor_;
 };
 
-}  // namespace g3
-}  // namespace nearby
+}  // namespace nearby::apple
 
-#endif  // PLATFORM_IMPL_G3_WEBRTC_H_
+#endif  // PLATFORM_IMPL_APPLE_WEBRTC_H_

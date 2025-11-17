@@ -76,9 +76,7 @@ class WebRtcMedium {
 
   // Gets the default two-letter country code associated with current locale.
   // For example, en_US locale resolves to "US".
-  const std::string GetDefaultCountryCode() {
-    return impl_->GetDefaultCountryCode();
-  }
+  std::string GetDefaultCountryCode() { return impl_->GetDefaultCountryCode(); }
 
   void SetNonCellular(bool non_cellular) {
     non_cellular_ = non_cellular;

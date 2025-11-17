@@ -57,7 +57,7 @@ bool WebRtcSignalingMessenger::StartReceivingMessages(
 // TODO(b/261663238): replace with real implementation.
 void WebRtcSignalingMessenger::StopReceivingMessages() {}
 
-const std::string WebRtcMedium::GetDefaultCountryCode() {
+std::string WebRtcMedium::GetDefaultCountryCode() {
   wchar_t systemGeoName[LOCALE_NAME_MAX_LENGTH];
 
   if (!GetUserDefaultGeoName(systemGeoName, LOCALE_NAME_MAX_LENGTH)) {

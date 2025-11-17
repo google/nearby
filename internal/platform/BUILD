@@ -16,6 +16,7 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 # Placeholder: load py_test
+# Placeholder: load cc_embed_data
 
 licenses(["notice"])
 
@@ -324,6 +325,7 @@ cc_library(
         ":types",
         ":uuid",
         "//internal/base",
+        "//internal/platform/implementation:account_manager",
         "//internal/platform/implementation:comm",
         "//internal/platform/implementation:platform",
         "//internal/platform/implementation:wifi_utils",
@@ -335,6 +337,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
     ],

@@ -57,7 +57,7 @@ class WebRtc {
 
   // Gets the default two-letter country code associated with current locale.
   // For example, en_US locale resolves to "US".
-  const std::string GetDefaultCountryCode();
+  std::string GetDefaultCountryCode();
 
   // Returns if WebRtc is available as a medium for nearby to transport data.
   // Runs on @MainThread.
