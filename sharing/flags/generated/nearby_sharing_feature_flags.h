@@ -53,9 +53,6 @@ constexpr auto kEnableSelfShareUi =
 // Enable/disable sending desktop events
 constexpr auto kEnableSendingDesktopEvents =
     flags::Flag<bool>(kConfigPackage, "45459748", false);
-// Disable/enable the WebRTC medium in Nearby Sharing SDK.
-constexpr auto kEnableWebrtcMedium =
-    flags::Flag<bool>(kConfigPackage, "45411620", false);
 // Set the logging level in Nearby Sharing SDK. The default logging level is
 // WARNING. The mapping of logging level to number: INFO: 0, WARNING: 1, ERROR:
 // 2, FATAL: 3,  negative values are -(verbosity level).
@@ -117,7 +114,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45411589, kEnableRetryResumeTransfer},
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
-      {45411620, kEnableWebrtcMedium},
       {45411353, kSenderSkipsConfirmation},
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
