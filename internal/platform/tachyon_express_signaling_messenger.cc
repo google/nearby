@@ -33,7 +33,6 @@
 #include "internal/account/account_manager_impl.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
-#include "internal/platform/for_connecting_to_google_roots_pem.h"
 #include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
