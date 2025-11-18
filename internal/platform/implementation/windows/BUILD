@@ -34,7 +34,6 @@ cc_library(
     visibility = [
         "//location/nearby/apps/better_together/plugins/crashpad/windows:__pkg__",
         "//location/nearby/apps/better_together/plugins/logging/windows:__pkg__",
-        "//location/nearby/apps/better_together/windows/common:__pkg__",
     ],
     deps = [
         "//internal/base:file_path",
