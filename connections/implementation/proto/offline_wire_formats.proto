@@ -326,6 +326,15 @@ message BandwidthUpgradeNegotiationFrame {
       // The GO should listen on both IPv4 and IPv6 addresses.
       // https://en.wikipedia.org/wiki/Link-local_address#IPv6
       optional bytes ip_v6_address = 6;
+      // Windows only supports WifiDirect with Service Discovey. Its
+      // credentials is the service_name/pin.
+      optional string service_name = 7;
+      // The pin is exactly 8 digits. The first 7 digits are the PIN. The last 1
+      // digit is a checksum calculated using a specific algorithm (CRC-8). The
+      // pin is exchanged in the connection handshake stage, but we create and
+      // save it beforw starting GO, so we can send it to GC side for
+      // authentication.
+      optional string pin = 8;
     }
 
     // Accompanies Medium.WEB_RTC
@@ -489,6 +498,20 @@ message AutoReconnectFrame {
 }
 
 message MediumMetadata {
+  // Should always match
+  // cs/symbol:location.nearby.proto.connections.WifiDirectAuthType
+  // LINT.IfChange
+  enum WifiDirectAuthType {
+    WIFI_DIRECT_TYPE_UNKNOWN = 0;
+    // WifiDirect type that uses ssid/password for authentication. Android
+    // supports this type, but Windows does not.
+    WIFI_DIRECT_WITH_PASSWORD = 1;
+    // WifiDirect type that uses service_name/pin for authentication. Android
+    // and Windows both support this type.
+    WIFI_DIRECT_WITH_PIN = 2;
+  }
+  // LINT.ThenChange(//depot/google3/third_party/nearby/proto/connections_enums.proto)
+
   // True if local device supports 5GHz.
   optional bool supports_5_ghz = 1;
   // WiFi LAN BSSID, in the form of a six-byte MAC address: XX:XX:XX:XX:XX:XX
@@ -515,6 +538,9 @@ message MediumMetadata {
   optional WifiHotspotStaUsableChannels wifi_hotspot_sta_usable_channels = 11;
   // The supported medium roles.
   optional MediumRole medium_role = 12;
+  // The supported WifiDirect auth types.
+  repeated WifiDirectAuthType supported_wifi_direct_auth_types = 13
+      [packed = true];
 }
 
 // Available channels on the local device.
