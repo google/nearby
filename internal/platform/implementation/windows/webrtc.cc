@@ -22,40 +22,16 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "internal/account/account_manager_impl.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/tachyon_express_signaling_messenger.h"
 #include "webrtc/api/create_modular_peer_connection_factory.h"
 #include "webrtc/api/peer_connection_interface.h"
+#include "webrtc/api/rtc_error.h"
 #include "webrtc/api/scoped_refptr.h"
 #include "webrtc/rtc_base/thread.h"
 
-namespace nearby {
-namespace windows {
-
-WebRtcSignalingMessenger::WebRtcSignalingMessenger(
-    absl::string_view self_id,
-    const location::nearby::connections::LocationHint& location_hint)
-    : self_id_(self_id),
-      location_hint_(location_hint),
-      account_manager_(nearby::AccountManagerImpl::Factory::instance()) {}
-// TODO(b/261663238): replace with real implementation.
-bool WebRtcSignalingMessenger::SendMessage(absl::string_view peer_id,
-                                           const ByteArray& message) {
-  return false;
-}
-
-// TODO(b/261663238): replace with real implementation.
-bool WebRtcSignalingMessenger::StartReceivingMessages(
-    api::WebRtcSignalingMessenger::OnSignalingMessageCallback
-        on_message_callback,
-    api::WebRtcSignalingMessenger::OnSignalingCompleteCallback
-        on_complete_callback) {
-  return false;
-}
-// TODO(b/261663238): replace with real implementation.
-void WebRtcSignalingMessenger::StopReceivingMessages() {}
+namespace nearby::windows {
 
 std::string WebRtcMedium::GetDefaultCountryCode() {
   wchar_t systemGeoName[LOCALE_NAME_MAX_LENGTH];
@@ -81,7 +57,7 @@ void WebRtcMedium::CreatePeerConnection(
     webrtc::PeerConnectionObserver* observer, PeerConnectionCallback callback) {
   webrtc::PeerConnectionInterface::RTCConfiguration rtc_config;
   rtc_config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
-  // TODO(b/261663238): Add the TURN servers and go beyond the default servers.
+  // TODO: b/261663238 - Add the TURN servers and go beyond the default servers.
   webrtc::PeerConnectionInterface::IceServer ice_server;
   ice_server.urls.emplace_back("stun:stun.l.google.com:19302");
   ice_server.urls.emplace_back("stun:stun1.l.google.com:19302");
@@ -93,7 +69,8 @@ void WebRtcMedium::CreatePeerConnection(
   std::unique_ptr<webrtc::Thread> signaling_thread = webrtc::Thread::Create();
   signaling_thread->SetName("signaling_thread", nullptr);
   if (!signaling_thread->Start()) {
-    LOG(FATAL) << "Failed to start thread";
+    callback(/*peer_connection=*/nullptr);
+    return;
   }
 
   webrtc::PeerConnectionDependencies dependencies(observer);
@@ -106,13 +83,13 @@ void WebRtcMedium::CreatePeerConnection(
   if (options.has_value()) {
     peer_connection_factory->SetOptions(options.value());
   }
-  auto peer_connection_or_error =
-      peer_connection_factory->CreatePeerConnectionOrError(
-          rtc_config, std::move(dependencies));
+  webrtc::RTCErrorOr<webrtc::scoped_refptr<webrtc::PeerConnectionInterface>>
+      peer_connection_or_error =
+          peer_connection_factory->CreatePeerConnectionOrError(
+              rtc_config, std::move(dependencies));
   if (peer_connection_or_error.ok()) {
     callback(peer_connection_or_error.MoveValue());
   } else {
-    LOG(FATAL) << "Failed to create peer connection";
     callback(/*peer_connection=*/nullptr);
   }
 }
@@ -121,9 +98,8 @@ std::unique_ptr<api::WebRtcSignalingMessenger>
 WebRtcMedium::GetSignalingMessenger(
     absl::string_view self_id,
     const location::nearby::connections::LocationHint& location_hint) {
-  return std::make_unique<WebRtcSignalingMessenger>(std::string(self_id),
-                                                    location_hint);
+  return std::make_unique<TachyonExpressSignalingMessenger>(self_id,
+                                                            location_hint);
 }
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
