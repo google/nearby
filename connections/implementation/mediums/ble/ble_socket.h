@@ -341,6 +341,21 @@ class BleSocket final {
             std::unique_ptr<BleOutputStream> ble_output_stream,
             nearby::BleL2capSocket l2cap_socket);
 
+  /**
+   * Processes a control packet received from the socket.
+   *
+   * This function is called when a control packet is received from the socket.
+   * It is responsible for parsing the packet to identify its type and
+   * determining the appropriate action.
+   *
+   * @return An `ExceptionOr<ByteArray>` containing the payload of the
+   * received packet on success. For certain control packets that have no
+   * payload, the `ByteArray` may be empty. Returns an `Exception` if a
+   * protocol error occurs or the read operation fails.
+   */
+  ExceptionOr<ByteArray> ProcessBleControlPacketLocked()
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   ::location::nearby::proto::connections::Medium GetMediumLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   Exception CloseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);

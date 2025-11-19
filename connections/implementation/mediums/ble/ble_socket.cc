@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble/ble_packet.h"
@@ -196,8 +197,34 @@ Medium BleSocket::GetMediumLocked() const {
 }
 
 ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_input_stream_) {
+    return Exception::kFailed;
+  }
+
+  ExceptionOr<ByteArray> read_bytes =
+      ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+  while (read_bytes.ok()) {
+    ByteArray read_bytes_result = read_bytes.result();
+    if (BlePacket::IsControlPacketBytes(read_bytes_result)) {
+      ExceptionOr<ByteArray> handle_result = ProcessBleControlPacketLocked();
+      if (!handle_result.ok()) {
+        return handle_result;
+      }
+      read_bytes = ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+    } else {
+      if (read_bytes_result != service_id_hash_) {
+        LOG(WARNING)
+            << "Received data packet with incorrect service ID hash. Expected: "
+            << absl::BytesToHexString(service_id_hash_.string_data())
+            << ", Received: "
+            << absl::BytesToHexString(read_bytes_result.string_data());
+        return Exception::kFailed;
+      }
+      break;
+    }
+  }
+  return read_bytes;
 }
 
 ExceptionOr<std::int32_t> BleSocket::ReadPayloadLength() {
@@ -222,6 +249,55 @@ Exception BleSocket::WritePayloadLength(int payload_length) {
     return {Exception::kIo};
   }
   return ble_output_stream_->WritePayloadLength(payload_length);
+}
+
+ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
+  // Read the first 4 bytes (packet block 1).
+  ExceptionOr<ByteArray> read_bytes = ble_input_stream_->Read(4);
+  if (!read_bytes.ok()) {
+    return read_bytes;
+  }
+  if (read_bytes.result().size() != 4) {
+    return Exception::kFailed;
+  }
+  ByteArray packet_block_1 = read_bytes.result();
+
+  // Read the length from the 3rd byte of the packet block (0-indexed).
+  int packet_block_2_size = packet_block_1.data()[3];
+  // Read the left bytes for the packet block 2).
+  read_bytes = ble_input_stream_->Read(packet_block_2_size);
+  if (!read_bytes.ok()) {
+    return read_bytes;
+  }
+  if (read_bytes.result().size() != packet_block_2_size) {
+    return Exception::kFailed;
+  }
+  ByteArray packet_block_2 = read_bytes.result();
+
+  // Concatenate the two packet blocks.
+  std::string str1(packet_block_1);
+  std::string str2(packet_block_2);
+  std::string result_str = absl::StrCat(str1, str2);
+  ByteArray packet_block = ByteArray(result_str);
+
+  // Create the BlePacket from the concatenated packet block.
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateControlPacket(packet_block);
+  if (!ble_packet_status_or.ok()) {
+    return Exception::kFailed;
+  }
+  BlePacket ble_packet = ble_packet_status_or.value();
+  ble_packet.ParseControlPacketData(packet_block.AsStringView());
+  if (!ble_packet.IsValid()) {
+    return Exception::kFailed;
+  }
+  if (service_id_hash_ != ble_packet.GetServiceIdHash()) {
+    return Exception::kFailed;
+  }
+  LOG(INFO) << "Received BLE Socket Control frame: "
+            << BlePacket::SocketControlFrameTypeToString(
+                   ble_packet.GetControlFrameType());
+  return Exception::kSuccess;
 }
 
 Exception BleSocket::SendIntroduction() {
