@@ -41,7 +41,14 @@ constexpr SharingLog_DeviceSettings::SharingLog_DeviceSettings(
   , is_show_notification_enabled_(false)
   , is_bt_enabled_(false)
   , is_location_enabled_(false)
-  , is_wifi_enabled_(false){}
+  , is_wifi_enabled_(false)
+  , first_successful_transfer_date_(0)
+  , previous_successful_transfer_date_(0)
+  , lifetime_transfer_count_(0)
+  , contact_access_(0)
+
+  , identity_verification_(0)
+{}
 struct SharingLog_DeviceSettingsDefaultTypeInternal {
   constexpr SharingLog_DeviceSettingsDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -85,6 +92,7 @@ constexpr SharingLog_EstablishConnection::SharingLog_EstablishConnection(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : referrer_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , share_target_info_(nullptr)
+  , qr_code_receiver_connect_latency_(nullptr)
   , session_id_(int64_t{0})
   , status_(0)
 
@@ -192,7 +200,8 @@ constexpr SharingLog_ScanForShareTargetsStart::SharingLog_ScanForShareTargetsSta
 
   , scan_type_(0)
 
-  , flow_id_(int64_t{0}){}
+  , flow_id_(int64_t{0})
+  , use_qr_code_(false){}
 struct SharingLog_ScanForShareTargetsStartDefaultTypeInternal {
   constexpr SharingLog_ScanForShareTargetsStartDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -298,7 +307,11 @@ struct SharingLog_AutoDismissFastInitializationDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_AutoDismissFastInitializationDefaultTypeInternal _SharingLog_AutoDismissFastInitialization_default_instance_;
 constexpr SharingLog_EventMetadata::SharingLog_EventMetadata(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
-  : use_case_(0)
+  : cloud_sharing_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , cloud_receiver_session_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , external_provider_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , external_provider_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , use_case_(0)
 
   , initial_opt_in_(false)
   , opt_in_(false)
@@ -318,6 +331,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_EventMetadataDefault
 constexpr SharingLog_DiscoverShareTarget::SharingLog_DiscoverShareTarget(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : referrer_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , cloud_receiver_session_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
   , share_target_info_(nullptr)
   , duration_since_scanning_(nullptr)
   , session_id_(int64_t{0})
@@ -360,7 +374,8 @@ struct SharingLog_ParsingFailedEndpointIdDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_ParsingFailedEndpointIdDefaultTypeInternal _SharingLog_ParsingFailedEndpointId_default_instance_;
 constexpr SharingLog_DescribeAttachments::SharingLog_DescribeAttachments(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
-  : attachments_info_(nullptr){}
+  : attachments_info_(nullptr)
+  , download_duration_(nullptr){}
 struct SharingLog_DescribeAttachmentsDefaultTypeInternal {
   constexpr SharingLog_DescribeAttachmentsDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -417,10 +432,13 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_RespondToIntroductio
 constexpr SharingLog_SendAttachmentsStart::SharingLog_SendAttachmentsStart(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : attachments_info_(nullptr)
+  , share_target_info_(nullptr)
   , session_id_(int64_t{0})
   , transfer_position_(0)
   , concurrent_connections_(0)
-  , qr_code_flow_(false){}
+  , qr_code_flow_(false)
+  , advanced_protection_enabled_(false)
+  , advanced_protection_mismatch_(false){}
 struct SharingLog_SendAttachmentsStartDefaultTypeInternal {
   constexpr SharingLog_SendAttachmentsStartDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -443,7 +461,14 @@ constexpr SharingLog_SendAttachmentsEnd::SharingLog_SendAttachmentsEnd(
   , duration_millis_(int64_t{0})
   , concurrent_connections_(0)
   , connection_layer_status_(0)
-{}
+
+  , first_successful_transfer_date_(0)
+  , previous_successful_transfer_date_(0)
+  , lifetime_transfer_count_(0)
+  , connection_medium_(0)
+  , data_usage_(0)
+
+  , is_mutual_contact_(false){}
 struct SharingLog_SendAttachmentsEndDefaultTypeInternal {
   constexpr SharingLog_SendAttachmentsEndDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -474,6 +499,12 @@ constexpr SharingLog_ReceiveAttachmentsEnd::SharingLog_ReceiveAttachmentsEnd(
   , session_id_(int64_t{0})
   , received_bytes_(int64_t{0})
   , status_(0)
+
+  , first_successful_transfer_date_(0)
+  , previous_successful_transfer_date_(0)
+  , lifetime_transfer_count_(0)
+  , connection_medium_(0)
+  , data_usage_(0)
 {}
 struct SharingLog_ReceiveAttachmentsEndDefaultTypeInternal {
   constexpr SharingLog_ReceiveAttachmentsEndDefaultTypeInternal()
@@ -944,7 +975,9 @@ constexpr SharingLog_ShareTargetInfo::SharingLog_ShareTargetInfo(
   , os_type_(0)
 
   , device_relationship_(0)
-{}
+
+  , has_matching_qr_code_(false)
+  , is_external_(false){}
 struct SharingLog_ShareTargetInfoDefaultTypeInternal {
   constexpr SharingLog_ShareTargetInfoDefaultTypeInternal()
     : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
@@ -1052,6 +1085,22 @@ struct SharingLog_StreamAttachmentDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_StreamAttachmentDefaultTypeInternal _SharingLog_StreamAttachment_default_instance_;
+constexpr SharingLog_CloudAttachmentInfo::SharingLog_CloudAttachmentInfo(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : status_(0)
+
+  , transferred_bytes_(int64_t{0})
+  , duration_millis_(int64_t{0})
+  , _oneof_case_{}{}
+struct SharingLog_CloudAttachmentInfoDefaultTypeInternal {
+  constexpr SharingLog_CloudAttachmentInfoDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudAttachmentInfoDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudAttachmentInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudAttachmentInfoDefaultTypeInternal _SharingLog_CloudAttachmentInfo_default_instance_;
 constexpr SharingLog_AppCrash::SharingLog_AppCrash(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : crash_reason_(0)
@@ -1068,6 +1117,8 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_AppCrashDefaultTypeI
 constexpr SharingLog_SetupWizard::SharingLog_SetupWizard(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : visibility_(0)
+
+  , previous_visibility_(0)
 {}
 struct SharingLog_SetupWizardDefaultTypeInternal {
   constexpr SharingLog_SetupWizardDefaultTypeInternal()
@@ -1104,6 +1155,202 @@ struct SharingLog_SendDesktopTransferEventDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_SendDesktopTransferEventDefaultTypeInternal _SharingLog_SendDesktopTransferEvent_default_instance_;
+constexpr SharingLog_ShowWaitingForAccept::SharingLog_ShowWaitingForAccept(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : button_status_(0)
+{}
+struct SharingLog_ShowWaitingForAcceptDefaultTypeInternal {
+  constexpr SharingLog_ShowWaitingForAcceptDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_ShowWaitingForAcceptDefaultTypeInternal() {}
+  union {
+    SharingLog_ShowWaitingForAccept _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_ShowWaitingForAcceptDefaultTypeInternal _SharingLog_ShowWaitingForAccept_default_instance_;
+constexpr SharingLog_HighQualityMediumSetup::SharingLog_HighQualityMediumSetup(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : share_target_info_(nullptr)
+  , session_id_(int64_t{0})
+  , duration_millis_(int64_t{0})
+  , is_timeout_(false)
+  , original_quality_(0)
+  , connection_medium_(0)
+  , connection_mode_(0)
+  , instant_connection_result_(0){}
+struct SharingLog_HighQualityMediumSetupDefaultTypeInternal {
+  constexpr SharingLog_HighQualityMediumSetupDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_HighQualityMediumSetupDefaultTypeInternal() {}
+  union {
+    SharingLog_HighQualityMediumSetup _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_HighQualityMediumSetupDefaultTypeInternal _SharingLog_HighQualityMediumSetup_default_instance_;
+constexpr SharingLog_RpcCallStatus::SharingLog_RpcCallStatus(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : rpc_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , direction_(0)
+
+  , error_code_(0)
+  , latency_millis_(int64_t{0}){}
+struct SharingLog_RpcCallStatusDefaultTypeInternal {
+  constexpr SharingLog_RpcCallStatusDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_RpcCallStatusDefaultTypeInternal() {}
+  union {
+    SharingLog_RpcCallStatus _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_RpcCallStatusDefaultTypeInternal _SharingLog_RpcCallStatus_default_instance_;
+constexpr SharingLog_StartQrCodeSession::SharingLog_StartQrCodeSession(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized){}
+struct SharingLog_StartQrCodeSessionDefaultTypeInternal {
+  constexpr SharingLog_StartQrCodeSessionDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_StartQrCodeSessionDefaultTypeInternal() {}
+  union {
+    SharingLog_StartQrCodeSession _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_StartQrCodeSessionDefaultTypeInternal _SharingLog_StartQrCodeSession_default_instance_;
+constexpr SharingLog_QrCodeOpenedInWebClient::SharingLog_QrCodeOpenedInWebClient(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : client_platform_(0)
+
+  , is_retry_(false){}
+struct SharingLog_QrCodeOpenedInWebClientDefaultTypeInternal {
+  constexpr SharingLog_QrCodeOpenedInWebClientDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_QrCodeOpenedInWebClientDefaultTypeInternal() {}
+  union {
+    SharingLog_QrCodeOpenedInWebClient _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_QrCodeOpenedInWebClientDefaultTypeInternal _SharingLog_QrCodeOpenedInWebClient_default_instance_;
+constexpr SharingLog_HatsJointEvent::SharingLog_HatsJointEvent(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : hats_session_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , flow_id_(int64_t{0}){}
+struct SharingLog_HatsJointEventDefaultTypeInternal {
+  constexpr SharingLog_HatsJointEventDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_HatsJointEventDefaultTypeInternal() {}
+  union {
+    SharingLog_HatsJointEvent _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_HatsJointEventDefaultTypeInternal _SharingLog_HatsJointEvent_default_instance_;
+constexpr SharingLog_ReceivePreviews::SharingLog_ReceivePreviews(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : num_previews_(0){}
+struct SharingLog_ReceivePreviewsDefaultTypeInternal {
+  constexpr SharingLog_ReceivePreviewsDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_ReceivePreviewsDefaultTypeInternal() {}
+  union {
+    SharingLog_ReceivePreviews _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_ReceivePreviewsDefaultTypeInternal _SharingLog_ReceivePreviews_default_instance_;
+constexpr SharingLog_CloudCreateSharingRequest::SharingLog_CloudCreateSharingRequest(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : attachments_info_(nullptr)
+  , result_(0)
+{}
+struct SharingLog_CloudCreateSharingRequestDefaultTypeInternal {
+  constexpr SharingLog_CloudCreateSharingRequestDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudCreateSharingRequestDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudCreateSharingRequest _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudCreateSharingRequestDefaultTypeInternal _SharingLog_CloudCreateSharingRequest_default_instance_;
+constexpr SharingLog_CloudRegisterReceiver::SharingLog_CloudRegisterReceiver(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : result_(0)
+{}
+struct SharingLog_CloudRegisterReceiverDefaultTypeInternal {
+  constexpr SharingLog_CloudRegisterReceiverDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudRegisterReceiverDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudRegisterReceiver _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudRegisterReceiverDefaultTypeInternal _SharingLog_CloudRegisterReceiver_default_instance_;
+constexpr SharingLog_CloudUploadStart::SharingLog_CloudUploadStart(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : attachments_info_(nullptr)
+  , action_type_(0)
+{}
+struct SharingLog_CloudUploadStartDefaultTypeInternal {
+  constexpr SharingLog_CloudUploadStartDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudUploadStartDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudUploadStart _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudUploadStartDefaultTypeInternal _SharingLog_CloudUploadStart_default_instance_;
+constexpr SharingLog_CloudUploadEnd::SharingLog_CloudUploadEnd(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : upload_infos_()
+  , action_type_(0)
+{}
+struct SharingLog_CloudUploadEndDefaultTypeInternal {
+  constexpr SharingLog_CloudUploadEndDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudUploadEndDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudUploadEnd _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudUploadEndDefaultTypeInternal _SharingLog_CloudUploadEnd_default_instance_;
+constexpr SharingLog_CloudDownloadStart::SharingLog_CloudDownloadStart(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : attachments_info_(nullptr)
+  , action_type_(0)
+{}
+struct SharingLog_CloudDownloadStartDefaultTypeInternal {
+  constexpr SharingLog_CloudDownloadStartDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudDownloadStartDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudDownloadStart _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudDownloadStartDefaultTypeInternal _SharingLog_CloudDownloadStart_default_instance_;
+constexpr SharingLog_CloudDownloadEnd::SharingLog_CloudDownloadEnd(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : download_infos_()
+  , action_type_(0)
+{}
+struct SharingLog_CloudDownloadEndDefaultTypeInternal {
+  constexpr SharingLog_CloudDownloadEndDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudDownloadEndDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudDownloadEnd _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudDownloadEndDefaultTypeInternal _SharingLog_CloudDownloadEnd_default_instance_;
+constexpr SharingLog_CloudSharingRpcResult::SharingLog_CloudSharingRpcResult(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : rpc_name_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , cloud_sharing_id_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
+  , latency_millis_(int64_t{0})
+  , status_code_(0){}
+struct SharingLog_CloudSharingRpcResultDefaultTypeInternal {
+  constexpr SharingLog_CloudSharingRpcResultDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~SharingLog_CloudSharingRpcResultDefaultTypeInternal() {}
+  union {
+    SharingLog_CloudSharingRpcResult _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT SharingLog_CloudSharingRpcResultDefaultTypeInternal _SharingLog_CloudSharingRpcResult_default_instance_;
 constexpr SharingLog::SharingLog(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : version_(&::PROTOBUF_NAMESPACE_ID::internal::fixed_address_empty_string)
@@ -1177,6 +1424,20 @@ constexpr SharingLog::SharingLog(
   , set_account_(nullptr)
   , decrypt_certificate_failure_(nullptr)
   , show_allow_permission_auto_access_(nullptr)
+  , show_waiting_for_accept_(nullptr)
+  , high_quality_medium_setup_(nullptr)
+  , rpc_call_status_(nullptr)
+  , start_qr_code_session_(nullptr)
+  , qr_code_opened_in_web_client_(nullptr)
+  , hats_joint_event_(nullptr)
+  , receive_previews_(nullptr)
+  , cloud_create_sharing_request_(nullptr)
+  , cloud_register_receiver_(nullptr)
+  , cloud_upload_start_(nullptr)
+  , cloud_upload_end_(nullptr)
+  , cloud_download_start_(nullptr)
+  , cloud_download_end_(nullptr)
+  , cloud_sharing_rpc_result_(nullptr)
   , event_type_(0)
 
   , log_source_(0)
@@ -1276,17 +1537,19 @@ bool SharingLog_FileAttachment_Type_IsValid(int value) {
     case 3:
     case 4:
     case 5:
+    case 6:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SharingLog_FileAttachment_Type_strings[6] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SharingLog_FileAttachment_Type_strings[7] = {};
 
 static const char SharingLog_FileAttachment_Type_names[] =
   "ANDROID_APP"
   "AUDIO"
+  "CONTACT_CARD"
   "DOCUMENT"
   "IMAGE"
   "UNKNOWN_FILE_TYPE"
@@ -1295,19 +1558,21 @@ static const char SharingLog_FileAttachment_Type_names[] =
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SharingLog_FileAttachment_Type_entries[] = {
   { {SharingLog_FileAttachment_Type_names + 0, 11}, 3 },
   { {SharingLog_FileAttachment_Type_names + 11, 5}, 4 },
-  { {SharingLog_FileAttachment_Type_names + 16, 8}, 5 },
-  { {SharingLog_FileAttachment_Type_names + 24, 5}, 1 },
-  { {SharingLog_FileAttachment_Type_names + 29, 17}, 0 },
-  { {SharingLog_FileAttachment_Type_names + 46, 5}, 2 },
+  { {SharingLog_FileAttachment_Type_names + 16, 12}, 6 },
+  { {SharingLog_FileAttachment_Type_names + 28, 8}, 5 },
+  { {SharingLog_FileAttachment_Type_names + 36, 5}, 1 },
+  { {SharingLog_FileAttachment_Type_names + 41, 17}, 0 },
+  { {SharingLog_FileAttachment_Type_names + 58, 5}, 2 },
 };
 
 static const int SharingLog_FileAttachment_Type_entries_by_number[] = {
-  4, // 0 -> UNKNOWN_FILE_TYPE
-  3, // 1 -> IMAGE
-  5, // 2 -> VIDEO
+  5, // 0 -> UNKNOWN_FILE_TYPE
+  4, // 1 -> IMAGE
+  6, // 2 -> VIDEO
   0, // 3 -> ANDROID_APP
   1, // 4 -> AUDIO
-  2, // 5 -> DOCUMENT
+  3, // 5 -> DOCUMENT
+  2, // 6 -> CONTACT_CARD
 };
 
 const std::string& SharingLog_FileAttachment_Type_Name(
@@ -1316,12 +1581,12 @@ const std::string& SharingLog_FileAttachment_Type_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           SharingLog_FileAttachment_Type_entries,
           SharingLog_FileAttachment_Type_entries_by_number,
-          6, SharingLog_FileAttachment_Type_strings);
+          7, SharingLog_FileAttachment_Type_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       SharingLog_FileAttachment_Type_entries,
       SharingLog_FileAttachment_Type_entries_by_number,
-      6, value);
+      7, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      SharingLog_FileAttachment_Type_strings[idx].get();
 }
@@ -1329,7 +1594,7 @@ bool SharingLog_FileAttachment_Type_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SharingLog_FileAttachment_Type* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      SharingLog_FileAttachment_Type_entries, 6, name, &int_value);
+      SharingLog_FileAttachment_Type_entries, 7, name, &int_value);
   if (success) {
     *value = static_cast<SharingLog_FileAttachment_Type>(int_value);
   }
@@ -1342,9 +1607,151 @@ constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::VIDEO;
 constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::ANDROID_APP;
 constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::AUDIO;
 constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::DOCUMENT;
+constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::CONTACT_CARD;
 constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::Type_MIN;
 constexpr SharingLog_FileAttachment_Type SharingLog_FileAttachment::Type_MAX;
 constexpr int SharingLog_FileAttachment::Type_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool SharingLog_RpcCallStatus_RpcDirection_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SharingLog_RpcCallStatus_RpcDirection_strings[3] = {};
+
+static const char SharingLog_RpcCallStatus_RpcDirection_names[] =
+  "INCOMING"
+  "OUTGOING"
+  "UNKNOWN_RPC_DIRECTION";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SharingLog_RpcCallStatus_RpcDirection_entries[] = {
+  { {SharingLog_RpcCallStatus_RpcDirection_names + 0, 8}, 1 },
+  { {SharingLog_RpcCallStatus_RpcDirection_names + 8, 8}, 2 },
+  { {SharingLog_RpcCallStatus_RpcDirection_names + 16, 21}, 0 },
+};
+
+static const int SharingLog_RpcCallStatus_RpcDirection_entries_by_number[] = {
+  2, // 0 -> UNKNOWN_RPC_DIRECTION
+  0, // 1 -> INCOMING
+  1, // 2 -> OUTGOING
+};
+
+const std::string& SharingLog_RpcCallStatus_RpcDirection_Name(
+    SharingLog_RpcCallStatus_RpcDirection value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          SharingLog_RpcCallStatus_RpcDirection_entries,
+          SharingLog_RpcCallStatus_RpcDirection_entries_by_number,
+          3, SharingLog_RpcCallStatus_RpcDirection_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      SharingLog_RpcCallStatus_RpcDirection_entries,
+      SharingLog_RpcCallStatus_RpcDirection_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     SharingLog_RpcCallStatus_RpcDirection_strings[idx].get();
+}
+bool SharingLog_RpcCallStatus_RpcDirection_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SharingLog_RpcCallStatus_RpcDirection* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      SharingLog_RpcCallStatus_RpcDirection_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<SharingLog_RpcCallStatus_RpcDirection>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr SharingLog_RpcCallStatus_RpcDirection SharingLog_RpcCallStatus::UNKNOWN_RPC_DIRECTION;
+constexpr SharingLog_RpcCallStatus_RpcDirection SharingLog_RpcCallStatus::INCOMING;
+constexpr SharingLog_RpcCallStatus_RpcDirection SharingLog_RpcCallStatus::OUTGOING;
+constexpr SharingLog_RpcCallStatus_RpcDirection SharingLog_RpcCallStatus::RpcDirection_MIN;
+constexpr SharingLog_RpcCallStatus_RpcDirection SharingLog_RpcCallStatus::RpcDirection_MAX;
+constexpr int SharingLog_RpcCallStatus::RpcDirection_ARRAYSIZE;
+#endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+bool SharingLog_QrCodeOpenedInWebClient_ClientPlatform_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SharingLog_QrCodeOpenedInWebClient_ClientPlatform_strings[6] = {};
+
+static const char SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names[] =
+  "ANDROID"
+  "CHROME_OS"
+  "GENERIC"
+  "IOS"
+  "UNKNOWN_CLIENT_PLATFORM"
+  "WINDOWS";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries[] = {
+  { {SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names + 0, 7}, 2 },
+  { {SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names + 7, 9}, 4 },
+  { {SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names + 16, 7}, 1 },
+  { {SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names + 23, 3}, 3 },
+  { {SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names + 26, 23}, 0 },
+  { {SharingLog_QrCodeOpenedInWebClient_ClientPlatform_names + 49, 7}, 5 },
+};
+
+static const int SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries_by_number[] = {
+  4, // 0 -> UNKNOWN_CLIENT_PLATFORM
+  2, // 1 -> GENERIC
+  0, // 2 -> ANDROID
+  3, // 3 -> IOS
+  1, // 4 -> CHROME_OS
+  5, // 5 -> WINDOWS
+};
+
+const std::string& SharingLog_QrCodeOpenedInWebClient_ClientPlatform_Name(
+    SharingLog_QrCodeOpenedInWebClient_ClientPlatform value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries,
+          SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries_by_number,
+          6, SharingLog_QrCodeOpenedInWebClient_ClientPlatform_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries,
+      SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries_by_number,
+      6, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     SharingLog_QrCodeOpenedInWebClient_ClientPlatform_strings[idx].get();
+}
+bool SharingLog_QrCodeOpenedInWebClient_ClientPlatform_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SharingLog_QrCodeOpenedInWebClient_ClientPlatform* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      SharingLog_QrCodeOpenedInWebClient_ClientPlatform_entries, 6, name, &int_value);
+  if (success) {
+    *value = static_cast<SharingLog_QrCodeOpenedInWebClient_ClientPlatform>(int_value);
+  }
+  return success;
+}
+#if (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::UNKNOWN_CLIENT_PLATFORM;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::GENERIC;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::ANDROID;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::IOS;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::CHROME_OS;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::WINDOWS;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::ClientPlatform_MIN;
+constexpr SharingLog_QrCodeOpenedInWebClient_ClientPlatform SharingLog_QrCodeOpenedInWebClient::ClientPlatform_MAX;
+constexpr int SharingLog_QrCodeOpenedInWebClient::ClientPlatform_ARRAYSIZE;
 #endif  // (__cplusplus < 201703) && (!defined(_MSC_VER) || (_MSC_VER >= 1900 && _MSC_VER < 1912))
 
 // ===================================================================
@@ -1687,6 +2094,21 @@ class SharingLog_DeviceSettings::_Internal {
   static void set_has_is_wifi_enabled(HasBits* has_bits) {
     (*has_bits)[0] |= 64u;
   }
+  static void set_has_first_successful_transfer_date(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
+  }
+  static void set_has_previous_successful_transfer_date(HasBits* has_bits) {
+    (*has_bits)[0] |= 256u;
+  }
+  static void set_has_lifetime_transfer_count(HasBits* has_bits) {
+    (*has_bits)[0] |= 512u;
+  }
+  static void set_has_contact_access(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
+  }
+  static void set_has_identity_verification(HasBits* has_bits) {
+    (*has_bits)[0] |= 2048u;
+  }
 };
 
 SharingLog_DeviceSettings::SharingLog_DeviceSettings(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -1703,16 +2125,16 @@ SharingLog_DeviceSettings::SharingLog_DeviceSettings(const SharingLog_DeviceSett
       _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   ::memcpy(&visibility_, &from.visibility_,
-    static_cast<size_t>(reinterpret_cast<char*>(&is_wifi_enabled_) -
-    reinterpret_cast<char*>(&visibility_)) + sizeof(is_wifi_enabled_));
+    static_cast<size_t>(reinterpret_cast<char*>(&identity_verification_) -
+    reinterpret_cast<char*>(&visibility_)) + sizeof(identity_verification_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.DeviceSettings)
 }
 
 inline void SharingLog_DeviceSettings::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&visibility_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&is_wifi_enabled_) -
-    reinterpret_cast<char*>(&visibility_)) + sizeof(is_wifi_enabled_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&identity_verification_) -
+    reinterpret_cast<char*>(&visibility_)) + sizeof(identity_verification_));
 }
 
 SharingLog_DeviceSettings::~SharingLog_DeviceSettings() {
@@ -1743,10 +2165,15 @@ void SharingLog_DeviceSettings::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     ::memset(&visibility_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&is_wifi_enabled_) -
-        reinterpret_cast<char*>(&visibility_)) + sizeof(is_wifi_enabled_));
+        reinterpret_cast<char*>(&first_successful_transfer_date_) -
+        reinterpret_cast<char*>(&visibility_)) + sizeof(first_successful_transfer_date_));
+  }
+  if (cached_has_bits & 0x00000f00u) {
+    ::memset(&previous_successful_transfer_date_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&identity_verification_) -
+        reinterpret_cast<char*>(&previous_successful_transfer_date_)) + sizeof(identity_verification_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -1830,6 +2257,59 @@ const char* SharingLog_DeviceSettings::_InternalParse(const char* ptr, ::PROTOBU
         } else
           goto handle_unusual;
         continue;
+      // optional int32 first_successful_transfer_date = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _Internal::set_has_first_successful_transfer_date(&has_bits);
+          first_successful_transfer_date_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 previous_successful_transfer_date = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
+          _Internal::set_has_previous_successful_transfer_date(&has_bits);
+          previous_successful_transfer_date_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 lifetime_transfer_count = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+          _Internal::set_has_lifetime_transfer_count(&has_bits);
+          lifetime_transfer_count_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.ContactAccess contact_access = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::ContactAccess_IsValid(val))) {
+            _internal_set_contact_access(static_cast<::location::nearby::proto::sharing::ContactAccess>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(11, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.IdentityVerification identity_verification = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 96)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::IdentityVerification_IsValid(val))) {
+            _internal_set_identity_verification(static_cast<::location::nearby::proto::sharing::IdentityVerification>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(12, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -1905,6 +2385,38 @@ uint8_t* SharingLog_DeviceSettings::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(7, this->_internal_is_wifi_enabled(), target);
   }
 
+  // optional int32 first_successful_transfer_date = 8;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(8, this->_internal_first_successful_transfer_date(), target);
+  }
+
+  // optional int32 previous_successful_transfer_date = 9;
+  if (cached_has_bits & 0x00000100u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(9, this->_internal_previous_successful_transfer_date(), target);
+  }
+
+  // optional int32 lifetime_transfer_count = 10;
+  if (cached_has_bits & 0x00000200u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(10, this->_internal_lifetime_transfer_count(), target);
+  }
+
+  // optional .location.nearby.proto.sharing.ContactAccess contact_access = 11;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      11, this->_internal_contact_access(), target);
+  }
+
+  // optional .location.nearby.proto.sharing.IdentityVerification identity_verification = 12;
+  if (cached_has_bits & 0x00000800u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      12, this->_internal_identity_verification(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -1922,7 +2434,7 @@ size_t SharingLog_DeviceSettings::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     // optional .location.nearby.proto.sharing.Visibility visibility = 1;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -1960,6 +2472,35 @@ size_t SharingLog_DeviceSettings::ByteSizeLong() const {
       total_size += 1 + 1;
     }
 
+    // optional int32 first_successful_transfer_date = 8;
+    if (cached_has_bits & 0x00000080u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_first_successful_transfer_date());
+    }
+
+  }
+  if (cached_has_bits & 0x00000f00u) {
+    // optional int32 previous_successful_transfer_date = 9;
+    if (cached_has_bits & 0x00000100u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_previous_successful_transfer_date());
+    }
+
+    // optional int32 lifetime_transfer_count = 10;
+    if (cached_has_bits & 0x00000200u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_lifetime_transfer_count());
+    }
+
+    // optional .location.nearby.proto.sharing.ContactAccess contact_access = 11;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_contact_access());
+    }
+
+    // optional .location.nearby.proto.sharing.IdentityVerification identity_verification = 12;
+    if (cached_has_bits & 0x00000800u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_identity_verification());
+    }
+
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -1982,7 +2523,7 @@ void SharingLog_DeviceSettings::MergeFrom(const SharingLog_DeviceSettings& from)
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       visibility_ = from.visibility_;
     }
@@ -2003,6 +2544,24 @@ void SharingLog_DeviceSettings::MergeFrom(const SharingLog_DeviceSettings& from)
     }
     if (cached_has_bits & 0x00000040u) {
       is_wifi_enabled_ = from.is_wifi_enabled_;
+    }
+    if (cached_has_bits & 0x00000080u) {
+      first_successful_transfer_date_ = from.first_successful_transfer_date_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  if (cached_has_bits & 0x00000f00u) {
+    if (cached_has_bits & 0x00000100u) {
+      previous_successful_transfer_date_ = from.previous_successful_transfer_date_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      lifetime_transfer_count_ = from.lifetime_transfer_count_;
+    }
+    if (cached_has_bits & 0x00000400u) {
+      contact_access_ = from.contact_access_;
+    }
+    if (cached_has_bits & 0x00000800u) {
+      identity_verification_ = from.identity_verification_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -2025,8 +2584,8 @@ void SharingLog_DeviceSettings::InternalSwap(SharingLog_DeviceSettings* other) {
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharingLog_DeviceSettings, is_wifi_enabled_)
-      + sizeof(SharingLog_DeviceSettings::is_wifi_enabled_)
+      PROTOBUF_FIELD_OFFSET(SharingLog_DeviceSettings, identity_verification_)
+      + sizeof(SharingLog_DeviceSettings::identity_verification_)
       - PROTOBUF_FIELD_OFFSET(SharingLog_DeviceSettings, visibility_)>(
           reinterpret_cast<char*>(&visibility_),
           reinterpret_cast<char*>(&other->visibility_));
@@ -2497,19 +3056,19 @@ class SharingLog_EstablishConnection::_Internal {
  public:
   using HasBits = decltype(std::declval<SharingLog_EstablishConnection>()._has_bits_);
   static void set_has_status(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
-  }
-  static void set_has_session_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
-  static void set_has_transfer_position(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
+  static void set_has_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_transfer_position(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
   static void set_has_concurrent_connections(HasBits* has_bits) {
-    (*has_bits)[0] |= 64u;
+    (*has_bits)[0] |= 128u;
   }
   static void set_has_duration_millis(HasBits* has_bits) {
-    (*has_bits)[0] |= 32u;
+    (*has_bits)[0] |= 64u;
   }
   static const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo& share_target_info(const SharingLog_EstablishConnection* msg);
   static void set_has_share_target_info(HasBits* has_bits) {
@@ -2519,16 +3078,28 @@ class SharingLog_EstablishConnection::_Internal {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_qr_code_flow(HasBits* has_bits) {
-    (*has_bits)[0] |= 128u;
+    (*has_bits)[0] |= 256u;
   }
   static void set_has_is_incoming_connection(HasBits* has_bits) {
-    (*has_bits)[0] |= 256u;
+    (*has_bits)[0] |= 512u;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Duration& qr_code_receiver_connect_latency(const SharingLog_EstablishConnection* msg);
+  static void set_has_qr_code_receiver_connect_latency(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
   }
 };
 
 const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo&
 SharingLog_EstablishConnection::_Internal::share_target_info(const SharingLog_EstablishConnection* msg) {
   return *msg->share_target_info_;
+}
+const ::PROTOBUF_NAMESPACE_ID::Duration&
+SharingLog_EstablishConnection::_Internal::qr_code_receiver_connect_latency(const SharingLog_EstablishConnection* msg) {
+  return *msg->qr_code_receiver_connect_latency_;
+}
+void SharingLog_EstablishConnection::clear_qr_code_receiver_connect_latency() {
+  if (qr_code_receiver_connect_latency_ != nullptr) qr_code_receiver_connect_latency_->Clear();
+  _has_bits_[0] &= ~0x00000004u;
 }
 SharingLog_EstablishConnection::SharingLog_EstablishConnection(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -2555,6 +3126,11 @@ SharingLog_EstablishConnection::SharingLog_EstablishConnection(const SharingLog_
     share_target_info_ = new ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo(*from.share_target_info_);
   } else {
     share_target_info_ = nullptr;
+  }
+  if (from._internal_has_qr_code_receiver_connect_latency()) {
+    qr_code_receiver_connect_latency_ = new ::PROTOBUF_NAMESPACE_ID::Duration(*from.qr_code_receiver_connect_latency_);
+  } else {
+    qr_code_receiver_connect_latency_ = nullptr;
   }
   ::memcpy(&session_id_, &from.session_id_,
     static_cast<size_t>(reinterpret_cast<char*>(&is_incoming_connection_) -
@@ -2584,6 +3160,7 @@ inline void SharingLog_EstablishConnection::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   referrer_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete share_target_info_;
+  if (this != internal_default_instance()) delete qr_code_receiver_connect_latency_;
 }
 
 void SharingLog_EstablishConnection::ArenaDtor(void* object) {
@@ -2603,7 +3180,7 @@ void SharingLog_EstablishConnection::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+  if (cached_has_bits & 0x00000007u) {
     if (cached_has_bits & 0x00000001u) {
       referrer_name_.ClearNonDefaultToEmpty();
     }
@@ -2611,13 +3188,21 @@ void SharingLog_EstablishConnection::Clear() {
       GOOGLE_DCHECK(share_target_info_ != nullptr);
       share_target_info_->Clear();
     }
+    if (cached_has_bits & 0x00000004u) {
+      GOOGLE_DCHECK(qr_code_receiver_connect_latency_ != nullptr);
+      qr_code_receiver_connect_latency_->Clear();
+    }
   }
-  if (cached_has_bits & 0x000000fcu) {
+  if (cached_has_bits & 0x000000f8u) {
     ::memset(&session_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&qr_code_flow_) -
-        reinterpret_cast<char*>(&session_id_)) + sizeof(qr_code_flow_));
+        reinterpret_cast<char*>(&concurrent_connections_) -
+        reinterpret_cast<char*>(&session_id_)) + sizeof(concurrent_connections_));
   }
-  is_incoming_connection_ = false;
+  if (cached_has_bits & 0x00000300u) {
+    ::memset(&qr_code_flow_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&is_incoming_connection_) -
+        reinterpret_cast<char*>(&qr_code_flow_)) + sizeof(is_incoming_connection_));
+  }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -2695,7 +3280,7 @@ const char* SharingLog_EstablishConnection::_InternalParse(const char* ptr, ::PR
         } else
           goto handle_unusual;
         continue;
-      // optional bool qr_code_flow = 8;
+      // optional bool qr_code_flow = 8 [deprecated = true];
       case 8:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
           _Internal::set_has_qr_code_flow(&has_bits);
@@ -2709,6 +3294,14 @@ const char* SharingLog_EstablishConnection::_InternalParse(const char* ptr, ::PR
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
           _Internal::set_has_is_incoming_connection(&has_bits);
           is_incoming_connection_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .google.protobuf.Duration qr_code_receiver_connect_latency = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          ptr = ctx->ParseMessage(_internal_mutable_qr_code_receiver_connect_latency(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -2745,32 +3338,32 @@ uint8_t* SharingLog_EstablishConnection::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional .location.nearby.proto.sharing.EstablishConnectionStatus status = 1;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       1, this->_internal_status(), target);
   }
 
   // optional int64 session_id = 2;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(2, this->_internal_session_id(), target);
   }
 
   // optional int32 transfer_position = 3;
-  if (cached_has_bits & 0x00000010u) {
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_transfer_position(), target);
   }
 
   // optional int32 concurrent_connections = 4;
-  if (cached_has_bits & 0x00000040u) {
+  if (cached_has_bits & 0x00000080u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_concurrent_connections(), target);
   }
 
   // optional int64 duration_millis = 5;
-  if (cached_has_bits & 0x00000020u) {
+  if (cached_has_bits & 0x00000040u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(5, this->_internal_duration_millis(), target);
   }
@@ -2789,16 +3382,24 @@ uint8_t* SharingLog_EstablishConnection::_InternalSerialize(
         7, this->_internal_referrer_name(), target);
   }
 
-  // optional bool qr_code_flow = 8;
-  if (cached_has_bits & 0x00000080u) {
+  // optional bool qr_code_flow = 8 [deprecated = true];
+  if (cached_has_bits & 0x00000100u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(8, this->_internal_qr_code_flow(), target);
   }
 
   // optional bool is_incoming_connection = 9;
-  if (cached_has_bits & 0x00000100u) {
+  if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(9, this->_internal_is_incoming_connection(), target);
+  }
+
+  // optional .google.protobuf.Duration qr_code_receiver_connect_latency = 10;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        10, _Internal::qr_code_receiver_connect_latency(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2833,43 +3434,52 @@ size_t SharingLog_EstablishConnection::ByteSizeLong() const {
           *share_target_info_);
     }
 
-    // optional int64 session_id = 2;
+    // optional .google.protobuf.Duration qr_code_receiver_connect_latency = 10;
     if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *qr_code_receiver_connect_latency_);
+    }
+
+    // optional int64 session_id = 2;
+    if (cached_has_bits & 0x00000008u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_session_id());
     }
 
     // optional .location.nearby.proto.sharing.EstablishConnectionStatus status = 1;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000010u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
     }
 
     // optional int32 transfer_position = 3;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000020u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_transfer_position());
     }
 
     // optional int64 duration_millis = 5;
-    if (cached_has_bits & 0x00000020u) {
+    if (cached_has_bits & 0x00000040u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_duration_millis());
     }
 
     // optional int32 concurrent_connections = 4;
-    if (cached_has_bits & 0x00000040u) {
+    if (cached_has_bits & 0x00000080u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_concurrent_connections());
     }
 
-    // optional bool qr_code_flow = 8;
-    if (cached_has_bits & 0x00000080u) {
+  }
+  if (cached_has_bits & 0x00000300u) {
+    // optional bool qr_code_flow = 8 [deprecated = true];
+    if (cached_has_bits & 0x00000100u) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool is_incoming_connection = 9;
+    if (cached_has_bits & 0x00000200u) {
       total_size += 1 + 1;
     }
 
   }
-  // optional bool is_incoming_connection = 9;
-  if (cached_has_bits & 0x00000100u) {
-    total_size += 1 + 1;
-  }
-
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -2899,27 +3509,33 @@ void SharingLog_EstablishConnection::MergeFrom(const SharingLog_EstablishConnect
       _internal_mutable_share_target_info()->::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo::MergeFrom(from._internal_share_target_info());
     }
     if (cached_has_bits & 0x00000004u) {
-      session_id_ = from.session_id_;
+      _internal_mutable_qr_code_receiver_connect_latency()->::PROTOBUF_NAMESPACE_ID::Duration::MergeFrom(from._internal_qr_code_receiver_connect_latency());
     }
     if (cached_has_bits & 0x00000008u) {
-      status_ = from.status_;
+      session_id_ = from.session_id_;
     }
     if (cached_has_bits & 0x00000010u) {
-      transfer_position_ = from.transfer_position_;
+      status_ = from.status_;
     }
     if (cached_has_bits & 0x00000020u) {
-      duration_millis_ = from.duration_millis_;
+      transfer_position_ = from.transfer_position_;
     }
     if (cached_has_bits & 0x00000040u) {
-      concurrent_connections_ = from.concurrent_connections_;
+      duration_millis_ = from.duration_millis_;
     }
     if (cached_has_bits & 0x00000080u) {
-      qr_code_flow_ = from.qr_code_flow_;
+      concurrent_connections_ = from.concurrent_connections_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000100u) {
-    _internal_set_is_incoming_connection(from._internal_is_incoming_connection());
+  if (cached_has_bits & 0x00000300u) {
+    if (cached_has_bits & 0x00000100u) {
+      qr_code_flow_ = from.qr_code_flow_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      is_incoming_connection_ = from.is_incoming_connection_;
+    }
+    _has_bits_[0] |= cached_has_bits;
   }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -4250,6 +4866,9 @@ class SharingLog_ScanForShareTargetsStart::_Internal {
   static void set_has_referrer_name(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
+  static void set_has_use_qr_code(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
 };
 
 SharingLog_ScanForShareTargetsStart::SharingLog_ScanForShareTargetsStart(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -4274,8 +4893,8 @@ SharingLog_ScanForShareTargetsStart::SharingLog_ScanForShareTargetsStart(const S
       GetArenaForAllocation());
   }
   ::memcpy(&session_id_, &from.session_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&flow_id_) -
-    reinterpret_cast<char*>(&session_id_)) + sizeof(flow_id_));
+    static_cast<size_t>(reinterpret_cast<char*>(&use_qr_code_) -
+    reinterpret_cast<char*>(&session_id_)) + sizeof(use_qr_code_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.ScanForShareTargetsStart)
 }
 
@@ -4286,8 +4905,8 @@ referrer_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStri
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&session_id_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&flow_id_) -
-    reinterpret_cast<char*>(&session_id_)) + sizeof(flow_id_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&use_qr_code_) -
+    reinterpret_cast<char*>(&session_id_)) + sizeof(use_qr_code_));
 }
 
 SharingLog_ScanForShareTargetsStart::~SharingLog_ScanForShareTargetsStart() {
@@ -4322,10 +4941,10 @@ void SharingLog_ScanForShareTargetsStart::Clear() {
   if (cached_has_bits & 0x00000001u) {
     referrer_name_.ClearNonDefaultToEmpty();
   }
-  if (cached_has_bits & 0x0000001eu) {
+  if (cached_has_bits & 0x0000003eu) {
     ::memset(&session_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&flow_id_) -
-        reinterpret_cast<char*>(&session_id_)) + sizeof(flow_id_));
+        reinterpret_cast<char*>(&use_qr_code_) -
+        reinterpret_cast<char*>(&session_id_)) + sizeof(use_qr_code_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -4387,6 +5006,15 @@ const char* SharingLog_ScanForShareTargetsStart::_InternalParse(const char* ptr,
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           auto str = _internal_mutable_referrer_name();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool use_qr_code = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _Internal::set_has_use_qr_code(&has_bits);
+          use_qr_code_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -4454,6 +5082,12 @@ uint8_t* SharingLog_ScanForShareTargetsStart::_InternalSerialize(
         5, this->_internal_referrer_name(), target);
   }
 
+  // optional bool use_qr_code = 6;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(6, this->_internal_use_qr_code(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -4471,7 +5105,7 @@ size_t SharingLog_ScanForShareTargetsStart::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     // optional string referrer_name = 5;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -4501,6 +5135,11 @@ size_t SharingLog_ScanForShareTargetsStart::ByteSizeLong() const {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_flow_id());
     }
 
+    // optional bool use_qr_code = 6;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += 1 + 1;
+    }
+
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -4523,7 +5162,7 @@ void SharingLog_ScanForShareTargetsStart::MergeFrom(const SharingLog_ScanForShar
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_referrer_name(from._internal_referrer_name());
     }
@@ -4538,6 +5177,9 @@ void SharingLog_ScanForShareTargetsStart::MergeFrom(const SharingLog_ScanForShar
     }
     if (cached_has_bits & 0x00000010u) {
       flow_id_ = from.flow_id_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      use_qr_code_ = from.use_qr_code_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -4567,8 +5209,8 @@ void SharingLog_ScanForShareTargetsStart::InternalSwap(SharingLog_ScanForShareTa
       &other->referrer_name_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharingLog_ScanForShareTargetsStart, flow_id_)
-      + sizeof(SharingLog_ScanForShareTargetsStart::flow_id_)
+      PROTOBUF_FIELD_OFFSET(SharingLog_ScanForShareTargetsStart, use_qr_code_)
+      + sizeof(SharingLog_ScanForShareTargetsStart::use_qr_code_)
       - PROTOBUF_FIELD_OFFSET(SharingLog_ScanForShareTargetsStart, session_id_)>(
           reinterpret_cast<char*>(&session_id_),
           reinterpret_cast<char*>(&other->session_id_));
@@ -6090,25 +6732,37 @@ class SharingLog_EventMetadata::_Internal {
  public:
   using HasBits = decltype(std::declval<SharingLog_EventMetadata>()._has_bits_);
   static void set_has_use_case(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static void set_has_initial_opt_in(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
-  static void set_has_opt_in(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
-  static void set_has_initial_enable_status(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
-  }
-  static void set_has_flow_id(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
-  static void set_has_session_id(HasBits* has_bits) {
+  static void set_has_initial_opt_in(HasBits* has_bits) {
     (*has_bits)[0] |= 32u;
   }
-  static void set_has_vendor_id(HasBits* has_bits) {
+  static void set_has_opt_in(HasBits* has_bits) {
     (*has_bits)[0] |= 64u;
+  }
+  static void set_has_initial_enable_status(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
+  }
+  static void set_has_flow_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 256u;
+  }
+  static void set_has_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 512u;
+  }
+  static void set_has_vendor_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
+  }
+  static void set_has_cloud_sharing_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_cloud_receiver_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_external_provider_name(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_external_provider_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
   }
 };
 
@@ -6125,6 +6779,38 @@ SharingLog_EventMetadata::SharingLog_EventMetadata(const SharingLog_EventMetadat
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  cloud_sharing_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    cloud_sharing_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_cloud_sharing_id()) {
+    cloud_sharing_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_cloud_sharing_id(), 
+      GetArenaForAllocation());
+  }
+  cloud_receiver_session_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    cloud_receiver_session_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_cloud_receiver_session_id()) {
+    cloud_receiver_session_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_cloud_receiver_session_id(), 
+      GetArenaForAllocation());
+  }
+  external_provider_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    external_provider_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_external_provider_name()) {
+    external_provider_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_external_provider_name(), 
+      GetArenaForAllocation());
+  }
+  external_provider_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    external_provider_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_external_provider_id()) {
+    external_provider_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_external_provider_id(), 
+      GetArenaForAllocation());
+  }
   ::memcpy(&use_case_, &from.use_case_,
     static_cast<size_t>(reinterpret_cast<char*>(&vendor_id_) -
     reinterpret_cast<char*>(&use_case_)) + sizeof(vendor_id_));
@@ -6132,6 +6818,22 @@ SharingLog_EventMetadata::SharingLog_EventMetadata(const SharingLog_EventMetadat
 }
 
 inline void SharingLog_EventMetadata::SharedCtor() {
+cloud_sharing_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  cloud_sharing_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+cloud_receiver_session_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  cloud_receiver_session_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+external_provider_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  external_provider_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+external_provider_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  external_provider_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&use_case_) - reinterpret_cast<char*>(this)),
     0, static_cast<size_t>(reinterpret_cast<char*>(&vendor_id_) -
@@ -6147,6 +6849,10 @@ SharingLog_EventMetadata::~SharingLog_EventMetadata() {
 
 inline void SharingLog_EventMetadata::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  cloud_sharing_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  cloud_receiver_session_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  external_provider_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  external_provider_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
 void SharingLog_EventMetadata::ArenaDtor(void* object) {
@@ -6166,10 +6872,29 @@ void SharingLog_EventMetadata::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x0000000fu) {
+    if (cached_has_bits & 0x00000001u) {
+      cloud_sharing_id_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      cloud_receiver_session_id_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000004u) {
+      external_provider_name_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000008u) {
+      external_provider_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (cached_has_bits & 0x000000f0u) {
     ::memset(&use_case_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&initial_enable_status_) -
+        reinterpret_cast<char*>(&use_case_)) + sizeof(initial_enable_status_));
+  }
+  if (cached_has_bits & 0x00000700u) {
+    ::memset(&flow_id_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&vendor_id_) -
-        reinterpret_cast<char*>(&use_case_)) + sizeof(vendor_id_));
+        reinterpret_cast<char*>(&flow_id_)) + sizeof(vendor_id_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -6195,7 +6920,7 @@ const char* SharingLog_EventMetadata::_InternalParse(const char* ptr, ::PROTOBUF
         } else
           goto handle_unusual;
         continue;
-      // optional bool initial_opt_in = 2;
+      // optional bool initial_opt_in = 2 [deprecated = true];
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
           _Internal::set_has_initial_opt_in(&has_bits);
@@ -6204,7 +6929,7 @@ const char* SharingLog_EventMetadata::_InternalParse(const char* ptr, ::PROTOBUF
         } else
           goto handle_unusual;
         continue;
-      // optional bool opt_in = 3;
+      // optional bool opt_in = 3 [deprecated = true];
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           _Internal::set_has_opt_in(&has_bits);
@@ -6213,7 +6938,7 @@ const char* SharingLog_EventMetadata::_InternalParse(const char* ptr, ::PROTOBUF
         } else
           goto handle_unusual;
         continue;
-      // optional bool initial_enable_status = 4;
+      // optional bool initial_enable_status = 4 [deprecated = true];
       case 4:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
           _Internal::set_has_initial_enable_status(&has_bits);
@@ -6245,6 +6970,42 @@ const char* SharingLog_EventMetadata::_InternalParse(const char* ptr, ::PROTOBUF
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
           _Internal::set_has_vendor_id(&has_bits);
           vendor_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string cloud_sharing_id = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
+          auto str = _internal_mutable_cloud_sharing_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string cloud_receiver_session_id = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 74)) {
+          auto str = _internal_mutable_cloud_receiver_session_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string external_provider_name = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          auto str = _internal_mutable_external_provider_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string external_provider_id = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+          auto str = _internal_mutable_external_provider_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -6281,46 +7042,70 @@ uint8_t* SharingLog_EventMetadata::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional .location.nearby.proto.sharing.SharingUseCase use_case = 1;
-  if (cached_has_bits & 0x00000001u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       1, this->_internal_use_case(), target);
   }
 
-  // optional bool initial_opt_in = 2;
-  if (cached_has_bits & 0x00000002u) {
+  // optional bool initial_opt_in = 2 [deprecated = true];
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(2, this->_internal_initial_opt_in(), target);
   }
 
-  // optional bool opt_in = 3;
-  if (cached_has_bits & 0x00000004u) {
+  // optional bool opt_in = 3 [deprecated = true];
+  if (cached_has_bits & 0x00000040u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(3, this->_internal_opt_in(), target);
   }
 
-  // optional bool initial_enable_status = 4;
-  if (cached_has_bits & 0x00000008u) {
+  // optional bool initial_enable_status = 4 [deprecated = true];
+  if (cached_has_bits & 0x00000080u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(4, this->_internal_initial_enable_status(), target);
   }
 
   // optional int64 flow_id = 5;
-  if (cached_has_bits & 0x00000010u) {
+  if (cached_has_bits & 0x00000100u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(5, this->_internal_flow_id(), target);
   }
 
   // optional int64 session_id = 6;
-  if (cached_has_bits & 0x00000020u) {
+  if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(6, this->_internal_session_id(), target);
   }
 
   // optional int32 vendor_id = 7;
-  if (cached_has_bits & 0x00000040u) {
+  if (cached_has_bits & 0x00000400u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(7, this->_internal_vendor_id(), target);
+  }
+
+  // optional string cloud_sharing_id = 8;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        8, this->_internal_cloud_sharing_id(), target);
+  }
+
+  // optional string cloud_receiver_session_id = 9;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteStringMaybeAliased(
+        9, this->_internal_cloud_receiver_session_id(), target);
+  }
+
+  // optional string external_provider_name = 10;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->WriteStringMaybeAliased(
+        10, this->_internal_external_provider_name(), target);
+  }
+
+  // optional string external_provider_id = 11;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->WriteStringMaybeAliased(
+        11, this->_internal_external_provider_id(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6340,40 +7125,70 @@ size_t SharingLog_EventMetadata::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
-    // optional .location.nearby.proto.sharing.SharingUseCase use_case = 1;
+  if (cached_has_bits & 0x000000ffu) {
+    // optional string cloud_sharing_id = 8;
     if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_cloud_sharing_id());
+    }
+
+    // optional string cloud_receiver_session_id = 9;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_cloud_receiver_session_id());
+    }
+
+    // optional string external_provider_name = 10;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_external_provider_name());
+    }
+
+    // optional string external_provider_id = 11;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_external_provider_id());
+    }
+
+    // optional .location.nearby.proto.sharing.SharingUseCase use_case = 1;
+    if (cached_has_bits & 0x00000010u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_use_case());
     }
 
-    // optional bool initial_opt_in = 2;
-    if (cached_has_bits & 0x00000002u) {
+    // optional bool initial_opt_in = 2 [deprecated = true];
+    if (cached_has_bits & 0x00000020u) {
       total_size += 1 + 1;
     }
 
-    // optional bool opt_in = 3;
-    if (cached_has_bits & 0x00000004u) {
+    // optional bool opt_in = 3 [deprecated = true];
+    if (cached_has_bits & 0x00000040u) {
       total_size += 1 + 1;
     }
 
-    // optional bool initial_enable_status = 4;
-    if (cached_has_bits & 0x00000008u) {
+    // optional bool initial_enable_status = 4 [deprecated = true];
+    if (cached_has_bits & 0x00000080u) {
       total_size += 1 + 1;
     }
 
+  }
+  if (cached_has_bits & 0x00000700u) {
     // optional int64 flow_id = 5;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000100u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_flow_id());
     }
 
     // optional int64 session_id = 6;
-    if (cached_has_bits & 0x00000020u) {
+    if (cached_has_bits & 0x00000200u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_session_id());
     }
 
     // optional int32 vendor_id = 7;
-    if (cached_has_bits & 0x00000040u) {
+    if (cached_has_bits & 0x00000400u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_vendor_id());
     }
 
@@ -6399,26 +7214,41 @@ void SharingLog_EventMetadata::MergeFrom(const SharingLog_EventMetadata& from) {
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
-      use_case_ = from.use_case_;
+      _internal_set_cloud_sharing_id(from._internal_cloud_sharing_id());
     }
     if (cached_has_bits & 0x00000002u) {
-      initial_opt_in_ = from.initial_opt_in_;
+      _internal_set_cloud_receiver_session_id(from._internal_cloud_receiver_session_id());
     }
     if (cached_has_bits & 0x00000004u) {
-      opt_in_ = from.opt_in_;
+      _internal_set_external_provider_name(from._internal_external_provider_name());
     }
     if (cached_has_bits & 0x00000008u) {
-      initial_enable_status_ = from.initial_enable_status_;
+      _internal_set_external_provider_id(from._internal_external_provider_id());
     }
     if (cached_has_bits & 0x00000010u) {
-      flow_id_ = from.flow_id_;
+      use_case_ = from.use_case_;
     }
     if (cached_has_bits & 0x00000020u) {
-      session_id_ = from.session_id_;
+      initial_opt_in_ = from.initial_opt_in_;
     }
     if (cached_has_bits & 0x00000040u) {
+      opt_in_ = from.opt_in_;
+    }
+    if (cached_has_bits & 0x00000080u) {
+      initial_enable_status_ = from.initial_enable_status_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  if (cached_has_bits & 0x00000700u) {
+    if (cached_has_bits & 0x00000100u) {
+      flow_id_ = from.flow_id_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      session_id_ = from.session_id_;
+    }
+    if (cached_has_bits & 0x00000400u) {
       vendor_id_ = from.vendor_id_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -6439,8 +7269,30 @@ bool SharingLog_EventMetadata::IsInitialized() const {
 
 void SharingLog_EventMetadata::InternalSwap(SharingLog_EventMetadata* other) {
   using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &cloud_sharing_id_, lhs_arena,
+      &other->cloud_sharing_id_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &cloud_receiver_session_id_, lhs_arena,
+      &other->cloud_receiver_session_id_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &external_provider_name_, lhs_arena,
+      &other->external_provider_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &external_provider_id_, lhs_arena,
+      &other->external_provider_id_, rhs_arena
+  );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(SharingLog_EventMetadata, vendor_id_)
       + sizeof(SharingLog_EventMetadata::vendor_id_)
@@ -6461,26 +7313,29 @@ class SharingLog_DiscoverShareTarget::_Internal {
   using HasBits = decltype(std::declval<SharingLog_DiscoverShareTarget>()._has_bits_);
   static const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo& share_target_info(const SharingLog_DiscoverShareTarget* msg);
   static void set_has_share_target_info(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
+    (*has_bits)[0] |= 4u;
   }
   static const ::PROTOBUF_NAMESPACE_ID::Duration& duration_since_scanning(const SharingLog_DiscoverShareTarget* msg);
   static void set_has_duration_since_scanning(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
-  static void set_has_session_id(HasBits* has_bits) {
     (*has_bits)[0] |= 8u;
   }
-  static void set_has_flow_id(HasBits* has_bits) {
+  static void set_has_session_id(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
+  }
+  static void set_has_flow_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
   }
   static void set_has_referrer_name(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_latency_since_activity_start_millis(HasBits* has_bits) {
-    (*has_bits)[0] |= 64u;
+    (*has_bits)[0] |= 128u;
   }
   static void set_has_scan_type(HasBits* has_bits) {
-    (*has_bits)[0] |= 32u;
+    (*has_bits)[0] |= 64u;
+  }
+  static void set_has_cloud_receiver_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
   }
 };
 
@@ -6494,7 +7349,7 @@ SharingLog_DiscoverShareTarget::_Internal::duration_since_scanning(const Sharing
 }
 void SharingLog_DiscoverShareTarget::clear_duration_since_scanning() {
   if (duration_since_scanning_ != nullptr) duration_since_scanning_->Clear();
-  _has_bits_[0] &= ~0x00000004u;
+  _has_bits_[0] &= ~0x00000008u;
 }
 SharingLog_DiscoverShareTarget::SharingLog_DiscoverShareTarget(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -6515,6 +7370,14 @@ SharingLog_DiscoverShareTarget::SharingLog_DiscoverShareTarget(const SharingLog_
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (from._internal_has_referrer_name()) {
     referrer_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_referrer_name(), 
+      GetArenaForAllocation());
+  }
+  cloud_receiver_session_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    cloud_receiver_session_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_cloud_receiver_session_id()) {
+    cloud_receiver_session_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_cloud_receiver_session_id(), 
       GetArenaForAllocation());
   }
   if (from._internal_has_share_target_info()) {
@@ -6538,6 +7401,10 @@ referrer_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStri
 #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
   referrer_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+cloud_receiver_session_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  cloud_receiver_session_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&share_target_info_) - reinterpret_cast<char*>(this)),
     0, static_cast<size_t>(reinterpret_cast<char*>(&scan_type_) -
@@ -6555,6 +7422,7 @@ SharingLog_DiscoverShareTarget::~SharingLog_DiscoverShareTarget() {
 inline void SharingLog_DiscoverShareTarget::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   referrer_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  cloud_receiver_session_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   if (this != internal_default_instance()) delete share_target_info_;
   if (this != internal_default_instance()) delete duration_since_scanning_;
 }
@@ -6576,20 +7444,23 @@ void SharingLog_DiscoverShareTarget::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000000fu) {
     if (cached_has_bits & 0x00000001u) {
       referrer_name_.ClearNonDefaultToEmpty();
     }
     if (cached_has_bits & 0x00000002u) {
+      cloud_receiver_session_id_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000004u) {
       GOOGLE_DCHECK(share_target_info_ != nullptr);
       share_target_info_->Clear();
     }
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       GOOGLE_DCHECK(duration_since_scanning_ != nullptr);
       duration_since_scanning_->Clear();
     }
   }
-  if (cached_has_bits & 0x00000078u) {
+  if (cached_has_bits & 0x000000f0u) {
     ::memset(&session_id_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&scan_type_) -
         reinterpret_cast<char*>(&session_id_)) + sizeof(scan_type_));
@@ -6671,6 +7542,15 @@ const char* SharingLog_DiscoverShareTarget::_InternalParse(const char* ptr, ::PR
         } else
           goto handle_unusual;
         continue;
+      // optional string cloud_receiver_session_id = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 66)) {
+          auto str = _internal_mutable_cloud_receiver_session_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -6703,7 +7583,7 @@ uint8_t* SharingLog_DiscoverShareTarget::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
@@ -6711,7 +7591,7 @@ uint8_t* SharingLog_DiscoverShareTarget::_InternalSerialize(
   }
 
   // optional .google.protobuf.Duration duration_since_scanning = 2;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
@@ -6719,13 +7599,13 @@ uint8_t* SharingLog_DiscoverShareTarget::_InternalSerialize(
   }
 
   // optional int64 session_id = 3;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(3, this->_internal_session_id(), target);
   }
 
   // optional int64 flow_id = 4;
-  if (cached_has_bits & 0x00000010u) {
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(4, this->_internal_flow_id(), target);
   }
@@ -6737,16 +7617,22 @@ uint8_t* SharingLog_DiscoverShareTarget::_InternalSerialize(
   }
 
   // optional int64 latency_since_activity_start_millis = 6 [default = -1];
-  if (cached_has_bits & 0x00000040u) {
+  if (cached_has_bits & 0x00000080u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(6, this->_internal_latency_since_activity_start_millis(), target);
   }
 
   // optional .location.nearby.proto.sharing.ScanType scan_type = 7;
-  if (cached_has_bits & 0x00000020u) {
+  if (cached_has_bits & 0x00000040u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       7, this->_internal_scan_type(), target);
+  }
+
+  // optional string cloud_receiver_session_id = 8;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteStringMaybeAliased(
+        8, this->_internal_cloud_receiver_session_id(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6766,7 +7652,7 @@ size_t SharingLog_DiscoverShareTarget::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     // optional string referrer_name = 5;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -6774,38 +7660,45 @@ size_t SharingLog_DiscoverShareTarget::ByteSizeLong() const {
           this->_internal_referrer_name());
     }
 
-    // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+    // optional string cloud_receiver_session_id = 8;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_cloud_receiver_session_id());
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+    if (cached_has_bits & 0x00000004u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *share_target_info_);
     }
 
     // optional .google.protobuf.Duration duration_since_scanning = 2;
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
           *duration_since_scanning_);
     }
 
     // optional int64 session_id = 3;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000010u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_session_id());
     }
 
     // optional int64 flow_id = 4;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000020u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_flow_id());
     }
 
     // optional .location.nearby.proto.sharing.ScanType scan_type = 7;
-    if (cached_has_bits & 0x00000020u) {
+    if (cached_has_bits & 0x00000040u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_scan_type());
     }
 
     // optional int64 latency_since_activity_start_millis = 6 [default = -1];
-    if (cached_has_bits & 0x00000040u) {
+    if (cached_has_bits & 0x00000080u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_latency_since_activity_start_millis());
     }
 
@@ -6831,26 +7724,29 @@ void SharingLog_DiscoverShareTarget::MergeFrom(const SharingLog_DiscoverShareTar
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_referrer_name(from._internal_referrer_name());
     }
     if (cached_has_bits & 0x00000002u) {
-      _internal_mutable_share_target_info()->::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo::MergeFrom(from._internal_share_target_info());
+      _internal_set_cloud_receiver_session_id(from._internal_cloud_receiver_session_id());
     }
     if (cached_has_bits & 0x00000004u) {
-      _internal_mutable_duration_since_scanning()->::PROTOBUF_NAMESPACE_ID::Duration::MergeFrom(from._internal_duration_since_scanning());
+      _internal_mutable_share_target_info()->::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo::MergeFrom(from._internal_share_target_info());
     }
     if (cached_has_bits & 0x00000008u) {
-      session_id_ = from.session_id_;
+      _internal_mutable_duration_since_scanning()->::PROTOBUF_NAMESPACE_ID::Duration::MergeFrom(from._internal_duration_since_scanning());
     }
     if (cached_has_bits & 0x00000010u) {
-      flow_id_ = from.flow_id_;
+      session_id_ = from.session_id_;
     }
     if (cached_has_bits & 0x00000020u) {
-      scan_type_ = from.scan_type_;
+      flow_id_ = from.flow_id_;
     }
     if (cached_has_bits & 0x00000040u) {
+      scan_type_ = from.scan_type_;
+    }
+    if (cached_has_bits & 0x00000080u) {
       latency_since_activity_start_millis_ = from.latency_since_activity_start_millis_;
     }
     _has_bits_[0] |= cached_has_bits;
@@ -6879,6 +7775,11 @@ void SharingLog_DiscoverShareTarget::InternalSwap(SharingLog_DiscoverShareTarget
       &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       &referrer_name_, lhs_arena,
       &other->referrer_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &cloud_receiver_session_id_, lhs_arena,
+      &other->cloud_receiver_session_id_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(SharingLog_DiscoverShareTarget, scan_type_)
@@ -7468,11 +8369,23 @@ class SharingLog_DescribeAttachments::_Internal {
   static void set_has_attachments_info(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
+  static const ::PROTOBUF_NAMESPACE_ID::Duration& download_duration(const SharingLog_DescribeAttachments* msg);
+  static void set_has_download_duration(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
 };
 
 const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo&
 SharingLog_DescribeAttachments::_Internal::attachments_info(const SharingLog_DescribeAttachments* msg) {
   return *msg->attachments_info_;
+}
+const ::PROTOBUF_NAMESPACE_ID::Duration&
+SharingLog_DescribeAttachments::_Internal::download_duration(const SharingLog_DescribeAttachments* msg) {
+  return *msg->download_duration_;
+}
+void SharingLog_DescribeAttachments::clear_download_duration() {
+  if (download_duration_ != nullptr) download_duration_->Clear();
+  _has_bits_[0] &= ~0x00000002u;
 }
 SharingLog_DescribeAttachments::SharingLog_DescribeAttachments(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -7492,11 +8405,19 @@ SharingLog_DescribeAttachments::SharingLog_DescribeAttachments(const SharingLog_
   } else {
     attachments_info_ = nullptr;
   }
+  if (from._internal_has_download_duration()) {
+    download_duration_ = new ::PROTOBUF_NAMESPACE_ID::Duration(*from.download_duration_);
+  } else {
+    download_duration_ = nullptr;
+  }
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.DescribeAttachments)
 }
 
 inline void SharingLog_DescribeAttachments::SharedCtor() {
-attachments_info_ = nullptr;
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&attachments_info_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&download_duration_) -
+    reinterpret_cast<char*>(&attachments_info_)) + sizeof(download_duration_));
 }
 
 SharingLog_DescribeAttachments::~SharingLog_DescribeAttachments() {
@@ -7509,6 +8430,7 @@ SharingLog_DescribeAttachments::~SharingLog_DescribeAttachments() {
 inline void SharingLog_DescribeAttachments::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete attachments_info_;
+  if (this != internal_default_instance()) delete download_duration_;
 }
 
 void SharingLog_DescribeAttachments::ArenaDtor(void* object) {
@@ -7528,9 +8450,15 @@ void SharingLog_DescribeAttachments::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(attachments_info_ != nullptr);
-    attachments_info_->Clear();
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      GOOGLE_DCHECK(attachments_info_ != nullptr);
+      attachments_info_->Clear();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      GOOGLE_DCHECK(download_duration_ != nullptr);
+      download_duration_->Clear();
+    }
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -7547,6 +8475,14 @@ const char* SharingLog_DescribeAttachments::_InternalParse(const char* ptr, ::PR
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
           ptr = ctx->ParseMessage(_internal_mutable_attachments_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .google.protobuf.Duration download_duration = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_download_duration(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -7590,6 +8526,14 @@ uint8_t* SharingLog_DescribeAttachments::_InternalSerialize(
         1, _Internal::attachments_info(this), target, stream);
   }
 
+  // optional .google.protobuf.Duration download_duration = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        2, _Internal::download_duration(this), target, stream);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -7606,14 +8550,23 @@ size_t SharingLog_DescribeAttachments::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *attachments_info_);
-  }
+  if (cached_has_bits & 0x00000003u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *attachments_info_);
+    }
 
+    // optional .google.protobuf.Duration download_duration = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *download_duration_);
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -7634,8 +8587,14 @@ void SharingLog_DescribeAttachments::MergeFrom(const SharingLog_DescribeAttachme
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_has_attachments_info()) {
-    _internal_mutable_attachments_info()->::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo::MergeFrom(from._internal_attachments_info());
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_mutable_attachments_info()->::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo::MergeFrom(from._internal_attachments_info());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _internal_mutable_download_duration()->::PROTOBUF_NAMESPACE_ID::Duration::MergeFrom(from._internal_download_duration());
+    }
   }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -7655,7 +8614,12 @@ void SharingLog_DescribeAttachments::InternalSwap(SharingLog_DescribeAttachments
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  swap(attachments_info_, other->attachments_info_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_DescribeAttachments, download_duration_)
+      + sizeof(SharingLog_DescribeAttachments::download_duration_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_DescribeAttachments, attachments_info_)>(
+          reinterpret_cast<char*>(&attachments_info_),
+          reinterpret_cast<char*>(&other->attachments_info_));
 }
 
 std::string SharingLog_DescribeAttachments::GetTypeName() const {
@@ -8538,26 +9502,40 @@ class SharingLog_SendAttachmentsStart::_Internal {
  public:
   using HasBits = decltype(std::declval<SharingLog_SendAttachmentsStart>()._has_bits_);
   static void set_has_session_id(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
+    (*has_bits)[0] |= 4u;
   }
   static const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo& attachments_info(const SharingLog_SendAttachmentsStart* msg);
   static void set_has_attachments_info(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_transfer_position(HasBits* has_bits) {
-    (*has_bits)[0] |= 4u;
-  }
-  static void set_has_concurrent_connections(HasBits* has_bits) {
     (*has_bits)[0] |= 8u;
   }
-  static void set_has_qr_code_flow(HasBits* has_bits) {
+  static void set_has_concurrent_connections(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
+  }
+  static void set_has_qr_code_flow(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo& share_target_info(const SharingLog_SendAttachmentsStart* msg);
+  static void set_has_share_target_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_advanced_protection_enabled(HasBits* has_bits) {
+    (*has_bits)[0] |= 64u;
+  }
+  static void set_has_advanced_protection_mismatch(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
   }
 };
 
 const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo&
 SharingLog_SendAttachmentsStart::_Internal::attachments_info(const SharingLog_SendAttachmentsStart* msg) {
   return *msg->attachments_info_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo&
+SharingLog_SendAttachmentsStart::_Internal::share_target_info(const SharingLog_SendAttachmentsStart* msg) {
+  return *msg->share_target_info_;
 }
 SharingLog_SendAttachmentsStart::SharingLog_SendAttachmentsStart(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -8577,17 +9555,22 @@ SharingLog_SendAttachmentsStart::SharingLog_SendAttachmentsStart(const SharingLo
   } else {
     attachments_info_ = nullptr;
   }
+  if (from._internal_has_share_target_info()) {
+    share_target_info_ = new ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo(*from.share_target_info_);
+  } else {
+    share_target_info_ = nullptr;
+  }
   ::memcpy(&session_id_, &from.session_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&qr_code_flow_) -
-    reinterpret_cast<char*>(&session_id_)) + sizeof(qr_code_flow_));
+    static_cast<size_t>(reinterpret_cast<char*>(&advanced_protection_mismatch_) -
+    reinterpret_cast<char*>(&session_id_)) + sizeof(advanced_protection_mismatch_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.SendAttachmentsStart)
 }
 
 inline void SharingLog_SendAttachmentsStart::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&attachments_info_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&qr_code_flow_) -
-    reinterpret_cast<char*>(&attachments_info_)) + sizeof(qr_code_flow_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&advanced_protection_mismatch_) -
+    reinterpret_cast<char*>(&attachments_info_)) + sizeof(advanced_protection_mismatch_));
 }
 
 SharingLog_SendAttachmentsStart::~SharingLog_SendAttachmentsStart() {
@@ -8600,6 +9583,7 @@ SharingLog_SendAttachmentsStart::~SharingLog_SendAttachmentsStart() {
 inline void SharingLog_SendAttachmentsStart::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete attachments_info_;
+  if (this != internal_default_instance()) delete share_target_info_;
 }
 
 void SharingLog_SendAttachmentsStart::ArenaDtor(void* object) {
@@ -8619,14 +9603,20 @@ void SharingLog_SendAttachmentsStart::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(attachments_info_ != nullptr);
-    attachments_info_->Clear();
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      GOOGLE_DCHECK(attachments_info_ != nullptr);
+      attachments_info_->Clear();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      GOOGLE_DCHECK(share_target_info_ != nullptr);
+      share_target_info_->Clear();
+    }
   }
-  if (cached_has_bits & 0x0000001eu) {
+  if (cached_has_bits & 0x000000fcu) {
     ::memset(&session_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&qr_code_flow_) -
-        reinterpret_cast<char*>(&session_id_)) + sizeof(qr_code_flow_));
+        reinterpret_cast<char*>(&advanced_protection_mismatch_) -
+        reinterpret_cast<char*>(&session_id_)) + sizeof(advanced_protection_mismatch_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -8674,11 +9664,37 @@ const char* SharingLog_SendAttachmentsStart::_InternalParse(const char* ptr, ::P
         } else
           goto handle_unusual;
         continue;
-      // optional bool qr_code_flow = 5;
+      // optional bool qr_code_flow = 5 [deprecated = true];
       case 5:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
           _Internal::set_has_qr_code_flow(&has_bits);
           qr_code_flow_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
+          ptr = ctx->ParseMessage(_internal_mutable_share_target_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool advanced_protection_enabled = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _Internal::set_has_advanced_protection_enabled(&has_bits);
+          advanced_protection_enabled_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool advanced_protection_mismatch = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _Internal::set_has_advanced_protection_mismatch(&has_bits);
+          advanced_protection_mismatch_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -8715,7 +9731,7 @@ uint8_t* SharingLog_SendAttachmentsStart::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional int64 session_id = 1;
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(1, this->_internal_session_id(), target);
   }
@@ -8729,21 +9745,41 @@ uint8_t* SharingLog_SendAttachmentsStart::_InternalSerialize(
   }
 
   // optional int32 transfer_position = 3;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_transfer_position(), target);
   }
 
   // optional int32 concurrent_connections = 4;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_concurrent_connections(), target);
   }
 
-  // optional bool qr_code_flow = 5;
-  if (cached_has_bits & 0x00000010u) {
+  // optional bool qr_code_flow = 5 [deprecated = true];
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(5, this->_internal_qr_code_flow(), target);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 6;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        6, _Internal::share_target_info(this), target, stream);
+  }
+
+  // optional bool advanced_protection_enabled = 7;
+  if (cached_has_bits & 0x00000040u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(7, this->_internal_advanced_protection_enabled(), target);
+  }
+
+  // optional bool advanced_protection_mismatch = 8;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(8, this->_internal_advanced_protection_mismatch(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -8763,7 +9799,7 @@ size_t SharingLog_SendAttachmentsStart::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x000000ffu) {
     // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 2;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -8771,23 +9807,40 @@ size_t SharingLog_SendAttachmentsStart::ByteSizeLong() const {
           *attachments_info_);
     }
 
-    // optional int64 session_id = 1;
+    // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 6;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *share_target_info_);
+    }
+
+    // optional int64 session_id = 1;
+    if (cached_has_bits & 0x00000004u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_session_id());
     }
 
     // optional int32 transfer_position = 3;
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_transfer_position());
     }
 
     // optional int32 concurrent_connections = 4;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000010u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_concurrent_connections());
     }
 
-    // optional bool qr_code_flow = 5;
-    if (cached_has_bits & 0x00000010u) {
+    // optional bool qr_code_flow = 5 [deprecated = true];
+    if (cached_has_bits & 0x00000020u) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool advanced_protection_enabled = 7;
+    if (cached_has_bits & 0x00000040u) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool advanced_protection_mismatch = 8;
+    if (cached_has_bits & 0x00000080u) {
       total_size += 1 + 1;
     }
 
@@ -8813,21 +9866,30 @@ void SharingLog_SendAttachmentsStart::MergeFrom(const SharingLog_SendAttachments
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_attachments_info()->::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo::MergeFrom(from._internal_attachments_info());
     }
     if (cached_has_bits & 0x00000002u) {
-      session_id_ = from.session_id_;
+      _internal_mutable_share_target_info()->::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo::MergeFrom(from._internal_share_target_info());
     }
     if (cached_has_bits & 0x00000004u) {
-      transfer_position_ = from.transfer_position_;
+      session_id_ = from.session_id_;
     }
     if (cached_has_bits & 0x00000008u) {
-      concurrent_connections_ = from.concurrent_connections_;
+      transfer_position_ = from.transfer_position_;
     }
     if (cached_has_bits & 0x00000010u) {
+      concurrent_connections_ = from.concurrent_connections_;
+    }
+    if (cached_has_bits & 0x00000020u) {
       qr_code_flow_ = from.qr_code_flow_;
+    }
+    if (cached_has_bits & 0x00000040u) {
+      advanced_protection_enabled_ = from.advanced_protection_enabled_;
+    }
+    if (cached_has_bits & 0x00000080u) {
+      advanced_protection_mismatch_ = from.advanced_protection_mismatch_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -8850,8 +9912,8 @@ void SharingLog_SendAttachmentsStart::InternalSwap(SharingLog_SendAttachmentsSta
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharingLog_SendAttachmentsStart, qr_code_flow_)
-      + sizeof(SharingLog_SendAttachmentsStart::qr_code_flow_)
+      PROTOBUF_FIELD_OFFSET(SharingLog_SendAttachmentsStart, advanced_protection_mismatch_)
+      + sizeof(SharingLog_SendAttachmentsStart::advanced_protection_mismatch_)
       - PROTOBUF_FIELD_OFFSET(SharingLog_SendAttachmentsStart, attachments_info_)>(
           reinterpret_cast<char*>(&attachments_info_),
           reinterpret_cast<char*>(&other->attachments_info_));
@@ -8899,6 +9961,24 @@ class SharingLog_SendAttachmentsEnd::_Internal {
   static void set_has_connection_layer_status(HasBits* has_bits) {
     (*has_bits)[0] |= 512u;
   }
+  static void set_has_first_successful_transfer_date(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
+  }
+  static void set_has_previous_successful_transfer_date(HasBits* has_bits) {
+    (*has_bits)[0] |= 2048u;
+  }
+  static void set_has_lifetime_transfer_count(HasBits* has_bits) {
+    (*has_bits)[0] |= 4096u;
+  }
+  static void set_has_connection_medium(HasBits* has_bits) {
+    (*has_bits)[0] |= 8192u;
+  }
+  static void set_has_data_usage(HasBits* has_bits) {
+    (*has_bits)[0] |= 16384u;
+  }
+  static void set_has_is_mutual_contact(HasBits* has_bits) {
+    (*has_bits)[0] |= 32768u;
+  }
 };
 
 const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo&
@@ -8941,8 +10021,8 @@ SharingLog_SendAttachmentsEnd::SharingLog_SendAttachmentsEnd(const SharingLog_Se
     share_target_info_ = nullptr;
   }
   ::memcpy(&session_id_, &from.session_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&connection_layer_status_) -
-    reinterpret_cast<char*>(&session_id_)) + sizeof(connection_layer_status_));
+    static_cast<size_t>(reinterpret_cast<char*>(&is_mutual_contact_) -
+    reinterpret_cast<char*>(&session_id_)) + sizeof(is_mutual_contact_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.SendAttachmentsEnd)
 }
 
@@ -8953,8 +10033,8 @@ referrer_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStri
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&attachments_info_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&connection_layer_status_) -
-    reinterpret_cast<char*>(&attachments_info_)) + sizeof(connection_layer_status_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&is_mutual_contact_) -
+    reinterpret_cast<char*>(&attachments_info_)) + sizeof(is_mutual_contact_));
 }
 
 SharingLog_SendAttachmentsEnd::~SharingLog_SendAttachmentsEnd() {
@@ -9006,10 +10086,10 @@ void SharingLog_SendAttachmentsEnd::Clear() {
         reinterpret_cast<char*>(&duration_millis_) -
         reinterpret_cast<char*>(&session_id_)) + sizeof(duration_millis_));
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x0000ff00u) {
     ::memset(&concurrent_connections_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&connection_layer_status_) -
-        reinterpret_cast<char*>(&concurrent_connections_)) + sizeof(connection_layer_status_));
+        reinterpret_cast<char*>(&is_mutual_contact_) -
+        reinterpret_cast<char*>(&concurrent_connections_)) + sizeof(is_mutual_contact_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -9118,6 +10198,64 @@ const char* SharingLog_SendAttachmentsEnd::_InternalParse(const char* ptr, ::PRO
         } else
           goto handle_unusual;
         continue;
+      // optional int32 first_successful_transfer_date = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+          _Internal::set_has_first_successful_transfer_date(&has_bits);
+          first_successful_transfer_date_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 previous_successful_transfer_date = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 96)) {
+          _Internal::set_has_previous_successful_transfer_date(&has_bits);
+          previous_successful_transfer_date_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 lifetime_transfer_count = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 104)) {
+          _Internal::set_has_lifetime_transfer_count(&has_bits);
+          lifetime_transfer_count_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 connection_medium = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
+          _Internal::set_has_connection_medium(&has_bits);
+          connection_medium_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+      case 15:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 120)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::DataUsage_IsValid(val))) {
+            _internal_set_data_usage(static_cast<::location::nearby::proto::sharing::DataUsage>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(15, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool is_mutual_contact = 16;
+      case 16:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 128)) {
+          _Internal::set_has_is_mutual_contact(&has_bits);
+          is_mutual_contact_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -9215,6 +10353,43 @@ uint8_t* SharingLog_SendAttachmentsEnd::_InternalSerialize(
       10, this->_internal_connection_layer_status(), target);
   }
 
+  // optional int32 first_successful_transfer_date = 11;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(11, this->_internal_first_successful_transfer_date(), target);
+  }
+
+  // optional int32 previous_successful_transfer_date = 12;
+  if (cached_has_bits & 0x00000800u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(12, this->_internal_previous_successful_transfer_date(), target);
+  }
+
+  // optional int32 lifetime_transfer_count = 13;
+  if (cached_has_bits & 0x00001000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(13, this->_internal_lifetime_transfer_count(), target);
+  }
+
+  // optional int32 connection_medium = 14;
+  if (cached_has_bits & 0x00002000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(14, this->_internal_connection_medium(), target);
+  }
+
+  // optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+  if (cached_has_bits & 0x00004000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      15, this->_internal_data_usage(), target);
+  }
+
+  // optional bool is_mutual_contact = 16;
+  if (cached_has_bits & 0x00008000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(16, this->_internal_is_mutual_contact(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -9281,7 +10456,7 @@ size_t SharingLog_SendAttachmentsEnd::ByteSizeLong() const {
     }
 
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x0000ff00u) {
     // optional int32 concurrent_connections = 5;
     if (cached_has_bits & 0x00000100u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_concurrent_connections());
@@ -9291,6 +10466,37 @@ size_t SharingLog_SendAttachmentsEnd::ByteSizeLong() const {
     if (cached_has_bits & 0x00000200u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_connection_layer_status());
+    }
+
+    // optional int32 first_successful_transfer_date = 11;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_first_successful_transfer_date());
+    }
+
+    // optional int32 previous_successful_transfer_date = 12;
+    if (cached_has_bits & 0x00000800u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_previous_successful_transfer_date());
+    }
+
+    // optional int32 lifetime_transfer_count = 13;
+    if (cached_has_bits & 0x00001000u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_lifetime_transfer_count());
+    }
+
+    // optional int32 connection_medium = 14;
+    if (cached_has_bits & 0x00002000u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_connection_medium());
+    }
+
+    // optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+    if (cached_has_bits & 0x00004000u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_data_usage());
+    }
+
+    // optional bool is_mutual_contact = 16;
+    if (cached_has_bits & 0x00008000u) {
+      total_size += 2 + 1;
     }
 
   }
@@ -9342,12 +10548,30 @@ void SharingLog_SendAttachmentsEnd::MergeFrom(const SharingLog_SendAttachmentsEn
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x0000ff00u) {
     if (cached_has_bits & 0x00000100u) {
       concurrent_connections_ = from.concurrent_connections_;
     }
     if (cached_has_bits & 0x00000200u) {
       connection_layer_status_ = from.connection_layer_status_;
+    }
+    if (cached_has_bits & 0x00000400u) {
+      first_successful_transfer_date_ = from.first_successful_transfer_date_;
+    }
+    if (cached_has_bits & 0x00000800u) {
+      previous_successful_transfer_date_ = from.previous_successful_transfer_date_;
+    }
+    if (cached_has_bits & 0x00001000u) {
+      lifetime_transfer_count_ = from.lifetime_transfer_count_;
+    }
+    if (cached_has_bits & 0x00002000u) {
+      connection_medium_ = from.connection_medium_;
+    }
+    if (cached_has_bits & 0x00004000u) {
+      data_usage_ = from.data_usage_;
+    }
+    if (cached_has_bits & 0x00008000u) {
+      is_mutual_contact_ = from.is_mutual_contact_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -9377,8 +10601,8 @@ void SharingLog_SendAttachmentsEnd::InternalSwap(SharingLog_SendAttachmentsEnd* 
       &other->referrer_name_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharingLog_SendAttachmentsEnd, connection_layer_status_)
-      + sizeof(SharingLog_SendAttachmentsEnd::connection_layer_status_)
+      PROTOBUF_FIELD_OFFSET(SharingLog_SendAttachmentsEnd, is_mutual_contact_)
+      + sizeof(SharingLog_SendAttachmentsEnd::is_mutual_contact_)
       - PROTOBUF_FIELD_OFFSET(SharingLog_SendAttachmentsEnd, attachments_info_)>(
           reinterpret_cast<char*>(&attachments_info_),
           reinterpret_cast<char*>(&other->attachments_info_));
@@ -9702,6 +10926,21 @@ class SharingLog_ReceiveAttachmentsEnd::_Internal {
   static void set_has_share_target_info(HasBits* has_bits) {
     (*has_bits)[0] |= 2u;
   }
+  static void set_has_first_successful_transfer_date(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
+  static void set_has_previous_successful_transfer_date(HasBits* has_bits) {
+    (*has_bits)[0] |= 64u;
+  }
+  static void set_has_lifetime_transfer_count(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
+  }
+  static void set_has_connection_medium(HasBits* has_bits) {
+    (*has_bits)[0] |= 256u;
+  }
+  static void set_has_data_usage(HasBits* has_bits) {
+    (*has_bits)[0] |= 512u;
+  }
 };
 
 const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo&
@@ -9735,8 +10974,8 @@ SharingLog_ReceiveAttachmentsEnd::SharingLog_ReceiveAttachmentsEnd(const Sharing
     share_target_info_ = nullptr;
   }
   ::memcpy(&session_id_, &from.session_id_,
-    static_cast<size_t>(reinterpret_cast<char*>(&status_) -
-    reinterpret_cast<char*>(&session_id_)) + sizeof(status_));
+    static_cast<size_t>(reinterpret_cast<char*>(&data_usage_) -
+    reinterpret_cast<char*>(&session_id_)) + sizeof(data_usage_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.ReceiveAttachmentsEnd)
 }
 
@@ -9747,8 +10986,8 @@ referrer_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStri
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&share_target_info_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&status_) -
-    reinterpret_cast<char*>(&share_target_info_)) + sizeof(status_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&data_usage_) -
+    reinterpret_cast<char*>(&share_target_info_)) + sizeof(data_usage_));
 }
 
 SharingLog_ReceiveAttachmentsEnd::~SharingLog_ReceiveAttachmentsEnd() {
@@ -9790,10 +11029,15 @@ void SharingLog_ReceiveAttachmentsEnd::Clear() {
       share_target_info_->Clear();
     }
   }
-  if (cached_has_bits & 0x0000001cu) {
+  if (cached_has_bits & 0x000000fcu) {
     ::memset(&session_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&status_) -
-        reinterpret_cast<char*>(&session_id_)) + sizeof(status_));
+        reinterpret_cast<char*>(&lifetime_transfer_count_) -
+        reinterpret_cast<char*>(&session_id_)) + sizeof(lifetime_transfer_count_));
+  }
+  if (cached_has_bits & 0x00000300u) {
+    ::memset(&connection_medium_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&data_usage_) -
+        reinterpret_cast<char*>(&connection_medium_)) + sizeof(data_usage_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -9851,6 +11095,55 @@ const char* SharingLog_ReceiveAttachmentsEnd::_InternalParse(const char* ptr, ::
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_share_target_info(), ptr);
           CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 first_successful_transfer_date = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _Internal::set_has_first_successful_transfer_date(&has_bits);
+          first_successful_transfer_date_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 previous_successful_transfer_date = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _Internal::set_has_previous_successful_transfer_date(&has_bits);
+          previous_successful_transfer_date_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 lifetime_transfer_count = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _Internal::set_has_lifetime_transfer_count(&has_bits);
+          lifetime_transfer_count_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 connection_medium = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
+          _Internal::set_has_connection_medium(&has_bits);
+          connection_medium_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+      case 15:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 120)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::DataUsage_IsValid(val))) {
+            _internal_set_data_usage(static_cast<::location::nearby::proto::sharing::DataUsage>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(15, val, mutable_unknown_fields());
+          }
         } else
           goto handle_unusual;
         continue;
@@ -9918,6 +11211,37 @@ uint8_t* SharingLog_ReceiveAttachmentsEnd::_InternalSerialize(
         5, _Internal::share_target_info(this), target, stream);
   }
 
+  // optional int32 first_successful_transfer_date = 6;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(6, this->_internal_first_successful_transfer_date(), target);
+  }
+
+  // optional int32 previous_successful_transfer_date = 7;
+  if (cached_has_bits & 0x00000040u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(7, this->_internal_previous_successful_transfer_date(), target);
+  }
+
+  // optional int32 lifetime_transfer_count = 8;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(8, this->_internal_lifetime_transfer_count(), target);
+  }
+
+  // optional int32 connection_medium = 14;
+  if (cached_has_bits & 0x00000100u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(14, this->_internal_connection_medium(), target);
+  }
+
+  // optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+  if (cached_has_bits & 0x00000200u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      15, this->_internal_data_usage(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -9935,7 +11259,7 @@ size_t SharingLog_ReceiveAttachmentsEnd::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x000000ffu) {
     // optional string referrer_name = 4;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -9966,6 +11290,34 @@ size_t SharingLog_ReceiveAttachmentsEnd::ByteSizeLong() const {
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
     }
 
+    // optional int32 first_successful_transfer_date = 6;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_first_successful_transfer_date());
+    }
+
+    // optional int32 previous_successful_transfer_date = 7;
+    if (cached_has_bits & 0x00000040u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_previous_successful_transfer_date());
+    }
+
+    // optional int32 lifetime_transfer_count = 8;
+    if (cached_has_bits & 0x00000080u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_lifetime_transfer_count());
+    }
+
+  }
+  if (cached_has_bits & 0x00000300u) {
+    // optional int32 connection_medium = 14;
+    if (cached_has_bits & 0x00000100u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_connection_medium());
+    }
+
+    // optional .location.nearby.proto.sharing.DataUsage data_usage = 15;
+    if (cached_has_bits & 0x00000200u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_data_usage());
+    }
+
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -9988,7 +11340,7 @@ void SharingLog_ReceiveAttachmentsEnd::MergeFrom(const SharingLog_ReceiveAttachm
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_set_referrer_name(from._internal_referrer_name());
     }
@@ -10003,6 +11355,24 @@ void SharingLog_ReceiveAttachmentsEnd::MergeFrom(const SharingLog_ReceiveAttachm
     }
     if (cached_has_bits & 0x00000010u) {
       status_ = from.status_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      first_successful_transfer_date_ = from.first_successful_transfer_date_;
+    }
+    if (cached_has_bits & 0x00000040u) {
+      previous_successful_transfer_date_ = from.previous_successful_transfer_date_;
+    }
+    if (cached_has_bits & 0x00000080u) {
+      lifetime_transfer_count_ = from.lifetime_transfer_count_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  if (cached_has_bits & 0x00000300u) {
+    if (cached_has_bits & 0x00000100u) {
+      connection_medium_ = from.connection_medium_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      data_usage_ = from.data_usage_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -10032,8 +11402,8 @@ void SharingLog_ReceiveAttachmentsEnd::InternalSwap(SharingLog_ReceiveAttachment
       &other->referrer_name_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharingLog_ReceiveAttachmentsEnd, status_)
-      + sizeof(SharingLog_ReceiveAttachmentsEnd::status_)
+      PROTOBUF_FIELD_OFFSET(SharingLog_ReceiveAttachmentsEnd, data_usage_)
+      + sizeof(SharingLog_ReceiveAttachmentsEnd::data_usage_)
       - PROTOBUF_FIELD_OFFSET(SharingLog_ReceiveAttachmentsEnd, share_target_info_)>(
           reinterpret_cast<char*>(&share_target_info_),
           reinterpret_cast<char*>(&other->share_target_info_));
@@ -17077,6 +18447,12 @@ class SharingLog_ShareTargetInfo::_Internal {
   static void set_has_device_relationship(HasBits* has_bits) {
     (*has_bits)[0] |= 4u;
   }
+  static void set_has_has_matching_qr_code(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_is_external(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
 };
 
 SharingLog_ShareTargetInfo::SharingLog_ShareTargetInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -17093,16 +18469,16 @@ SharingLog_ShareTargetInfo::SharingLog_ShareTargetInfo(const SharingLog_ShareTar
       _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
   ::memcpy(&device_type_, &from.device_type_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_relationship_) -
-    reinterpret_cast<char*>(&device_type_)) + sizeof(device_relationship_));
+    static_cast<size_t>(reinterpret_cast<char*>(&is_external_) -
+    reinterpret_cast<char*>(&device_type_)) + sizeof(is_external_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo)
 }
 
 inline void SharingLog_ShareTargetInfo::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&device_type_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_relationship_) -
-    reinterpret_cast<char*>(&device_type_)) + sizeof(device_relationship_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&is_external_) -
+    reinterpret_cast<char*>(&device_type_)) + sizeof(is_external_));
 }
 
 SharingLog_ShareTargetInfo::~SharingLog_ShareTargetInfo() {
@@ -17133,10 +18509,10 @@ void SharingLog_ShareTargetInfo::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000001fu) {
     ::memset(&device_type_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_relationship_) -
-        reinterpret_cast<char*>(&device_type_)) + sizeof(device_relationship_));
+        reinterpret_cast<char*>(&is_external_) -
+        reinterpret_cast<char*>(&device_type_)) + sizeof(is_external_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -17185,6 +18561,24 @@ const char* SharingLog_ShareTargetInfo::_InternalParse(const char* ptr, ::PROTOB
           } else {
             ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(3, val, mutable_unknown_fields());
           }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool has_matching_qr_code = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _Internal::set_has_has_matching_qr_code(&has_bits);
+          has_matching_qr_code_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool is_external = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+          _Internal::set_has_is_external(&has_bits);
+          is_external_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
@@ -17240,6 +18634,18 @@ uint8_t* SharingLog_ShareTargetInfo::_InternalSerialize(
       3, this->_internal_device_relationship(), target);
   }
 
+  // optional bool has_matching_qr_code = 4;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(4, this->_internal_has_matching_qr_code(), target);
+  }
+
+  // optional bool is_external = 5;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(5, this->_internal_is_external(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -17257,7 +18663,7 @@ size_t SharingLog_ShareTargetInfo::ByteSizeLong() const {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000001fu) {
     // optional .location.nearby.proto.sharing.DeviceType device_type = 1;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -17274,6 +18680,16 @@ size_t SharingLog_ShareTargetInfo::ByteSizeLong() const {
     if (cached_has_bits & 0x00000004u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_relationship());
+    }
+
+    // optional bool has_matching_qr_code = 4;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool is_external = 5;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += 1 + 1;
     }
 
   }
@@ -17298,7 +18714,7 @@ void SharingLog_ShareTargetInfo::MergeFrom(const SharingLog_ShareTargetInfo& fro
   (void) cached_has_bits;
 
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x00000007u) {
+  if (cached_has_bits & 0x0000001fu) {
     if (cached_has_bits & 0x00000001u) {
       device_type_ = from.device_type_;
     }
@@ -17307,6 +18723,12 @@ void SharingLog_ShareTargetInfo::MergeFrom(const SharingLog_ShareTargetInfo& fro
     }
     if (cached_has_bits & 0x00000004u) {
       device_relationship_ = from.device_relationship_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      has_matching_qr_code_ = from.has_matching_qr_code_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      is_external_ = from.is_external_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -17329,8 +18751,8 @@ void SharingLog_ShareTargetInfo::InternalSwap(SharingLog_ShareTargetInfo* other)
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(SharingLog_ShareTargetInfo, device_relationship_)
-      + sizeof(SharingLog_ShareTargetInfo::device_relationship_)
+      PROTOBUF_FIELD_OFFSET(SharingLog_ShareTargetInfo, is_external_)
+      + sizeof(SharingLog_ShareTargetInfo::is_external_)
       - PROTOBUF_FIELD_OFFSET(SharingLog_ShareTargetInfo, device_type_)>(
           reinterpret_cast<char*>(&device_type_),
           reinterpret_cast<char*>(&other->device_type_));
@@ -19213,6 +20635,589 @@ std::string SharingLog_StreamAttachment::GetTypeName() const {
 
 // ===================================================================
 
+class SharingLog_CloudAttachmentInfo::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudAttachmentInfo>()._has_bits_);
+  static void set_has_status(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_TextAttachment& text_attachment(const SharingLog_CloudAttachmentInfo* msg);
+  static const ::nearby::sharing::analytics::proto::SharingLog_FileAttachment& file_attachment(const SharingLog_CloudAttachmentInfo* msg);
+  static const ::nearby::sharing::analytics::proto::SharingLog_WifiCredentialsAttachment& wifi_credentials_attachment(const SharingLog_CloudAttachmentInfo* msg);
+  static const ::nearby::sharing::analytics::proto::SharingLog_AppAttachment& app_attachment(const SharingLog_CloudAttachmentInfo* msg);
+  static const ::nearby::sharing::analytics::proto::SharingLog_StreamAttachment& stream_attachment(const SharingLog_CloudAttachmentInfo* msg);
+  static void set_has_transferred_bytes(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_duration_millis(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+};
+
+const ::nearby::sharing::analytics::proto::SharingLog_TextAttachment&
+SharingLog_CloudAttachmentInfo::_Internal::text_attachment(const SharingLog_CloudAttachmentInfo* msg) {
+  return *msg->CloudAttachment_.text_attachment_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_FileAttachment&
+SharingLog_CloudAttachmentInfo::_Internal::file_attachment(const SharingLog_CloudAttachmentInfo* msg) {
+  return *msg->CloudAttachment_.file_attachment_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_WifiCredentialsAttachment&
+SharingLog_CloudAttachmentInfo::_Internal::wifi_credentials_attachment(const SharingLog_CloudAttachmentInfo* msg) {
+  return *msg->CloudAttachment_.wifi_credentials_attachment_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_AppAttachment&
+SharingLog_CloudAttachmentInfo::_Internal::app_attachment(const SharingLog_CloudAttachmentInfo* msg) {
+  return *msg->CloudAttachment_.app_attachment_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_StreamAttachment&
+SharingLog_CloudAttachmentInfo::_Internal::stream_attachment(const SharingLog_CloudAttachmentInfo* msg) {
+  return *msg->CloudAttachment_.stream_attachment_;
+}
+void SharingLog_CloudAttachmentInfo::set_allocated_text_attachment(::nearby::sharing::analytics::proto::SharingLog_TextAttachment* text_attachment) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_CloudAttachment();
+  if (text_attachment) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::nearby::sharing::analytics::proto::SharingLog_TextAttachment>::GetOwningArena(text_attachment);
+    if (message_arena != submessage_arena) {
+      text_attachment = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, text_attachment, submessage_arena);
+    }
+    set_has_text_attachment();
+    CloudAttachment_.text_attachment_ = text_attachment;
+  }
+  // @@protoc_insertion_point(field_set_allocated:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo.text_attachment)
+}
+void SharingLog_CloudAttachmentInfo::set_allocated_file_attachment(::nearby::sharing::analytics::proto::SharingLog_FileAttachment* file_attachment) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_CloudAttachment();
+  if (file_attachment) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::nearby::sharing::analytics::proto::SharingLog_FileAttachment>::GetOwningArena(file_attachment);
+    if (message_arena != submessage_arena) {
+      file_attachment = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, file_attachment, submessage_arena);
+    }
+    set_has_file_attachment();
+    CloudAttachment_.file_attachment_ = file_attachment;
+  }
+  // @@protoc_insertion_point(field_set_allocated:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo.file_attachment)
+}
+void SharingLog_CloudAttachmentInfo::set_allocated_wifi_credentials_attachment(::nearby::sharing::analytics::proto::SharingLog_WifiCredentialsAttachment* wifi_credentials_attachment) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_CloudAttachment();
+  if (wifi_credentials_attachment) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::nearby::sharing::analytics::proto::SharingLog_WifiCredentialsAttachment>::GetOwningArena(wifi_credentials_attachment);
+    if (message_arena != submessage_arena) {
+      wifi_credentials_attachment = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, wifi_credentials_attachment, submessage_arena);
+    }
+    set_has_wifi_credentials_attachment();
+    CloudAttachment_.wifi_credentials_attachment_ = wifi_credentials_attachment;
+  }
+  // @@protoc_insertion_point(field_set_allocated:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo.wifi_credentials_attachment)
+}
+void SharingLog_CloudAttachmentInfo::set_allocated_app_attachment(::nearby::sharing::analytics::proto::SharingLog_AppAttachment* app_attachment) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_CloudAttachment();
+  if (app_attachment) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::nearby::sharing::analytics::proto::SharingLog_AppAttachment>::GetOwningArena(app_attachment);
+    if (message_arena != submessage_arena) {
+      app_attachment = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, app_attachment, submessage_arena);
+    }
+    set_has_app_attachment();
+    CloudAttachment_.app_attachment_ = app_attachment;
+  }
+  // @@protoc_insertion_point(field_set_allocated:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo.app_attachment)
+}
+void SharingLog_CloudAttachmentInfo::set_allocated_stream_attachment(::nearby::sharing::analytics::proto::SharingLog_StreamAttachment* stream_attachment) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_CloudAttachment();
+  if (stream_attachment) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper<::nearby::sharing::analytics::proto::SharingLog_StreamAttachment>::GetOwningArena(stream_attachment);
+    if (message_arena != submessage_arena) {
+      stream_attachment = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, stream_attachment, submessage_arena);
+    }
+    set_has_stream_attachment();
+    CloudAttachment_.stream_attachment_ = stream_attachment;
+  }
+  // @@protoc_insertion_point(field_set_allocated:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo.stream_attachment)
+}
+SharingLog_CloudAttachmentInfo::SharingLog_CloudAttachmentInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+}
+SharingLog_CloudAttachmentInfo::SharingLog_CloudAttachmentInfo(const SharingLog_CloudAttachmentInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  ::memcpy(&status_, &from.status_,
+    static_cast<size_t>(reinterpret_cast<char*>(&duration_millis_) -
+    reinterpret_cast<char*>(&status_)) + sizeof(duration_millis_));
+  clear_has_CloudAttachment();
+  switch (from.CloudAttachment_case()) {
+    case kTextAttachment: {
+      _internal_mutable_text_attachment()->::nearby::sharing::analytics::proto::SharingLog_TextAttachment::MergeFrom(from._internal_text_attachment());
+      break;
+    }
+    case kFileAttachment: {
+      _internal_mutable_file_attachment()->::nearby::sharing::analytics::proto::SharingLog_FileAttachment::MergeFrom(from._internal_file_attachment());
+      break;
+    }
+    case kWifiCredentialsAttachment: {
+      _internal_mutable_wifi_credentials_attachment()->::nearby::sharing::analytics::proto::SharingLog_WifiCredentialsAttachment::MergeFrom(from._internal_wifi_credentials_attachment());
+      break;
+    }
+    case kAppAttachment: {
+      _internal_mutable_app_attachment()->::nearby::sharing::analytics::proto::SharingLog_AppAttachment::MergeFrom(from._internal_app_attachment());
+      break;
+    }
+    case kStreamAttachment: {
+      _internal_mutable_stream_attachment()->::nearby::sharing::analytics::proto::SharingLog_StreamAttachment::MergeFrom(from._internal_stream_attachment());
+      break;
+    }
+    case CLOUDATTACHMENT_NOT_SET: {
+      break;
+    }
+  }
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+}
+
+inline void SharingLog_CloudAttachmentInfo::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&status_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&duration_millis_) -
+    reinterpret_cast<char*>(&status_)) + sizeof(duration_millis_));
+clear_has_CloudAttachment();
+}
+
+SharingLog_CloudAttachmentInfo::~SharingLog_CloudAttachmentInfo() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudAttachmentInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (has_CloudAttachment()) {
+    clear_CloudAttachment();
+  }
+}
+
+void SharingLog_CloudAttachmentInfo::ArenaDtor(void* object) {
+  SharingLog_CloudAttachmentInfo* _this = reinterpret_cast< SharingLog_CloudAttachmentInfo* >(object);
+  (void)_this;
+}
+void SharingLog_CloudAttachmentInfo::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudAttachmentInfo::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudAttachmentInfo::clear_CloudAttachment() {
+// @@protoc_insertion_point(one_of_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  switch (CloudAttachment_case()) {
+    case kTextAttachment: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete CloudAttachment_.text_attachment_;
+      }
+      break;
+    }
+    case kFileAttachment: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete CloudAttachment_.file_attachment_;
+      }
+      break;
+    }
+    case kWifiCredentialsAttachment: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete CloudAttachment_.wifi_credentials_attachment_;
+      }
+      break;
+    }
+    case kAppAttachment: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete CloudAttachment_.app_attachment_;
+      }
+      break;
+    }
+    case kStreamAttachment: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete CloudAttachment_.stream_attachment_;
+      }
+      break;
+    }
+    case CLOUDATTACHMENT_NOT_SET: {
+      break;
+    }
+  }
+  _oneof_case_[0] = CLOUDATTACHMENT_NOT_SET;
+}
+
+
+void SharingLog_CloudAttachmentInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    ::memset(&status_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&duration_millis_) -
+        reinterpret_cast<char*>(&status_)) + sizeof(duration_millis_));
+  }
+  clear_CloudAttachment();
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudAttachmentInfo::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .location.nearby.proto.sharing.AttachmentTransmissionStatus status = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::AttachmentTransmissionStatus_IsValid(val))) {
+            _internal_set_status(static_cast<::location::nearby::proto::sharing::AttachmentTransmissionStatus>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // .nearby.sharing.analytics.proto.SharingLog.TextAttachment text_attachment = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_text_attachment(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .nearby.sharing.analytics.proto.SharingLog.FileAttachment file_attachment = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_file_attachment(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .nearby.sharing.analytics.proto.SharingLog.WifiCredentialsAttachment wifi_credentials_attachment = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_wifi_credentials_attachment(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .nearby.sharing.analytics.proto.SharingLog.AppAttachment app_attachment = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          ptr = ctx->ParseMessage(_internal_mutable_app_attachment(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .nearby.sharing.analytics.proto.SharingLog.StreamAttachment stream_attachment = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
+          ptr = ctx->ParseMessage(_internal_mutable_stream_attachment(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 transferred_bytes = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _Internal::set_has_transferred_bytes(&has_bits);
+          transferred_bytes_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 duration_millis = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _Internal::set_has_duration_millis(&has_bits);
+          duration_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudAttachmentInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.proto.sharing.AttachmentTransmissionStatus status = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_status(), target);
+  }
+
+  switch (CloudAttachment_case()) {
+    case kTextAttachment: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          2, _Internal::text_attachment(this), target, stream);
+      break;
+    }
+    case kFileAttachment: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          3, _Internal::file_attachment(this), target, stream);
+      break;
+    }
+    case kWifiCredentialsAttachment: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          4, _Internal::wifi_credentials_attachment(this), target, stream);
+      break;
+    }
+    case kAppAttachment: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          5, _Internal::app_attachment(this), target, stream);
+      break;
+    }
+    case kStreamAttachment: {
+      target = stream->EnsureSpace(target);
+      target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(
+          6, _Internal::stream_attachment(this), target, stream);
+      break;
+    }
+    default: ;
+  }
+  // optional int64 transferred_bytes = 7;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(7, this->_internal_transferred_bytes(), target);
+  }
+
+  // optional int64 duration_millis = 8;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(8, this->_internal_duration_millis(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  return target;
+}
+
+size_t SharingLog_CloudAttachmentInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    // optional .location.nearby.proto.sharing.AttachmentTransmissionStatus status = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
+    }
+
+    // optional int64 transferred_bytes = 7;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_transferred_bytes());
+    }
+
+    // optional int64 duration_millis = 8;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_duration_millis());
+    }
+
+  }
+  switch (CloudAttachment_case()) {
+    // .nearby.sharing.analytics.proto.SharingLog.TextAttachment text_attachment = 2;
+    case kTextAttachment: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *CloudAttachment_.text_attachment_);
+      break;
+    }
+    // .nearby.sharing.analytics.proto.SharingLog.FileAttachment file_attachment = 3;
+    case kFileAttachment: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *CloudAttachment_.file_attachment_);
+      break;
+    }
+    // .nearby.sharing.analytics.proto.SharingLog.WifiCredentialsAttachment wifi_credentials_attachment = 4;
+    case kWifiCredentialsAttachment: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *CloudAttachment_.wifi_credentials_attachment_);
+      break;
+    }
+    // .nearby.sharing.analytics.proto.SharingLog.AppAttachment app_attachment = 5;
+    case kAppAttachment: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *CloudAttachment_.app_attachment_);
+      break;
+    }
+    // .nearby.sharing.analytics.proto.SharingLog.StreamAttachment stream_attachment = 6;
+    case kStreamAttachment: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *CloudAttachment_.stream_attachment_);
+      break;
+    }
+    case CLOUDATTACHMENT_NOT_SET: {
+      break;
+    }
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudAttachmentInfo::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudAttachmentInfo*>(
+      &from));
+}
+
+void SharingLog_CloudAttachmentInfo::MergeFrom(const SharingLog_CloudAttachmentInfo& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000007u) {
+    if (cached_has_bits & 0x00000001u) {
+      status_ = from.status_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      transferred_bytes_ = from.transferred_bytes_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      duration_millis_ = from.duration_millis_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  switch (from.CloudAttachment_case()) {
+    case kTextAttachment: {
+      _internal_mutable_text_attachment()->::nearby::sharing::analytics::proto::SharingLog_TextAttachment::MergeFrom(from._internal_text_attachment());
+      break;
+    }
+    case kFileAttachment: {
+      _internal_mutable_file_attachment()->::nearby::sharing::analytics::proto::SharingLog_FileAttachment::MergeFrom(from._internal_file_attachment());
+      break;
+    }
+    case kWifiCredentialsAttachment: {
+      _internal_mutable_wifi_credentials_attachment()->::nearby::sharing::analytics::proto::SharingLog_WifiCredentialsAttachment::MergeFrom(from._internal_wifi_credentials_attachment());
+      break;
+    }
+    case kAppAttachment: {
+      _internal_mutable_app_attachment()->::nearby::sharing::analytics::proto::SharingLog_AppAttachment::MergeFrom(from._internal_app_attachment());
+      break;
+    }
+    case kStreamAttachment: {
+      _internal_mutable_stream_attachment()->::nearby::sharing::analytics::proto::SharingLog_StreamAttachment::MergeFrom(from._internal_stream_attachment());
+      break;
+    }
+    case CLOUDATTACHMENT_NOT_SET: {
+      break;
+    }
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudAttachmentInfo::CopyFrom(const SharingLog_CloudAttachmentInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudAttachmentInfo::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudAttachmentInfo::InternalSwap(SharingLog_CloudAttachmentInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_CloudAttachmentInfo, duration_millis_)
+      + sizeof(SharingLog_CloudAttachmentInfo::duration_millis_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_CloudAttachmentInfo, status_)>(
+          reinterpret_cast<char*>(&status_),
+          reinterpret_cast<char*>(&other->status_));
+  swap(CloudAttachment_, other->CloudAttachment_);
+  swap(_oneof_case_[0], other->_oneof_case_[0]);
+}
+
+std::string SharingLog_CloudAttachmentInfo::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo";
+}
+
+
+// ===================================================================
+
 class SharingLog_AppCrash::_Internal {
  public:
   using HasBits = decltype(std::declval<SharingLog_AppCrash>()._has_bits_);
@@ -19412,6 +21417,9 @@ class SharingLog_SetupWizard::_Internal {
   static void set_has_visibility(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
+  static void set_has_previous_visibility(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
 };
 
 SharingLog_SetupWizard::SharingLog_SetupWizard(::PROTOBUF_NAMESPACE_ID::Arena* arena,
@@ -19427,12 +21435,17 @@ SharingLog_SetupWizard::SharingLog_SetupWizard(const SharingLog_SetupWizard& fro
   : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
       _has_bits_(from._has_bits_) {
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
-  visibility_ = from.visibility_;
+  ::memcpy(&visibility_, &from.visibility_,
+    static_cast<size_t>(reinterpret_cast<char*>(&previous_visibility_) -
+    reinterpret_cast<char*>(&visibility_)) + sizeof(previous_visibility_));
   // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.SetupWizard)
 }
 
 inline void SharingLog_SetupWizard::SharedCtor() {
-visibility_ = 0;
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&visibility_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&previous_visibility_) -
+    reinterpret_cast<char*>(&visibility_)) + sizeof(previous_visibility_));
 }
 
 SharingLog_SetupWizard::~SharingLog_SetupWizard() {
@@ -19462,7 +21475,12 @@ void SharingLog_SetupWizard::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  visibility_ = 0;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    ::memset(&visibility_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&previous_visibility_) -
+        reinterpret_cast<char*>(&visibility_)) + sizeof(previous_visibility_));
+  }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -19483,6 +21501,19 @@ const char* SharingLog_SetupWizard::_InternalParse(const char* ptr, ::PROTOBUF_N
             _internal_set_visibility(static_cast<::location::nearby::proto::sharing::Visibility>(val));
           } else {
             ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.Visibility previous_visibility = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::Visibility_IsValid(val))) {
+            _internal_set_previous_visibility(static_cast<::location::nearby::proto::sharing::Visibility>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
           }
         } else
           goto handle_unusual;
@@ -19525,6 +21556,13 @@ uint8_t* SharingLog_SetupWizard::_InternalSerialize(
       1, this->_internal_visibility(), target);
   }
 
+  // optional .location.nearby.proto.sharing.Visibility previous_visibility = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_previous_visibility(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -19541,13 +21579,21 @@ size_t SharingLog_SetupWizard::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // optional .location.nearby.proto.sharing.Visibility visibility = 1;
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_visibility());
-  }
+  if (cached_has_bits & 0x00000003u) {
+    // optional .location.nearby.proto.sharing.Visibility visibility = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_visibility());
+    }
 
+    // optional .location.nearby.proto.sharing.Visibility previous_visibility = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_previous_visibility());
+    }
+
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -19568,8 +21614,15 @@ void SharingLog_SetupWizard::MergeFrom(const SharingLog_SetupWizard& from) {
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from._internal_has_visibility()) {
-    _internal_set_visibility(from._internal_visibility());
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      visibility_ = from.visibility_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      previous_visibility_ = from.previous_visibility_;
+    }
+    _has_bits_[0] |= cached_has_bits;
   }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -19589,7 +21642,12 @@ void SharingLog_SetupWizard::InternalSwap(SharingLog_SetupWizard* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  swap(visibility_, other->visibility_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_SetupWizard, previous_visibility_)
+      + sizeof(SharingLog_SetupWizard::previous_visibility_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_SetupWizard, visibility_)>(
+          reinterpret_cast<char*>(&visibility_),
+          reinterpret_cast<char*>(&other->visibility_));
 }
 
 std::string SharingLog_SetupWizard::GetTypeName() const {
@@ -19985,11 +22043,3482 @@ std::string SharingLog_SendDesktopTransferEvent::GetTypeName() const {
 
 // ===================================================================
 
+class SharingLog_ShowWaitingForAccept::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_ShowWaitingForAccept>()._has_bits_);
+  static void set_has_button_status(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+SharingLog_ShowWaitingForAccept::SharingLog_ShowWaitingForAccept(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+}
+SharingLog_ShowWaitingForAccept::SharingLog_ShowWaitingForAccept(const SharingLog_ShowWaitingForAccept& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  button_status_ = from.button_status_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+}
+
+inline void SharingLog_ShowWaitingForAccept::SharedCtor() {
+button_status_ = 0;
+}
+
+SharingLog_ShowWaitingForAccept::~SharingLog_ShowWaitingForAccept() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_ShowWaitingForAccept::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_ShowWaitingForAccept::ArenaDtor(void* object) {
+  SharingLog_ShowWaitingForAccept* _this = reinterpret_cast< SharingLog_ShowWaitingForAccept* >(object);
+  (void)_this;
+}
+void SharingLog_ShowWaitingForAccept::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_ShowWaitingForAccept::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_ShowWaitingForAccept::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  button_status_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_ShowWaitingForAccept::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .location.nearby.proto.sharing.ButtonStatus button_status = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::ButtonStatus_IsValid(val))) {
+            _internal_set_button_status(static_cast<::location::nearby::proto::sharing::ButtonStatus>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_ShowWaitingForAccept::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.proto.sharing.ButtonStatus button_status = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_button_status(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  return target;
+}
+
+size_t SharingLog_ShowWaitingForAccept::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional .location.nearby.proto.sharing.ButtonStatus button_status = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_button_status());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_ShowWaitingForAccept::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_ShowWaitingForAccept*>(
+      &from));
+}
+
+void SharingLog_ShowWaitingForAccept::MergeFrom(const SharingLog_ShowWaitingForAccept& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_button_status()) {
+    _internal_set_button_status(from._internal_button_status());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_ShowWaitingForAccept::CopyFrom(const SharingLog_ShowWaitingForAccept& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_ShowWaitingForAccept::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_ShowWaitingForAccept::InternalSwap(SharingLog_ShowWaitingForAccept* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  swap(button_status_, other->button_status_);
+}
+
+std::string SharingLog_ShowWaitingForAccept::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept";
+}
+
+
+// ===================================================================
+
+class SharingLog_HighQualityMediumSetup::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_HighQualityMediumSetup>()._has_bits_);
+  static const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo& share_target_info(const SharingLog_HighQualityMediumSetup* msg);
+  static void set_has_share_target_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_duration_millis(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_is_timeout(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_original_quality(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
+  static void set_has_connection_medium(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
+  static void set_has_connection_mode(HasBits* has_bits) {
+    (*has_bits)[0] |= 64u;
+  }
+  static void set_has_instant_connection_result(HasBits* has_bits) {
+    (*has_bits)[0] |= 128u;
+  }
+};
+
+const ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo&
+SharingLog_HighQualityMediumSetup::_Internal::share_target_info(const SharingLog_HighQualityMediumSetup* msg) {
+  return *msg->share_target_info_;
+}
+SharingLog_HighQualityMediumSetup::SharingLog_HighQualityMediumSetup(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+}
+SharingLog_HighQualityMediumSetup::SharingLog_HighQualityMediumSetup(const SharingLog_HighQualityMediumSetup& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  if (from._internal_has_share_target_info()) {
+    share_target_info_ = new ::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo(*from.share_target_info_);
+  } else {
+    share_target_info_ = nullptr;
+  }
+  ::memcpy(&session_id_, &from.session_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&instant_connection_result_) -
+    reinterpret_cast<char*>(&session_id_)) + sizeof(instant_connection_result_));
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+}
+
+inline void SharingLog_HighQualityMediumSetup::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&share_target_info_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&instant_connection_result_) -
+    reinterpret_cast<char*>(&share_target_info_)) + sizeof(instant_connection_result_));
+}
+
+SharingLog_HighQualityMediumSetup::~SharingLog_HighQualityMediumSetup() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_HighQualityMediumSetup::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete share_target_info_;
+}
+
+void SharingLog_HighQualityMediumSetup::ArenaDtor(void* object) {
+  SharingLog_HighQualityMediumSetup* _this = reinterpret_cast< SharingLog_HighQualityMediumSetup* >(object);
+  (void)_this;
+}
+void SharingLog_HighQualityMediumSetup::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_HighQualityMediumSetup::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_HighQualityMediumSetup::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    GOOGLE_DCHECK(share_target_info_ != nullptr);
+    share_target_info_->Clear();
+  }
+  if (cached_has_bits & 0x000000feu) {
+    ::memset(&session_id_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&instant_connection_result_) -
+        reinterpret_cast<char*>(&session_id_)) + sizeof(instant_connection_result_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_HighQualityMediumSetup::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_share_target_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 session_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_session_id(&has_bits);
+          session_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 duration_millis = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_duration_millis(&has_bits);
+          duration_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool is_timeout = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _Internal::set_has_is_timeout(&has_bits);
+          is_timeout_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 original_quality = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+          _Internal::set_has_original_quality(&has_bits);
+          original_quality_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 connection_medium = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 48)) {
+          _Internal::set_has_connection_medium(&has_bits);
+          connection_medium_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 connection_mode = 7;
+      case 7:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 56)) {
+          _Internal::set_has_connection_mode(&has_bits);
+          connection_mode_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 instant_connection_result = 8;
+      case 8:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 64)) {
+          _Internal::set_has_instant_connection_result(&has_bits);
+          instant_connection_result_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_HighQualityMediumSetup::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        1, _Internal::share_target_info(this), target, stream);
+  }
+
+  // optional int64 session_id = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(2, this->_internal_session_id(), target);
+  }
+
+  // optional int64 duration_millis = 3;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(3, this->_internal_duration_millis(), target);
+  }
+
+  // optional bool is_timeout = 4;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(4, this->_internal_is_timeout(), target);
+  }
+
+  // optional int32 original_quality = 5;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_original_quality(), target);
+  }
+
+  // optional int32 connection_medium = 6;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(6, this->_internal_connection_medium(), target);
+  }
+
+  // optional int32 connection_mode = 7;
+  if (cached_has_bits & 0x00000040u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(7, this->_internal_connection_mode(), target);
+  }
+
+  // optional int32 instant_connection_result = 8;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(8, this->_internal_instant_connection_result(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  return target;
+}
+
+size_t SharingLog_HighQualityMediumSetup::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x000000ffu) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.ShareTargetInfo share_target_info = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *share_target_info_);
+    }
+
+    // optional int64 session_id = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_session_id());
+    }
+
+    // optional int64 duration_millis = 3;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_duration_millis());
+    }
+
+    // optional bool is_timeout = 4;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 + 1;
+    }
+
+    // optional int32 original_quality = 5;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_original_quality());
+    }
+
+    // optional int32 connection_medium = 6;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_connection_medium());
+    }
+
+    // optional int32 connection_mode = 7;
+    if (cached_has_bits & 0x00000040u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_connection_mode());
+    }
+
+    // optional int32 instant_connection_result = 8;
+    if (cached_has_bits & 0x00000080u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_instant_connection_result());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_HighQualityMediumSetup::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_HighQualityMediumSetup*>(
+      &from));
+}
+
+void SharingLog_HighQualityMediumSetup::MergeFrom(const SharingLog_HighQualityMediumSetup& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x000000ffu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_mutable_share_target_info()->::nearby::sharing::analytics::proto::SharingLog_ShareTargetInfo::MergeFrom(from._internal_share_target_info());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      session_id_ = from.session_id_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      duration_millis_ = from.duration_millis_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      is_timeout_ = from.is_timeout_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      original_quality_ = from.original_quality_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      connection_medium_ = from.connection_medium_;
+    }
+    if (cached_has_bits & 0x00000040u) {
+      connection_mode_ = from.connection_mode_;
+    }
+    if (cached_has_bits & 0x00000080u) {
+      instant_connection_result_ = from.instant_connection_result_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_HighQualityMediumSetup::CopyFrom(const SharingLog_HighQualityMediumSetup& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_HighQualityMediumSetup::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_HighQualityMediumSetup::InternalSwap(SharingLog_HighQualityMediumSetup* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_HighQualityMediumSetup, instant_connection_result_)
+      + sizeof(SharingLog_HighQualityMediumSetup::instant_connection_result_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_HighQualityMediumSetup, share_target_info_)>(
+          reinterpret_cast<char*>(&share_target_info_),
+          reinterpret_cast<char*>(&other->share_target_info_));
+}
+
+std::string SharingLog_HighQualityMediumSetup::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup";
+}
+
+
+// ===================================================================
+
+class SharingLog_RpcCallStatus::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_RpcCallStatus>()._has_bits_);
+  static void set_has_direction(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_rpc_name(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_error_code(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_latency_millis(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+};
+
+SharingLog_RpcCallStatus::SharingLog_RpcCallStatus(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+}
+SharingLog_RpcCallStatus::SharingLog_RpcCallStatus(const SharingLog_RpcCallStatus& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  rpc_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    rpc_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_rpc_name()) {
+    rpc_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_rpc_name(), 
+      GetArenaForAllocation());
+  }
+  ::memcpy(&direction_, &from.direction_,
+    static_cast<size_t>(reinterpret_cast<char*>(&latency_millis_) -
+    reinterpret_cast<char*>(&direction_)) + sizeof(latency_millis_));
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+}
+
+inline void SharingLog_RpcCallStatus::SharedCtor() {
+rpc_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  rpc_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&direction_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&latency_millis_) -
+    reinterpret_cast<char*>(&direction_)) + sizeof(latency_millis_));
+}
+
+SharingLog_RpcCallStatus::~SharingLog_RpcCallStatus() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_RpcCallStatus::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  rpc_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void SharingLog_RpcCallStatus::ArenaDtor(void* object) {
+  SharingLog_RpcCallStatus* _this = reinterpret_cast< SharingLog_RpcCallStatus* >(object);
+  (void)_this;
+}
+void SharingLog_RpcCallStatus::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_RpcCallStatus::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_RpcCallStatus::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    rpc_name_.ClearNonDefaultToEmpty();
+  }
+  if (cached_has_bits & 0x0000000eu) {
+    ::memset(&direction_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&latency_millis_) -
+        reinterpret_cast<char*>(&direction_)) + sizeof(latency_millis_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_RpcCallStatus::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus.RpcDirection direction = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus_RpcDirection_IsValid(val))) {
+            _internal_set_direction(static_cast<::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus_RpcDirection>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string rpc_name = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          auto str = _internal_mutable_rpc_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 error_code = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_error_code(&has_bits);
+          error_code_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 latency_millis = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _Internal::set_has_latency_millis(&has_bits);
+          latency_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_RpcCallStatus::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus.RpcDirection direction = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_direction(), target);
+  }
+
+  // optional string rpc_name = 2;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_rpc_name(), target);
+  }
+
+  // optional int32 error_code = 3;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_error_code(), target);
+  }
+
+  // optional int64 latency_millis = 4;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(4, this->_internal_latency_millis(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  return target;
+}
+
+size_t SharingLog_RpcCallStatus::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    // optional string rpc_name = 2;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_rpc_name());
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus.RpcDirection direction = 1;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_direction());
+    }
+
+    // optional int32 error_code = 3;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_error_code());
+    }
+
+    // optional int64 latency_millis = 4;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_latency_millis());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_RpcCallStatus::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_RpcCallStatus*>(
+      &from));
+}
+
+void SharingLog_RpcCallStatus::MergeFrom(const SharingLog_RpcCallStatus& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_rpc_name(from._internal_rpc_name());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      direction_ = from.direction_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      error_code_ = from.error_code_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      latency_millis_ = from.latency_millis_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_RpcCallStatus::CopyFrom(const SharingLog_RpcCallStatus& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.RpcCallStatus)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_RpcCallStatus::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_RpcCallStatus::InternalSwap(SharingLog_RpcCallStatus* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &rpc_name_, lhs_arena,
+      &other->rpc_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_RpcCallStatus, latency_millis_)
+      + sizeof(SharingLog_RpcCallStatus::latency_millis_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_RpcCallStatus, direction_)>(
+          reinterpret_cast<char*>(&direction_),
+          reinterpret_cast<char*>(&other->direction_));
+}
+
+std::string SharingLog_RpcCallStatus::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.RpcCallStatus";
+}
+
+
+// ===================================================================
+
+class SharingLog_StartQrCodeSession::_Internal {
+ public:
+};
+
+SharingLog_StartQrCodeSession::SharingLog_StartQrCodeSession(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+}
+SharingLog_StartQrCodeSession::SharingLog_StartQrCodeSession(const SharingLog_StartQrCodeSession& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite() {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+}
+
+inline void SharingLog_StartQrCodeSession::SharedCtor() {
+}
+
+SharingLog_StartQrCodeSession::~SharingLog_StartQrCodeSession() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_StartQrCodeSession::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_StartQrCodeSession::ArenaDtor(void* object) {
+  SharingLog_StartQrCodeSession* _this = reinterpret_cast< SharingLog_StartQrCodeSession* >(object);
+  (void)_this;
+}
+void SharingLog_StartQrCodeSession::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_StartQrCodeSession::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_StartQrCodeSession::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_StartQrCodeSession::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_StartQrCodeSession::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  return target;
+}
+
+size_t SharingLog_StartQrCodeSession::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_StartQrCodeSession::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_StartQrCodeSession*>(
+      &from));
+}
+
+void SharingLog_StartQrCodeSession::MergeFrom(const SharingLog_StartQrCodeSession& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_StartQrCodeSession::CopyFrom(const SharingLog_StartQrCodeSession& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_StartQrCodeSession::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_StartQrCodeSession::InternalSwap(SharingLog_StartQrCodeSession* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+}
+
+std::string SharingLog_StartQrCodeSession::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession";
+}
+
+
+// ===================================================================
+
+class SharingLog_QrCodeOpenedInWebClient::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_QrCodeOpenedInWebClient>()._has_bits_);
+  static void set_has_client_platform(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_is_retry(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+SharingLog_QrCodeOpenedInWebClient::SharingLog_QrCodeOpenedInWebClient(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+}
+SharingLog_QrCodeOpenedInWebClient::SharingLog_QrCodeOpenedInWebClient(const SharingLog_QrCodeOpenedInWebClient& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  ::memcpy(&client_platform_, &from.client_platform_,
+    static_cast<size_t>(reinterpret_cast<char*>(&is_retry_) -
+    reinterpret_cast<char*>(&client_platform_)) + sizeof(is_retry_));
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+}
+
+inline void SharingLog_QrCodeOpenedInWebClient::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&client_platform_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&is_retry_) -
+    reinterpret_cast<char*>(&client_platform_)) + sizeof(is_retry_));
+}
+
+SharingLog_QrCodeOpenedInWebClient::~SharingLog_QrCodeOpenedInWebClient() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_QrCodeOpenedInWebClient::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_QrCodeOpenedInWebClient::ArenaDtor(void* object) {
+  SharingLog_QrCodeOpenedInWebClient* _this = reinterpret_cast< SharingLog_QrCodeOpenedInWebClient* >(object);
+  (void)_this;
+}
+void SharingLog_QrCodeOpenedInWebClient::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_QrCodeOpenedInWebClient::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_QrCodeOpenedInWebClient::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    ::memset(&client_platform_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&is_retry_) -
+        reinterpret_cast<char*>(&client_platform_)) + sizeof(is_retry_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_QrCodeOpenedInWebClient::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient.ClientPlatform client_platform = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient_ClientPlatform_IsValid(val))) {
+            _internal_set_client_platform(static_cast<::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient_ClientPlatform>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool is_retry = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_is_retry(&has_bits);
+          is_retry_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_QrCodeOpenedInWebClient::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient.ClientPlatform client_platform = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_client_platform(), target);
+  }
+
+  // optional bool is_retry = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(2, this->_internal_is_retry(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  return target;
+}
+
+size_t SharingLog_QrCodeOpenedInWebClient::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient.ClientPlatform client_platform = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_client_platform());
+    }
+
+    // optional bool is_retry = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 + 1;
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_QrCodeOpenedInWebClient::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_QrCodeOpenedInWebClient*>(
+      &from));
+}
+
+void SharingLog_QrCodeOpenedInWebClient::MergeFrom(const SharingLog_QrCodeOpenedInWebClient& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      client_platform_ = from.client_platform_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      is_retry_ = from.is_retry_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_QrCodeOpenedInWebClient::CopyFrom(const SharingLog_QrCodeOpenedInWebClient& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_QrCodeOpenedInWebClient::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_QrCodeOpenedInWebClient::InternalSwap(SharingLog_QrCodeOpenedInWebClient* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_QrCodeOpenedInWebClient, is_retry_)
+      + sizeof(SharingLog_QrCodeOpenedInWebClient::is_retry_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_QrCodeOpenedInWebClient, client_platform_)>(
+          reinterpret_cast<char*>(&client_platform_),
+          reinterpret_cast<char*>(&other->client_platform_));
+}
+
+std::string SharingLog_QrCodeOpenedInWebClient::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient";
+}
+
+
+// ===================================================================
+
+class SharingLog_HatsJointEvent::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_HatsJointEvent>()._has_bits_);
+  static void set_has_flow_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_hats_session_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+SharingLog_HatsJointEvent::SharingLog_HatsJointEvent(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+}
+SharingLog_HatsJointEvent::SharingLog_HatsJointEvent(const SharingLog_HatsJointEvent& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  hats_session_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    hats_session_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_hats_session_id()) {
+    hats_session_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_hats_session_id(), 
+      GetArenaForAllocation());
+  }
+  flow_id_ = from.flow_id_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+}
+
+inline void SharingLog_HatsJointEvent::SharedCtor() {
+hats_session_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  hats_session_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+flow_id_ = int64_t{0};
+}
+
+SharingLog_HatsJointEvent::~SharingLog_HatsJointEvent() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_HatsJointEvent::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  hats_session_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void SharingLog_HatsJointEvent::ArenaDtor(void* object) {
+  SharingLog_HatsJointEvent* _this = reinterpret_cast< SharingLog_HatsJointEvent* >(object);
+  (void)_this;
+}
+void SharingLog_HatsJointEvent::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_HatsJointEvent::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_HatsJointEvent::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    hats_session_id_.ClearNonDefaultToEmpty();
+  }
+  flow_id_ = int64_t{0};
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_HatsJointEvent::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional int64 flow_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_flow_id(&has_bits);
+          flow_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string hats_session_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          auto str = _internal_mutable_hats_session_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_HatsJointEvent::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional int64 flow_id = 1;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(1, this->_internal_flow_id(), target);
+  }
+
+  // optional string hats_session_id = 2;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        2, this->_internal_hats_session_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  return target;
+}
+
+size_t SharingLog_HatsJointEvent::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional string hats_session_id = 2;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_hats_session_id());
+    }
+
+    // optional int64 flow_id = 1;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_flow_id());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_HatsJointEvent::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_HatsJointEvent*>(
+      &from));
+}
+
+void SharingLog_HatsJointEvent::MergeFrom(const SharingLog_HatsJointEvent& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_hats_session_id(from._internal_hats_session_id());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      flow_id_ = from.flow_id_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_HatsJointEvent::CopyFrom(const SharingLog_HatsJointEvent& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.HatsJointEvent)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_HatsJointEvent::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_HatsJointEvent::InternalSwap(SharingLog_HatsJointEvent* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &hats_session_id_, lhs_arena,
+      &other->hats_session_id_, rhs_arena
+  );
+  swap(flow_id_, other->flow_id_);
+}
+
+std::string SharingLog_HatsJointEvent::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.HatsJointEvent";
+}
+
+
+// ===================================================================
+
+class SharingLog_ReceivePreviews::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_ReceivePreviews>()._has_bits_);
+  static void set_has_num_previews(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+SharingLog_ReceivePreviews::SharingLog_ReceivePreviews(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+}
+SharingLog_ReceivePreviews::SharingLog_ReceivePreviews(const SharingLog_ReceivePreviews& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  num_previews_ = from.num_previews_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+}
+
+inline void SharingLog_ReceivePreviews::SharedCtor() {
+num_previews_ = 0;
+}
+
+SharingLog_ReceivePreviews::~SharingLog_ReceivePreviews() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_ReceivePreviews::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_ReceivePreviews::ArenaDtor(void* object) {
+  SharingLog_ReceivePreviews* _this = reinterpret_cast< SharingLog_ReceivePreviews* >(object);
+  (void)_this;
+}
+void SharingLog_ReceivePreviews::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_ReceivePreviews::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_ReceivePreviews::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  num_previews_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_ReceivePreviews::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional int32 num_previews = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _Internal::set_has_num_previews(&has_bits);
+          num_previews_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_ReceivePreviews::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional int32 num_previews = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_num_previews(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  return target;
+}
+
+size_t SharingLog_ReceivePreviews::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional int32 num_previews = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_previews());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_ReceivePreviews::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_ReceivePreviews*>(
+      &from));
+}
+
+void SharingLog_ReceivePreviews::MergeFrom(const SharingLog_ReceivePreviews& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_num_previews()) {
+    _internal_set_num_previews(from._internal_num_previews());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_ReceivePreviews::CopyFrom(const SharingLog_ReceivePreviews& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.ReceivePreviews)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_ReceivePreviews::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_ReceivePreviews::InternalSwap(SharingLog_ReceivePreviews* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  swap(num_previews_, other->num_previews_);
+}
+
+std::string SharingLog_ReceivePreviews::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.ReceivePreviews";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudCreateSharingRequest::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudCreateSharingRequest>()._has_bits_);
+  static const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo& attachments_info(const SharingLog_CloudCreateSharingRequest* msg);
+  static void set_has_attachments_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_result(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo&
+SharingLog_CloudCreateSharingRequest::_Internal::attachments_info(const SharingLog_CloudCreateSharingRequest* msg) {
+  return *msg->attachments_info_;
+}
+SharingLog_CloudCreateSharingRequest::SharingLog_CloudCreateSharingRequest(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+}
+SharingLog_CloudCreateSharingRequest::SharingLog_CloudCreateSharingRequest(const SharingLog_CloudCreateSharingRequest& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  if (from._internal_has_attachments_info()) {
+    attachments_info_ = new ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo(*from.attachments_info_);
+  } else {
+    attachments_info_ = nullptr;
+  }
+  result_ = from.result_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+}
+
+inline void SharingLog_CloudCreateSharingRequest::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&attachments_info_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&result_) -
+    reinterpret_cast<char*>(&attachments_info_)) + sizeof(result_));
+}
+
+SharingLog_CloudCreateSharingRequest::~SharingLog_CloudCreateSharingRequest() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudCreateSharingRequest::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete attachments_info_;
+}
+
+void SharingLog_CloudCreateSharingRequest::ArenaDtor(void* object) {
+  SharingLog_CloudCreateSharingRequest* _this = reinterpret_cast< SharingLog_CloudCreateSharingRequest* >(object);
+  (void)_this;
+}
+void SharingLog_CloudCreateSharingRequest::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudCreateSharingRequest::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudCreateSharingRequest::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    GOOGLE_DCHECK(attachments_info_ != nullptr);
+    attachments_info_->Clear();
+  }
+  result_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudCreateSharingRequest::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_attachments_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::CloudCreateSharingResult_IsValid(val))) {
+            _internal_set_result(static_cast<::location::nearby::proto::sharing::CloudCreateSharingResult>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudCreateSharingRequest::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        1, _Internal::attachments_info(this), target, stream);
+  }
+
+  // optional .location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_result(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  return target;
+}
+
+size_t SharingLog_CloudCreateSharingRequest::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *attachments_info_);
+    }
+
+    // optional .location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_result());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudCreateSharingRequest::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudCreateSharingRequest*>(
+      &from));
+}
+
+void SharingLog_CloudCreateSharingRequest::MergeFrom(const SharingLog_CloudCreateSharingRequest& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_mutable_attachments_info()->::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo::MergeFrom(from._internal_attachments_info());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      result_ = from.result_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudCreateSharingRequest::CopyFrom(const SharingLog_CloudCreateSharingRequest& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudCreateSharingRequest::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudCreateSharingRequest::InternalSwap(SharingLog_CloudCreateSharingRequest* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_CloudCreateSharingRequest, result_)
+      + sizeof(SharingLog_CloudCreateSharingRequest::result_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_CloudCreateSharingRequest, attachments_info_)>(
+          reinterpret_cast<char*>(&attachments_info_),
+          reinterpret_cast<char*>(&other->attachments_info_));
+}
+
+std::string SharingLog_CloudCreateSharingRequest::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudRegisterReceiver::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudRegisterReceiver>()._has_bits_);
+  static void set_has_result(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+SharingLog_CloudRegisterReceiver::SharingLog_CloudRegisterReceiver(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+}
+SharingLog_CloudRegisterReceiver::SharingLog_CloudRegisterReceiver(const SharingLog_CloudRegisterReceiver& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  result_ = from.result_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+}
+
+inline void SharingLog_CloudRegisterReceiver::SharedCtor() {
+result_ = 0;
+}
+
+SharingLog_CloudRegisterReceiver::~SharingLog_CloudRegisterReceiver() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudRegisterReceiver::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_CloudRegisterReceiver::ArenaDtor(void* object) {
+  SharingLog_CloudRegisterReceiver* _this = reinterpret_cast< SharingLog_CloudRegisterReceiver* >(object);
+  (void)_this;
+}
+void SharingLog_CloudRegisterReceiver::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudRegisterReceiver::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudRegisterReceiver::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  result_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudRegisterReceiver::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .location.nearby.proto.sharing.CloudRegisterReceiverResult result = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::CloudRegisterReceiverResult_IsValid(val))) {
+            _internal_set_result(static_cast<::location::nearby::proto::sharing::CloudRegisterReceiverResult>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudRegisterReceiver::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.proto.sharing.CloudRegisterReceiverResult result = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_result(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  return target;
+}
+
+size_t SharingLog_CloudRegisterReceiver::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // optional .location.nearby.proto.sharing.CloudRegisterReceiverResult result = 1;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_result());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudRegisterReceiver::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudRegisterReceiver*>(
+      &from));
+}
+
+void SharingLog_CloudRegisterReceiver::MergeFrom(const SharingLog_CloudRegisterReceiver& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_result()) {
+    _internal_set_result(from._internal_result());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudRegisterReceiver::CopyFrom(const SharingLog_CloudRegisterReceiver& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudRegisterReceiver::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudRegisterReceiver::InternalSwap(SharingLog_CloudRegisterReceiver* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  swap(result_, other->result_);
+}
+
+std::string SharingLog_CloudRegisterReceiver::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudUploadStart::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudUploadStart>()._has_bits_);
+  static const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo& attachments_info(const SharingLog_CloudUploadStart* msg);
+  static void set_has_attachments_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_action_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo&
+SharingLog_CloudUploadStart::_Internal::attachments_info(const SharingLog_CloudUploadStart* msg) {
+  return *msg->attachments_info_;
+}
+SharingLog_CloudUploadStart::SharingLog_CloudUploadStart(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+}
+SharingLog_CloudUploadStart::SharingLog_CloudUploadStart(const SharingLog_CloudUploadStart& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  if (from._internal_has_attachments_info()) {
+    attachments_info_ = new ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo(*from.attachments_info_);
+  } else {
+    attachments_info_ = nullptr;
+  }
+  action_type_ = from.action_type_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+}
+
+inline void SharingLog_CloudUploadStart::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&attachments_info_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&action_type_) -
+    reinterpret_cast<char*>(&attachments_info_)) + sizeof(action_type_));
+}
+
+SharingLog_CloudUploadStart::~SharingLog_CloudUploadStart() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudUploadStart::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete attachments_info_;
+}
+
+void SharingLog_CloudUploadStart::ArenaDtor(void* object) {
+  SharingLog_CloudUploadStart* _this = reinterpret_cast< SharingLog_CloudUploadStart* >(object);
+  (void)_this;
+}
+void SharingLog_CloudUploadStart::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudUploadStart::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudUploadStart::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    GOOGLE_DCHECK(attachments_info_ != nullptr);
+    attachments_info_->Clear();
+  }
+  action_type_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudUploadStart::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_attachments_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::CloudActionType_IsValid(val))) {
+            _internal_set_action_type(static_cast<::location::nearby::proto::sharing::CloudActionType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudUploadStart::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        1, _Internal::attachments_info(this), target, stream);
+  }
+
+  // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_action_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  return target;
+}
+
+size_t SharingLog_CloudUploadStart::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *attachments_info_);
+    }
+
+    // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_action_type());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudUploadStart::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudUploadStart*>(
+      &from));
+}
+
+void SharingLog_CloudUploadStart::MergeFrom(const SharingLog_CloudUploadStart& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_mutable_attachments_info()->::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo::MergeFrom(from._internal_attachments_info());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      action_type_ = from.action_type_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudUploadStart::CopyFrom(const SharingLog_CloudUploadStart& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadStart)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudUploadStart::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudUploadStart::InternalSwap(SharingLog_CloudUploadStart* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_CloudUploadStart, action_type_)
+      + sizeof(SharingLog_CloudUploadStart::action_type_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_CloudUploadStart, attachments_info_)>(
+          reinterpret_cast<char*>(&attachments_info_),
+          reinterpret_cast<char*>(&other->attachments_info_));
+}
+
+std::string SharingLog_CloudUploadStart::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudUploadStart";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudUploadEnd::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudUploadEnd>()._has_bits_);
+  static void set_has_action_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+SharingLog_CloudUploadEnd::SharingLog_CloudUploadEnd(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  upload_infos_(arena) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+}
+SharingLog_CloudUploadEnd::SharingLog_CloudUploadEnd(const SharingLog_CloudUploadEnd& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_),
+      upload_infos_(from.upload_infos_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  action_type_ = from.action_type_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+}
+
+inline void SharingLog_CloudUploadEnd::SharedCtor() {
+action_type_ = 0;
+}
+
+SharingLog_CloudUploadEnd::~SharingLog_CloudUploadEnd() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudUploadEnd::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_CloudUploadEnd::ArenaDtor(void* object) {
+  SharingLog_CloudUploadEnd* _this = reinterpret_cast< SharingLog_CloudUploadEnd* >(object);
+  (void)_this;
+}
+void SharingLog_CloudUploadEnd::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudUploadEnd::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudUploadEnd::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  upload_infos_.Clear();
+  action_type_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudUploadEnd::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo upload_infos = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_upload_infos(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::CloudActionType_IsValid(val))) {
+            _internal_set_action_type(static_cast<::location::nearby::proto::sharing::CloudActionType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudUploadEnd::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo upload_infos = 1;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_upload_infos_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, this->_internal_upload_infos(i), target, stream);
+  }
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_action_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  return target;
+}
+
+size_t SharingLog_CloudUploadEnd::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo upload_infos = 1;
+  total_size += 1UL * this->_internal_upload_infos_size();
+  for (const auto& msg : this->upload_infos_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_action_type());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudUploadEnd::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudUploadEnd*>(
+      &from));
+}
+
+void SharingLog_CloudUploadEnd::MergeFrom(const SharingLog_CloudUploadEnd& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  upload_infos_.MergeFrom(from.upload_infos_);
+  if (from._internal_has_action_type()) {
+    _internal_set_action_type(from._internal_action_type());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudUploadEnd::CopyFrom(const SharingLog_CloudUploadEnd& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudUploadEnd::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudUploadEnd::InternalSwap(SharingLog_CloudUploadEnd* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  upload_infos_.InternalSwap(&other->upload_infos_);
+  swap(action_type_, other->action_type_);
+}
+
+std::string SharingLog_CloudUploadEnd::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudDownloadStart::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudDownloadStart>()._has_bits_);
+  static const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo& attachments_info(const SharingLog_CloudDownloadStart* msg);
+  static void set_has_attachments_info(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_action_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+const ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo&
+SharingLog_CloudDownloadStart::_Internal::attachments_info(const SharingLog_CloudDownloadStart* msg) {
+  return *msg->attachments_info_;
+}
+SharingLog_CloudDownloadStart::SharingLog_CloudDownloadStart(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+}
+SharingLog_CloudDownloadStart::SharingLog_CloudDownloadStart(const SharingLog_CloudDownloadStart& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  if (from._internal_has_attachments_info()) {
+    attachments_info_ = new ::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo(*from.attachments_info_);
+  } else {
+    attachments_info_ = nullptr;
+  }
+  action_type_ = from.action_type_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+}
+
+inline void SharingLog_CloudDownloadStart::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&attachments_info_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&action_type_) -
+    reinterpret_cast<char*>(&attachments_info_)) + sizeof(action_type_));
+}
+
+SharingLog_CloudDownloadStart::~SharingLog_CloudDownloadStart() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudDownloadStart::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete attachments_info_;
+}
+
+void SharingLog_CloudDownloadStart::ArenaDtor(void* object) {
+  SharingLog_CloudDownloadStart* _this = reinterpret_cast< SharingLog_CloudDownloadStart* >(object);
+  (void)_this;
+}
+void SharingLog_CloudDownloadStart::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudDownloadStart::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudDownloadStart::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    GOOGLE_DCHECK(attachments_info_ != nullptr);
+    attachments_info_->Clear();
+  }
+  action_type_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudDownloadStart::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_attachments_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::CloudActionType_IsValid(val))) {
+            _internal_set_action_type(static_cast<::location::nearby::proto::sharing::CloudActionType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudDownloadStart::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        1, _Internal::attachments_info(this), target, stream);
+  }
+
+  // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_action_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  return target;
+}
+
+size_t SharingLog_CloudDownloadStart::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.AttachmentsInfo attachments_info = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *attachments_info_);
+    }
+
+    // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_action_type());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudDownloadStart::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudDownloadStart*>(
+      &from));
+}
+
+void SharingLog_CloudDownloadStart::MergeFrom(const SharingLog_CloudDownloadStart& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_mutable_attachments_info()->::nearby::sharing::analytics::proto::SharingLog_AttachmentsInfo::MergeFrom(from._internal_attachments_info());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      action_type_ = from.action_type_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudDownloadStart::CopyFrom(const SharingLog_CloudDownloadStart& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudDownloadStart::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudDownloadStart::InternalSwap(SharingLog_CloudDownloadStart* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_CloudDownloadStart, action_type_)
+      + sizeof(SharingLog_CloudDownloadStart::action_type_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_CloudDownloadStart, attachments_info_)>(
+          reinterpret_cast<char*>(&attachments_info_),
+          reinterpret_cast<char*>(&other->attachments_info_));
+}
+
+std::string SharingLog_CloudDownloadStart::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudDownloadEnd::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudDownloadEnd>()._has_bits_);
+  static void set_has_action_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+};
+
+SharingLog_CloudDownloadEnd::SharingLog_CloudDownloadEnd(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned),
+  download_infos_(arena) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+}
+SharingLog_CloudDownloadEnd::SharingLog_CloudDownloadEnd(const SharingLog_CloudDownloadEnd& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_),
+      download_infos_(from.download_infos_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  action_type_ = from.action_type_;
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+}
+
+inline void SharingLog_CloudDownloadEnd::SharedCtor() {
+action_type_ = 0;
+}
+
+SharingLog_CloudDownloadEnd::~SharingLog_CloudDownloadEnd() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudDownloadEnd::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SharingLog_CloudDownloadEnd::ArenaDtor(void* object) {
+  SharingLog_CloudDownloadEnd* _this = reinterpret_cast< SharingLog_CloudDownloadEnd* >(object);
+  (void)_this;
+}
+void SharingLog_CloudDownloadEnd::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudDownloadEnd::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudDownloadEnd::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  download_infos_.Clear();
+  action_type_ = 0;
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudDownloadEnd::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo download_infos = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_download_infos(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::sharing::CloudActionType_IsValid(val))) {
+            _internal_set_action_type(static_cast<::location::nearby::proto::sharing::CloudActionType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(2, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudDownloadEnd::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo download_infos = 1;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_download_infos_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, this->_internal_download_infos(i), target, stream);
+  }
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_action_type(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  return target;
+}
+
+size_t SharingLog_CloudDownloadEnd::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .nearby.sharing.analytics.proto.SharingLog.CloudAttachmentInfo download_infos = 1;
+  total_size += 1UL * this->_internal_download_infos_size();
+  for (const auto& msg : this->download_infos_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  // optional .location.nearby.proto.sharing.CloudActionType action_type = 2;
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_action_type());
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudDownloadEnd::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudDownloadEnd*>(
+      &from));
+}
+
+void SharingLog_CloudDownloadEnd::MergeFrom(const SharingLog_CloudDownloadEnd& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  download_infos_.MergeFrom(from.download_infos_);
+  if (from._internal_has_action_type()) {
+    _internal_set_action_type(from._internal_action_type());
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudDownloadEnd::CopyFrom(const SharingLog_CloudDownloadEnd& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudDownloadEnd::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudDownloadEnd::InternalSwap(SharingLog_CloudDownloadEnd* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  download_infos_.InternalSwap(&other->download_infos_);
+  swap(action_type_, other->action_type_);
+}
+
+std::string SharingLog_CloudDownloadEnd::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd";
+}
+
+
+// ===================================================================
+
+class SharingLog_CloudSharingRpcResult::_Internal {
+ public:
+  using HasBits = decltype(std::declval<SharingLog_CloudSharingRpcResult>()._has_bits_);
+  static void set_has_rpc_name(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_status_code(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_latency_millis(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_cloud_sharing_id(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+};
+
+SharingLog_CloudSharingRpcResult::SharingLog_CloudSharingRpcResult(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+}
+SharingLog_CloudSharingRpcResult::SharingLog_CloudSharingRpcResult(const SharingLog_CloudSharingRpcResult& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  rpc_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    rpc_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_rpc_name()) {
+    rpc_name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_rpc_name(), 
+      GetArenaForAllocation());
+  }
+  cloud_sharing_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    cloud_sharing_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (from._internal_has_cloud_sharing_id()) {
+    cloud_sharing_id_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_cloud_sharing_id(), 
+      GetArenaForAllocation());
+  }
+  ::memcpy(&latency_millis_, &from.latency_millis_,
+    static_cast<size_t>(reinterpret_cast<char*>(&status_code_) -
+    reinterpret_cast<char*>(&latency_millis_)) + sizeof(status_code_));
+  // @@protoc_insertion_point(copy_constructor:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+}
+
+inline void SharingLog_CloudSharingRpcResult::SharedCtor() {
+rpc_name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  rpc_name_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+cloud_sharing_id_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  cloud_sharing_id_.Set(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), "", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&latency_millis_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&status_code_) -
+    reinterpret_cast<char*>(&latency_millis_)) + sizeof(status_code_));
+}
+
+SharingLog_CloudSharingRpcResult::~SharingLog_CloudSharingRpcResult() {
+  // @@protoc_insertion_point(destructor:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void SharingLog_CloudSharingRpcResult::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  rpc_name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  cloud_sharing_id_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+}
+
+void SharingLog_CloudSharingRpcResult::ArenaDtor(void* object) {
+  SharingLog_CloudSharingRpcResult* _this = reinterpret_cast< SharingLog_CloudSharingRpcResult* >(object);
+  (void)_this;
+}
+void SharingLog_CloudSharingRpcResult::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void SharingLog_CloudSharingRpcResult::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void SharingLog_CloudSharingRpcResult::Clear() {
+// @@protoc_insertion_point(message_clear_start:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      rpc_name_.ClearNonDefaultToEmpty();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      cloud_sharing_id_.ClearNonDefaultToEmpty();
+    }
+  }
+  if (cached_has_bits & 0x0000000cu) {
+    ::memset(&latency_millis_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&status_code_) -
+        reinterpret_cast<char*>(&latency_millis_)) + sizeof(status_code_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* SharingLog_CloudSharingRpcResult::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional string rpc_name = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          auto str = _internal_mutable_rpc_name();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 status_code = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_status_code(&has_bits);
+          status_code_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 latency_millis = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_latency_millis(&has_bits);
+          latency_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional string cloud_sharing_id = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          auto str = _internal_mutable_cloud_sharing_id();
+          ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SharingLog_CloudSharingRpcResult::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional string rpc_name = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->WriteStringMaybeAliased(
+        1, this->_internal_rpc_name(), target);
+  }
+
+  // optional int32 status_code = 2;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_status_code(), target);
+  }
+
+  // optional int64 latency_millis = 3;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(3, this->_internal_latency_millis(), target);
+  }
+
+  // optional string cloud_sharing_id = 4;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->WriteStringMaybeAliased(
+        4, this->_internal_cloud_sharing_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  return target;
+}
+
+size_t SharingLog_CloudSharingRpcResult::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    // optional string rpc_name = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_rpc_name());
+    }
+
+    // optional string cloud_sharing_id = 4;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+          this->_internal_cloud_sharing_id());
+    }
+
+    // optional int64 latency_millis = 3;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_latency_millis());
+    }
+
+    // optional int32 status_code = 2;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_status_code());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void SharingLog_CloudSharingRpcResult::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const SharingLog_CloudSharingRpcResult*>(
+      &from));
+}
+
+void SharingLog_CloudSharingRpcResult::MergeFrom(const SharingLog_CloudSharingRpcResult& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000000fu) {
+    if (cached_has_bits & 0x00000001u) {
+      _internal_set_rpc_name(from._internal_rpc_name());
+    }
+    if (cached_has_bits & 0x00000002u) {
+      _internal_set_cloud_sharing_id(from._internal_cloud_sharing_id());
+    }
+    if (cached_has_bits & 0x00000004u) {
+      latency_millis_ = from.latency_millis_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      status_code_ = from.status_code_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void SharingLog_CloudSharingRpcResult::CopyFrom(const SharingLog_CloudSharingRpcResult& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SharingLog_CloudSharingRpcResult::IsInitialized() const {
+  return true;
+}
+
+void SharingLog_CloudSharingRpcResult::InternalSwap(SharingLog_CloudSharingRpcResult* other) {
+  using std::swap;
+  auto* lhs_arena = GetArenaForAllocation();
+  auto* rhs_arena = other->GetArenaForAllocation();
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &rpc_name_, lhs_arena,
+      &other->rpc_name_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+      &cloud_sharing_id_, lhs_arena,
+      &other->cloud_sharing_id_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SharingLog_CloudSharingRpcResult, status_code_)
+      + sizeof(SharingLog_CloudSharingRpcResult::status_code_)
+      - PROTOBUF_FIELD_OFFSET(SharingLog_CloudSharingRpcResult, latency_millis_)>(
+          reinterpret_cast<char*>(&latency_millis_),
+          reinterpret_cast<char*>(&other->latency_millis_));
+}
+
+std::string SharingLog_CloudSharingRpcResult::GetTypeName() const {
+  return "nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult";
+}
+
+
+// ===================================================================
+
 class SharingLog::_Internal {
  public:
   using HasBits = decltype(std::declval<SharingLog>()._has_bits_);
   static void set_has_event_type(HasBits* has_bits) {
-    (*has_bits)[2] |= 128u;
+    (*has_bits)[2] |= 2097152u;
   }
   static const ::nearby::sharing::analytics::proto::SharingLog_UnknownEvent& unknown_event(const SharingLog* msg);
   static void set_has_unknown_event(HasBits* has_bits) {
@@ -20092,7 +25621,7 @@ class SharingLog::_Internal {
     (*has_bits)[0] |= 134217728u;
   }
   static void set_has_log_source(HasBits* has_bits) {
-    (*has_bits)[2] |= 256u;
+    (*has_bits)[2] |= 4194304u;
   }
   static const ::nearby::sharing::analytics::proto::SharingLog_FastShareServerResponse& fast_share_server_response(const SharingLog* msg);
   static void set_has_fast_share_server_response(HasBits* has_bits) {
@@ -20114,7 +25643,7 @@ class SharingLog::_Internal {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_event_category(HasBits* has_bits) {
-    (*has_bits)[2] |= 512u;
+    (*has_bits)[2] |= 8388608u;
   }
   static const ::nearby::sharing::analytics::proto::SharingLog_DismissFastInitialization& dismiss_fast_initialization(const SharingLog* msg);
   static void set_has_dismiss_fast_initialization(HasBits* has_bits) {
@@ -20277,6 +25806,62 @@ class SharingLog::_Internal {
   static const ::nearby::sharing::analytics::proto::SharingLog_ShowAllowPermissionAutoAccess& show_allow_permission_auto_access(const SharingLog* msg);
   static void set_has_show_allow_permission_auto_access(HasBits* has_bits) {
     (*has_bits)[2] |= 64u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept& show_waiting_for_accept(const SharingLog* msg);
+  static void set_has_show_waiting_for_accept(HasBits* has_bits) {
+    (*has_bits)[2] |= 128u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup& high_quality_medium_setup(const SharingLog* msg);
+  static void set_has_high_quality_medium_setup(HasBits* has_bits) {
+    (*has_bits)[2] |= 256u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus& rpc_call_status(const SharingLog* msg);
+  static void set_has_rpc_call_status(HasBits* has_bits) {
+    (*has_bits)[2] |= 512u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession& start_qr_code_session(const SharingLog* msg);
+  static void set_has_start_qr_code_session(HasBits* has_bits) {
+    (*has_bits)[2] |= 1024u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient& qr_code_opened_in_web_client(const SharingLog* msg);
+  static void set_has_qr_code_opened_in_web_client(HasBits* has_bits) {
+    (*has_bits)[2] |= 2048u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent& hats_joint_event(const SharingLog* msg);
+  static void set_has_hats_joint_event(HasBits* has_bits) {
+    (*has_bits)[2] |= 4096u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews& receive_previews(const SharingLog* msg);
+  static void set_has_receive_previews(HasBits* has_bits) {
+    (*has_bits)[2] |= 8192u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest& cloud_create_sharing_request(const SharingLog* msg);
+  static void set_has_cloud_create_sharing_request(HasBits* has_bits) {
+    (*has_bits)[2] |= 16384u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver& cloud_register_receiver(const SharingLog* msg);
+  static void set_has_cloud_register_receiver(HasBits* has_bits) {
+    (*has_bits)[2] |= 32768u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart& cloud_upload_start(const SharingLog* msg);
+  static void set_has_cloud_upload_start(HasBits* has_bits) {
+    (*has_bits)[2] |= 65536u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd& cloud_upload_end(const SharingLog* msg);
+  static void set_has_cloud_upload_end(HasBits* has_bits) {
+    (*has_bits)[2] |= 131072u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart& cloud_download_start(const SharingLog* msg);
+  static void set_has_cloud_download_start(HasBits* has_bits) {
+    (*has_bits)[2] |= 262144u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd& cloud_download_end(const SharingLog* msg);
+  static void set_has_cloud_download_end(HasBits* has_bits) {
+    (*has_bits)[2] |= 524288u;
+  }
+  static const ::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult& cloud_sharing_rpc_result(const SharingLog* msg);
+  static void set_has_cloud_sharing_rpc_result(HasBits* has_bits) {
+    (*has_bits)[2] |= 1048576u;
   }
 };
 
@@ -20551,6 +26136,62 @@ SharingLog::_Internal::decrypt_certificate_failure(const SharingLog* msg) {
 const ::nearby::sharing::analytics::proto::SharingLog_ShowAllowPermissionAutoAccess&
 SharingLog::_Internal::show_allow_permission_auto_access(const SharingLog* msg) {
   return *msg->show_allow_permission_auto_access_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept&
+SharingLog::_Internal::show_waiting_for_accept(const SharingLog* msg) {
+  return *msg->show_waiting_for_accept_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup&
+SharingLog::_Internal::high_quality_medium_setup(const SharingLog* msg) {
+  return *msg->high_quality_medium_setup_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus&
+SharingLog::_Internal::rpc_call_status(const SharingLog* msg) {
+  return *msg->rpc_call_status_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession&
+SharingLog::_Internal::start_qr_code_session(const SharingLog* msg) {
+  return *msg->start_qr_code_session_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient&
+SharingLog::_Internal::qr_code_opened_in_web_client(const SharingLog* msg) {
+  return *msg->qr_code_opened_in_web_client_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent&
+SharingLog::_Internal::hats_joint_event(const SharingLog* msg) {
+  return *msg->hats_joint_event_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews&
+SharingLog::_Internal::receive_previews(const SharingLog* msg) {
+  return *msg->receive_previews_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest&
+SharingLog::_Internal::cloud_create_sharing_request(const SharingLog* msg) {
+  return *msg->cloud_create_sharing_request_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver&
+SharingLog::_Internal::cloud_register_receiver(const SharingLog* msg) {
+  return *msg->cloud_register_receiver_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart&
+SharingLog::_Internal::cloud_upload_start(const SharingLog* msg) {
+  return *msg->cloud_upload_start_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd&
+SharingLog::_Internal::cloud_upload_end(const SharingLog* msg) {
+  return *msg->cloud_upload_end_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart&
+SharingLog::_Internal::cloud_download_start(const SharingLog* msg) {
+  return *msg->cloud_download_start_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd&
+SharingLog::_Internal::cloud_download_end(const SharingLog* msg) {
+  return *msg->cloud_download_end_;
+}
+const ::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult&
+SharingLog::_Internal::cloud_sharing_rpc_result(const SharingLog* msg) {
+  return *msg->cloud_sharing_rpc_result_;
 }
 SharingLog::SharingLog(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -20929,6 +26570,76 @@ SharingLog::SharingLog(const SharingLog& from)
   } else {
     show_allow_permission_auto_access_ = nullptr;
   }
+  if (from._internal_has_show_waiting_for_accept()) {
+    show_waiting_for_accept_ = new ::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept(*from.show_waiting_for_accept_);
+  } else {
+    show_waiting_for_accept_ = nullptr;
+  }
+  if (from._internal_has_high_quality_medium_setup()) {
+    high_quality_medium_setup_ = new ::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup(*from.high_quality_medium_setup_);
+  } else {
+    high_quality_medium_setup_ = nullptr;
+  }
+  if (from._internal_has_rpc_call_status()) {
+    rpc_call_status_ = new ::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus(*from.rpc_call_status_);
+  } else {
+    rpc_call_status_ = nullptr;
+  }
+  if (from._internal_has_start_qr_code_session()) {
+    start_qr_code_session_ = new ::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession(*from.start_qr_code_session_);
+  } else {
+    start_qr_code_session_ = nullptr;
+  }
+  if (from._internal_has_qr_code_opened_in_web_client()) {
+    qr_code_opened_in_web_client_ = new ::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient(*from.qr_code_opened_in_web_client_);
+  } else {
+    qr_code_opened_in_web_client_ = nullptr;
+  }
+  if (from._internal_has_hats_joint_event()) {
+    hats_joint_event_ = new ::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent(*from.hats_joint_event_);
+  } else {
+    hats_joint_event_ = nullptr;
+  }
+  if (from._internal_has_receive_previews()) {
+    receive_previews_ = new ::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews(*from.receive_previews_);
+  } else {
+    receive_previews_ = nullptr;
+  }
+  if (from._internal_has_cloud_create_sharing_request()) {
+    cloud_create_sharing_request_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest(*from.cloud_create_sharing_request_);
+  } else {
+    cloud_create_sharing_request_ = nullptr;
+  }
+  if (from._internal_has_cloud_register_receiver()) {
+    cloud_register_receiver_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver(*from.cloud_register_receiver_);
+  } else {
+    cloud_register_receiver_ = nullptr;
+  }
+  if (from._internal_has_cloud_upload_start()) {
+    cloud_upload_start_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart(*from.cloud_upload_start_);
+  } else {
+    cloud_upload_start_ = nullptr;
+  }
+  if (from._internal_has_cloud_upload_end()) {
+    cloud_upload_end_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd(*from.cloud_upload_end_);
+  } else {
+    cloud_upload_end_ = nullptr;
+  }
+  if (from._internal_has_cloud_download_start()) {
+    cloud_download_start_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart(*from.cloud_download_start_);
+  } else {
+    cloud_download_start_ = nullptr;
+  }
+  if (from._internal_has_cloud_download_end()) {
+    cloud_download_end_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd(*from.cloud_download_end_);
+  } else {
+    cloud_download_end_ = nullptr;
+  }
+  if (from._internal_has_cloud_sharing_rpc_result()) {
+    cloud_sharing_rpc_result_ = new ::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult(*from.cloud_sharing_rpc_result_);
+  } else {
+    cloud_sharing_rpc_result_ = nullptr;
+  }
   ::memcpy(&event_type_, &from.event_type_,
     static_cast<size_t>(reinterpret_cast<char*>(&event_category_) -
     reinterpret_cast<char*>(&event_type_)) + sizeof(event_category_));
@@ -21034,6 +26745,20 @@ inline void SharingLog::SharedDtor() {
   if (this != internal_default_instance()) delete set_account_;
   if (this != internal_default_instance()) delete decrypt_certificate_failure_;
   if (this != internal_default_instance()) delete show_allow_permission_auto_access_;
+  if (this != internal_default_instance()) delete show_waiting_for_accept_;
+  if (this != internal_default_instance()) delete high_quality_medium_setup_;
+  if (this != internal_default_instance()) delete rpc_call_status_;
+  if (this != internal_default_instance()) delete start_qr_code_session_;
+  if (this != internal_default_instance()) delete qr_code_opened_in_web_client_;
+  if (this != internal_default_instance()) delete hats_joint_event_;
+  if (this != internal_default_instance()) delete receive_previews_;
+  if (this != internal_default_instance()) delete cloud_create_sharing_request_;
+  if (this != internal_default_instance()) delete cloud_register_receiver_;
+  if (this != internal_default_instance()) delete cloud_upload_start_;
+  if (this != internal_default_instance()) delete cloud_upload_end_;
+  if (this != internal_default_instance()) delete cloud_download_start_;
+  if (this != internal_default_instance()) delete cloud_download_end_;
+  if (this != internal_default_instance()) delete cloud_sharing_rpc_result_;
 }
 
 void SharingLog::ArenaDtor(void* object) {
@@ -21324,7 +27049,7 @@ void SharingLog::Clear() {
     }
   }
   cached_has_bits = _has_bits_[2];
-  if (cached_has_bits & 0x0000007fu) {
+  if (cached_has_bits & 0x000000ffu) {
     if (cached_has_bits & 0x00000001u) {
       GOOGLE_DCHECK(parsing_failed_endpoint_id_ != nullptr);
       parsing_failed_endpoint_id_->Clear();
@@ -21353,12 +27078,71 @@ void SharingLog::Clear() {
       GOOGLE_DCHECK(show_allow_permission_auto_access_ != nullptr);
       show_allow_permission_auto_access_->Clear();
     }
+    if (cached_has_bits & 0x00000080u) {
+      GOOGLE_DCHECK(show_waiting_for_accept_ != nullptr);
+      show_waiting_for_accept_->Clear();
+    }
   }
-  event_type_ = 0;
-  if (cached_has_bits & 0x00000300u) {
-    ::memset(&log_source_, 0, static_cast<size_t>(
+  if (cached_has_bits & 0x0000ff00u) {
+    if (cached_has_bits & 0x00000100u) {
+      GOOGLE_DCHECK(high_quality_medium_setup_ != nullptr);
+      high_quality_medium_setup_->Clear();
+    }
+    if (cached_has_bits & 0x00000200u) {
+      GOOGLE_DCHECK(rpc_call_status_ != nullptr);
+      rpc_call_status_->Clear();
+    }
+    if (cached_has_bits & 0x00000400u) {
+      GOOGLE_DCHECK(start_qr_code_session_ != nullptr);
+      start_qr_code_session_->Clear();
+    }
+    if (cached_has_bits & 0x00000800u) {
+      GOOGLE_DCHECK(qr_code_opened_in_web_client_ != nullptr);
+      qr_code_opened_in_web_client_->Clear();
+    }
+    if (cached_has_bits & 0x00001000u) {
+      GOOGLE_DCHECK(hats_joint_event_ != nullptr);
+      hats_joint_event_->Clear();
+    }
+    if (cached_has_bits & 0x00002000u) {
+      GOOGLE_DCHECK(receive_previews_ != nullptr);
+      receive_previews_->Clear();
+    }
+    if (cached_has_bits & 0x00004000u) {
+      GOOGLE_DCHECK(cloud_create_sharing_request_ != nullptr);
+      cloud_create_sharing_request_->Clear();
+    }
+    if (cached_has_bits & 0x00008000u) {
+      GOOGLE_DCHECK(cloud_register_receiver_ != nullptr);
+      cloud_register_receiver_->Clear();
+    }
+  }
+  if (cached_has_bits & 0x001f0000u) {
+    if (cached_has_bits & 0x00010000u) {
+      GOOGLE_DCHECK(cloud_upload_start_ != nullptr);
+      cloud_upload_start_->Clear();
+    }
+    if (cached_has_bits & 0x00020000u) {
+      GOOGLE_DCHECK(cloud_upload_end_ != nullptr);
+      cloud_upload_end_->Clear();
+    }
+    if (cached_has_bits & 0x00040000u) {
+      GOOGLE_DCHECK(cloud_download_start_ != nullptr);
+      cloud_download_start_->Clear();
+    }
+    if (cached_has_bits & 0x00080000u) {
+      GOOGLE_DCHECK(cloud_download_end_ != nullptr);
+      cloud_download_end_->Clear();
+    }
+    if (cached_has_bits & 0x00100000u) {
+      GOOGLE_DCHECK(cloud_sharing_rpc_result_ != nullptr);
+      cloud_sharing_rpc_result_->Clear();
+    }
+  }
+  if (cached_has_bits & 0x00e00000u) {
+    ::memset(&event_type_, 0, static_cast<size_t>(
         reinterpret_cast<char*>(&event_category_) -
-        reinterpret_cast<char*>(&log_source_)) + sizeof(event_category_));
+        reinterpret_cast<char*>(&event_type_)) + sizeof(event_category_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -21980,6 +27764,118 @@ const char* SharingLog::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID:
         } else
           goto handle_unusual;
         continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept show_waiting_for_accept = 76;
+      case 76:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
+          ptr = ctx->ParseMessage(_internal_mutable_show_waiting_for_accept(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup high_quality_medium_setup = 77;
+      case 77:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+          ptr = ctx->ParseMessage(_internal_mutable_high_quality_medium_setup(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus rpc_call_status = 78;
+      case 78:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
+          ptr = ctx->ParseMessage(_internal_mutable_rpc_call_status(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession start_qr_code_session = 79;
+      case 79:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 122)) {
+          ptr = ctx->ParseMessage(_internal_mutable_start_qr_code_session(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient qr_code_opened_in_web_client = 80;
+      case 80:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 130)) {
+          ptr = ctx->ParseMessage(_internal_mutable_qr_code_opened_in_web_client(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.HatsJointEvent hats_joint_event = 81;
+      case 81:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 138)) {
+          ptr = ctx->ParseMessage(_internal_mutable_hats_joint_event(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.ReceivePreviews receive_previews = 82;
+      case 82:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 146)) {
+          ptr = ctx->ParseMessage(_internal_mutable_receive_previews(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest cloud_create_sharing_request = 83;
+      case 83:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 154)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_create_sharing_request(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver cloud_register_receiver = 84;
+      case 84:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 162)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_register_receiver(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadStart cloud_upload_start = 85;
+      case 85:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 170)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_upload_start(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd cloud_upload_end = 86;
+      case 86:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 178)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_upload_end(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart cloud_download_start = 87;
+      case 87:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 186)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_download_start(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd cloud_download_end = 88;
+      case 88:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 194)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_download_end(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional .nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult cloud_sharing_rpc_result = 89;
+      case 89:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 202)) {
+          ptr = ctx->ParseMessage(_internal_mutable_cloud_sharing_rpc_result(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -22011,7 +27907,7 @@ uint8_t* SharingLog::_InternalSerialize(
 
   cached_has_bits = _has_bits_[2];
   // optional .location.nearby.proto.sharing.EventType event_type = 1;
-  if (cached_has_bits & 0x00000080u) {
+  if (cached_has_bits & 0x00200000u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       1, this->_internal_event_type(), target);
@@ -22220,7 +28116,7 @@ uint8_t* SharingLog::_InternalSerialize(
 
   cached_has_bits = _has_bits_[2];
   // optional .location.nearby.proto.sharing.LogSource log_source = 27;
-  if (cached_has_bits & 0x00000100u) {
+  if (cached_has_bits & 0x00400000u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       27, this->_internal_log_source(), target);
@@ -22267,7 +28163,7 @@ uint8_t* SharingLog::_InternalSerialize(
 
   cached_has_bits = _has_bits_[2];
   // optional .location.nearby.proto.sharing.EventCategory event_category = 33;
-  if (cached_has_bits & 0x00000200u) {
+  if (cached_has_bits & 0x00800000u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       33, this->_internal_event_category(), target);
@@ -22601,6 +28497,118 @@ uint8_t* SharingLog::_InternalSerialize(
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
       InternalWriteMessage(
         75, _Internal::show_allow_permission_auto_access(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept show_waiting_for_accept = 76;
+  if (cached_has_bits & 0x00000080u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        76, _Internal::show_waiting_for_accept(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup high_quality_medium_setup = 77;
+  if (cached_has_bits & 0x00000100u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        77, _Internal::high_quality_medium_setup(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus rpc_call_status = 78;
+  if (cached_has_bits & 0x00000200u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        78, _Internal::rpc_call_status(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession start_qr_code_session = 79;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        79, _Internal::start_qr_code_session(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient qr_code_opened_in_web_client = 80;
+  if (cached_has_bits & 0x00000800u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        80, _Internal::qr_code_opened_in_web_client(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.HatsJointEvent hats_joint_event = 81;
+  if (cached_has_bits & 0x00001000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        81, _Internal::hats_joint_event(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.ReceivePreviews receive_previews = 82;
+  if (cached_has_bits & 0x00002000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        82, _Internal::receive_previews(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest cloud_create_sharing_request = 83;
+  if (cached_has_bits & 0x00004000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        83, _Internal::cloud_create_sharing_request(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver cloud_register_receiver = 84;
+  if (cached_has_bits & 0x00008000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        84, _Internal::cloud_register_receiver(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadStart cloud_upload_start = 85;
+  if (cached_has_bits & 0x00010000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        85, _Internal::cloud_upload_start(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd cloud_upload_end = 86;
+  if (cached_has_bits & 0x00020000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        86, _Internal::cloud_upload_end(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart cloud_download_start = 87;
+  if (cached_has_bits & 0x00040000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        87, _Internal::cloud_download_start(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd cloud_download_end = 88;
+  if (cached_has_bits & 0x00080000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        88, _Internal::cloud_download_end(this), target, stream);
+  }
+
+  // optional .nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult cloud_sharing_rpc_result = 89;
+  if (cached_has_bits & 0x00100000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        89, _Internal::cloud_sharing_rpc_result(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -23136,22 +29144,122 @@ size_t SharingLog::ByteSizeLong() const {
           *show_allow_permission_auto_access_);
     }
 
-    // optional .location.nearby.proto.sharing.EventType event_type = 1;
+    // optional .nearby.sharing.analytics.proto.SharingLog.ShowWaitingForAccept show_waiting_for_accept = 76;
     if (cached_has_bits & 0x00000080u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *show_waiting_for_accept_);
+    }
+
+  }
+  if (cached_has_bits & 0x0000ff00u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.HighQualityMediumSetup high_quality_medium_setup = 77;
+    if (cached_has_bits & 0x00000100u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *high_quality_medium_setup_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.RpcCallStatus rpc_call_status = 78;
+    if (cached_has_bits & 0x00000200u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *rpc_call_status_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.StartQrCodeSession start_qr_code_session = 79;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *start_qr_code_session_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.QrCodeOpenedInWebClient qr_code_opened_in_web_client = 80;
+    if (cached_has_bits & 0x00000800u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *qr_code_opened_in_web_client_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.HatsJointEvent hats_joint_event = 81;
+    if (cached_has_bits & 0x00001000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *hats_joint_event_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.ReceivePreviews receive_previews = 82;
+    if (cached_has_bits & 0x00002000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *receive_previews_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudCreateSharingRequest cloud_create_sharing_request = 83;
+    if (cached_has_bits & 0x00004000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_create_sharing_request_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudRegisterReceiver cloud_register_receiver = 84;
+    if (cached_has_bits & 0x00008000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_register_receiver_);
+    }
+
+  }
+  if (cached_has_bits & 0x00ff0000u) {
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadStart cloud_upload_start = 85;
+    if (cached_has_bits & 0x00010000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_upload_start_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudUploadEnd cloud_upload_end = 86;
+    if (cached_has_bits & 0x00020000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_upload_end_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadStart cloud_download_start = 87;
+    if (cached_has_bits & 0x00040000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_download_start_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudDownloadEnd cloud_download_end = 88;
+    if (cached_has_bits & 0x00080000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_download_end_);
+    }
+
+    // optional .nearby.sharing.analytics.proto.SharingLog.CloudSharingRpcResult cloud_sharing_rpc_result = 89;
+    if (cached_has_bits & 0x00100000u) {
+      total_size += 2 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *cloud_sharing_rpc_result_);
+    }
+
+    // optional .location.nearby.proto.sharing.EventType event_type = 1;
+    if (cached_has_bits & 0x00200000u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_event_type());
     }
 
-  }
-  if (cached_has_bits & 0x00000300u) {
     // optional .location.nearby.proto.sharing.LogSource log_source = 27;
-    if (cached_has_bits & 0x00000100u) {
+    if (cached_has_bits & 0x00400000u) {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_log_source());
     }
 
     // optional .location.nearby.proto.sharing.EventCategory event_category = 33;
-    if (cached_has_bits & 0x00000200u) {
+    if (cached_has_bits & 0x00800000u) {
       total_size += 2 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_event_category());
     }
@@ -23411,15 +29519,58 @@ void SharingLog::MergeFrom(const SharingLog& from) {
       _internal_mutable_show_allow_permission_auto_access()->::nearby::sharing::analytics::proto::SharingLog_ShowAllowPermissionAutoAccess::MergeFrom(from._internal_show_allow_permission_auto_access());
     }
     if (cached_has_bits & 0x00000080u) {
-      event_type_ = from.event_type_;
+      _internal_mutable_show_waiting_for_accept()->::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept::MergeFrom(from._internal_show_waiting_for_accept());
     }
-    _has_bits_[2] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x0000ff00u) {
     if (cached_has_bits & 0x00000100u) {
-      log_source_ = from.log_source_;
+      _internal_mutable_high_quality_medium_setup()->::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup::MergeFrom(from._internal_high_quality_medium_setup());
     }
     if (cached_has_bits & 0x00000200u) {
+      _internal_mutable_rpc_call_status()->::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus::MergeFrom(from._internal_rpc_call_status());
+    }
+    if (cached_has_bits & 0x00000400u) {
+      _internal_mutable_start_qr_code_session()->::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession::MergeFrom(from._internal_start_qr_code_session());
+    }
+    if (cached_has_bits & 0x00000800u) {
+      _internal_mutable_qr_code_opened_in_web_client()->::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient::MergeFrom(from._internal_qr_code_opened_in_web_client());
+    }
+    if (cached_has_bits & 0x00001000u) {
+      _internal_mutable_hats_joint_event()->::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent::MergeFrom(from._internal_hats_joint_event());
+    }
+    if (cached_has_bits & 0x00002000u) {
+      _internal_mutable_receive_previews()->::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews::MergeFrom(from._internal_receive_previews());
+    }
+    if (cached_has_bits & 0x00004000u) {
+      _internal_mutable_cloud_create_sharing_request()->::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest::MergeFrom(from._internal_cloud_create_sharing_request());
+    }
+    if (cached_has_bits & 0x00008000u) {
+      _internal_mutable_cloud_register_receiver()->::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver::MergeFrom(from._internal_cloud_register_receiver());
+    }
+  }
+  if (cached_has_bits & 0x00ff0000u) {
+    if (cached_has_bits & 0x00010000u) {
+      _internal_mutable_cloud_upload_start()->::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart::MergeFrom(from._internal_cloud_upload_start());
+    }
+    if (cached_has_bits & 0x00020000u) {
+      _internal_mutable_cloud_upload_end()->::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd::MergeFrom(from._internal_cloud_upload_end());
+    }
+    if (cached_has_bits & 0x00040000u) {
+      _internal_mutable_cloud_download_start()->::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart::MergeFrom(from._internal_cloud_download_start());
+    }
+    if (cached_has_bits & 0x00080000u) {
+      _internal_mutable_cloud_download_end()->::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd::MergeFrom(from._internal_cloud_download_end());
+    }
+    if (cached_has_bits & 0x00100000u) {
+      _internal_mutable_cloud_sharing_rpc_result()->::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult::MergeFrom(from._internal_cloud_sharing_rpc_result());
+    }
+    if (cached_has_bits & 0x00200000u) {
+      event_type_ = from.event_type_;
+    }
+    if (cached_has_bits & 0x00400000u) {
+      log_source_ = from.log_source_;
+    }
+    if (cached_has_bits & 0x00800000u) {
       event_category_ = from.event_category_;
     }
     _has_bits_[2] |= cached_has_bits;
@@ -23696,6 +29847,9 @@ template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_App
 template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_StreamAttachment* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_StreamAttachment >(Arena* arena) {
   return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_StreamAttachment >(arena);
 }
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudAttachmentInfo* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudAttachmentInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudAttachmentInfo >(arena);
+}
 template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_AppCrash* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_AppCrash >(Arena* arena) {
   return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_AppCrash >(arena);
 }
@@ -23707,6 +29861,48 @@ template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_Sen
 }
 template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_SendDesktopTransferEvent* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_SendDesktopTransferEvent >(Arena* arena) {
   return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_SendDesktopTransferEvent >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_ShowWaitingForAccept >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_HighQualityMediumSetup >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_RpcCallStatus >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_StartQrCodeSession >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_QrCodeOpenedInWebClient >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_HatsJointEvent >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_ReceivePreviews >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudCreateSharingRequest >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudRegisterReceiver >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudUploadStart >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudUploadEnd >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadStart >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudDownloadEnd >(arena);
+}
+template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog_CloudSharingRpcResult >(arena);
 }
 template<> PROTOBUF_NOINLINE ::nearby::sharing::analytics::proto::SharingLog* Arena::CreateMaybeMessage< ::nearby::sharing::analytics::proto::SharingLog >(Arena* arena) {
   return Arena::CreateMessageInternal< ::nearby::sharing::analytics::proto::SharingLog >(arena);

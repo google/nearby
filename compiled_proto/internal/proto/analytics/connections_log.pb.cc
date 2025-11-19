@@ -101,6 +101,8 @@ constexpr ConnectionsLog_DiscoveryPhase::ConnectionsLog_DiscoveryPhase(
   , stop_reason_(0)
 
   , device_type_(0)
+
+  , supported_service_(0)
 {}
 struct ConnectionsLog_DiscoveryPhaseDefaultTypeInternal {
   constexpr ConnectionsLog_DiscoveryPhaseDefaultTypeInternal()
@@ -172,6 +174,8 @@ constexpr ConnectionsLog_AdvertisingPhase::ConnectionsLog_AdvertisingPhase(
   , stop_reason_(0)
 
   , device_type_(0)
+
+  , supported_service_(0)
 {}
 struct ConnectionsLog_AdvertisingPhaseDefaultTypeInternal {
   constexpr ConnectionsLog_AdvertisingPhaseDefaultTypeInternal()
@@ -218,6 +222,10 @@ constexpr ConnectionsLog_ConnectionAttempt::ConnectionsLog_ConnectionAttempt(
   , connection_mode_(0)
 
   , device_type_(0)
+
+  , wifi_connection_latency_millis_(int64_t{0})
+  , device_attestation_latency_millis_(int64_t{0})
+  , supported_service_(0)
 {}
 struct ConnectionsLog_ConnectionAttemptDefaultTypeInternal {
   constexpr ConnectionsLog_ConnectionAttemptDefaultTypeInternal()
@@ -277,6 +285,8 @@ constexpr ConnectionsLog_EstablishedConnection::ConnectionsLog_EstablishedConnec
   , safe_disconnection_result_(0)
 
   , device_type_(0)
+
+  , supported_service_(0)
 {}
 struct ConnectionsLog_EstablishedConnectionDefaultTypeInternal {
   constexpr ConnectionsLog_EstablishedConnectionDefaultTypeInternal()
@@ -287,9 +297,27 @@ struct ConnectionsLog_EstablishedConnectionDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionsLog_EstablishedConnectionDefaultTypeInternal _ConnectionsLog_EstablishedConnection_default_instance_;
+constexpr ConnectionsLog_DctPayloadTransferStats::ConnectionsLog_DctPayloadTransferStats(
+  ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
+  : type_(0)
+
+  , num_parts_success_(0)
+  , is_multipart_(false)
+  , is_resumption_(false)
+  , num_parts_failure_(0){}
+struct ConnectionsLog_DctPayloadTransferStatsDefaultTypeInternal {
+  constexpr ConnectionsLog_DctPayloadTransferStatsDefaultTypeInternal()
+    : _instance(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized{}) {}
+  ~ConnectionsLog_DctPayloadTransferStatsDefaultTypeInternal() {}
+  union {
+    ConnectionsLog_DctPayloadTransferStats _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT ConnectionsLog_DctPayloadTransferStatsDefaultTypeInternal _ConnectionsLog_DctPayloadTransferStats_default_instance_;
 constexpr ConnectionsLog_Payload::ConnectionsLog_Payload(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : operation_result_(nullptr)
+  , dct_payload_transfer_stats_(nullptr)
   , duration_millis_(int64_t{0})
   , total_size_bytes_(int64_t{0})
   , type_(0)
@@ -326,6 +354,8 @@ constexpr ConnectionsLog_BandwidthUpgradeAttempt::ConnectionsLog_BandwidthUpgrad
   , error_stage_(0)
 
   , device_type_(0)
+
+  , supported_service_(0)
 {}
 struct ConnectionsLog_BandwidthUpgradeAttemptDefaultTypeInternal {
   constexpr ConnectionsLog_BandwidthUpgradeAttemptDefaultTypeInternal()
@@ -2145,6 +2175,9 @@ class ConnectionsLog_DiscoveryPhase::_Internal {
   static void set_has_device_type(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
+  static void set_has_supported_service(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadata&
@@ -2180,16 +2213,16 @@ ConnectionsLog_DiscoveryPhase::ConnectionsLog_DiscoveryPhase(const ConnectionsLo
     discovery_metadata_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+    static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.DiscoveryPhase)
 }
 
 inline void ConnectionsLog_DiscoveryPhase::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&discovery_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&discovery_metadata_)) + sizeof(device_type_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&discovery_metadata_)) + sizeof(supported_service_));
 }
 
 ConnectionsLog_DiscoveryPhase::~ConnectionsLog_DiscoveryPhase() {
@@ -2230,10 +2263,10 @@ void ConnectionsLog_DiscoveryPhase::Clear() {
     GOOGLE_DCHECK(discovery_metadata_ != nullptr);
     discovery_metadata_->Clear();
   }
-  if (cached_has_bits & 0x0000001eu) {
+  if (cached_has_bits & 0x0000003eu) {
     ::memset(&duration_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_type_) -
-        reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+        reinterpret_cast<char*>(&supported_service_) -
+        reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -2371,6 +2404,19 @@ const char* ConnectionsLog_DiscoveryPhase::_InternalParse(const char* ptr, ::PRO
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::SupportedService_IsValid(val))) {
+            _internal_set_supported_service(static_cast<::location::nearby::proto::connections::SupportedService>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(11, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -2475,6 +2521,13 @@ uint8_t* ConnectionsLog_DiscoveryPhase::_InternalSerialize(
       10, this->_internal_device_type(), target);
   }
 
+  // optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      11, this->_internal_supported_service(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -2530,7 +2583,7 @@ size_t ConnectionsLog_DiscoveryPhase::ByteSizeLong() const {
   }
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     // optional .location.nearby.analytics.proto.ConnectionsLog.DiscoveryMetadata discovery_metadata = 7;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -2560,6 +2613,12 @@ size_t ConnectionsLog_DiscoveryPhase::ByteSizeLong() const {
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
     }
 
+    // optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_supported_service());
+    }
+
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -2587,7 +2646,7 @@ void ConnectionsLog_DiscoveryPhase::MergeFrom(const ConnectionsLog_DiscoveryPhas
   uwb_ranging_.MergeFrom(from.uwb_ranging_);
   adv_dis_result_.MergeFrom(from.adv_dis_result_);
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_discovery_metadata()->::location::nearby::analytics::proto::ConnectionsLog_DiscoveryMetadata::MergeFrom(from._internal_discovery_metadata());
     }
@@ -2602,6 +2661,9 @@ void ConnectionsLog_DiscoveryPhase::MergeFrom(const ConnectionsLog_DiscoveryPhas
     }
     if (cached_has_bits & 0x00000010u) {
       device_type_ = from.device_type_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      supported_service_ = from.supported_service_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -2629,8 +2691,8 @@ void ConnectionsLog_DiscoveryPhase::InternalSwap(ConnectionsLog_DiscoveryPhase* 
   uwb_ranging_.InternalSwap(&other->uwb_ranging_);
   adv_dis_result_.InternalSwap(&other->adv_dis_result_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_DiscoveryPhase, device_type_)
-      + sizeof(ConnectionsLog_DiscoveryPhase::device_type_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_DiscoveryPhase, supported_service_)
+      + sizeof(ConnectionsLog_DiscoveryPhase::supported_service_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_DiscoveryPhase, discovery_metadata_)>(
           reinterpret_cast<char*>(&discovery_metadata_),
           reinterpret_cast<char*>(&other->discovery_metadata_));
@@ -3647,6 +3709,9 @@ class ConnectionsLog_AdvertisingPhase::_Internal {
   static void set_has_device_type(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
+  static void set_has_supported_service(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_AdvertisingMetadata&
@@ -3678,16 +3743,16 @@ ConnectionsLog_AdvertisingPhase::ConnectionsLog_AdvertisingPhase(const Connectio
     advertising_metadata_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+    static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.AdvertisingPhase)
 }
 
 inline void ConnectionsLog_AdvertisingPhase::SharedCtor() {
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&advertising_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&advertising_metadata_)) + sizeof(device_type_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&advertising_metadata_)) + sizeof(supported_service_));
 }
 
 ConnectionsLog_AdvertisingPhase::~ConnectionsLog_AdvertisingPhase() {
@@ -3726,10 +3791,10 @@ void ConnectionsLog_AdvertisingPhase::Clear() {
     GOOGLE_DCHECK(advertising_metadata_ != nullptr);
     advertising_metadata_->Clear();
   }
-  if (cached_has_bits & 0x0000001eu) {
+  if (cached_has_bits & 0x0000003eu) {
     ::memset(&duration_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_type_) -
-        reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+        reinterpret_cast<char*>(&supported_service_) -
+        reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -3841,6 +3906,19 @@ const char* ConnectionsLog_AdvertisingPhase::_InternalParse(const char* ptr, ::P
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.SupportedService supported_service = 9;
+      case 9:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 72)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::SupportedService_IsValid(val))) {
+            _internal_set_supported_service(static_cast<::location::nearby::proto::connections::SupportedService>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(9, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -3929,6 +4007,13 @@ uint8_t* ConnectionsLog_AdvertisingPhase::_InternalSerialize(
       8, this->_internal_device_type(), target);
   }
 
+  // optional .location.nearby.proto.connections.SupportedService supported_service = 9;
+  if (cached_has_bits & 0x00000020u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      9, this->_internal_supported_service(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -3970,7 +4055,7 @@ size_t ConnectionsLog_AdvertisingPhase::ByteSizeLong() const {
   }
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     // optional .location.nearby.analytics.proto.ConnectionsLog.AdvertisingMetadata advertising_metadata = 5;
     if (cached_has_bits & 0x00000001u) {
       total_size += 1 +
@@ -4000,6 +4085,12 @@ size_t ConnectionsLog_AdvertisingPhase::ByteSizeLong() const {
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
     }
 
+    // optional .location.nearby.proto.connections.SupportedService supported_service = 9;
+    if (cached_has_bits & 0x00000020u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_supported_service());
+    }
+
   }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
@@ -4025,7 +4116,7 @@ void ConnectionsLog_AdvertisingPhase::MergeFrom(const ConnectionsLog_Advertising
   received_connection_request_.MergeFrom(from.received_connection_request_);
   adv_dis_result_.MergeFrom(from.adv_dis_result_);
   cached_has_bits = from._has_bits_[0];
-  if (cached_has_bits & 0x0000001fu) {
+  if (cached_has_bits & 0x0000003fu) {
     if (cached_has_bits & 0x00000001u) {
       _internal_mutable_advertising_metadata()->::location::nearby::analytics::proto::ConnectionsLog_AdvertisingMetadata::MergeFrom(from._internal_advertising_metadata());
     }
@@ -4040,6 +4131,9 @@ void ConnectionsLog_AdvertisingPhase::MergeFrom(const ConnectionsLog_Advertising
     }
     if (cached_has_bits & 0x00000010u) {
       device_type_ = from.device_type_;
+    }
+    if (cached_has_bits & 0x00000020u) {
+      supported_service_ = from.supported_service_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -4065,8 +4159,8 @@ void ConnectionsLog_AdvertisingPhase::InternalSwap(ConnectionsLog_AdvertisingPha
   received_connection_request_.InternalSwap(&other->received_connection_request_);
   adv_dis_result_.InternalSwap(&other->adv_dis_result_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_AdvertisingPhase, device_type_)
-      + sizeof(ConnectionsLog_AdvertisingPhase::device_type_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_AdvertisingPhase, supported_service_)
+      + sizeof(ConnectionsLog_AdvertisingPhase::supported_service_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_AdvertisingPhase, advertising_metadata_)>(
           reinterpret_cast<char*>(&advertising_metadata_),
           reinterpret_cast<char*>(&other->advertising_metadata_));
@@ -4441,6 +4535,15 @@ class ConnectionsLog_ConnectionAttempt::_Internal {
   static void set_has_device_type(HasBits* has_bits) {
     (*has_bits)[0] |= 1024u;
   }
+  static void set_has_supported_service(HasBits* has_bits) {
+    (*has_bits)[0] |= 8192u;
+  }
+  static void set_has_wifi_connection_latency_millis(HasBits* has_bits) {
+    (*has_bits)[0] |= 2048u;
+  }
+  static void set_has_device_attestation_latency_millis(HasBits* has_bits) {
+    (*has_bits)[0] |= 4096u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_ConnectionAttemptMetadata&
@@ -4483,8 +4586,8 @@ ConnectionsLog_ConnectionAttempt::ConnectionsLog_ConnectionAttempt(const Connect
     operation_result_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+    static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.ConnectionAttempt)
 }
 
@@ -4495,8 +4598,8 @@ connection_token_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyS
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&connection_attempt_metadata_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&connection_attempt_metadata_)) + sizeof(device_type_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&connection_attempt_metadata_)) + sizeof(supported_service_));
 }
 
 ConnectionsLog_ConnectionAttempt::~ConnectionsLog_ConnectionAttempt() {
@@ -4548,10 +4651,10 @@ void ConnectionsLog_ConnectionAttempt::Clear() {
         reinterpret_cast<char*>(&attempt_result_) -
         reinterpret_cast<char*>(&duration_millis_)) + sizeof(attempt_result_));
   }
-  if (cached_has_bits & 0x00000700u) {
+  if (cached_has_bits & 0x00003f00u) {
     ::memset(&client_flow_id_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_type_) -
-        reinterpret_cast<char*>(&client_flow_id_)) + sizeof(device_type_));
+        reinterpret_cast<char*>(&supported_service_) -
+        reinterpret_cast<char*>(&client_flow_id_)) + sizeof(supported_service_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -4685,6 +4788,37 @@ const char* ConnectionsLog_ConnectionAttempt::_InternalParse(const char* ptr, ::
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.SupportedService supported_service = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 96)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::SupportedService_IsValid(val))) {
+            _internal_set_supported_service(static_cast<::location::nearby::proto::connections::SupportedService>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(12, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 wifi_connection_latency_millis = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 104)) {
+          _Internal::set_has_wifi_connection_latency_millis(&has_bits);
+          wifi_connection_latency_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int64 device_attestation_latency_millis = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
+          _Internal::set_has_device_attestation_latency_millis(&has_bits);
+          device_attestation_latency_millis_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -4792,6 +4926,25 @@ uint8_t* ConnectionsLog_ConnectionAttempt::_InternalSerialize(
       11, this->_internal_device_type(), target);
   }
 
+  // optional .location.nearby.proto.connections.SupportedService supported_service = 12;
+  if (cached_has_bits & 0x00002000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      12, this->_internal_supported_service(), target);
+  }
+
+  // optional int64 wifi_connection_latency_millis = 13;
+  if (cached_has_bits & 0x00000800u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(13, this->_internal_wifi_connection_latency_millis(), target);
+  }
+
+  // optional int64 device_attestation_latency_millis = 14;
+  if (cached_has_bits & 0x00001000u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(14, this->_internal_device_attestation_latency_millis(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -4861,7 +5014,7 @@ size_t ConnectionsLog_ConnectionAttempt::ByteSizeLong() const {
     }
 
   }
-  if (cached_has_bits & 0x00000700u) {
+  if (cached_has_bits & 0x00003f00u) {
     // optional int64 client_flow_id = 6;
     if (cached_has_bits & 0x00000100u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_client_flow_id());
@@ -4877,6 +5030,22 @@ size_t ConnectionsLog_ConnectionAttempt::ByteSizeLong() const {
     if (cached_has_bits & 0x00000400u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
+    }
+
+    // optional int64 wifi_connection_latency_millis = 13;
+    if (cached_has_bits & 0x00000800u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_wifi_connection_latency_millis());
+    }
+
+    // optional int64 device_attestation_latency_millis = 14;
+    if (cached_has_bits & 0x00001000u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_device_attestation_latency_millis());
+    }
+
+    // optional .location.nearby.proto.connections.SupportedService supported_service = 12;
+    if (cached_has_bits & 0x00002000u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_supported_service());
     }
 
   }
@@ -4928,7 +5097,7 @@ void ConnectionsLog_ConnectionAttempt::MergeFrom(const ConnectionsLog_Connection
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000700u) {
+  if (cached_has_bits & 0x00003f00u) {
     if (cached_has_bits & 0x00000100u) {
       client_flow_id_ = from.client_flow_id_;
     }
@@ -4937,6 +5106,15 @@ void ConnectionsLog_ConnectionAttempt::MergeFrom(const ConnectionsLog_Connection
     }
     if (cached_has_bits & 0x00000400u) {
       device_type_ = from.device_type_;
+    }
+    if (cached_has_bits & 0x00000800u) {
+      wifi_connection_latency_millis_ = from.wifi_connection_latency_millis_;
+    }
+    if (cached_has_bits & 0x00001000u) {
+      device_attestation_latency_millis_ = from.device_attestation_latency_millis_;
+    }
+    if (cached_has_bits & 0x00002000u) {
+      supported_service_ = from.supported_service_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -4966,8 +5144,8 @@ void ConnectionsLog_ConnectionAttempt::InternalSwap(ConnectionsLog_ConnectionAtt
       &other->connection_token_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_ConnectionAttempt, device_type_)
-      + sizeof(ConnectionsLog_ConnectionAttempt::device_type_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_ConnectionAttempt, supported_service_)
+      + sizeof(ConnectionsLog_ConnectionAttempt::supported_service_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_ConnectionAttempt, connection_attempt_metadata_)>(
           reinterpret_cast<char*>(&connection_attempt_metadata_),
           reinterpret_cast<char*>(&other->connection_attempt_metadata_));
@@ -5610,6 +5788,9 @@ class ConnectionsLog_EstablishedConnection::_Internal {
   static void set_has_device_type(HasBits* has_bits) {
     (*has_bits)[0] |= 1024u;
   }
+  static void set_has_supported_service(HasBits* has_bits) {
+    (*has_bits)[0] |= 2048u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&
@@ -5665,8 +5846,8 @@ ConnectionsLog_EstablishedConnection::ConnectionsLog_EstablishedConnection(const
     disconnection_reason_detail_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+    static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.EstablishedConnection)
 }
 
@@ -5677,8 +5858,8 @@ connection_token_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyS
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&operation_result_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&operation_result_)) + sizeof(device_type_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&operation_result_)) + sizeof(supported_service_));
 }
 
 ConnectionsLog_EstablishedConnection::~ConnectionsLog_EstablishedConnection() {
@@ -5737,10 +5918,10 @@ void ConnectionsLog_EstablishedConnection::Clear() {
         reinterpret_cast<char*>(&client_flow_id_) -
         reinterpret_cast<char*>(&duration_millis_)) + sizeof(client_flow_id_));
   }
-  if (cached_has_bits & 0x00000700u) {
+  if (cached_has_bits & 0x00000f00u) {
     ::memset(&type_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_type_) -
-        reinterpret_cast<char*>(&type_)) + sizeof(device_type_));
+        reinterpret_cast<char*>(&supported_service_) -
+        reinterpret_cast<char*>(&type_)) + sizeof(supported_service_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -5895,6 +6076,19 @@ const char* ConnectionsLog_EstablishedConnection::_InternalParse(const char* ptr
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.SupportedService supported_service = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 112)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::SupportedService_IsValid(val))) {
+            _internal_set_supported_service(static_cast<::location::nearby::proto::connections::SupportedService>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(14, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -6019,6 +6213,13 @@ uint8_t* ConnectionsLog_EstablishedConnection::_InternalSerialize(
       13, this->_internal_device_type(), target);
   }
 
+  // optional .location.nearby.proto.connections.SupportedService supported_service = 14;
+  if (cached_has_bits & 0x00000800u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      14, this->_internal_supported_service(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -6102,7 +6303,7 @@ size_t ConnectionsLog_EstablishedConnection::ByteSizeLong() const {
     }
 
   }
-  if (cached_has_bits & 0x00000700u) {
+  if (cached_has_bits & 0x00000f00u) {
     // optional .location.nearby.proto.connections.ConnectionAttemptType type = 8;
     if (cached_has_bits & 0x00000100u) {
       total_size += 1 +
@@ -6119,6 +6320,12 @@ size_t ConnectionsLog_EstablishedConnection::ByteSizeLong() const {
     if (cached_has_bits & 0x00000400u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
+    }
+
+    // optional .location.nearby.proto.connections.SupportedService supported_service = 14;
+    if (cached_has_bits & 0x00000800u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_supported_service());
     }
 
   }
@@ -6172,7 +6379,7 @@ void ConnectionsLog_EstablishedConnection::MergeFrom(const ConnectionsLog_Establ
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000700u) {
+  if (cached_has_bits & 0x00000f00u) {
     if (cached_has_bits & 0x00000100u) {
       type_ = from.type_;
     }
@@ -6181,6 +6388,9 @@ void ConnectionsLog_EstablishedConnection::MergeFrom(const ConnectionsLog_Establ
     }
     if (cached_has_bits & 0x00000400u) {
       device_type_ = from.device_type_;
+    }
+    if (cached_has_bits & 0x00000800u) {
+      supported_service_ = from.supported_service_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -6212,8 +6422,8 @@ void ConnectionsLog_EstablishedConnection::InternalSwap(ConnectionsLog_Establish
       &other->connection_token_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_EstablishedConnection, device_type_)
-      + sizeof(ConnectionsLog_EstablishedConnection::device_type_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_EstablishedConnection, supported_service_)
+      + sizeof(ConnectionsLog_EstablishedConnection::supported_service_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_EstablishedConnection, operation_result_)>(
           reinterpret_cast<char*>(&operation_result_),
           reinterpret_cast<char*>(&other->operation_result_));
@@ -6226,42 +6436,368 @@ std::string ConnectionsLog_EstablishedConnection::GetTypeName() const {
 
 // ===================================================================
 
+class ConnectionsLog_DctPayloadTransferStats::_Internal {
+ public:
+  using HasBits = decltype(std::declval<ConnectionsLog_DctPayloadTransferStats>()._has_bits_);
+  static void set_has_type(HasBits* has_bits) {
+    (*has_bits)[0] |= 1u;
+  }
+  static void set_has_is_multipart(HasBits* has_bits) {
+    (*has_bits)[0] |= 4u;
+  }
+  static void set_has_num_parts_success(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
+  }
+  static void set_has_num_parts_failure(HasBits* has_bits) {
+    (*has_bits)[0] |= 16u;
+  }
+  static void set_has_is_resumption(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+};
+
+ConnectionsLog_DctPayloadTransferStats::ConnectionsLog_DctPayloadTransferStats(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(arena, is_message_owned) {
+  SharedCtor();
+  if (!is_message_owned) {
+    RegisterArenaDtor(arena);
+  }
+  // @@protoc_insertion_point(arena_constructor:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+}
+ConnectionsLog_DctPayloadTransferStats::ConnectionsLog_DctPayloadTransferStats(const ConnectionsLog_DctPayloadTransferStats& from)
+  : ::PROTOBUF_NAMESPACE_ID::MessageLite(),
+      _has_bits_(from._has_bits_) {
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+  ::memcpy(&type_, &from.type_,
+    static_cast<size_t>(reinterpret_cast<char*>(&num_parts_failure_) -
+    reinterpret_cast<char*>(&type_)) + sizeof(num_parts_failure_));
+  // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+}
+
+inline void ConnectionsLog_DctPayloadTransferStats::SharedCtor() {
+::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
+    reinterpret_cast<char*>(&type_) - reinterpret_cast<char*>(this)),
+    0, static_cast<size_t>(reinterpret_cast<char*>(&num_parts_failure_) -
+    reinterpret_cast<char*>(&type_)) + sizeof(num_parts_failure_));
+}
+
+ConnectionsLog_DctPayloadTransferStats::~ConnectionsLog_DctPayloadTransferStats() {
+  // @@protoc_insertion_point(destructor:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  if (GetArenaForAllocation() != nullptr) return;
+  SharedDtor();
+  _internal_metadata_.Delete<std::string>();
+}
+
+inline void ConnectionsLog_DctPayloadTransferStats::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void ConnectionsLog_DctPayloadTransferStats::ArenaDtor(void* object) {
+  ConnectionsLog_DctPayloadTransferStats* _this = reinterpret_cast< ConnectionsLog_DctPayloadTransferStats* >(object);
+  (void)_this;
+}
+void ConnectionsLog_DctPayloadTransferStats::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ConnectionsLog_DctPayloadTransferStats::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+
+void ConnectionsLog_DctPayloadTransferStats::Clear() {
+// @@protoc_insertion_point(message_clear_start:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000001fu) {
+    ::memset(&type_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&num_parts_failure_) -
+        reinterpret_cast<char*>(&type_)) + sizeof(num_parts_failure_));
+  }
+  _has_bits_.Clear();
+  _internal_metadata_.Clear<std::string>();
+}
+
+const char* ConnectionsLog_DctPayloadTransferStats::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  _Internal::HasBits has_bits{};
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // optional .location.nearby.proto.connections.DctPayloadType type = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::DctPayloadType_IsValid(val))) {
+            _internal_set_type(static_cast<::location::nearby::proto::connections::DctPayloadType>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(1, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool is_multipart = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _Internal::set_has_is_multipart(&has_bits);
+          is_multipart_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 num_parts_success = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _Internal::set_has_num_parts_success(&has_bits);
+          num_parts_success_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional int32 num_parts_failure = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
+          _Internal::set_has_num_parts_failure(&has_bits);
+          num_parts_failure_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // optional bool is_resumption = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 40)) {
+          _Internal::set_has_is_resumption(&has_bits);
+          is_resumption_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<std::string>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  _has_bits_.Or(has_bits);
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ConnectionsLog_DctPayloadTransferStats::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  // optional .location.nearby.proto.connections.DctPayloadType type = 1;
+  if (cached_has_bits & 0x00000001u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      1, this->_internal_type(), target);
+  }
+
+  // optional bool is_multipart = 2;
+  if (cached_has_bits & 0x00000004u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(2, this->_internal_is_multipart(), target);
+  }
+
+  // optional int32 num_parts_success = 3;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(3, this->_internal_num_parts_success(), target);
+  }
+
+  // optional int32 num_parts_failure = 4;
+  if (cached_has_bits & 0x00000010u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(4, this->_internal_num_parts_failure(), target);
+  }
+
+  // optional bool is_resumption = 5;
+  if (cached_has_bits & 0x00000008u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteBoolToArray(5, this->_internal_is_resumption(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
+        static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  return target;
+}
+
+size_t ConnectionsLog_DctPayloadTransferStats::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  cached_has_bits = _has_bits_[0];
+  if (cached_has_bits & 0x0000001fu) {
+    // optional .location.nearby.proto.connections.DctPayloadType type = 1;
+    if (cached_has_bits & 0x00000001u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
+    }
+
+    // optional int32 num_parts_success = 3;
+    if (cached_has_bits & 0x00000002u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_parts_success());
+    }
+
+    // optional bool is_multipart = 2;
+    if (cached_has_bits & 0x00000004u) {
+      total_size += 1 + 1;
+    }
+
+    // optional bool is_resumption = 5;
+    if (cached_has_bits & 0x00000008u) {
+      total_size += 1 + 1;
+    }
+
+    // optional int32 num_parts_failure = 4;
+    if (cached_has_bits & 0x00000010u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_parts_failure());
+    }
+
+  }
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
+void ConnectionsLog_DctPayloadTransferStats::CheckTypeAndMergeFrom(
+    const ::PROTOBUF_NAMESPACE_ID::MessageLite& from) {
+  MergeFrom(*::PROTOBUF_NAMESPACE_ID::internal::DownCast<const ConnectionsLog_DctPayloadTransferStats*>(
+      &from));
+}
+
+void ConnectionsLog_DctPayloadTransferStats::MergeFrom(const ConnectionsLog_DctPayloadTransferStats& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  GOOGLE_DCHECK_NE(&from, this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  cached_has_bits = from._has_bits_[0];
+  if (cached_has_bits & 0x0000001fu) {
+    if (cached_has_bits & 0x00000001u) {
+      type_ = from.type_;
+    }
+    if (cached_has_bits & 0x00000002u) {
+      num_parts_success_ = from.num_parts_success_;
+    }
+    if (cached_has_bits & 0x00000004u) {
+      is_multipart_ = from.is_multipart_;
+    }
+    if (cached_has_bits & 0x00000008u) {
+      is_resumption_ = from.is_resumption_;
+    }
+    if (cached_has_bits & 0x00000010u) {
+      num_parts_failure_ = from.num_parts_failure_;
+    }
+    _has_bits_[0] |= cached_has_bits;
+  }
+  _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
+}
+
+void ConnectionsLog_DctPayloadTransferStats::CopyFrom(const ConnectionsLog_DctPayloadTransferStats& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ConnectionsLog_DctPayloadTransferStats::IsInitialized() const {
+  return true;
+}
+
+void ConnectionsLog_DctPayloadTransferStats::InternalSwap(ConnectionsLog_DctPayloadTransferStats* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_has_bits_[0], other->_has_bits_[0]);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_DctPayloadTransferStats, num_parts_failure_)
+      + sizeof(ConnectionsLog_DctPayloadTransferStats::num_parts_failure_)
+      - PROTOBUF_FIELD_OFFSET(ConnectionsLog_DctPayloadTransferStats, type_)>(
+          reinterpret_cast<char*>(&type_),
+          reinterpret_cast<char*>(&other->type_));
+}
+
+std::string ConnectionsLog_DctPayloadTransferStats::GetTypeName() const {
+  return "location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats";
+}
+
+
+// ===================================================================
+
 class ConnectionsLog_Payload::_Internal {
  public:
   using HasBits = decltype(std::declval<ConnectionsLog_Payload>()._has_bits_);
   static void set_has_duration_millis(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
-  static void set_has_type(HasBits* has_bits) {
-    (*has_bits)[0] |= 8u;
-  }
-  static void set_has_total_size_bytes(HasBits* has_bits) {
     (*has_bits)[0] |= 4u;
   }
-  static void set_has_num_bytes_transferred(HasBits* has_bits) {
-    (*has_bits)[0] |= 32u;
-  }
-  static void set_has_num_chunks(HasBits* has_bits) {
+  static void set_has_type(HasBits* has_bits) {
     (*has_bits)[0] |= 16u;
   }
-  static void set_has_status(HasBits* has_bits) {
+  static void set_has_total_size_bytes(HasBits* has_bits) {
+    (*has_bits)[0] |= 8u;
+  }
+  static void set_has_num_bytes_transferred(HasBits* has_bits) {
     (*has_bits)[0] |= 64u;
   }
-  static void set_has_num_successful_auto_resume(HasBits* has_bits) {
+  static void set_has_num_chunks(HasBits* has_bits) {
+    (*has_bits)[0] |= 32u;
+  }
+  static void set_has_status(HasBits* has_bits) {
     (*has_bits)[0] |= 128u;
+  }
+  static void set_has_num_successful_auto_resume(HasBits* has_bits) {
+    (*has_bits)[0] |= 256u;
   }
   static const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult& operation_result(const ConnectionsLog_Payload* msg);
   static void set_has_operation_result(HasBits* has_bits) {
     (*has_bits)[0] |= 1u;
   }
   static void set_has_num_failed_auto_resume(HasBits* has_bits) {
-    (*has_bits)[0] |= 256u;
+    (*has_bits)[0] |= 512u;
+  }
+  static const ::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats& dct_payload_transfer_stats(const ConnectionsLog_Payload* msg);
+  static void set_has_dct_payload_transfer_stats(HasBits* has_bits) {
+    (*has_bits)[0] |= 2u;
   }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&
 ConnectionsLog_Payload::_Internal::operation_result(const ConnectionsLog_Payload* msg) {
   return *msg->operation_result_;
+}
+const ::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats&
+ConnectionsLog_Payload::_Internal::dct_payload_transfer_stats(const ConnectionsLog_Payload* msg) {
+  return *msg->dct_payload_transfer_stats_;
 }
 ConnectionsLog_Payload::ConnectionsLog_Payload(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -6280,6 +6816,11 @@ ConnectionsLog_Payload::ConnectionsLog_Payload(const ConnectionsLog_Payload& fro
     operation_result_ = new ::location::nearby::analytics::proto::ConnectionsLog_OperationResult(*from.operation_result_);
   } else {
     operation_result_ = nullptr;
+  }
+  if (from._internal_has_dct_payload_transfer_stats()) {
+    dct_payload_transfer_stats_ = new ::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats(*from.dct_payload_transfer_stats_);
+  } else {
+    dct_payload_transfer_stats_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
     static_cast<size_t>(reinterpret_cast<char*>(&num_failed_auto_resume_) -
@@ -6304,6 +6845,7 @@ ConnectionsLog_Payload::~ConnectionsLog_Payload() {
 inline void ConnectionsLog_Payload::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete operation_result_;
+  if (this != internal_default_instance()) delete dct_payload_transfer_stats_;
 }
 
 void ConnectionsLog_Payload::ArenaDtor(void* object) {
@@ -6323,16 +6865,26 @@ void ConnectionsLog_Payload::Clear() {
   (void) cached_has_bits;
 
   cached_has_bits = _has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    GOOGLE_DCHECK(operation_result_ != nullptr);
-    operation_result_->Clear();
+  if (cached_has_bits & 0x00000003u) {
+    if (cached_has_bits & 0x00000001u) {
+      GOOGLE_DCHECK(operation_result_ != nullptr);
+      operation_result_->Clear();
+    }
+    if (cached_has_bits & 0x00000002u) {
+      GOOGLE_DCHECK(dct_payload_transfer_stats_ != nullptr);
+      dct_payload_transfer_stats_->Clear();
+    }
   }
-  if (cached_has_bits & 0x000000feu) {
+  if (cached_has_bits & 0x000000fcu) {
     ::memset(&duration_millis_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&num_successful_auto_resume_) -
-        reinterpret_cast<char*>(&duration_millis_)) + sizeof(num_successful_auto_resume_));
+        reinterpret_cast<char*>(&status_) -
+        reinterpret_cast<char*>(&duration_millis_)) + sizeof(status_));
   }
-  num_failed_auto_resume_ = 0;
+  if (cached_has_bits & 0x00000300u) {
+    ::memset(&num_successful_auto_resume_, 0, static_cast<size_t>(
+        reinterpret_cast<char*>(&num_failed_auto_resume_) -
+        reinterpret_cast<char*>(&num_successful_auto_resume_)) + sizeof(num_failed_auto_resume_));
+  }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
 }
@@ -6432,6 +6984,14 @@ const char* ConnectionsLog_Payload::_InternalParse(const char* ptr, ::PROTOBUF_N
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats dct_payload_transfer_stats = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          ptr = ctx->ParseMessage(_internal_mutable_dct_payload_transfer_stats(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -6464,45 +7024,45 @@ uint8_t* ConnectionsLog_Payload::_InternalSerialize(
 
   cached_has_bits = _has_bits_[0];
   // optional int64 duration_millis = 1;
-  if (cached_has_bits & 0x00000002u) {
+  if (cached_has_bits & 0x00000004u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(1, this->_internal_duration_millis(), target);
   }
 
   // optional .location.nearby.proto.connections.PayloadType type = 2;
-  if (cached_has_bits & 0x00000008u) {
+  if (cached_has_bits & 0x00000010u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       2, this->_internal_type(), target);
   }
 
   // optional int64 total_size_bytes = 3;
-  if (cached_has_bits & 0x00000004u) {
+  if (cached_has_bits & 0x00000008u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(3, this->_internal_total_size_bytes(), target);
   }
 
   // optional int64 num_bytes_transferred = 4;
-  if (cached_has_bits & 0x00000020u) {
+  if (cached_has_bits & 0x00000040u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt64ToArray(4, this->_internal_num_bytes_transferred(), target);
   }
 
   // optional int32 num_chunks = 5;
-  if (cached_has_bits & 0x00000010u) {
+  if (cached_has_bits & 0x00000020u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(5, this->_internal_num_chunks(), target);
   }
 
   // optional .location.nearby.proto.connections.PayloadStatus status = 6;
-  if (cached_has_bits & 0x00000040u) {
+  if (cached_has_bits & 0x00000080u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
       6, this->_internal_status(), target);
   }
 
   // optional int32 num_successful_auto_resume = 7;
-  if (cached_has_bits & 0x00000080u) {
+  if (cached_has_bits & 0x00000100u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(7, this->_internal_num_successful_auto_resume(), target);
   }
@@ -6516,9 +7076,17 @@ uint8_t* ConnectionsLog_Payload::_InternalSerialize(
   }
 
   // optional int32 num_failed_auto_resume = 9;
-  if (cached_has_bits & 0x00000100u) {
+  if (cached_has_bits & 0x00000200u) {
     target = stream->EnsureSpace(target);
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(9, this->_internal_num_failed_auto_resume(), target);
+  }
+
+  // optional .location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats dct_payload_transfer_stats = 10;
+  if (cached_has_bits & 0x00000002u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(
+        10, _Internal::dct_payload_transfer_stats(this), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -6546,49 +7114,58 @@ size_t ConnectionsLog_Payload::ByteSizeLong() const {
           *operation_result_);
     }
 
-    // optional int64 duration_millis = 1;
+    // optional .location.nearby.analytics.proto.ConnectionsLog.DctPayloadTransferStats dct_payload_transfer_stats = 10;
     if (cached_has_bits & 0x00000002u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *dct_payload_transfer_stats_);
+    }
+
+    // optional int64 duration_millis = 1;
+    if (cached_has_bits & 0x00000004u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_duration_millis());
     }
 
     // optional int64 total_size_bytes = 3;
-    if (cached_has_bits & 0x00000004u) {
+    if (cached_has_bits & 0x00000008u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_total_size_bytes());
     }
 
     // optional .location.nearby.proto.connections.PayloadType type = 2;
-    if (cached_has_bits & 0x00000008u) {
+    if (cached_has_bits & 0x00000010u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_type());
     }
 
     // optional int32 num_chunks = 5;
-    if (cached_has_bits & 0x00000010u) {
+    if (cached_has_bits & 0x00000020u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_chunks());
     }
 
     // optional int64 num_bytes_transferred = 4;
-    if (cached_has_bits & 0x00000020u) {
+    if (cached_has_bits & 0x00000040u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int64SizePlusOne(this->_internal_num_bytes_transferred());
     }
 
     // optional .location.nearby.proto.connections.PayloadStatus status = 6;
-    if (cached_has_bits & 0x00000040u) {
+    if (cached_has_bits & 0x00000080u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_status());
     }
 
+  }
+  if (cached_has_bits & 0x00000300u) {
     // optional int32 num_successful_auto_resume = 7;
-    if (cached_has_bits & 0x00000080u) {
+    if (cached_has_bits & 0x00000100u) {
       total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_successful_auto_resume());
     }
 
-  }
-  // optional int32 num_failed_auto_resume = 9;
-  if (cached_has_bits & 0x00000100u) {
-    total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_failed_auto_resume());
-  }
+    // optional int32 num_failed_auto_resume = 9;
+    if (cached_has_bits & 0x00000200u) {
+      total_size += ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32SizePlusOne(this->_internal_num_failed_auto_resume());
+    }
 
+  }
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     total_size += _internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size();
   }
@@ -6615,30 +7192,36 @@ void ConnectionsLog_Payload::MergeFrom(const ConnectionsLog_Payload& from) {
       _internal_mutable_operation_result()->::location::nearby::analytics::proto::ConnectionsLog_OperationResult::MergeFrom(from._internal_operation_result());
     }
     if (cached_has_bits & 0x00000002u) {
-      duration_millis_ = from.duration_millis_;
+      _internal_mutable_dct_payload_transfer_stats()->::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats::MergeFrom(from._internal_dct_payload_transfer_stats());
     }
     if (cached_has_bits & 0x00000004u) {
-      total_size_bytes_ = from.total_size_bytes_;
+      duration_millis_ = from.duration_millis_;
     }
     if (cached_has_bits & 0x00000008u) {
-      type_ = from.type_;
+      total_size_bytes_ = from.total_size_bytes_;
     }
     if (cached_has_bits & 0x00000010u) {
-      num_chunks_ = from.num_chunks_;
+      type_ = from.type_;
     }
     if (cached_has_bits & 0x00000020u) {
-      num_bytes_transferred_ = from.num_bytes_transferred_;
+      num_chunks_ = from.num_chunks_;
     }
     if (cached_has_bits & 0x00000040u) {
-      status_ = from.status_;
+      num_bytes_transferred_ = from.num_bytes_transferred_;
     }
     if (cached_has_bits & 0x00000080u) {
-      num_successful_auto_resume_ = from.num_successful_auto_resume_;
+      status_ = from.status_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000100u) {
-    _internal_set_num_failed_auto_resume(from._internal_num_failed_auto_resume());
+  if (cached_has_bits & 0x00000300u) {
+    if (cached_has_bits & 0x00000100u) {
+      num_successful_auto_resume_ = from.num_successful_auto_resume_;
+    }
+    if (cached_has_bits & 0x00000200u) {
+      num_failed_auto_resume_ = from.num_failed_auto_resume_;
+    }
+    _has_bits_[0] |= cached_has_bits;
   }
   _internal_metadata_.MergeFrom<std::string>(from._internal_metadata_);
 }
@@ -6707,6 +7290,9 @@ class ConnectionsLog_BandwidthUpgradeAttempt::_Internal {
   static void set_has_device_type(HasBits* has_bits) {
     (*has_bits)[0] |= 512u;
   }
+  static void set_has_supported_service(HasBits* has_bits) {
+    (*has_bits)[0] |= 1024u;
+  }
 };
 
 const ::location::nearby::analytics::proto::ConnectionsLog_OperationResult&
@@ -6740,8 +7326,8 @@ ConnectionsLog_BandwidthUpgradeAttempt::ConnectionsLog_BandwidthUpgradeAttempt(c
     operation_result_ = nullptr;
   }
   ::memcpy(&duration_millis_, &from.duration_millis_,
-    static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&duration_millis_)) + sizeof(device_type_));
+    static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&duration_millis_)) + sizeof(supported_service_));
   // @@protoc_insertion_point(copy_constructor:location.nearby.analytics.proto.ConnectionsLog.BandwidthUpgradeAttempt)
 }
 
@@ -6752,8 +7338,8 @@ connection_token_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyS
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
     reinterpret_cast<char*>(&operation_result_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&device_type_) -
-    reinterpret_cast<char*>(&operation_result_)) + sizeof(device_type_));
+    0, static_cast<size_t>(reinterpret_cast<char*>(&supported_service_) -
+    reinterpret_cast<char*>(&operation_result_)) + sizeof(supported_service_));
 }
 
 ConnectionsLog_BandwidthUpgradeAttempt::~ConnectionsLog_BandwidthUpgradeAttempt() {
@@ -6800,10 +7386,10 @@ void ConnectionsLog_BandwidthUpgradeAttempt::Clear() {
         reinterpret_cast<char*>(&client_flow_id_) -
         reinterpret_cast<char*>(&duration_millis_)) + sizeof(client_flow_id_));
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     ::memset(&error_stage_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&device_type_) -
-        reinterpret_cast<char*>(&error_stage_)) + sizeof(device_type_));
+        reinterpret_cast<char*>(&supported_service_) -
+        reinterpret_cast<char*>(&error_stage_)) + sizeof(supported_service_));
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<std::string>();
@@ -6929,6 +7515,19 @@ const char* ConnectionsLog_BandwidthUpgradeAttempt::_InternalParse(const char* p
         } else
           goto handle_unusual;
         continue;
+      // optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 88)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          if (PROTOBUF_PREDICT_TRUE(::location::nearby::proto::connections::SupportedService_IsValid(val))) {
+            _internal_set_supported_service(static_cast<::location::nearby::proto::connections::SupportedService>(val));
+          } else {
+            ::PROTOBUF_NAMESPACE_ID::internal::WriteVarint(11, val, mutable_unknown_fields());
+          }
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -7028,6 +7627,13 @@ uint8_t* ConnectionsLog_BandwidthUpgradeAttempt::_InternalSerialize(
       10, this->_internal_device_type(), target);
   }
 
+  // optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+  if (cached_has_bits & 0x00000400u) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteEnumToArray(
+      11, this->_internal_supported_service(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = stream->WriteRaw(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).data(),
         static_cast<int>(_internal_metadata_.unknown_fields<std::string>(::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString).size()), target);
@@ -7095,7 +7701,7 @@ size_t ConnectionsLog_BandwidthUpgradeAttempt::ByteSizeLong() const {
     }
 
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     // optional .location.nearby.proto.connections.BandwidthUpgradeErrorStage error_stage = 6;
     if (cached_has_bits & 0x00000100u) {
       total_size += 1 +
@@ -7106,6 +7712,12 @@ size_t ConnectionsLog_BandwidthUpgradeAttempt::ByteSizeLong() const {
     if (cached_has_bits & 0x00000200u) {
       total_size += 1 +
         ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_device_type());
+    }
+
+    // optional .location.nearby.proto.connections.SupportedService supported_service = 11;
+    if (cached_has_bits & 0x00000400u) {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::EnumSize(this->_internal_supported_service());
     }
 
   }
@@ -7157,12 +7769,15 @@ void ConnectionsLog_BandwidthUpgradeAttempt::MergeFrom(const ConnectionsLog_Band
     }
     _has_bits_[0] |= cached_has_bits;
   }
-  if (cached_has_bits & 0x00000300u) {
+  if (cached_has_bits & 0x00000700u) {
     if (cached_has_bits & 0x00000100u) {
       error_stage_ = from.error_stage_;
     }
     if (cached_has_bits & 0x00000200u) {
       device_type_ = from.device_type_;
+    }
+    if (cached_has_bits & 0x00000400u) {
+      supported_service_ = from.supported_service_;
     }
     _has_bits_[0] |= cached_has_bits;
   }
@@ -7192,8 +7807,8 @@ void ConnectionsLog_BandwidthUpgradeAttempt::InternalSwap(ConnectionsLog_Bandwid
       &other->connection_token_, rhs_arena
   );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ConnectionsLog_BandwidthUpgradeAttempt, device_type_)
-      + sizeof(ConnectionsLog_BandwidthUpgradeAttempt::device_type_)
+      PROTOBUF_FIELD_OFFSET(ConnectionsLog_BandwidthUpgradeAttempt, supported_service_)
+      + sizeof(ConnectionsLog_BandwidthUpgradeAttempt::supported_service_)
       - PROTOBUF_FIELD_OFFSET(ConnectionsLog_BandwidthUpgradeAttempt, operation_result_)>(
           reinterpret_cast<char*>(&operation_result_),
           reinterpret_cast<char*>(&other->operation_result_));
@@ -10021,6 +10636,9 @@ template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLo
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_EstablishedConnection >(arena);
+}
+template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_DctPayloadTransferStats >(arena);
 }
 template<> PROTOBUF_NOINLINE ::location::nearby::analytics::proto::ConnectionsLog_Payload* Arena::CreateMaybeMessage< ::location::nearby::analytics::proto::ConnectionsLog_Payload >(Arena* arena) {
   return Arena::CreateMessageInternal< ::location::nearby::analytics::proto::ConnectionsLog_Payload >(arena);

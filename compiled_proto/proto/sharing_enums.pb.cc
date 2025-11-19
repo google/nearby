@@ -100,13 +100,20 @@ bool EventType_IsValid(int value) {
     case 71:
     case 72:
     case 73:
+    case 74:
+    case 75:
+    case 76:
+    case 77:
+    case 78:
+    case 79:
+    case 80:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[74] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> EventType_strings[81] = {};
 
 static const char EventType_names[] =
   "ACCEPT_AGREEMENTS"
@@ -120,6 +127,13 @@ static const char EventType_names[] =
   "CANCEL_CONNECTION"
   "CANCEL_RECEIVING_ATTACHMENTS"
   "CANCEL_SENDING_ATTACHMENTS"
+  "CLOUD_CREATE_SHARING_REQUEST"
+  "CLOUD_DOWNLOAD_END"
+  "CLOUD_DOWNLOAD_START"
+  "CLOUD_REGISTER_RECEIVER"
+  "CLOUD_SHARING_RPC_RESULT"
+  "CLOUD_UPLOAD_END"
+  "CLOUD_UPLOAD_START"
   "DECLINE_AGREEMENTS"
   "DECRYPT_CERTIFICATE_FAILURE"
   "DEFAULT_OPT_IN"
@@ -196,146 +210,160 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry EventType_entries[] = 
   { {EventType_names + 178, 17}, 30 },
   { {EventType_names + 195, 28}, 20 },
   { {EventType_names + 223, 26}, 19 },
-  { {EventType_names + 249, 18}, 46 },
-  { {EventType_names + 267, 27}, 64 },
-  { {EventType_names + 294, 14}, 56 },
-  { {EventType_names + 308, 20}, 4 },
-  { {EventType_names + 328, 15}, 49 },
-  { {EventType_names + 343, 21}, 11 },
-  { {EventType_names + 364, 27}, 29 },
-  { {EventType_names + 391, 28}, 32 },
-  { {EventType_names + 419, 21}, 54 },
-  { {EventType_names + 440, 28}, 53 },
-  { {EventType_names + 468, 21}, 2 },
-  { {EventType_names + 489, 20}, 48 },
-  { {EventType_names + 509, 25}, 61 },
-  { {EventType_names + 534, 26}, 25 },
-  { {EventType_names + 560, 16}, 72 },
-  { {EventType_names + 576, 25}, 68 },
-  { {EventType_names + 601, 11}, 40 },
-  { {EventType_names + 612, 15}, 31 },
-  { {EventType_names + 627, 14}, 42 },
-  { {EventType_names + 641, 20}, 38 },
-  { {EventType_names + 661, 21}, 22 },
-  { {EventType_names + 682, 25}, 21 },
-  { {EventType_names + 707, 26}, 60 },
-  { {EventType_names + 733, 17}, 55 },
-  { {EventType_names + 750, 32}, 43 },
-  { {EventType_names + 782, 18}, 59 },
-  { {EventType_names + 800, 28}, 71 },
-  { {EventType_names + 828, 23}, 18 },
-  { {EventType_names + 851, 25}, 17 },
-  { {EventType_names + 876, 27}, 10 },
-  { {EventType_names + 903, 20}, 13 },
-  { {EventType_names + 923, 16}, 73 },
-  { {EventType_names + 939, 14}, 24 },
-  { {EventType_names + 953, 26}, 37 },
-  { {EventType_names + 979, 27}, 47 },
-  { {EventType_names + 1006, 23}, 14 },
-  { {EventType_names + 1029, 15}, 69 },
-  { {EventType_names + 1044, 26}, 6 },
-  { {EventType_names + 1070, 28}, 5 },
-  { {EventType_names + 1098, 20}, 16 },
-  { {EventType_names + 1118, 22}, 15 },
-  { {EventType_names + 1140, 25}, 62 },
-  { {EventType_names + 1165, 27}, 66 },
-  { {EventType_names + 1192, 24}, 9 },
-  { {EventType_names + 1216, 17}, 12 },
-  { {EventType_names + 1233, 10}, 26 },
-  { {EventType_names + 1243, 12}, 57 },
-  { {EventType_names + 1255, 11}, 63 },
-  { {EventType_names + 1266, 14}, 28 },
-  { {EventType_names + 1280, 15}, 45 },
-  { {EventType_names + 1295, 14}, 3 },
-  { {EventType_names + 1309, 33}, 65 },
-  { {EventType_names + 1342, 21}, 70 },
-  { {EventType_names + 1363, 12}, 35 },
-  { {EventType_names + 1375, 8}, 34 },
-  { {EventType_names + 1383, 24}, 33 },
-  { {EventType_names + 1407, 11}, 58 },
-  { {EventType_names + 1418, 29}, 52 },
-  { {EventType_names + 1447, 23}, 39 },
-  { {EventType_names + 1470, 24}, 44 },
-  { {EventType_names + 1494, 18}, 0 },
-  { {EventType_names + 1512, 10}, 41 },
-  { {EventType_names + 1522, 18}, 67 },
+  { {EventType_names + 249, 28}, 74 },
+  { {EventType_names + 277, 18}, 79 },
+  { {EventType_names + 295, 20}, 78 },
+  { {EventType_names + 315, 23}, 75 },
+  { {EventType_names + 338, 24}, 80 },
+  { {EventType_names + 362, 16}, 77 },
+  { {EventType_names + 378, 18}, 76 },
+  { {EventType_names + 396, 18}, 46 },
+  { {EventType_names + 414, 27}, 64 },
+  { {EventType_names + 441, 14}, 56 },
+  { {EventType_names + 455, 20}, 4 },
+  { {EventType_names + 475, 15}, 49 },
+  { {EventType_names + 490, 21}, 11 },
+  { {EventType_names + 511, 27}, 29 },
+  { {EventType_names + 538, 28}, 32 },
+  { {EventType_names + 566, 21}, 54 },
+  { {EventType_names + 587, 28}, 53 },
+  { {EventType_names + 615, 21}, 2 },
+  { {EventType_names + 636, 20}, 48 },
+  { {EventType_names + 656, 25}, 61 },
+  { {EventType_names + 681, 26}, 25 },
+  { {EventType_names + 707, 16}, 72 },
+  { {EventType_names + 723, 25}, 68 },
+  { {EventType_names + 748, 11}, 40 },
+  { {EventType_names + 759, 15}, 31 },
+  { {EventType_names + 774, 14}, 42 },
+  { {EventType_names + 788, 20}, 38 },
+  { {EventType_names + 808, 21}, 22 },
+  { {EventType_names + 829, 25}, 21 },
+  { {EventType_names + 854, 26}, 60 },
+  { {EventType_names + 880, 17}, 55 },
+  { {EventType_names + 897, 32}, 43 },
+  { {EventType_names + 929, 18}, 59 },
+  { {EventType_names + 947, 28}, 71 },
+  { {EventType_names + 975, 23}, 18 },
+  { {EventType_names + 998, 25}, 17 },
+  { {EventType_names + 1023, 27}, 10 },
+  { {EventType_names + 1050, 20}, 13 },
+  { {EventType_names + 1070, 16}, 73 },
+  { {EventType_names + 1086, 14}, 24 },
+  { {EventType_names + 1100, 26}, 37 },
+  { {EventType_names + 1126, 27}, 47 },
+  { {EventType_names + 1153, 23}, 14 },
+  { {EventType_names + 1176, 15}, 69 },
+  { {EventType_names + 1191, 26}, 6 },
+  { {EventType_names + 1217, 28}, 5 },
+  { {EventType_names + 1245, 20}, 16 },
+  { {EventType_names + 1265, 22}, 15 },
+  { {EventType_names + 1287, 25}, 62 },
+  { {EventType_names + 1312, 27}, 66 },
+  { {EventType_names + 1339, 24}, 9 },
+  { {EventType_names + 1363, 17}, 12 },
+  { {EventType_names + 1380, 10}, 26 },
+  { {EventType_names + 1390, 12}, 57 },
+  { {EventType_names + 1402, 11}, 63 },
+  { {EventType_names + 1413, 14}, 28 },
+  { {EventType_names + 1427, 15}, 45 },
+  { {EventType_names + 1442, 14}, 3 },
+  { {EventType_names + 1456, 33}, 65 },
+  { {EventType_names + 1489, 21}, 70 },
+  { {EventType_names + 1510, 12}, 35 },
+  { {EventType_names + 1522, 8}, 34 },
+  { {EventType_names + 1530, 24}, 33 },
+  { {EventType_names + 1554, 11}, 58 },
+  { {EventType_names + 1565, 29}, 52 },
+  { {EventType_names + 1594, 23}, 39 },
+  { {EventType_names + 1617, 24}, 44 },
+  { {EventType_names + 1641, 18}, 0 },
+  { {EventType_names + 1659, 10}, 41 },
+  { {EventType_names + 1669, 18}, 67 },
 };
 
 static const int EventType_entries_by_number[] = {
-  71, // 0 -> UNKNOWN_EVENT_TYPE
+  78, // 0 -> UNKNOWN_EVENT_TYPE
   0, // 1 -> ACCEPT_AGREEMENTS
-  21, // 2 -> ENABLE_NEARBY_SHARING
-  61, // 3 -> SET_VISIBILITY
-  14, // 4 -> DESCRIBE_ATTACHMENTS
-  49, // 5 -> SCAN_FOR_SHARE_TARGETS_START
-  48, // 6 -> SCAN_FOR_SHARE_TARGETS_END
+  28, // 2 -> ENABLE_NEARBY_SHARING
+  68, // 3 -> SET_VISIBILITY
+  21, // 4 -> DESCRIBE_ATTACHMENTS
+  56, // 5 -> SCAN_FOR_SHARE_TARGETS_START
+  55, // 6 -> SCAN_FOR_SHARE_TARGETS_END
   5, // 7 -> ADVERTISE_DEVICE_PRESENCE_START
   4, // 8 -> ADVERTISE_DEVICE_PRESENCE_END
-  54, // 9 -> SEND_FAST_INITIALIZATION
-  40, // 10 -> RECEIVE_FAST_INITIALIZATION
-  16, // 11 -> DISCOVER_SHARE_TARGET
-  55, // 12 -> SEND_INTRODUCTION
-  41, // 13 -> RECEIVE_INTRODUCTION
-  46, // 14 -> RESPOND_TO_INTRODUCTION
-  51, // 15 -> SEND_ATTACHMENTS_START
-  50, // 16 -> SEND_ATTACHMENTS_END
-  39, // 17 -> RECEIVE_ATTACHMENTS_START
-  38, // 18 -> RECEIVE_ATTACHMENTS_END
+  61, // 9 -> SEND_FAST_INITIALIZATION
+  47, // 10 -> RECEIVE_FAST_INITIALIZATION
+  23, // 11 -> DISCOVER_SHARE_TARGET
+  62, // 12 -> SEND_INTRODUCTION
+  48, // 13 -> RECEIVE_INTRODUCTION
+  53, // 14 -> RESPOND_TO_INTRODUCTION
+  58, // 15 -> SEND_ATTACHMENTS_START
+  57, // 16 -> SEND_ATTACHMENTS_END
+  46, // 17 -> RECEIVE_ATTACHMENTS_START
+  45, // 18 -> RECEIVE_ATTACHMENTS_END
   10, // 19 -> CANCEL_SENDING_ATTACHMENTS
   9, // 20 -> CANCEL_RECEIVING_ATTACHMENTS
-  32, // 21 -> OPEN_RECEIVED_ATTACHMENTS
-  31, // 22 -> LAUNCH_SETUP_ACTIVITY
+  39, // 21 -> OPEN_RECEIVED_ATTACHMENTS
+  38, // 22 -> LAUNCH_SETUP_ACTIVITY
   2, // 23 -> ADD_CONTACT
-  43, // 24 -> REMOVE_CONTACT
-  24, // 25 -> FAST_SHARE_SERVER_RESPONSE
-  56, // 26 -> SEND_START
+  50, // 24 -> REMOVE_CONTACT
+  31, // 25 -> FAST_SHARE_SERVER_RESPONSE
+  63, // 26 -> SEND_START
   1, // 27 -> ACCEPT_FAST_INITIALIZATION
-  59, // 28 -> SET_DATA_USAGE
-  17, // 29 -> DISMISS_FAST_INITIALIZATION
+  66, // 28 -> SET_DATA_USAGE
+  24, // 29 -> DISMISS_FAST_INITIALIZATION
   8, // 30 -> CANCEL_CONNECTION
-  28, // 31 -> LAUNCH_ACTIVITY
-  18, // 32 -> DISMISS_PRIVACY_NOTIFICATION
-  66, // 33 -> TAP_PRIVACY_NOTIFICATION
-  65, // 34 -> TAP_HELP
-  64, // 35 -> TAP_FEEDBACK
+  35, // 31 -> LAUNCH_ACTIVITY
+  25, // 32 -> DISMISS_PRIVACY_NOTIFICATION
+  73, // 33 -> TAP_PRIVACY_NOTIFICATION
+  72, // 34 -> TAP_HELP
+  71, // 35 -> TAP_FEEDBACK
   3, // 36 -> ADD_QUICK_SETTINGS_TILE
-  44, // 37 -> REMOVE_QUICK_SETTINGS_TILE
-  30, // 38 -> LAUNCH_PHONE_CONSENT
-  69, // 39 -> TAP_QUICK_SETTINGS_TILE
-  27, // 40 -> INSTALL_APK
-  72, // 41 -> VERIFY_APK
-  29, // 42 -> LAUNCH_CONSENT
-  35, // 43 -> PROCESS_RECEIVED_ATTACHMENTS_END
-  70, // 44 -> TOGGLE_SHOW_NOTIFICATION
-  60, // 45 -> SET_DEVICE_NAME
-  11, // 46 -> DECLINE_AGREEMENTS
-  45, // 47 -> REQUEST_SETTING_PERMISSIONS
-  22, // 48 -> ESTABLISH_CONNECTION
-  15, // 49 -> DEVICE_SETTINGS
+  51, // 37 -> REMOVE_QUICK_SETTINGS_TILE
+  37, // 38 -> LAUNCH_PHONE_CONSENT
+  76, // 39 -> TAP_QUICK_SETTINGS_TILE
+  34, // 40 -> INSTALL_APK
+  79, // 41 -> VERIFY_APK
+  36, // 42 -> LAUNCH_CONSENT
+  42, // 43 -> PROCESS_RECEIVED_ATTACHMENTS_END
+  77, // 44 -> TOGGLE_SHOW_NOTIFICATION
+  67, // 45 -> SET_DEVICE_NAME
+  18, // 46 -> DECLINE_AGREEMENTS
+  52, // 47 -> REQUEST_SETTING_PERMISSIONS
+  29, // 48 -> ESTABLISH_CONNECTION
+  22, // 49 -> DEVICE_SETTINGS
   7, // 50 -> AUTO_DISMISS_FAST_INITIALIZATION
   6, // 51 -> APP_CRASH
-  68, // 52 -> TAP_QUICK_SETTINGS_FILE_SHARE
-  20, // 53 -> DISPLAY_PRIVACY_NOTIFICATION
-  19, // 54 -> DISPLAY_PHONE_CONSENT
-  34, // 55 -> PREFERENCES_USAGE
-  13, // 56 -> DEFAULT_OPT_IN
-  57, // 57 -> SETUP_WIZARD
-  67, // 58 -> TAP_QR_CODE
-  36, // 59 -> QR_CODE_LINK_SHOWN
-  33, // 60 -> PARSING_FAILED_ENDPOINT_ID
-  23, // 61 -> FAST_INIT_DISCOVER_DEVICE
-  52, // 62 -> SEND_DESKTOP_NOTIFICATION
-  58, // 63 -> SET_ACCOUNT
-  12, // 64 -> DECRYPT_CERTIFICATE_FAILURE
-  62, // 65 -> SHOW_ALLOW_PERMISSION_AUTO_ACCESS
-  53, // 66 -> SEND_DESKTOP_TRANSFER_EVENT
-  73, // 67 -> WAITING_FOR_ACCEPT
-  26, // 68 -> HIGH_QUALITY_MEDIUM_SETUP
-  47, // 69 -> RPC_CALL_STATUS
-  63, // 70 -> START_QR_CODE_SESSION
-  37, // 71 -> QR_CODE_OPENED_IN_WEB_CLIENT
-  25, // 72 -> HATS_JOINT_EVENT
-  42, // 73 -> RECEIVE_PREVIEWS
+  75, // 52 -> TAP_QUICK_SETTINGS_FILE_SHARE
+  27, // 53 -> DISPLAY_PRIVACY_NOTIFICATION
+  26, // 54 -> DISPLAY_PHONE_CONSENT
+  41, // 55 -> PREFERENCES_USAGE
+  20, // 56 -> DEFAULT_OPT_IN
+  64, // 57 -> SETUP_WIZARD
+  74, // 58 -> TAP_QR_CODE
+  43, // 59 -> QR_CODE_LINK_SHOWN
+  40, // 60 -> PARSING_FAILED_ENDPOINT_ID
+  30, // 61 -> FAST_INIT_DISCOVER_DEVICE
+  59, // 62 -> SEND_DESKTOP_NOTIFICATION
+  65, // 63 -> SET_ACCOUNT
+  19, // 64 -> DECRYPT_CERTIFICATE_FAILURE
+  69, // 65 -> SHOW_ALLOW_PERMISSION_AUTO_ACCESS
+  60, // 66 -> SEND_DESKTOP_TRANSFER_EVENT
+  80, // 67 -> WAITING_FOR_ACCEPT
+  33, // 68 -> HIGH_QUALITY_MEDIUM_SETUP
+  54, // 69 -> RPC_CALL_STATUS
+  70, // 70 -> START_QR_CODE_SESSION
+  44, // 71 -> QR_CODE_OPENED_IN_WEB_CLIENT
+  32, // 72 -> HATS_JOINT_EVENT
+  49, // 73 -> RECEIVE_PREVIEWS
+  11, // 74 -> CLOUD_CREATE_SHARING_REQUEST
+  14, // 75 -> CLOUD_REGISTER_RECEIVER
+  17, // 76 -> CLOUD_UPLOAD_START
+  16, // 77 -> CLOUD_UPLOAD_END
+  13, // 78 -> CLOUD_DOWNLOAD_START
+  12, // 79 -> CLOUD_DOWNLOAD_END
+  15, // 80 -> CLOUD_SHARING_RPC_RESULT
 };
 
 const std::string& EventType_Name(
@@ -344,12 +372,12 @@ const std::string& EventType_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           EventType_entries,
           EventType_entries_by_number,
-          74, EventType_strings);
+          81, EventType_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       EventType_entries,
       EventType_entries_by_number,
-      74, value);
+      81, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      EventType_strings[idx].get();
 }
@@ -357,7 +385,7 @@ bool EventType_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, EventType* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      EventType_entries, 74, name, &int_value);
+      EventType_entries, 81, name, &int_value);
   if (success) {
     *value = static_cast<EventType>(int_value);
   }
@@ -1643,15 +1671,17 @@ bool SyncPurpose_IsValid(int value) {
     case 15:
     case 16:
     case 17:
+    case 18:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SyncPurpose_strings[18] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> SyncPurpose_strings[19] = {};
 
 static const char SyncPurpose_names[] =
+  "SYNC_EXHAUST_SALT"
   "SYNC_PURPOSE_ACCOUNT_CHANGE"
   "SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN"
   "SYNC_PURPOSE_CHIME_NOTIFICATION"
@@ -1672,45 +1702,47 @@ static const char SyncPurpose_names[] =
   "SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry SyncPurpose_entries[] = {
-  { {SyncPurpose_names + 0, 27}, 15 },
-  { {SyncPurpose_names + 27, 33}, 5 },
-  { {SyncPurpose_names + 60, 31}, 2 },
-  { {SyncPurpose_names + 91, 32}, 11 },
-  { {SyncPurpose_names + 123, 23}, 3 },
-  { {SyncPurpose_names + 146, 43}, 17 },
-  { {SyncPurpose_names + 189, 33}, 6 },
-  { {SyncPurpose_names + 222, 27}, 1 },
-  { {SyncPurpose_names + 249, 30}, 4 },
-  { {SyncPurpose_names + 279, 36}, 16 },
-  { {SyncPurpose_names + 315, 47}, 13 },
-  { {SyncPurpose_names + 362, 27}, 12 },
-  { {SyncPurpose_names + 389, 34}, 10 },
-  { {SyncPurpose_names + 423, 30}, 8 },
-  { {SyncPurpose_names + 453, 30}, 7 },
-  { {SyncPurpose_names + 483, 45}, 9 },
-  { {SyncPurpose_names + 528, 20}, 0 },
-  { {SyncPurpose_names + 548, 47}, 14 },
+  { {SyncPurpose_names + 0, 17}, 18 },
+  { {SyncPurpose_names + 17, 27}, 15 },
+  { {SyncPurpose_names + 44, 33}, 5 },
+  { {SyncPurpose_names + 77, 31}, 2 },
+  { {SyncPurpose_names + 108, 32}, 11 },
+  { {SyncPurpose_names + 140, 23}, 3 },
+  { {SyncPurpose_names + 163, 43}, 17 },
+  { {SyncPurpose_names + 206, 33}, 6 },
+  { {SyncPurpose_names + 239, 27}, 1 },
+  { {SyncPurpose_names + 266, 30}, 4 },
+  { {SyncPurpose_names + 296, 36}, 16 },
+  { {SyncPurpose_names + 332, 47}, 13 },
+  { {SyncPurpose_names + 379, 27}, 12 },
+  { {SyncPurpose_names + 406, 34}, 10 },
+  { {SyncPurpose_names + 440, 30}, 8 },
+  { {SyncPurpose_names + 470, 30}, 7 },
+  { {SyncPurpose_names + 500, 45}, 9 },
+  { {SyncPurpose_names + 545, 20}, 0 },
+  { {SyncPurpose_names + 565, 47}, 14 },
 };
 
 static const int SyncPurpose_entries_by_number[] = {
-  16, // 0 -> SYNC_PURPOSE_UNKNOWN
-  7, // 1 -> SYNC_PURPOSE_ON_DEMAND_SYNC
-  2, // 2 -> SYNC_PURPOSE_CHIME_NOTIFICATION
-  4, // 3 -> SYNC_PURPOSE_DAILY_SYNC
-  8, // 4 -> SYNC_PURPOSE_OPT_IN_FIRST_SYNC
-  1, // 5 -> SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN
-  6, // 6 -> SYNC_PURPOSE_NEARBY_SHARE_ENABLED
-  14, // 7 -> SYNC_PURPOSE_SYNC_AT_FAST_INIT
-  13, // 8 -> SYNC_PURPOSE_SYNC_AT_DISCOVERY
-  15, // 9 -> SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE
-  12, // 10 -> SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT
-  3, // 11 -> SYNC_PURPOSE_CONTACT_LIST_CHANGE
-  11, // 12 -> SYNC_PURPOSE_SHOW_C11N_VIEW
-  10, // 13 -> SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY
-  17, // 14 -> SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE
-  0, // 15 -> SYNC_PURPOSE_ACCOUNT_CHANGE
-  9, // 16 -> SYNC_PURPOSE_REGENERATE_CERTIFICATES
-  5, // 17 -> SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE
+  17, // 0 -> SYNC_PURPOSE_UNKNOWN
+  8, // 1 -> SYNC_PURPOSE_ON_DEMAND_SYNC
+  3, // 2 -> SYNC_PURPOSE_CHIME_NOTIFICATION
+  5, // 3 -> SYNC_PURPOSE_DAILY_SYNC
+  9, // 4 -> SYNC_PURPOSE_OPT_IN_FIRST_SYNC
+  2, // 5 -> SYNC_PURPOSE_CHECK_DEFAULT_OPT_IN
+  7, // 6 -> SYNC_PURPOSE_NEARBY_SHARE_ENABLED
+  15, // 7 -> SYNC_PURPOSE_SYNC_AT_FAST_INIT
+  14, // 8 -> SYNC_PURPOSE_SYNC_AT_DISCOVERY
+  16, // 9 -> SYNC_PURPOSE_SYNC_AT_LOAD_PRIVATE_CERTIFICATE
+  13, // 10 -> SYNC_PURPOSE_SYNC_AT_ADVERTISEMENT
+  4, // 11 -> SYNC_PURPOSE_CONTACT_LIST_CHANGE
+  12, // 12 -> SYNC_PURPOSE_SHOW_C11N_VIEW
+  11, // 13 -> SYNC_PURPOSE_REGULAR_CHECK_CONTACT_REACHABILITY
+  18, // 14 -> SYNC_PURPOSE_VISIBILITY_SELECTED_CONTACT_CHANGE
+  1, // 15 -> SYNC_PURPOSE_ACCOUNT_CHANGE
+  10, // 16 -> SYNC_PURPOSE_REGENERATE_CERTIFICATES
+  6, // 17 -> SYNC_PURPOSE_DEVICE_CONTACTS_CONSENT_CHANGE
+  0, // 18 -> SYNC_EXHAUST_SALT
 };
 
 const std::string& SyncPurpose_Name(
@@ -1719,12 +1751,12 @@ const std::string& SyncPurpose_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           SyncPurpose_entries,
           SyncPurpose_entries_by_number,
-          18, SyncPurpose_strings);
+          19, SyncPurpose_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       SyncPurpose_entries,
       SyncPurpose_entries_by_number,
-      18, value);
+      19, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      SyncPurpose_strings[idx].get();
 }
@@ -1732,7 +1764,7 @@ bool SyncPurpose_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, SyncPurpose* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      SyncPurpose_entries, 18, name, &int_value);
+      SyncPurpose_entries, 19, name, &int_value);
   if (success) {
     *value = static_cast<SyncPurpose>(int_value);
   }
@@ -1918,19 +1950,21 @@ bool AdvertisingMode_IsValid(int value) {
     case 2:
     case 3:
     case 4:
+    case 5:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AdvertisingMode_strings[5] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> AdvertisingMode_strings[6] = {};
 
 static const char AdvertisingMode_names[] =
   "BACKGROUND_ADVERTISING_MODE"
   "FOREGROUND_ADVERTISING_MODE"
   "MIDGROUND_ADVERTISING_MODE"
   "SCREEN_OFF_ADVERTISING_MODE"
+  "SUSPENDED_ADVERTISING_MODE"
   "UNKNOWN_ADVERTISING_MODE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry AdvertisingMode_entries[] = {
@@ -1938,15 +1972,17 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry AdvertisingMode_entrie
   { {AdvertisingMode_names + 27, 27}, 4 },
   { {AdvertisingMode_names + 54, 26}, 3 },
   { {AdvertisingMode_names + 80, 27}, 1 },
-  { {AdvertisingMode_names + 107, 24}, 0 },
+  { {AdvertisingMode_names + 107, 26}, 5 },
+  { {AdvertisingMode_names + 133, 24}, 0 },
 };
 
 static const int AdvertisingMode_entries_by_number[] = {
-  4, // 0 -> UNKNOWN_ADVERTISING_MODE
+  5, // 0 -> UNKNOWN_ADVERTISING_MODE
   3, // 1 -> SCREEN_OFF_ADVERTISING_MODE
   0, // 2 -> BACKGROUND_ADVERTISING_MODE
   2, // 3 -> MIDGROUND_ADVERTISING_MODE
   1, // 4 -> FOREGROUND_ADVERTISING_MODE
+  4, // 5 -> SUSPENDED_ADVERTISING_MODE
 };
 
 const std::string& AdvertisingMode_Name(
@@ -1955,12 +1991,12 @@ const std::string& AdvertisingMode_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           AdvertisingMode_entries,
           AdvertisingMode_entries_by_number,
-          5, AdvertisingMode_strings);
+          6, AdvertisingMode_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       AdvertisingMode_entries,
       AdvertisingMode_entries_by_number,
-      5, value);
+      6, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      AdvertisingMode_strings[idx].get();
 }
@@ -1968,7 +2004,7 @@ bool AdvertisingMode_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, AdvertisingMode* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      AdvertisingMode_entries, 5, name, &int_value);
+      AdvertisingMode_entries, 6, name, &int_value);
   if (success) {
     *value = static_cast<AdvertisingMode>(int_value);
   }
@@ -1981,19 +2017,21 @@ bool DiscoveryMode_IsValid(int value) {
     case 2:
     case 3:
     case 4:
+    case 5:
       return true;
     default:
       return false;
   }
 }
 
-static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DiscoveryMode_strings[5] = {};
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> DiscoveryMode_strings[6] = {};
 
 static const char DiscoveryMode_names[] =
   "BACKGROUND_DISCOVERY_MODE"
   "FOREGROUND_DISCOVERY_MODE"
   "MIDGROUND_DISCOVERY_MODE"
   "SCREEN_OFF_DISCOVERY_MODE"
+  "SUSPENDED_DISCOVERY_MODE"
   "UNKNOWN_DISCOVERY_MODE";
 
 static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DiscoveryMode_entries[] = {
@@ -2001,15 +2039,17 @@ static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry DiscoveryMode_entries[
   { {DiscoveryMode_names + 25, 25}, 4 },
   { {DiscoveryMode_names + 50, 24}, 3 },
   { {DiscoveryMode_names + 74, 25}, 1 },
-  { {DiscoveryMode_names + 99, 22}, 0 },
+  { {DiscoveryMode_names + 99, 24}, 5 },
+  { {DiscoveryMode_names + 123, 22}, 0 },
 };
 
 static const int DiscoveryMode_entries_by_number[] = {
-  4, // 0 -> UNKNOWN_DISCOVERY_MODE
+  5, // 0 -> UNKNOWN_DISCOVERY_MODE
   3, // 1 -> SCREEN_OFF_DISCOVERY_MODE
   0, // 2 -> BACKGROUND_DISCOVERY_MODE
   2, // 3 -> MIDGROUND_DISCOVERY_MODE
   1, // 4 -> FOREGROUND_DISCOVERY_MODE
+  4, // 5 -> SUSPENDED_DISCOVERY_MODE
 };
 
 const std::string& DiscoveryMode_Name(
@@ -2018,12 +2058,12 @@ const std::string& DiscoveryMode_Name(
       ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
           DiscoveryMode_entries,
           DiscoveryMode_entries_by_number,
-          5, DiscoveryMode_strings);
+          6, DiscoveryMode_strings);
   (void) dummy;
   int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
       DiscoveryMode_entries,
       DiscoveryMode_entries_by_number,
-      5, value);
+      6, value);
   return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
                      DiscoveryMode_strings[idx].get();
 }
@@ -2031,7 +2071,7 @@ bool DiscoveryMode_Parse(
     ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, DiscoveryMode* value) {
   int int_value;
   bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
-      DiscoveryMode_entries, 5, name, &int_value);
+      DiscoveryMode_entries, 6, name, &int_value);
   if (success) {
     *value = static_cast<DiscoveryMode>(int_value);
   }
@@ -3452,6 +3492,255 @@ bool ButtonStatus_Parse(
       ButtonStatus_entries, 4, name, &int_value);
   if (success) {
     *value = static_cast<ButtonStatus>(int_value);
+  }
+  return success;
+}
+bool CloudCreateSharingResult_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> CloudCreateSharingResult_strings[10] = {};
+
+static const char CloudCreateSharingResult_names[] =
+  "CLOUD_CREATE_SHARING_RESULT_ALREADY_EXIST"
+  "CLOUD_CREATE_SHARING_RESULT_ALREADY_STARTED"
+  "CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT"
+  "CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE"
+  "CLOUD_CREATE_SHARING_RESULT_INVALID_ARGUMENT"
+  "CLOUD_CREATE_SHARING_RESULT_NETWORK_ERROR"
+  "CLOUD_CREATE_SHARING_RESULT_REMOTE_ERROR"
+  "CLOUD_CREATE_SHARING_RESULT_SIGN_IN_REQUIRE"
+  "CLOUD_CREATE_SHARING_RESULT_SUCCESS"
+  "CLOUD_CREATE_SHARING_RESULT_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry CloudCreateSharingResult_entries[] = {
+  { {CloudCreateSharingResult_names + 0, 41}, 3 },
+  { {CloudCreateSharingResult_names + 41, 43}, 4 },
+  { {CloudCreateSharingResult_names + 84, 51}, 8 },
+  { {CloudCreateSharingResult_names + 135, 50}, 9 },
+  { {CloudCreateSharingResult_names + 185, 44}, 6 },
+  { {CloudCreateSharingResult_names + 229, 41}, 5 },
+  { {CloudCreateSharingResult_names + 270, 40}, 7 },
+  { {CloudCreateSharingResult_names + 310, 43}, 2 },
+  { {CloudCreateSharingResult_names + 353, 35}, 1 },
+  { {CloudCreateSharingResult_names + 388, 35}, 0 },
+};
+
+static const int CloudCreateSharingResult_entries_by_number[] = {
+  9, // 0 -> CLOUD_CREATE_SHARING_RESULT_UNKNOWN
+  8, // 1 -> CLOUD_CREATE_SHARING_RESULT_SUCCESS
+  7, // 2 -> CLOUD_CREATE_SHARING_RESULT_SIGN_IN_REQUIRE
+  0, // 3 -> CLOUD_CREATE_SHARING_RESULT_ALREADY_EXIST
+  1, // 4 -> CLOUD_CREATE_SHARING_RESULT_ALREADY_STARTED
+  5, // 5 -> CLOUD_CREATE_SHARING_RESULT_NETWORK_ERROR
+  4, // 6 -> CLOUD_CREATE_SHARING_RESULT_INVALID_ARGUMENT
+  6, // 7 -> CLOUD_CREATE_SHARING_RESULT_REMOTE_ERROR
+  2, // 8 -> CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT
+  3, // 9 -> CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE
+};
+
+const std::string& CloudCreateSharingResult_Name(
+    CloudCreateSharingResult value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          CloudCreateSharingResult_entries,
+          CloudCreateSharingResult_entries_by_number,
+          10, CloudCreateSharingResult_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      CloudCreateSharingResult_entries,
+      CloudCreateSharingResult_entries_by_number,
+      10, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     CloudCreateSharingResult_strings[idx].get();
+}
+bool CloudCreateSharingResult_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, CloudCreateSharingResult* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      CloudCreateSharingResult_entries, 10, name, &int_value);
+  if (success) {
+    *value = static_cast<CloudCreateSharingResult>(int_value);
+  }
+  return success;
+}
+bool CloudRegisterReceiverResult_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> CloudRegisterReceiverResult_strings[17] = {};
+
+static const char CloudRegisterReceiverResult_names[] =
+  "CLOUD_REGISTER_RECEIVER_RESULT_ABORTED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_ALREADY_EXISTS"
+  "CLOUD_REGISTER_RECEIVER_RESULT_CANCELLED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_DATA_LOSS"
+  "CLOUD_REGISTER_RECEIVER_RESULT_DEADLINE_EXCEEDED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_FAILED_PRECONDITION"
+  "CLOUD_REGISTER_RECEIVER_RESULT_INTERNAL"
+  "CLOUD_REGISTER_RECEIVER_RESULT_INVALID_ARGUMENT"
+  "CLOUD_REGISTER_RECEIVER_RESULT_NOT_FOUND"
+  "CLOUD_REGISTER_RECEIVER_RESULT_OUT_OF_RANGE"
+  "CLOUD_REGISTER_RECEIVER_RESULT_PERMISSION_DENIED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_RESOURCE_EXHAUSTED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_SUCCESS"
+  "CLOUD_REGISTER_RECEIVER_RESULT_UNAUTHENTICATED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_UNAVAILABLE"
+  "CLOUD_REGISTER_RECEIVER_RESULT_UNIMPLEMENTED"
+  "CLOUD_REGISTER_RECEIVER_RESULT_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry CloudRegisterReceiverResult_entries[] = {
+  { {CloudRegisterReceiverResult_names + 0, 38}, 13 },
+  { {CloudRegisterReceiverResult_names + 38, 45}, 9 },
+  { {CloudRegisterReceiverResult_names + 83, 40}, 11 },
+  { {CloudRegisterReceiverResult_names + 123, 40}, 16 },
+  { {CloudRegisterReceiverResult_names + 163, 48}, 3 },
+  { {CloudRegisterReceiverResult_names + 211, 50}, 12 },
+  { {CloudRegisterReceiverResult_names + 261, 39}, 4 },
+  { {CloudRegisterReceiverResult_names + 300, 47}, 2 },
+  { {CloudRegisterReceiverResult_names + 347, 40}, 8 },
+  { {CloudRegisterReceiverResult_names + 387, 43}, 14 },
+  { {CloudRegisterReceiverResult_names + 430, 48}, 7 },
+  { {CloudRegisterReceiverResult_names + 478, 49}, 5 },
+  { {CloudRegisterReceiverResult_names + 527, 38}, 1 },
+  { {CloudRegisterReceiverResult_names + 565, 46}, 10 },
+  { {CloudRegisterReceiverResult_names + 611, 42}, 6 },
+  { {CloudRegisterReceiverResult_names + 653, 44}, 15 },
+  { {CloudRegisterReceiverResult_names + 697, 38}, 0 },
+};
+
+static const int CloudRegisterReceiverResult_entries_by_number[] = {
+  16, // 0 -> CLOUD_REGISTER_RECEIVER_RESULT_UNKNOWN
+  12, // 1 -> CLOUD_REGISTER_RECEIVER_RESULT_SUCCESS
+  7, // 2 -> CLOUD_REGISTER_RECEIVER_RESULT_INVALID_ARGUMENT
+  4, // 3 -> CLOUD_REGISTER_RECEIVER_RESULT_DEADLINE_EXCEEDED
+  6, // 4 -> CLOUD_REGISTER_RECEIVER_RESULT_INTERNAL
+  11, // 5 -> CLOUD_REGISTER_RECEIVER_RESULT_RESOURCE_EXHAUSTED
+  14, // 6 -> CLOUD_REGISTER_RECEIVER_RESULT_UNAVAILABLE
+  10, // 7 -> CLOUD_REGISTER_RECEIVER_RESULT_PERMISSION_DENIED
+  8, // 8 -> CLOUD_REGISTER_RECEIVER_RESULT_NOT_FOUND
+  1, // 9 -> CLOUD_REGISTER_RECEIVER_RESULT_ALREADY_EXISTS
+  13, // 10 -> CLOUD_REGISTER_RECEIVER_RESULT_UNAUTHENTICATED
+  2, // 11 -> CLOUD_REGISTER_RECEIVER_RESULT_CANCELLED
+  5, // 12 -> CLOUD_REGISTER_RECEIVER_RESULT_FAILED_PRECONDITION
+  0, // 13 -> CLOUD_REGISTER_RECEIVER_RESULT_ABORTED
+  9, // 14 -> CLOUD_REGISTER_RECEIVER_RESULT_OUT_OF_RANGE
+  15, // 15 -> CLOUD_REGISTER_RECEIVER_RESULT_UNIMPLEMENTED
+  3, // 16 -> CLOUD_REGISTER_RECEIVER_RESULT_DATA_LOSS
+};
+
+const std::string& CloudRegisterReceiverResult_Name(
+    CloudRegisterReceiverResult value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          CloudRegisterReceiverResult_entries,
+          CloudRegisterReceiverResult_entries_by_number,
+          17, CloudRegisterReceiverResult_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      CloudRegisterReceiverResult_entries,
+      CloudRegisterReceiverResult_entries_by_number,
+      17, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     CloudRegisterReceiverResult_strings[idx].get();
+}
+bool CloudRegisterReceiverResult_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, CloudRegisterReceiverResult* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      CloudRegisterReceiverResult_entries, 17, name, &int_value);
+  if (success) {
+    *value = static_cast<CloudRegisterReceiverResult>(int_value);
+  }
+  return success;
+}
+bool CloudActionType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<std::string> CloudActionType_strings[3] = {};
+
+static const char CloudActionType_names[] =
+  "CLOUD_ACTION_TYPE_NORMAL"
+  "CLOUD_ACTION_TYPE_RETRY"
+  "CLOUD_ACTION_TYPE_UNKNOWN";
+
+static const ::PROTOBUF_NAMESPACE_ID::internal::EnumEntry CloudActionType_entries[] = {
+  { {CloudActionType_names + 0, 24}, 1 },
+  { {CloudActionType_names + 24, 23}, 2 },
+  { {CloudActionType_names + 47, 25}, 0 },
+};
+
+static const int CloudActionType_entries_by_number[] = {
+  2, // 0 -> CLOUD_ACTION_TYPE_UNKNOWN
+  0, // 1 -> CLOUD_ACTION_TYPE_NORMAL
+  1, // 2 -> CLOUD_ACTION_TYPE_RETRY
+};
+
+const std::string& CloudActionType_Name(
+    CloudActionType value) {
+  static const bool dummy =
+      ::PROTOBUF_NAMESPACE_ID::internal::InitializeEnumStrings(
+          CloudActionType_entries,
+          CloudActionType_entries_by_number,
+          3, CloudActionType_strings);
+  (void) dummy;
+  int idx = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumName(
+      CloudActionType_entries,
+      CloudActionType_entries_by_number,
+      3, value);
+  return idx == -1 ? ::PROTOBUF_NAMESPACE_ID::internal::GetEmptyString() :
+                     CloudActionType_strings[idx].get();
+}
+bool CloudActionType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, CloudActionType* value) {
+  int int_value;
+  bool success = ::PROTOBUF_NAMESPACE_ID::internal::LookUpEnumValue(
+      CloudActionType_entries, 3, name, &int_value);
+  if (success) {
+    *value = static_cast<CloudActionType>(int_value);
   }
   return success;
 }
