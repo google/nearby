@@ -14,7 +14,7 @@ git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "g
 
 git_repository(
     name = "beto-core",
-    commit = "415bd032561d078720642d52e28fd3bc9d5155d4",
+    commit = "479289ef072b0880c0347d36937265e44f00f4ee",
     remote = "https://beto-core.googlesource.com/beto-core",
 )
 
