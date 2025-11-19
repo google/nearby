@@ -82,11 +82,16 @@ cc_test(
     deps = [
         ":ble",
         ":ble_socket",
+        "//connections/implementation/flags:connections_flags",
+        "//internal/flags:nearby_flags",
         "//internal/platform:base",
         "//internal/platform:comm",
+        "//internal/platform:util",
         "//internal/platform/implementation:comm",
-        "//internal/platform/implementation/g3",
+        "//internal/platform/implementation/g3",  # buildcleaner: keep
+        "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
