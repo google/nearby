@@ -1058,7 +1058,14 @@ message SharingLog {
   message CloudCreateSharingRequest {
     optional AttachmentsInfo attachments_info = 1;
     optional location.nearby.proto.sharing.CloudCreateSharingResult result = 2;
+    // Time taken to download attachments from the Intent in milliseconds.
+    optional int64 attachment_download_latency_millis = 3;
+    // Time taken to generate and encrypt the preview thumbnail in milliseconds.
+    optional int64 preview_thumbnail_latency_millis = 4;
+    // Time taken to make the CreateSharing RPC call in milliseconds.
+    optional int64 rpc_latency_millis = 5;
   }
+
   // EventType: CLOUD_REGISTER_RECEIVER used by QR code cloud web receiver
   message CloudRegisterReceiver {
     optional location.nearby.proto.sharing.CloudRegisterReceiverResult result =
