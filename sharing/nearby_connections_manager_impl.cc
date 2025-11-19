@@ -116,11 +116,6 @@ bool ShouldEnableWifiHotspot(ConnectivityManager& connectivity_manager) {
   return true;
 }
 
-bool ShouldEnableBleForTransfers() {
-  return NearbyFlags::GetInstance().GetBoolFlag(
-      config_package_nearby::nearby_sharing_feature::kEnableBleForTransfer);
-}
-
 std::string MediumSelectionToString(const MediumSelection& mediums) {
   std::stringstream ss;
   ss << "{";
@@ -350,7 +345,7 @@ void NearbyConnectionsManagerImpl::Connect(
 
   MediumSelection allowed_mediums = MediumSelection(
       /*bluetooth=*/true,
-      /*ble=*/ShouldEnableBleForTransfers(),
+      /*ble=*/false,
       ShouldEnableWebRtc(connectivity_manager_, data_usage,
                          PowerLevel::kHighPower),
       /*wifi_lan=*/
