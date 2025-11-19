@@ -652,3 +652,15 @@ message PresenceDevice {
   repeated int32 actions = 9 [packed = true];
   repeated int64 identity_type = 10 [packed = true];
 }
+
+message ConnectivityCapability {
+  optional MediumMetadata medium_metadata = 1;
+  optional string endpoint_id = 2;
+}
+
+message ConnectivityInfo {
+  optional
+      BandwidthUpgradeNegotiationFrame.UpgradePathInfo.WifiDirectCredentials
+          wifi_direct_credentials = 1;
+  optional string endpoint_id = 2;
+}
