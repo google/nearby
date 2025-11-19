@@ -20,18 +20,22 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 #include "connections/implementation/mediums/ble/ble_packet.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/runnable.h"
 
 namespace nearby {
 namespace connections {
@@ -74,6 +78,10 @@ Exception BleOutputStream::Write(const ByteArray& data) {
 Exception BleOutputStream::Flush() { return source_.Flush(); }
 
 Exception BleOutputStream::Close() { return source_.Close(); }
+
+Exception BleOutputStream::WriteControlPacket(const ByteArray& data) {
+  return source_.Write(data);
+}
 
 Exception BleOutputStream::WritePayloadLength(int payload_length) {
   if (payload_length_ != 0) {
@@ -149,6 +157,7 @@ Exception BleSocket::CloseLocked() {
       LOG(FATAL) << "Socket close on unknown medium.";
       break;
   }
+  serial_executor_.Shutdown();
   return {Exception::kIo};
 }
 
@@ -196,8 +205,34 @@ Medium BleSocket::GetMediumLocked() const {
 }
 
 ExceptionOr<ByteArray> BleSocket::DispatchPacket() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_input_stream_) {
+    return Exception::kFailed;
+  }
+
+  ExceptionOr<ByteArray> read_bytes =
+      ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+  while (read_bytes.ok()) {
+    ByteArray read_bytes_result = read_bytes.result();
+    if (BlePacket::IsControlPacketBytes(read_bytes_result)) {
+      ExceptionOr<ByteArray> handle_result = ProcessBleControlPacketLocked();
+      if (!handle_result.ok()) {
+        return handle_result;
+      }
+      read_bytes = ble_input_stream_->Read(BlePacket::kServiceIdHashLength);
+    } else {
+      if (read_bytes_result != service_id_hash_) {
+        LOG(WARNING)
+            << "Received data packet with incorrect service ID hash. Expected: "
+            << absl::BytesToHexString(service_id_hash_.string_data())
+            << ", Received: "
+            << absl::BytesToHexString(read_bytes_result.string_data());
+        return Exception::kFailed;
+      }
+      break;
+    }
+  }
+  return read_bytes;
 }
 
 ExceptionOr<std::int32_t> BleSocket::ReadPayloadLength() {
@@ -213,6 +248,12 @@ ExceptionOr<std::int32_t> BleSocket::ReadPayloadLength() {
   }
 
   int payload_length = byte_utils::BytesToInt(std::move(read_bytes.result()));
+  Exception send_ack_result = SendPacketAcknowledgementLocked(payload_length);
+  LOG(INFO) << "Sent packet acknowledgement for payload length: "
+            << payload_length;
+  if (!send_ack_result.Ok()) {
+    LOG(WARNING) << "Failed to send packet acknowledgement.";
+  }
   return ExceptionOr<std::int32_t>(payload_length);
 }
 
@@ -224,29 +265,243 @@ Exception BleSocket::WritePayloadLength(int payload_length) {
   return ble_output_stream_->WritePayloadLength(payload_length);
 }
 
+ExceptionOr<ByteArray> BleSocket::ProcessBleControlPacketLocked() {
+  // Read the first 4 bytes (packet block 1).
+  ExceptionOr<ByteArray> read_bytes = ble_input_stream_->Read(4);
+  if (!read_bytes.ok()) {
+    return read_bytes;
+  }
+  if (read_bytes.result().size() != 4) {
+    return Exception::kFailed;
+  }
+  ByteArray packet_block_1 = read_bytes.result();
+
+  // Read the length from the 3rd byte of the packet block (0-indexed).
+  int packet_block_2_size = packet_block_1.data()[3];
+  // Read the left bytes for the packet block 2).
+  read_bytes = ble_input_stream_->Read(packet_block_2_size);
+  if (!read_bytes.ok()) {
+    return read_bytes;
+  }
+  if (read_bytes.result().size() != packet_block_2_size) {
+    return Exception::kFailed;
+  }
+  ByteArray packet_block_2 = read_bytes.result();
+
+  // Concatenate the two packet blocks.
+  std::string str1(packet_block_1);
+  std::string str2(packet_block_2);
+  std::string result_str = absl::StrCat(str1, str2);
+  ByteArray packet_block = ByteArray(result_str);
+
+  // Create the BlePacket from the concatenated packet block.
+  absl::StatusOr<BlePacket> ble_packet_status_or =
+      BlePacket::CreateControlPacket(packet_block);
+  if (!ble_packet_status_or.ok()) {
+    return Exception::kFailed;
+  }
+  BlePacket ble_packet = ble_packet_status_or.value();
+  ble_packet.ParseControlPacketData(packet_block.AsStringView());
+  if (!ble_packet.IsValid()) {
+    return Exception::kFailed;
+  }
+  if (service_id_hash_ != ble_packet.GetServiceIdHash()) {
+    return Exception::kFailed;
+  }
+  LOG(INFO) << "Received BLE Socket Control frame: "
+            << BlePacket::SocketControlFrameTypeToString(
+                   ble_packet.GetControlFrameType());
+  return Exception::kSuccess;
+}
+
 Exception BleSocket::SendIntroduction() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_output_stream_) {
+    return {Exception::kFailed};
+  }
+
+  Exception result = {Exception::kFailed};
+  CountDownLatch latch(1);
+  RunOnSocketThread([this, &latch, &result]() {
+    mutex_.AssertHeld();
+
+    absl::StatusOr<BlePacket> ble_packet_status_or =
+        BlePacket::CreateControlIntroductionPacket(service_id_hash_);
+    if (!ble_packet_status_or.ok()) {
+      LOG(WARNING) << "Failed to create BLE introduction packet: "
+                   << ble_packet_status_or.status();
+      latch.CountDown();
+      return;
+    }
+    result = ble_output_stream_->WriteControlPacket(
+        ByteArray(ble_packet_status_or.value()));
+    if (!result.Ok()) {
+      LOG(WARNING) << "Failed to write BLE introduction packet: "
+                   << result.value;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return result;
 }
 
 Exception BleSocket::SendDisconnection() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_output_stream_) {
+    return {Exception::kFailed};
+  }
+
+  Exception result = {Exception::kFailed};
+  CountDownLatch latch(1);
+  RunOnSocketThread([this, &latch, &result]() {
+    mutex_.AssertHeld();
+
+    absl::StatusOr<BlePacket> ble_packet_status_or =
+        BlePacket::CreateControlDisconnectionPacket(service_id_hash_);
+    if (!ble_packet_status_or.ok()) {
+      LOG(WARNING) << "Failed to create BLE control disconnection packet: "
+                   << ble_packet_status_or.status();
+      latch.CountDown();
+      return;
+    }
+    result = ble_output_stream_->WriteControlPacket(
+        ByteArray(ble_packet_status_or.value()));
+    if (!result.Ok()) {
+      LOG(WARNING) << "Failed to write BLE control disconnection packet: "
+                   << result.value;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return result;
 }
 
 Exception BleSocket::SendPacketAcknowledgement(int received_size) {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  return SendPacketAcknowledgementLocked(received_size);
+}
+
+Exception BleSocket::SendPacketAcknowledgementLocked(int received_size) {
+  if (!ble_output_stream_) {
+    return {Exception::kFailed};
+  }
+
+  Exception result = {Exception::kFailed};
+  CountDownLatch latch(1);
+  RunOnSocketThread([this, received_size, &latch, &result]() {
+    mutex_.AssertHeld();
+
+    absl::StatusOr<BlePacket> ble_packet_status_or =
+        BlePacket::CreateControlPacketAcknowledgementPacket(service_id_hash_,
+                                                            received_size);
+    if (!ble_packet_status_or.ok()) {
+      LOG(WARNING)
+          << "Failed to create BLE control packet acknowledgement packet: "
+          << ble_packet_status_or.status();
+      latch.CountDown();
+      return;
+    }
+    result = ble_output_stream_->WriteControlPacket(
+        ByteArray(ble_packet_status_or.value()));
+    if (!result.Ok()) {
+      LOG(WARNING)
+          << "Failed to write BLE control packet acknowledgement packet: "
+          << result.value;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return result;
 }
 
 Exception BleSocket::ProcessIncomingL2capPacketValidation() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_input_stream_) {
+    return {Exception::kFailed};
+  }
+
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet_status_or =
+      BleL2capPacket::CreateFromStream(*ble_input_stream_);
+  if (!ble_l2cap_packet_status_or.ok()) {
+    LOG(WARNING) << "Failed to create BleL2capPacket: "
+                 << ble_l2cap_packet_status_or.status();
+    return {Exception::kFailed};
+  }
+
+  // Make sure the packet is a data connection request.
+  BleL2capPacket ble_l2cap_packet = ble_l2cap_packet_status_or.value();
+  if (!ble_l2cap_packet.IsDataConnectionRequest()) {
+    LOG(WARNING)
+        << "Received an L2CAP packet that is not a data connection request.";
+    return {Exception::kFailed};
+  }
+
+  // Send out the Command::kResponseDataConnectionReady packet.
+  Exception result =
+      SendL2capPacketLocked(BleL2capPacket::ByteArrayForDataConnectionReady());
+  if (!result.Ok()) {
+    LOG(WARNING)
+        << "Failed to send L2CAP data connection ready response packet: "
+        << result.value;
+    return result;
+  }
+
+  return result;
 }
 
 Exception BleSocket::ProcessOutgoingL2capPacketValidation() {
-  // TODO(b/419654808): Implement this method.
-  return {Exception::kFailed};
+  MutexLock lock(&mutex_);
+  if (!ble_input_stream_) {
+    return {Exception::kFailed};
+  }
+
+  // Send out the Command::kRequestDataConnection packet.
+  Exception result = SendL2capPacketLocked(
+      BleL2capPacket::ByteArrayForRequestDataConnection());
+  if (!result.Ok()) {
+    LOG(WARNING) << "Failed to send L2CAP request data connection packet: "
+                 << result.value;
+    return result;
+  }
+
+  // Wait here for the Command::kResponseDataConnectionReady packet.
+  absl::StatusOr<BleL2capPacket> ble_l2cap_packet_status_or =
+      BleL2capPacket::CreateFromStream(*ble_input_stream_);
+  if (!ble_l2cap_packet_status_or.ok()) {
+    LOG(WARNING) << "Failed to create BleL2capPacket: "
+                 << ble_l2cap_packet_status_or.status();
+    return {Exception::kFailed};
+  }
+  BleL2capPacket ble_l2cap_packet = ble_l2cap_packet_status_or.value();
+  if (!ble_l2cap_packet.IsDataConnectionReadyResponse()) {
+    LOG(WARNING) << "Unexpected L2CAP packet received.";
+    return {Exception::kFailed};
+  }
+  return {Exception::kSuccess};
+}
+
+Exception BleSocket::SendL2capPacketLocked(const ByteArray& packet_byte) {
+  if (!ble_output_stream_) {
+    return {Exception::kFailed};
+  }
+
+  Exception result = {Exception::kFailed};
+  CountDownLatch latch(1);
+  RunOnSocketThread([this, &packet_byte, &latch, &result]() {
+    mutex_.AssertHeld();
+
+    result = ble_output_stream_->WriteControlPacket(packet_byte);
+    if (!result.Ok()) {
+      LOG(WARNING) << "Failed to write L2CAP packet: " << result.value;
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  return result;
+}
+
+void BleSocket::RunOnSocketThread(Runnable runnable) {
+  serial_executor_.Execute(std::move(runnable));
 }
 
 }  // namespace mediums

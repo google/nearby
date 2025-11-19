@@ -347,6 +347,7 @@ cc_test(
         ":Platform_cc",
         "//internal/platform/implementation/g3:crypto",
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
