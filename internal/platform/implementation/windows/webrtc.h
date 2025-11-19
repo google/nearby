@@ -20,42 +20,13 @@
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "internal/platform/byte_array.h"
-#include "internal/platform/implementation/account_manager.h"
 #include "internal/platform/implementation/webrtc.h"
 #include "webrtc/api/peer_connection_interface.h"
 
-namespace nearby {
-namespace windows {
-
-class WebRtcSignalingMessenger : public api::WebRtcSignalingMessenger {
- public:
-  using OnSignalingMessageCallback =
-      api::WebRtcSignalingMessenger::OnSignalingMessageCallback;
-  using OnSignalingCompleteCallback =
-      api::WebRtcSignalingMessenger::OnSignalingCompleteCallback;
-
-  explicit WebRtcSignalingMessenger(
-      absl::string_view self_id,
-      const location::nearby::connections::LocationHint& location_hint);
-  ~WebRtcSignalingMessenger() override = default;
-
-  bool SendMessage(absl::string_view peer_id,
-                   const ByteArray& message) override;
-  bool StartReceivingMessages(
-      OnSignalingMessageCallback on_message_callback,
-      OnSignalingCompleteCallback on_complete_callback) override;
-  void StopReceivingMessages() override;
-
- private:
-  std::string self_id_;
-  location::nearby::connections::LocationHint location_hint_;
-  AccountManager* account_manager_;
-};
+namespace nearby::windows {
 
 class WebRtcMedium : public api::WebRtcMedium {
  public:
-  // TODO(b/261663238): replace with real implementation.
   ~WebRtcMedium() override = default;
 
   // Gets the default two-letter country code associated with current locale.
@@ -76,14 +47,12 @@ class WebRtcMedium : public api::WebRtcMedium {
       PeerConnectionCallback callback) override;
 
   // Returns a signaling messenger for sending WebRTC signaling messages.
-  // TODO(b/261663238): replace with real implementation.
   std::unique_ptr<api::WebRtcSignalingMessenger> GetSignalingMessenger(
       absl::string_view self_id,
       const location::nearby::connections::LocationHint& location_hint)
       override;
 };
 
-}  // namespace windows
-}  // namespace nearby
+}  // namespace nearby::windows
 
 #endif  // PLATFORM_IMPL_WINDOWS_WEBRTC_H_
