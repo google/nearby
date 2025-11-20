@@ -52,6 +52,12 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
     }
   }
 
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
+    if (mode_ == Mode::kRegular || mode_ == Mode::kRegularNoCheck) {
+      mutex_.AssertHeld();
+    }
+  }
+
   absl::Mutex& GetMutex() { return mutex_; }
   std::recursive_mutex& GetRecursiveMutex() { return recursive_mutex_; }
 

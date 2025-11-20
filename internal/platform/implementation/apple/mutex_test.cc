@@ -15,9 +15,8 @@
 #include "internal/platform/implementation/apple/mutex.h"
 
 #include "gtest/gtest.h"
-#include "absl/synchronization/mutex.h"
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/notification.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "thread/fiber/fiber.h"
 
@@ -84,6 +83,36 @@ TEST(MutexTest, RecursiveLockingForNestedWorks) {
   EXPECT_TRUE(lock_obtained.WaitForNotificationWithTimeout(kTimeToWait));
   f.Join();
 }
+
+TEST(MutexTest, AssertHeld) {
+  Mutex mutex;
+  mutex.Lock();
+  mutex.AssertHeld();
+  mutex.Unlock();
+}
+
+TEST(MutexTest, RecursiveAssertHeld) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+  RecursiveMutex mutex;
+  mutex.Lock();
+  mutex.AssertHeld();
+  mutex.Lock();
+  mutex.AssertHeld();
+  mutex.Unlock();
+  mutex.AssertHeld();
+  mutex.Unlock();
+}
+
+#if !defined(NDEBUG) && defined(GTEST_HAS_DEATH_TEST)
+TEST(MutexDeathTest, MutexAssertHeldWithoutLock) {
+  Mutex mutex;
+  EXPECT_DEATH(mutex.AssertHeld(), "");
+}
+
+TEST(MutexDeathTest, RecursiveMutexAssertHeldWithoutLock) {
+  RecursiveMutex mutex;
+  EXPECT_DEATH(mutex.AssertHeld(), "");
+}
+#endif  // !defined(NDEBUG) && defined(GTEST_HAS_DEATH_TEST)
 
 }  // namespace
 }  // namespace apple

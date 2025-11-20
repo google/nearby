@@ -45,6 +45,8 @@ class ABSL_LOCKABLE Mutex {
 
   virtual void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() = 0;
   virtual void Unlock() ABSL_UNLOCK_FUNCTION() = 0;
+  // Assert that this mutex is held by the calling thread.
+  virtual void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() {}
 };
 
 }  // namespace api

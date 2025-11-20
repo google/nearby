@@ -15,6 +15,7 @@
 #ifndef PLATFORM_IMPL_APPLE_MUTEX_H_
 #define PLATFORM_IMPL_APPLE_MUTEX_H_
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/mutex.h"
 
@@ -35,6 +36,10 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
     mutex_.ForgetDeadlockInfo();
   }
   void Unlock() ABSL_UNLOCK_FUNCTION() override { mutex_.Unlock(); }
+
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
+    mutex_.AssertHeld();
+  }
 
  private:
   friend class ConditionVariable;
@@ -63,6 +68,12 @@ class ABSL_LOCKABLE RecursiveMutex : public api::Mutex {
       thread_id_.store(0, std::memory_order_release);
       mutex_.Unlock();
     }
+  }
+
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {
+#ifndef NDEBUG
+    assert(thread_id_.load(std::memory_order_acquire) == ThreadId());
+#endif
   }
 
  private:

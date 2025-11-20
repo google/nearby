@@ -29,6 +29,7 @@ class ABSL_LOCKABLE Mutex : public api::Mutex {
 
   void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() override;
   void Unlock() ABSL_UNLOCK_FUNCTION() override;
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() override {}
 
  private:
   friend class ConditionVariable;

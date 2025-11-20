@@ -41,6 +41,7 @@ class ABSL_LOCKABLE Mutex final {
 
   void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() { impl_->Lock(); }
   void Unlock() ABSL_UNLOCK_FUNCTION() { impl_->Unlock(); }
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() { impl_->AssertHeld(); }
 
  private:
   friend class ConditionVariable;
@@ -65,6 +66,7 @@ class ABSL_LOCKABLE RecursiveMutex final {
 
   void Lock() ABSL_EXCLUSIVE_LOCK_FUNCTION() { impl_->Lock(); }
   void Unlock() ABSL_UNLOCK_FUNCTION() { impl_->Unlock(); }
+  void AssertHeld() const ABSL_ASSERT_EXCLUSIVE_LOCK() { impl_->AssertHeld(); }
 
  private:
   friend class MutexLock;
