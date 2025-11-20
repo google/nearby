@@ -707,7 +707,7 @@ std::optional<api::ble::BlePeripheral::UniqueId> BleMedium::RetrieveBlePeriphera
 
   NSUUID *uuidFromString = [[NSUUID alloc] initWithUUIDString:uuidString];
   if (uuidFromString == nil) {
-    GNCLoggerError(@"Native BLE peripheral ID is not a valid UUID.");
+    GNCLoggerError(@"Native BLE peripheral ID %@ is not a valid UUID.", uuidString);
     return std::nullopt;
   }
 
@@ -718,7 +718,14 @@ std::optional<api::ble::BlePeripheral::UniqueId> BleMedium::RetrieveBlePeriphera
   }
 
   // Retrieve the BLE peripheral from CBCentralManager.
-  peripheral = [socketCentralManager_ retrievePeripheralWithIdentifier:uuidFromString];
+  peripheral = [medium_ retrievePeripheralWithIdentifier:uuidFromString];
+
+  if (peripheral == nil) {
+    GNCLoggerError(@"Failed to retrieve BLE peripheral from identifier: %@", uuidFromString);
+    return std::nullopt;
+  }
+
+  peripherals_.Add(peripheral);
   return peripheral.identifier.hash;
 }
 
@@ -748,7 +755,7 @@ bool BleMedium::ShouldReportAdvertisement(NSDate *now,
   }
 
   if ([now timeIntervalSinceDate:it->second.last_timestamp] < kThresholdInterval &&
-          it -> second.last_service_data.count == service_data.count) {
+      it->second.last_service_data.count == service_data.count) {
     bool is_same_advertisement = true;
     for (CBUUID *service_uuid in service_data.allKeys) {
       if (![service_data[service_uuid] isEqualToData:it->second.last_service_data[service_uuid]]) {

@@ -22,6 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
 /** A fake implementation of @c GNCPeripheral to inject for testing. */
 @interface GNCFakePeripheral : NSObject <GNCPeripheral>
 
+/** Initializes the fake peripheral with the given identifier. */
+- (instancetype)initWithIdentifier:(NSUUID *)identifier;
+
 /** The peripheral's delegate. */
 @property(nonatomic, nullable, readwrite) id<CBPeripheralDelegate> delegate;
 

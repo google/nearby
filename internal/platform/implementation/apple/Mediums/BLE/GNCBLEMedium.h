@@ -243,6 +243,14 @@ typedef void (^GNCGATTConnectionCompletionHandler)(GNCBLEGATTClient *_Nullable c
  */
 - (void)stop;
 
+/**
+ * Retrieves the peripheral with the specified identifier.
+ *
+ * @param identifier The identifier of the peripheral to retrieve.
+ * @return The peripheral with the specified identifier, or @c nil if not found.
+ */
+- (nullable CBPeripheral *)retrievePeripheralWithIdentifier:(NSUUID *)identifier;
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -97,6 +97,14 @@ NS_ASSUME_NONNULL_BEGIN
 /** Asks the central manager to stop scanning for peripherals. */
 - (void)stopScan;
 
+/**
+ * Retrieves the peripherals with the given identifiers.
+ *
+ * @param identifiers The identifiers of the peripherals to retrieve.
+ * @return An array of peripherals with the given identifiers.
+ */
+- (NSArray<CBPeripheral *> *)retrievePeripheralsWithIdentifiers:(NSArray<NSUUID *> *)identifiers;
+
 @end
 
 /**

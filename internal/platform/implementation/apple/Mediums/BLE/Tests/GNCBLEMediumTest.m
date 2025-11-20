@@ -385,4 +385,20 @@ static NSString *const kServiceUUID = @"0000FEF3-0000-1000-8000-00805F9B34FB";
   [self waitForExpectations:@[ disconnectExpectation ] timeout:3];
 }
 
+- (void)testRetrievePeripheralWithIdentifier_exists {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
+  XCTAssertNotNil(
+      [medium retrievePeripheralWithIdentifier:
+                  [[NSUUID alloc] initWithUUIDString:@"11111111-1111-1111-1111-111111111111"]]);
+}
+
+- (void)testRetrievePeripheralWithIdentifier_doesNotExist {
+  GNCFakeCentralManager *fakeCentralManager = [[GNCFakeCentralManager alloc] init];
+  GNCBLEMedium *medium = [[GNCBLEMedium alloc] initWithCentralManager:fakeCentralManager queue:nil];
+  XCTAssertNil(
+      [medium retrievePeripheralWithIdentifier:
+                  [[NSUUID alloc] initWithUUIDString:@"11111111-1111-1111-1111-111111111112"]]);
+}
+
 @end

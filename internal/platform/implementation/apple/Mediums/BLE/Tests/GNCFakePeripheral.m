@@ -50,6 +50,15 @@ NS_ASSUME_NONNULL_BEGIN
   return self;
 }
 
+- (instancetype)initWithIdentifier:(NSUUID *)identifier {
+  self = [super init];
+  if (self) {
+    _services = [[NSMutableArray alloc] init];
+    _identifier = identifier;
+  }
+  return self;
+}
+
 - (void)setPeripheralDelegate:(nullable id<GNCPeripheralDelegate>)peripheralDelegate {
   self.delegate = peripheralDelegate;
 }

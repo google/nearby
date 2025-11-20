@@ -136,6 +136,22 @@ static GNCBLEL2CAPServer *_Nonnull CreateL2CapServer(
   }
 }
 
+- (nullable CBPeripheral *)retrievePeripheralWithIdentifier:(NSUUID *)identifier {
+  NSAssert(_centralManager, @"CBCentralManager not created.");
+  NSAssert(identifier, @"Should have an identifier, self: %@", self);
+
+  NSArray<CBPeripheral *> *peripherals =
+      [_centralManager retrievePeripheralsWithIdentifiers:@[ identifier ]];
+
+  for (CBPeripheral *peripheral in peripherals) {
+    if ([peripheral.identifier isEqual:identifier]) {
+      return peripheral;
+    }
+  }
+
+  return nil;
+}
+
 - (BOOL)supportsExtendedAdvertisements {
   // TODO(b/294736083): CoreBluetooth doesn't support actually advertising any extensions, however
   // some devices can scan for them if the feature is available. If we return @c YES from this

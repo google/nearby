@@ -552,8 +552,7 @@ static const char *const kTestServiceID = "TestServiceID";
   NSString *unknownUUIDString = [[NSUUID alloc] init].UUIDString;
   std::optional<nearby::api::ble::BlePeripheral::UniqueId> result2 =
       _medium->RetrieveBlePeripheralIdFromNativeId([unknownUUIDString UTF8String]);
-  XCTAssertTrue(result2.has_value());  // Valid UUID format should return an ID.
-  XCTAssertNotEqual(result2.value(), fakePeripheral.identifier.hash);
+  XCTAssertFalse(result2.has_value());
 
   std::optional<nearby::api::ble::BlePeripheral::UniqueId> result3 =
       _medium->RetrieveBlePeripheralIdFromNativeId("invalid-uuid-string");

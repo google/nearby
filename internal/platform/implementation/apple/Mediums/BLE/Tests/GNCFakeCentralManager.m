@@ -24,6 +24,7 @@
 @implementation GNCFakeCentralManager {
   CBManagerState _state;
   NSArray<CBUUID *> *_serviceUUIDs;
+  NSDictionary<NSUUID *, GNCFakePeripheral *> *_peripherals;
 }
 
 @synthesize centralDelegate;
@@ -32,6 +33,12 @@
   self = [super init];
   if (self) {
     _state = CBManagerStateUnknown;
+    // Add a fake peripheral
+    NSUUID *identifier =
+        [[NSUUID alloc] initWithUUIDString:@"11111111-1111-1111-1111-111111111111"];
+    _peripherals = [NSMutableDictionary
+        dictionaryWithObject:[[GNCFakePeripheral alloc] initWithIdentifier:identifier]
+                      forKey:identifier];
   }
   return self;
 }
@@ -61,6 +68,16 @@
 }
 
 - (void)stopScan {
+}
+
+- (NSArray<CBPeripheral *> *)retrievePeripheralsWithIdentifiers:(NSArray<NSUUID *> *)identifiers {
+  NSMutableArray<CBPeripheral *> *peripherals = [NSMutableArray array];
+  for (NSUUID *identifier in identifiers) {
+    if (_peripherals[identifier]) {
+      [peripherals addObject:(CBPeripheral *)_peripherals[identifier]];
+    }
+  }
+  return peripherals;
 }
 
 #pragma mark - Testing Helpers
