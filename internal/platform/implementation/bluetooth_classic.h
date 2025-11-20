@@ -40,7 +40,7 @@ class BluetoothDevice {
   // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   virtual std::string GetName() const = 0;
 
-  virtual MacAddress GetAddress() const = 0;
+  virtual MacAddress GetMacAddress() const = 0;
 };
 
 // https://developer.android.com/reference/android/bluetooth/BluetoothSocket.html.

@@ -240,8 +240,8 @@ api::BluetoothDevice* MediumEnvironment::FindBluetoothDevice(
     for (auto& item : bluetooth_mediums_) {
       auto* adapter = item.second.adapter;
       if (!adapter) continue;
-      LOG(INFO) << " Adapter: " << adapter->GetAddress().ToString();
-      if (adapter->GetAddress() == mac_address) {
+      LOG(INFO) << " Adapter: " << adapter->GetMacAddress().ToString();
+      if (adapter->GetMacAddress() == mac_address) {
         device = bluetooth_adapters_[adapter];
         break;
       }

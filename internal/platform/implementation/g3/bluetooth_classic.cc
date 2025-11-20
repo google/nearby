@@ -180,7 +180,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
   // supported in tests.
   api::BluetoothDevice* device =
       MediumEnvironment::Instance().FindBluetoothDevice(
-          remote_device.GetAddress());
+          remote_device.GetMacAddress());
   if (device == nullptr) {
     LOG(ERROR) << "G3 ConnectToService [peer]: device=" << &remote_device
                << " not found";

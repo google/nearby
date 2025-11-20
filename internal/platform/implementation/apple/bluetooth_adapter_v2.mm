@@ -64,7 +64,7 @@ bool BluetoothAdapter::SetName(absl::string_view name, bool persist) {
 }
 
 // TODO(b/290385712): Implement.
-MacAddress BluetoothAdapter::GetAddress() const {
+MacAddress BluetoothAdapter::GetMacAddress() const {
   return MacAddress();
 }
 

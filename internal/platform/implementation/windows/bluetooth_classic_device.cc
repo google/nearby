@@ -72,7 +72,7 @@ BluetoothDevice::BluetoothDevice(
 }
 
 // Returns BT MAC address assigned to this device.
-MacAddress BluetoothDevice::GetAddress() const { return mac_address_; }
+MacAddress BluetoothDevice::GetMacAddress() const { return mac_address_; }
 
 // Checks cache first, will check uncached if no result.
 RfcommDeviceService BluetoothDevice::GetRfcommServiceForIdAsync(

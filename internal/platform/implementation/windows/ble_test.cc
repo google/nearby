@@ -51,7 +51,7 @@ class MockBluetoothAdapter : public BluetoothAdapter {
   MOCK_METHOD(bool, SetName, (absl::string_view name), (override));
   MOCK_METHOD(bool, SetName, (absl::string_view name, bool persist),
               (override));
-  MOCK_METHOD(MacAddress, GetAddress, (), (const, override));
+  MOCK_METHOD(MacAddress, GetMacAddress, (), (const, override));
 };
 
 }  // namespace

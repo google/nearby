@@ -66,7 +66,7 @@ class BluetoothAdapter {
   virtual bool SetName(absl::string_view name) = 0;
   virtual bool SetName(absl::string_view name, bool persist) = 0;
 
-  virtual MacAddress GetAddress() const = 0;
+  virtual MacAddress GetMacAddress() const = 0;
 };
 
 }  // namespace api

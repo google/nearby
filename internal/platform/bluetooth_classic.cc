@@ -125,13 +125,13 @@ bool BluetoothClassicMedium::StartDiscovery(DiscoveryCallback callback) {
       .device_lost_cb =
           [this](api::BluetoothDevice& device) {
             VLOG(1) << "BT .device_lost_cb for "
-                    << device.GetAddress().ToString();
+                    << device.GetMacAddress().ToString();
             MutexLock lock(&mutex_);
             if (!discovery_enabled_) return;
             auto item = devices_.extract(&device);
             if (!item) {
               LOG(WARNING) << "Removing unknown device: "
-                           << device.GetAddress().ToString();
+                           << device.GetMacAddress().ToString();
               return;
             }
             auto& context = *item.mapped();
@@ -182,7 +182,7 @@ void BluetoothClassicMedium::RemoveObserver(Observer* observer) {
 // api::BluetoothClassicMedium::Observer methods
 void BluetoothClassicMedium::DeviceAdded(api::BluetoothDevice& device) {
   VLOG(1) << "BT DeviceAdded; name=" << device.GetName()
-          << ", address=" << device.GetAddress().ToString();
+          << ", address=" << device.GetMacAddress().ToString();
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceAdded(bt_device);
@@ -190,7 +190,7 @@ void BluetoothClassicMedium::DeviceAdded(api::BluetoothDevice& device) {
 }
 void BluetoothClassicMedium::DeviceRemoved(api::BluetoothDevice& device) {
   VLOG(1) << "BT DeviceRemoved; name=" << device.GetName()
-          << ", address=" << device.GetAddress().ToString();
+          << ", address=" << device.GetMacAddress().ToString();
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
     observer->DeviceRemoved(bt_device);
@@ -199,7 +199,7 @@ void BluetoothClassicMedium::DeviceRemoved(api::BluetoothDevice& device) {
 void BluetoothClassicMedium::DeviceAddressChanged(
     api::BluetoothDevice& device, absl::string_view old_address) {
   VLOG(1) << "BT DeviceAddressChanged; name=" << device.GetName()
-          << ", address=" << device.GetAddress().ToString()
+          << ", address=" << device.GetMacAddress().ToString()
           << ", old_address=" << old_address;
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
@@ -209,7 +209,7 @@ void BluetoothClassicMedium::DeviceAddressChanged(
 void BluetoothClassicMedium::DevicePairedChanged(api::BluetoothDevice& device,
                                                  bool new_paired_status) {
   VLOG(1) << "BT DevicePairedChanged; name=" << device.GetName()
-          << ", address=" << device.GetAddress().ToString()
+          << ", address=" << device.GetMacAddress().ToString()
           << ", status=" << new_paired_status;
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {
@@ -219,7 +219,7 @@ void BluetoothClassicMedium::DevicePairedChanged(api::BluetoothDevice& device,
 void BluetoothClassicMedium::DeviceConnectedStateChanged(
     api::BluetoothDevice& device, bool connected) {
   VLOG(1) << "BT DeviceConnectedStateChanged: name=" << device.GetName()
-          << ", address=" << device.GetAddress().ToString()
+          << ", address=" << device.GetMacAddress().ToString()
           << ", connected=" << connected;
   BluetoothDevice bt_device(&device);
   for (auto* observer : observer_list_.GetObservers()) {

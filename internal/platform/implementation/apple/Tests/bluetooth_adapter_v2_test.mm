@@ -62,10 +62,10 @@
   XCTAssertFalse(_adapter.SetName("TestName", true));
 }
 
-- (void)testGetAddress {
+- (void)testGetMacAddress {
   // Currently hardcoded to return an empty MacAddress.
   nearby::MacAddress emptyAddress;
-  XCTAssertEqual(_adapter.GetAddress(), emptyAddress);
+  XCTAssertEqual(_adapter.GetMacAddress(), emptyAddress);
 }
 
 @end

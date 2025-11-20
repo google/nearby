@@ -37,7 +37,9 @@ BluetoothDevice::BluetoothDevice(BluetoothAdapter* adapter)
 
 std::string BluetoothDevice::GetName() const { return adapter_.GetName(); }
 
-MacAddress BluetoothDevice::GetAddress() const { return adapter_.GetAddress(); }
+MacAddress BluetoothDevice::GetMacAddress() const {
+  return adapter_.GetMacAddress();
+}
 
 BluetoothAdapter::BluetoothAdapter() {
   std::uint64_t raw_mac_addr = Prng().NextInt64() & kMacAddressMask;
