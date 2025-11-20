@@ -103,6 +103,9 @@ constexpr auto kEnableScanningForInstantOnLost =
 // Stop BLE_V2 scanning when upgrading to WIFI Hotspot or WFD.
 constexpr auto kEnableStopBleScanningOnWifiUpgrade =
     flags::Flag<bool>(kConfigPackage, "45687902", false);
+// When true, enable Wi-Fi Direct in Nearby connections SDK.
+constexpr auto kEnableWifiDirect =
+    flags::Flag<bool>(kConfigPackage, "45741157", false);
 // by default, enable Wi-Fi Hotspot client.
 constexpr auto kEnableWifiHotspotClient =
     flags::Flag<bool>(kConfigPackage, "45648734", true);
@@ -120,7 +123,6 @@ constexpr auto kSafeToDisconnectVersion =
 // When true, use stable endpoint ID.
 constexpr auto kUseStableEndpointId =
     flags::Flag<bool>(kConfigPackage, "45639298", false);
-
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections

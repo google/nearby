@@ -1431,6 +1431,9 @@ TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
 
 TEST(ServiceControllerRouterCheckHpRealtekDeviceTest,
      notHPRealtekDevice_defaultBwuConfig) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+      true);
   ServiceControllerRouter router(
       absl::AnyInvocable<bool()>{[]() { return false; }});
   auto service_controller = router.GetServiceController();

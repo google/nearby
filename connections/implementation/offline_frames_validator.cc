@@ -68,6 +68,8 @@ constexpr absl::string_view kWifiDirectSsidPatternString{
 constexpr int kWifiDirectSsidMaxLength = 32;
 constexpr int kWifiPasswordSsidMinLength = 8;
 constexpr int kWifiPasswordSsidMaxLength = 64;
+constexpr int kWifiDirectPinMinLength = 4;
+constexpr int kWifiDirectPinMaxLength = 16;
 
 inline bool WithinRange(int value, int min, int max) {
   return value >= min && value < max;
@@ -282,25 +284,36 @@ Exception EnsureValidBandwidthUpgradeWifiAwarePathAvailableFrame(
 
 Exception EnsureValidBandwidthUpgradeWifiDirectPathAvailableFrame(
     const WifiDirectCredentials& wifi_direct_credentials) {
-  const std::regex ssid_pattern(
-      std::string(kWifiDirectSsidPatternString).c_str());
-  if (!wifi_direct_credentials.has_ssid() ||
-      !(wifi_direct_credentials.ssid().length() < kWifiDirectSsidMaxLength &&
-        std::regex_match(wifi_direct_credentials.ssid(), ssid_pattern)))
-    return {Exception::kInvalidProtocolBuffer};
-
-  if (!wifi_direct_credentials.has_password() ||
-      !WithinRange(wifi_direct_credentials.password().length(),
-                   kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength))
-    return {Exception::kInvalidProtocolBuffer};
-
   if (!wifi_direct_credentials.has_frequency() ||
       wifi_direct_credentials.frequency() < -1)
     return {Exception::kInvalidProtocolBuffer};
 
+  const std::regex ssid_pattern(
+      std::string(kWifiDirectSsidPatternString).c_str());
+  bool ssid_valid =
+      wifi_direct_credentials.has_ssid() &&
+      wifi_direct_credentials.ssid().length() < kWifiDirectSsidMaxLength &&
+      std::regex_match(wifi_direct_credentials.ssid(), ssid_pattern);
+  bool password_valid =
+      wifi_direct_credentials.has_password() &&
+      WithinRange(wifi_direct_credentials.password().length(),
+                  kWifiPasswordSsidMinLength, kWifiPasswordSsidMaxLength);
+  bool service_name_valid =
+      wifi_direct_credentials.has_service_name() &&
+      wifi_direct_credentials.service_name().length() <
+          kWifiDirectSsidMaxLength;
+  bool pin_valid =
+      wifi_direct_credentials.has_pin() &&
+      WithinRange(wifi_direct_credentials.pin().length(),
+                  kWifiDirectPinMinLength, kWifiDirectPinMaxLength);
+
+  if ((ssid_valid && password_valid) || (service_name_valid && pin_valid))
+    return {Exception::kSuccess};
+
+  return {Exception::kInvalidProtocolBuffer};
+
   // For backwards compatibility reasons, no other fields should be null-checked
   // for this frame. Parameter checking (eg. must be within this range) is fine.
-  return {Exception::kSuccess};
 }
 
 Exception EnsureValidBandwidthUpgradeBluetoothPathAvailableFrame(

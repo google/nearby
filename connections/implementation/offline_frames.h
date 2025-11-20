@@ -94,7 +94,9 @@ ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
                                         std::int32_t port,
                                         std::int32_t frequency,
                                         bool supports_disabling_encryption,
-                                        const std::string& gateway);
+                                        const std::string& gateway,
+                                        const std::string& service_name,
+                                        const std::string& pin);
 ByteArray ForBwuBluetoothPathAvailable(const std::string& service_id,
                                        MacAddress mac_address);
 ByteArray ForBwuWebrtcPathAvailable(

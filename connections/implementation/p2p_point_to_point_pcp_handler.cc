@@ -49,9 +49,13 @@ P2pPointToPointPcpHandler::GetConnectionMediumsByPriority() {
   if (mediums_->GetWifiLan().IsAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }
-  if (mediums_->GetWifi().IsAvailable() &&
-      mediums_->GetWifiDirect().IsGCAvailable()) {
-    mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiDirect)) {
+    if (mediums_->GetWifi().IsAvailable() &&
+        mediums_->GetWifiDirect().IsGCAvailable()) {
+      mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
+    }
   }
   if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiHotspot().IsClientAvailable()) {

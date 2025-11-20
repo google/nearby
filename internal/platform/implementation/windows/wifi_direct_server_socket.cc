@@ -20,21 +20,20 @@
 #include <utility>
 
 // Nearby connections headers
-#include "absl/functional/any_invocable.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/time.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
-#include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Sockets.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/utils.h"
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
-
-WifiDirectServerSocket::WifiDirectServerSocket(int port) : port_(port) {}
+namespace {
+constexpr int kWaitingForServerSocketReadyTimeoutSeconds = 90;  // seconds
+}  // namespace
 
 WifiDirectServerSocket::~WifiDirectServerSocket() { Close(); }
 
@@ -42,9 +41,29 @@ std::string WifiDirectServerSocket::GetIPAddress() const {
   return wifi_direct_ipaddr_;
 }
 
-int WifiDirectServerSocket::GetPort() const { return server_socket_.GetPort(); }
+void WifiDirectServerSocket::SetIPAddress(std::string ip_address) {
+  absl::MutexLock lock(&mutex_);
+  if (ip_address.empty()) {
+    return;
+  }
+  wifi_direct_ipaddr_ = ip_address;
+}
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
+  absl::MutexLock lock(&mutex_);
+  if (!is_listen_started_) {
+    LOG(INFO) << __func__
+              << ": Server socket is not started, wait for server socket is "
+                 "ready.";
+    is_listen_ready_.WaitWithTimeout(
+        &mutex_, absl::Seconds(kWaitingForServerSocketReadyTimeoutSeconds));
+    if (!is_listen_started_) {
+      LOG(INFO) << __func__
+                << ": Server socket failed to start within timeout.";
+      return nullptr;
+    }
+  }
+
   auto client_socket = server_socket_.Accept();
   if (client_socket == nullptr) {
     return nullptr;
@@ -54,9 +73,16 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   return std::make_unique<WifiDirectSocket>(std::move(client_socket));
 }
 
-void WifiDirectServerSocket::SetCloseNotifier(
-    absl::AnyInvocable<void()> notifier) {
-  close_notifier_ = std::move(notifier);
+void WifiDirectServerSocket::PopulateWifiDirectCredentials(
+    WifiDirectCredentials& wifi_direct_credentials) {
+  wifi_direct_credentials.SetGateway(wifi_direct_ipaddr_);
+  if (GetPort() != 0) {
+  wifi_direct_credentials.SetPort(GetPort());
+  } else {
+    wifi_direct_credentials.SetPort(FeatureFlags::GetInstance()
+                                        .GetFlags()
+                                        .wifi_direct_default_port);
+  }
 }
 
 Exception WifiDirectServerSocket::Close() {
@@ -64,35 +90,31 @@ Exception WifiDirectServerSocket::Close() {
   if (closed_) {
     return {Exception::kSuccess};
   }
-
+  wifi_direct_ipaddr_.clear();
+  is_listen_started_ = false;
   server_socket_.Close();
   closed_ = true;
-
-  if (close_notifier_ != nullptr) {
-    close_notifier_();
-  }
 
   LOG(INFO) << __func__ << ": Close completed succesfully.";
   return {Exception::kSuccess};
 }
 
-bool WifiDirectServerSocket::Listen(bool dual_stack, std::string& ip_address) {
-  // Get current IP addresses of the device.
-  if (ip_address.empty()) {
-    return false;
-  }
-  wifi_direct_ipaddr_ = ip_address;
-  LOG(INFO) << "Listen wifi_direct on IP:port " << ip_address << ":" << port_;
+bool WifiDirectServerSocket::Listen(int port, bool dual_stack) {
+  LOG(INFO) << "Listen wifi_direct on IP:port " << wifi_direct_ipaddr_ << ":"
+            << port;
   SocketAddress address(dual_stack);
-  if (!SocketAddress::FromString(address, ip_address, port_)) {
-    LOG(ERROR) << "Failed to parse wifi_direct IP address: " << ip_address
-               << " and port: " << port_;
+  if (!SocketAddress::FromString(address, wifi_direct_ipaddr_, port)) {
+    LOG(ERROR) << "Failed to parse wifi_direct IP address.";
     return false;
   }
   if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket.";
     return false;
   }
+  LOG(INFO) << "Notify the server socket is started.";
+  absl::MutexLock lock(&mutex_);
+  is_listen_started_ = true;
+  is_listen_ready_.SignalAll();
 
   return true;
 }

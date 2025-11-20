@@ -23,6 +23,7 @@
 #include "absl/time/time.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace windows {
@@ -35,9 +36,11 @@ TEST(WifiDirectMedium, DISABLED_StartWifiDirect) {
 
   if (run_test) {
     winrt::init_apartment();
+    WifiDirectCredentials credentials;
     WifiDirectMedium wifi_direct_medium;
 
-    EXPECT_TRUE(wifi_direct_medium.StartWifiDirect());
+    EXPECT_TRUE(wifi_direct_medium.IsInterfaceValid());
+    EXPECT_TRUE(wifi_direct_medium.StartWifiDirect(&credentials));
 
     while (true) {
       LOG(INFO) << "Enter \"s\" to stop test:";
@@ -60,8 +63,19 @@ TEST(WifiDirectMedium, DISABLED_ConnectWifiDirect) {
   std::cin >> run_test;
 
   if (run_test) {
+    WifiDirectCredentials credentials;
     WifiDirectMedium wifi_direct_medium;
-    EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect());
+
+    LOG(INFO) << "Enter WifiDirect Service Name to be connected: ";
+    std::string service_name;
+    std::cin >> service_name;
+    LOG(INFO) << "Enter pin: ";
+    std::string pin;
+    std::cin >> pin;
+    credentials.SetServiceName(service_name);
+    credentials.SetPin(pin);
+
+    EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect(credentials));
 
     absl::SleepFor(absl::Seconds(2));
     while (true) {
@@ -86,9 +100,12 @@ TEST(WifiDirectMedium, DISABLED_WifiDirectServerStartListen) {
 
   if (run_test) {
     winrt::init_apartment();
+    WifiDirectCredentials credentials;
     WifiDirectMedium wifi_direct_medium;
 
-    EXPECT_TRUE(wifi_direct_medium.StartWifiDirect());
+    EXPECT_TRUE(wifi_direct_medium.IsInterfaceValid());
+    EXPECT_TRUE(wifi_direct_medium.StartWifiDirect(&credentials));
+
     absl::SleepFor(absl::Seconds(1));
     std::unique_ptr<api::WifiDirectServerSocket> server_socket =
         wifi_direct_medium.ListenForService(/*port=*/1234);
@@ -121,9 +138,19 @@ TEST(WifiDirectMedium, DISABLED_WifiDirectConnectToServiceServer) {
 
   if (run_test) {
     winrt::init_apartment();
+    WifiDirectCredentials credentials;
     WifiDirectMedium wifi_direct_medium;
 
-    EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect());
+    LOG(INFO) << "Enter WifiDirect Service Name to be connected: ";
+    std::string service_name;
+    std::cin >> service_name;
+    LOG(INFO) << "Enter pin: ";
+    std::string pin;
+    std::cin >> pin;
+    credentials.SetServiceName(service_name);
+    credentials.SetPin(pin);
+
+    EXPECT_TRUE(wifi_direct_medium.ConnectWifiDirect(credentials));
     absl::SleepFor(absl::Seconds(1));
     std::unique_ptr<api::WifiDirectSocket> client_socket =
         wifi_direct_medium.ConnectToService(

@@ -86,6 +86,12 @@ constexpr BooleanMediumSelector kTestCases[] = {
     BooleanMediumSelector{
         .bluetooth = true,
         .ble = true,
+        .wifi_lan = true,
+        .wifi_direct = true,
+    },
+    BooleanMediumSelector{
+        .bluetooth = true,
+        .ble = true,
         .web_rtc = true,
         .wifi_lan = true,
         .wifi_direct = true,
@@ -100,6 +106,9 @@ class P2pPointToPointPcpHandlerTest
     LOG(INFO) << "SetUp: begin";
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableAwdl, true);
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        config_package_nearby::nearby_connections_feature::kEnableWifiDirect,
+        true);
     if (advertising_options_.allowed.ble) {
       LOG(INFO) << "SetUp: BLE enabled";
     }

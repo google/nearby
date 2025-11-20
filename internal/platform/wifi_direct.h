@@ -15,14 +15,24 @@
 #ifndef PLATFORM_PUBLIC_WIFI_DIRECT_H_
 #define PLATFORM_PUBLIC_WIFI_DIRECT_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "internal/platform/cancellation_flag.h"
+#include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
 #include "internal/platform/implementation/wifi_direct.h"
+#include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mutex.h"
 #include "internal/platform/mutex_lock.h"
+#include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
@@ -99,16 +109,11 @@ class WifiDirectServerSocket final {
       std::unique_ptr<api::WifiDirectServerSocket> socket)
       : impl_(std::move(socket)) {}
 
-  // Returns ip address.
-  std::string GetIPAddress() const {
-    CHECK(impl_);
-    return impl_->GetIPAddress();
-  }
-
-  // Returns port.
-  int GetPort() const {
-    CHECK(impl_);
-    return impl_->GetPort();
+  // Populates the WifiDirect credentials with the server socket's service
+  // addresses and ports.
+  void PopulateWifiDirectCredentials(
+      WifiDirectCredentials& wifi_direct_credentials) {
+    impl_->PopulateWifiDirectCredentials(wifi_direct_credentials);
   }
 
   // Blocks until either:
@@ -158,8 +163,8 @@ class WifiDirectMedium {
 
   // Returns a new WifiDirectServerSocket.
   // On Success, WifiDirectServerSocket::IsValid() returns true.
-  WifiDirectServerSocket ListenForService(int port = 0) {
-    return WifiDirectServerSocket(impl_->ListenForService(port));
+  WifiDirectServerSocket ListenForService() {
+    return WifiDirectServerSocket(impl_->ListenForService(/*port=*/0));
   }
 
   // Returns the port range as a pair of min and max port.
@@ -173,11 +178,10 @@ class WifiDirectMedium {
   }
   bool StopWifiDirect() { return impl_->StopWifiDirect(); }
 
-  bool ConnectWifiDirect(absl::string_view ssid, absl::string_view password) {
+  bool ConnectWifiDirect(const WifiDirectCredentials& wifi_direct_credentials) {
     MutexLock lock(&mutex_);
-    wifi_direct_credentials_.SetSSID(std::string(ssid));
-    wifi_direct_credentials_.SetPassword(std::string(password));
-    return impl_->ConnectWifiDirect(&wifi_direct_credentials_);
+    wifi_direct_credentials_ = wifi_direct_credentials;
+    return impl_->ConnectWifiDirect(wifi_direct_credentials_);
   }
   bool DisconnectWifiDirect() { return impl_->DisconnectWifiDirect(); }
 

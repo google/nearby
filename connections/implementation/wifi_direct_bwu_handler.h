@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,12 +23,10 @@
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
 #include "connections/implementation/mediums/mediums.h"
-#include "connections/implementation/mediums/wifi.h"
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/wifi_direct.h"
-#include "utility"
 
 namespace nearby {
 namespace connections {
@@ -89,7 +87,6 @@ class WifiDirectBwuHandler : public BaseBwuHandler {
                                       WifiDirectSocket socket);
 
   Mediums& mediums_;
-  Wifi& wifi_medium_ = mediums_.GetWifi();
   WifiDirect& wifi_direct_medium_ = mediums_.GetWifiDirect();
 };
 

@@ -90,6 +90,16 @@ class WifiDirectCredentials {
   std::string GetPassword() const { return password_; }
   void SetPassword(const std::string& password) { password_ = password; }
 
+  // Get/Set Service Name.
+  std::string GetServiceName() const { return service_name_; }
+  void SetServiceName(const std::string& service_name) {
+    service_name_ = service_name;
+  }
+
+  // Get/Set Pin.
+  std::string GetPin() const { return pin_; }
+  void SetPin(const std::string& pin) { pin_ = pin; }
+
   // Gets IP Address, which is in byte sequence, in network order. For example,
   // for "192.168.1.1", it'll be byte(129)+byte(168)+byte(1)+byte(1). Now only
   // ipv4 is supported.
@@ -121,8 +131,15 @@ class WifiDirectCredentials {
   }
 
  private:
+  // There are 2 types of WifiDirectAuthType.
+  // 1. Without Service Discovery: the credentials are ssid/password.
+  // 2. With Service Discovery: the credentials are service_name/pin.
+  // Android supports type 1 and 2 in the future, but Windows only supports the
+  // second type.
   std::string ssid_;
   std::string password_;
+  std::string service_name_;
+  std::string pin_;
   std::string ip_address_;
   std::string gateway_ = "0.0.0.0";
   int port_ = 0;

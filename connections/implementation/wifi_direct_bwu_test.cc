@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/feature_flags.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/single_thread_executor.h"
@@ -85,18 +84,12 @@ TEST_F(WifiDirectTest, WFDGOBWUInit_GCCreateEndpointChannel) {
                          mutable_connection) {
         LOG(INFO) << "Server socket connection accept call back, Socket name: "
                   << mutable_connection->socket->ToString();
-        std::shared_ptr<BwuHandler::IncomingSocketConnection> connection(
-            mutable_connection.release());
         accept_latch.CountDown();
         EXPECT_TRUE(end_latch.Await(kWaitDuration).result());
-
-        connection->channel->Close();
-        connection->socket->Close();
       });
 
   SingleThreadExecutor wfd_go_executor;
-  wfd_go_executor.Execute([&wfd_go_bwu_handler, &wifi_direct_go, &upgrade_frame,
-                           &start_latch]() {
+  wfd_go_executor.Execute([&]() {
     ByteArray upgrade_path_available_frame =
         wfd_go_bwu_handler->InitializeUpgradedMediumForEndpoint(
             &wifi_direct_go, std::string(kServiceID), std::string(kEndpointID));

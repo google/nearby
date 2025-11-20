@@ -45,10 +45,6 @@ P2pStarPcpHandler::GetConnectionMediumsByPriority() {
     mediums.push_back(location::nearby::proto::connections::WIFI_LAN);
   }
   if (mediums_->GetWifi().IsAvailable() &&
-      mediums_->GetWifiDirect().IsGCAvailable()) {
-    mediums.push_back(location::nearby::proto::connections::WIFI_DIRECT);
-  }
-  if (mediums_->GetWifi().IsAvailable() &&
       mediums_->GetWifiHotspot().IsClientAvailable()) {
     mediums.push_back(location::nearby::proto::connections::WIFI_HOTSPOT);
   }

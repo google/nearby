@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/multi_thread_executor.h"
@@ -51,7 +52,7 @@ class WifiDirect {
 
   // If WifiDirect Group Owner started
   bool IsGOStarted() ABSL_LOCKS_EXCLUDED(mutex_);
-  // Start WifiDirect Group Owner. Returns true if AutoGO is successfully
+  // Start WifiDirect Group Owner. Returns true if WifiDirect GO is successfully
   // started.
   bool StartWifiDirect() ABSL_LOCKS_EXCLUDED(mutex_);
   // Stop WifiDirect Group Owner
@@ -60,7 +61,7 @@ class WifiDirect {
   // If WifiDirect Group Client connects to Group Owner
   bool IsConnectedToGO() ABSL_LOCKS_EXCLUDED(mutex_);
   // WifiDirect Group Client request to connect to the Group Owner
-  bool ConnectWifiDirect(const std::string& ssid, const std::string& password)
+  bool ConnectWifiDirect(const WifiDirectCredentials& wifi_direct_credentials)
       ABSL_LOCKS_EXCLUDED(mutex_);
   // WifiDirect Group Client request to disconnect from the Group Owner
   bool DisconnectWifiDirect() ABSL_LOCKS_EXCLUDED(mutex_);
@@ -118,7 +119,6 @@ class WifiDirect {
   absl::flat_hash_map<std::string, WifiDirectServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
 };
-
 }  // namespace connections
 }  // namespace nearby
 

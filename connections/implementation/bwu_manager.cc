@@ -105,7 +105,11 @@ BwuManager::BwuManager(
   }
   if (config_.allow_upgrade_to.All(false)) {
     config_.allow_upgrade_to.web_rtc = true;
-    config_.allow_upgrade_to.wifi_direct = true;
+    if (NearbyFlags::GetInstance().GetBoolFlag(
+            config_package_nearby::nearby_connections_feature::
+                kEnableWifiDirect)) {
+      config_.allow_upgrade_to.wifi_direct = true;
+    }
     config_.allow_upgrade_to.wifi_lan = true;
     config_.allow_upgrade_to.wifi_hotspot = true;
     if (NearbyFlags::GetInstance().GetBoolFlag(

@@ -329,10 +329,16 @@ message BandwidthUpgradeNegotiationFrame {
       // Windows only supports WifiDirect with Service Discovey. Its
       // credentials is the service_name/pin.
       optional string service_name = 7;
-      // The pin is exactly 8 digits. The first 7 digits are the PIN. The last 1
-      // digit is a checksum calculated using a specific algorithm (CRC-8). The
+      // WifiDirect spec requires that pin is exactly 8 digits. The first 7
+      // digits are the PIN. The last 1 digit is a checksum calculated using a
+      // specific algorithm (CRC-8). However, the Windows WinRT
+      // WiFiDirectServiceAdvertiser::ConnectAsync() that we use does NOT
+      // enforce the CRC-8 checksum for a WPS PIN because: 1. The ConnectAsync
+      // PIN is NOT necessarily a WPS PIN. 2. WPS PIN validation is performed by
+      // the Wi-Fi driver/firmware. 3. WFDS connections often bypass or replace
+      // WPS PIN authentication
       // pin is exchanged in the connection handshake stage, but we create and
-      // save it beforw starting GO, so we can send it to GC side for
+      // save it before starting GO, so we can send it to GC side for
       // authentication.
       optional string pin = 8;
     }

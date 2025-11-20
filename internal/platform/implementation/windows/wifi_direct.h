@@ -29,18 +29,20 @@
 // Nearby connections headers
 #include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
-#include "internal/platform/byte_array.h"
+#include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/submittable_executor.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_credential.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
@@ -78,10 +80,10 @@ using ::winrt::Windows::Foundation::AsyncStatus;
 using ::winrt::Windows::Foundation::IInspectable;
 
 // WifiDirectSocket wraps the socket functions to read and write stream.
-// In WiFi HOTSPOT, A WifiDirectSocket will be passed to
+// On WiFiDirect GO serverside, a WifiDirectSocket will be passed to
 // StartAcceptingConnections's callback when Winsock Server Socket receives a
-// new connection. When call API to connect to remote WiFi Hotspot service, also
-// will return a WifiDirectSocket to caller.
+// new connection. When client side call API to connect to remote WiFi
+// WifiDirect GO service, it will return a WifiDirectServiceSocket to caller.
 class WifiDirectSocket : public api::WifiDirectSocket {
  public:
   WifiDirectSocket();
@@ -113,42 +115,6 @@ class WifiDirectSocket : public api::WifiDirectSocket {
   }
 
  private:
-  // A simple wrapper to handle input stream of socket
-  class SocketInputStream : public InputStream {
-   public:
-    explicit SocketInputStream(NearbyClientSocket* absl_nonnull client_socket)
-        : client_socket_(client_socket) {}
-    ~SocketInputStream() override = default;
-
-    ExceptionOr<ByteArray> Read(std::int64_t size) override {
-      return client_socket_->Read(size);
-    }
-    ExceptionOr<size_t> Skip(size_t offset) override {
-      return client_socket_->Skip(offset);
-    }
-    Exception Close() override { return client_socket_->Close(); }
-
-   private:
-    NearbyClientSocket* absl_nonnull const client_socket_;
-  };
-
-  // A simple wrapper to handle output stream of socket
-  class SocketOutputStream : public OutputStream {
-   public:
-    explicit SocketOutputStream(NearbyClientSocket* absl_nonnull client_socket)
-        : client_socket_(client_socket) {}
-    ~SocketOutputStream() override = default;
-
-    Exception Write(const ByteArray& data) override {
-      return client_socket_->Write(data);
-    }
-    Exception Flush() override { return client_socket_->Flush(); }
-    Exception Close() override { return client_socket_->Close(); }
-
-   private:
-    NearbyClientSocket* absl_nonnull const client_socket_;
-  };
-
   absl_nonnull std::unique_ptr<NearbyClientSocket> client_socket_;
   SocketInputStream input_stream_;
   SocketOutputStream output_stream_;
@@ -158,15 +124,14 @@ class WifiDirectSocket : public api::WifiDirectSocket {
 // server socket accepts connection from clients.
 class WifiDirectServerSocket : public api::WifiDirectServerSocket {
  public:
-  explicit WifiDirectServerSocket(int port = 0);
-  WifiDirectServerSocket(const WifiDirectServerSocket&) = default;
-  WifiDirectServerSocket(WifiDirectServerSocket&&) = default;
+  WifiDirectServerSocket() = default;
   ~WifiDirectServerSocket() override;
-  WifiDirectServerSocket& operator=(const WifiDirectServerSocket&) = default;
+  WifiDirectServerSocket(WifiDirectServerSocket&&) = default;
   WifiDirectServerSocket& operator=(WifiDirectServerSocket&&) = default;
 
   std::string GetIPAddress() const override;
-  int GetPort() const override;
+
+  int GetPort() const override { return server_socket_.GetPort(); }
 
   // Blocks until either:
   // - at least one incoming connection request is available, or
@@ -179,83 +144,69 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   // Called by the server side of a connection before passing ownership of
   // WifiDirectServerSocker to user, to track validity of a pointer to
   // this server socket.
-  void SetCloseNotifier(absl::AnyInvocable<void()> notifier);
+  void SetCloseNotifier(absl::AnyInvocable<void()> notifier) {
+    server_socket_.SetCloseNotifier(std::move(notifier));
+  }
 
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
   Exception Close() override;
 
-  // Binds to local port
-  bool Listen(bool dual_stack, std::string& ip_address);
+  // Populates the provided `wifi_direct_credentials` with the IP address
+  // and port of this server socket.
+  void PopulateWifiDirectCredentials(
+      WifiDirectCredentials& wifi_direct_credentials) override;
 
-  NearbyServerSocket server_socket_;
+  void SetIPAddress(std::string ip_address);
+
+  // Binds to local port
+  bool Listen(int port, bool dual_stack);
 
  private:
-  // Retrieves hotspot IP address from local machine
+  // Retrieves WifiDirect GO IP address from local machine
   std::string GetWifiDirectIpAddress() const;
 
-  const int port_;
   mutable absl::Mutex mutex_;
-
-  // Close notifier
-  absl::AnyInvocable<void()> close_notifier_ = nullptr;
+  absl::CondVar is_listen_ready_;
+  bool is_listen_started_ ABSL_GUARDED_BY(mutex_) = false;
 
   // IP addresses of the server socket.
   std::string wifi_direct_ipaddr_ = {};
   bool closed_ = false;
+  NearbyServerSocket server_socket_;
 };
 
-class WifiDirectDiscovered {
- public:
-  explicit WifiDirectDiscovered(const DeviceInformation& device_info);
-
-  ~WifiDirectDiscovered() = default;
-  WifiDirectDiscovered(WifiDirectDiscovered&&) = default;
-  WifiDirectDiscovered& operator=(WifiDirectDiscovered&&) = default;
-
-  std::string GetId() { return id_; }
-  DeviceInformation GetDeviceInformation() {
-    return windows_wifi_direct_device_;
-  }
-
- private:
-  DeviceInformation windows_wifi_direct_device_;
-
-  // Once the device is lost, we can no longer access it's id.
-  std::string id_;
-
-  // Once the device is lost, we can no longer access it's mac address.
-  // std::string name_;
-};
-
-class WifiDirectMedium {
+class WifiDirectMedium : public api::WifiDirectMedium {
  public:
   WifiDirectMedium();
-  ~WifiDirectMedium();
+  ~WifiDirectMedium() override;
   // WifiDirectMedium is neither copyable nor movable.
   WifiDirectMedium(const WifiDirectMedium&) = delete;
   WifiDirectMedium& operator=(const WifiDirectMedium&) = delete;
 
   // If the WiFi Adaptor supports to start WifiDirect Service GO.
-  bool IsInterfaceValid() const;
+  bool IsInterfaceValid() const override;
 
   // Discoverer connects to server socket
   std::unique_ptr<api::WifiDirectSocket> ConnectToService(
       absl::string_view ip_address, int port,
-      CancellationFlag* cancellation_flag);
+      CancellationFlag* cancellation_flag) override;
 
   // Advertiser starts to listen on server socket
-  std::unique_ptr<api::WifiDirectServerSocket> ListenForService(int port);
+  std::unique_ptr<api::WifiDirectServerSocket> ListenForService(
+      int port) override;
 
-  // Starts to advertising
-  bool StartWifiDirect();
-  // Stops to advertising
-  bool StopWifiDirect();
-  // Connects to a WifiDirect
-  bool ConnectWifiDirect();
-  // Disconnects from a WifiDirect
-  bool DisconnectWifiDirect();
+  // Advertiser start WiFiDirect GO with specific Credentials.
+  bool StartWifiDirect(WifiDirectCredentials* wifi_direct_credentials) override;
+  // Advertiser stop the current WiFiDirect GO.
+  bool StopWifiDirect() override;
+  // Discoverer connects to the WifiDirect GO as GC.
+  bool ConnectWifiDirect(
+      const WifiDirectCredentials& wifi_direct_credentials) override;
+  // Discoverer disconnects from the connected WifiDirect GO.
+  bool DisconnectWifiDirect() override;
 
-  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange() {
+  absl::optional<std::pair<std::int32_t, std::int32_t>> GetDynamicPortRange()
+      override {
     return absl::nullopt;
   }
 
@@ -263,7 +214,7 @@ class WifiDirectMedium {
   enum Value : char {
     kMediumStatusIdle = 0,
     kMediumStatusAccepting = (1 << 0),
-    kMediumStatusServiceStarted = (1 << 1),
+    kMediumStatusGOStarted = (1 << 1),
     kMediumStatusConnecting = (1 << 2),
     kMediumStatusConnected = (1 << 3),
   };
@@ -273,9 +224,9 @@ class WifiDirectMedium {
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
   bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
-  // Advertiser started WifiDirect
-  bool IsServiceStarted() {
-    return (medium_status_ & kMediumStatusServiceStarted) != 0;
+  // Advertiser started WifiDirect GO
+  bool IsGOStarted() {
+    return (medium_status_ & kMediumStatusGOStarted) != 0;
   }
   // Discoverer is connecting with the WifiDirect
   bool IsConnecting() {
@@ -326,6 +277,9 @@ class WifiDirectMedium {
                                                      IInspectable inspectable);
   fire_and_forget Watcher_DeviceStopped(DeviceWatcher sender,
                                         IInspectable inspectable);
+
+  WifiDirectCredentials* credentials_go_ = nullptr;
+  WifiDirectCredentials credentials_gc_;
   std::string ip_address_local_;
   std::string ip_address_remote_;
 
@@ -334,12 +288,6 @@ class WifiDirectMedium {
   // Keep the server socket listener pointer
   WifiDirectServerSocket* server_socket_ptr_ ABSL_GUARDED_BY(mutex_) = nullptr;
   SubmittableExecutor listener_executor_;
-
-  absl::flat_hash_map<winrt::hstring, std::unique_ptr<WifiDirectDiscovered>>
-      discovered_devices_by_id_;
-
-  absl::flat_hash_map<winrt::hstring, std::unique_ptr<WifiDirectDiscovered>>
-      connection_requested_devices_by_id_;
 };
 
 }  // namespace nearby::windows
