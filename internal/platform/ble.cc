@@ -284,4 +284,19 @@ bool BleMedium::IsExtendedAdvertisementsAvailable() {
 
 bool BlePeripheral::IsValid() const { return unique_id_.has_value(); }
 
+std::optional<BlePeripheral> BleMedium::RetrieveBlePeripheralFromNativeId(
+    const std::string& ble_peripheral_native_id) {
+  if (!IsValid()) {
+    return std::nullopt;
+  }
+
+  std::optional<api::ble::BlePeripheral::UniqueId> id =
+      impl_->RetrieveBlePeripheralIdFromNativeId(ble_peripheral_native_id);
+  if (id.has_value()) {
+    return BlePeripheral(*this, id.value());
+  }
+
+  return std::nullopt;
+}
+
 }  // namespace nearby

@@ -60,7 +60,6 @@ std::string LastAddressCandidateToString(
 }
 }  // namespace
 
-
 MediumEnvironment& MediumEnvironment::Instance() {
   alignas(MediumEnvironment) static char storage[sizeof(MediumEnvironment)];
   static MediumEnvironment* env = new (&storage) MediumEnvironment();
@@ -272,6 +271,27 @@ api::ble::BleMedium* MediumEnvironment::FindBleMedium(
     LOG(INFO) << "FindBleMedium, not found: " << id;
   }
   return device;
+}
+
+api::ble::BlePeripheral MediumEnvironment::FindBlePeripheral(
+    api::ble::BlePeripheral::UniqueId id) {
+  api::ble::BlePeripheral peripheral;
+  CountDownLatch latch(1);
+  RunOnMediumEnvironmentThread([&]() {
+    for (auto& item : ble_mediums_) {
+      if (item.second.ble_peripheral_id == id) {
+        peripheral = api::ble::BlePeripheral(item.second.ble_peripheral_id);
+        break;
+      }
+    }
+    latch.CountDown();
+  });
+  latch.Await();
+  if (!peripheral.IsSet()) {
+    LOG(INFO) << "FindBlePeripheral, not found: " << id;
+  }
+
+  return peripheral;
 }
 
 void MediumEnvironment::OnBlePeripheralStateChanged(

@@ -38,6 +38,7 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/g3/bluetooth_adapter.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/uuid.h"
@@ -350,6 +351,23 @@ std::unique_ptr<api::ble::GattClient> BleMedium::ConnectToGattServer(
 
 bool BleMedium::IsExtendedAdvertisementsAvailable() {
   return is_extended_advertisements_available_;
+}
+
+std::optional<api::ble::BlePeripheral::UniqueId>
+BleMedium::RetrieveBlePeripheralIdFromNativeId(
+    const std::string& ble_peripheral_native_id) {
+  MacAddress mac_address;
+  if (!MacAddress::FromString(ble_peripheral_native_id, mac_address)) {
+    return std::nullopt;
+  }
+
+  if (MediumEnvironment::Instance()
+          .FindBlePeripheral(mac_address.address())
+          .IsSet()) {
+    return mac_address.address();
+  }
+
+  return std::nullopt;
 }
 
 BleMedium::GattServer::GattServer(

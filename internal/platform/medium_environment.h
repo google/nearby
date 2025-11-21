@@ -338,6 +338,9 @@ class MediumEnvironment {
 
   api::ble::BleMedium* FindBleMedium(api::ble::BlePeripheral::UniqueId id);
 
+  api::ble::BlePeripheral FindBlePeripheral(
+      api::ble::BlePeripheral::UniqueId id);
+
   void RegisterGattServer(api::ble::BleMedium& medium,
                           api::ble::BlePeripheral::UniqueId peripheral_id,
                           Borrowable<api::ble::GattServer*> gatt_server);

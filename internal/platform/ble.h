@@ -570,6 +570,13 @@ class BleMedium final {
     impl_->AddAlternateUuidForService(uuid, service_id);
   }
 
+  // Retrieves a BlePeripheral from a native BLE peripheral ID.
+  // On Apple platform, the native ID is NSUUID in string format like
+  // "E621E1F8-C36C-495A-93FC-0C247A3E6E5F", other platform will be MAC address
+  // as string format like "0C:24:7A:3E:6E:5F".
+  std::optional<BlePeripheral> RetrieveBlePeripheralFromNativeId(
+      const std::string& ble_peripheral_native_id);
+
  private:
   Mutex mutex_;
   std::unique_ptr<api::ble::BleMedium> impl_;

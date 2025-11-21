@@ -37,6 +37,7 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/mac_address.h"
 #include "internal/platform/medium_environment.h"
 
 namespace nearby {
@@ -286,8 +287,7 @@ TEST_P(BleTest, CanCancelConnect2) {
       }));
 
   ble_server.StartAdvertising(service_id, PowerLevel::kHighPower,
-                              Ble::AdvertisingType::kFast,
-                              advertisement_bytes);
+                              Ble::AdvertisingType::kFast, advertisement_bytes);
 
   BlePeripheral discovered_peripheral;
   ble_client.StartScanning(
@@ -1397,6 +1397,20 @@ TEST_F(BleTest, StartMultipleAsyncScanningDiscoverAndLostPeripheral) {
 
   EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDA)));
   EXPECT_TRUE(ble_scanner.StopScanning(std::string(kServiceIDB)));
+  env_.Stop();
+}
+
+TEST_F(BleTest, RetrieveBlePeripheralIdFromNativeId) {
+  env_.Start();
+  BluetoothRadio radio;
+  MacAddress mac_address = radio.GetBluetoothAdapter().GetAddress();
+  Ble ble(radio);
+  env_.Sync(false);
+  EXPECT_TRUE(ble.RetrieveBlePeripheralFromNativeId(mac_address.ToString())
+                  .has_value());
+
+  EXPECT_FALSE(
+      ble.RetrieveBlePeripheralFromNativeId("FF:FF:FF:FF:FF:DE").has_value());
   env_.Stop();
 }
 

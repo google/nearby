@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -28,8 +29,8 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/ble/advertisement_read_result.h"
-#include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/ble/ble_advertisement.h"
+#include "connections/implementation/mediums/ble/ble_socket.h"
 #include "connections/implementation/mediums/ble/discovered_peripheral_callback.h"
 #include "connections/implementation/mediums/ble/discovered_peripheral_tracker.h"
 #include "connections/implementation/mediums/ble/instant_on_lost_manager.h"
@@ -234,6 +235,16 @@ class Ble final {
     MutexLock lock(&mutex_);
     return medium_.IsExtendedAdvertisementsAvailable();
   };
+
+  // Retrieves a BlePeripheral from a native BLE peripheral ID.
+  // On Apple platform, the native ID is NSUUID in string format like
+  // "E621E1F8-C36C-495A-93FC-0C247A3E6E5F", other platform will be MAC address
+  // as string format like "0C:24:7A:3E:6E:5F".
+  std::optional<BlePeripheral> RetrieveBlePeripheralFromNativeId(
+      const std::string& ble_peripheral_native_id) {
+    MutexLock lock(&mutex_);
+    return medium_.RetrieveBlePeripheralFromNativeId(ble_peripheral_native_id);
+  }
 
  private:
   struct AdvertisingInfo {

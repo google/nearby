@@ -189,6 +189,10 @@ class BleMedium : public api::ble::BleMedium {
 
   BluetoothAdapter& GetAdapter() { return adapter_; }
 
+  std::optional<api::ble::BlePeripheral::UniqueId>
+  RetrieveBlePeripheralIdFromNativeId(
+      const std::string& ble_peripheral_native_id) override;
+
  private:
   class GattClient;
   // A concrete implementation for GattServer.

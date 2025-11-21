@@ -172,6 +172,7 @@ cc_test(
         "//internal/platform:cancellation_flag",
         "//internal/platform:comm",
         "//internal/platform:logging",
+        "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation:types",
