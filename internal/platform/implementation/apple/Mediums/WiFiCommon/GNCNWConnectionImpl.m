@@ -44,7 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
   nw_connection_set_queue(_connection, queue);
 }
 
-- (void)setStateChangedHandler:(nw_connection_state_changed_handler_t)handler {
+- (void)setStateChangedHandler:(nullable nw_connection_state_changed_handler_t)handler {
   nw_connection_set_state_changed_handler(_connection, handler);
 }
 

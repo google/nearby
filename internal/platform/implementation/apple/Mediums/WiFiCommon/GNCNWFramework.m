@@ -34,7 +34,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 // An arbitrary timeout that should be pretty lenient.
-NSTimeInterval const GNCConnectionTimeoutInSeconds = 2;
+NSTimeInterval const GNCConnectionTimeoutInSeconds = 4;
 
 // This doesn't start flaking until 0.000005 seconds, so 0.5 should be plenty of time.
 NSTimeInterval const GNCStartDiscoveryTimeoutInSeconds = 0.5;
@@ -429,23 +429,23 @@ NSDictionary<NSString *, NSString *> *GNCTXTRecordForBrowseResult(nw_browse_resu
   id<GNCNWConnection> connectionWrapper = [[GNCNWConnectionImpl alloc] init];
   [connectionWrapper createConnectionWithEndpoint:endpoint parameters:parameters];
   [connectionWrapper setQueue:queue ?: _dispatchQueue];
-  [connectionWrapper
-      setStateChangedHandler:^(nw_connection_state_t state, nw_error_t error) {
-        [condition lock];
-        // Ignore the preparing state, because it is not a final state.
-        if (state != nw_connection_state_preparing) {
-          blockResult = state;
-          if (error != nil) {
-            blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
-          }
-          [condition signal];
-        }
-        [condition unlock];
-      }];
+  [connectionWrapper setStateChangedHandler:^(nw_connection_state_t state, nw_error_t error) {
+    [condition lock];
+    // Ignore the preparing state and waiting state, because it is not a final state.
+    if ((state != nw_connection_state_preparing) && (state != nw_connection_state_waiting)) {
+      blockResult = state;
+      if (error != nil) {
+        blockError = (__bridge_transfer NSError *)nw_error_copy_cf_error(error);
+      }
+      [condition signal];
+    }
+    [condition unlock];
+  }];
   if (cancelSource) {
     dispatch_source_set_event_handler(cancelSource, ^{
       GNCLoggerInfo(
           @"[GNCNWFramework] Connection to endpoint was cancelled before it could be established.");
+      [connectionWrapper setStateChangedHandler:nil];  // Prevent callback issues
       [connectionWrapper cancel];
       dispatch_source_cancel(cancelSource);
     });

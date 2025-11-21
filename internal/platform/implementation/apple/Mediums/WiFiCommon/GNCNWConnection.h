@@ -44,7 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
  *
  * @param handler The state changed handler to use for the connection.
  */
-- (void)setStateChangedHandler:(nw_connection_state_changed_handler_t)handler;
+- (void)setStateChangedHandler:(nullable nw_connection_state_changed_handler_t)handler;
 
 /**
  * Starts the connection.
