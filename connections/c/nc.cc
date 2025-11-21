@@ -527,7 +527,7 @@ void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
   }
 
   ::nearby::connections::OutOfBandConnectionMetadata
-      cpp_out_of_band_connection_metadata;
+      cpp_out_of_band_connection_metadata{};
   cpp_out_of_band_connection_metadata.endpoint_id = metadata->endpoint_id;
   cpp_out_of_band_connection_metadata.endpoint_info = {
       metadata->endpoint_info.data,
@@ -537,6 +537,10 @@ void NcInjectEndpoint(NC_INSTANCE instance, const NC_DATA* service_id,
   cpp_out_of_band_connection_metadata.remote_bluetooth_mac_address = {
       metadata->remote_bluetooth_mac_address.data,
       static_cast<size_t>(metadata->remote_bluetooth_mac_address.size)};
+  cpp_out_of_band_connection_metadata.ble_peripheral_native_id = {
+      metadata->ble_peripheral_native_id.data,
+      static_cast<size_t>(metadata->ble_peripheral_native_id.size)};
+  cpp_out_of_band_connection_metadata.psm = metadata->psm;
 
   nc_context->core->InjectEndpoint(
       std::string(service_id->data, service_id->size),

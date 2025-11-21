@@ -305,6 +305,10 @@ typedef struct NC_OUT_OF_BAND_CONNECTION_METADATA {
   // generated such that no two IDs are identical.
   int endpoint_id;
 
+  //
+  // Properties for BLUETOOTH out-of-band connections.
+  //
+
   // Endpoint info to use for the injected connection; will be included in the
   // endpoint_found_cb callback. Should uniquely identify the InjectEndpoint()
   // call so that the client which made the call can verify the endpoint
@@ -315,6 +319,16 @@ typedef struct NC_OUT_OF_BAND_CONNECTION_METADATA {
 
   // Used for Bluetooth connections.
   NC_DATA remote_bluetooth_mac_address;
+
+  //
+  // Properties for BLE out-of-band connections.
+  //
+
+  // The BLE peripheral native ID to use for the BLE connection.
+  NC_DATA ble_peripheral_native_id;
+
+  // The Protocol/Service Multiplexer(psm) value to use for the BLE connection.
+  int psm;
 } NC_OUT_OF_BAND_CONNECTION_METADATA, *PNC_OUT_OF_BAND_CONNECTION_METADATA;
 
 // Defines the minimal function interface for reading phenotype flags. Callbacks

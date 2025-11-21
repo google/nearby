@@ -17,9 +17,7 @@
 #include <string>
 
 #include "connections/medium_selector.h"
-#include "connections/strategy.h"
 #include "internal/platform/byte_array.h"
-#include "proto/connections_enums.pb.h"
 
 namespace nearby {
 namespace connections {
@@ -47,6 +45,19 @@ struct OutOfBandConnectionMetadata {
 
   // Used for Bluetooth connections.
   ByteArray remote_bluetooth_mac_address;
+
+  //
+  // Properties for BLE out-of-band connections.
+  //
+
+  // The BLE peripheral native ID to use for the BLE connection.
+  // On Apple platform, the native ID is NSUUID in string format like
+  // "E621E1F8-C36C-495A-93FC-0C247A3E6E5F", other platform will be MAC address
+  // as string format like "0C:24:7A:3E:6E:5F".
+  std::string ble_peripheral_native_id;
+
+  // The Protocol/Service Multiplexer(psm) value to use for the BLE connection.
+  int psm;
 };
 
 }  // namespace connections
