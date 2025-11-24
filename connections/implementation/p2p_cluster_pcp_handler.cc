@@ -312,11 +312,6 @@ Status P2pClusterPcpHandler::StopAdvertisingImpl(ClientProxy* client) {
   bluetooth_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
   ble_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   ble_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleL2cap)) {
-    ble_medium_.StopAcceptingL2capConnections(
-        client->GetAdvertisingServiceId());
-  }
 
   wifi_lan_medium_.StopAdvertising(client->GetAdvertisingServiceId());
   wifi_lan_medium_.StopAcceptingConnections(client->GetAdvertisingServiceId());
@@ -1317,36 +1312,6 @@ P2pClusterPcpHandler::StartListeningForIncomingConnectionsImpl(
   // ble
   // TODO(mingshiouwu): Add unit test for ble_l2cap flow
   bool accepting_ble_connections_success = false;
-  if (options.enable_ble_listening &&
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
-      !ble_medium_.IsAcceptingL2capConnections(std::string(service_id))) {
-    if (refactor_ble_l2cap) {
-      if (!ble_medium_.StartAcceptingL2capConnections(
-              std::string(service_id),
-              absl::bind_front(
-                  &P2pClusterPcpHandler::BleConnectionAcceptedHandler2, this,
-                  client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
-        LOG(WARNING) << "Failed to start listening for incoming L2CAP "
-                        "connections on ble";
-      } else {
-        accepting_ble_connections_success = true;
-      }
-    } else {
-      if (!ble_medium_.StartAcceptingL2capConnections(
-              std::string(service_id),
-              absl::bind_front(
-                  &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler,
-                  this, client_proxy, local_endpoint_id,
-                  options.listening_endpoint_type))) {
-        LOG(WARNING) << "Failed to start listening for incoming L2CAP "
-                        "connections on ble";
-      } else {
-        accepting_ble_connections_success = true;
-      }
-    }
-  }
 
   if (options.enable_ble_listening &&
       !ble_medium_.IsAcceptingConnections(std::string(service_id))) {
@@ -2224,25 +2189,6 @@ ErrorOr<Medium> P2pClusterPcpHandler::StartBleAdvertising(
     }
     // TODO: b/419654808 - Add more tests for StartAcceptingL2capConnections
     // below.
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            config_package_nearby::nearby_connections_feature::
-                kEnableBleL2cap)) {
-      if (refactor_ble_l2cap) {
-        ble_l2cap_result = ble_medium_.StartAcceptingL2capConnections(
-            service_id,
-            absl::bind_front(
-                &P2pClusterPcpHandler::BleConnectionAcceptedHandler2, this,
-                client, local_endpoint_info.AsStringView(),
-                NearbyDevice::Type::kConnectionsDevice));
-      } else {
-        ble_l2cap_result = ble_medium_.StartAcceptingL2capConnections(
-            service_id,
-            absl::bind_front(
-                &P2pClusterPcpHandler::BleL2capConnectionAcceptedHandler, this,
-                client, local_endpoint_info.AsStringView(),
-                NearbyDevice::Type::kConnectionsDevice));
-      }
-    }
 
     ErrorOr<bool> ble_result = false;
     if (refactor_ble_l2cap) {
@@ -2459,61 +2405,6 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::BleConnectImpl(
   VLOG(1) << "Client " << client->GetClientId()
           << " is attempting to connect to (" << peripheral.ToReadableString()
           << ") over BLE.";
-
-  if (NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::kEnableBleL2cap) &&
-      peripheral.GetPsm() !=
-          mediums::BleAdvertisementHeader::kDefaultPsmValue) {
-    if (refactor_ble_l2cap) {
-      ErrorOr<std::unique_ptr<mediums::BleSocket>> ble_l2cap_socket_result =
-          ble_medium_.ConnectOverL2cap2(
-              endpoint->service_id, peripheral,
-              client->GetCancellationFlag(endpoint->endpoint_id));
-      if (!ble_l2cap_socket_result.has_error()) {
-        LOG(INFO) << "In BleV2ConnectImpl(), connected to Ble L2CAP device "
-                  << absl::BytesToHexString(peripheral.GetId().data())
-                  << " for endpoint(id=" << endpoint->endpoint_id << ").";
-        auto channel = std::make_unique<BleL2capEndpointChannel>(
-            endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-            std::move(ble_l2cap_socket_result.value()));
-        return BasePcpHandler::ConnectImplResult{
-            .medium = BLE,
-            .status = {Status::kSuccess},
-            .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
-            .endpoint_channel = std::move(channel),
-        };
-      } else {
-        LOG(WARNING) << "In BleConnectImpl(), failed to connect to Ble L2CAP "
-                        "device "
-                     << absl::BytesToHexString(peripheral.GetId().data())
-                     << " for endpoint(id=" << endpoint->endpoint_id << ").";
-      }
-    } else {
-      ErrorOr<BleL2capSocket> ble_l2cap_socket_result =
-          ble_medium_.ConnectOverL2cap(
-              endpoint->service_id, peripheral,
-              client->GetCancellationFlag(endpoint->endpoint_id));
-      if (!ble_l2cap_socket_result.has_error()) {
-        LOG(INFO) << "In BleConnectImpl(), connected to Ble L2CAP device "
-                  << absl::BytesToHexString(peripheral.GetId().data())
-                  << " for endpoint(id=" << endpoint->endpoint_id << ").";
-        auto channel = std::make_unique<BleL2capEndpointChannel>(
-            endpoint->service_id, /*channel_name=*/endpoint->endpoint_id,
-            ble_l2cap_socket_result.value());
-        return BasePcpHandler::ConnectImplResult{
-            .medium = BLE,
-            .status = {Status::kSuccess},
-            .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
-            .endpoint_channel = std::move(channel),
-        };
-      } else {
-        LOG(WARNING) << "In BleConnectImpl(), failed to connect to Ble L2CAP "
-                        "device "
-                     << absl::BytesToHexString(peripheral.GetId().data())
-                     << " for endpoint(id=" << endpoint->endpoint_id << ").";
-      }
-    }
-  }
 
   std::unique_ptr<BleEndpointChannel> channel = nullptr;
   if (refactor_ble_l2cap) {

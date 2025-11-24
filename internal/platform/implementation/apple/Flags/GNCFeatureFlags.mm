@@ -31,15 +31,12 @@
 }
 
 + (BOOL)bleL2capEnabled {
-  return nearby::NearbyFlags::GetInstance().GetBoolFlag(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableBleL2cap);
+  return NO;
 }
 
 + (BOOL)refactorBleL2capEnabled {
   return nearby::NearbyFlags::GetInstance().GetBoolFlag(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kRefactorBleL2cap);
+      nearby::connections::config_package_nearby::nearby_connections_feature::kRefactorBleL2cap);
 }
 
 @end

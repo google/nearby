@@ -258,9 +258,6 @@ class P2pClusterPcpHandlerTestWithParam
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kEnableDct, true);
     NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
-        true);
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
         config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
         false);
     if (advertising_options_.allowed.ble) {

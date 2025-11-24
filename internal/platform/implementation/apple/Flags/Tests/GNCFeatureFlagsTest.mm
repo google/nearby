@@ -31,9 +31,6 @@
       nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableGattClientDisconnection,
       false);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
-      false);
 
   [super tearDown];
 }
@@ -66,15 +63,7 @@
   XCTAssertFalse([GNCFeatureFlags gattClientDisconnectionEnabled]);
 }
 
-- (void)testBleL2capEnabled_WhenFlagIsTrue {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap, YES);
-  XCTAssertTrue([GNCFeatureFlags bleL2capEnabled]);
-}
-
 - (void)testBleL2capEnabled_WhenFlagIsFalse {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap, NO);
   XCTAssertFalse([GNCFeatureFlags bleL2capEnabled]);
 }
 
