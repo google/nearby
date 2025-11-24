@@ -113,7 +113,6 @@ cc_library(
         "transfer_metadata.h",
         "transfer_metadata_builder.h",
     ],
-    compatible_with = ["//buildenv/target:non_prod"],
     visibility = [
         "//location/nearby/apps/better_together/windows/nearby_share:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
