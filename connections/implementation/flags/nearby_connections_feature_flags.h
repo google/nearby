@@ -49,12 +49,12 @@ constexpr auto kEnableAwdl =
 // Disable/Enable BLE L2CAP in Nearby Connections SDK.
 constexpr auto kEnableBleL2cap =
     flags::Flag<bool>(kConfigPackage, "45685706", false);
+// Enable/Disable BLE medium injection.
+constexpr auto kEnableBleMediumInjection =
+    flags::Flag<bool>(kConfigPackage, "45743128", false);
 // Disable/Enable BLE v2 in Nearby Connections SDK.
 constexpr auto kEnableBleV2 =
     flags::Flag<bool>(kConfigPackage, "45401515", true);
-// When true, refactor the BLE/L2CAP logic in Nearby Connections SDK.
-constexpr auto kRefactorBleL2cap =
-    flags::Flag<bool>(kConfigPackage, "45713654", false);
 // Enable/Disable DCT advertising/scanning specification.
 constexpr auto kEnableDct =
     flags::Flag<bool>(kConfigPackage, "45697202", false);
@@ -103,7 +103,7 @@ constexpr auto kEnableScanningForInstantOnLost =
 // Stop BLE_V2 scanning when upgrading to WIFI Hotspot or WFD.
 constexpr auto kEnableStopBleScanningOnWifiUpgrade =
     flags::Flag<bool>(kConfigPackage, "45687902", false);
-// When true, enable Wi-Fi Direct in Nearby connections SDK.
+// Enable/Disable Wi-Fi Direct in Nearby connections SDK.
 constexpr auto kEnableWifiDirect =
     flags::Flag<bool>(kConfigPackage, "45741157", false);
 // by default, enable Wi-Fi Hotspot client.
@@ -115,6 +115,9 @@ constexpr auto kMediumDefaultMaxTransmitPacketSize =
 // Default max allowed read bytes for medium.
 constexpr auto kMediumMaxAllowedReadBytes =
     flags::Flag<int64_t>(kConfigPackage, "45669530", 1048576);
+// Disable/Enable refactor of BLE/L2CAP in Nearby Connections SDK.
+constexpr auto kRefactorBleL2cap =
+    flags::Flag<bool>(kConfigPackage, "45737079", false);
 // Set the safe-to-disconnect version.
 // 0. Disabled all. 1. safe-to-disconnect 2. reserved 3. auto-reconnect
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
@@ -123,6 +126,7 @@ constexpr auto kSafeToDisconnectVersion =
 // When true, use stable endpoint ID.
 constexpr auto kUseStableEndpointId =
     flags::Flag<bool>(kConfigPackage, "45639298", false);
+
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections
