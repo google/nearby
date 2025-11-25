@@ -490,6 +490,9 @@ message SharingLog {
     // provider is not external.
     optional string external_provider_id = 11
         /* type = ST_SESSION_ID */;
+    // Is this file transfer from a direct share target. This is only available
+    // for the sender log.
+    optional bool is_direct_share = 12;
   }
 
   // TODO(fdi): may consider adding a field about decipherability later.
