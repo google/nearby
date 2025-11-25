@@ -1611,6 +1611,67 @@ TEST_F(P2pClusterPcpHandlerTest, CanConnectToInjectedEndpoint) {
   env_.Stop();
 }
 
+TEST_F(P2pClusterPcpHandlerTest, CanInjectBleEndpoint) {
+  NearbyFlags::GetInstance().OverrideBoolFlagValue(
+      config_package_nearby::nearby_connections_feature::
+          kEnableBleMediumInjection,
+      true);
+  env_.Start();
+  Mediums mediums_a;
+  EndpointChannelManager ecm_a;
+  EndpointManager em_a(&ecm_a);
+  BwuManager bwu_a(mediums_a, em_a, ecm_a, {}, {});
+  InjectedBluetoothDeviceStore ibds_a;
+  P2pClusterPcpHandler handler_a(&mediums_a, &em_a, &ecm_a, &bwu_a, ibds_a);
+
+  DiscoveryOptions discovery_options{
+      {Strategy::kP2pCluster,
+       BooleanMediumSelector{
+           .ble = true,
+       }},
+      /* auto_upgrade_bandwidth= */ false,
+      /* enforce_topology_constraints= */ false,
+      /* is_out_of_band_connection= */ false,
+  };
+
+  CountDownLatch found_latch(1);
+  std::string found_endpoint_id;
+
+  EXPECT_EQ(
+      handler_a.StartDiscovery(&client_a_, service_id_, discovery_options,
+                               {
+                                   .endpoint_found_cb =
+                                       [&](const std::string& endpoint_id,
+                                           const ByteArray& endpoint_info,
+                                           const std::string& service_id) {
+                                         found_endpoint_id = endpoint_id;
+                                         found_latch.CountDown();
+                                       },
+                               }),
+      Status{Status::kSuccess});
+
+  std::string endpoint_id = "ABCD";
+  std::string endpoint_info_name = "endpoint_info";
+  ByteArray endpoint_info(endpoint_info_name);
+
+  OutOfBandConnectionMetadata metadata = {
+      .medium = location::nearby::proto::connections::Medium::BLE,
+      .endpoint_id = endpoint_id,
+      .ble_peripheral_native_id = mediums_a.GetBluetoothRadio()
+                                      .GetBluetoothAdapter()
+                                      .GetAddress()
+                                      .ToString(),
+      .psm = 1234,
+  };
+
+  handler_a.InjectEndpoint(&client_a_, service_id_, metadata);
+
+  EXPECT_TRUE(found_latch.Await(absl::Milliseconds(1000)).result());
+  EXPECT_EQ(found_endpoint_id, endpoint_id);
+  handler_a.StopDiscovery(&client_a_);
+  env_.Stop();
+}
+
 class P2pLostHandlerTestWithParam : public testing::TestWithParam<bool> {
  protected:
   void SetUp() override {

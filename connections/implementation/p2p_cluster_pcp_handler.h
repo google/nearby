@@ -42,12 +42,14 @@
 #include "connections/implementation/mediums/wifi_direct.h"
 #include "connections/implementation/mediums/wifi_hotspot.h"
 #include "connections/implementation/mediums/wifi_lan.h"
+#include "connections/implementation/webrtc_state.h"
 #include "connections/medium_selector.h"
 #include "connections/out_of_band_connection_metadata.h"
 #include "connections/power_level.h"
 #include "connections/status.h"
 #include "connections/v3/connection_listening_options.h"
 #include "internal/interop/device.h"
+#include "internal/platform/awdl.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/bluetooth_adapter.h"
 #include "internal/platform/bluetooth_classic.h"
@@ -305,6 +307,13 @@ class P2pClusterPcpHandler : public BasePcpHandler {
       ClientProxy* client, const std::string& service_id);
   BasePcpHandler::ConnectImplResult WifiLanConnectImpl(
       ClientProxy* client, WifiLanEndpoint* endpoint);
+
+  // Endpoints injection.
+  Status InjectBluetoothEndpoint(ClientProxy* client,
+                                 const std::string& service_id,
+                                 const OutOfBandConnectionMetadata& metadata);
+  Status InjectBleEndpoint(ClientProxy* client, const std::string& service_id,
+                           const OutOfBandConnectionMetadata& metadata);
 
   Awdl& awdl_medium_;
   BluetoothRadio& bluetooth_radio_;

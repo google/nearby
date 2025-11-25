@@ -1199,34 +1199,16 @@ Status P2pClusterPcpHandler::StopDiscoveryImpl(ClientProxy* client) {
 Status P2pClusterPcpHandler::InjectEndpointImpl(
     ClientProxy* client, const std::string& service_id,
     const OutOfBandConnectionMetadata& metadata) {
-  LOG(INFO) << "InjectEndpoint.";
-  // Bluetooth is the only supported out-of-band connection medium.
-  if (metadata.medium != BLUETOOTH) {
-    LOG(WARNING) << "InjectEndpointImpl: Only Bluetooth is supported.";
-    return {Status::kError};
+  switch (metadata.medium) {
+    case BLUETOOTH:
+      return InjectBluetoothEndpoint(client, service_id, metadata);
+    case BLE:
+      return InjectBleEndpoint(client, service_id, metadata);
+    default:
+      LOG(WARNING) << "InjectEndpointImpl: medium "
+                   << Medium_Name(metadata.medium) << " is not supported.";
+      return {Status::kError};
   }
-
-  // Make sure discovery is in out-of-band  mode from the API definition in
-  // core.h.
-  if (!client->GetDiscoveryOptions().is_out_of_band_connection) {
-    LOG(WARNING) << "InjectEndpointImpl: Discovery is not in out-of-band mode.";
-    return {Status::kError};
-  }
-
-  BluetoothDevice remote_bluetooth_device =
-      injected_bluetooth_device_store_.CreateInjectedBluetoothDevice(
-          metadata.remote_bluetooth_mac_address, metadata.endpoint_id,
-          metadata.endpoint_info,
-          GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength),
-          GetPcp());
-
-  if (!remote_bluetooth_device.IsValid()) {
-    LOG(WARNING) << "InjectEndpointImpl: Invalid parameters.";
-    return {Status::kError};
-  }
-
-  BluetoothDeviceDiscoveredHandler(client, service_id, remote_bluetooth_device);
-  return {Status::kSuccess};
 }
 
 BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::ConnectImpl(
@@ -2876,6 +2858,92 @@ BasePcpHandler::ConnectImplResult P2pClusterPcpHandler::WifiLanConnectImpl(
       .operation_result_code = OperationResultCode::DETAIL_SUCCESS,
       .endpoint_channel = std::move(channel),
   };
+}
+
+Status P2pClusterPcpHandler::InjectBluetoothEndpoint(
+    ClientProxy* client, const std::string& service_id,
+    const OutOfBandConnectionMetadata& metadata) {
+  LOG(INFO) << "Inject Bluetooth endpoint for service_id=" << service_id;
+  // Make sure the medium is Bluetooth.
+  if (metadata.medium != BLUETOOTH) {
+    LOG(WARNING) << "InjectBluetoothEndpoint: Only Bluetooth is supported.";
+    return {Status::kError};
+  }
+
+  // Make sure discovery is in out-of-band  mode from the API definition in
+  // core.h.
+  if (!client->GetDiscoveryOptions().is_out_of_band_connection) {
+    LOG(WARNING)
+        << "InjectBluetoothEndpoint: Discovery is not in out-of-band mode.";
+    return {Status::kError};
+  }
+
+  BluetoothDevice remote_bluetooth_device =
+      injected_bluetooth_device_store_.CreateInjectedBluetoothDevice(
+          metadata.remote_bluetooth_mac_address, metadata.endpoint_id,
+          metadata.endpoint_info,
+          GenerateHash(service_id, BluetoothDeviceName::kServiceIdHashLength),
+          GetPcp());
+
+  if (!remote_bluetooth_device.IsValid()) {
+    LOG(WARNING) << "InjectBluetoothEndpoint: Invalid parameters.";
+    return {Status::kError};
+  }
+
+  BluetoothDeviceDiscoveredHandler(client, service_id, remote_bluetooth_device);
+  return {Status::kSuccess};
+}
+
+Status P2pClusterPcpHandler::InjectBleEndpoint(
+    ClientProxy* client, const std::string& service_id,
+    const OutOfBandConnectionMetadata& metadata) {
+  LOG(INFO) << "Inject BLE endpoint for service_id=" << service_id;
+
+  if (!NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableBleMediumInjection)) {
+    LOG(ERROR) << "InjectBleEndpoint: BLE injection is disabled.";
+    return {Status::kError};
+  }
+
+  if (metadata.medium != Medium::BLE) {
+    LOG(WARNING) << "InjectBleEndpoint: Only BLE is supported.";
+    return {Status::kError};
+  }
+
+  if (metadata.ble_peripheral_native_id.empty()) {
+    LOG(WARNING) << "InjectBleEndpoint: Invalid parameters.";
+    return {Status::kError};
+  }
+
+  if (!client->IsDiscovering()) {
+    LOG(WARNING)
+        << "InjectBleEndpoint: Only allow injection when discovery is running.";
+    return {Status::kError};
+  }
+
+  std::optional<BlePeripheral> ble_peripheral =
+      ble_medium_.RetrieveBlePeripheralFromNativeId(
+          metadata.ble_peripheral_native_id);
+  if (!ble_peripheral.has_value()) {
+    LOG(WARNING) << "InjectBleEndpoint: Invalid peripheral native id.";
+    return {Status::kError};
+  }
+
+  ble_peripheral->SetPsm(metadata.psm);
+
+  RunOnPcpHandlerThread(
+      "p2p-bt-device-discovered",
+      [this, client, service_id, metadata, ble_peripheral = *ble_peripheral]()
+          RUN_ON_PCP_HANDLER_THREAD() {
+            OnEndpointFound(client,
+                            std::make_shared<BleEndpoint>(BleEndpoint{
+                                {metadata.endpoint_id, metadata.endpoint_info,
+                                 service_id, BLE, WebRtcState::kUndefined},
+                                ble_peripheral}));
+          });
+
+  return {Status::kSuccess};
 }
 
 }  // namespace connections
