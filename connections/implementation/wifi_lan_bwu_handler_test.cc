@@ -34,6 +34,7 @@
 #include "internal/platform/mock_wifi_lan_medium.h"
 #include "internal/platform/mock_wifi_lan_server_socket.h"
 #include "internal/platform/mock_wifi_lan_socket.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
@@ -195,8 +196,10 @@ TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   EXPECT_CALL(*wifi_lan_medium, ListenForService(_))
       .WillOnce(Return(ByMove(std::move(wifi_lan_server_socket))));
   EXPECT_CALL(*wifi_lan_medium, GetUpgradeAddressCandidates(_))
-      .WillOnce(Return(std::vector<std::string>{std::string(kIpv6Address),
-                                                std::string(kIpv4Address)}));
+      .WillOnce(Return(std::vector<ServiceAddress>{
+          {std::vector<char>{kIpv6Address.begin(), kIpv6Address.end()}, 8080},
+          {std::vector<char>{kIpv4Address.begin(), kIpv4Address.end()},
+           8888}}));
   OfflineFrame expected_frame;
   expected_frame.set_version(OfflineFrame::V1);
   expected_frame.mutable_v1()->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
@@ -212,13 +215,13 @@ TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
                               ->mutable_upgrade_path_info()
                               ->mutable_wifi_lan_socket();
   wifi_lan_socket->set_ip_address(kIpv4Address);
-  wifi_lan_socket->set_wifi_port(8080);
+  wifi_lan_socket->set_wifi_port(8888);
   auto* address_candidate = wifi_lan_socket->add_address_candidates();
   address_candidate->set_ip_address(kIpv6Address);
   address_candidate->set_port(8080);
   address_candidate = wifi_lan_socket->add_address_candidates();
   address_candidate->set_ip_address(kIpv4Address);
-  address_candidate->set_port(8080);
+  address_candidate->set_port(8888);
   upgrade_path_info->set_supports_client_introduction_ack(true);
 
   ByteArray result = handler_.InitializeUpgradedMediumForEndpoint(

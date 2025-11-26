@@ -145,17 +145,15 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   // Address candidates are not populated until StartAcceptingConnections() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  std::pair<std::vector<std::string>, int> upgrade_candidates =
+  std::vector<ServiceAddress> upgrade_candidates =
       wifi_lan_medium_.GetUpgradeAddressCandidates(upgrade_service_id);
-  const std::vector<std::string>& ip_addresses = upgrade_candidates.first;
-  int port = upgrade_candidates.second;
-  if (ip_addresses.empty()) {
+  if (upgrade_candidates.empty()) {
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
               << endpoint_id << " because there are no available ip addresses.";
     return {};
   }
-  return parser::ForBwuWifiLanPathAvailable(ip_addresses, port);
+  return parser::ForBwuWifiLanPathAvailable(upgrade_candidates);
 }
 
 void WifiLanBwuHandler::HandleRevertInitiatorStateForService(

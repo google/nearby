@@ -26,6 +26,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
@@ -54,7 +55,7 @@ class MockWifiLanMedium : public api::WifiLanMedium {
               (int port), (override));
   MOCK_METHOD((absl::optional<std::pair<std::int32_t, std::int32_t>>),
               GetDynamicPortRange, (), (override));
-  MOCK_METHOD(std::vector<std::string>, GetUpgradeAddressCandidates,
+  MOCK_METHOD(std::vector<ServiceAddress>, GetUpgradeAddressCandidates,
               (const api::WifiLanServerSocket& server_socket), (override));
 };
 
