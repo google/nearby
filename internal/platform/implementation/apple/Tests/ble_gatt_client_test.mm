@@ -23,11 +23,11 @@
 
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/implementation/ble.h"
 #import "internal/platform/implementation/apple/Flags/GNCFeatureFlags.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTCharacteristic.h"
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCBLEGATTClient.h"
 #import "internal/platform/implementation/apple/ble_utils.h"
+#include "internal/platform/implementation/ble.h"
 
 /**
  * Fake implementation for GNCBLEGATTClient.
@@ -113,10 +113,6 @@
 }
 
 - (void)tearDown {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      false);
   [super tearDown];
 }
 
@@ -223,20 +219,7 @@
   XCTAssertFalse(result);
 }
 
-- (void)testDisconnectWhenFlagEnabled {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      YES);
-  _gattClient->Disconnect();
-  XCTAssertTrue(_fakeGNCBLEGATTClient.disconnectCalled);
-}
-
 - (void)testDisconnectWhenFlagDisabled {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      NO);
   _gattClient->Disconnect();
   XCTAssertFalse(_fakeGNCBLEGATTClient.disconnectCalled);
 }

@@ -285,10 +285,6 @@ NcCreateServiceWithEventLogger(const NC_EVENT_LOGGER* event_logger) {
       true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       ::nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      true);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      ::nearby::connections::config_package_nearby::nearby_connections_feature::
           kEnableAwdl,
       true);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(

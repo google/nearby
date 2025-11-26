@@ -28,10 +28,6 @@
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableDct, false);
   nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      false);
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
       nearby::connections::config_package_nearby::nearby_connections_feature::kEnableBleL2cap,
       false);
 
@@ -50,19 +46,7 @@
   XCTAssertFalse([GNCFeatureFlags dctEnabled]);
 }
 
-- (void)testGattClientDisconnectionEnabled_WhenFlagIsTrue {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      YES);
-  XCTAssertTrue([GNCFeatureFlags gattClientDisconnectionEnabled]);
-}
-
 - (void)testGattClientDisconnectionEnabled_WhenFlagIsFalse {
-  nearby::NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      nearby::connections::config_package_nearby::nearby_connections_feature::
-          kEnableGattClientDisconnection,
-      NO);
   XCTAssertFalse([GNCFeatureFlags gattClientDisconnectionEnabled]);
 }
 
