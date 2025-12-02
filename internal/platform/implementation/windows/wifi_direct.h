@@ -25,7 +25,6 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 // Nearby connections headers
 #include "absl/base/nullability.h"
@@ -210,10 +209,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
       override {
     return absl::nullopt;
   }
-
-  // Returns the supported WifiDirect auth types.
-  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
-      const override;
 
  private:
   enum Value : char {

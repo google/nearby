@@ -16,7 +16,6 @@
 #define CORE_INTERNAL_MEDIUMS_WIFI_DIRECT_H_
 
 #include <string>
-#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
@@ -37,10 +36,8 @@ class WifiDirect {
   // Callback that is invoked when a new connection is accepted.
   using AcceptedConnectionCallback = absl::AnyInvocable<void(
       const std::string& service_id, WifiDirectSocket socket)>;
-  using WifiDirectAuthType =
-      ::location::nearby::proto::connections::WifiDirectAuthType;
 
-  WifiDirect();
+  WifiDirect() : is_go_started_(false), is_connected_to_go_(false) {}
   ~WifiDirect();
   // Not copyable or movable
   WifiDirect(const WifiDirect&) = delete;
@@ -97,19 +94,6 @@ class WifiDirect {
   WifiDirectCredentials* GetCredentials(absl::string_view service_id)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
-  // Returns the supported WifiDirect auth types.
-  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes() {
-    return supported_wifi_direct_auth_types_;
-  }
-
-  // Returns the preferred WifiDirect auth type.
-  WifiDirectAuthType GetPreferredWifiDirectAuthType() {
-    return preferred_wifi_direct_auth_type_;
-  }
-
-  // Sets the preferred WifiDirect auth type.
-  bool SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type);
-
  private:
   mutable Mutex mutex_;
   static constexpr int kMaxConcurrentAcceptLoops = 5;
@@ -134,10 +118,6 @@ class WifiDirect {
   // used from accept_loops_runner_, and thus require pointer stability.
   absl::flat_hash_map<std::string, WifiDirectServerSocket> server_sockets_
       ABSL_GUARDED_BY(mutex_);
-  // The supported WifiDirect auth types.
-  std::vector<WifiDirectAuthType> supported_wifi_direct_auth_types_;
-  WifiDirectAuthType preferred_wifi_direct_auth_type_ =
-      WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN;
 };
 }  // namespace connections
 }  // namespace nearby

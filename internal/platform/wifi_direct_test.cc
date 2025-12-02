@@ -282,15 +282,5 @@ TEST_F(WifiDirectMediumTest, CanStartDirectGOThatOtherFailConnect) {
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
 }
 
-TEST_F(WifiDirectMediumTest, GetSupportedWifiDirectAuthTypes) {
-  WifiDirectMedium wifi_direct_a;
-  // g3 only supports WifiDirect with auth type of PIN.
-  auto supported_types = wifi_direct_a.GetSupportedWifiDirectAuthTypes();
-  EXPECT_EQ(supported_types.size(), 1);
-  EXPECT_EQ(supported_types[0],
-            location::nearby::proto::connections::
-                WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
-}
-
 }  // namespace
 }  // namespace nearby

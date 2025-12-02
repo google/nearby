@@ -86,7 +86,7 @@ V1Frame::FrameType GetFrameType(const OfflineFrame& frame) {
 ByteArray ForConnectionRequestConnections(
     const location::nearby::connections::ConnectionsDevice&
         proto_connections_device,
-    const ConnectionInfo& connection_info) {
+    const ConnectionInfo& conection_info) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -97,49 +97,42 @@ ByteArray ForConnectionRequestConnections(
     connection_request->mutable_connections_device()->MergeFrom(
         proto_connections_device);
   }
-  if (!connection_info.local_endpoint_id.empty()) {
-    connection_request->set_endpoint_id(connection_info.local_endpoint_id);
+  if (!conection_info.local_endpoint_id.empty()) {
+    connection_request->set_endpoint_id(conection_info.local_endpoint_id);
   }
-  if (!connection_info.local_endpoint_info.Empty()) {
+  if (!conection_info.local_endpoint_info.Empty()) {
     connection_request->set_endpoint_name(
-        connection_info.local_endpoint_info.string_data());
+        conection_info.local_endpoint_info.string_data());
     connection_request->set_endpoint_info(
-        connection_info.local_endpoint_info.string_data());
+        conection_info.local_endpoint_info.string_data());
   }
-  connection_request->set_nonce(connection_info.nonce);
+  connection_request->set_nonce(conection_info.nonce);
   auto* medium_metadata = connection_request->mutable_medium_metadata();
-  medium_metadata->set_supports_5_ghz(connection_info.supports_5_ghz);
-  if (!connection_info.bssid.empty())
-    medium_metadata->set_bssid(connection_info.bssid);
-  medium_metadata->set_ap_frequency(connection_info.ap_frequency);
-  if (!connection_info.ip_address.empty())
-    medium_metadata->set_ip_address(connection_info.ip_address);
+  medium_metadata->set_supports_5_ghz(conection_info.supports_5_ghz);
+  if (!conection_info.bssid.empty())
+    medium_metadata->set_bssid(conection_info.bssid);
+  medium_metadata->set_ap_frequency(conection_info.ap_frequency);
+  if (!conection_info.ip_address.empty())
+    medium_metadata->set_ip_address(conection_info.ip_address);
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableDynamicRoleSwitch) &&
-      connection_info.medium_role.has_value()) {
+      conection_info.medium_role.has_value()) {
     medium_metadata->mutable_medium_role()->MergeFrom(
-        connection_info.medium_role.value());
+        conection_info.medium_role.value());
   }
-  if (!connection_info.supported_wifi_direct_auth_types.empty()) {
-    for (const auto& auth_type :
-         connection_info.supported_wifi_direct_auth_types) {
-      medium_metadata->add_supported_wifi_direct_auth_types(
-          WFDAuthTypeToMediumMetadataWFDAuthType(auth_type));
-    }
-  }
-  if (!connection_info.supported_mediums.empty()) {
-    for (const auto& medium : connection_info.supported_mediums) {
+  if (!conection_info.supported_mediums.empty()) {
+    for (const auto& medium : conection_info.supported_mediums) {
       connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
     }
   }
-  if (connection_info.keep_alive_interval_millis > 0) {
+  if (conection_info.keep_alive_interval_millis > 0) {
     connection_request->set_keep_alive_interval_millis(
-        connection_info.keep_alive_interval_millis);
+        conection_info.keep_alive_interval_millis);
   }
-  if (connection_info.keep_alive_timeout_millis > 0) {
+  if (conection_info.keep_alive_timeout_millis > 0) {
     connection_request->set_keep_alive_timeout_millis(
-        connection_info.keep_alive_timeout_millis);
+        conection_info.keep_alive_timeout_millis);
   }
 
   return ToBytes(std::move(frame));
@@ -371,11 +364,14 @@ ByteArray ForBwuWifiAwarePathAvailable(const std::string& service_id,
   return ToBytes(std::move(frame));
 }
 
-ByteArray ForBwuWifiDirectPathAvailable(
-    const std::string& ssid, const std::string& password, std::int32_t port,
-    std::int32_t frequency, bool supports_disabling_encryption,
-    const std::string& gateway, const std::string& service_name,
-    const std::string& pin) {
+ByteArray ForBwuWifiDirectPathAvailable(const std::string& ssid,
+                                        const std::string& password,
+                                        std::int32_t port,
+                                        std::int32_t frequency,
+                                        bool supports_disabling_encryption,
+                                        const std::string& gateway,
+                                        const std::string& service_name,
+                                        const std::string& pin) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -735,44 +731,6 @@ std::vector<Medium> ConnectionRequestMediumsToMediums(
   for (const auto& int_medium : frame.mediums()) {
     result.push_back(ConnectionRequestMediumToMedium(
         static_cast<ConnectionRequestFrame::Medium>(int_medium)));
-  }
-  return result;
-}
-
-MediumMetadata::WifiDirectAuthType WFDAuthTypeToMediumMetadataWFDAuthType(
-    WifiDirectAuthType wifi_direct_auth_type) {
-  switch (wifi_direct_auth_type) {
-    case WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD:
-      return MediumMetadata::WIFI_DIRECT_WITH_PASSWORD;
-    case WifiDirectAuthType::WIFI_DIRECT_WITH_PIN:
-      return MediumMetadata::WIFI_DIRECT_WITH_PIN;
-    default:
-      return MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN;
-  }
-}
-
-WifiDirectAuthType MediumMetadataWFDAuthTypeToWFDAuthType(
-    MediumMetadata::WifiDirectAuthType wifi_direct_auth_type) {
-  switch (wifi_direct_auth_type) {
-    case MediumMetadata::WIFI_DIRECT_WITH_PASSWORD:
-      return WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD;
-    case MediumMetadata::WIFI_DIRECT_WITH_PIN:
-      return WifiDirectAuthType::WIFI_DIRECT_WITH_PIN;
-    default:
-      return WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN;
-  }
-}
-
-std::vector<WifiDirectAuthType> MediumMetadataWFDAuthTypesToWFDAuthTypes(
-    const MediumMetadata& medium_metadata) {
-  std::vector<WifiDirectAuthType> result;
-  for (const auto& int_wifi_direct_auth_type :
-       medium_metadata.supported_wifi_direct_auth_types()) {
-    // The int_wifi_direct_auth_type is guaranteed to be a valid
-    // MediumMetadata::WifiDirectAuthType by the proto spec.
-    result.push_back(MediumMetadataWFDAuthTypeToWFDAuthType(
-        static_cast<MediumMetadata::WifiDirectAuthType>(
-            int_wifi_direct_auth_type)));
   }
   return result;
 }

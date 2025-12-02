@@ -190,40 +190,6 @@ TEST_F(WifiDirectTest, CanStartGOTheOtherFailConnect) {
   EXPECT_TRUE(wifi_direct_a.StopWifiDirect());
 }
 
-TEST_F(WifiDirectTest, GetSupportedWifiDirectAuthTypes) {
-  WifiDirect wifi_direct;
-  auto supported_types = wifi_direct.GetSupportedWifiDirectAuthTypes();
-  EXPECT_EQ(supported_types.size(), 1);
-  EXPECT_EQ(supported_types[0],
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
-}
-
-TEST_F(WifiDirectTest, GetPreferredWifiDirectAuthType_Default) {
-  WifiDirect wifi_direct;
-  // Default should be the first supported type, which is WIFI_DIRECT_WITH_PIN
-  EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
-}
-
-TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Supported) {
-  WifiDirect wifi_direct;
-  // Attempt to set the preferred type to the already default/supported type.
-  EXPECT_TRUE(wifi_direct.SetPreferredWifiDirectAuthType(
-      WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN));
-  EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
-}
-
-TEST_F(WifiDirectTest, SetPreferredWifiDirectAuthType_Unsupported) {
-  WifiDirect wifi_direct;
-  // Attempt to set an unsupported type.
-  EXPECT_FALSE(wifi_direct.SetPreferredWifiDirectAuthType(
-      WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD));
-  // Preferred type should remain the default.
-  EXPECT_EQ(wifi_direct.GetPreferredWifiDirectAuthType(),
-            WifiDirect::WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
-}
-
 }  // namespace
 }  // namespace connections
 }  // namespace nearby

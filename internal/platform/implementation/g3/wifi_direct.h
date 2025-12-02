@@ -182,12 +182,6 @@ class WifiDirectMedium : public api::WifiDirectMedium {
     return std::nullopt;
   }
 
-  // Returns the supported WifiDirect auth types.
-  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
-      const override {
-    return {WifiDirectAuthType::WIFI_DIRECT_WITH_PIN};
-  }
-
  private:
   absl::Mutex mutex_;
 
