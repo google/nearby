@@ -18,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
@@ -735,6 +736,12 @@ bool WifiDirectMedium::DisconnectWifiDirect() {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
   return false;
+}
+
+std::vector<WifiDirectMedium::WifiDirectAuthType>
+WifiDirectMedium::GetSupportedWifiDirectAuthTypes() const {
+  // Windows only supports WifiDirect with Service Discovery, which uses a PIN.
+  return {WifiDirectAuthType::WIFI_DIRECT_WITH_PIN};
 }
 
 }  // namespace windows

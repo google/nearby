@@ -42,8 +42,12 @@ using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PayloadTransferFrame;
 using ::location::nearby::connections::V1Frame;
 using Medium = ::location::nearby::proto::connections::Medium;
+using WifiDirectAuthType =
+    ::location::nearby::proto::connections::WifiDirectAuthType;
+using MediumMetadata = ::location::nearby::connections::MediumMetadata;
 using ::location::nearby::connections::MediumRole;
 using ::protobuf_matchers::EqualsProto;
+using ::testing::Pointwise;
 
 constexpr absl::string_view kEndpointId{"ABC"};
 constexpr absl::string_view kEndpointName{"XYZ"};
@@ -274,6 +278,76 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
   presence_device.set_device_name("TEST DEVICE");
   ByteArray bytes =
       ForConnectionRequestPresence(presence_device, connection_info);
+  auto response = FromBytes(bytes);
+  ASSERT_TRUE(response.ok());
+  OfflineFrame message = response.result();
+  EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest,
+     ForConnectionRequestConnectionsPopulatesWifiDirectAuthTypes) {
+  constexpr absl::string_view kExpected =
+      R"pb(
+    version: V1
+    v1: <
+      type: CONNECTION_REQUEST
+      connection_request: <
+        endpoint_id: "ABC"
+        endpoint_name: "XYZ"
+        endpoint_info: "XYZ"
+        nonce: 1234
+        medium_metadata: <
+          supports_5_ghz: true
+          bssid: "FF:FF:FF:FF:FF:FF"
+          ip_address: "8xqT"
+          ap_frequency: 2412
+          supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PIN
+          supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PASSWORD
+        >
+        mediums: MDNS
+        mediums: BLUETOOTH
+        mediums: WIFI_HOTSPOT
+        mediums: BLE
+        mediums: WIFI_LAN
+        mediums: WIFI_AWARE
+        mediums: NFC
+        mediums: WIFI_DIRECT
+        mediums: WEB_RTC
+        mediums: USB
+        mediums: AWDL
+        keep_alive_interval_millis: 1000
+        keep_alive_timeout_millis: 5000
+        connections_device {
+          endpoint_id: "ABC"
+          endpoint_type: CONNECTIONS_ENDPOINT
+          endpoint_info: "XYZ"
+        }
+      >
+    >)pb";
+
+  ConnectionInfo connection_info{std::string(kEndpointId),
+                                 ByteArray{std::string(kEndpointName)},
+                                 kNonce,
+                                 kSupports5ghz,
+                                 std::string(kBssid),
+                                 kApFrequency,
+                                 std::string(kIp4Bytes),
+                                 std::vector<Medium, std::allocator<Medium>>(
+                                     kMediums.begin(), kMediums.end()),
+                                 kKeepAliveIntervalMillis,
+                                 kKeepAliveTimeoutMillis};
+  connection_info.supported_wifi_direct_auth_types = {
+      WifiDirectAuthType::WIFI_DIRECT_WITH_PIN,
+      WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD};
+
+  location::nearby::connections::ConnectionsDevice connections_device;
+  connections_device.set_endpoint_id("ABC");
+  connections_device.set_endpoint_type(
+      location::nearby::connections::CONNECTIONS_ENDPOINT);
+  connections_device.set_endpoint_info("XYZ");
+
+  ByteArray bytes =
+      ForConnectionRequestConnections(connections_device, connection_info);
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
@@ -728,6 +802,49 @@ TEST(OfflineFramesTest, CanGenerateBwuPathRequest) {
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();
   EXPECT_THAT(message, EqualsProto(kExpected));
+}
+
+TEST(OfflineFramesTest, WFDAuthTypeToMediumMetadataWFDAuthType) {
+  EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
+                WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD),
+            MediumMetadata::WIFI_DIRECT_WITH_PASSWORD);
+  EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
+                WifiDirectAuthType::WIFI_DIRECT_WITH_PIN),
+            MediumMetadata::WIFI_DIRECT_WITH_PIN);
+  EXPECT_EQ(WFDAuthTypeToMediumMetadataWFDAuthType(
+                WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN),
+            MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN);
+}
+
+TEST(OfflineFramesTest, MediumMetadataWFDAuthTypeToWFDAuthType) {
+  EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
+                MediumMetadata::WIFI_DIRECT_WITH_PASSWORD),
+            WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD);
+  EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
+                MediumMetadata::WIFI_DIRECT_WITH_PIN),
+            WifiDirectAuthType::WIFI_DIRECT_WITH_PIN);
+  EXPECT_EQ(MediumMetadataWFDAuthTypeToWFDAuthType(
+                MediumMetadata::WIFI_DIRECT_TYPE_UNKNOWN),
+            WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN);
+}
+
+TEST(OfflineFramesTest, MediumMetadataWFDAuthTypesToWFDAuthTypes) {
+  MediumMetadata medium_metadata;
+  medium_metadata.add_supported_wifi_direct_auth_types(
+      MediumMetadata::WIFI_DIRECT_WITH_PASSWORD);
+  medium_metadata.add_supported_wifi_direct_auth_types(
+      MediumMetadata::WIFI_DIRECT_WITH_PIN);
+
+  std::vector<WifiDirectAuthType> expected = {
+      WifiDirectAuthType::WIFI_DIRECT_WITH_PASSWORD,
+      WifiDirectAuthType::WIFI_DIRECT_WITH_PIN};
+
+  EXPECT_THAT(MediumMetadataWFDAuthTypesToWFDAuthTypes(medium_metadata),
+              Pointwise(testing::Eq(), expected));
+
+  MediumMetadata empty_medium_metadata;
+  EXPECT_TRUE(
+      MediumMetadataWFDAuthTypesToWFDAuthTypes(empty_medium_metadata).empty());
 }
 
 }  // namespace

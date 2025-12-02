@@ -14,8 +14,10 @@
 
 #include "connections/implementation/mediums/wifi_direct.h"
 
+#include <algorithm>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/cancellation_flag.h"
@@ -31,6 +33,13 @@ namespace {
 using ::location::nearby::proto::connections::OperationResultCode;
 }  // namespace
 
+WifiDirect::WifiDirect() : is_go_started_(false), is_connected_to_go_(false) {
+  supported_wifi_direct_auth_types_ = medium_.GetSupportedWifiDirectAuthTypes();
+  if (!supported_wifi_direct_auth_types_.empty()) {
+    preferred_wifi_direct_auth_type_ =
+        supported_wifi_direct_auth_types_.front();
+  }
+}
 WifiDirect::~WifiDirect() {
   while (!server_sockets_.empty()) {
     StopAcceptingConnections(server_sockets_.begin()->first);
@@ -286,6 +295,16 @@ ErrorOr<WifiDirectSocket> WifiDirect::Connect(
   }
 
   return socket;
+}
+
+bool WifiDirect::SetPreferredWifiDirectAuthType(WifiDirectAuthType auth_type) {
+  if (std::find(supported_wifi_direct_auth_types_.begin(),
+                supported_wifi_direct_auth_types_.end(),
+                auth_type) == supported_wifi_direct_auth_types_.end()) {
+    return false;
+  }
+  preferred_wifi_direct_auth_type_ = auth_type;
+  return true;
 }
 
 }  // namespace connections

@@ -29,6 +29,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -111,6 +112,7 @@ using ::location::nearby::connections::OsInfo;
 using ::location::nearby::connections::PresenceDevice;
 using ::location::nearby::connections::V1Frame;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::location::nearby::proto::connections::WifiDirectAuthType;
 using ::securegcm::UKey2Handshake;
 
 BasePcpHandler::BasePcpHandler(Mediums* mediums,
@@ -432,6 +434,52 @@ BooleanMediumSelector BasePcpHandler::ComputeIntersectionOfSupportedMediums(
             !advertising_options.allowed.web_rtc) {
           // The local client does not allow WebRTC for listening or upgrades,
           // ignore.
+          continue;
+        }
+      }
+      if (my_medium ==
+          location::nearby::proto::connections::Medium::WIFI_DIRECT) {
+        auto remote_supported_wifi_direct_auth_types =
+            pending_connection_info.connection_options.connection_info
+                .supported_wifi_direct_auth_types;
+        LOG(INFO) << "Remote supported WifiDirect auth types: "
+                << absl::StrJoin(
+                       remote_supported_wifi_direct_auth_types, ", ",
+                       [](std::string* out, int auth_type) {
+                         absl::StrAppend(
+                             out,
+                             WifiDirectAuthType_Name(
+                                 static_cast<WifiDirectAuthType>(auth_type)));
+                       });
+        auto local_supported_wifi_direct_auth_types =
+            mediums_->GetWifiDirect().GetSupportedWifiDirectAuthTypes();
+        LOG(INFO) << "Local supported WifiDirect auth types: "
+                << absl::StrJoin(
+                       local_supported_wifi_direct_auth_types, ", ",
+                       [](std::string* out, int auth_type) {
+                         absl::StrAppend(
+                             out,
+                             WifiDirectAuthType_Name(
+                                 static_cast<WifiDirectAuthType>(auth_type)));
+                       });
+        bool found_common_auth_type = false;
+        for (const auto& auth_type : local_supported_wifi_direct_auth_types) {
+          if (auth_type == WifiDirectAuthType::WIFI_DIRECT_TYPE_UNKNOWN) {
+            continue;
+          }
+          if (std::find(remote_supported_wifi_direct_auth_types.begin(),
+                        remote_supported_wifi_direct_auth_types.end(),
+                        auth_type) !=
+              remote_supported_wifi_direct_auth_types.end()) {
+            LOG(INFO) << "Found common WifiDirect auth type: "
+                      << WifiDirectAuthType_Name(auth_type);
+            mediums_->GetWifiDirect().SetPreferredWifiDirectAuthType(auth_type);
+            found_common_auth_type = true;
+            break;
+          }
+        }
+        if (!found_common_auth_type) {
+          LOG(INFO) << "No common WifiDirect auth type found, skip WifiDirect.";
           continue;
         }
       }
@@ -839,6 +887,17 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
   }
   connection_info.supported_mediums =
       GetSupportedConnectionMediumsByPriority(connection_options);
+  if (NearbyFlags::GetInstance().GetBoolFlag(
+          config_package_nearby::nearby_connections_feature::
+              kEnableWifiDirect)) {
+    connection_info.supported_wifi_direct_auth_types =
+        mediums_->GetWifiDirect().GetSupportedWifiDirectAuthTypes();
+    VLOG(1) << "Set SupportedWifiDirectAuthTypes for WIFI_DIRECT: "
+              << absl::StrJoin(connection_info.supported_wifi_direct_auth_types,
+                               ",");
+  } else {
+    connection_info.supported_wifi_direct_auth_types = {};
+  }
 
   if (!NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
@@ -2055,6 +2114,20 @@ Exception BasePcpHandler::OnIncomingConnection(
               << "Mhz; ip_address in bytes format="
               << absl::BytesToHexString(connection_info.ip_address)
               << "; has no mediumRole";
+  }
+  connection_info.supported_wifi_direct_auth_types =
+      parser::MediumMetadataWFDAuthTypesToWFDAuthTypes(medium_metadata);
+  if (!connection_info.supported_wifi_direct_auth_types.empty()) {
+    LOG(INFO) << connection_request.endpoint_id()
+              << "'s supported WifiDirect auth types: "
+              << absl::StrJoin(
+                     connection_info.supported_wifi_direct_auth_types, ", ",
+                     [](std::string* out, int auth_type) {
+                       absl::StrAppend(
+                           out,
+                           WifiDirectAuthType_Name(
+                               static_cast<WifiDirectAuthType>(auth_type)));
+                     });
   }
 
   // We've successfully connected to the device, and are now about to jump on to
