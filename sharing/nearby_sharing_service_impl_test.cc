@@ -353,33 +353,40 @@ std::unique_ptr<Frame> GetCancelFrame() {
 
 std::unique_ptr<AttachmentContainer> CreateTextAttachments(
     std::vector<std::string> texts) {
-  auto attachment_container = std::make_unique<AttachmentContainer>();
+  AttachmentContainer::Builder builder;
+  builder.ReserveAttachmentsCount(texts.size(), /*file_attachments_count=*/0,
+                                  /*wifi_credentials_attachments_count=*/0);
   for (auto& text : texts) {
-    attachment_container->AddTextAttachment(
-        TextAttachment(service::proto::TextMetadata::TEXT, std::move(text),
-                       /*text_title=*/std::nullopt,
-                       /*mime_type=*/std::nullopt));
+    builder.AddTextAttachment(TextAttachment(service::proto::TextMetadata::TEXT,
+                                             std::move(text),
+                                             /*text_title=*/std::nullopt,
+                                             /*mime_type=*/std::nullopt));
   }
-  return attachment_container;
+  return std::make_unique<AttachmentContainer>(builder.Build());
 }
 
 std::unique_ptr<AttachmentContainer> CreateFileAttachments(
     std::vector<FilePath> file_paths) {
-  auto attachment_container = std::make_unique<AttachmentContainer>();
+  AttachmentContainer::Builder builder;
+  builder.ReserveAttachmentsCount(/*text_attachments_count=*/0,
+                                  file_paths.size(),
+                                  /*wifi_credentials_attachments_count=*/0);
   for (auto& file_path : file_paths) {
-    attachment_container->AddFileAttachment(
-        FileAttachment(std::move(file_path)));
+    builder.AddFileAttachment(FileAttachment(std::move(file_path)));
   }
-  return attachment_container;
+  return std::make_unique<AttachmentContainer>(builder.Build());
 }
 
 std::unique_ptr<AttachmentContainer> CreateWifiCredentialAttachments(
     std::string ssid, std::string password) {
-  auto attachment_container = std::make_unique<AttachmentContainer>();
-  attachment_container->AddWifiCredentialsAttachment(WifiCredentialsAttachment(
+  AttachmentContainer::Builder builder;
+  builder.ReserveAttachmentsCount(/*text_attachments_count=*/0,
+                                  /*file_attachments_count=*/0,
+                                  /*wifi_credentials_attachments_count=*/1);
+  builder.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
       std::move(ssid), service::proto::WifiCredentialsMetadata::WPA_PSK,
       std::move(password)));
-  return attachment_container;
+  return std::make_unique<AttachmentContainer>(builder.Build());
 }
 
 class NearbySharingServiceImplTest : public testing::Test {

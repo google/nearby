@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <utility>
 #include <vector>
+#include "absl/container/flat_hash_map.h"
+#include "sharing/attachment.h"
 #include "sharing/file_attachment.h"
 #include "sharing/text_attachment.h"
 #include "sharing/wifi_credentials_attachment.h"
@@ -28,15 +30,40 @@ namespace nearby::sharing {
 // This class is thread-compatible (go/thread-compatible).
 class AttachmentContainer {
  public:
-  AttachmentContainer(
-      std::vector<TextAttachment> text_attachments,
-      std::vector<FileAttachment> file_attachments,
-      std::vector<WifiCredentialsAttachment> wifi_credentials_attachments);
+  class Builder {
+   public:
+    Builder() = default;
+    Builder(std::vector<TextAttachment> text_attachments,
+            std::vector<FileAttachment> file_attachments,
+            std::vector<WifiCredentialsAttachment> wifi_credentials_attachments)
+        : text_attachments_(std::move(text_attachments)),
+          file_attachments_(std::move(file_attachments)),
+          wifi_credentials_attachments_(
+              std::move(wifi_credentials_attachments)) {}
+    Builder& ReserveAttachmentsCount(int text_attachments_count,
+                                    int file_attachments_count,
+                                    int wifi_credentials_attachments_count);
+    Builder& AddTextAttachment(TextAttachment text_attachment);
+    Builder& AddFileAttachment(FileAttachment file_attachment);
+    Builder& AddWifiCredentialsAttachment(
+        WifiCredentialsAttachment wifi_credentials_attachment);
+
+    bool Empty() const {
+      return text_attachments_.empty() && file_attachments_.empty() &&
+             wifi_credentials_attachments_.empty();
+    }
+
+    AttachmentContainer Build();
+
+   private:
+    std::vector<TextAttachment> text_attachments_;
+    std::vector<FileAttachment> file_attachments_;
+    std::vector<WifiCredentialsAttachment> wifi_credentials_attachments_;
+  };
+
   AttachmentContainer() = default;
-  AttachmentContainer(const AttachmentContainer&) = default;
-  AttachmentContainer(AttachmentContainer&&) = default;
-  AttachmentContainer& operator=(const AttachmentContainer&) = default;
-  AttachmentContainer& operator=(AttachmentContainer&&) = default;
+  AttachmentContainer(AttachmentContainer&&);
+  AttachmentContainer& operator=(AttachmentContainer&&);
   ~AttachmentContainer() = default;
 
   const std::vector<TextAttachment>& GetTextAttachments() const {
@@ -50,18 +77,6 @@ class AttachmentContainer {
     return wifi_credentials_attachments_;
   }
 
-  void AddTextAttachment(TextAttachment text_attachment) {
-    text_attachments_.push_back(std::move(text_attachment));
-  }
-  void AddFileAttachment(FileAttachment file_attachment) {
-    file_attachments_.push_back(std::move(file_attachment));
-  }
-  void AddWifiCredentialsAttachment(
-      WifiCredentialsAttachment wifi_credentials_attachment) {
-    wifi_credentials_attachments_.push_back(
-        std::move(wifi_credentials_attachment));
-  }
-
   TextAttachment& GetMutableTextAttachment(int index) {
     return text_attachments_[index];
   }
@@ -72,6 +87,14 @@ class AttachmentContainer {
 
   WifiCredentialsAttachment& GetMutableWifiCredentialsAttachment(int index) {
     return wifi_credentials_attachments_[index];
+  }
+
+  const Attachment* GetAttachment(int64_t id) const {
+    const auto it = attachment_id_map_.find(id);
+    if (it == attachment_id_map_.end()) {
+      return nullptr;
+    }
+    return it->second;
   }
 
   // Returns the total number of attachments of all types.
@@ -96,13 +119,18 @@ class AttachmentContainer {
   // place.
   void ClearAttachments();
 
-  // Delete all attachments.
-  void Clear();
-
  private:
+  AttachmentContainer(
+      std::vector<TextAttachment> text_attachments,
+      std::vector<FileAttachment> file_attachments,
+      std::vector<WifiCredentialsAttachment> wifi_credentials_attachments);
+  // Build id to attachment index.
+  void BuildIndex();
+
   std::vector<TextAttachment> text_attachments_;
   std::vector<FileAttachment> file_attachments_;
   std::vector<WifiCredentialsAttachment> wifi_credentials_attachments_;
+  absl::flat_hash_map<int64_t, const Attachment*> attachment_id_map_;
 };
 
 }  // namespace nearby::sharing

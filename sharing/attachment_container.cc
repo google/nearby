@@ -24,13 +24,69 @@
 
 namespace nearby::sharing {
 
+AttachmentContainer::Builder&
+AttachmentContainer::Builder::ReserveAttachmentsCount(
+    int text_attachments_count, int file_attachments_count,
+    int wifi_credentials_attachments_count) {
+  text_attachments_.reserve(text_attachments_count);
+  file_attachments_.reserve(file_attachments_count);
+  wifi_credentials_attachments_.reserve(wifi_credentials_attachments_count);
+  return *this;
+}
+
+AttachmentContainer::Builder& AttachmentContainer::Builder::AddTextAttachment(
+    TextAttachment text_attachment) {
+  text_attachments_.push_back(std::move(text_attachment));
+  return *this;
+}
+
+AttachmentContainer::Builder& AttachmentContainer::Builder::AddFileAttachment(
+    FileAttachment file_attachment) {
+  file_attachments_.push_back(std::move(file_attachment));
+  return *this;
+}
+
+AttachmentContainer::Builder&
+AttachmentContainer::Builder::AddWifiCredentialsAttachment(
+    WifiCredentialsAttachment wifi_credentials_attachment) {
+  wifi_credentials_attachments_.push_back(
+      std::move(wifi_credentials_attachment));
+  return *this;
+}
+
+AttachmentContainer AttachmentContainer::Builder::Build() {
+  return AttachmentContainer(std::move(text_attachments_),
+                             std::move(file_attachments_),
+                             std::move(wifi_credentials_attachments_));
+}
+
 AttachmentContainer::AttachmentContainer(
     std::vector<TextAttachment> text_attachments,
     std::vector<FileAttachment> file_attachments,
     std::vector<WifiCredentialsAttachment> wifi_credentials_attachments)
     : text_attachments_(std::move(text_attachments)),
       file_attachments_(std::move(file_attachments)),
-      wifi_credentials_attachments_(std::move(wifi_credentials_attachments)) {}
+      wifi_credentials_attachments_(std::move(wifi_credentials_attachments)) {
+  BuildIndex();
+}
+
+AttachmentContainer::AttachmentContainer(AttachmentContainer&& other) {
+  text_attachments_ = std::move(other.text_attachments_);
+  file_attachments_ = std::move(other.file_attachments_);
+  wifi_credentials_attachments_ =
+      std::move(other.wifi_credentials_attachments_);
+  BuildIndex();
+}
+
+AttachmentContainer& AttachmentContainer::operator=(
+    AttachmentContainer&& other) {
+  text_attachments_ = std::move(other.text_attachments_);
+  file_attachments_ = std::move(other.file_attachments_);
+  wifi_credentials_attachments_ =
+      std::move(other.wifi_credentials_attachments_);
+  BuildIndex();
+  return *this;
+}
 
 int64_t AttachmentContainer::GetTotalAttachmentsSize() const {
   int64_t size_in_bytes = 0;
@@ -77,10 +133,23 @@ void AttachmentContainer::ClearAttachments() {
   }
 }
 
-void AttachmentContainer::Clear() {
+/* void AttachmentContainer::Clear() {
   file_attachments_.clear();
   text_attachments_.clear();
   wifi_credentials_attachments_.clear();
+  attachment_id_map_.clear();
+} */
+
+void AttachmentContainer::BuildIndex() {
+  for (const auto& text : text_attachments_) {
+    attachment_id_map_[text.id()] = &text;
+  }
+  for (const auto& file : file_attachments_) {
+    attachment_id_map_[file.id()] = &file;
+  }
+  for (const auto& wifi_credentials : wifi_credentials_attachments_) {
+    attachment_id_map_[wifi_credentials.id()] = &wifi_credentials;
+  }
 }
 
 }  // namespace nearby::sharing

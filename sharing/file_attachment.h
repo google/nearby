@@ -58,10 +58,6 @@ class FileAttachment : public Attachment {
       Type type, std::string parent_folder = "", int32_t batch_id = 0,
       location::nearby::proto::sharing::AttachmentSourceType source_type =
           location::nearby::proto::sharing::ATTACHMENT_SOURCE_UNKNOWN);
-  FileAttachment(const FileAttachment&) = default;
-  FileAttachment(FileAttachment&&) = default;
-  FileAttachment& operator=(const FileAttachment&) = default;
-  FileAttachment& operator=(FileAttachment&&) = default;
   ~FileAttachment() override = default;
 
   absl::string_view file_name() const { return file_name_; }
@@ -82,11 +78,11 @@ class FileAttachment : public Attachment {
 
  private:
   // File name should be in UTF8 format.
-  std::string file_name_;
-  std::string mime_type_;
-  Type type_;
+  const std::string file_name_;
+  const std::string mime_type_;
+  const Type type_;
+  const std::string parent_folder_;
   std::optional<FilePath> file_path_;
-  std::string parent_folder_;
 };
 
 }  // namespace sharing

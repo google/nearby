@@ -2398,11 +2398,16 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
   }
   if (metadata.status() != TransferMetadata::Status::kCancelled &&
       metadata.status() != TransferMetadata::Status::kRejected) {
-    last_incoming_metadata_ =
-        std::make_tuple(session.share_target(), session.attachment_container(),
-                        TransferMetadataBuilder::Clone(metadata)
-                            .set_is_original(false)
-                            .build());
+    last_incoming_metadata_ = std::make_tuple(
+        session.share_target(),
+        AttachmentContainer::Builder(
+            session.attachment_container().GetTextAttachments(),
+            session.attachment_container().GetFileAttachments(),
+            session.attachment_container().GetWifiCredentialsAttachments())
+            .Build(),
+        TransferMetadataBuilder::Clone(metadata)
+            .set_is_original(false)
+            .build());
   } else {
     last_incoming_metadata_ = std::nullopt;
   }
@@ -2490,11 +2495,16 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
   if (has_foreground_send_surface && metadata.is_final_status()) {
     last_outgoing_metadata_ = std::nullopt;
   } else {
-    last_outgoing_metadata_ =
-        std::make_tuple(session.share_target(), session.attachment_container(),
-                        TransferMetadataBuilder::Clone(metadata)
-                            .set_is_original(false)
-                            .build());
+    last_outgoing_metadata_ = std::make_tuple(
+        session.share_target(),
+        AttachmentContainer::Builder(
+            session.attachment_container().GetTextAttachments(),
+            session.attachment_container().GetFileAttachments(),
+            session.attachment_container().GetWifiCredentialsAttachments())
+            .Build(),
+        TransferMetadataBuilder::Clone(metadata)
+            .set_is_original(false)
+            .build());
   }
 }
 

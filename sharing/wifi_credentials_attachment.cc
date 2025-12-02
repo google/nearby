@@ -31,12 +31,9 @@ using ::location::nearby::proto::sharing::AttachmentSourceType;
 WifiCredentialsAttachment::WifiCredentialsAttachment(
     std::string ssid, SecurityType security_type, std::string password,
     bool is_hidden, int32_t batch_id, AttachmentSourceType source_type)
-    : Attachment(Attachment::Family::kWifiCredentials, ssid.size(), batch_id,
-                 source_type),
-      ssid_(ssid),
-      security_type_(security_type),
-      password_(std::move(password)),
-      is_hidden_(is_hidden) {}
+    : WifiCredentialsAttachment(/*id=*/0, ssid, security_type,
+                                std::move(password), is_hidden, batch_id,
+                                source_type) {}
 
 WifiCredentialsAttachment::WifiCredentialsAttachment(
     int64_t id, std::string ssid, SecurityType security_type,

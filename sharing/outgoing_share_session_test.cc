@@ -105,9 +105,11 @@ class OutgoingShareSessionTest : public ::testing::Test {
 
   std::unique_ptr<AttachmentContainer> CreateDefaultAttachmentContainer() {
     return std::make_unique<AttachmentContainer>(
-        std::vector<TextAttachment>{text1_, text2_},
-        std::vector<FileAttachment>{file1_},
-        std::vector<WifiCredentialsAttachment>{wifi1_});
+        AttachmentContainer::Builder(
+            std::vector<TextAttachment>{text1_, text2_},
+            std::vector<FileAttachment>{file1_},
+            std::vector<WifiCredentialsAttachment>{wifi1_})
+            .Build());
   }
 
   void InitSendAttachments(
@@ -158,9 +160,10 @@ TEST_F(OutgoingShareSessionTest, GetFilePaths) {
       analytics_recorder_, std::string(kEndpointId), share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
   auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{},
-      std::vector<FileAttachment>{file1_, file2_},
-      std::vector<WifiCredentialsAttachment>{});
+      AttachmentContainer::Builder(std::vector<TextAttachment>{},
+                                   std::vector<FileAttachment>{file1_, file2_},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build());
   session.InitiateSendAttachments(std::move(container));
 
   auto file_paths = session.GetFilePaths();
@@ -486,8 +489,10 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
 
 TEST_F(OutgoingShareSessionTest, SendIntroductionTimeout) {
   auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{text1_}, std::vector<FileAttachment>{},
-      std::vector<WifiCredentialsAttachment>{});
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build());
   InitSendAttachments(std::move(container));
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
@@ -512,8 +517,10 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionTimeout) {
 
 TEST_F(OutgoingShareSessionTest, SendIntroductionTimeoutCancelled) {
   auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{text1_}, std::vector<FileAttachment>{},
-      std::vector<WifiCredentialsAttachment>{});
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build());
   InitSendAttachments(std::move(container));
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
@@ -562,8 +569,10 @@ TEST_F(OutgoingShareSessionTest, AcceptTransferNotReady) {
 
 TEST_F(OutgoingShareSessionTest, AcceptTransferSuccess) {
   auto container = std::make_unique<AttachmentContainer>(
-      std::vector<TextAttachment>{text1_}, std::vector<FileAttachment>{},
-      std::vector<WifiCredentialsAttachment>{});
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_},
+                                   std::vector<FileAttachment>{},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build());
   InitSendAttachments(std::move(container));
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);

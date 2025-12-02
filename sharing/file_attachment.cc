@@ -61,12 +61,11 @@ FileAttachment::FileAttachment(FilePath file_path, absl::string_view mime_type,
                                std::string parent_folder, int32_t batch_id,
                                AttachmentSourceType source_type)
     : Attachment(Attachment::Family::kFile, /*size=*/0, batch_id, source_type),
+      file_name_(file_path.GetFileName().ToString()),
       mime_type_(mime_type.empty() ? MimeTypeFromPath(file_path) : mime_type),
       type_(FileAttachmentTypeFromMimeType(mime_type_)),
-      parent_folder_(std::move(parent_folder)) {
-  file_name_ = file_path.GetFileName().ToString();
-  file_path_ = std::move(file_path);
-}
+      parent_folder_(std::move(parent_folder)),
+      file_path_(std::move(file_path)) {}
 
 FileAttachment::FileAttachment(int64_t id, int64_t size, std::string file_name,
                                std::string mime_type, Type type,

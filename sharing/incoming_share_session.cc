@@ -85,7 +85,15 @@ std::optional<TransferMetadata::Status>
 IncomingShareSession::ProcessIntroduction(
     const IntroductionFrame& introduction_frame) {
   int64_t file_size_sum = 0;
-  AttachmentContainer& container = mutable_attachment_container();
+  int app_file_count = 0;
+  for (const AppMetadata& apk : introduction_frame.app_metadata()) {
+    app_file_count += apk.file_name_size();
+  }
+  AttachmentContainer::Builder container_builder;
+  container_builder.ReserveAttachmentsCount(
+      introduction_frame.text_metadata_size() + app_file_count,
+      introduction_frame.file_metadata_size(),
+      introduction_frame.wifi_credentials_metadata_size());
   for (const auto& file : introduction_frame.file_metadata()) {
     if (file.size() <= 0) {
       LOG(WARNING) << "Ignore introduction, due to invalid attachment size";
@@ -97,7 +105,7 @@ IncomingShareSession::ProcessIntroduction(
             << ", payload_id=" << file.payload_id()
             << ", parent_folder=" << file.parent_folder()
             << ", mime_type=" << file.mime_type();
-    container.AddFileAttachment(
+    container_builder.AddFileAttachment(
         FileAttachment(file.id(), file.size(), file.name(), file.mime_type(),
                        file.type(), file.parent_folder()));
     SetAttachmentPayloadId(file.id(), file.payload_id());
@@ -105,7 +113,6 @@ IncomingShareSession::ProcessIntroduction(
     if (std::numeric_limits<int64_t>::max() - file.size() < file_size_sum) {
       LOG(WARNING) << "Ignoring introduction, total file size overflowed 64 "
                       "bit integer.";
-      container.Clear();
       return TransferMetadata::Status::kNotEnoughSpace;
     }
     file_size_sum += file.size();
@@ -126,7 +133,6 @@ IncomingShareSession::ProcessIntroduction(
       LOG(WARNING) << __func__
                    << ": Ignoring introduction, total file size overflowed "
                       "64 bit integer.";
-      container.Clear();
       return TransferMetadata::Status::kNotEnoughSpace;
     }
     // Map each apk file to a file attachment.
@@ -141,7 +147,7 @@ IncomingShareSession::ProcessIntroduction(
               << ", attachment id=" << apk_file_id
               << ", file size=" << apk.file_size(index)
               << ", payload_id=" << apk.payload_id(index);
-      container.AddFileAttachment(std::move(apk_file));
+      container_builder.AddFileAttachment(std::move(apk_file));
       SetAttachmentPayloadId(apk_file_id, apk.payload_id(index));
     }
     file_size_sum += apk.size();
@@ -156,7 +162,7 @@ IncomingShareSession::ProcessIntroduction(
     VLOG(1) << "Found text attachment: id=" << text.id()
             << ", type= " << text.type() << ", size=" << text.size()
             << ", payload_id=" << text.payload_id();
-    container.AddTextAttachment(
+    container_builder.AddTextAttachment(
         TextAttachment(text.id(), text.type(), text.text_title(), text.size()));
     SetAttachmentPayloadId(text.id(), text.payload_id());
   }
@@ -167,7 +173,7 @@ IncomingShareSession::ProcessIntroduction(
       VLOG(1) << "Found WiFi credentials attachment: id="
               << wifi_credentials.id() << ", ssid= " << wifi_credentials.ssid()
               << ", payload_id=" << wifi_credentials.payload_id();
-      container.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
+      container_builder.AddWifiCredentialsAttachment(WifiCredentialsAttachment(
           wifi_credentials.id(), wifi_credentials.ssid(),
           wifi_credentials.security_type()));
       SetAttachmentPayloadId(wifi_credentials.id(),
@@ -175,12 +181,13 @@ IncomingShareSession::ProcessIntroduction(
     }
   }
 
-  if (!container.HasAttachments()) {
+  if (container_builder.Empty()) {
     LOG(WARNING) << __func__
                  << ": No attachment is found for this share target. It can "
                     "be result of unrecognizable attachment type";
     return TransferMetadata::Status::kUnsupportedAttachmentType;
   }
+  mutable_attachment_container() = container_builder.Build();
   return std::nullopt;
 }
 
