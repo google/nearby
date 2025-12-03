@@ -1265,11 +1265,6 @@ std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
     std::int32_t multiplex_bitmask =
         (NearbyFlags::GetInstance().GetBoolFlag(
              config_package_nearby::nearby_connections_feature::
-                 kEnableMultiplexBluetooth)
-             ? kBtMultiplexEnabled
-             : 0) |
-        (NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
                  kEnableMultiplexWifiLan)
              ? kWifiLanMultiplexEnabled
              : 0);

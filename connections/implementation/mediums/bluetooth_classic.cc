@@ -65,13 +65,7 @@ BluetoothClassic::BluetoothClassic(
     : radio_(radio),
       adapter_(radio_.GetBluetoothAdapter()),
       medium_(std::move(medium)) {
-  is_multiplex_enabled_ =
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplex) &&
-      NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_connections_feature::
-              kEnableMultiplexBluetooth);
+  is_multiplex_enabled_ = false;
 }
 
 BluetoothClassic::~BluetoothClassic() {
@@ -424,8 +418,7 @@ ErrorOr<bool> BluetoothClassic::StartAcceptingConnections(
           if (multiplex_socket != nullptr &&
               multiplex_socket->GetVirtualSocket(service_id)) {
             multiplex_sockets_.emplace(
-                client_socket.GetRemoteDevice().GetAddress(),
-                multiplex_socket);
+                client_socket.GetRemoteDevice().GetAddress(), multiplex_socket);
             MultiplexSocket::StopListeningForIncomingConnection(
                 service_id, Medium::BLUETOOTH);
             LOG(INFO) << "Multiplex virtaul socket created for "
@@ -623,8 +616,7 @@ ErrorOr<BluetoothSocket> BluetoothClassic::AttemptToConnect(
           OperationResultCode::NEARBY_BT_VIRTUAL_SOCKET_CREATION_FAILURE)};
     }
     LOG(INFO) << "Multiplex socket created for " << bluetooth_device.GetName();
-    multiplex_sockets_.emplace(bluetooth_device.GetAddress(),
-                               multiplex_socket);
+    multiplex_sockets_.emplace(bluetooth_device.GetAddress(), multiplex_socket);
     return *bluetooth_socket;
   }
 
@@ -653,8 +645,7 @@ void BluetoothClassic::RemoveAllDiscoveryCallbacks() {
   discovery_callbacks_.clear();
 }
 
-BluetoothDevice BluetoothClassic::GetRemoteDevice(
-    MacAddress mac_address) {
+BluetoothDevice BluetoothClassic::GetRemoteDevice(MacAddress mac_address) {
   MutexLock lock(&mutex_);
 
   if (!IsAvailableLocked()) {
