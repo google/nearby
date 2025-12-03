@@ -59,7 +59,6 @@ cc_library(
         "//internal:__pkg__",
         "//internal:__subpackages__",
         "//location/nearby/cpp/sharing:__subpackages__",
-        "//sharing:__subpackages__",
     ],
     deps = [
         ":url",
