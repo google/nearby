@@ -173,7 +173,7 @@ std::vector<FilePath> OutgoingShareSession::GetFilePaths() const {
 }
 
 void OutgoingShareSession::CreateTextPayloads() {
-  const std::vector<TextAttachment> attachments =
+  const std::vector<TextAttachment>& attachments =
       attachment_container().GetTextAttachments();
   if (attachments.empty()) {
     return;
@@ -189,7 +189,7 @@ void OutgoingShareSession::CreateTextPayloads() {
 }
 
 void OutgoingShareSession::CreateWifiCredentialsPayloads() {
-  const std::vector<WifiCredentialsAttachment> attachments =
+  const std::vector<WifiCredentialsAttachment>& attachments =
       attachment_container().GetWifiCredentialsAttachments();
   if (attachments.empty()) {
     return;

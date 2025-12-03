@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -38,9 +39,7 @@
 #include "sharing/share_target.h"
 #include "sharing/text_attachment.h"
 
-namespace nearby {
-namespace sharing {
-namespace analytics {
+namespace nearby::sharing::analytics {
 namespace {
 
 using ::location::nearby::proto::sharing::EventCategory;
@@ -280,29 +279,32 @@ TEST_F(AnalyticsRecorderTest, NewDescribeAttachments) {
                   SharingLog::FileAttachment::DOCUMENT);
       });
 
-  AttachmentContainer attachments(
-      {TextAttachment(5, service::proto::TextMetadata::TEXT,
-                      std::string(kTextBody), kTextBody.size()),
-       TextAttachment(6, service::proto::TextMetadata::PHONE_NUMBER,
-                      std::string(kTextBody), kTextBody.size()),
-       TextAttachment(7, service::proto::TextMetadata::URL,
-                      std::string(kTextBody), kTextBody.size()),
-       TextAttachment(8, service::proto::TextMetadata::ADDRESS,
-                      std::string(kTextBody), kTextBody.size()),
-       TextAttachment(9, service::proto::TextMetadata::UNKNOWN,
-                      std::string(kTextBody), kTextBody.size())},
-      {FileAttachment(1, 2, std::string(kFileName), "",
-                      service::proto::FileMetadata::IMAGE),
-       FileAttachment(2, 3, std::string(kFileDocumentName),
-                      std::string(kFileMimeType),
-                      service::proto::FileMetadata::DOCUMENT),
-       FileAttachment(3, 4, std::string(kFileName), "",
-                      service::proto::FileMetadata::AUDIO),
-       FileAttachment(4, 5, std::string(kFileName), std::string(kTextMimeType),
-                      service::proto::FileMetadata::DOCUMENT)},
-      {});
+  std::unique_ptr<AttachmentContainer> attachments =
+      AttachmentContainer::Builder(
+          {TextAttachment(5, service::proto::TextMetadata::TEXT,
+                          std::string(kTextBody), kTextBody.size()),
+           TextAttachment(6, service::proto::TextMetadata::PHONE_NUMBER,
+                          std::string(kTextBody), kTextBody.size()),
+           TextAttachment(7, service::proto::TextMetadata::URL,
+                          std::string(kTextBody), kTextBody.size()),
+           TextAttachment(8, service::proto::TextMetadata::ADDRESS,
+                          std::string(kTextBody), kTextBody.size()),
+           TextAttachment(9, service::proto::TextMetadata::UNKNOWN,
+                          std::string(kTextBody), kTextBody.size())},
+          {FileAttachment(1, 2, std::string(kFileName), "",
+                          service::proto::FileMetadata::IMAGE),
+           FileAttachment(2, 3, std::string(kFileDocumentName),
+                          std::string(kFileMimeType),
+                          service::proto::FileMetadata::DOCUMENT),
+           FileAttachment(3, 4, std::string(kFileName), "",
+                          service::proto::FileMetadata::AUDIO),
+           FileAttachment(4, 5, std::string(kFileName),
+                          std::string(kTextMimeType),
+                          service::proto::FileMetadata::DOCUMENT)},
+          {})
+          .Build();
 
-  analytics_recoder().NewDescribeAttachments(attachments);
+  analytics_recoder().NewDescribeAttachments(*attachments);
 }
 
 TEST_F(AnalyticsRecorderTest, EmptyDescribeAttachments) {
@@ -896,6 +898,4 @@ TEST_F(AnalyticsRecorderTest, GenerateID) {
 }
 
 }  // namespace
-}  // namespace analytics
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing::analytics

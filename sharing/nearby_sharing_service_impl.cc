@@ -484,7 +484,7 @@ void NearbySharingServiceImpl::RegisterSendSurface(
           // request comes from a surface with the blocked vendor ID.
           wrapped_callback.OnShareTargetDiscovered(share_target);
           transfer_callback->OnTransferUpdate(
-              share_target, attachment_container, transfer_metadata);
+              share_target, *attachment_container, transfer_metadata);
         }
 
         // Sync down data from Nearby server when the sending flow starts,
@@ -596,7 +596,7 @@ void NearbySharingServiceImpl::RegisterReceiveSurface(
           auto& [share_target, attachment_container, transfer_metadata] =
               *last_incoming_metadata_;
           transfer_callback->OnTransferUpdate(
-              share_target, attachment_container, transfer_metadata);
+              share_target, *attachment_container, transfer_metadata);
         }
 
         GetReceiveCallbacksMapFromState(state).insert(
@@ -1042,7 +1042,7 @@ NearbySharingServiceImpl::InternalUnregisterSendSurface(
         *last_outgoing_metadata_;
     for (auto& background_transfer_callback : background_send_surface_map_) {
       background_transfer_callback.first->OnTransferUpdate(
-          share_target, attachment_container, transfer_metadata);
+          share_target, *attachment_container, transfer_metadata);
     }
   }
   if (foreground_send_surface_map_.empty()) {
@@ -1108,7 +1108,7 @@ NearbySharingServiceImpl::InternalUnregisterReceiveSurface(
         *last_incoming_metadata_;
     for (auto& background_callback : background_receive_callbacks_map_) {
       background_callback.first->OnTransferUpdate(
-          share_target, attachment_container, transfer_metadata);
+          share_target, *attachment_container, transfer_metadata);
     }
   }
 
@@ -2398,11 +2398,16 @@ void NearbySharingServiceImpl::OnIncomingTransferUpdate(
   }
   if (metadata.status() != TransferMetadata::Status::kCancelled &&
       metadata.status() != TransferMetadata::Status::kRejected) {
-    last_incoming_metadata_ =
-        std::make_tuple(session.share_target(), session.attachment_container(),
-                        TransferMetadataBuilder::Clone(metadata)
-                            .set_is_original(false)
-                            .build());
+    last_incoming_metadata_ = std::make_tuple(
+        session.share_target(),
+        AttachmentContainer::Builder(
+            session.attachment_container().GetTextAttachments(),
+            session.attachment_container().GetFileAttachments(),
+            session.attachment_container().GetWifiCredentialsAttachments())
+            .Build(),
+        TransferMetadataBuilder::Clone(metadata)
+            .set_is_original(false)
+            .build());
   } else {
     last_incoming_metadata_ = std::nullopt;
   }
@@ -2490,11 +2495,16 @@ void NearbySharingServiceImpl::OnOutgoingTransferUpdate(
   if (has_foreground_send_surface && metadata.is_final_status()) {
     last_outgoing_metadata_ = std::nullopt;
   } else {
-    last_outgoing_metadata_ =
-        std::make_tuple(session.share_target(), session.attachment_container(),
-                        TransferMetadataBuilder::Clone(metadata)
-                            .set_is_original(false)
-                            .build());
+    last_outgoing_metadata_ = std::make_tuple(
+        session.share_target(),
+        AttachmentContainer::Builder(
+            session.attachment_container().GetTextAttachments(),
+            session.attachment_container().GetFileAttachments(),
+            session.attachment_container().GetWifiCredentialsAttachments())
+            .Build(),
+        TransferMetadataBuilder::Clone(metadata)
+            .set_is_original(false)
+            .build());
   }
 }
 

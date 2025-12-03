@@ -33,8 +33,7 @@
 #include "sharing/proto/wire_format.pb.h"
 #include "sharing/transfer_metadata.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 constexpr int64_t kShareTargetId = 123456789L;
@@ -46,16 +45,19 @@ constexpr absl::string_view kMimeType = "image/jpg";
 class PayloadTrackerTest : public ::testing::Test {
  public:
   void SetUp() override {
-    container_.AddFileAttachment(FileAttachment(
-        kFileId, kFileSize, std::string(kFileName), std::string(kMimeType),
-        service::proto::FileMetadata::IMAGE));
+    container_ =
+        AttachmentContainer::Builder()
+            .AddFileAttachment(FileAttachment(
+                kFileId, kFileSize, std::string(kFileName),
+                std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+            .Build();
     attachment_payload_map_.clear();
-    attachment_payload_map_.emplace(container_.GetFileAttachments()[0].id(),
+    attachment_payload_map_.emplace(container_->GetFileAttachments()[0].id(),
                                  kFileId);
     auto payload_updates_queue =
         std::make_unique<PayloadTracker::PayloadUpdateQueue>(&task_runner_);
     payload_tracker_ = std::make_unique<PayloadTracker>(
-        &fake_clock_, kShareTargetId, container_, attachment_payload_map_,
+        &fake_clock_, kShareTargetId, *container_, attachment_payload_map_,
         std::move(payload_updates_queue));
   }
 
@@ -74,7 +76,7 @@ class PayloadTrackerTest : public ::testing::Test {
   FakeClock fake_clock_;
   FakeTaskRunner task_runner_{&fake_clock_, 1};
   std::unique_ptr<PayloadTracker> payload_tracker_ = nullptr;
-  AttachmentContainer container_;
+  std::unique_ptr<AttachmentContainer> container_;
   absl::flat_hash_map<int64_t, int64_t> attachment_payload_map_;
 };
 
@@ -102,5 +104,4 @@ TEST_F(PayloadTrackerTest, StatusUpdateWithTimeUpdate) {
 }
 
 }  // namespace
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

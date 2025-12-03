@@ -456,10 +456,12 @@ class NearbySharingServiceImpl
   // Registers the most recent TransferMetadata and ShareTarget used for
   // transitioning notifications between foreground surfaces and background
   // surfaces. Empty if no metadata is available.
-  std::optional<std::tuple<ShareTarget, AttachmentContainer, TransferMetadata>>
+  std::optional<std::tuple<ShareTarget, std::unique_ptr<AttachmentContainer>,
+                           TransferMetadata>>
       last_incoming_metadata_;
   // The most recent outgoing TransferMetadata and ShareTarget.
-  std::optional<std::tuple<ShareTarget, AttachmentContainer, TransferMetadata>>
+  std::optional<std::tuple<ShareTarget, std::unique_ptr<AttachmentContainer>,
+                           TransferMetadata>>
       last_outgoing_metadata_;
   // A map of ShareTarget id to IncomingShareSession. This lets us know which
   // Nearby Connections endpoint and public certificate are related to the

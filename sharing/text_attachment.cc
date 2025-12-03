@@ -31,8 +31,7 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/proto/wire_format.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::AttachmentSourceType;
@@ -128,8 +127,8 @@ TextAttachment::TextAttachment(Type type, std::string text_body,
       text_title_(text_title.has_value() && !text_title->empty()
                       ? *text_title
                       : GetTextTitle(text_body, type)),
-      text_body_(std::move(text_body)),
-      mime_type_(mime_type ? *mime_type : std::string()) {}
+      mime_type_(mime_type.value_or("")),
+      text_body_(std::move(text_body)) {}
 
 TextAttachment::TextAttachment(int64_t id, Type type, std::string text_title,
                                int64_t size, int32_t batch_id,
@@ -145,8 +144,8 @@ TextAttachment::TextAttachment(int64_t id, Type type, std::string text_body,
     : Attachment(id, Attachment::Family::kText, size, batch_id, source_type),
       type_(type),
       text_title_(std::move(text_title)),
-      text_body_(std::move(text_body)),
-      mime_type_(std::move(mime_type)) {}
+      mime_type_(std::move(mime_type)),
+      text_body_(std::move(text_body)) {}
 
 absl::string_view TextAttachment::GetDescription() const { return text_title_; }
 
@@ -176,5 +175,4 @@ void TextAttachment::set_text_body(std::string text_body) {
   text_title_ = GetTextTitle(text_body_, type_);
 }
 
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing
