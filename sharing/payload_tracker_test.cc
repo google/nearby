@@ -46,9 +46,12 @@ constexpr absl::string_view kMimeType = "image/jpg";
 class PayloadTrackerTest : public ::testing::Test {
  public:
   void SetUp() override {
-    container_.AddFileAttachment(FileAttachment(
-        kFileId, kFileSize, std::string(kFileName), std::string(kMimeType),
-        service::proto::FileMetadata::IMAGE));
+    container_ =
+        AttachmentContainer::Builder()
+            .AddFileAttachment(FileAttachment(
+                kFileId, kFileSize, std::string(kFileName),
+                std::string(kMimeType), service::proto::FileMetadata::IMAGE))
+            .Build();
     attachment_payload_map_.clear();
     attachment_payload_map_.emplace(container_.GetFileAttachments()[0].id(),
                                  kFileId);

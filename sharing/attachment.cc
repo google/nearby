@@ -20,8 +20,7 @@
 #include "absl/random/random.h"
 #include "proto/sharing_enums.pb.h"
 
-namespace nearby {
-namespace sharing {
+namespace nearby::sharing {
 namespace {
 
 using ::location::nearby::proto::sharing::AttachmentSourceType;
@@ -33,32 +32,16 @@ int64_t CreateRandomId() {
 
 }  // namespace
 
-// TODO(b/258690183): Add unit tests for Attachment with same and different ids
 Attachment::Attachment(Attachment::Family family, int64_t size,
                        int32_t batch_id, AttachmentSourceType source_type)
-    : id_(CreateRandomId()),
-      family_(family),
-      size_(size),
-      batch_id_(batch_id),
-      source_type_(source_type) {}
+    : Attachment(/*id=*/0, family, size, batch_id, source_type) {}
 
 Attachment::Attachment(int64_t id, Attachment::Family family, int64_t size,
                        int32_t batch_id, AttachmentSourceType source_type)
     : id_(id == 0 ? CreateRandomId() : id),
       family_(family),
-      size_(size),
       batch_id_(batch_id),
-      source_type_(source_type) {}
+      source_type_(source_type),
+      size_(size) {}
 
-Attachment::Attachment(const Attachment&) = default;
-
-Attachment::Attachment(Attachment&&) = default;
-
-Attachment& Attachment::operator=(const Attachment&) = default;
-
-Attachment& Attachment::operator=(Attachment&&) = default;
-
-Attachment::~Attachment() = default;
-
-}  // namespace sharing
-}  // namespace nearby
+}  // namespace nearby::sharing

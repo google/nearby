@@ -72,9 +72,10 @@ class AttachmentContainerTest : public ::testing::Test {
 };
 
 TEST_F(AttachmentContainerTest, Constructor) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{wifi1_});
+  AttachmentContainer container = AttachmentContainer::Builder(
+      std::vector<TextAttachment>{text1_, text2_},
+      std::vector<FileAttachment>{file1_},
+      std::vector<WifiCredentialsAttachment>{wifi1_}).Build();
 
   EXPECT_THAT(container.GetTextAttachments(),
               UnorderedElementsAre(text1_, text2_));
@@ -84,88 +85,96 @@ TEST_F(AttachmentContainerTest, Constructor) {
 }
 
 TEST_F(AttachmentContainerTest, AddTextAttachment) {
-  AttachmentContainer container;
-
-  container.AddTextAttachment(text1_);
-  container.AddTextAttachment(text2_);
+  AttachmentContainer container = AttachmentContainer::Builder()
+                                      .AddTextAttachment(text1_)
+                                      .AddTextAttachment(text2_)
+                                      .Build();
 
   EXPECT_THAT(container.GetTextAttachments(),
               UnorderedElementsAre(text1_, text2_));
 }
 
 TEST_F(AttachmentContainerTest, AddFileAttachment) {
-  AttachmentContainer container;
-
-  container.AddFileAttachment(file1_);
+  AttachmentContainer container = AttachmentContainer::Builder()
+                                      .AddFileAttachment(file1_)
+                                      .Build();
 
   EXPECT_THAT(container.GetFileAttachments(), UnorderedElementsAre(file1_));
 }
 
 TEST_F(AttachmentContainerTest, AddWifiCredentialsAttachment) {
-  AttachmentContainer container;
-
-  container.AddWifiCredentialsAttachment(wifi1_);
+  AttachmentContainer container = AttachmentContainer::Builder()
+                                      .AddWifiCredentialsAttachment(wifi1_)
+                                      .Build();
 
   EXPECT_THAT(container.GetWifiCredentialsAttachments(),
               UnorderedElementsAre(wifi1_));
 }
 
 TEST_F(AttachmentContainerTest, GetMutableTextAttachment) {
-  AttachmentContainer container;
-
-  container.AddTextAttachment(text1_);
-  container.AddTextAttachment(text2_);
+  AttachmentContainer container = AttachmentContainer::Builder()
+                                      .AddTextAttachment(text1_)
+                                      .AddTextAttachment(text2_)
+                                      .Build();
 
   EXPECT_THAT(container.GetMutableTextAttachment(0), Eq(text1_));
   EXPECT_THAT(container.GetMutableTextAttachment(1), Eq(text2_));
 }
 
 TEST_F(AttachmentContainerTest, GetMutableFileAttachment) {
-  AttachmentContainer container;
-
-  container.AddFileAttachment(file1_);
+  AttachmentContainer container = AttachmentContainer::Builder()
+                                      .AddFileAttachment(file1_)
+                                      .Build();
 
   EXPECT_THAT(container.GetMutableFileAttachment(0), Eq(file1_));
 }
 
 TEST_F(AttachmentContainerTest, GetMutableWifiCredentialsAttachment) {
-  AttachmentContainer container;
-
-  container.AddWifiCredentialsAttachment(wifi1_);
+  AttachmentContainer container = AttachmentContainer::Builder()
+                                      .AddWifiCredentialsAttachment(wifi1_)
+                                      .Build();
 
   EXPECT_THAT(container.GetMutableWifiCredentialsAttachment(0), Eq(wifi1_));
 }
 
 TEST_F(AttachmentContainerTest, AttachmentCount) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{wifi1_});
+  AttachmentContainer container =
+      AttachmentContainer::Builder(
+          std::vector<TextAttachment>{text1_, text2_},
+          std::vector<FileAttachment>{file1_},
+          std::vector<WifiCredentialsAttachment>{wifi1_})
+          .Build();
 
   EXPECT_THAT(container.GetAttachmentCount(), Eq(4));
 }
 
 TEST_F(AttachmentContainerTest, GetTotalAttachmentsSize) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{});
+  AttachmentContainer container =
+      AttachmentContainer::Builder(std::vector<TextAttachment>{text1_, text2_},
+                                   std::vector<FileAttachment>{file1_},
+                                   std::vector<WifiCredentialsAttachment>{})
+          .Build();
 
   EXPECT_THAT(container.GetTotalAttachmentsSize(), Eq(18 + 20 + 100000));
 }
 
 TEST_F(AttachmentContainerTest, HasAttachments) {
-  AttachmentContainer container;
+  AttachmentContainer::Builder builder = AttachmentContainer::Builder();
 
-  EXPECT_THAT(container.HasAttachments(), IsFalse());
+  EXPECT_THAT(builder.Empty(), IsTrue());
 
-  container.AddWifiCredentialsAttachment(wifi1_);
+  builder.AddWifiCredentialsAttachment(wifi1_);
 
-  EXPECT_THAT(container.HasAttachments(), IsTrue());
+  EXPECT_THAT(builder.Empty(), IsFalse());
 }
 
 TEST_F(AttachmentContainerTest, ClearAttachments) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{wifi1_});
+  AttachmentContainer container =
+      AttachmentContainer::Builder(
+          std::vector<TextAttachment>{text1_, text2_},
+          std::vector<FileAttachment>{file1_},
+          std::vector<WifiCredentialsAttachment>{wifi1_})
+          .Build();
 
   container.ClearAttachments();
 
@@ -181,21 +190,13 @@ TEST_F(AttachmentContainerTest, ClearAttachments) {
               IsFalse());
 }
 
-TEST_F(AttachmentContainerTest, Clear) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{wifi1_});
-  EXPECT_THAT(container.HasAttachments(), IsTrue());
-
-  container.Clear();
-
-  EXPECT_THAT(container.HasAttachments(), IsFalse());
-}
-
 TEST_F(AttachmentContainerTest, GetStorageSize) {
-  AttachmentContainer container(std::vector<TextAttachment>{text1_, text2_},
-                                std::vector<FileAttachment>{file1_},
-                                std::vector<WifiCredentialsAttachment>{wifi1_});
+  AttachmentContainer container =
+      AttachmentContainer::Builder(
+          std::vector<TextAttachment>{text1_, text2_},
+          std::vector<FileAttachment>{file1_},
+          std::vector<WifiCredentialsAttachment>{wifi1_})
+          .Build();
 
   int64_t storage_size = container.GetStorageSize();
 

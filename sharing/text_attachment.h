@@ -49,8 +49,7 @@ class TextAttachment : public Attachment {
       location::nearby::proto::sharing::AttachmentSourceType source_type);
   TextAttachment(const TextAttachment&) = default;
   TextAttachment(TextAttachment&&) = default;
-  TextAttachment& operator=(const TextAttachment&) = default;
-  TextAttachment& operator=(TextAttachment&&) = default;
+  TextAttachment& operator=(TextAttachment&&) = delete;
   ~TextAttachment() override = default;
 
   absl::string_view text_body() const { return text_body_; }
@@ -66,10 +65,10 @@ class TextAttachment : public Attachment {
   std::string mime_type() const { return mime_type_; }
 
  private:
-  Type type_ = service::proto::TextMetadata::UNKNOWN;
+  const Type type_;
   std::string text_title_;
+  const std::string mime_type_;
   std::string text_body_;
-  std::string mime_type_;
 };
 
 }  // namespace sharing
