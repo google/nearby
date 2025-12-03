@@ -32,6 +32,9 @@ namespace parser {
 
 using UpgradePathInfo = ::location::nearby::connections::
     BandwidthUpgradeNegotiationFrame::UpgradePathInfo;
+using MediumMetadata = ::location::nearby::connections::MediumMetadata;
+using WifiDirectAuthType =
+    ::location::nearby::proto::connections::WifiDirectAuthType;
 
 // Serialize/Deserialize Nearby Connections Protocol messages.
 
@@ -125,7 +128,12 @@ Medium ConnectionRequestMediumToMedium(
 std::vector<Medium> ConnectionRequestMediumsToMediums(
     const location::nearby::connections::ConnectionRequestFrame&
         connection_request_frame);
-
+MediumMetadata::WifiDirectAuthType WFDAuthTypeToMediumMetadataWFDAuthType(
+    WifiDirectAuthType wifi_direct_auth_type);
+WifiDirectAuthType MediumMetadataWFDAuthTypeToWFDAuthType(
+    MediumMetadata::WifiDirectAuthType wifi_direct_auth_type);
+std::vector<WifiDirectAuthType> MediumMetadataWFDAuthTypesToWFDAuthTypes(
+    const MediumMetadata& medium_metadata);
 }  // namespace parser
 }  // namespace connections
 }  // namespace nearby

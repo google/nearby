@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
@@ -152,6 +153,8 @@ class WifiDirectServerSocket final {
 class WifiDirectMedium {
  public:
   using Platform = api::ImplementationPlatform;
+  using WifiDirectAuthType =
+      ::location::nearby::proto::connections::WifiDirectAuthType;
 
   WifiDirectMedium() : impl_(Platform::CreateWifiDirectMedium()) {}
   ~WifiDirectMedium() = default;
@@ -196,6 +199,17 @@ class WifiDirectMedium {
   api::WifiDirectMedium& GetImpl() {
     CHECK(impl_);
     return *impl_;
+  }
+
+  // Returns the supported WifiDirect auth types.
+  std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
+      const {
+    // NOTE: This assumes that supported_wifi_direct_auth_types_ is populated
+    // during the constructor or at some other initialization phase.
+    if (impl_ == nullptr) {
+      return {};
+    }
+    return impl_->GetSupportedWifiDirectAuthTypes();
   }
 
  private:

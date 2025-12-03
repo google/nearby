@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
@@ -81,6 +82,9 @@ class WifiDirectServerSocket {
 // Container of operations that can be performed over the WifiLan medium.
 class WifiDirectMedium {
  public:
+  using WifiDirectAuthType =
+      ::location::nearby::proto::connections::WifiDirectAuthType;
+
   virtual ~WifiDirectMedium() = default;
 
   // If the WiFi Adaptor supports to start a WifiDirect interface.
@@ -119,6 +123,10 @@ class WifiDirectMedium {
   // Returns the port range as a pair of min and max port.
   virtual absl::optional<std::pair<std::int32_t, std::int32_t>>
   GetDynamicPortRange() = 0;
+
+  // Returns the supported WifiDirect auth types.
+  virtual std::vector<WifiDirectAuthType> GetSupportedWifiDirectAuthTypes()
+      const = 0;
 };
 
 }  // namespace api

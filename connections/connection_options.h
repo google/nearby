@@ -37,6 +37,8 @@ struct ConnectionInfo {
   std::int32_t keep_alive_interval_millis;
   std::int32_t keep_alive_timeout_millis;
   std::optional<location::nearby::connections::MediumRole> medium_role;
+  std::vector<location::nearby::proto::connections::WifiDirectAuthType>
+      supported_wifi_direct_auth_types;
 };
 
 // Connection Options: used for both Advertising and Discovery.
