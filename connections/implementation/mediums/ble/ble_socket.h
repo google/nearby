@@ -26,6 +26,8 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/runnable.h"
+#include "internal/platform/single_thread_executor.h"
 
 namespace nearby {
 namespace connections {
@@ -104,6 +106,25 @@ class BleOutputStream : public OutputStream {
 
   Exception Flush() override;
   Exception Close() override;
+
+  /**
+   * Sends a protocol-level control packet over the BLE socket.
+   *
+   * Control packets are used for managing the connection state, such as sending
+   * introduction frames, acknowledgements, or disconnection messages, as
+   * distinct from bulk payload data transfer.
+   *
+   * This method is a decorated API on the `BleOutputStream`. It ensures the
+   * packet is formatted according to the Nearby Connections protocol before
+   * being written to the underlying stream. This includes automatically
+   * prepending the 3-byte `service_id_hash` to the packet data.
+   *
+   * @param data The `ByteArray` containing the raw content of the control
+   * packet to be sent.
+   * @return An `Exception` object indicating the status of the write
+   * operation. `{Exception::kSuccess}` on success.
+   */
+  Exception WriteControlPacket(const ByteArray& data);
 
   /**
    * Sends the length of a data payload to the remote endpoint.
@@ -356,11 +377,34 @@ class BleSocket final {
   ExceptionOr<ByteArray> ProcessBleControlPacketLocked()
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  /**
+   * Sends a raw L2CAP packet over the socket.
+   *
+   * This function provides a direct, low-level interface for transmitting a
+   * pre-formatted L2CAP packet. It is intended for use when the caller has
+   * already constructed a complete L2CAP packet (e.g., for a specific command
+   * or data payload) and needs to send it directly.
+   *
+   * This method bypasses the higher-level handshake logic encapsulated in
+   * `ProcessIncomingL2capPacketValidation` and
+   * `ProcessOutgoingL2capPacketValidation`.
+   *
+   * @param packet_byte A `ByteArray` containing the raw, complete L2CAP
+   * packet to be sent over the socket.
+   * @return An `Exception` object indicating the status of the write
+   * operation. `{Exception::kSuccess}` on success.
+   */
+  Exception SendL2capPacketLocked(const ByteArray& packet_byte)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  void RunOnSocketThread(Runnable runnable);
   ::location::nearby::proto::connections::Medium GetMediumLocked() const
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   Exception CloseLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   mutable Mutex mutex_;
+  SingleThreadExecutor serial_executor_;
+
   const ByteArray service_id_hash_;
   std::unique_ptr<mediums::BleInputStream> ble_input_stream_
       ABSL_GUARDED_BY(mutex_) = nullptr;

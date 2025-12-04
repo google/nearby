@@ -190,8 +190,11 @@ TEST_P(BleTest, CanConnect2) {
   EXPECT_TRUE(ble_server.StopAdvertising(service_id));
   ASSERT_NE(socket_for_server, nullptr);
   EXPECT_TRUE(socket_for_server.get()->IsValid());
-  ASSERT_FALSE(socket_for_client_result.has_value());
-  // TODO: edwinwu - add more tests.
+  ASSERT_TRUE(socket_for_client_result.has_value());
+  EXPECT_TRUE(socket_for_client_result.value()->IsValid());
+  EXPECT_TRUE(socket_for_server->GetRemotePeripheral().IsValid());
+  EXPECT_TRUE(
+      socket_for_client_result.value()->GetRemotePeripheral().IsValid());
   env_.Stop();
 }
 
@@ -318,8 +321,10 @@ TEST_P(BleTest, CanCancelConnect2) {
     EXPECT_TRUE(ble_server.StopAdvertising(service_id));
     ASSERT_NE(socket_for_server, nullptr);
     EXPECT_TRUE(socket_for_server.get()->IsValid());
-    // TODO: edwinwu - add more tests.
+    EXPECT_TRUE(socket_for_client_result.has_value());
     EXPECT_TRUE(socket_for_server.get()->GetRemotePeripheral().IsValid());
+    EXPECT_TRUE(
+        socket_for_client_result.value()->GetRemotePeripheral().IsValid());
   } else {
     EXPECT_FALSE(accept_latch.Await(kWaitDuration).result());
     EXPECT_TRUE(ble_server.StopAcceptingConnections(service_id));

@@ -25,6 +25,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 #include "connections/implementation/mediums/ble/ble_packet.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/ble.h"
@@ -77,6 +78,9 @@ class FakeInputStream : public InputStream {
 class FakeOutputStream : public OutputStream {
  public:
   Exception Write(const ByteArray& data) override {
+    if (exception_on_write_) {
+      return {Exception::kIo};
+    }
     absl::StrAppend(&buffer_, std::string(data));
     return {Exception::kSuccess};
   }
@@ -84,9 +88,13 @@ class FakeOutputStream : public OutputStream {
   Exception Close() override { return {Exception::kSuccess}; }
   std::string GetPayload() { return buffer_; }
   void Clear() { buffer_.clear(); }
+  void SetExceptionOnWrite(bool exception_on_write) {
+    exception_on_write_ = exception_on_write;
+  }
 
  private:
   std::string buffer_;
+  bool exception_on_write_ = false;
 };
 
 class FakeBleSocketImpl : public api::ble::BleSocket {
@@ -287,8 +295,68 @@ TEST_F(BleSocketBleMediumTest, IsValid) {
   EXPECT_TRUE(socket_->IsValid());
 }
 
+TEST_F(BleSocketBleMediumTest, SendIntroductionSuccess) {
+  EXPECT_TRUE(socket_->SendIntroduction().Ok());
+  auto intro_packet = BlePacket::CreateControlIntroductionPacket(
+      ByteArray(std::string(kServiceIdHash)));
+  ASSERT_TRUE(intro_packet.ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(ByteArray(*intro_packet)));
+}
+
+TEST_F(BleSocketBleMediumTest, SendIntroductionAfterClose) {
+  socket_->Close();
+  EXPECT_FALSE(socket_->SendIntroduction().Ok());
+}
+
+TEST_F(BleSocketBleMediumTest, SendIntroductionWriteFails) {
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->SendIntroduction().Ok());
+}
+
 TEST_F(BleSocketBleMediumTest, GetMedium) {
   EXPECT_EQ(socket_->GetMedium(), Medium::BLE);
+}
+
+TEST_F(BleSocketBleMediumTest, SendDisconnectionSuccess) {
+  EXPECT_TRUE(socket_->SendDisconnection().Ok());
+  auto disconnection_packet = BlePacket::CreateControlDisconnectionPacket(
+      ByteArray(std::string(kServiceIdHash)));
+  ASSERT_TRUE(disconnection_packet.ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(ByteArray(*disconnection_packet)));
+}
+
+TEST_F(BleSocketBleMediumTest, SendDisconnectionAfterClose) {
+  socket_->Close();
+  EXPECT_FALSE(socket_->SendDisconnection().Ok());
+}
+
+TEST_F(BleSocketBleMediumTest, SendDisconnectionWriteFails) {
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->SendDisconnection().Ok());
+}
+
+TEST_F(BleSocketBleMediumTest, SendPacketAcknowledgementSuccess) {
+  constexpr int kReceivedSize = 100;
+  EXPECT_TRUE(socket_->SendPacketAcknowledgement(kReceivedSize).Ok());
+  auto ack_packet = BlePacket::CreateControlPacketAcknowledgementPacket(
+      ByteArray(std::string(kServiceIdHash)), kReceivedSize);
+  ASSERT_TRUE(ack_packet.ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(ByteArray(*ack_packet)));
+}
+
+TEST_F(BleSocketBleMediumTest, SendPacketAcknowledgementAfterClose) {
+  constexpr int kReceivedSize = 100;
+  socket_->Close();
+  EXPECT_FALSE(socket_->SendPacketAcknowledgement(kReceivedSize).Ok());
+}
+
+TEST_F(BleSocketBleMediumTest, SendPacketAcknowledgementWriteFails) {
+  constexpr int kReceivedSize = 100;
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->SendPacketAcknowledgement(kReceivedSize).Ok());
 }
 
 class BleL2capSocketBleMediumTest : public ::testing::Test {
@@ -442,8 +510,136 @@ TEST_F(BleL2capSocketBleMediumTest, IsValid) {
   EXPECT_TRUE(socket_->IsValid());
 }
 
+TEST_F(BleL2capSocketBleMediumTest, SendIntroductionSuccess) {
+  EXPECT_TRUE(socket_->SendIntroduction().Ok());
+  auto intro_packet = BlePacket::CreateControlIntroductionPacket(
+      ByteArray(std::string(kServiceIdHash)));
+  ASSERT_TRUE(intro_packet.ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(ByteArray(*intro_packet)));
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendIntroductionAfterClose) {
+  socket_->Close();
+  EXPECT_FALSE(socket_->SendIntroduction().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendIntroductionWriteFails) {
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->SendIntroduction().Ok());
+}
+
 TEST_F(BleL2capSocketBleMediumTest, GetMedium) {
   EXPECT_EQ(socket_->GetMedium(), Medium::BLE_L2CAP);
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendDisconnectionSuccess) {
+  EXPECT_TRUE(socket_->SendDisconnection().Ok());
+  auto disconnection_packet = BlePacket::CreateControlDisconnectionPacket(
+      ByteArray(std::string(kServiceIdHash)));
+  ASSERT_TRUE(disconnection_packet.ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(ByteArray(*disconnection_packet)));
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendDisconnectionAfterClose) {
+  socket_->Close();
+  EXPECT_FALSE(socket_->SendDisconnection().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendDisconnectionWriteFails) {
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->SendDisconnection().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendPacketAcknowledgementSuccess) {
+  constexpr int kReceivedSize = 100;
+  EXPECT_TRUE(socket_->SendPacketAcknowledgement(kReceivedSize).Ok());
+  auto ack_packet = BlePacket::CreateControlPacketAcknowledgementPacket(
+      ByteArray(std::string(kServiceIdHash)), kReceivedSize);
+  ASSERT_TRUE(ack_packet.ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(ByteArray(*ack_packet)));
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendPacketAcknowledgementAfterClose) {
+  constexpr int kReceivedSize = 100;
+  socket_->Close();
+  EXPECT_FALSE(socket_->SendPacketAcknowledgement(kReceivedSize).Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest, SendPacketAcknowledgementWriteFails) {
+  constexpr int kReceivedSize = 100;
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->SendPacketAcknowledgement(kReceivedSize).Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationSuccess) {
+  fake_input_stream_.Append(
+      BleL2capPacket::ByteArrayForRequestDataConnection());
+  EXPECT_TRUE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(BleL2capPacket::ByteArrayForDataConnectionReady()));
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationReadFails) {
+  fake_input_stream_.SetExceptionOnRead(true);
+  EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationWrongPacket) {
+  fake_input_stream_.Append(BleL2capPacket::ByteArrayForDataConnectionReady());
+  EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationWriteFails) {
+  fake_input_stream_.Append(
+      BleL2capPacket::ByteArrayForRequestDataConnection());
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessIncomingL2capPacketValidationAfterClose) {
+  socket_->Close();
+  EXPECT_FALSE(socket_->ProcessIncomingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessOutgoingL2capPacketValidationSuccess) {
+  fake_input_stream_.Append(BleL2capPacket::ByteArrayForDataConnectionReady());
+  EXPECT_TRUE(socket_->ProcessOutgoingL2capPacketValidation().Ok());
+  EXPECT_EQ(fake_output_stream_.GetPayload(),
+            std::string(BleL2capPacket::ByteArrayForRequestDataConnection()));
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessOutgoingL2capPacketValidationWriteFails) {
+  fake_output_stream_.SetExceptionOnWrite(true);
+  EXPECT_FALSE(socket_->ProcessOutgoingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessOutgoingL2capPacketValidationReadFails) {
+  fake_input_stream_.SetExceptionOnRead(true);
+  EXPECT_FALSE(socket_->ProcessOutgoingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessOutgoingL2capPacketValidationWrongPacket) {
+  fake_input_stream_.Append(
+      BleL2capPacket::ByteArrayForRequestDataConnection());
+  EXPECT_FALSE(socket_->ProcessOutgoingL2capPacketValidation().Ok());
+}
+
+TEST_F(BleL2capSocketBleMediumTest,
+       ProcessOutgoingL2capPacketValidationAfterClose) {
+  socket_->Close();
+  EXPECT_FALSE(socket_->ProcessOutgoingL2capPacketValidation().Ok());
 }
 
 }  // namespace
