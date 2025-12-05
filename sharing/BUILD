@@ -945,6 +945,7 @@ cc_test(
     name = "outgoing_targets_manager_test",
     srcs = ["outgoing_targets_manager_test.cc"],
     deps = [
+        ":attachments",
         ":connection_types",
         ":nearby_connection_impl",
         ":outgoing_targets_manager",
@@ -952,6 +953,7 @@ cc_test(
         ":test_support",
         ":transfer_metadata",
         ":types",
+        "//internal/base:file_path",
         "//internal/platform/implementation:platform_impl",
         "//internal/test",
         "//sharing/analytics",

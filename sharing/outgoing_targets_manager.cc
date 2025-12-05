@@ -196,10 +196,6 @@ std::optional<ShareTarget> OutgoingTargetsManager::RemoveTarget(
     return std::nullopt;
   }
   int64_t share_target_id = it->second;
-  VLOG(1) << __func__
-          << ": Removing share_target.id=" << share_target_id
-          << " from outgoing share target map";
-
   auto session_it = outgoing_share_session_map_.find(share_target_id);
   if (session_it == outgoing_share_session_map_.end()) {
     LOG(ERROR) << __func__ << ": share_target.id=" << share_target_id
@@ -207,11 +203,14 @@ std::optional<ShareTarget> OutgoingTargetsManager::RemoveTarget(
     outgoing_target_id_map_.erase(it);
     return std::nullopt;
   }
-  if (!close_connected && session_it->second.IsConnected()) {
+  if (!close_connected && session_it->second.IsActive()) {
     LOG(INFO) << __func__ << ": share_target.id=" << share_target_id
-              << " is connected, not removing.";
+              << " is active, not removing.";
     return std::nullopt;
   }
+  VLOG(1) << __func__
+          << ": Removing share_target.id=" << share_target_id
+          << " from outgoing share target map";
   outgoing_target_id_map_.erase(it);
   // Do not destroy the session until it has been removed from the map.
   // Session destruction can trigger callbacks that traverses the map and it

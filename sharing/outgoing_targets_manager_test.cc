@@ -22,11 +22,14 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "internal/base/file_path.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
+#include "sharing/attachment_container.h"
 #include "sharing/fake_nearby_connections_manager.h"
+#include "sharing/file_attachment.h"
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/outgoing_share_session.h"
@@ -191,6 +194,56 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargetLostConnectedNotClosed) {
   session = outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
   ASSERT_NE(session, nullptr);
   EXPECT_TRUE(session->IsConnected());
+}
+
+TEST_F(OutgoingTargetsManagerTest, onShareTargetLostConnectingNotClosed) {
+  constexpr int kShareTargetId = 1234;
+  constexpr absl::string_view kEndpointId = "endpoint_id";
+  ShareTarget target;
+  target.id = kShareTargetId;
+  {
+    InSequence s;
+    EXPECT_CALL(share_target_discovered_callback_, Call).Times(1);
+    EXPECT_CALL(share_target_updated_callback_, Call).Times(0);
+    EXPECT_CALL(share_target_lost_callback_, Call).Times(0);
+    EXPECT_CALL(transfer_update_callback_, Call).Times(0);
+  }
+  outgoing_targets_manager_.OnShareTargetDiscovered(
+      target, kEndpointId, /*certificate=*/std::nullopt);
+  OutgoingShareSession* session =
+      outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+  // InitiateSendAttachments is called when session starts connecting.
+  session->InitiateSendAttachments(AttachmentContainer::Builder()
+    .AddFileAttachment(FileAttachment(FilePath{""}))
+    .Build());
+
+  outgoing_targets_manager_.OnShareTargetLost(std::string(kEndpointId),
+                                              Seconds(10));
+
+  bool has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, target);
+      });
+  EXPECT_TRUE(has_targets);
+  session = outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
+
+  // Retention timer expired.
+  clock_.FastForward(Seconds(10));
+  service_thread_.Sync();
+
+  has_targets = false;
+  outgoing_targets_manager_.ForEachShareTarget(
+      [&](const ShareTarget& share_target) {
+        has_targets = true;
+        EXPECT_EQ(share_target, target);
+      });
+  EXPECT_TRUE(has_targets);
+  session = outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
+  ASSERT_NE(session, nullptr);
 }
 
 TEST_F(OutgoingTargetsManagerTest, onShareTargeDedupByEndpointIdNoLoss) {

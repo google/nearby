@@ -129,12 +129,16 @@ OutgoingShareSession::~OutgoingShareSession() = default;
 
 void OutgoingShareSession::InvokeTransferUpdateCallback(
     const TransferMetadata& metadata) {
+  if (metadata.is_final_status()) {
+    is_connecting_ = false;
+  }
   transfer_update_callback_(*this, metadata);
 }
 
 void OutgoingShareSession::InitiateSendAttachments(
     std::unique_ptr<AttachmentContainer> attachment_container) {
   SetAttachmentContainer(std::move(*attachment_container));
+  is_connecting_ = true;
 
   // Set session ID.
   set_session_id(analytics_recorder().GenerateNextId());
@@ -549,6 +553,7 @@ bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,
   }
   set_disconnect_status(TransferMetadata::Status::kFailed);
   SetConnection(connection);
+  is_connecting_ = false;
 
   // Log analytics event of establishing connection.
   analytics_recorder().NewEstablishConnection(

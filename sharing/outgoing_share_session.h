@@ -169,6 +169,11 @@ class OutgoingShareSession : public ShareSession {
     advanced_protection_mismatch_ = advanced_protection_mismatch;
   }
 
+  // Returns true if the session is connected or in the process of connecting.
+  bool IsActive() const {
+    return IsConnected() || is_connecting_;
+  }
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;
@@ -199,6 +204,7 @@ class OutgoingShareSession : public ShareSession {
   std::unique_ptr<ThreadTimer> disconnection_timeout_;
   bool advanced_protection_enabled_ = false;
   bool advanced_protection_mismatch_ = false;
+  bool is_connecting_ = false;
 };
 
 }  // namespace nearby::sharing
