@@ -692,6 +692,9 @@ enum SyncPurpose {
   // When Nearby Presence identity model exhaust the salt to use on the contact
   // group visibility credential
   SYNC_EXHAUST_SALT = 18;
+  // When Nearby Presence request broadcast and discovery credential from
+  // quick share identity provider
+  SYNC_QUICKSHARE_IDENTITY_PROVIDER_QUERY = 19;
 }
 
 // The device role to trigger the server request.
