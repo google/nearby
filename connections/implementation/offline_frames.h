@@ -25,6 +25,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace connections {
@@ -83,7 +84,7 @@ ByteArray ForBwuWifiHotspotPathAvailable(
         UpgradePathInfo::WifiHotspotCredentials credentials,
     bool supports_disabling_encryption);
 ByteArray ForBwuWifiLanPathAvailable(
-    const std::vector<std::string>& ip_addresses, std::int32_t port);
+    const std::vector<ServiceAddress>& addresses);
 ByteArray ForBwuAwdlPathAvailable(const std::string& service_name,
                                   const std::string& service_type,
                                   const std::string& password,

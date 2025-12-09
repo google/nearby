@@ -36,6 +36,7 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/socket.h"
 #include "internal/platform/types.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -607,15 +608,14 @@ ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
   return ExceptionOr<WifiLanSocket>(Exception::kFailed);
 }
 
-std::pair<std::vector<std::string>, int> WifiLan::GetUpgradeAddressCandidates(
+std::vector<ServiceAddress> WifiLan::GetUpgradeAddressCandidates(
     const std::string& service_id) {
   MutexLock lock(&mutex_);
   const auto& it = server_sockets_.find(service_id);
   if (it == server_sockets_.end()) {
-    return std::pair<std::vector<std::string>, int>();
+    return {};
   }
-  return {medium_.GetUpgradeAddressCandidates(it->second),
-          it->second.GetPort()};
+  return medium_.GetUpgradeAddressCandidates(it->second);
 }
 
 std::string WifiLan::GenerateServiceType(const std::string& service_id) {

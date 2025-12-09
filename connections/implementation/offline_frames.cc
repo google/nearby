@@ -32,6 +32,7 @@
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace connections {
@@ -289,7 +290,7 @@ ByteArray ForBwuWifiHotspotPathAvailable(
 }
 
 ByteArray ForBwuWifiLanPathAvailable(
-    const std::vector<std::string>& ip_addresses, std::int32_t port) {
+    const std::vector<ServiceAddress>& addresses) {
   OfflineFrame frame;
 
   frame.set_version(OfflineFrame::V1);
@@ -304,18 +305,21 @@ ByteArray ForBwuWifiLanPathAvailable(
   auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
   // For compatibility with Android versions, only use IPv4 address.
   // IPv4 addresses are always at the end of the list.
-  std::string ip_address = ip_addresses.back();
-  if (ip_address.size() == 4) {
-    wifi_lan_socket->set_ip_address(ip_address);
-    wifi_lan_socket->set_wifi_port(port);
+  const auto& last_address = addresses.back();
+  if (last_address.address.size() == 4) {
+    wifi_lan_socket->set_ip_address(
+        std::string(last_address.address.begin(), last_address.address.end()));
+    wifi_lan_socket->set_wifi_port(last_address.port);
   }
-  for (const auto& address : ip_addresses) {
+  for (const auto& address : addresses) {
     auto* address_candidate = wifi_lan_socket->add_address_candidates();
-    std::string ip_address = std::string(address.begin(), address.end());
+    std::string ip_address =
+        std::string(address.address.begin(), address.address.end());
     address_candidate->set_ip_address(ip_address);
-    address_candidate->set_port(port);
+    address_candidate->set_port(address.port);
     VLOG(1) << "ForBwuWifiLanPathAvailable: "
-            << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port;
+            << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":"
+            << address.port;
   }
   return ToBytes(std::move(frame));
 }

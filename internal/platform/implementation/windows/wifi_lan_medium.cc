@@ -40,6 +40,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
@@ -735,11 +736,12 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
   return false;
 }
 
-std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
     const api::WifiLanServerSocket& server_socket) {
   const NetworkInfo& network_info = NetworkInfo::GetNetworkInfo();
-  std::vector<std::string> ip_addresses;
-  std::vector<std::string> ipv4_addresses;
+  uint16_t port = server_socket.GetPort();
+  std::vector<ServiceAddress> ip_addresses;
+  std::vector<ServiceAddress> ipv4_addresses;
   for (const auto& net_interface : network_info.GetInterfaces()) {
     // Only use wifi and ethernet interfaces for upgrade.
     if (net_interface.type != InterfaceType::kWifi &&
@@ -753,16 +755,22 @@ std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
       if (address.IsV6LinkLocal()) {
         continue;
       }
-      ip_addresses.push_back(
-          std::string(reinterpret_cast<const char*>(
-                          &address.ipv6_address()->sin6_addr.u.Byte[0]),
-                      16));
+      ip_addresses.push_back(ServiceAddress{
+          .address =
+              std::vector<char>(address.ipv6_address()->sin6_addr.u.Byte,
+                                address.ipv6_address()->sin6_addr.u.Byte + 16),
+          .port = port,
+      });
     }
     for (const auto& ipv4address : net_interface.ipv4_addresses) {
       auto address = reinterpret_cast<const sockaddr_in*>(&ipv4address);
-      ipv4_addresses.push_back(std::string(
-          reinterpret_cast<const char*>(&address->sin_addr.S_un.S_un_b.s_b1),
-          4));
+      ipv4_addresses.push_back(ServiceAddress{
+          .address = {address->sin_addr.S_un.S_un_b.s_b1,
+                      address->sin_addr.S_un.S_un_b.s_b2,
+                      address->sin_addr.S_un.S_un_b.s_b3,
+                      address->sin_addr.S_un.S_un_b.s_b4},
+          .port = port,
+      });
     }
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(

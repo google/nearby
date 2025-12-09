@@ -33,6 +33,7 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -116,7 +117,7 @@ class WifiLan {
   // The candidates list is ordered to have IPv6 addresses first, then IPv4.
   // Both IPv4 and IPv6 adddresses are represented as network order byte
   // sequence.
-  std::pair<std::vector<std::string>, int> GetUpgradeAddressCandidates(
+  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
       const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

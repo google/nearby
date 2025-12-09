@@ -27,6 +27,7 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/socket.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 using location::nearby::proto::connections::Medium;
@@ -202,7 +203,7 @@ WifiLanSocket WifiLanMedium::ConnectToService(
       impl_->ConnectToService(ip_address, port, cancellation_flag));
 }
 
-std::vector<std::string> WifiLanMedium::GetUpgradeAddressCandidates(
+std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
     const WifiLanServerSocket& server_socket) {
   return impl_->GetUpgradeAddressCandidates(server_socket.GetImpl());
 }

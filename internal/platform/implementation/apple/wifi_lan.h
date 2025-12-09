@@ -23,6 +23,7 @@
 
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/wifi_credential.h"
 
 @class GNCNWFramework;
 @class GNCNWFrameworkServerSocket;
@@ -124,7 +125,7 @@ class WifiLanMedium : public api::WifiLanMedium {
   std::unique_ptr<api::WifiLanSocket> ConnectToService(
       const std::string& ip_address, int port, CancellationFlag* cancellation_flag) override;
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override;
-  std::vector<std::string> GetUpgradeAddressCandidates(const api::WifiLanServerSocket& server_socket) override;
+  std::vector<ServiceAddress> GetUpgradeAddressCandidates(const api::WifiLanServerSocket& server_socket) override;
 
  private:
   GNCNWFramework* medium_;

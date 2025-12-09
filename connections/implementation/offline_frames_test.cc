@@ -30,6 +30,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace connections {
@@ -532,11 +533,13 @@ TEST(OfflineFramesTest, CanGenerateBwuWifiLanPathAvailable) {
       >
     >)pb";
   ByteArray bytes = ForBwuWifiLanPathAvailable(
-      {std::string(
-           "\x2a\x00\x79\xe0\x2e\x87\x00\x06\xb7\x28\x67\x45\x7a\xdd\x01\x53",
-           16),
-       "\x01\x02\x03\x04"},
-      1234);
+      {ServiceAddress{
+           .address = {'\x2a', '\x00', '\x79', '\xe0', '\x2e', '\x87', '\x00',
+                       '\x06', '\xb7', '\x28', '\x67', '\x45', '\x7a', '\xdd',
+                       '\x01', '\x53'},
+           .port = 1234},
+       ServiceAddress{.address = {'\x01', '\x02', '\x03', '\x04'},
+                      .port = 1234}});
   auto response = FromBytes(bytes);
   ASSERT_TRUE(response.ok());
   OfflineFrame message = response.result();

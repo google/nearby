@@ -29,6 +29,7 @@
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -207,7 +208,7 @@ class WifiLanMedium : public api::WifiLanMedium {
     return std::nullopt;
   }
 
-  std::vector<std::string> GetUpgradeAddressCandidates(
+  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
       const api::WifiLanServerSocket& server_socket) override;
 
  private:

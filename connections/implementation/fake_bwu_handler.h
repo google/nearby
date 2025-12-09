@@ -34,6 +34,7 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
+#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace connections {
@@ -147,8 +148,8 @@ class FakeBwuHandler : public BaseBwuHandler {
             /*mac_address=*/mac_address);
       }
       case location::nearby::proto::connections::WIFI_LAN:
-        return parser::ForBwuWifiLanPathAvailable(/*ip_addresses=*/{"ABCD"},
-                                                  /*port=*/1234);
+        return parser::ForBwuWifiLanPathAvailable(
+            {ServiceAddress{.address = {'A', 'B', 'C', 'D'}, .port = 1234}});
       case location::nearby::proto::connections::WEB_RTC:
       case location::nearby::proto::connections::WEB_RTC_NON_CELLULAR:
         return parser::ForBwuWebrtcPathAvailable(
