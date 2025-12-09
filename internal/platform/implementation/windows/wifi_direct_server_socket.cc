@@ -51,6 +51,10 @@ void WifiDirectServerSocket::SetIPAddress(std::string ip_address) {
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
   absl::MutexLock lock(&mutex_);
+  if (server_socket_accepted_connection_) {
+    LOG(INFO) << "Server socket has already accepted a connection. Return.";
+    return nullptr;
+  }
   if (!is_listen_started_) {
     LOG(INFO) << __func__
               << ": Server socket is not started, wait for server socket is "
@@ -66,10 +70,13 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
 
   auto client_socket = server_socket_.Accept();
   if (client_socket == nullptr) {
+    LOG(INFO) << "Accept server socket failed.";
     return nullptr;
   }
 
   LOG(INFO) << __func__ << ": Accepted a remote connection.";
+  // This is to indicate that the server socket has accepted a connection.
+  server_socket_accepted_connection_ = true;
   return std::make_unique<WifiDirectSocket>(std::move(client_socket));
 }
 
@@ -92,6 +99,7 @@ Exception WifiDirectServerSocket::Close() {
   }
   wifi_direct_ipaddr_.clear();
   is_listen_started_ = false;
+  server_socket_accepted_connection_ = false;
   server_socket_.Close();
   closed_ = true;
 

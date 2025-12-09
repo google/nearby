@@ -174,6 +174,7 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   std::string wifi_direct_ipaddr_ = {};
   bool closed_ = false;
   NearbyServerSocket server_socket_;
+  bool server_socket_accepted_connection_ = false;
 };
 
 class WifiDirectMedium : public api::WifiDirectMedium {
