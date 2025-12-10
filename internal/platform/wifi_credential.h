@@ -15,21 +15,14 @@
 #ifndef PLATFORM_BASE_WIFI_CREDENTIAL_H_
 #define PLATFORM_BASE_WIFI_CREDENTIAL_H_
 
-#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "internal/platform/service_address.h"
 #include "proto/connections_enums.pb.h"
 
 namespace nearby {
-
-struct ServiceAddress {
-  // IP address in MSB-first order.
-  // IPv4 address is 4 bytes, and IPv6 address is 16 bytes.
-  std::vector<char> address;
-  uint16_t port;
-};
 
 // Credentials for the currently-hosted Wifi hotspot (if any)
 // Class HotspotCredentials is copyable & movable

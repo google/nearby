@@ -15,6 +15,7 @@
 #include "internal/platform/implementation/windows/socket_address.h"
 
 #include "gtest/gtest.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby::windows {
 namespace {
@@ -199,6 +200,59 @@ TEST(SocketAddressTest, IPv6LinkLocalFail) {
                     0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
   EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
   EXPECT_FALSE(address.IsV6LinkLocal());
+}
+
+TEST(SocketAddressTest, FromServiceAddressIPv4) {
+  SocketAddress address;
+  ServiceAddress service_address = {
+      .address = {192, 168, 1, 1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
+  EXPECT_EQ(address.ToString(), "192.168.1.1:8080");
+  EXPECT_EQ(address.port(), 8080);
+}
+
+TEST(SocketAddressTest, FromServiceAddressIPv4DualStack) {
+  SocketAddress address(/*dual_stack=*/true);
+  ServiceAddress service_address = {
+      .address = {192, 168, 1, 1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
+  EXPECT_EQ(address.ToString(), "[::ffff:192.168.1.1]:8080");
+  EXPECT_EQ(address.port(), 8080);
+}
+
+TEST(SocketAddressTest, FromServiceAddressIPv6) {
+  SocketAddress address(/*dual_stack=*/true);
+  ServiceAddress service_address = {
+      .address = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0x4d, 0xb2, 0xb3, 0x5c, 0x22,
+                  0x03, 0x98, 0xa1},
+      .port = 8080,
+  };
+  EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
+  EXPECT_EQ(address.ToString(), "[fe80::4db2:b35c:2203:98a1]:8080");
+  EXPECT_EQ(address.port(), 8080);
+}
+
+TEST(SocketAddressTest, FromServiceAddressIPv6NoDualStack) {
+  SocketAddress address;
+  ServiceAddress service_address = {
+      .address = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0x4d, 0xb2, 0xb3, 0x5c, 0x22,
+                  0x03, 0x98, 0xa1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(SocketAddress::FromServiceAddress(address, service_address));
+}
+
+TEST(SocketAddressTest, FromServiceAddressInvalidAddress) {
+  SocketAddress address;
+  ServiceAddress service_address = {
+      .address = {192, 168, 1},
+      .port = 8080,
+  };
+  EXPECT_FALSE(SocketAddress::FromServiceAddress(address, service_address));
 }
 
 }  // namespace

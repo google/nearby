@@ -42,6 +42,7 @@ cc_library(
         "base64_utils.cc",
         "input_stream.cc",
         "prng.cc",
+        "service_address.cc",
     ],
     hdrs = [
         "base64_utils.h",
@@ -59,6 +60,7 @@ cc_library(
         "payload_id.h",
         "prng.h",
         "runnable.h",
+        "service_address.h",
         "socket.h",
         "types.h",
         "wifi_credential.h",
@@ -70,6 +72,7 @@ cc_library(
         "//connections:partners",
     ],
     deps = [
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//internal/platform/implementation:wifi_utils",
         "//proto:connections_enums_cc_proto",
         "@com_google_absl//absl/base:core_headers",
@@ -80,6 +83,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
     ],
@@ -603,6 +607,17 @@ cc_test(
         ":mac_address",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/hash:hash_testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "service_address_test",
+    srcs = ["service_address_test.cc"],
+    deps = [
+        ":base",
+        "//connections/implementation/proto:offline_wire_formats_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

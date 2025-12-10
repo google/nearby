@@ -427,6 +427,7 @@ let package = Package(
         "internal/platform/borrowable_test.cc",
         "internal/platform/implementation/windows/http_loader_test.cc",
         "internal/platform/blocking_queue_stream_test.cc",
+        "internal/platform/service_address_test.cc",
         "internal/network/utils_test.cc",
         "internal/network/url_test.cc",
         "internal/network/http_response_test.cc",

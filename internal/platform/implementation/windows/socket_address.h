@@ -23,6 +23,7 @@
 #include <string>
 
 #include "absl/types/span.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby::windows {
 
@@ -62,6 +63,9 @@ class SocketAddress {
   // `port` is in host byte order.
   static bool FromBytes(SocketAddress& address,
                         absl::Span<const char> address_bytes, int port = 0);
+
+  static bool FromServiceAddress(SocketAddress& address,
+                                 const ServiceAddress& service_address);
 
   // Returns true if dual stack support has been enabled.
   bool dual_stack() const { return dual_stack_; }

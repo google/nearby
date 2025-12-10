@@ -354,6 +354,7 @@ cc_library(
         "//:__subpackages__",
     ],
     deps = [
+        "//internal/platform:base",
         "//internal/platform:logging",
         "@com_google_absl//absl/types:span",
     ],

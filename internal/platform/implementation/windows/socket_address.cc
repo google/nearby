@@ -23,6 +23,7 @@
 
 #include "absl/types/span.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby::windows {
 
@@ -147,6 +148,11 @@ bool SocketAddress::FromBytes(SocketAddress& address,
   std::memcpy(&v6_address->sin6_addr, address_bytes.data(), sizeof(in6_addr));
   address.set_port(port);
   return true;
+}
+
+bool SocketAddress::FromServiceAddress(SocketAddress& address,
+                                       const ServiceAddress& service_address) {
+  return FromBytes(address, service_address.address, service_address.port);
 }
 
 int SocketAddress::port() const {
