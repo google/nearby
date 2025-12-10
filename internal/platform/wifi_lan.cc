@@ -26,8 +26,8 @@
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 using location::nearby::proto::connections::Medium;

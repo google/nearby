@@ -26,7 +26,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/nsd_service_info.h"
-#include "internal/platform/wifi_credential.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 

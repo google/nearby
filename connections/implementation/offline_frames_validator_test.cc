@@ -27,7 +27,7 @@
 #include "connections/medium_selector.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/wifi_credential.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 namespace connections {

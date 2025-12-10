@@ -34,7 +34,7 @@
 #include "internal/platform/mock_wifi_lan_medium.h"
 #include "internal/platform/mock_wifi_lan_server_socket.h"
 #include "internal/platform/mock_wifi_lan_socket.h"
-#include "internal/platform/wifi_credential.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 

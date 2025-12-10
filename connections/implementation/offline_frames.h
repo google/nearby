@@ -25,7 +25,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/mac_address.h"
-#include "internal/platform/wifi_credential.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 namespace connections {
@@ -54,7 +54,7 @@ location::nearby::connections::V1Frame::FrameType GetFrameType(
 ByteArray ForConnectionRequestConnections(
     const location::nearby::connections::ConnectionsDevice&
         proto_connections_device,
-    const ConnectionInfo& conection_info);
+    const ConnectionInfo& connection_info);
 ByteArray ForConnectionRequestPresence(
     const location::nearby::connections::PresenceDevice& proto_presence_device,
     const ConnectionInfo& connection_info);

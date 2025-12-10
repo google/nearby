@@ -25,7 +25,7 @@
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
-#include "internal/platform/wifi_credential.h"
+#include "internal/platform/service_address.h"
 
 namespace nearby {
 namespace api {
