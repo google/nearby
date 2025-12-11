@@ -113,7 +113,7 @@ bool ReconnectManager::AutoReconnect(ClientProxy* client,
         FeatureFlags::GetInstance()
             .GetFlags()
             .safe_to_disconnect_reconnect_skip_duplicated_endpoint_duration;
-    std::make_unique<CancelableAlarm>(
+    static_cast<void>(std::make_unique<CancelableAlarm>(
         absl::StrCat("RemoveSuccessfulResumedEndpointId for ", endpoint_id),
         [this, endpoint_id, time_out]() {
           LOG(INFO)
@@ -121,7 +121,7 @@ bool ReconnectManager::AutoReconnect(ClientProxy* client,
               << "ms. RemoveSuccessfulResumedEndpointId for " << endpoint_id;
           resumed_endpoints_.erase(endpoint_id);
         },
-        time_out, &alarm_executor_);
+        time_out, &alarm_executor_));
 
     return true;
   }
@@ -293,13 +293,13 @@ bool ReconnectManager::BaseMediumImpl::RehostForIncomingConnections(
                   StopListeningForIncomingConnections();
                 });
               });
-      std::make_unique<CancelableAlarm>(
+      static_cast<void>(std::make_unique<CancelableAlarm>(
           absl::StrCat(TAG, " unregisterOnCancelListener"),
           [cancellation_listener = std::move(cancellation_listener)]() mutable {
             // clean up the listener after auto reconnect is done.
             cancellation_listener.reset();
           },
-          time_out, &reconnect_manager_.alarm_executor_);
+          time_out, &reconnect_manager_.alarm_executor_));
     }
     return true;
   }
@@ -352,13 +352,13 @@ bool ReconnectManager::BaseMediumImpl::RehostForIncomingConnections(
             });
           });
 
-  std::make_unique<CancelableAlarm>(
+  static_cast<void>(std::make_unique<CancelableAlarm>(
       absl::StrCat(TAG, " unregisterOnCancelListener"),
       [cancellation_listener = std::move(cancellation_listener)]() mutable {
         // clean up the listener after auto reconnect is done.
         cancellation_listener.reset();
       },
-      time_out, &reconnect_manager_.alarm_executor_);
+      time_out, &reconnect_manager_.alarm_executor_));
   return true;
 }
 
