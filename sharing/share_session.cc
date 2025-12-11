@@ -72,31 +72,37 @@ std::string TokenToFourDigitString(const std::vector<uint8_t>& bytes) {
 }  // namespace
 
 /* static */
+// Only used for final statuses.
 AttachmentTransmissionStatus ShareSession::ConvertToTransmissionStatus(
     TransferMetadata::Status status) {
   switch (status) {
     case TransferMetadata::Status::kComplete:
       return AttachmentTransmissionStatus::
           COMPLETE_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kCancelled:
-      return AttachmentTransmissionStatus::
-          CANCELED_ATTACHMENT_TRANSMISSION_STATUS;
     case TransferMetadata::Status::kFailed:
       return AttachmentTransmissionStatus::
           FAILED_ATTACHMENT_TRANSMISSION_STATUS;
-    case TransferMetadata::Status::kIncompletePayloads:
-      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
+    case TransferMetadata::Status::kRejected:
+      return AttachmentTransmissionStatus::
+          REJECTED_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kCancelled:
+      return AttachmentTransmissionStatus::
+          CANCELED_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kTimedOut:
+      return AttachmentTransmissionStatus::
+          TIMED_OUT_ATTACHMENT_TRANSMISSION_STATUS;
     case TransferMetadata::Status::kMediaUnavailable:
       return AttachmentTransmissionStatus::MEDIA_UNAVAILABLE_ATTACHMENT;
-    case TransferMetadata::Status::kDeviceAuthenticationFailed:
-      return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
-    case TransferMetadata::Status::kRejected:
-      return AttachmentTransmissionStatus::REJECTED_ATTACHMENT;
-    case TransferMetadata::Status::kTimedOut:
-      return AttachmentTransmissionStatus::TIMED_OUT_ATTACHMENT;
+    case TransferMetadata::Status::kNotEnoughSpace:
+      return AttachmentTransmissionStatus::
+          NOT_ENOUGH_SPACE_ATTACHMENT_TRANSMISSION_STATUS;
     case TransferMetadata::Status::kUnsupportedAttachmentType:
       return AttachmentTransmissionStatus::
-          UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT;
+          UNSUPPORTED_ATTACHMENT_TYPE_ATTACHMENT_TRANSMISSION_STATUS;
+    case TransferMetadata::Status::kDeviceAuthenticationFailed:
+      return AttachmentTransmissionStatus::FAILED_PAIRED_KEYHANDSHAKE;
+    case TransferMetadata::Status::kIncompletePayloads:
+      return AttachmentTransmissionStatus::FAILED_NO_PAYLOAD;
     default:
       return AttachmentTransmissionStatus::
           UNKNOWN_ATTACHMENT_TRANSMISSION_STATUS;
