@@ -48,7 +48,7 @@ class MockWifiLanMedium : public api::WifiLanMedium {
                CancellationFlag* cancellation_flag),
               (override));
   MOCK_METHOD(std::unique_ptr<api::WifiLanSocket>, ConnectToService,
-              (const std::string& ip_address, int port,
+              (const ServiceAddress& service_address,
                CancellationFlag* cancellation_flag),
               (override));
   MOCK_METHOD(std::unique_ptr<api::WifiLanServerSocket>, ListenForService,

@@ -93,11 +93,13 @@
 }
 
 - (void)testConnectToServiceWithIpAddressAndPort {
-  std::string ipAddress = "\xC0\xA8\x01\x01";  // 192.168.1.1
-  int port = 1234;
+  nearby::ServiceAddress serviceAddress = {
+      .address = {static_cast<char>(0xC0), static_cast<char>(0xA8), 0x01, 0x01},  // 192.168.1.1
+      .port = 1234,
+  };
 
   nearby::CancellationFlag cancellationFlag;
-  _wifiLanMedium->ConnectToService(ipAddress, port, &cancellationFlag);
+  _wifiLanMedium->ConnectToService(serviceAddress, &cancellationFlag);
 
   XCTAssertEqualObjects([_fakeNWFramework.connectedToHost dottedRepresentation], @"192.168.1.1");
   XCTAssertEqual(_fakeNWFramework.connectedToPort, 1234);

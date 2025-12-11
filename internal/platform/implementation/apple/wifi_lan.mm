@@ -165,9 +165,9 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port, CancellationFlag* cancellation_flag) {
+    const ServiceAddress& service_address, CancellationFlag* cancellation_flag) {
   GNCNWFrameworkSocket* socket = network_utils::ConnectToService(
-      medium_, ip_address, port, /*include_peer_to_peer=*/false, cancellation_flag);
+      medium_, service_address, /*include_peer_to_peer=*/false, cancellation_flag);
   if (socket != nil) {
     return std::make_unique<WifiLanSocket>(socket);
   }

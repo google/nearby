@@ -31,6 +31,7 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
@@ -71,12 +72,13 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   std::vector<ServiceAddress> address_candidates;
   for (const auto& address_candidate :
        upgrade_path_info_socket.address_candidates()) {
-    if (address_candidate.has_ip_address() && address_candidate.has_port()) {
-      address_candidates.push_back(ServiceAddress{
-          .address = std::vector<char>(address_candidate.ip_address().begin(),
-                                       address_candidate.ip_address().end()),
-          .port = static_cast<uint16_t>(address_candidate.port())});
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
+      LOG(WARNING) << "Failed to parse service address size: "
+                   << address_candidate.ip_address().size();
+      continue;
     }
+    address_candidates.push_back(std::move(service_address));
   }
   // Only use ip_address and wifi_port if address_candidates is empty.
   if (address_candidates.empty()) {
@@ -88,26 +90,22 @@ WifiLanBwuHandler::CreateUpgradedEndpointChannel(
   }
   Error error;
   for (const auto& address_candidate : address_candidates) {
-    std::string ip_address = std::string(address_candidate.address.begin(),
-                                         address_candidate.address.end());
-    int port = address_candidate.port;
     VLOG(1) << "WifiLanBwuHandler is attempting to connect to available "
-               "WifiLan service ("
-            << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
-            << ") for endpoint " << endpoint_id;
-    ErrorOr<WifiLanSocket> socket_result = wifi_lan_medium_.Connect(
-        service_id, ip_address, port, client->GetCancellationFlag(endpoint_id));
+               "WifiLan service (" << address_candidate << ") for endpoint "
+            << endpoint_id;
+    ErrorOr<WifiLanSocket> socket_result =
+        wifi_lan_medium_.Connect(service_id, address_candidate,
+                                 client->GetCancellationFlag(endpoint_id));
     if (socket_result.has_error()) {
       LOG(ERROR)
           << "WifiLanBwuHandler failed to connect to the WifiLan service ("
-          << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
-          << ") for endpoint " << endpoint_id;
+          << address_candidate << ") for endpoint " << endpoint_id;
       error = Error(socket_result.error().operation_result_code().value());
       continue;
     }
     VLOG(1) << "WifiLanBwuHandler successfully connected to WifiLan service ("
-            << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":" << port
-            << ") while upgrading endpoint " << endpoint_id;
+            << address_candidate << ") while upgrading endpoint "
+            << endpoint_id;
 
     // Create a new WifiLanEndpointChannel.
     auto channel = std::make_unique<WifiLanEndpointChannel>(

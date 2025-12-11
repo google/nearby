@@ -310,7 +310,11 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   std::string ipv4_address = remote_service_info.GetIPAddress();
   if (!ipv4_address.empty()) {
     std::unique_ptr<api::WifiLanSocket> socket = ConnectToService(
-        ipv4_address, remote_service_info.GetPort(), cancellation_flag);
+        {
+            .address = {ipv4_address.begin(), ipv4_address.end()},
+            .port = static_cast<uint16_t>(remote_service_info.GetPort()),
+        },
+        cancellation_flag);
     if (socket != nullptr) {
       return socket;
     }
@@ -340,14 +344,14 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "ConnectToService is called.";
   bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
       platform::config_package_nearby::nearby_platform_feature::
           kEnableIpv6DualStack);
   SocketAddress server_address(dual_stack);
-  if (!server_address.FromBytes(server_address, ip_address, port)) {
+  if (!server_address.FromServiceAddress(server_address, service_address)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }

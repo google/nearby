@@ -21,7 +21,6 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
@@ -194,13 +193,12 @@ WifiLanSocket WifiLanMedium::ConnectToService(
 }
 
 WifiLanSocket WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "WifiLanMedium::ConnectToService: ip address="
-            << WifiUtils::GetHumanReadableIpAddress(ip_address)
-            << ", port=" << port;
+            << service_address;
   return WifiLanSocket(
-      impl_->ConnectToService(ip_address, port, cancellation_flag));
+      impl_->ConnectToService(service_address, cancellation_flag));
 }
 
 std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(

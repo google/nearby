@@ -207,43 +207,48 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   std::string service_type = remote_service_info.GetServiceType();
   LOG(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
             << ", service_type=" << service_type;
-  return ConnectToService(remote_service_info.GetIPAddress(),
-                          remote_service_info.GetPort(), cancellation_flag);
+  std::string ip_address = remote_service_info.GetIPAddress();
+  return ConnectToService(
+      {
+          .address = {ip_address.begin(), ip_address.end()},
+          .port = static_cast<uint16_t>(remote_service_info.GetPort()),
+      },
+      cancellation_flag);
 }
 
 std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
-    const std::string& ip_address, int port,
+    const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "G3 WifiLan ConnectToService [self]: medium=" << this
-            << ", port=" << port;
+            << ", [" << service_address << "]";
   // First, find an instance of remote medium, that exposed this service.
   auto& env = MediumEnvironment::Instance();
-  auto* remote_medium =
-      static_cast<WifiLanMedium*>(env.GetWifiLanMedium(ip_address, port));
+  auto* remote_medium = static_cast<WifiLanMedium*>(
+      env.GetWifiLanMedium(std::string(service_address.address.begin(),
+                                       service_address.address.end()),
+                           service_address.port));
   if (!remote_medium) {
     return {};
   }
 
   WifiLanServerSocket* server_socket = nullptr;
   LOG(INFO) << "G3 WifiLan ConnectToService [peer]: medium=" << remote_medium
-            << ", port=" << port;
+            << ", [" << service_address << "]";
   // Then, find our server socket context in this medium.
   {
     absl::MutexLock medium_lock(remote_medium->mutex_);
-    auto item = remote_medium->server_sockets_.find(port);
+    auto item = remote_medium->server_sockets_.find(service_address.port);
     server_socket =
         item != remote_medium->server_sockets_.end() ? item->second : nullptr;
     if (server_socket == nullptr) {
-      LOG(ERROR)
-          << "G3 WifiLan Failed to find WifiLan Server socket: port="
-          << port;
+      LOG(ERROR) << "G3 WifiLan Failed to find WifiLan Server socket: "
+                 << service_address;
       return {};
     }
   }
 
   if (cancellation_flag->Cancelled()) {
-    LOG(ERROR) << "G3 WifiLan Connect: Has been cancelled: port="
-               << port;
+    LOG(ERROR) << "G3 WifiLan Connect: Has been cancelled: " << service_address;
     return {};
   }
 
@@ -258,8 +263,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   // Finally, Request to connect to this socket.
   if (!server_socket->Connect(*socket)) {
     LOG(ERROR) << "G3 WifiLan Failed to connect to existing WifiLan "
-                  "Server socket: port="
-               << port;
+                  "Server socket: " << service_address;
     return {};
   }
   LOG(INFO) << "G3 WifiLan ConnectToService: connected: socket="

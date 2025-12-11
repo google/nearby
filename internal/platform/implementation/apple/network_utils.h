@@ -15,12 +15,12 @@
 #ifndef THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_NETWORK_UTILS_H_
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_IMPLEMENTATION_APPLE_NETWORK_UTILS_H_
 
-#include <functional>
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/implementation/psk_info.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/service_address.h"
 
 @class GNCNWFramework;
 @class GNCNWFrameworkServerSocket;
@@ -148,8 +148,9 @@ GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
  * @param cancellation_flag The cancellation flag to use.
  * @return A pointer to the socket.
  */
-GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium, const std::string& ip_address,
-                                       int port, bool include_peer_to_peer,
+GNCNWFrameworkSocket* ConnectToService(GNCNWFramework* medium,
+                                       const ServiceAddress& service_address,
+                                       bool include_peer_to_peer,
                                        CancellationFlag* cancellation_flag);
 }  // namespace network_utils
 }  // namespace apple

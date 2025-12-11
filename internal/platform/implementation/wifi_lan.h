@@ -138,7 +138,7 @@ class WifiLanMedium {
   // On success, returns a new WifiLanSocket.
   // On error, returns nullptr.
   virtual std::unique_ptr<WifiLanSocket> ConnectToService(
-      const std::string& ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) = 0;
 
   // Listens for incoming connection.

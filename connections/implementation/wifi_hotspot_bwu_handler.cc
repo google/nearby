@@ -41,6 +41,7 @@
 #include "internal/platform/expected.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_hotspot.h"
 
@@ -121,25 +122,25 @@ ByteArray WifiHotspotBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   credentials.set_frequency(frequency);
   const std::vector<ServiceAddress>& address_candidates =
       hotspot_crendential->GetAddressCandidates();
-  for (const auto& service_address : address_candidates) {
-    // service address must be either 4 bytes (IPv4) or 16 bytes (IPv6).
-    if (service_address.address.size() != 4 &&
-        service_address.address.size() != 16) {
-      LOG(WARNING) << "Invalid service address size: "
-                   << service_address.address.size();
-      continue;
+  if (!address_candidates.empty()) {
+    for (const auto& service_address : address_candidates) {
+      // service address must be either 4 bytes (IPv4) or 16 bytes (IPv6).
+      if (service_address.address.size() != 4 &&
+          service_address.address.size() != 16) {
+        LOG(WARNING) << "Invalid service address size: "
+                     << service_address.address.size();
+        continue;
+      }
+      ServiceAddressToProto(service_address,
+                            *(credentials.add_address_candidates()));
     }
-    auto* service_address_proto = credentials.add_address_candidates();
-    service_address_proto->set_ip_address(std::string(
-        service_address.address.begin(), service_address.address.end()));
-    service_address_proto->set_port(service_address.port);
+    const ServiceAddress& last_service_address = address_candidates.back();
+    // We assume the last service address is IPv4.
+    credentials.set_gateway(WifiUtils::GetHumanReadableIpAddress(
+        std::string(last_service_address.address.begin(),
+                    last_service_address.address.end())));
+    credentials.set_port(last_service_address.port);
   }
-  const ServiceAddress& last_service_address = address_candidates.back();
-  // We assume the last service address is IPv4.
-  credentials.set_gateway(WifiUtils::GetHumanReadableIpAddress(
-      std::string(last_service_address.address.begin(),
-                  last_service_address.address.end())));
-  credentials.set_port(last_service_address.port);
   bool disabling_encryption =
       (client->GetAdvertisingOptions().strategy == Strategy::kP2pPointToPoint);
   return parser::ForBwuWifiHotspotPathAvailable(
@@ -179,20 +180,15 @@ WifiHotspotBwuHandler::CreateUpgradedEndpointChannel(
   hotspot_credentials.SetPassword(upgrade_path_info_credentials.password());
   hotspot_credentials.SetFrequency(upgrade_path_info_credentials.frequency());
   std::vector<ServiceAddress> service_addresses;
-  for (const auto& service_address :
+  for (const auto& address_candidate :
        upgrade_path_info_credentials.address_candidates()) {
-    // service address must be either 4 bytes (IPv4) or 16 bytes (IPv6).
-    if (service_address.ip_address().size() != 4 &&
-        service_address.ip_address().size() != 16) {
-      LOG(WARNING) << "Invalid service address size: "
-                   << service_address.ip_address().size();
+    ServiceAddress service_address;
+    if (!ServiceAddressFromProto(address_candidate, service_address)) {
+      LOG(WARNING) << "Failed to parse service address size: "
+                   << address_candidate.ip_address().size();
       continue;
     }
-    service_addresses.push_back(ServiceAddress{
-        .address = {service_address.ip_address().begin(),
-                    service_address.ip_address().end()},
-        .port = static_cast<uint16_t>(service_address.port()),
-    });
+    service_addresses.push_back(std::move(service_address));
   }
   // Add gateway and port to address candidates if address candidates is empty.
   if (service_addresses.empty() &&

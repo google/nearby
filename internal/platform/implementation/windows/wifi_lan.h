@@ -51,6 +51,7 @@
 #include "internal/platform/input_stream.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 
 // WinRT headers
@@ -174,7 +175,7 @@ class WifiLanMedium : public api::WifiLanMedium {
       CancellationFlag* cancellation_flag) override;
 
   std::unique_ptr<api::WifiLanSocket> ConnectToService(
-      const std::string& ip_address, int port,
+      const ServiceAddress& service_address,
       CancellationFlag* cancellation_flag) override;
 
   std::unique_ptr<api::WifiLanServerSocket> ListenForService(int port) override;

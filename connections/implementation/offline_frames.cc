@@ -29,7 +29,6 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
-#include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/service_address.h"
@@ -303,23 +302,20 @@ ByteArray ForBwuWifiLanPathAvailable(
   upgrade_path_info->set_medium(UpgradePathInfo::WIFI_LAN);
   upgrade_path_info->set_supports_client_introduction_ack(true);
   auto* wifi_lan_socket = upgrade_path_info->mutable_wifi_lan_socket();
-  // For compatibility with Android versions, only use IPv4 address.
-  // IPv4 addresses are always at the end of the list.
-  const auto& last_address = addresses.back();
-  if (last_address.address.size() == 4) {
-    wifi_lan_socket->set_ip_address(
-        std::string(last_address.address.begin(), last_address.address.end()));
-    wifi_lan_socket->set_wifi_port(last_address.port);
-  }
-  for (const auto& address : addresses) {
-    auto* address_candidate = wifi_lan_socket->add_address_candidates();
-    std::string ip_address =
-        std::string(address.address.begin(), address.address.end());
-    address_candidate->set_ip_address(ip_address);
-    address_candidate->set_port(address.port);
-    VLOG(1) << "ForBwuWifiLanPathAvailable: "
-            << WifiUtils::GetHumanReadableIpAddress(ip_address) << ":"
-            << address.port;
+  if (!addresses.empty()) {
+    // For compatibility with Android versions, only use IPv4 address.
+    // IPv4 addresses are always at the end of the list.
+    const auto& last_address = addresses.back();
+    if (last_address.address.size() == 4) {
+      wifi_lan_socket->set_ip_address(std::string(last_address.address.begin(),
+                                                  last_address.address.end()));
+      wifi_lan_socket->set_wifi_port(last_address.port);
+    }
+    for (const auto& address : addresses) {
+      ServiceAddressToProto(address,
+                            *(wifi_lan_socket->add_address_candidates()));
+      VLOG(1) << "ForBwuWifiLanPathAvailable: " << address;
+    }
   }
   return ToBytes(std::move(frame));
 }

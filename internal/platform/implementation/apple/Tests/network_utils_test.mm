@@ -107,11 +107,13 @@ static NSString *const kServiceType = @"_test._tcp";
 
 - (void)testConnectToServiceByIP {
   nearby::CancellationFlag flag;
-  char ip[] = {127, 0, 0, 1};
-  std::string ipAddress(ip, 4);
+  nearby::ServiceAddress service_address = {
+    .address = { 127, 0, 0, 1 },
+    .port = 1234,
+  };
 
   GNCNWFrameworkSocket *socket =
-      nearby::apple::network_utils::ConnectToService(_fakeNWFramework, ipAddress, 1234, YES, &flag);
+      nearby::apple::network_utils::ConnectToService(_fakeNWFramework, service_address, YES, &flag);
 
   XCTAssertNotNil(socket);
   XCTAssertEqual(_fakeNWFramework.connectedToPort, 1234);

@@ -100,7 +100,10 @@ TEST_F(WifiLanBwuHandlerTest, CreateUpgradedEndpointChannel_IpAddress_Success) {
   EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
       .WillRepeatedly(Return(true));
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(std::string(kIpv4Address), 8080, _))
+              ConnectToService(ServiceAddress{
+                  .address = {kIpv4Address.begin(), kIpv4Address.end()},
+                  .port = 8080,
+              }, _))
       .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
 
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
@@ -128,7 +131,10 @@ TEST_F(WifiLanBwuHandlerTest,
   EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
       .WillRepeatedly(Return(true));
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(std::string(kIpv6Address), 8080, _))
+              ConnectToService(ServiceAddress{
+                  .address = {kIpv6Address.begin(), kIpv6Address.end()},
+                  .port = 8080,
+              }, _))
       .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
 
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
@@ -163,10 +169,16 @@ TEST_F(WifiLanBwuHandlerTest,
       .WillRepeatedly(Return(true));
   InSequence seq;
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(std::string(kIpv6Address), 8080, _))
+              ConnectToService(ServiceAddress{
+                  .address = {kIpv6Address.begin(), kIpv6Address.end()},
+                  .port = 8080,
+              }, _))
       .WillOnce(Return(ByMove(nullptr)));
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(std::string(kIpv4Address), 8080, _))
+              ConnectToService(ServiceAddress{
+                  .address = {kIpv4Address.begin(), kIpv4Address.end()},
+                  .port = 8080,
+              }, _))
       .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
 
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;

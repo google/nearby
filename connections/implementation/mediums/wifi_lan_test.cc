@@ -31,6 +31,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
@@ -325,10 +326,8 @@ TEST_P(WifiLanTest, CanConnectWithIpAddressAndPort) {
   ASSERT_NE(server_candidates.back().port, 0);
 
   CancellationFlag flag;
-  std::string ip_address{server_candidates.front().address.begin(),
-                         server_candidates.front().address.end()};
-  ErrorOr<WifiLanSocket> socket_for_client_result = wifi_lan_client.Connect(
-      service_id, ip_address, server_candidates.front().port, &flag);
+  ErrorOr<WifiLanSocket> socket_for_client_result =
+      wifi_lan_client.Connect(service_id, server_candidates.front(), &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));

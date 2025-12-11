@@ -34,6 +34,7 @@
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
 #include "internal/platform/types.h"
 #include "internal/platform/wifi_credential.h"
@@ -497,7 +498,7 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
 }
 
 ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
-                                        const std::string& ip_address, int port,
+                                        const ServiceAddress& service_address,
                                         CancellationFlag* cancellation_flag) {
   MutexLock lock(&mutex_);
   // Socket to return. To allow for NRVO to work, it has to be a single object.
@@ -521,22 +522,25 @@ ErrorOr<WifiLanSocket> WifiLan::Connect(const std::string& service_id,
                       CLIENT_CANCELLATION_CANCEL_LAN_OUTGOING_CONNECTION)};
   }
 
-  ExceptionOr<WifiLanSocket> virtual_socket =
-      ConnectWithMultiplexSocketLocked(service_id, ip_address);
+  ExceptionOr<WifiLanSocket> virtual_socket = ConnectWithMultiplexSocketLocked(
+      service_id, std::string(service_address.address.begin(),
+                              service_address.address.end()));
   if (virtual_socket.ok()) {
     return virtual_socket.result();
   }
 
-  socket = medium_.ConnectToService(ip_address, port, cancellation_flag);
+  socket = medium_.ConnectToService(service_address, cancellation_flag);
   if (!socket.IsValid()) {
     LOG(INFO) << "Failed to Connect via WifiLan [service_id=" << service_id
-              << "], [ip_address="
-              << WifiUtils::GetHumanReadableIpAddress(ip_address) << "]";
+              << "], [" << service_address << "]";
     return {Error(
         OperationResultCode::CONNECTIVITY_LAN_CLIENT_SOCKET_CREATION_FAILURE)};
   } else {
     ExceptionOr<WifiLanSocket> virtual_socket =
-        CreateOutgoingMultiplexSocketLocked(socket, service_id, ip_address);
+        CreateOutgoingMultiplexSocketLocked(
+            socket, service_id,
+            std::string(service_address.address.begin(),
+                        service_address.address.end()));
     if (virtual_socket.ok()) {
       LOG(INFO) << "Successfully connected via Multiplex WifiLan [service_id="
                 << service_id << "]";

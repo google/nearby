@@ -36,8 +36,8 @@
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 
@@ -244,7 +244,7 @@ class WifiLanMedium {
 
   // Returns a new WifiLanSocket by ip address and port.
   // On Success, WifiLanSocket::IsValid()returns true.
-  WifiLanSocket ConnectToService(const std::string& ip_address, int port,
+  WifiLanSocket ConnectToService(const ServiceAddress& service_address,
                                  CancellationFlag* cancellation_flag);
 
   // Returns a new WifiLanServerSocket.

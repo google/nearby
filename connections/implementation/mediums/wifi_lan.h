@@ -33,6 +33,7 @@
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
@@ -107,7 +108,7 @@ class WifiLan {
   // bandwidth upgradation.
   // Returns socket instance. On success, WifiLanSocket.IsValid() return true.
   ErrorOr<WifiLanSocket> Connect(const std::string& service_id,
-                                 const std::string& ip_address, int port,
+                                 const ServiceAddress& service_address,
                                  CancellationFlag* cancellation_flag)
       ABSL_LOCKS_EXCLUDED(mutex_);
 
