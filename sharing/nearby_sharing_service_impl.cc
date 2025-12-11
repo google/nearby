@@ -301,7 +301,6 @@ void NearbySharingServiceImpl::Shutdown(
         service_observers_.Clear();
 
         StopAdvertising();
-        StopFastInitiationScanning();
         StopFastInitiationAdvertising();
         StopScanning();
         nearby_connections_manager_->Shutdown();
@@ -1869,7 +1868,6 @@ void NearbySharingServiceImpl::InvalidateFastInitiationAdvertising() {
 
 void NearbySharingServiceImpl::InvalidateReceiveSurfaceState() {
   InvalidateAdvertisingState();
-  InvalidateFastInitiationScanning();
 }
 
 void NearbySharingServiceImpl::InvalidateAdvertisingState() {
@@ -2095,102 +2093,6 @@ NearbySharingService::StatusCodes NearbySharingServiceImpl::StopScanning() {
 void NearbySharingServiceImpl::StopAdvertisingAndInvalidateSurfaceState() {
   if (advertising_power_level_ != PowerLevel::kUnknown) StopAdvertising();
   InvalidateSurfaceState();
-}
-
-void NearbySharingServiceImpl::InvalidateFastInitiationScanning() {
-  bool is_hardware_offloading_supported =
-      IsBluetoothPresent() && nearby_fast_initiation_->IsScanOffloadSupported();
-
-  // Hardware offloading support is computed when the bluetooth adapter becomes
-  // available. We set the hardware supported state on |settings_| to notify the
-  // UI of state changes. InvalidateFastInitiationScanning gets triggered on
-  // adapter change events.
-  settings_->SetIsFastInitiationHardwareSupported(
-      is_hardware_offloading_supported);
-
-  if (fast_initiation_scanner_cooldown_timer_ &&
-      fast_initiation_scanner_cooldown_timer_->IsRunning()) {
-    VLOG(1) << __func__
-            << ": Stopping background scanning due to post-transfer "
-               "cooldown period";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  // Screen is off. Do no work.
-  if (is_screen_locked_) {
-    VLOG(1) << __func__
-            << ": Stopping background scanning because the screen is locked.";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  if (!IsBluetoothPowered()) {
-    VLOG(1)
-        << __func__
-        << ": Stopping background scanning because bluetooth is powered down.";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  // We're scanning for other nearby devices. Don't background scan.
-  if (is_scanning_) {
-    VLOG(1) << __func__
-            << ": Stopping background scanning because we're scanning "
-               "for other devices.";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  if (is_transferring_) {
-    VLOG(1) << __func__
-            << ": Stopping background scanning because we're currently "
-               "in the midst of a transfer.";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  if (advertising_power_level_ == PowerLevel::kHighPower) {
-    VLOG(1) << __func__
-            << ": Stopping background scanning because we're already "
-               "in high visibility mode.";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  if (!is_hardware_offloading_supported) {
-    VLOG(1) << __func__
-            << ": Stopping background scanning because hardware "
-               "support is not available or not ready.";
-    StopFastInitiationScanning();
-    return;
-  }
-
-  StartFastInitiationScanning();
-}
-
-void NearbySharingServiceImpl::StartFastInitiationScanning() {
-  VLOG(1) << __func__ << ": Starting background scanning.";
-
-  if (nearby_fast_initiation_->IsScanning()) {
-    return;
-  }
-
-  nearby_fast_initiation_->StartScanning(
-      /*devices_discovered_callback=*/[]() {},
-      /*devices_not_discovered_callback=*/[]() {},
-      [this]() { StopFastInitiationScanning(); });
-}
-
-void NearbySharingServiceImpl::StopFastInitiationScanning() {
-  VLOG(1) << __func__ << ": Stop fast initiation scanning.";
-  if (!nearby_fast_initiation_->IsScanning()) {
-    return;
-  }
-
-  nearby_fast_initiation_->StopScanning(
-      []() { VLOG(1) << __func__ << ": Stopped fast initiation scanning."; });
-  VLOG(1) << __func__ << ": Stopped background scanning.";
 }
 
 void NearbySharingServiceImpl::ScheduleRotateBackgroundAdvertisementTimer() {
@@ -2906,12 +2808,6 @@ void NearbySharingServiceImpl::OnIncomingFilesMetadataUpdated(
           // ShareTarget already disconnected.
           return;
         }
-        fast_initiation_scanner_cooldown_timer_ = std::make_unique<ThreadTimer>(
-            *service_thread_, "fast_initiation_scanner_cooldown_timer",
-            kFastInitiationScannerCooldown, [this]() {
-              fast_initiation_scanner_cooldown_timer_.reset();
-              InvalidateFastInitiationScanning();
-            });
         // Make sure to call this before calling Disconnect, or we risk losing
         // some transfer updates in the receive case due to the Disconnect call
         // cleaning up share targets.

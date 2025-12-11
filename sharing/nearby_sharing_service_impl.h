@@ -277,11 +277,6 @@ class NearbySharingServiceImpl
   StatusCodes StopScanning();
   void StopAdvertisingAndInvalidateSurfaceState();
 
-  void InvalidateFastInitiationScanning();
-  void StartFastInitiationScanning();
-  void OnFastInitiationDevicesNotDetected();
-  void StopFastInitiationScanning();
-
   void ScheduleRotateBackgroundAdvertisementTimer();
   void OnRotateBackgroundAdvertisementTimerFired();
 
@@ -500,10 +495,6 @@ class NearbySharingServiceImpl
 
   // Used to debounce OnNetworkChanged processing.
   std::unique_ptr<ThreadTimer> on_network_changed_delay_timer_;
-
-  // Used to prevent the "Device nearby is sharing" notification from appearing
-  // immediately after a completed share.
-  std::unique_ptr<ThreadTimer> fast_initiation_scanner_cooldown_timer_;
 
   // A queue of endpoint-discovered and endpoint-lost events that ensures the
   // events are processed sequentially, in the order received from Nearby

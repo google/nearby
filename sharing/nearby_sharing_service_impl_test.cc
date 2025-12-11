@@ -1464,50 +1464,6 @@ TEST_F(NearbySharingServiceImplTest,
   EXPECT_EQ(fast_initiation->StopAdvertisingCount(), 1);
 }
 
-TEST_F(NearbySharingServiceImplTest, FastInitiationScanning_StartAndStop) {
-  FakeNearbyFastInitiation* fast_initiation =
-      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetLanConnected(true);
-
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 0);
-
-  // Trigger a call to StopFastInitiationScanning().
-  SetBluetoothIsPowered(false);
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-
-  // Trigger a call to StartFastInitiationScanning().
-  SetBluetoothIsPowered(true);
-  EXPECT_TRUE(sharing_service_task_runner_->SyncWithTimeout(kTaskWaitTimeout));
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 2);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-}
-
-TEST_F(NearbySharingServiceImplTest,
-       FastInitiationScanning_PostTransferCooldown) {
-  FakeNearbyFastInitiation* fast_initiation =
-      nearby_fast_initiation_factory_->GetNearbyFastInitiation();
-  SetLanConnected(false);
-
-  // Make sure we started scanning once
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 0);
-
-  SuccessfullyReceiveTransfer();
-
-  // Make sure we stopped scanning and didn't restart... yet.
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 1);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-
-  // Fast-forward 10s to pass through the cooldown period.
-  FastForward(absl::Seconds(10));
-
-  // Make sure we restarted Fast Initiation scanning.
-  EXPECT_EQ(fast_initiation->StartScanningCount(), 2);
-  EXPECT_EQ(fast_initiation->StopScanningCount(), 1);
-}
-
 TEST_F(NearbySharingServiceImplTest,
        ForegroundRegisterSendSurfaceStartsDiscovering) {
   SetLanConnected(true);
