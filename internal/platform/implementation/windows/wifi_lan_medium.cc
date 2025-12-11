@@ -785,7 +785,10 @@ std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
                         ipv4_addresses.end());
     return ip_addresses;
   }
-  return { ip_addresses.back() };
+  if (!ipv4_addresses.empty()) {
+    return {ipv4_addresses.back()};
+  }
+  return {};
 }
 
 }  // namespace nearby::windows
