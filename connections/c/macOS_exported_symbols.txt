@@ -1,4 +1,5 @@
 _NcCreateService
+_NcCreateServiceWithEventLogger
 _NcCloseService
 _NcStartAdvertising
 _NcStopAdvertising
