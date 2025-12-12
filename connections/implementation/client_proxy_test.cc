@@ -1557,23 +1557,14 @@ TEST_F(ClientProxyTest, TestMultiplexSocketBitmask) {
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexBluetooth,
       true);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
-      true);
-  EXPECT_EQ(
-      client1()->GetLocalMultiplexSocketBitmask(),
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  EXPECT_EQ(client1()->GetLocalMultiplexSocketBitmask(),
+            ClientProxy::kBtMultiplexEnabled);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::kEnableMultiplex,
       false);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexBluetooth,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
       false);
 }
 
@@ -1585,28 +1576,22 @@ TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexBluetooth,
       true);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
-      true);
   Endpoint advertising_endpoint =
       StartAdvertising(client1(), advertising_connection_listener_);
   OnAdvertisingConnectionInitiated(client1(), advertising_endpoint);
-  client1()->SetRemoteMultiplexSocketBitmask(
-      advertising_endpoint.id,
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  client1()->SetRemoteMultiplexSocketBitmask(advertising_endpoint.id,
+                                             ClientProxy::kBtMultiplexEnabled);
   ASSERT_TRUE(client1()
                   ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
                   .has_value());
-  EXPECT_EQ(
-      client1()
-          ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
-          .value(),
-      ClientProxy::kBtMultiplexEnabled | ClientProxy::kWifiLanMultiplexEnabled);
+  EXPECT_EQ(client1()
+                ->GetRemoteMultiplexSocketBitmask(advertising_endpoint.id)
+                .value(),
+            ClientProxy::kBtMultiplexEnabled);
   EXPECT_TRUE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
                                                     Medium::BLUETOOTH));
-  EXPECT_TRUE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
-                                                    Medium::WIFI_LAN));
+  EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
+                                                     Medium::WIFI_LAN));
   EXPECT_FALSE(client1()->IsMultiplexSocketSupported(advertising_endpoint.id,
                                                      Medium::WIFI_AWARE));
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
@@ -1615,10 +1600,6 @@ TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableMultiplexBluetooth,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::
-          kEnableMultiplexWifiLan,
       false);
 }
 

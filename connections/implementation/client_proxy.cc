@@ -1267,11 +1267,6 @@ std::int32_t ClientProxy::GetLocalMultiplexSocketBitmask() const {
              config_package_nearby::nearby_connections_feature::
                  kEnableMultiplexBluetooth)
              ? kBtMultiplexEnabled
-             : 0) |
-        (NearbyFlags::GetInstance().GetBoolFlag(
-             config_package_nearby::nearby_connections_feature::
-                 kEnableMultiplexWifiLan)
-             ? kWifiLanMultiplexEnabled
              : 0);
     LOG(INFO) << "ClientProxy [GetLocalMultiplexSocketBitmask]: "
               << multiplex_bitmask;
@@ -1299,7 +1294,7 @@ bool ClientProxy::IsLocalMultiplexSocketSupported(Medium medium) {
                 << (bitmask & kBtMultiplexEnabled);
       return (bitmask & kBtMultiplexEnabled) != 0;
     case Medium::WIFI_LAN:
-      return (bitmask & kWifiLanMultiplexEnabled) != 0;
+      return false;
     default:
       return false;
   }
@@ -1327,7 +1322,7 @@ bool ClientProxy::IsMultiplexSocketSupported(absl::string_view endpoint_id,
     case Medium::BLUETOOTH:
       return (combined_result & kBtMultiplexEnabled) != 0;
     case Medium::WIFI_LAN:
-      return (combined_result & kWifiLanMultiplexEnabled) != 0;
+      return false;
     default:
       return false;
   }
