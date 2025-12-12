@@ -31,7 +31,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "internal/platform/count_down_latch.h"
+#include "absl/synchronization/notification.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/wlan_client.h"
 
@@ -60,16 +60,16 @@ class WifiHotspotNative {
  private:
   // Context for WLAN notification callback.
   struct WlanNotificationContext {
-    WifiHotspotNative& wifi_hotspot_native;
     // This is reset to false when we start connecting to a new network, and set
     // to true when we receive the connecting event.
     bool got_connecting_event = false;
     // Original profile name is captured when a disconnecting event is received
     // before a connecting event.
-    std::wstring original_profile_name;
+    std::string original_profile_name;
     // The profile name of the network we are trying to connect to.
-    std::wstring connecting_profile_name;
+    std::string connecting_profile_name;
     WLAN_REASON_CODE connection_code = WLAN_REASON_CODE_UNKNOWN;
+    absl::Notification connection_completed;
   };
 
   static void WlanNotificationCallback(
@@ -78,7 +78,7 @@ class WifiHotspotNative {
                                 absl::string_view password);
   GUID GetInterfaceGuid() const;
   bool ConnectToWifiNetworkInternal(GUID interface_guid,
-                                    const std::wstring& profile_name)
+                                    const std::string& profile_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool RegisterWlanNotificationCallback(
       WlanNotificationContext* absl_nonnull context)
@@ -89,16 +89,14 @@ class WifiHotspotNative {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   bool RemoveCreatedWlanProfile(GUID interface_guid)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  bool RemoveWlanProfile(GUID interface_guid, const std::wstring& profile_name)
+  bool RemoveWlanProfile(GUID interface_guid, const std::string& profile_name)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  void TriggerConnected();
 
   NetworkInfo& network_info_;
   mutable absl::Mutex mutex_;
 
   WlanClient wlan_client_;
-  std::unique_ptr<CountDownLatch> connect_latch_;
-  std::wstring backup_profile_name_;
+  std::string backup_profile_name_;
 };
 
 }  // namespace nearby::windows

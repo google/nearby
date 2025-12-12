@@ -35,9 +35,8 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
-#include "internal/platform/count_down_latch.h"
-#include "internal/platform/exception.h"
 #include "internal/platform/implementation/windows/network_info.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/wlan_client.h"
@@ -118,8 +117,7 @@ bool WifiHotspotNative::ConnectToWifiNetwork(absl::string_view ssid,
     }
     backup_profile_name_.clear();
     if (!ConnectToWifiNetworkInternal(interface_guid,
-                                      string_utils::StringToWideString(
-                                          std::string(kHotspotProfileName)))) {
+                                      std::string(kHotspotProfileName))) {
       RemoveCreatedWlanProfile(interface_guid);
       return false;
     }
@@ -143,13 +141,6 @@ bool WifiHotspotNative::DisconnectWifiNetwork() {
     LOG(ERROR) << "Disconnect Wifi hotspot successfully.";
   }
   return true;
-}
-
-void WifiHotspotNative::TriggerConnected() {
-  if (connect_latch_ == nullptr) {
-    return;
-  }
-  connect_latch_->CountDown();
 }
 
 void WifiHotspotNative::WlanNotificationCallback(
@@ -179,11 +170,11 @@ void WifiHotspotNative::WlanNotificationCallback(
           string_utils::WideStringToString(std::wstring(data->strProfileName));
       LOG(INFO) << "Completed connection to profile: " << profile_name
                 << " code: " << data->wlanReasonCode;
-      if (wlan_context->connecting_profile_name != data->strProfileName) {
+      if (wlan_context->connecting_profile_name != profile_name) {
         break;
       }
       wlan_context->connection_code = data->wlanReasonCode;
-      wlan_context->wifi_hotspot_native.TriggerConnected();
+      wlan_context->connection_completed.Notify();
       break;
     }
     case wlan_notification_acm_scan_list_refresh: {
@@ -199,8 +190,8 @@ void WifiHotspotNative::WlanNotificationCallback(
       // Ignore if we already started connecting to new network, the disconnect
       // event will not be the one we want.
       if (!wlan_context->got_connecting_event) {
-        wlan_context->original_profile_name =
-            std::wstring(data->strProfileName);
+        wlan_context->original_profile_name = string_utils::WideStringToString(
+            std::wstring(data->strProfileName));
         LOG(INFO) << "Disconnecting from previous profile: "
                   << wlan_context->original_profile_name;
       }
@@ -235,56 +226,73 @@ GUID WifiHotspotNative::GetInterfaceGuid() const {
 }
 
 bool WifiHotspotNative::ConnectToWifiNetworkInternal(
-    GUID interface_guid, const std::wstring& profile_name) {
+    GUID interface_guid, const std::string& profile_name) {
   if (profile_name.empty()) {
     LOG(ERROR) << "Profile name is empty.";
     return false;
   }
-  WlanNotificationContext context = {
-      .wifi_hotspot_native = *this,
-      .connecting_profile_name = profile_name,
-  };
-  if (!RegisterWlanNotificationCallback(&context)) {
-    LOG(ERROR) << "Failed to register WLAN notification callback.";
-    return false;
-  }
+  absl::Time deadline = absl::Now() + kConnectTimeout;
+  // Retry hotspot connection until timeout or error.
+  while (deadline > absl::Now()) {
+    WlanNotificationContext context = {
+        .connecting_profile_name = profile_name,
+    };
+    if (!RegisterWlanNotificationCallback(&context)) {
+      LOG(ERROR) << "Failed to register WLAN notification callback.";
+      return false;
+    }
 
-  connect_latch_ = std::make_unique<CountDownLatch>(1);
+    std::wstring wprofile_name = string_utils::StringToWideString(profile_name);
+    WLAN_CONNECTION_PARAMETERS parameters;
+    parameters.wlanConnectionMode = wlan_connection_mode_profile;
+    parameters.strProfile = wprofile_name.data();
+    parameters.pDot11Ssid = nullptr;
+    parameters.pDesiredBssidList = nullptr;
+    parameters.dot11BssType = dot11_BSS_type_infrastructure;
+    parameters.dwFlags = 0;
 
-  WLAN_CONNECTION_PARAMETERS parameters;
-  parameters.wlanConnectionMode = wlan_connection_mode_profile;
-  parameters.strProfile = profile_name.data();
-  parameters.pDot11Ssid = nullptr;
-  parameters.pDesiredBssidList = nullptr;
-  parameters.dot11BssType = dot11_BSS_type_infrastructure;
-  parameters.dwFlags = 0;
+    LOG(INFO) << "Begin connecting to WLAN profile " << profile_name;
+    DWORD result = WlanConnect(wlan_client_.GetHandle(), &interface_guid,
+                               &parameters, /*pReserved=*/nullptr);
+    if (result != ERROR_SUCCESS) {
+      LOG(ERROR) << "Failed to connect to WLAN profile " << profile_name;
+      UnregisterWlanNotificationCallback();
+      return false;
+    }
 
-  DWORD result = WlanConnect(wlan_client_.GetHandle(), &interface_guid,
-                             &parameters, /*pReserved=*/nullptr);
-  if (result != ERROR_SUCCESS) {
-    LOG(ERROR) << "Failed to connect to WLAN profile "
-               << string_utils::WideStringToString(profile_name);
+    // Make sure that we connect to the expected profile.
+    bool notified =
+        context.connection_completed.WaitForNotificationWithDeadline(deadline);
     UnregisterWlanNotificationCallback();
-    return false;
-  }
 
-  // Make sure that we connect to the expected profile.
-  ExceptionOr<bool> connect_result = connect_latch_->Await(kConnectTimeout);
-  UnregisterWlanNotificationCallback();
-
-  backup_profile_name_ = std::move(context.original_profile_name);
-  if (!connect_result.ok() || !connect_result.result()) {
-    LOG(ERROR) << "Connect to Wifi hotspot timed out.";
-    return false;
+    // Only backup original profile on first connection attempt and we did not
+    // just disconnect from the hotspot.
+    if (backup_profile_name_.empty() &&
+        context.original_profile_name != kHotspotProfileName) {
+      backup_profile_name_ = std::move(context.original_profile_name);
+    }
+    if (!notified) {
+      break;
+    }
+    if (context.connection_code == WLAN_REASON_CODE_SUCCESS) {
+      return true;
+    }
+    // If network is not found, try again.
+    if (context.connection_code != WLAN_REASON_CODE_NETWORK_NOT_AVAILABLE &&
+        context.connection_code != WLAN_REASON_CODE_USER_CANCELLED) {
+      LOG(ERROR) << "Failed to connect to Wifi hotspot, code: "
+                  << ReasonCodeToString(context.connection_code);
+      return false;
+    }
+    if (context.connection_code == WLAN_REASON_CODE_USER_CANCELLED) {
+      LOG(WARNING) << "Hotspot connection cancelled, trying again.";
+    } else {
+      LOG(WARNING) << "Hotspot not available, trying again.";
+    }
+    absl::SleepFor(absl::Seconds(1));
   }
-  if (context.connection_code != WLAN_REASON_CODE_SUCCESS) {
-    LOG(ERROR) << "Failed to connect to Wifi hotspot, code: "
-               << ReasonCodeToString(context.connection_code);
-    return false;
-  }
-
-  connect_latch_ = nullptr;
-  return true;
+  LOG(ERROR) << "Connect to Wifi hotspot timed out.";
+  return false;
 }
 
 bool WifiHotspotNative::RegisterWlanNotificationCallback(
@@ -346,28 +354,25 @@ bool WifiHotspotNative::SetWlanProfile(GUID interface_guid,
 }
 
 bool WifiHotspotNative::RemoveCreatedWlanProfile(GUID interface_guid) {
-  return RemoveWlanProfile(
-      interface_guid,
-      string_utils::StringToWideString(std::string(kHotspotProfileName)));
+  return RemoveWlanProfile(interface_guid, std::string(kHotspotProfileName));
 }
 
 bool WifiHotspotNative::RemoveWlanProfile(GUID interface_guid,
-                                          const std::wstring& profile_name) {
+                                          const std::string& profile_name) {
   if (profile_name.empty()) {
     return false;
   }
+  std::wstring wprofile_name = string_utils::StringToWideString(profile_name);
   DWORD result = WlanDeleteProfile(wlan_client_.GetHandle(), &interface_guid,
-                                   profile_name.data(), /*pReserved=*/nullptr);
+                                   wprofile_name.data(), /*pReserved=*/nullptr);
 
   if (result != ERROR_SUCCESS && result != ERROR_NOT_FOUND) {
-    LOG(ERROR) << "Failed to remove WLAN profile "
-               << string_utils::WideStringToString(profile_name)
+    LOG(ERROR) << "Failed to remove WLAN profile " << profile_name
                << " with reason " << result;
     return false;
   }
 
-  LOG(INFO) << "WLAN profile " << string_utils::WideStringToString(profile_name)
-            << " removed successfully.";
+  LOG(INFO) << "WLAN profile " << profile_name << " removed successfully.";
   return true;
 }
 
