@@ -316,7 +316,7 @@ bool WifiDirectMedium::StartWifiDirect(
 
   try {
     advertiser_.Start();
-    LOG(INFO) << "Start WifiDirect GO succeeded. Status: "
+    LOG(INFO) << "Start WifiDirect GO Status: "
               << (int)advertiser_.AdvertisementStatus();
     if ((advertiser_.AdvertisementStatus() ==
          WiFiDirectServiceAdvertisementStatus::Created) ||
@@ -555,6 +555,10 @@ bool WifiDirectMedium::ConnectWifiDirect(
   }
 
   credentials_gc_ = credentials;
+  if (credentials_gc_.GetServiceName().empty()) {
+    LOG(ERROR) << "GC: Service name is empty, return false";
+    return false;
+  }
   winrt::hstring device_selector = WiFiDirectService::GetSelector(
       winrt::to_hstring(credentials_gc_.GetServiceName()));
   const winrt::param::iterable<winrt::hstring> requested_properties =

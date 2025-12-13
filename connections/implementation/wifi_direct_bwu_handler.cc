@@ -160,7 +160,10 @@ WifiDirectBwuHandler::CreateUpgradedEndpointChannel(
     LOG(INFO) << "Received WifiDirect credential SSID: " << ssid
               << ",  Password: " << masker::Mask(password)
               << ",  Port: " << port << ",  Gateway: " << gateway
-              << ", Frequency: " << freq;
+              << ", Frequency: " << freq
+              << ". SSID/PASSWORD auth type is not supported, return";
+    return {Error(
+        OperationResultCode::CONNECTIVITY_WIFI_DIRECT_INVALID_CREDENTIAL)};
   }
 
   if (!wifi_direct_medium_.ConnectWifiDirect(wifi_direct_credentials)) {
