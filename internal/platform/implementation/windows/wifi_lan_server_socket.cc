@@ -59,9 +59,9 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
   return std::make_unique<WifiLanSocket>(std::move(client_socket));
 }
 
-bool WifiLanServerSocket::Listen(int port, bool dual_stack) {
+bool WifiLanServerSocket::Listen(int port) {
   // Listen on all interfaces.
-  SocketAddress address(dual_stack);
+  SocketAddress address(/*dual_stack=*/true);
   SocketAddress::FromString(address, "", port);
   if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket at port:" << port;

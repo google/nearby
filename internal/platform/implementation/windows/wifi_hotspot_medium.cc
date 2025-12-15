@@ -91,10 +91,7 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     return nullptr;
   }
 
-  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableIpv6DualStack);
-  SocketAddress server_address(dual_stack);
+  SocketAddress server_address(/*dual_stack=*/true);
   if (!server_address.FromBytes(server_address, service_address.address,
                                  service_address.port)) {
     LOG(ERROR) << "no valid service address and port to connect.";
@@ -152,10 +149,7 @@ WifiHotspotMedium::ListenForService(int port) {
   auto server_socket = std::make_unique<WifiHotspotServerSocket>();
   server_socket_ptr_ = server_socket.get();
 
-  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableIpv6DualStack);
-  if (server_socket->Listen(port, dual_stack)) {
+  if (server_socket->Listen(port)) {
     medium_status_ |= kMediumStatusAccepting;
 
     // Setup close notifier after listen started.

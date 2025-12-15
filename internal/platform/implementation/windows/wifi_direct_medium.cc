@@ -126,10 +126,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     return nullptr;
   }
 
-  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableIpv6DualStack);
-  SocketAddress server_address(dual_stack);
+  SocketAddress server_address(/*dual_stack=*/true);
   if (!server_address.FromString(server_address, remote_ip_address, port)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
@@ -219,9 +216,6 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
   // thread to avoid blocking BWU sending out of band upgrade frame to GC.
   listener_executor_.Execute([this, port]() mutable {
     absl::MutexLock lock(mutex_);
-    bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-        platform::config_package_nearby::nearby_platform_feature::
-            kEnableIpv6DualStack);
     if (ip_address_local_.empty()) {
       if (server_socket_ptr_) {
         LOG(INFO) << "Waiting for IP address is ready.";
@@ -247,7 +241,7 @@ std::unique_ptr<api::WifiDirectServerSocket> WifiDirectMedium::ListenForService(
       port = FeatureFlags::GetInstance().GetFlags().wifi_direct_default_port;
     }
     if (server_socket_ptr_ &&
-        server_socket_ptr_->Listen(port, dual_stack)) {
+        server_socket_ptr_->Listen(port)) {
       medium_status_ |= kMediumStatusAccepting;
 
       // Setup close notifier after listen started.

@@ -160,7 +160,7 @@ class WifiDirectServerSocket : public api::WifiDirectServerSocket {
   void SetIPAddress(std::string ip_address);
 
   // Binds to local port
-  bool Listen(int port, bool dual_stack);
+  bool Listen(int port);
 
  private:
   // Retrieves WifiDirect GO IP address from local machine

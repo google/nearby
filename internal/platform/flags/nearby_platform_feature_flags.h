@@ -65,10 +65,6 @@ constexpr auto kEnableHotspotDhcpRenew =
 constexpr auto kEnableIntelPieSdk =
     flags::Flag<bool>(kConfigPackage, "45428547", false);
 
-// Enable/Disable IPv6 dual stack support on Windows.
-constexpr auto kEnableIpv6DualStack =
-    flags::Flag<bool>(kConfigPackage, "45733519", false);
-
 // Enable/Disable use of IPv6 address from mDNS on Windows.
 constexpr auto kEnableMdnsIpv6 =
     flags::Flag<bool>(kConfigPackage, "45735181", false);

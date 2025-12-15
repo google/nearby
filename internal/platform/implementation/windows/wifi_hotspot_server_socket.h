@@ -76,7 +76,7 @@ class WifiHotspotServerSocket : public api::WifiHotspotServerSocket {
       HotspotCredentials& hotspot_credentials) override;
 
   // Binds to local port
-  bool Listen(int port, bool dual_stack);
+  bool Listen(int port);
 
  private:
   // Retrieves hotspot IP address from local machine

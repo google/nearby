@@ -347,10 +347,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "ConnectToService is called.";
-  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableIpv6DualStack);
-  SocketAddress server_address(dual_stack);
+  SocketAddress server_address(/*dual_stack=*/true);
   if (!server_address.FromServiceAddress(server_address, service_address)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
@@ -404,10 +401,7 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
       std::make_unique<WifiLanServerSocket>();
   WifiLanServerSocket* server_socket_ptr = server_socket.get();
 
-  bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-      platform::config_package_nearby::nearby_platform_feature::
-          kEnableIpv6DualStack);
-  if (server_socket->Listen(port, dual_stack)) {
+  if (server_socket->Listen(port)) {
     int port = server_socket_ptr->GetPort();
     LOG(INFO) << "started to listen serive on port: " << port;
     port_to_server_socket_map_.insert({port, server_socket_ptr});
@@ -705,10 +699,7 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
                                            absl::Duration timeout) {
   std::string ipv4_address = nsd_service_info.GetIPAddress();
   if (!ipv4_address.empty()) {
-    bool dual_stack = NearbyFlags::GetInstance().GetBoolFlag(
-        platform::config_package_nearby::nearby_platform_feature::
-            kEnableIpv6DualStack);
-    SocketAddress service_address(dual_stack);
+    SocketAddress service_address(/*dual_stack=*/true);
     if (SocketAddress::FromBytes(service_address, ipv4_address,
                                  nsd_service_info.GetPort())) {
       if (TestConnection(service_address, timeout)) {
