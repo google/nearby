@@ -438,14 +438,8 @@ bool WifiHotspotMedium::ConnectWifiHotspot(
         LOG(WARNING) << "Timeout getting IP address from hotspot.";
         break;
       }
-      bool wait_before_retrying = true;
-      if (NearbyFlags::GetInstance().GetBoolFlag(
-              platform::config_package_nearby::nearby_platform_feature::
-                  kEnableHotspotDhcpRenew)) {
-        // IP address is assigned if RenewIpv4Address() returns true.
-        wait_before_retrying = !wifi_hotspot_native_.RenewIpv4Address();
-      }
-      if (wait_before_retrying) {
+      // IP address is assigned, check for address right away.
+      if (!wifi_hotspot_native_.RenewIpv4Address()) {
         Sleep(ip_address_retry_interval_millis);
       }
     }
