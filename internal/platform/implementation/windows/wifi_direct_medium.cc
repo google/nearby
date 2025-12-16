@@ -52,9 +52,11 @@ WifiDirectMedium::WifiDirectMedium() {
     LOG(WARNING) << "Failed to get DispatcherQueue for current thread. "
                     "ConnectAsync might fail if not called from UI thread.";
   }
+  is_interface_valid_ = IsWifiDirectServiceSupported();
 }
 
 WifiDirectMedium::~WifiDirectMedium() {
+  is_interface_valid_ = false;
   listener_executor_.Shutdown();
   StopWifiDirect();
   DisconnectWifiDirect();
@@ -70,21 +72,79 @@ WifiDirectMedium::~WifiDirectMedium() {
   }
 }
 
-bool WifiDirectMedium::IsInterfaceValid() const {
+bool WifiDirectMedium::IsWifiDirectServiceSupported() {
   HANDLE wifi_direct_handle = nullptr;
   DWORD negotiated_version = 0;
   DWORD result = 0;
 
   result =
       WFDOpenHandle(WFD_API_VERSION, &negotiated_version, &wifi_direct_handle);
-  if (result == ERROR_SUCCESS) {
-    LOG(INFO) << "WiFi can support WifiDirect";
-    WFDCloseHandle(wifi_direct_handle);
-    return true;
+  if (result != ERROR_SUCCESS) {
+    LOG(ERROR) << "WiFi can't support WifiDirect";
+    return false;
+  }
+  LOG(INFO) << "WiFi can support WifiDirect";
+  WFDCloseHandle(wifi_direct_handle);
+
+  // Check if device support WinRT WiFiDirectService
+  bool support_wifi_direct_service = false;
+  std::string service_name = "NC-validation";
+
+  // Create Advertiser object
+  WiFiDirectServiceAdvertiser advertiser =
+      WiFiDirectServiceAdvertiser(winrt::to_hstring(service_name));
+  if (advertiser == nullptr) {
+    LOG(ERROR) << "Failed to create WiFiDirectServiceAdvertiser";
+    return false;
   }
 
-  LOG(ERROR) << "WiFi can't support WifiDirect";
-  return false;
+  advertiser.AutoAcceptSession(true);
+  advertiser.PreferGroupOwnerMode(true);
+  advertiser.ServiceStatus(WiFiDirectServiceStatus::Available);
+  // Config Methods
+  WiFiDirectServiceConfigurationMethod config_method =
+      WiFiDirectServiceConfigurationMethod::Default;  // NOLINT
+
+  advertiser.PreferredConfigurationMethods().Clear();
+  advertiser.PreferredConfigurationMethods().Append(config_method);
+
+  try {
+    advertiser.Start();
+    LOG(INFO) << "Start WifiDirect GO Status: "
+              << (int)advertiser.AdvertisementStatus();
+    if ((advertiser.AdvertisementStatus() ==
+         WiFiDirectServiceAdvertisementStatus::Created) ||
+        (advertiser.AdvertisementStatus() ==
+         WiFiDirectServiceAdvertisementStatus::Started)) {
+      LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
+      advertiser.PreferredConfigurationMethods().Clear();
+      advertiser.Stop();
+      support_wifi_direct_service = true;
+    } else {
+      if (advertiser.AdvertisementStatus() ==
+          WiFiDirectServiceAdvertisementStatus::Aborted) {
+        LOG(INFO) << "Failed to start WifiDirect GO with error code: "
+                  << (int)advertiser.ServiceError();
+      }
+      LOG(INFO) << "WinRT WiFiDirectService is not supported on this device.";
+      support_wifi_direct_service = false;
+    }
+  } catch (std::exception exception) {
+    LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. Exception: "
+               << exception.what();
+  } catch (const winrt::hresult_error& error) {
+    LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. WinRT exception: "
+               << error.code() << ": " << winrt::to_string(error.message());
+  } catch (...) {
+    LOG(ERROR) << __func__ << ": Unknown exeption.";
+  }
+  advertiser = nullptr;
+
+  return support_wifi_direct_service;
+}
+
+bool WifiDirectMedium::IsInterfaceValid() const {
+  return is_interface_valid_;
 }
 
 // Discoverer connects to server socket

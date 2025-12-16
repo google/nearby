@@ -227,6 +227,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   // Medium Status
   int medium_status_ = kMediumStatusIdle;
 
+  bool IsWifiDirectServiceSupported();
   bool IsIdle() { return medium_status_ == kMediumStatusIdle; }
   // Advertiser is accepting connection on server socket
   bool IsAccepting() { return (medium_status_ & kMediumStatusAccepting) != 0; }
@@ -284,6 +285,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   fire_and_forget Watcher_DeviceStopped(DeviceWatcher sender,
                                         IInspectable inspectable);
 
+  bool is_interface_valid_ = false;
   WifiDirectCredentials* credentials_go_ = nullptr;
   WifiDirectCredentials credentials_gc_;
   std::string ip_address_local_;
