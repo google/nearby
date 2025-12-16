@@ -2524,19 +2524,12 @@ void NearbySharingServiceImpl::OnOutgoingConnectionKeyVerificationDone(
     return;
   }
   // Auto Accept if key verification is successful or skip sender confirmation.
-  bool be_advanced_protection_enabled =
+  bool protection_enabled =
       preference_manager_.GetBoolean(PrefNames::kAdvancedProtectionEnabled,
                                      /*default_value=*/false);
-  bool mendel_advanced_protection_enabled =
-      !NearbyFlags::GetInstance().GetBoolFlag(
-          config_package_nearby::nearby_sharing_feature::
-              kSenderSkipsConfirmation);
-  bool protection_enabled = be_advanced_protection_enabled;
-  bool advanced_protection_mismatch =
-      (be_advanced_protection_enabled != mendel_advanced_protection_enabled);
   session->SetAdvancedProtectionStatus(protection_enabled,
-                                       advanced_protection_mismatch);
-  if (session->token().empty() || !mendel_advanced_protection_enabled) {
+                                       /*advanced_protection_mismatch=*/false);
+  if (session->token().empty() || !protection_enabled) {
     // Auto accept if no token or if advanced protection is disabled.
     OutgoingSessionAccept(*session);
   } else {

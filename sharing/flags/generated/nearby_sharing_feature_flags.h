@@ -58,9 +58,6 @@ constexpr auto kEnableSendingDesktopEvents =
 // 2, FATAL: 3,  negative values are -(verbosity level).
 constexpr auto kLoggingLevel =
     flags::Flag<int64_t>(kConfigPackage, "45401358", 1);
-// When true, the sender will not require confirming the ukey2 token.
-constexpr auto kSenderSkipsConfirmation =
-    flags::Flag<bool>(kConfigPackage, "45411353", true);
 // Enable/disable auto-update on settings page
 constexpr auto kShowAutoUpdateSetting =
     flags::Flag<bool>(kConfigPackage, "45409033", false);
@@ -120,7 +117,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45411589, kEnableRetryResumeTransfer},
       {45418908, kEnableSelfShareUi},
       {45459748, kEnableSendingDesktopEvents},
-      {45411353, kSenderSkipsConfirmation},
       {45409033, kShowAutoUpdateSetting},
       {45630055, kUseGrpcClient},
       {45657036, kDeleteUnexpectedReceivedFileFix},
