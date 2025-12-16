@@ -48,15 +48,13 @@ NearbyServerSocket::~NearbyServerSocket() {
 
 bool NearbyServerSocket::Listen(const SocketAddress& address) {
   VLOG(1) << "Listen to socket at " << address.ToString();
-  LOG(INFO) << "Server socket dual stack support: " << address.dual_stack();
   if (!is_socket_initiated_) {
     LOG(ERROR) << "Windows socket is not initiated.";
     return false;
   }
 
   absl::MutexLock lock( mutex_ );
-  socket_ = socket(address.dual_stack() ? AF_INET6 : AF_INET, SOCK_STREAM,
-                   IPPROTO_TCP);
+  socket_ = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
   if (socket_ == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to create socket.";
     return false;
@@ -70,16 +68,14 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
                  << WSAGetLastError();
   }
 
-  if (address.dual_stack()) {
-    // On Windows dual stack is not the default.
-    // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
-    DWORD v6_only = 0;
-    if (setsockopt(socket_, IPPROTO_IPV6, IPV6_V6ONLY,
-                   reinterpret_cast<const char*>(&v6_only),
-                   sizeof(v6_only)) == SOCKET_ERROR) {
-      LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
-                   << WSAGetLastError();
-    }
+  // On Windows dual stack is not the default.
+  // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
+  DWORD v6_only = 0;
+  if (setsockopt(socket_, IPPROTO_IPV6, IPV6_V6ONLY,
+                  reinterpret_cast<const char*>(&v6_only),
+                  sizeof(v6_only)) == SOCKET_ERROR) {
+    LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
+                  << WSAGetLastError();
   }
   // Set REUSEADDR if a specific port is needed.
   if (address.port() != 0) {
@@ -92,7 +88,8 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
     }
   }
 
-  if (bind(socket_, address.address(), sizeof(sockaddr_storage)) ==
+  SocketAddress dual_stack_address = address.ToMappedIPv6();
+  if (bind(socket_, dual_stack_address.address(), sizeof(sockaddr_storage)) ==
       SOCKET_ERROR) {
     LOG(ERROR) << "Failed to bind socket with error " << WSAGetLastError();
     closesocket(socket_);
@@ -100,7 +97,7 @@ bool NearbyServerSocket::Listen(const SocketAddress& address) {
     return false;
   }
 
-  SocketAddress local_address(address.dual_stack());
+  SocketAddress local_address;
   int address_length = sizeof(sockaddr_storage);
   if (getsockname(socket_, local_address.address(), &address_length) ==
       SOCKET_ERROR) {

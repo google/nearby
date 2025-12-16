@@ -32,20 +32,18 @@ SOCKET CreateSocket() {
 
 TEST(NearbyServerSocketTest, Listen) {
   NearbyServerSocket server_socket;
-  SocketAddress address(/*dual_stack=*/true);
-  SocketAddress::FromString(address, "", 0);
+  SocketAddress address;
   EXPECT_TRUE(server_socket.Listen(address));
   EXPECT_NE(server_socket.GetPort(), 0);
 }
 
 TEST(NearbyServerSocketTest, Accept) {
   NearbyServerSocket server_socket;
-  SocketAddress address(/*dual_stack=*/true);
-  SocketAddress::FromString(address, "", 0);
+  SocketAddress address;
   EXPECT_TRUE(server_socket.Listen(address));
   SOCKET socket_handle = CreateSocket();
   EXPECT_NE(socket_handle, INVALID_SOCKET);
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   SocketAddress::FromString(server_address, "::1", server_socket.GetPort());
   EXPECT_NE(connect(socket_handle, server_address.address(),
                     sizeof(sockaddr_storage)),
@@ -58,8 +56,7 @@ TEST(NearbyServerSocketTest, Accept) {
 
 TEST(NearbyServerSocketTest, CloseNotifier) {
   NearbyServerSocket server_socket;
-  SocketAddress address(/*dual_stack=*/true);
-  SocketAddress::FromString(address, "", 0);
+  SocketAddress address;
   EXPECT_TRUE(server_socket.Listen(address));
   bool is_closed = false;
   server_socket.SetCloseNotifier([&is_closed]() { is_closed = true; });

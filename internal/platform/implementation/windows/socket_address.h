@@ -28,38 +28,29 @@
 namespace nearby::windows {
 
 // A helper class that simplifies handling of both IPv4 and IPv6 addresses.
-// IPv6 support needs to be enabled by setting `dual_stack` to true.
 class SocketAddress {
  public:
-  explicit SocketAddress(bool dual_stack = false) : dual_stack_(dual_stack) {
+  // Default constructor creates an unspecified IPv6 address ie. IN6ADDR_ANY
+  // and port 0.
+  SocketAddress() {
     std::memset(&address_, 0, sizeof(address_));
-    if (dual_stack_) {
-      address_.ss_family = AF_INET6;
-    } else {
-      address_.ss_family = AF_INET;
-    }
+    address_.ss_family = AF_INET6;
+    set_port(0);
   }
-  explicit SocketAddress(const sockaddr_in& address, bool dual_stack = false);
+
+  explicit SocketAddress(const sockaddr_in& address);
   explicit SocketAddress(const sockaddr_in6& address);
-  // This constructor assumes dual_stack is enabled, and will convert IPv4
-  // addresses to mapped IPv6 addresses.
   explicit SocketAddress(const sockaddr_storage& address);
 
   ~SocketAddress() = default;
 
-  // The `dual_stack` state of `address` determines whether the address is
-  // can be parsed as IPv6.
-  // If dual_stack is enabled, an IPv4 string will be returned as a mapped IPv6
-  // address (e.g. [::ffff:192.0.2.1]).
-  // Use empty `address_string` to create and unspecified address ie. ADDR_ANY.
+  // Empty `address_string`creates an unspecified IPv6 address ie. IN6ADDR_ANY.
   // `port` is in host byte order.
   static bool FromString(SocketAddress& address, std::string address_string,
                          int port = 0);
 
-  // The `dual_stack` state of `address` determines whether the address is
-  // can be parsed as IPv6.
-  // `addresss_bytes` is 4 bytes if dual_stack is disabled, and 4 or 16 bytes
-  // for dual_stack.  The address must be in network byte order.
+  // `addresss_bytes` is 4 or 16 bytes for IPv4 and IPv6 respectively.
+  //  The address must be in network byte order.
   // `port` is in host byte order.
   static bool FromBytes(SocketAddress& address,
                         absl::Span<const char> address_bytes, int port = 0);
@@ -67,8 +58,8 @@ class SocketAddress {
   static bool FromServiceAddress(SocketAddress& address,
                                  const ServiceAddress& service_address);
 
-  // Returns true if dual stack support has been enabled.
-  bool dual_stack() const { return dual_stack_; }
+  // Returns either AF_INET or AF_INET6.
+  int family() const { return address_.ss_family; }
 
   // `Returns port in host byte order.
   int port() const;
@@ -85,10 +76,12 @@ class SocketAddress {
   // Returns false if the address is not IPv6.
   bool SetScopeId(uint32_t scope_id);
 
+  // If `address_` is AF_INET, then rewrite into mapped ipv6 address, e.g.
+  // [::ffff:192.0.2.1].
+  SocketAddress ToMappedIPv6() const;
+
   // Returns a pointer to the internal sockaddr_storage.
-  // This can be used to modify the address directly.  However, the dual_stack
-  // state is not honored, ie. it will not convert IPv4 addresses to mapped IPv6
-  // addresses.
+  // This can be used to modify the address directly.
   sockaddr* address() {
     return reinterpret_cast<sockaddr*>(&address_);
   }
@@ -107,11 +100,6 @@ class SocketAddress {
   }
 
  private:
-  // If `address_` is AF_INET, then rewrite into mapped ipv6 address, e.g.
-  // [::ffff:192.0.2.1].
-  void ToMappedIPv6();
-
-  const bool dual_stack_ = false;
   sockaddr_storage address_;
 };
 

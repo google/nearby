@@ -27,72 +27,49 @@
 
 namespace nearby::windows {
 
-SocketAddress::SocketAddress(const sockaddr_in& address, bool dual_stack)
-    : dual_stack_(dual_stack) {
+SocketAddress::SocketAddress(const sockaddr_in& address) {
   std::memcpy(&address_, &address, sizeof(sockaddr_in));
   address_.ss_family = AF_INET;
-  if (dual_stack_) {
-    ToMappedIPv6();
-  }
 }
 
-SocketAddress::SocketAddress(const sockaddr_in6& address) : dual_stack_(true) {
+SocketAddress::SocketAddress(const sockaddr_in6& address) {
   std::memcpy(&address_, &address, sizeof(sockaddr_in6));
   address_.ss_family = AF_INET6;
 }
 
-SocketAddress::SocketAddress(const sockaddr_storage& address)
-    : dual_stack_(true) {
+SocketAddress::SocketAddress(const sockaddr_storage& address) {
   DCHECK(address.ss_family == AF_INET || address.ss_family == AF_INET6);
   std::memcpy(&address_, &address, sizeof(sockaddr_storage));
-  ToMappedIPv6();
 }
 
-void SocketAddress::ToMappedIPv6() {
+SocketAddress SocketAddress::ToMappedIPv6() const {
   if (address_.ss_family == AF_INET6) {
-    return;
+    return *this;
   }
   if (address_.ss_family != AF_INET) {
     LOG(ERROR) << "Unknown socket family: " << address_.ss_family;
-    return;
+    return SocketAddress();
   }
-  sockaddr_in* v4_address = reinterpret_cast<sockaddr_in*>(&address_);
-  in_addr orig_address;
-  std::memcpy(&orig_address, &v4_address->sin_addr, sizeof(in_addr));
-  int orig_port = v4_address->sin_port;
-  address_.ss_family = AF_INET6;
-  sockaddr_in6* v6_address = reinterpret_cast<sockaddr_in6*>(&address_);
-  v6_address->sin6_port = orig_port;
-  v6_address->sin6_flowinfo = 0;
-  v6_address->sin6_scope_id = 0;
-  v6_address->sin6_addr.u.Word[0] = 0;
-  v6_address->sin6_addr.u.Word[1] = 0;
-  v6_address->sin6_addr.u.Word[2] = 0;
-  v6_address->sin6_addr.u.Word[3] = 0;
-  v6_address->sin6_addr.u.Word[4] = 0;
-  v6_address->sin6_addr.u.Word[5] = 0xffff;
-  v6_address->sin6_addr.u.Word[6] = orig_address.S_un.S_un_w.s_w1;
-  v6_address->sin6_addr.u.Word[7] = orig_address.S_un.S_un_w.s_w2;
+  const sockaddr_in* v4_address = ipv4_address();
+  sockaddr_in6 v6_address;
+  v6_address.sin6_port = v4_address->sin_port;
+  v6_address.sin6_flowinfo = 0;
+  v6_address.sin6_scope_id = 0;
+  v6_address.sin6_addr.u.Word[0] = 0;
+  v6_address.sin6_addr.u.Word[1] = 0;
+  v6_address.sin6_addr.u.Word[2] = 0;
+  v6_address.sin6_addr.u.Word[3] = 0;
+  v6_address.sin6_addr.u.Word[4] = 0;
+  v6_address.sin6_addr.u.Word[5] = 0xffff;
+  v6_address.sin6_addr.u.Word[6] = v4_address->sin_addr.S_un.S_un_w.s_w1;
+  v6_address.sin6_addr.u.Word[7] = v4_address->sin_addr.S_un.S_un_w.s_w2;
+  return SocketAddress(v6_address);
 }
 
 bool SocketAddress::FromString(SocketAddress& address,
                                std::string address_string, int port) {
   if (address_string.empty()) {
-    if (address.dual_stack_) {
-      address.address_.ss_family = AF_INET6;
-      sockaddr_in6* v6_address =
-          reinterpret_cast<sockaddr_in6*>(&address.address_);
-      v6_address->sin6_port = 0;
-      v6_address->sin6_flowinfo = 0;
-      v6_address->sin6_scope_id = 0;
-      v6_address->sin6_addr = in6addr_any;
-      address.set_port(port);
-      return true;
-    }
-    address.address_.ss_family = AF_INET;
-    sockaddr_in* v4_address = reinterpret_cast<sockaddr_in*>(&address.address_);
-    v4_address->sin_port = 0;
-    v4_address->sin_addr.s_addr = INADDR_ANY;
+    address = SocketAddress();
     address.set_port(port);
     return true;
   }
@@ -103,15 +80,8 @@ bool SocketAddress::FromString(SocketAddress& address,
                           /*lpProtocolInfo=*/nullptr,
                           reinterpret_cast<sockaddr*>(&address.address_),
                           &sock_address_size) == 0) {
-    if (address.dual_stack_) {
-      address.ToMappedIPv6();
-    }
     address.set_port(port);
     return true;
-  }
-  // Try v6 address if v4 address is not supported.
-  if (!address.dual_stack_) {
-    return false;
   }
   address.address_.ss_family = AF_INET6;
   sock_address_size = sizeof(sockaddr_storage);
@@ -127,8 +97,8 @@ bool SocketAddress::FromString(SocketAddress& address,
 
 bool SocketAddress::FromBytes(SocketAddress& address,
                               absl::Span<const char> address_bytes, int port) {
-  if (address_bytes.size() != 4 &&
-      !(address.dual_stack_ && address_bytes.size() == 16)) {
+  // Must be either 4 or 16 bytes.
+  if (address_bytes.size() != 4 && address_bytes.size() != 16) {
     // Invalid address bytes size.
     return false;
   }
@@ -137,9 +107,6 @@ bool SocketAddress::FromBytes(SocketAddress& address,
     sockaddr_in* v4_address = reinterpret_cast<sockaddr_in*>(&address.address_);
     std::memcpy(&v4_address->sin_addr, address_bytes.data(), sizeof(in_addr));
     address.set_port(port);
-    if (address.dual_stack_) {
-      address.ToMappedIPv6();
-    }
     return true;
   }
   address.address_.ss_family = AF_INET6;

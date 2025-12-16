@@ -91,9 +91,8 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotMedium::ConnectToService(
     return nullptr;
   }
 
-  SocketAddress server_address(/*dual_stack=*/true);
-  if (!server_address.FromBytes(server_address, service_address.address,
-                                 service_address.port)) {
+  SocketAddress server_address;
+  if (!server_address.FromServiceAddress(server_address, service_address)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
   }

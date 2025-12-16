@@ -25,18 +25,9 @@ TEST(SocketAddressTest, CreateFromSockAddrIn) {
   address.sin_family = AF_INET;
   address.sin_port = htons(8080);
   address.sin_addr.s_addr = inet_addr("192.168.1.1");
-  SocketAddress socket_address(address, /*dual_stack=*/false);
+  SocketAddress socket_address(address);
+  EXPECT_EQ(socket_address.family(), AF_INET);
   EXPECT_EQ(socket_address.ToString(), "192.168.1.1:8080");
-  EXPECT_EQ(socket_address.port(), 8080);
-}
-
-TEST(SocketAddressTest, CreateFromSockAddrInDualStack) {
-  sockaddr_in address;
-  address.sin_family = AF_INET;
-  address.sin_port = htons(8080);
-  address.sin_addr.s_addr = inet_addr("192.168.1.1");
-  SocketAddress socket_address(address, /*dual_stack=*/true);
-  EXPECT_EQ(socket_address.ToString(), "[::ffff:192.168.1.1]:8080");
   EXPECT_EQ(socket_address.port(), 8080);
 }
 
@@ -55,6 +46,7 @@ TEST(SocketAddressTest, CreateFromSockAddrIn6) {
   address.sin6_addr.u.Word[6] = 0x8F1C;
   address.sin6_addr.u.Word[7] = 0xB30C;
   SocketAddress socket_address(address);
+  EXPECT_EQ(socket_address.family(), AF_INET6);
   EXPECT_EQ(socket_address.ToString(),
             "[dffd:3d25:a30b:a251:ed51:8fee:1c8f:cb3]:8080");
   EXPECT_EQ(socket_address.port(), 8080);
@@ -63,60 +55,46 @@ TEST(SocketAddressTest, CreateFromSockAddrIn6) {
 TEST(SocketAddressTest, FromStringIPv4) {
   SocketAddress address;
   EXPECT_TRUE(SocketAddress::FromString(address, "192.168.1.1", 8080));
+  EXPECT_EQ(address.family(), AF_INET);
   EXPECT_EQ(address.ToString(), "192.168.1.1:8080");
-  EXPECT_EQ(address.port(), 8080);
-}
-
-TEST(SocketAddressTest, FromStringIPv4DualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  EXPECT_TRUE(SocketAddress::FromString(address, "192.168.1.1", 8080));
-  EXPECT_EQ(address.ToString(), "[::ffff:192.168.1.1]:8080");
   EXPECT_EQ(address.port(), 8080);
 }
 
 TEST(SocketAddressTest, FromStringIPv4NoPort) {
   SocketAddress address;
   EXPECT_TRUE(SocketAddress::FromString(address, "192.168.1.1"));
+  EXPECT_EQ(address.family(), AF_INET);
   EXPECT_EQ(address.ToString(), "192.168.1.1");
   EXPECT_EQ(address.port(), 0);
 }
 
-TEST(SocketAddressTest, FromStringIPv4AnyAddress) {
-  SocketAddress address;
-  EXPECT_TRUE(SocketAddress::FromString(address, ""));
-  EXPECT_EQ(address.ToString(), "0.0.0.0");
-}
-
-TEST(SocketAddressTest, FromStringIPv4NoPortDualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  EXPECT_TRUE(SocketAddress::FromString(address, "192.168.1.1"));
-  EXPECT_EQ(address.ToString(), "::ffff:192.168.1.1");
-  EXPECT_EQ(address.port(), 0);
-}
-
 TEST(SocketAddressTest, FromStringIPv6) {
-  SocketAddress address(/*dual_stack=*/true);
+  SocketAddress address;
   EXPECT_TRUE(SocketAddress::FromString(address, "2001:db8::1", 8080));
+  EXPECT_EQ(address.family(), AF_INET6);
   EXPECT_EQ(address.ToString(), "[2001:db8::1]:8080");
   EXPECT_EQ(address.port(), 8080);
 }
 
 TEST(SocketAddressTest, FromStringIPv6NoPort) {
-  SocketAddress address(/*dual_stack=*/true);
+  SocketAddress address;
   EXPECT_TRUE(SocketAddress::FromString(address, "2001:db8::1"));
+  EXPECT_EQ(address.family(), AF_INET6);
   EXPECT_EQ(address.ToString(), "2001:db8::1");
   EXPECT_EQ(address.port(), 0);
 }
 
-TEST(SocketAddressTest, FromStringIPv6AnyAddress) {
-  SocketAddress address(/*dual_stack=*/true);
+TEST(SocketAddressTest, FromStringAnyAddress) {
+  SocketAddress address;
   EXPECT_TRUE(SocketAddress::FromString(address, ""));
+  EXPECT_EQ(address.family(), AF_INET6);
   EXPECT_EQ(address.ToString(), "::");
 }
 
 TEST(SocketAddressTest, FromStringMappedIPv4) {
-  SocketAddress address(/*dual_stack=*/true);
+  SocketAddress address;
   EXPECT_TRUE(SocketAddress::FromString(address, "::ffff:192.168.1.1", 8080));
+  EXPECT_EQ(address.family(), AF_INET6);
   EXPECT_EQ(address.port(), 8080);
   EXPECT_EQ(address.ToString(), "[::ffff:192.168.1.1]:8080");
 }
@@ -126,9 +104,13 @@ TEST(SocketAddressTest, FromStringInvalid) {
   EXPECT_FALSE(SocketAddress::FromString(address, "invalid", 8080));
 }
 
-TEST(SocketAddressTest, FromStringInvalidDualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  EXPECT_FALSE(SocketAddress::FromString(address, "invalid", 8080));
+TEST(SocketAddressTest, ToMappedIPv6) {
+  SocketAddress v4_address;
+  EXPECT_TRUE(SocketAddress::FromString(v4_address, "192.168.1.1", 8080));
+  SocketAddress v6_address = v4_address.ToMappedIPv6();
+  EXPECT_EQ(v6_address.family(), AF_INET6);
+  EXPECT_EQ(v6_address.ToString(), "[::ffff:192.168.1.1]:8080");
+  EXPECT_EQ(v6_address.port(), 8080);
 }
 
 TEST(SocketAddressTest, SetPort) {
@@ -151,43 +133,23 @@ TEST(SocketAddressTest, FromBytesIPv4) {
   SocketAddress address;
   char bytes[4] = {192, 168, 1, 1};
   EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_EQ(address.family(), AF_INET);
   EXPECT_EQ(address.ToString(), "192.168.1.1:8080");
   EXPECT_EQ(address.port(), 8080);
 }
 
-TEST(SocketAddressTest, FromBytesIPv6Fails) {
+TEST(SocketAddressTest, FromBytesIPv6DualStack) {
   SocketAddress address;
   char bytes[16] = {0xfe, 0x80, 0,    0,    0,    0,    0,    0,
                     0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
-  EXPECT_FALSE(SocketAddress::FromBytes(address, bytes, 8080));
-}
-
-TEST(SocketAddressTest, FromBytesIPv4DualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  char bytes[4] = {192, 168, 1, 1};
   EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
-  EXPECT_EQ(address.ToString(), "[::ffff:192.168.1.1]:8080");
-  EXPECT_EQ(address.port(), 8080);
-}
-
-TEST(SocketAddressTest, FromBytesIPv6DualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  char bytes[16] = {0xfe, 0x80, 0,    0,    0,    0,    0,    0,
-                    0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
-  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_EQ(address.family(), AF_INET6);
   EXPECT_EQ(address.ToString(), "[fe80::4db2:b35c:2203:98a1]:8080");
   EXPECT_EQ(address.port(), 8080);
 }
 
-TEST(SocketAddressTest, DualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  EXPECT_TRUE(address.dual_stack());
-  SocketAddress address2(/*dual_stack=*/false);
-  EXPECT_FALSE(address2.dual_stack());
-}
-
 TEST(SocketAddressTest, IPv6LinkLocalSuccess) {
-  SocketAddress address(/*dual_stack=*/true);
+  SocketAddress address;
   char bytes[16] = {0xfe, 0x80, 0,    0,    0,    0,    0,    0,
                     0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
   EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
@@ -195,7 +157,7 @@ TEST(SocketAddressTest, IPv6LinkLocalSuccess) {
 }
 
 TEST(SocketAddressTest, IPv6LinkLocalFail) {
-  SocketAddress address(/*dual_stack=*/true);
+  SocketAddress address;
   char bytes[16] = {0x20, 0x01, 0x0d, 0xb8,   0,    0,    0,    0,
                     0x4d, 0xb2, 0xb3, 0x5c, 0x22, 0x03, 0x98, 0xa1};
   EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
@@ -209,41 +171,22 @@ TEST(SocketAddressTest, FromServiceAddressIPv4) {
       .port = 8080,
   };
   EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
+  EXPECT_EQ(address.family(), AF_INET);
   EXPECT_EQ(address.ToString(), "192.168.1.1:8080");
   EXPECT_EQ(address.port(), 8080);
 }
 
-TEST(SocketAddressTest, FromServiceAddressIPv4DualStack) {
-  SocketAddress address(/*dual_stack=*/true);
-  ServiceAddress service_address = {
-      .address = {192, 168, 1, 1},
-      .port = 8080,
-  };
-  EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
-  EXPECT_EQ(address.ToString(), "[::ffff:192.168.1.1]:8080");
-  EXPECT_EQ(address.port(), 8080);
-}
-
 TEST(SocketAddressTest, FromServiceAddressIPv6) {
-  SocketAddress address(/*dual_stack=*/true);
-  ServiceAddress service_address = {
-      .address = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0x4d, 0xb2, 0xb3, 0x5c, 0x22,
-                  0x03, 0x98, 0xa1},
-      .port = 8080,
-  };
-  EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
-  EXPECT_EQ(address.ToString(), "[fe80::4db2:b35c:2203:98a1]:8080");
-  EXPECT_EQ(address.port(), 8080);
-}
-
-TEST(SocketAddressTest, FromServiceAddressIPv6NoDualStack) {
   SocketAddress address;
   ServiceAddress service_address = {
       .address = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0x4d, 0xb2, 0xb3, 0x5c, 0x22,
                   0x03, 0x98, 0xa1},
       .port = 8080,
   };
-  EXPECT_FALSE(SocketAddress::FromServiceAddress(address, service_address));
+  EXPECT_TRUE(SocketAddress::FromServiceAddress(address, service_address));
+  EXPECT_EQ(address.family(), AF_INET6);
+  EXPECT_EQ(address.ToString(), "[fe80::4db2:b35c:2203:98a1]:8080");
+  EXPECT_EQ(address.port(), 8080);
 }
 
 TEST(SocketAddressTest, FromServiceAddressInvalidAddress) {

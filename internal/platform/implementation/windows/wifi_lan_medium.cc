@@ -95,12 +95,11 @@ bool IsSelfInstance(IMapView<winrt::hstring, IInspectable> properties,
 
 bool GetMdnsIpv4Address(const std::string& address_str,
                         NsdServiceInfo& nsd_service_info) {
-  SocketAddress ipv4_address(/*dual_stack=*/false);
+  SocketAddress ipv4_address;
   if (!SocketAddress::FromString(ipv4_address, address_str)) {
     return false;
   }
-  DCHECK_EQ(ipv4_address.address()->sa_family, AF_INET);
-  if (ipv4_address.address()->sa_family == AF_INET) {
+  if (ipv4_address.family() == AF_INET) {
     std::string ip_address_bytes;
     ip_address_bytes.resize(4);
     const sockaddr_in* ipv4_addr = ipv4_address.ipv4_address();
@@ -109,19 +108,18 @@ bool GetMdnsIpv4Address(const std::string& address_str,
     VLOG(1) << "Found ipv4 address: " << ipv4_address.ToString();
     return true;
   }
-  // Should not reach here.
+  // address_str is not a valid ipv4 address.
   return false;
 }
 
 bool GetMdnsIpv6Address(const std::string& address_str,
                         IMapView<winrt::hstring, IInspectable> properties,
                         NsdServiceInfo& nsd_service_info) {
-  SocketAddress ipv6_address(/*dual_stack=*/true);
+  SocketAddress ipv6_address;
   if (!SocketAddress::FromString(ipv6_address, address_str)) {
     return false;
   }
-  DCHECK_EQ(ipv6_address.address()->sa_family, AF_INET6);
-  if (ipv6_address.address()->sa_family == AF_INET6) {
+  if (ipv6_address.family() == AF_INET6) {
     if (ipv6_address.IsV6LinkLocal()) {
       // Skip link local addresses if the interface index is not available.
       NET_IFINDEX interface_index = 0;
@@ -329,7 +327,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
   if (ipv6_address.empty()) {
     return nullptr;
   }
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   if (!server_address.FromString(server_address, ipv6_address,
                                  remote_service_info.GetPort())) {
     return nullptr;
@@ -347,7 +345,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
     const ServiceAddress& service_address,
     CancellationFlag* cancellation_flag) {
   LOG(INFO) << "ConnectToService is called.";
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   if (!server_address.FromServiceAddress(server_address, service_address)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;
@@ -699,7 +697,7 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
                                            absl::Duration timeout) {
   std::string ipv4_address = nsd_service_info.GetIPAddress();
   if (!ipv4_address.empty()) {
-    SocketAddress service_address(/*dual_stack=*/true);
+    SocketAddress service_address;
     if (SocketAddress::FromBytes(service_address, ipv4_address,
                                  nsd_service_info.GetPort())) {
       if (TestConnection(service_address, timeout)) {
@@ -719,7 +717,7 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
   if (ipv6_address.empty()) {
     return false;
   }
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   if (!server_address.FromString(server_address, ipv6_address,
                                  nsd_service_info.GetPort())) {
     return false;

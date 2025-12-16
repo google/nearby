@@ -36,7 +36,7 @@ SOCKET CreateSocket(const SocketAddress& address) {
 }
 
 SocketAddress GetLocalAddress(SOCKET socket_handle) {
-  SocketAddress local_address(/*dual_stack=*/true);
+  SocketAddress local_address;
   int address_length = sizeof(sockaddr_storage);
   EXPECT_NE(
       getsockname(socket_handle, local_address.address(), &address_length),
@@ -47,7 +47,7 @@ SocketAddress GetLocalAddress(SOCKET socket_handle) {
 TEST(NearbyClientSocketTest, ConnectWithBoundSocketFails) {
   SOCKET socket_handle = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
   NearbyClientSocket client_socket(socket_handle);
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   SocketAddress::FromString(server_address, "::1", 8080);
 
   EXPECT_FALSE(client_socket.Connect(server_address, absl::InfiniteDuration()));
@@ -56,13 +56,12 @@ TEST(NearbyClientSocketTest, ConnectWithBoundSocketFails) {
 }
 
 TEST(NearbyClientSocketTest, Connect) {
-  SocketAddress local_address(/*dual_stack=*/true);
-  SocketAddress::FromString(local_address, "", 0);
+  SocketAddress local_address;
   SOCKET socket_handle = CreateSocket(local_address);
   SocketAddress bound_address = GetLocalAddress(socket_handle);
   EXPECT_NE(listen(socket_handle, SOMAXCONN), SOCKET_ERROR);
   NearbyClientSocket client_socket;
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   SocketAddress::FromString(server_address, "::1", bound_address.port());
 
   EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
@@ -76,13 +75,12 @@ TEST(NearbyClientSocketTest, CloseNotOpened) {
 }
 
 TEST(NearbyClientSocketTest, Read) {
-  SocketAddress local_address(/*dual_stack=*/true);
-  SocketAddress::FromString(local_address, "", 0);
+  SocketAddress local_address;
   SOCKET socket_handle = CreateSocket(local_address);
   SocketAddress bound_address = GetLocalAddress(socket_handle);
   EXPECT_NE(listen(socket_handle, SOMAXCONN), SOCKET_ERROR);
   NearbyClientSocket client_socket;
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   SocketAddress::FromString(server_address, "::1", bound_address.port());
   EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
   SocketAddress peer_address;
@@ -98,13 +96,12 @@ TEST(NearbyClientSocketTest, Read) {
 }
 
 TEST(NearbyClientSocketTest, Skip) {
-  SocketAddress local_address(/*dual_stack=*/true);
-  SocketAddress::FromString(local_address, "", 0);
+  SocketAddress local_address;
   SOCKET socket_handle = CreateSocket(local_address);
   SocketAddress bound_address = GetLocalAddress(socket_handle);
   EXPECT_NE(listen(socket_handle, SOMAXCONN), SOCKET_ERROR);
   NearbyClientSocket client_socket;
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   SocketAddress::FromString(server_address, "::1", bound_address.port());
   EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
   SocketAddress peer_address;
@@ -121,13 +118,12 @@ TEST(NearbyClientSocketTest, Skip) {
 }
 
 TEST(NearbyClientSocketTest, Write) {
-  SocketAddress local_address(/*dual_stack=*/true);
-  SocketAddress::FromString(local_address, "", 0);
+  SocketAddress local_address;
   SOCKET socket_handle = CreateSocket(local_address);
   SocketAddress bound_address = GetLocalAddress(socket_handle);
   EXPECT_NE(listen(socket_handle, SOMAXCONN), SOCKET_ERROR);
   NearbyClientSocket client_socket;
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   SocketAddress::FromString(server_address, "::1", bound_address.port());
   EXPECT_TRUE(client_socket.Connect(server_address, absl::InfiniteDuration()));
   SocketAddress peer_address;

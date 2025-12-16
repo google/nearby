@@ -61,8 +61,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanServerSocket::Accept() {
 
 bool WifiLanServerSocket::Listen(int port) {
   // Listen on all interfaces.
-  SocketAddress address(/*dual_stack=*/true);
-  SocketAddress::FromString(address, "", port);
+  SocketAddress address;
+  address.set_port(port);
   if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket at port:" << port;
     return false;

@@ -63,23 +63,20 @@ bool NearbyClientSocket ::Connect(const SocketAddress& server_address,
     LOG(ERROR) << "Socket is already connected.";
     return false;
   }
-  socket_ = socket(server_address.dual_stack() ? AF_INET6 : AF_INET,
-                   SOCK_STREAM, IPPROTO_TCP);
+  socket_ = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 
   if (socket_ == INVALID_SOCKET) {
     LOG(ERROR) << "Failed to get socket with error " << WSAGetLastError();
     return false;
   }
-  if (server_address.dual_stack()) {
-    // On Windows dual stack is not the default.
-    // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
-    DWORD v6_only = 0;
-    if (setsockopt(socket_, IPPROTO_IPV6, IPV6_V6ONLY,
-                   reinterpret_cast<const char*>(&v6_only),
-                   sizeof(v6_only)) == SOCKET_ERROR) {
-      LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
-                   << WSAGetLastError();
-    }
+  // On Windows dual stack is not the default.
+  // https://learn.microsoft.com/en-us/windows/win32/winsock/dual-stack-sockets#creating-a-dual-stack-socket
+  DWORD v6_only = 0;
+  if (setsockopt(socket_, IPPROTO_IPV6, IPV6_V6ONLY,
+                  reinterpret_cast<const char*>(&v6_only),
+                  sizeof(v6_only)) == SOCKET_ERROR) {
+    LOG(WARNING) << "Failed to set IPV6_V6ONLY with error "
+                  << WSAGetLastError();
   }
 
   BOOL flag = TRUE;
@@ -114,8 +111,9 @@ bool NearbyClientSocket ::Connect(const SocketAddress& server_address,
       has_timeout = false;
     }
   }
-  if (connect(socket_, server_address.address(), sizeof(sockaddr_storage)) ==
-      SOCKET_ERROR) {
+  SocketAddress dual_stack_address = server_address.ToMappedIPv6();
+  if (connect(socket_, dual_stack_address.address(),
+              sizeof(sockaddr_storage)) == SOCKET_ERROR) {
     bool connected = false;
     if (has_timeout && WSAGetLastError() == WSAEWOULDBLOCK) {
       // Wait until timeout or socket is connected.

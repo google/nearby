@@ -126,7 +126,7 @@ std::unique_ptr<api::WifiDirectSocket> WifiDirectMedium::ConnectToService(
     return nullptr;
   }
 
-  SocketAddress server_address(/*dual_stack=*/true);
+  SocketAddress server_address;
   if (!server_address.FromString(server_address, remote_ip_address, port)) {
     LOG(ERROR) << "no valid service address and port to connect.";
     return nullptr;

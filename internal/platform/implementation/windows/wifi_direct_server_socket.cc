@@ -110,7 +110,7 @@ Exception WifiDirectServerSocket::Close() {
 bool WifiDirectServerSocket::Listen(int port) {
   LOG(INFO) << "Listen wifi_direct on IP:port " << wifi_direct_ipaddr_ << ":"
             << port;
-  SocketAddress address(/*dual_stack=*/true);
+  SocketAddress address;
   if (!SocketAddress::FromString(address, wifi_direct_ipaddr_, port)) {
     LOG(ERROR) << "Failed to parse wifi_direct IP address.";
     return false;

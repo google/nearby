@@ -138,10 +138,10 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
 }
 
 bool WifiHotspotServerSocket::Listen(int port) {
-  SocketAddress address(/*dual_stack=*/true);
   // Allow server socket to listen on all interfaces.
   // Consider sharing the same server socket for WifiLan medium.
-  SocketAddress::FromString(address, "", port);
+  SocketAddress address;
+  address.set_port(port);
   if (!server_socket_.Listen(address)) {
     LOG(ERROR) << "Failed to listen socket.";
     return false;
