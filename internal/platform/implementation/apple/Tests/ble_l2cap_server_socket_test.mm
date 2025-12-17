@@ -38,6 +38,9 @@
 }
 
 - (void)tearDown {
+  if (_serverSocket) {
+    _serverSocket->Close();
+  }
   _serverSocket.reset();
   [super tearDown];
 }
@@ -50,14 +53,18 @@
 
 - (void)testBleL2capServerSocketAccept {
   XCTestExpectation *expectation = [self expectationWithDescription:@"accept"];
+  GNCBLEL2CAPFakeInputOutputStream *fakeInputOutputStream =
+      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1024];
+
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    // This assertion's primary purpose is to extend the lifetime of `fakeInputOutputStream` until
+    // this block is executed, preventing it from being deallocated prematurely.
+    XCTAssertNotNil(fakeInputOutputStream);
     std::unique_ptr<nearby::api::ble::BleL2capSocket> clientSocket = _serverSocket->Accept();
     XCTAssertNotEqual(clientSocket.get(), nullptr);
     [expectation fulfill];
   });
 
-  GNCBLEL2CAPFakeInputOutputStream *fakeInputOutputStream =
-      [[GNCBLEL2CAPFakeInputOutputStream alloc] initWithBufferSize:1024];
   GNCBLEL2CAPStream *stream = [[GNCBLEL2CAPStream alloc]
       initWithClosedBlock:^() {
       }

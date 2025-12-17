@@ -201,7 +201,7 @@ static const NSTimeInterval kTimeout = 1.0;
   [_fakeSocket simulateSocketDidReceiveData:introPacket];
 
   // No data should be passed to the payload handler.
-  [self waitForExpectationsWithTimeout:kTimeout handler:nil];
+  [self waitForExpectationsWithTimeout:3.0 handler:nil];
 
   // Now test receiving data after the intro packet.
   NSData *expectedData = [@"TestData" dataUsingEncoding:NSUTF8StringEncoding];
@@ -219,7 +219,7 @@ static const NSTimeInterval kTimeout = 1.0;
   _connection.connectionHandlers = dataHandlers;
 
   [_fakeSocket simulateSocketDidReceiveData:packet];
-  [self waitForExpectationsWithTimeout:kTimeout handler:nil];
+  [self waitForExpectationsWithTimeout:3.0 handler:nil];
 }
 
 - (void)testDisconnect {

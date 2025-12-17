@@ -646,22 +646,26 @@ static const char *const kTestServiceID = "TestServiceID";
   NSDictionary<CBUUID *, NSData *> *serviceData =
       @{[CBUUID UUIDWithString:kTestServiceUUIDString] : [NSData dataWithBytes:"test" length:4]};
 
-  __block XCTestExpectation *expectation1 = [self expectationWithDescription:@"Callback 1"];
+  // Expect the advertisement found callback to be called exactly once.
+  XCTestExpectation *expectation1 = [self expectationWithDescription:@"Callback 1"];
   XCTestExpectation *expectation2 = [self expectationWithDescription:@"Callback 2"];
   expectation2.inverted = YES;  // Should NOT be called.
 
+  auto callbackCount = std::make_shared<int>(0);
   nearby::api::ble::BleMedium::ScanCallback callback = {
-      .advertisement_found_cb = std::function<void(nearby::api::ble::BlePeripheral::UniqueId,
-                                                   nearby::api::ble::BleAdvertisementData)>(
-          ^(nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
-            const nearby::api::ble::BleAdvertisementData &advertisement) {
-            if ([expectation1.description isEqualToString:@"Callback 1"]) {
+      .advertisement_found_cb =
+          [callbackCount, expectation1, expectation2](
+              nearby::api::ble::BlePeripheral::UniqueId peripheral_id,
+              const nearby::api::ble::BleAdvertisementData &advertisement) {
+            (*callbackCount)++;
+            if (*callbackCount == 1) {
               [expectation1 fulfill];
-              expectation1 = nil;  // Prevent double fulfillment
             } else {
+              // Any subsequent call within the threshold fulfills the inverted expectation2, causing
+              // the test to fail.
               [expectation2 fulfill];
             }
-          })};
+          }};
   _medium->StartScanning(nearby::Uuid(0, 0), nearby::api::ble::TxPowerLevel::kUltraLow,
                          std::move(callback));
   if (_fakeGNCBLEMedium.advertisementFoundHandler) {
