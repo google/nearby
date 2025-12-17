@@ -246,7 +246,7 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
   EXPECT_THAT(payloads[0].content.file_payload.size, Eq(12355L));
   EXPECT_THAT(payloads[0].content.file_payload.parent_folder,
               Eq(file1_.parent_folder()));
-  EXPECT_THAT(payloads[0].content.file_payload.file.path,
+  EXPECT_THAT(payloads[0].content.file_payload.file_path,
               Eq(file1_.file_path()));
 
   EXPECT_THAT(attachment_payload_map, SizeIs(1));

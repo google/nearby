@@ -21,20 +21,6 @@
 namespace nearby::sharing {
 using ::testing::Eq;
 
-TEST(NearbyConnectionSharingTypesPayloadTest, FromInputFileUTF8) {
-  InputFile input_file("/为甚么/tmp/test.txt");
-  Payload payload(input_file);
-  EXPECT_THAT(payload.id, Eq(7724502655048749887LL));
-  EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kFile));
-}
-
-TEST(NearbyConnectionSharingTypesPayloadTest, FromInputFileWithId) {
-  InputFile input_file("/为甚么/tmp/test.txt");
-  Payload payload(1234, input_file);
-  EXPECT_THAT(payload.id, Eq(1234LL));
-  EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kFile));
-}
-
 TEST(NearbyConnectionSharingTypesPayloadTest, FromBytes) {
   Payload payload({1, 2, 3, 4, 5});
   EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kBytes));

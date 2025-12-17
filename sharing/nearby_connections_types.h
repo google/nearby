@@ -357,14 +357,6 @@ enum class DistanceInfo {
   kFar = 4,
 };
 
-struct InputFile {
-  InputFile() = default;
-  explicit InputFile(absl::string_view file_path)
-      : path(file_path) {}
-
-  FilePath path;
-};
-
 // A simple payload containing raw bytes.
 struct BytesPayload {
   // The bytes of this payload.
@@ -376,7 +368,7 @@ struct FilePayload {
   // The file to which this payload points to. When sending this payload, the
   // NearbyConnections library reads from this file. When receiving a file
   // payload it writes to this file.
-  InputFile file;
+  FilePath file_path;
   int64_t size;
   std::string parent_folder;
 };
@@ -410,35 +402,26 @@ struct Payload {
   explicit Payload(std::vector<uint8_t> bytes)
       : Payload(GenerateId(), std::move(bytes)) {}
 
-  explicit Payload(InputFile file,
-                   absl::string_view parent_folder = absl::string_view()) {
-    id = std::hash<std::string>()(file.path.ToString());
-
-    content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = Files::GetFileSize(file.path);
-    if (size.has_value()) {
-      content.file_payload.size = *size;
-    }
-
-    content.file_payload.file = std::move(file);
-    content.file_payload.parent_folder = std::string(parent_folder);
-  }
+  explicit Payload(FilePath file_path,
+                   absl::string_view parent_folder = absl::string_view())
+      : Payload(std::hash<std::string>()(file_path.ToString()), file_path,
+                parent_folder) {}
 
   Payload(int64_t id, std::vector<uint8_t> bytes) : id(id) {
     content.type = PayloadContent::Type::kBytes;
     content.bytes_payload.bytes = std::move(bytes);
   }
 
-  Payload(int64_t id, InputFile file,
+  Payload(int64_t id, FilePath file_path,
           absl::string_view parent_folder = absl::string_view())
       : id(id) {
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = Files::GetFileSize(file.path);
+    std::optional<uintmax_t> size = Files::GetFileSize(file_path);
     if (size.has_value()) {
       content.file_payload.size = *size;
     }
 
-    content.file_payload.file = std::move(file);
+    content.file_payload.file_path = file_path;
     content.file_payload.parent_folder = std::string(parent_folder);
   }
 

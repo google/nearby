@@ -312,7 +312,7 @@ bool IncomingShareSession::UpdateFilePayloadPaths() {
       continue;
     }
 
-    FilePath file_path = incoming_payload->content.file_payload.file.path;
+    FilePath file_path = incoming_payload->content.file_payload.file_path;
     VLOG(1) << __func__ << ": Updated file_path=" << file_path.ToString();
     file.set_file_path(file_path);
   }

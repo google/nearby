@@ -809,7 +809,7 @@ void NearbyConnectionsManagerImpl::DeleteUnknownFilePayloadAndCancel(
     Payload& payload) {
   if (payload.content.type == PayloadContent::Type::kFile) {
     MutexLock lock(&mutex_);
-    file_paths_to_delete_.insert(payload.content.file_payload.file.path);
+    file_paths_to_delete_.insert(payload.content.file_payload.file_path);
   }
   Cancel(payload.id);
 }
@@ -900,7 +900,7 @@ void NearbyConnectionsManagerImpl::OnPayloadTransferUpdate(
       nearby_connections_service_->CancelPayload(kServiceId, payload->id,
                                                  [](Status status) {});
       ProcessUnknownFilePathsToDelete(update.status, payload->content.type,
-                                      payload->content.file_payload.file.path);
+                                      payload->content.file_payload.file_path);
       return;
     }
   }

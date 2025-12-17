@@ -230,9 +230,7 @@ bool OutgoingShareSession::CreateFilePayloads(
     const NearbyFileHandler::FileInfo& file_info = files[i];
     FileAttachment& attachment = container.GetMutableFileAttachment(i);
     attachment.set_size(file_info.size);
-    InputFile input_file;
-    input_file.path = file_info.file_path;
-    Payload payload(input_file, attachment.parent_folder());
+    Payload payload(file_info.file_path, attachment.parent_folder());
     payload.content.file_payload.size = file_info.size;
     file_payloads_.push_back(std::move(payload));
     SetAttachmentPayloadId(attachment.id(), file_payloads_.back().id);

@@ -89,8 +89,7 @@ constexpr absl::string_view kEndpointId = "ABCD";
 
 std::unique_ptr<Payload> CreateFilePayload(int64_t payload_id,
                                            FilePath file_path) {
-  auto file_payload =
-      std::make_unique<Payload>(InputFile(file_path.ToString()));
+  auto file_payload = std::make_unique<Payload>(file_path);
   file_payload->id = payload_id;
   return file_payload;
 }

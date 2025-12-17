@@ -262,8 +262,7 @@ constexpr absl::Duration kCertificateDownloadDuringDiscoveryPeriod =
 std::unique_ptr<Payload> GetFilePayload(int64_t payload_id) {
   FilePath path =
       Files::GetTemporaryDirectory().append(FilePath(absl::StrCat(payload_id)));
-  InputFile input_file{path.ToString()};
-  return std::make_unique<Payload>(input_file);
+  return std::make_unique<Payload>(path);
 }
 
 std::unique_ptr<Payload> GetTextPayload(int64_t payload_id,
@@ -3492,7 +3491,7 @@ TEST_F(NearbySharingServiceImplTest, SendFilesSuccess) {
   // Expect the file payload to be sent in the end.
   PayloadInfo info = GetWrittenPayload();
   ASSERT_TRUE(info.payload->content.is_file());
-  FilePath file = info.payload->content.file_payload.file.path;
+  FilePath file = info.payload->content.file_payload.file_path;
   ASSERT_TRUE(Files::FileExists(file));
 }
 
