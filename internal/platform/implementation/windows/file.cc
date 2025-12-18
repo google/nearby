@@ -87,12 +87,13 @@ void TimeToFiletime(absl::Time time, FILETIME* file_time) {
 }  // namespace
 
 // InputFile
-std::unique_ptr<IOFile> IOFile::CreateInputFile(absl::string_view file_path,
-                                                size_t size) {
-  return absl::WrapUnique(new IOFile(file_path, size));
+std::unique_ptr<IOFile> IOFile::CreateInputFile(absl::string_view file_path) {
+  auto file = absl::WrapUnique(new IOFile(file_path));
+  file->OpenForRead();
+  return file;
 }
 
-IOFile::IOFile(absl::string_view file_path, size_t size) : path_(file_path) {
+void IOFile::OpenForRead() {
   // Always open input file path as wide string on Windows platform.
   std::wstring wide_path = string_utils::StringToWideString(path_);
   file_ = ::CreateFileW(wide_path.data(), GENERIC_READ, FILE_SHARE_READ,
@@ -100,14 +101,14 @@ IOFile::IOFile(absl::string_view file_path, size_t size) : path_(file_path) {
                         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
                         /*hTemplateFile=*/nullptr);
   if (file_ == INVALID_HANDLE_VALUE) {
-    LOG(ERROR) << "Failed to open input file: " << file_path
+    LOG(ERROR) << "Failed to open input file: " << path_
                << " with error: " << ::GetLastError();
     return;
   }
 
   LARGE_INTEGER file_size;
   if (::GetFileSizeEx(file_, &file_size) == 0) {
-    LOG(ERROR) << "Failed to get file size: " << file_path
+    LOG(ERROR) << "Failed to get file size: " << path_
                << " with error: " << ::GetLastError();
     return;
   }
@@ -115,18 +116,20 @@ IOFile::IOFile(absl::string_view file_path, size_t size) : path_(file_path) {
 }
 
 std::unique_ptr<IOFile> IOFile::CreateOutputFile(absl::string_view path) {
-  return std::unique_ptr<IOFile>(new IOFile(path));
+  auto file = absl::WrapUnique(new IOFile(path));
+  file->OpenForWrite();
+  return file;
 }
 
-IOFile::IOFile(absl::string_view file_path) : path_(file_path), total_size_(0) {
-  // Always open input file path as wide string on Windows platform.
+void IOFile::OpenForWrite() {
+  // Always open output file path as wide string on Windows platform.
   std::wstring wide_path = string_utils::StringToWideString(path_);
   file_ = ::CreateFileW(wide_path.data(), GENERIC_WRITE, /*dwShareMode=*/0,
                         /*lpSecurityAttributes=*/nullptr, CREATE_NEW,
                         FILE_ATTRIBUTE_NORMAL,
                         /*hTemplateFile=*/nullptr);
   if (file_ == INVALID_HANDLE_VALUE) {
-    LOG(ERROR) << "Failed to open output file: " << file_path
+    LOG(ERROR) << "Failed to open output file: " << path_
                << " with error: " << ::GetLastError();
     return;
   }
@@ -207,7 +210,7 @@ void IOFile::SetLastModifiedTime(absl::Time last_modified_time) {
   TimeToFiletime(last_modified_time, &last_write_time);
   // Set both creation time and last write time.
   if (::SetFileTime(file_, /*lpCreationTime=*/&last_write_time,
-                /*lpLastAccessTime=*/nullptr, &last_write_time) == 0) {
+                    /*lpLastAccessTime=*/nullptr, &last_write_time) == 0) {
     LOG(ERROR) << "Failed to set file last write time: " << path_
                << " with error: " << ::GetLastError();
   }

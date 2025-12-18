@@ -23,6 +23,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/exception.h"
 
 namespace nearby {
@@ -30,24 +32,25 @@ namespace shared {
 
 // InputFile
 std::unique_ptr<IOFile> IOFile::CreateInputFile(
-    const absl::string_view file_path, size_t size) {
-  return absl::WrapUnique(new IOFile(file_path, size));
+    const absl::string_view file_path) {
+  auto file = absl::WrapUnique(new IOFile(file_path));
+  file->OpenForRead();
+  return file;
 }
 
-IOFile::IOFile(const absl::string_view file_path, size_t size)
-    : file_(std::string(file_path.data(), file_path.size()),
-            std::ios::binary | std::ios::in | std::ios::ate),
-      path_(file_path),
-      total_size_(size) {
+void IOFile::OpenForRead() {
+  file_ = std::fstream(path_, std::ios::binary | std::ios::in | std::ios::ate);
+  total_size_ = Files::GetFileSize(FilePath(path_)).value_or(0);
   file_.seekg(0);
 }
 
 std::unique_ptr<IOFile> IOFile::CreateOutputFile(const absl::string_view path) {
-  return std::unique_ptr<IOFile>(new IOFile(path));
+  auto file = absl::WrapUnique(new IOFile(path));
+  file->OpenForWrite();
+  return file;
 }
 
-IOFile::IOFile(const absl::string_view file_path)
-    : file_(), path_(file_path), total_size_(0) {
+void IOFile::OpenForWrite() {
   file_.open(path_, std::ios::binary | std::ios::out);
 }
 

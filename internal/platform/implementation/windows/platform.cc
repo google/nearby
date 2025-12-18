@@ -194,13 +194,12 @@ ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     PayloadId payload_id, std::int64_t total_size) {
   std::string file_name(std::to_string(payload_id));
-  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name),
-                                          total_size);
+  return windows::IOFile::CreateInputFile(GetDownloadPath(file_name));
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     const std::string& file_path, size_t size) {
-  return windows::IOFile::CreateInputFile(file_path, size);
+  return windows::IOFile::CreateInputFile(file_path);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")

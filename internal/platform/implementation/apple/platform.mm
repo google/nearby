@@ -133,7 +133,7 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId pay
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const std::string& file_path,
                                                                    size_t size) {
-  return shared::IOFile::CreateInputFile(file_path, size);
+  return shared::IOFile::CreateInputFile(file_path);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")

@@ -32,10 +32,9 @@ namespace shared {
 
 class IOFile final : public api::InputFile, public api::OutputFile {
  public:
-  static std::unique_ptr<IOFile> CreateInputFile(
-      const absl::string_view file_path, size_t size);
+  static std::unique_ptr<IOFile> CreateInputFile(absl::string_view file_path);
 
-  static std::unique_ptr<IOFile> CreateOutputFile(const absl::string_view path);
+  static std::unique_ptr<IOFile> CreateOutputFile(absl::string_view path);
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
 
@@ -50,12 +49,13 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   void SetLastModifiedTime(absl::Time last_modified_time) override;
 
  private:
-  explicit IOFile(const absl::string_view file_path, size_t size);
-  explicit IOFile(const absl::string_view file_path);
+  explicit IOFile(absl::string_view file_path) : path_(file_path) {};
+  void OpenForRead();
+  void OpenForWrite();
 
+  const std::string path_;
   std::fstream file_;
-  std::string path_;
-  std::int64_t total_size_;
+  std::int64_t total_size_ = 0;
 };
 
 }  // namespace shared

@@ -33,8 +33,7 @@ namespace nearby::windows {
 
 class IOFile final : public api::InputFile, public api::OutputFile {
  public:
-  static std::unique_ptr<IOFile> CreateInputFile(absl::string_view file_path,
-                                                 size_t size);
+  static std::unique_ptr<IOFile> CreateInputFile(absl::string_view file_path);
 
   static std::unique_ptr<IOFile> CreateOutputFile(absl::string_view path);
 
@@ -54,11 +53,12 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   void SetLastModifiedTime(absl::Time last_modified_time) override;
 
  private:
-  explicit IOFile(absl::string_view file_path, size_t size);
-  explicit IOFile(absl::string_view file_path);
+  explicit IOFile(absl::string_view file_path) : path_(file_path) {}
+  void OpenForRead();
+  void OpenForWrite();
 
+  const std::string path_;
   HANDLE file_ = INVALID_HANDLE_VALUE;
-  std::string path_;
   std::string buffer_;
   std::int64_t total_size_ = 0;
 };

@@ -143,12 +143,12 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
   return shared::IOFile::CreateInputFile(
-      GetDownloadPath(parent_folder, file_name), total_size);
+      GetDownloadPath(parent_folder, file_name));
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
     const std::string& file_path, size_t size) {
-  return shared::IOFile::CreateInputFile(file_path, size);
+  return shared::IOFile::CreateInputFile(file_path);
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
