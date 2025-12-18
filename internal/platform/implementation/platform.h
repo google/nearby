@@ -106,9 +106,9 @@ class ImplementationPlatform {
   static std::unique_ptr<ConditionVariable> CreateConditionVariable(
       Mutex* mutex);
 
-  static std::unique_ptr<InputFile> CreateInputFile(PayloadId, std::int64_t);
+  static std::unique_ptr<InputFile> CreateInputFile(PayloadId);
 
-  static std::unique_ptr<InputFile> CreateInputFile(const std::string&, size_t);
+  static std::unique_ptr<InputFile> CreateInputFile(const std::string&);
 
   static std::unique_ptr<OutputFile> CreateOutputFile(PayloadId);
 

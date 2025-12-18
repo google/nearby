@@ -156,15 +156,6 @@ typedef struct NcContext {
 
 absl::NoDestructor<absl::flat_hash_map<NC_INSTANCE, NcContext>> kNcContextMap;
 
-int64_t getFileSize(const char* filename) {
-  struct stat file_status;
-  if (stat(filename, &file_status) < 0) {
-    return -1;
-  }
-
-  return file_status.st_size;
-}
-
 int convertStringToInt(absl::string_view data) {
   if (data.size() != 4) {
     return 0;
@@ -729,8 +720,7 @@ void NcSendPayload(NC_INSTANCE instance, size_t endpoint_ids_size,
                                     payload->content.file.file_name);
     }
 
-    nearby::InputFile input_file(full_file_name,
-                                 getFileSize(full_file_name.c_str()));
+    nearby::InputFile input_file(full_file_name);
     cpp_payload =
         ::nearby::connections::Payload(payload->id, std::move(input_file));
   } else if (payload->type == NC_PAYLOAD_TYPE_STREAM) {

@@ -86,7 +86,7 @@ using ::nearby::connections::Payload;
   std::string path = [self.fileURL.path cStringUsingEncoding:[NSString defaultCStringEncoding]];
   std::string folder = [self.parentFolder cStringUsingEncoding:[NSString defaultCStringEncoding]];
   std::string name = [self.fileName cStringUsingEncoding:[NSString defaultCStringEncoding]];
-  return Payload(self.identifier, folder, name, InputFile(path, self.totalSize.longLongValue));
+  return Payload(self.identifier, folder, name, InputFile(path));
 }
 
 @end

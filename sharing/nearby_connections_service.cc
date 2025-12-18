@@ -56,7 +56,6 @@ Payload ConvertToPayload(NcPayload payload) {
 NcPayload ConvertToServicePayload(Payload payload) {
   switch (payload.content.type) {
     case PayloadContent::Type::kFile: {
-      int64_t file_size = payload.content.file_payload.size;
       std::string file_path = payload.content.file_payload.file_path.ToString();
       std::string file_name =
           payload.content.file_payload.file_path.GetFileName().ToString();
@@ -64,7 +63,7 @@ NcPayload ConvertToServicePayload(Payload payload) {
       std::replace(parent_folder.begin(), parent_folder.end(), '\\', '/');
       VLOG(1) << __func__ << ": NC Payload file_path=" << file_path
               << ", parent_folder = " << parent_folder;
-      nearby::InputFile input_file(file_path, file_size);
+      nearby::InputFile input_file(file_path);
       NcPayload nc_payload(payload.id, parent_folder, file_name,
                            std::move(input_file));
       return nc_payload;

@@ -35,8 +35,8 @@ namespace nearby {
 class InputFile final {
  public:
   using Platform = api::ImplementationPlatform;
-  InputFile(PayloadId payload_id, std::int64_t size);
-  InputFile(std::string file_path, std::int64_t size);
+  explicit InputFile(PayloadId payload_id);
+  explicit InputFile(std::string file_path);
   ~InputFile();
   InputFile(InputFile&&) noexcept;
   InputFile& operator=(InputFile&&);

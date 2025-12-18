@@ -33,7 +33,7 @@ TEST(NearbyConnectionSharingServicePayloadTest, ConvertBytesToPayload) {
 
 TEST(NearbyConnectionSharingServicePayloadTest, ConvertFileToPayload) {
   Payload payload = ConvertToPayload(
-      NcPayload(1234, nearby::InputFile("/为甚么/tmp/test.txt", /*size=*/100)));
+      NcPayload(1234, nearby::InputFile("/为甚么/tmp/test.txt")));
   EXPECT_THAT(payload.id, Eq(1234LL));
   EXPECT_THAT(payload.content.type, Eq(PayloadContent::Type::kFile));
 }

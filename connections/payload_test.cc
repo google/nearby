@@ -58,7 +58,7 @@ TEST(PayloadTest, SupportsFileType) {
   outputFile.Write(test_data);
   outputFile.Close();
 
-  InputFile file(payload_id, 100);
+  InputFile file(payload_id);
   InputStream& stream = file.GetInputStream();
 
   Payload payload(payload_id, std::move(file));
@@ -74,7 +74,7 @@ TEST(PayloadTest, SupportsFileType) {
 
 TEST(PayloadTest, SupportsMultiDotNamedFileType) {
   constexpr char expected[] = "this.is.a.multidot.file";
-  InputFile file(expected, 0);
+  InputFile file(expected);
 
   Payload payload(/*parent_folder=*/"", expected, std::move(file));
 
@@ -87,7 +87,7 @@ TEST(PayloadTest,
       "test_folder.here\\this.is.a.multidot.backslash.folder.separated.file";
   constexpr char expected[] =
       "this.is.a.multidot.backslash.folder.separated.file";
-  InputFile file(file_name, 0);
+  InputFile file(file_name);
 
   Payload payload(/*parent_folder=*/"", file_name, std::move(file));
 

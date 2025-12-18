@@ -66,7 +66,7 @@ TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromStreamPayload) {
 
 TEST(InternalPayloadFactoryTest, CanCreateInternalPayloadFromFilePayload) {
   Payload::Id payload_id = Payload::GenerateId();
-  InputFile inputFile(payload_id, 512);
+  InputFile inputFile(payload_id);
   ErrorOr<std::unique_ptr<InternalPayload>> result =
       CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
   ASSERT_FALSE(result.has_error());
@@ -231,7 +231,7 @@ TEST(InternalPayloadFactoryTest,
   size_t size_after_skip = contents.size() - kOffset;
   Payload::Id payload_id = Payload::GenerateId();
   CreateFileWithContents(payload_id, contents);
-  InputFile inputFile(payload_id, contents.size());
+  InputFile inputFile(payload_id);
   ErrorOr<std::unique_ptr<InternalPayload>> internal_payload_result =
       CreateOutgoingInternalPayload(Payload{payload_id, std::move(inputFile)});
   ASSERT_FALSE(internal_payload_result.has_error());

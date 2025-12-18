@@ -139,7 +139,7 @@ std::unique_ptr<AtomicBoolean> ImplementationPlatform::CreateAtomicBoolean(
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    PayloadId payload_id, std::int64_t total_size) {
+    PayloadId payload_id) {
   std::string parent_folder("");
   std::string file_name(std::to_string(payload_id));
   return shared::IOFile::CreateInputFile(
@@ -147,7 +147,7 @@ std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
 }
 
 std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(
-    const std::string& file_path, size_t size) {
+    const std::string& file_path) {
   return shared::IOFile::CreateInputFile(file_path);
 }
 

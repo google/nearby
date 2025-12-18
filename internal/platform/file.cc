@@ -17,13 +17,13 @@
 #include <cstdint>
 #include <string>
 #include "absl/time/time.h"
+#include "internal/platform/payload_id.h"
 
 namespace nearby {
 
-InputFile::InputFile(PayloadId id, std::int64_t size)
-    : impl_(Platform::CreateInputFile(id, size)) {}
-InputFile::InputFile(std::string file_path, std::int64_t size)
-    : impl_(Platform::CreateInputFile(file_path, size)) {}
+InputFile::InputFile(PayloadId id) : impl_(Platform::CreateInputFile(id)) {}
+InputFile::InputFile(std::string file_path)
+    : impl_(Platform::CreateInputFile(file_path)) {}
 InputFile::~InputFile() = default;
 InputFile::InputFile(InputFile&& other) noexcept = default;
 InputFile& InputFile::operator=(InputFile&& other) = default;

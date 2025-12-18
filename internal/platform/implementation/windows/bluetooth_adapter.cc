@@ -314,7 +314,7 @@ void BluetoothAdapter::RestoreRadioNameIfNecessary() {
         nearby::api::ImplementationPlatform::GetAppDataPath(settings_path);
 
     auto settings_file =
-        nearby::api::ImplementationPlatform::CreateInputFile(full_path, 0);
+        nearby::api::ImplementationPlatform::CreateInputFile(full_path);
     if (settings_file == nullptr) {
       LOG(ERROR) << __func__ << ": Failed to create input file.";
       return;

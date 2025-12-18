@@ -257,7 +257,7 @@ void GNCEnsureFileAtPath(std::string path) {
   [data writeToFile:path atomically:YES];
 
   auto input_file =
-      nearby::api::ImplementationPlatform::CreateInputFile(path.UTF8String, data.length);
+      nearby::api::ImplementationPlatform::CreateInputFile(path.UTF8String);
 
   XCTAssertNotEqual(input_file.get(), nullptr);
   XCTAssertEqual(input_file->GetTotalSize(), data.length);
@@ -325,7 +325,7 @@ void GNCEnsureFileAtPath(std::string path) {
 }
 
 - (void)testCreateInputFileWithPayloadID {
-  auto input_file = nearby::api::ImplementationPlatform::CreateInputFile(1234, 0);
+  auto input_file = nearby::api::ImplementationPlatform::CreateInputFile(1234);
   XCTAssertEqual(input_file.get(), nullptr);
 }
 

@@ -431,7 +431,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
           return {Error(OperationResultCode::IO_FILE_OPENING_ERROR)};
         }
         return {std::make_unique<IncomingFileInternalPayload>(
-            Payload(payload_id, InputFile(payload_id, total_size)),
+            Payload(payload_id, InputFile(payload_id)),
             std::move(output_file), last_modified_time, total_size)};
       } else {
         OutputFile output_file(file_path);
@@ -441,7 +441,7 @@ ErrorOr<std::unique_ptr<InternalPayload>> CreateIncomingInternalPayload(
         }
         return {std::make_unique<IncomingFileInternalPayload>(
             Payload(payload_id, parent_folder, file_name,
-                    InputFile(file_path, total_size)),
+                    InputFile(file_path)),
             std::move(output_file), last_modified_time, total_size)};
       }
     }

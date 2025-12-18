@@ -126,13 +126,11 @@ std::unique_ptr<ConditionVariable> ImplementationPlatform::CreateConditionVariab
 }
 
 ABSL_DEPRECATED("This interface will be deleted in the near future.")
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id,
-                                                                   std::int64_t total_size) {
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(PayloadId payload_id) {
   return nullptr;
 }
 
-std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const std::string& file_path,
-                                                                   size_t size) {
+std::unique_ptr<InputFile> ImplementationPlatform::CreateInputFile(const std::string& file_path) {
   return shared::IOFile::CreateInputFile(file_path);
 }
 
