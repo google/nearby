@@ -51,10 +51,11 @@
 }
 
 - (void)testInitFromDataWithLeadingEmptyBytes {
-  std::string addressString = "\0\0\0\0";
+  // Construct the string with an explicit size to include the null characters
+  std::string addressString("\0\0\0\0", 4);
   addressString[3] = static_cast<char>(6);
 
-  NSData *addressData = [NSData dataWithBytes:addressString.data() length:4];
+  NSData *addressData = [NSData dataWithBytes:addressString.data() length:addressString.length()];
   GNCIPv4Address *address = [GNCIPv4Address addressFromData:addressData];
   XCTAssertEqual(address.byte1, 0);
   XCTAssertEqual(address.byte2, 0);
@@ -63,13 +64,14 @@
 }
 
 - (void)testInitFromDataWithRealIP {
-  std::string addressString = "\0\0\0\0";
+  // Construct the string with an explicit size to include the null characters
+  std::string addressString("\0\0\0\0", 4);
   addressString[0] = static_cast<char>(192);
   addressString[1] = static_cast<char>(168);
   addressString[2] = static_cast<char>(1);
   addressString[3] = static_cast<char>(171);
 
-  NSData *addressData = [NSData dataWithBytes:addressString.data() length:4];
+  NSData *addressData = [NSData dataWithBytes:addressString.data() length:addressString.length()];
   GNCIPv4Address *address = [GNCIPv4Address addressFromData:addressData];
   XCTAssertEqual(address.byte1, 192);
   XCTAssertEqual(address.byte2, 168);
