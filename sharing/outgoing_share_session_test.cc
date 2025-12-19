@@ -15,6 +15,7 @@
 #include "sharing/outgoing_share_session.h"
 
 #include <cstdint>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
@@ -29,6 +30,7 @@
 #include "internal/analytics/mock_event_logger.h"
 #include "internal/analytics/sharing_log_matchers.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/network/url.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
@@ -43,7 +45,6 @@
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/nearby_file_handler.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/analytics/nearby_sharing_log.pb.h"
 #include "sharing/proto/analytics/nearby_sharing_log.proto.static_reflection.h"
@@ -83,6 +84,10 @@ using ::testing::StrictMock;
 using ::testing::proto::ProtoField;
 
 constexpr absl::string_view kEndpointId = "ABCD";
+constexpr absl::string_view kFile1Name = "someFileName.jpg";
+constexpr absl::string_view kFile2Name = "someFileName2.jpg";
+constexpr int kFile1Size = 1234;
+constexpr int kFile2Size = 5678;
 
 class OutgoingShareSessionTest : public ::testing::Test {
  public:
@@ -94,14 +99,28 @@ class OutgoingShareSessionTest : public ::testing::Test {
                "A bit of text body", "Some text title", "text/html"),
         text2_(nearby::sharing::service::proto::TextMetadata::ADDRESS,
                "A bit of text body 2", "Some text title 2", "text/plain"),
-        file1_(FilePath("/usr/local/tmp/someFileName.jpg"), /*mime_type=*/"",
+        file1_(Files::GetTemporaryDirectory().append(FilePath(kFile1Name)),
+               /*mime_type=*/"",
                /*parent_folder=*/"/usr/local/parent"),
-        file2_(FilePath("/usr/local/tmp/someFileName2.jpg"), /*mime_type=*/"",
+        file2_(Files::GetTemporaryDirectory().append(FilePath(kFile2Name)),
+               /*mime_type=*/"",
                /*parent_folder=*/"/usr/local/parent2"),
         wifi1_(
             "GoogleGuest",
             nearby::sharing::service::proto::WifiCredentialsMetadata::WPA_PSK,
-            "somepassword", /*is_hidden=*/true) {}
+            "somepassword", /*is_hidden=*/true) {
+    // Create temp file attachments
+    FilePath file1_path =
+        Files::GetTemporaryDirectory().append(FilePath(kFile1Name));
+    FilePath file2_path =
+        Files::GetTemporaryDirectory().append(FilePath(kFile2Name));
+    std::ofstream file1_stream(file1_path.GetPath());
+    file1_stream << std::string(kFile1Size, 'a');
+    file1_stream.close();
+    std::ofstream file2_stream(file2_path.GetPath());
+    file2_stream << std::string(kFile2Size, 'b');
+    file2_stream.close();
+  }
 
   std::unique_ptr<AttachmentContainer> CreateDefaultAttachmentContainer() {
     return AttachmentContainer::Builder(
@@ -153,25 +172,6 @@ class OutgoingShareSessionTest : public ::testing::Test {
   WifiCredentialsAttachment wifi1_;
 };
 
-TEST_F(OutgoingShareSessionTest, GetFilePaths) {
-  OutgoingShareSession session(
-      &fake_clock_, fake_task_runner_, &connections_manager_,
-      analytics_recorder_, std::string(kEndpointId), share_target_,
-      [](OutgoingShareSession&, const TransferMetadata&) {});
-  auto container =
-      AttachmentContainer::Builder(std::vector<TextAttachment>{},
-                                   std::vector<FileAttachment>{file1_, file2_},
-                                   std::vector<WifiCredentialsAttachment>{})
-          .Build();
-  session.InitiateSendAttachments(std::move(container));
-
-  auto file_paths = session.GetFilePaths();
-
-  ASSERT_THAT(file_paths, SizeIs(2));
-  EXPECT_THAT(file_paths[0], Eq(file1_.file_path()));
-  EXPECT_THAT(file_paths[1], Eq(file2_.file_path()));
-}
-
 TEST_F(OutgoingShareSessionTest, CreateTextPayloadsWithNoTextAttachments) {
   OutgoingShareSession session(
       &fake_clock_, fake_task_runner_, &connections_manager_,
@@ -212,19 +212,19 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithNoFileAttachments) {
       analytics_recorder_, std::string(kEndpointId), share_target_,
       [](OutgoingShareSession&, const TransferMetadata&) {});
 
-  EXPECT_THAT(
-      session.CreateFilePayloads(std::vector<NearbyFileHandler::FileInfo>()),
-      IsTrue());
+  EXPECT_THAT(session.CreateFilePayloads(), IsTrue());
   const std::vector<Payload>& payloads = session.file_payloads();
 
   EXPECT_THAT(payloads, IsEmpty());
 }
 
-TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithWrongFileInfo) {
+TEST_F(OutgoingShareSessionTest,
+       CreateFilePayloadsWithNonexistentFileAttachment) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
-  EXPECT_THAT(
-      session_.CreateFilePayloads(std::vector<NearbyFileHandler::FileInfo>()),
-      IsFalse());
+  // Remove attachment file1.
+  Files::RemoveFile(
+      Files::GetTemporaryDirectory().append(FilePath(kFile1Name)));
+  EXPECT_THAT(session_.CreateFilePayloads(), IsFalse());
   const std::vector<Payload>& payloads = session_.file_payloads();
 
   EXPECT_THAT(payloads, IsEmpty());
@@ -232,18 +232,12 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloadsWithWrongFileInfo) {
 
 TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
+  session_.CreateFilePayloads();
   const std::vector<Payload>& payloads = session_.file_payloads();
   auto& attachment_payload_map = session_.attachment_payload_map();
 
   ASSERT_THAT(payloads, SizeIs(1));
   EXPECT_THAT(payloads[0].content.type, Eq(PayloadContent::Type::kFile));
-  EXPECT_THAT(payloads[0].content.file_payload.size, Eq(12355L));
   EXPECT_THAT(payloads[0].content.file_payload.parent_folder,
               Eq(file1_.parent_folder()));
   EXPECT_THAT(payloads[0].content.file_payload.file_path,
@@ -254,7 +248,7 @@ TEST_F(OutgoingShareSessionTest, CreateFilePayloads) {
   EXPECT_THAT(attachment_payload_map.at(file1_.id()), Eq(payloads[0].id));
 
   EXPECT_THAT(session_.attachment_container().GetFileAttachments()[0].size(),
-              Eq(12355L));
+              Eq(kFile1Size));
 }
 
 TEST_F(OutgoingShareSessionTest, CreateWifiPayloadsWithNoWifiAttachments) {
@@ -415,12 +409,7 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
   session_.set_session_id(1234);
   NearbyConnectionImpl connection(device_info_);
   ConnectionSuccess(&connection);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
+  session_.CreateFilePayloads();
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
   EXPECT_CALL(mock_event_logger_,
@@ -467,7 +456,7 @@ TEST_F(OutgoingShareSessionTest, SendIntroductionSuccess) {
   ASSERT_THAT(intro_frame.file_metadata_size(), Eq(1));
   EXPECT_THAT(intro_frame.file_metadata(0).id(), Eq(file1_.id()));
   // File attachment size has been updated by CreateFilePayloads().
-  EXPECT_THAT(intro_frame.file_metadata(0).size(), Eq(file_infos[0].size));
+  EXPECT_THAT(intro_frame.file_metadata(0).size(), Eq(kFile1Size));
   EXPECT_THAT(intro_frame.file_metadata(0).name(), Eq(file1_.file_name()));
   EXPECT_THAT(intro_frame.file_metadata(0).payload_id(),
               Eq(file_payloads[0].id));
@@ -679,12 +668,7 @@ TEST_F(OutgoingShareSessionTest, HandleConnectionResponseAcceptResponse) {
 TEST_F(OutgoingShareSessionTest, SendPayloads) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
   session_.set_session_id(1234);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
+  session_.CreateFilePayloads();
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
   MockFunction<void()> payload_transder_update_callback;
@@ -725,12 +709,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloads) {
 TEST_F(OutgoingShareSessionTest, SendPayloadsSetsAdvancedProtectionFlags) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
   session_.set_session_id(1234);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
+  session_.CreateFilePayloads();
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
   MockFunction<void()> payload_transder_update_callback;
@@ -773,12 +752,7 @@ TEST_F(OutgoingShareSessionTest, SendPayloadsSetsAdvancedProtectionFlags) {
 TEST_F(OutgoingShareSessionTest, SendNextPayload) {
   InitSendAttachments(CreateDefaultAttachmentContainer());
   session_.set_session_id(1234);
-  std::vector<NearbyFileHandler::FileInfo> file_infos;
-  file_infos.push_back({
-      .size = 12355L,
-      .file_path = file1_.file_path().value(),
-  });
-  session_.CreateFilePayloads(file_infos);
+  session_.CreateFilePayloads();
   session_.CreateTextPayloads();
   session_.CreateWifiCredentialsPayloads();
   MockFunction<void()> payload_transder_update_callback;

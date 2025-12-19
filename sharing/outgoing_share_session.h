@@ -26,7 +26,6 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
-#include "internal/base/file_path.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -35,7 +34,6 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/nearby_file_handler.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/proto/enums.pb.h"
 #include "sharing/share_session.h"
@@ -84,16 +82,11 @@ class OutgoingShareSession : public ShareSession {
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       location::nearby::proto::sharing::OSType share_target_os_type);
 
-  std::vector<FilePath> GetFilePaths() const;
-
   void CreateTextPayloads();
   void CreateWifiCredentialsPayloads();
   // Create file payloads and update the file size of all file attachments.
-  // The list of file infos must be sorted in the same order as the file
-  // attachments in the share target.
   // Returns true if all file payloads are created successfully.
-  bool CreateFilePayloads(
-      const std::vector<NearbyFileHandler::FileInfo>& files);
+  bool CreateFilePayloads();
 
   // Returns true if the introduction frame is written successfully.
   // `timeout_callback` is called if accept is not received from both sender and

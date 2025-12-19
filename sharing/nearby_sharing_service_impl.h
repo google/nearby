@@ -287,11 +287,9 @@ class NearbySharingServiceImpl
                             absl::string_view endpoint_id,
                             NearbyConnection* connection, Status status);
 
-  void CreatePayloads(
-      OutgoingShareSession& session,
-      std::function<void(OutgoingShareSession&, bool)> callback);
-  void OnCreatePayloads(std::vector<uint8_t> endpoint_info,
-                        OutgoingShareSession& session, bool success);
+  bool CreatePayloads(OutgoingShareSession& session);
+  void OutgoingSessionConnect(OutgoingShareSession& session,
+                              std::vector<uint8_t> endpoint_info);
 
   void Fail(IncomingShareSession& session, TransferMetadata::Status status);
   void OnIncomingAdvertisementDecoded(

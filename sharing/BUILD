@@ -855,6 +855,7 @@ cc_test(
         ":types",
         "//internal/analytics:mock_event_logger",
         "//internal/base:file_path",
+        "//internal/base:files",
         "//internal/network:url",
         "//internal/platform/implementation:platform_impl",
         "//internal/test",

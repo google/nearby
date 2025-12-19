@@ -403,13 +403,13 @@ class NearbyConnectionsManagerImplTest : public testing::Test {
           EXPECT_EQ(payload_id, payload->id);
 
           FilePayload file_payload = std::move(payload->content.file_payload);
-          std::vector<uint8_t> payload_bytes(file_payload.size);
+          std::vector<uint8_t> payload_bytes(expected_payload.size());
           std::ifstream payload_stream(file_payload.file_path.GetPath(),
                                        std::ios::in | std::ios::binary);
           ASSERT_TRUE(payload_stream.good());
           payload_stream.read(reinterpret_cast<char*>(payload_bytes.data()),
-                              file_payload.size);
-          ASSERT_EQ(payload_stream.gcount(), file_payload.size);
+                              payload_bytes.size());
+          ASSERT_EQ(payload_stream.gcount(), payload_bytes.size());
           EXPECT_EQ(expected_payload, payload_bytes);
           payload_stream.close();
 
@@ -1540,14 +1540,14 @@ TEST_F(NearbyConnectionsManagerImplTest, IncomingFilePayload) {
       nearby_connections_manager_->GetIncomingPayload(kPayloadId);
   ASSERT_NE(payload, nullptr);
   ASSERT_TRUE(payload->content.is_file());
-  std::vector<uint8_t> payload_bytes(payload->content.file_payload.size);
+  std::vector<uint8_t> payload_bytes(expected_payload.size());
   std::ifstream payload_stream(
       payload->content.file_payload.file_path.GetPath(),
       std::ios::in | std::ios::binary);
   ASSERT_TRUE(payload_stream.good());
   payload_stream.read(reinterpret_cast<char*>(payload_bytes.data()),
-                      payload->content.file_payload.size);
-  ASSERT_EQ(payload_stream.gcount(), payload->content.file_payload.size);
+                      payload_bytes.size());
+  ASSERT_EQ(payload_stream.gcount(), payload_bytes.size());
   payload_stream.close();
   EXPECT_EQ(payload_bytes, expected_payload);
 }

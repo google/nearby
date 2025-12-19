@@ -38,22 +38,6 @@ namespace {
 
 using ::nearby::sharing::api::SharingPlatform;
 
-// Called on the FileTaskRunner to actually open the files passed.
-std::vector<NearbyFileHandler::FileInfo> DoOpenFiles(
-    absl::Span<const FilePath> file_paths) {
-  std::vector<NearbyFileHandler::FileInfo> files;
-  for (const auto& file_path : file_paths) {
-    std::optional<uintmax_t> size = Files::GetFileSize(file_path);
-    if (!size.has_value()) {
-      LOG(ERROR) << __func__
-                 << ": Failed to open file. File=" << file_path.ToString();
-      return {};
-    }
-    files.push_back({*size, file_path});
-  }
-  return files;
-}
-
 }  // namespace
 
 NearbyFileHandler::NearbyFileHandler(SharingPlatform& platform,
@@ -67,15 +51,6 @@ NearbyFileHandler::NearbyFileHandler(SharingPlatform& platform,
 }
 
 NearbyFileHandler::~NearbyFileHandler() = default;
-
-void NearbyFileHandler::OpenFiles(std::vector<FilePath> file_paths,
-                                  OpenFilesCallback callback) {
-  sequenced_task_runner_->PostTask(
-      [callback = std::move(callback), file_paths = std::move(file_paths)]() {
-        auto opened_files = DoOpenFiles(file_paths);
-        callback(opened_files);
-      });
-}
 
 void NearbyFileHandler::DeleteFilesFromDisk(
     std::vector<FilePath> file_paths, DeleteFilesFromDiskCallback callback) {

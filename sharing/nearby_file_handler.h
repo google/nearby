@@ -33,22 +33,12 @@ namespace sharing {
 // releasing files need to run on a MayBlock task runner.
 class NearbyFileHandler {
  public:
-  struct FileInfo {
-    uint64_t size;
-    FilePath file_path;
-  };
-
-  using OpenFilesCallback = std::function<void(std::vector<FileInfo>)>;
   using DeleteFilesFromDiskCallback = std::function<void()>;
 
   // Pass in a TaskRunner to use for testing.
   explicit NearbyFileHandler(nearby::sharing::api::SharingPlatform& platform,
                              std::unique_ptr<TaskRunner> runner = nullptr);
   ~NearbyFileHandler();
-
-  // Open the files given in |file_paths| and return the opened files sizes via
-  // |callback|. If any file fails to open, return an empty list.
-  void OpenFiles(std::vector<FilePath> file_paths, OpenFilesCallback callback);
 
   void DeleteFilesFromDisk(std::vector<FilePath> file_paths,
                            DeleteFilesFromDiskCallback callback);

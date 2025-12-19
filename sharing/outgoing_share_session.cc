@@ -14,7 +14,6 @@
 
 #include "sharing/outgoing_share_session.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -28,6 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
+#include "internal/base/files.h"
 #include "internal/platform/clock.h"
 #include "internal/platform/task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
@@ -39,7 +39,6 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
-#include "sharing/nearby_file_handler.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/share_session.h"
@@ -164,18 +163,6 @@ void OutgoingShareSession::OnConnectionDisconnected() {
   }
 }
 
-std::vector<FilePath> OutgoingShareSession::GetFilePaths() const {
-  std::vector<FilePath> file_paths;
-  file_paths.reserve(attachment_container().GetFileAttachments().size());
-  for (const FileAttachment& file_attachment :
-       attachment_container().GetFileAttachments()) {
-    // All file attachments must have a file path.
-    // That is verified in SendAttachments().
-    file_paths.push_back(*file_attachment.file_path());
-  }
-  return file_paths;
-}
-
 void OutgoingShareSession::CreateTextPayloads() {
   const std::vector<TextAttachment>& attachments =
       attachment_container().GetTextAttachments();
@@ -214,24 +201,27 @@ void OutgoingShareSession::CreateWifiCredentialsPayloads() {
   }
 }
 
-bool OutgoingShareSession::CreateFilePayloads(
-    const std::vector<NearbyFileHandler::FileInfo>& files) {
-  AttachmentContainer& container = mutable_attachment_container();
-  if (files.size() != container.GetFileAttachments().size()) {
-    return false;
-  }
-  if (files.empty()) {
+bool OutgoingShareSession::CreateFilePayloads() {
+  if (attachment_container().GetFileAttachments().empty()) {
     return true;
   }
+  AttachmentContainer& container = mutable_attachment_container();
   file_payloads_.clear();
-  file_payloads_.reserve(files.size());
+  file_payloads_.reserve(container.GetFileAttachments().size());
 
-  for (size_t i = 0; i < files.size(); ++i) {
-    const NearbyFileHandler::FileInfo& file_info = files[i];
+  for (int i = 0; i < container.GetFileAttachments().size(); ++i) {
     FileAttachment& attachment = container.GetMutableFileAttachment(i);
-    attachment.set_size(file_info.size);
-    Payload payload(file_info.file_path, attachment.parent_folder());
-    payload.content.file_payload.size = file_info.size;
+    // All file attachments must have a file path.
+    // That is verified in SendAttachments().
+    FilePath file_path = *attachment.file_path();
+    std::optional<uintmax_t> file_size = Files::GetFileSize(file_path);
+    if (!file_size.has_value()) {
+      LOG(WARNING) << "Failed to get file size for file: "
+                   << file_path.ToString();
+      return false;
+    }
+    attachment.set_size(*file_size);
+    Payload payload(file_path, attachment.parent_folder());
     file_payloads_.push_back(std::move(payload));
     SetAttachmentPayloadId(attachment.id(), file_payloads_.back().id);
   }

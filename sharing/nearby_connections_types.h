@@ -28,7 +28,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
-#include "internal/base/files.h"
 #include "internal/interop/authentication_status.h"
 
 namespace nearby {
@@ -369,7 +368,6 @@ struct FilePayload {
   // NearbyConnections library reads from this file. When receiving a file
   // payload it writes to this file.
   FilePath file_path;
-  int64_t size;
   std::string parent_folder;
 };
 
@@ -416,11 +414,6 @@ struct Payload {
           absl::string_view parent_folder = absl::string_view())
       : id(id) {
     content.type = PayloadContent::Type::kFile;
-    std::optional<uintmax_t> size = Files::GetFileSize(file_path);
-    if (size.has_value()) {
-      content.file_payload.size = *size;
-    }
-
     content.file_payload.file_path = file_path;
     content.file_payload.parent_folder = std::string(parent_folder);
   }

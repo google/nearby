@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "absl/synchronization/notification.h"
 #include "absl/time/time.h"
 #include "internal/base/file_path.h"
 #include "internal/base/files.h"
@@ -44,27 +43,6 @@ bool CreateFile(FilePath& file_path) {
   }
   file.close();
   return true;
-}
-
-TEST(NearbyFileHandler, OpenFiles) {
-  MockSharingPlatform mock_platform;
-  NearbyFileHandler nearby_file_handler(mock_platform);
-  absl::Notification notification;
-  std::vector<NearbyFileHandler::FileInfo> result;
-  FilePath test_file = Files::GetTemporaryDirectory().append(
-      FilePath("nearby_nfh_test_abc.jpg"));
-
-  ASSERT_TRUE(CreateFile(test_file));
-  nearby_file_handler.OpenFiles(
-      {test_file}, [&result, &notification](
-                       std::vector<NearbyFileHandler::FileInfo> file_infos) {
-        result = file_infos;
-        notification.Notify();
-      });
-
-  notification.WaitForNotificationWithTimeout(absl::Seconds(1));
-  EXPECT_EQ(result.size(), 1);
-  ASSERT_TRUE(Files::RemoveFile(test_file));
 }
 
 TEST(NearbyFileHandler, DeleteAFileFromDisk) {
