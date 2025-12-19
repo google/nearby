@@ -69,7 +69,7 @@ constexpr auto kDeleteUnexpectedReceivedFileFix =
     flags::Flag<bool>(kConfigPackage, "45657036", false);
 // The default time in milliseconds a cached entry can be in LOST state.
 constexpr auto kDiscoveryCacheLostExpiryMs =
-    flags::Flag<int64_t>(kConfigPackage, "45658774", 500);
+    flags::Flag<int64_t>(kConfigPackage, "45658774", 15000);
 // When true, enable wifi hotspot medium for HP Realtek devices.
 constexpr auto kEnableWifiHotspotForHpRealtekDevices =
     flags::Flag<bool>(kConfigPackage, "45673628", false);
