@@ -739,6 +739,23 @@ cc_test(
 )
 
 cc_test(
+    name = "nearby_sharing_util_test",
+    srcs = ["nearby_sharing_util_test.cc"],
+    deps = [
+        ":nearby_sharing_util",
+        "//internal/platform/implementation:platform_impl",
+        "//sharing/certificates",
+        "//sharing/proto:enums_cc_proto",
+        "//sharing/proto:share_cc_proto",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "payload_tracker_test",
     srcs = ["payload_tracker_test.cc"],
     deps = [

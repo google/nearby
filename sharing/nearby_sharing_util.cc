@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/hash/hash.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "internal/base/file_path.h"
@@ -106,7 +107,9 @@ std::string GetDeviceId(
   }
 
   if (!certificate->id().empty()) {
-    return std::string(certificate->id().begin(), certificate->id().end());
+    return absl::BytesToHexString(absl::string_view(
+        reinterpret_cast<const char*>(certificate->id().data()),
+        certificate->id().size()));
   }
 
   return std::string(endpoint_id);
