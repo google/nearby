@@ -307,37 +307,30 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToService(
 
   std::string ipv4_address = remote_service_info.GetIPAddress();
   if (!ipv4_address.empty()) {
-    std::unique_ptr<api::WifiLanSocket> socket = ConnectToService(
-        {
-            .address = {ipv4_address.begin(), ipv4_address.end()},
-            .port = static_cast<uint16_t>(remote_service_info.GetPort()),
-        },
-        cancellation_flag);
-    if (socket != nullptr) {
-      return socket;
+    SocketAddress v4_server_address;
+    if (SocketAddress::FromBytes(v4_server_address, ipv4_address,
+                                 remote_service_info.GetPort())) {
+      std::unique_ptr<api::WifiLanSocket> socket = ConnectToSocket(
+          v4_server_address, cancellation_flag, kConnectTimeout);
+      if (socket != nullptr) {
+        return socket;
+      }
     }
-    LOG(WARNING) << "Failed to connect to service by IPv4 address";
-  }
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableMdnsIpv6)) {
-    return nullptr;
   }
   std::string ipv6_address = remote_service_info.GetIPv6Address();
   if (ipv6_address.empty()) {
     return nullptr;
   }
-  SocketAddress server_address;
-  if (!server_address.FromString(server_address, ipv6_address,
+  SocketAddress v6_server_address;
+  if (!SocketAddress::FromString(v6_server_address, ipv6_address,
                                  remote_service_info.GetPort())) {
     return nullptr;
   }
   std::unique_ptr<api::WifiLanSocket> socket =
-      ConnectToSocket(server_address, cancellation_flag, kConnectTimeout);
+      ConnectToSocket(v6_server_address, cancellation_flag, kConnectTimeout);
   if (socket != nullptr) {
     return socket;
   }
-  VLOG(1) << "Failed to connect to service by IPv6 address: " << ipv6_address;
   return nullptr;
 }
 
@@ -361,8 +354,7 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToSocket(
     return nullptr;
   }
   VLOG(1) << "ConnectToSocket: " << address.ToString();
-  std::unique_ptr<CancellationFlagListener> connection_cancellation_listener =
-      nullptr;
+  std::unique_ptr<CancellationFlagListener> connection_cancellation_listener;
 
   auto wifi_lan_socket = std::make_unique<WifiLanSocket>();
 
@@ -377,7 +369,8 @@ std::unique_ptr<api::WifiLanSocket> WifiLanMedium::ConnectToSocket(
   }
   bool result = wifi_lan_socket->Connect(address, timeout);
   if (!result) {
-    LOG(ERROR) << "failed to connect to service.";
+    LOG(ERROR) << "failed to connect to service using "
+               << (address.family() == AF_INET6 ? "IPv6" : "IPv4");
     return nullptr;
   }
 
@@ -706,12 +699,6 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
       VLOG(1) << "Failed to connect to IPv4 address: "
               << service_address.ToString();
     }
-  }
-
-  if (!NearbyFlags::GetInstance().GetBoolFlag(
-          platform::config_package_nearby::nearby_platform_feature::
-              kEnableMdnsIpv6)) {
-    return false;
   }
   std::string ipv6_address = nsd_service_info.GetIPv6Address();
   if (ipv6_address.empty()) {
