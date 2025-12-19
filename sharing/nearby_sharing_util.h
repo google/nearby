@@ -27,7 +27,6 @@
 #include "sharing/advertisement.h"
 #include "sharing/certificates/nearby_share_decrypted_public_certificate.h"
 #include "sharing/common/nearby_share_enums.h"
-#include "sharing/nearby_sharing_service.h"
 
 namespace nearby::sharing {
 
@@ -47,12 +46,6 @@ std::optional<std::vector<uint8_t>> GetBluetoothMacAddressFromCertificate(
 std::optional<std::string> GetDeviceName(
     const Advertisement& advertisement,
     const std::optional<NearbyShareDecryptedPublicCertificate>& certificate);
-
-std::string ReceiveSurfaceStateToString(
-    NearbySharingService::ReceiveSurfaceState state);
-
-std::string SendSurfaceStateToString(
-    NearbySharingService::SendSurfaceState state);
 
 std::string PowerLevelToString(PowerLevel level);
 

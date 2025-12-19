@@ -221,6 +221,7 @@ cc_library(
         ":attachments",
         ":connection_types",
         ":incoming_frame_reader",
+        ":nearby_sharing_util",
         ":paired_key_verification_runner",
         ":thread_timer",
         ":transfer_metadata",
@@ -288,6 +289,25 @@ cc_library(
 )
 
 cc_library(
+    name = "nearby_sharing_util",
+    srcs = ["nearby_sharing_util.cc"],
+    hdrs = ["nearby_sharing_util.h"],
+    deps = [
+        ":types",
+        "//internal/base:file_path",
+        "//internal/platform:types",
+        "//proto:sharing_enums_cc_proto",
+        "//sharing/certificates",
+        "//sharing/common:enum",
+        "//sharing/internal/base",
+        "//sharing/internal/public:logging",
+        "@com_google_absl//absl/hash",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
     name = "nearby_sharing_service",
     srcs = [
         "nearby_connections_manager.cc",
@@ -300,7 +320,6 @@ cc_library(
         "nearby_sharing_service_factory.cc",
         "nearby_sharing_service_impl.cc",
         "nearby_sharing_settings.cc",
-        "nearby_sharing_util.cc",
         "service_observers.cc",
         "service_observers.h",
         "transfer_manager.cc",
@@ -319,7 +338,6 @@ cc_library(
         "nearby_sharing_service_factory.h",
         "nearby_sharing_service_impl.h",
         "nearby_sharing_settings.h",
-        "nearby_sharing_util.h",
         "payload_listener.h",
         "share_target_discovered_callback.h",
         "transfer_manager.h",
@@ -341,6 +359,7 @@ cc_library(
         ":incoming_frame_reader",
         ":nearby_connection_impl",
         ":nearby_sharing_decoder",
+        ":nearby_sharing_util",
         ":outgoing_targets_manager",
         ":paired_key_verification_runner",
         ":share_session",
@@ -386,7 +405,6 @@ cc_library(
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/hash",
         "@com_google_absl//absl/meta:type_traits",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status:statusor",

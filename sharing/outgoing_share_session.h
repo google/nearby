@@ -67,26 +67,14 @@ class OutgoingShareSession : public ShareSession {
     obfuscated_gaia_id_ = std::move(obfuscated_gaia_id);
   }
 
-  const std::vector<Payload>& text_payloads() const { return text_payloads_; }
-
-  const std::vector<Payload>& wifi_credentials_payloads() const {
-    return wifi_credentials_payloads_;
-  }
-
-  const std::vector<Payload>& file_payloads() const { return file_payloads_; }
-
-  void InitiateSendAttachments(
+  // Returns true if the attachments are valid and payloads are created
+  // successfully.
+  bool InitiateSendAttachments(
       std::unique_ptr<AttachmentContainer> attachment_container);
 
   bool ProcessKeyVerificationResult(
       PairedKeyVerificationRunner::PairedKeyVerificationResult result,
       location::nearby::proto::sharing::OSType share_target_os_type);
-
-  void CreateTextPayloads();
-  void CreateWifiCredentialsPayloads();
-  // Create file payloads and update the file size of all file attachments.
-  // Returns true if all file payloads are created successfully.
-  bool CreateFilePayloads();
 
   // Returns true if the introduction frame is written successfully.
   // `timeout_callback` is called if accept is not received from both sender and
@@ -143,7 +131,6 @@ class OutgoingShareSession : public ShareSession {
   // Establish a connection to the remote device identified by `endpoint_info`.
   // `callback` is called when with the connection establishment status..
   void Connect(std::vector<uint8_t> endpoint_info,
-               std::optional<std::vector<uint8_t>> bluetooth_mac_address,
                nearby::sharing::proto::DataUsage data_usage,
                bool disable_wifi_hotspot,
                std::function<void(absl::string_view endpoint_id,
@@ -167,6 +154,14 @@ class OutgoingShareSession : public ShareSession {
     return IsConnected() || is_connecting_;
   }
 
+  const std::vector<Payload>& text_payloads() const { return text_payloads_; }
+
+  const std::vector<Payload>& wifi_credentials_payloads() const {
+    return wifi_credentials_payloads_;
+  }
+
+  const std::vector<Payload>& file_payloads() const { return file_payloads_; }
+
  protected:
   void InvokeTransferUpdateCallback(const TransferMetadata& metadata) override;
   void OnConnectionDisconnected() override;
@@ -178,6 +173,12 @@ class OutgoingShareSession : public ShareSession {
   std::optional<Payload> ExtractNextPayload();
   bool FillIntroductionFrame(
       nearby::sharing::service::proto::IntroductionFrame* introduction) const;
+
+  void CreateTextPayloads();
+  void CreateWifiCredentialsPayloads();
+  // Create file payloads and update the file size of all file attachments.
+  // Returns true if all file payloads are created successfully.
+  bool CreateFilePayloads();
 
   std::optional<std::string> obfuscated_gaia_id_;
   // All payloads are in the same order as the attachments in the share target.

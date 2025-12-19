@@ -39,6 +39,7 @@
 #include "sharing/nearby_connection.h"
 #include "sharing/nearby_connections_manager.h"
 #include "sharing/nearby_connections_types.h"
+#include "sharing/nearby_sharing_util.h"
 #include "sharing/paired_key_verification_runner.h"
 #include "sharing/payload_tracker.h"
 #include "sharing/share_session.h"
@@ -109,6 +110,19 @@ ConnectionLayerStatus ConvertToConnectionLayerStatus(Status status) {
   }
 }
 
+std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
+    OutgoingShareSession& session) {
+  const std::optional<NearbyShareDecryptedPublicCertificate>& certificate =
+      session.certificate();
+  if (!certificate) {
+    LOG(ERROR) << __func__ << ": No decrypted public certificate found for "
+               << "share target id: " << session.share_target().id;
+    return std::nullopt;
+  }
+
+  return GetBluetoothMacAddressFromCertificate(*certificate);
+}
+
 }  // namespace
 
 OutgoingShareSession::OutgoingShareSession(
@@ -134,7 +148,7 @@ void OutgoingShareSession::InvokeTransferUpdateCallback(
   transfer_update_callback_(*this, metadata);
 }
 
-void OutgoingShareSession::InitiateSendAttachments(
+bool OutgoingShareSession::InitiateSendAttachments(
     std::unique_ptr<AttachmentContainer> attachment_container) {
   SetAttachmentContainer(std::move(*attachment_container));
   is_connecting_ = true;
@@ -147,6 +161,31 @@ void OutgoingShareSession::InitiateSendAttachments(
                                     /*transfer_position=*/1,
                                     /*concurrent_connections=*/1,
                                     share_target());
+  text_payloads_.clear();
+  wifi_credentials_payloads_.clear();
+  file_payloads_.clear();
+  CreateTextPayloads();
+  CreateWifiCredentialsPayloads();
+  bool success = CreateFilePayloads();
+  // Log analytics event of describing attachments.
+  analytics_recorder().NewDescribeAttachments(this->attachment_container());
+  if (success) {
+    if (text_payloads_.empty() && wifi_credentials_payloads_.empty() &&
+        file_payloads_.empty()) {
+      // Fails in no payloads created.
+      success = false;
+    }
+  }
+  if (!success) {
+    LOG(WARNING) << __func__
+                 << ": Failed to send file to remote ShareTarget. Failed to "
+                    "create payloads.";
+    UpdateTransferMetadata(
+        TransferMetadataBuilder()
+            .set_status(TransferMetadata::Status::kMediaUnavailable)
+            .build());
+  }
+  return success;
 }
 
 bool OutgoingShareSession::ProcessKeyVerificationResult(
@@ -169,7 +208,6 @@ void OutgoingShareSession::CreateTextPayloads() {
   if (attachments.empty()) {
     return;
   }
-  text_payloads_.clear();
   text_payloads_.reserve(attachments.size());
   for (const TextAttachment& attachment : attachments) {
     absl::string_view body = attachment.text_body();
@@ -185,7 +223,6 @@ void OutgoingShareSession::CreateWifiCredentialsPayloads() {
   if (attachments.empty()) {
     return;
   }
-  wifi_credentials_payloads_.clear();
   wifi_credentials_payloads_.reserve(attachments.size());
   for (const WifiCredentialsAttachment& attachment : attachments) {
     nearby::sharing::service::proto::WifiCredentials wifi_credentials;
@@ -206,7 +243,6 @@ bool OutgoingShareSession::CreateFilePayloads() {
     return true;
   }
   AttachmentContainer& container = mutable_attachment_container();
-  file_payloads_.clear();
   file_payloads_.reserve(container.GetFileAttachments().size());
 
   for (int i = 0; i < container.GetFileAttachments().size(); ++i) {
@@ -506,15 +542,20 @@ bool OutgoingShareSession::UpdateSessionForDedup(
 
 void OutgoingShareSession::Connect(
     std::vector<uint8_t> endpoint_info,
-    std::optional<std::vector<uint8_t>> bluetooth_mac_address,
     DataUsage data_usage, bool disable_wifi_hotspot,
     std::function<void(absl::string_view endpoint_id,
                        NearbyConnection* connection, Status status)>
         callback) {
+  // Send process initialized successfully, from now on status updated
+  // will be sent out via TransferUpdates.
+  UpdateTransferMetadata(TransferMetadataBuilder()
+                             .set_status(TransferMetadata::Status::kConnecting)
+                             .build());
   connection_start_time_ = clock().Now();
   connections_manager().Connect(
-      std::move(endpoint_info), endpoint_id(), std::move(bluetooth_mac_address),
-      data_usage, GetTransportType(disable_wifi_hotspot), std::move(callback));
+      std::move(endpoint_info), endpoint_id(),
+      GetBluetoothMacAddressForShareTarget(*this), data_usage,
+      GetTransportType(disable_wifi_hotspot), std::move(callback));
 }
 
 bool OutgoingShareSession::OnConnectResult(NearbyConnection* connection,

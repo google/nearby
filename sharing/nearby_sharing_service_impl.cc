@@ -204,6 +204,30 @@ std::string GenerateDeviceId() {
   return id;
 }
 
+std::string ReceiveSurfaceStateToString(
+    NearbySharingService::ReceiveSurfaceState state) {
+  switch (state) {
+    case NearbySharingService::ReceiveSurfaceState::kForeground:
+      return "FOREGROUND";
+    case NearbySharingService::ReceiveSurfaceState::kBackground:
+      return "BACKGROUND";
+    case NearbySharingService::ReceiveSurfaceState::kUnknown:
+      return "UNKNOWN";
+  }
+}
+
+std::string SendSurfaceStateToString(
+    NearbySharingService::SendSurfaceState state) {
+  switch (state) {
+    case NearbySharingService::SendSurfaceState::kForeground:
+      return "FOREGROUND";
+    case NearbySharingService::SendSurfaceState::kBackground:
+      return "BACKGROUND";
+    case NearbySharingService::SendSurfaceState::kUnknown:
+      return "UNKNOWN";
+  }
+}
+
 }  // namespace
 
 NearbySharingServiceImpl::NearbySharingServiceImpl(
@@ -726,16 +750,10 @@ void NearbySharingServiceImpl::SendAttachments(
           return;
         }
 
-        session->InitiateSendAttachments(std::move(attachment_container));
-
         app_info_->SetActiveFlag();
 
-        if (!CreatePayloads(*session)) {
-          session->UpdateTransferMetadata(
-              TransferMetadataBuilder()
-                  .set_status(TransferMetadata::Status::kMediaUnavailable)
-                  .build());
-        } else {
+        if (session->InitiateSendAttachments(
+                std::move(attachment_container))) {
           OutgoingSessionConnect(*session, std::move(*endpoint_info));
         }
         std::move(status_codes_callback)(StatusCodes::kOk);
@@ -747,19 +765,11 @@ void NearbySharingServiceImpl::OutgoingSessionConnect(
   OnTransferStarted(/*is_incoming=*/false);
   is_connecting_ = true;
   InvalidateSendSurfaceState();
-  // Send process initialized successfully, from now on status updated
-  // will be sent out via OnOutgoingTransferUpdate().
-  session.UpdateTransferMetadata(
-      TransferMetadataBuilder()
-          .set_status(TransferMetadata::Status::kConnecting)
-          .build());
 
-  std::optional<std::vector<uint8_t>> bluetooth_mac_address =
-      GetBluetoothMacAddressForShareTarget(session);
   int64_t share_target_id = session.share_target().id;
   session.Connect(
-      std::move(endpoint_info), std::move(bluetooth_mac_address),
-      settings_->GetDataUsage(), GetDisableWifiHotspotState(),
+      std::move(endpoint_info), settings_->GetDataUsage(),
+      GetDisableWifiHotspotState(),
       absl::bind_front(&NearbySharingServiceImpl::OnOutgoingConnection, this,
                        share_target_id));
 }
@@ -2185,40 +2195,6 @@ void NearbySharingServiceImpl::OnOutgoingConnection(
   }
 }
 
-bool NearbySharingServiceImpl::CreatePayloads(OutgoingShareSession& session) {
-  bool has_payloads = !session.text_payloads().empty() ||
-                      !session.file_payloads().empty() ||
-                      !session.wifi_credentials_payloads().empty();
-  if (has_payloads) {
-    // We may have already created the payloads in the case of retry.
-    // Retry is not implemented. So this is an error case.
-    LOG(WARNING)
-        << __func__
-        << ": Failed to send attachments.  Unexpected payloads already exist.";
-    return false;
-  }
-  session.CreateTextPayloads();
-  session.CreateWifiCredentialsPayloads();
-  bool success = session.CreateFilePayloads();
-  if (success) {
-    has_payloads = !session.text_payloads().empty() ||
-                   !session.file_payloads().empty() ||
-                   !session.wifi_credentials_payloads().empty();
-    if (!has_payloads) {
-      success = false;
-    }
-  }
-  if (!success) {
-    LOG(WARNING) << __func__
-                 << ": Failed to send file to remote ShareTarget. Failed to "
-                    "create payloads.";
-    return false;
-  }
-  // Log analytics event of describing attachments.
-  analytics_recorder_.NewDescribeAttachments(session.attachment_container());
-  return true;
-}
-
 void NearbySharingServiceImpl::Fail(IncomingShareSession& session,
                                     TransferMetadata::Status status) {
   RunOnNearbySharingServiceThreadDelayed(
@@ -2895,20 +2871,6 @@ IncomingShareSession* NearbySharingServiceImpl::GetIncomingShareSession(
   }
 
   return &it->second;
-}
-
-std::optional<std::vector<uint8_t>>
-NearbySharingServiceImpl::GetBluetoothMacAddressForShareTarget(
-    OutgoingShareSession& session) {
-  const std::optional<NearbyShareDecryptedPublicCertificate>& certificate =
-      session.certificate();
-  if (!certificate) {
-    LOG(ERROR) << __func__ << ": No decrypted public certificate found for "
-               << "share target id: " << session.share_target().id;
-    return std::nullopt;
-  }
-
-  return GetBluetoothMacAddressFromCertificate(*certificate);
 }
 
 void NearbySharingServiceImpl::UnregisterShareTarget(int64_t share_target_id) {

@@ -287,7 +287,6 @@ class NearbySharingServiceImpl
                             absl::string_view endpoint_id,
                             NearbyConnection* connection, Status status);
 
-  bool CreatePayloads(OutgoingShareSession& session);
   void OutgoingSessionConnect(OutgoingShareSession& session,
                               std::vector<uint8_t> endpoint_info);
 
@@ -344,9 +343,6 @@ class NearbySharingServiceImpl
 
   ShareSession* GetShareSession(int64_t share_target_id);
   IncomingShareSession* GetIncomingShareSession(int64_t share_target_id);
-
-  std::optional<std::vector<uint8_t>> GetBluetoothMacAddressForShareTarget(
-      OutgoingShareSession& session);
 
   void UnregisterShareTarget(int64_t share_target_id);
 

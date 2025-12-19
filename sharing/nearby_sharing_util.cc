@@ -33,33 +33,8 @@
 #include "sharing/common/nearby_share_enums.h"
 #include "sharing/internal/base/encode.h"
 #include "sharing/internal/public/logging.h"
-#include "sharing/nearby_sharing_service.h"
 
 namespace nearby::sharing {
-
-std::string ReceiveSurfaceStateToString(
-    NearbySharingService::ReceiveSurfaceState state) {
-  switch (state) {
-    case NearbySharingService::ReceiveSurfaceState::kForeground:
-      return "FOREGROUND";
-    case NearbySharingService::ReceiveSurfaceState::kBackground:
-      return "BACKGROUND";
-    case NearbySharingService::ReceiveSurfaceState::kUnknown:
-      return "UNKNOWN";
-  }
-}
-
-std::string SendSurfaceStateToString(
-    NearbySharingService::SendSurfaceState state) {
-  switch (state) {
-    case NearbySharingService::SendSurfaceState::kForeground:
-      return "FOREGROUND";
-    case NearbySharingService::SendSurfaceState::kBackground:
-      return "BACKGROUND";
-    case NearbySharingService::SendSurfaceState::kUnknown:
-      return "UNKNOWN";
-  }
-}
 
 std::string PowerLevelToString(PowerLevel level) {
   switch (level) {

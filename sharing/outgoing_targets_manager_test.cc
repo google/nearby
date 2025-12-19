@@ -22,18 +22,17 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "internal/base/file_path.h"
 #include "internal/test/fake_clock.h"
 #include "internal/test/fake_device_info.h"
 #include "internal/test/fake_task_runner.h"
 #include "sharing/analytics/analytics_recorder.h"
 #include "sharing/attachment_container.h"
 #include "sharing/fake_nearby_connections_manager.h"
-#include "sharing/file_attachment.h"
 #include "sharing/nearby_connection_impl.h"
 #include "sharing/nearby_connections_types.h"
 #include "sharing/outgoing_share_session.h"
 #include "sharing/share_target.h"
+#include "sharing/text_attachment.h"
 #include "sharing/transfer_metadata.h"
 
 namespace nearby::sharing {
@@ -214,9 +213,12 @@ TEST_F(OutgoingTargetsManagerTest, onShareTargetLostConnectingNotClosed) {
       outgoing_targets_manager_.GetOutgoingShareSession(kShareTargetId);
   ASSERT_NE(session, nullptr);
   // InitiateSendAttachments is called when session starts connecting.
-  session->InitiateSendAttachments(AttachmentContainer::Builder()
-    .AddFileAttachment(FileAttachment(FilePath{""}))
-    .Build());
+  session->InitiateSendAttachments(
+      AttachmentContainer::Builder()
+          .AddTextAttachment(TextAttachment(
+              nearby::sharing::service::proto::TextMetadata::ADDRESS,
+              "A bit of text body 2", "Some text title 2", "text/plain"))
+          .Build());
 
   outgoing_targets_manager_.OnShareTargetLost(std::string(kEndpointId),
                                               Seconds(10));
