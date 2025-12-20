@@ -112,12 +112,13 @@ bool WifiDirectMedium::IsWifiDirectServiceSupported() {
     advertiser.Start();
     LOG(INFO) << "Start WifiDirect GO Status: "
               << (int)advertiser.AdvertisementStatus();
-    if ((advertiser.AdvertisementStatus() ==
-         WiFiDirectServiceAdvertisementStatus::Created) ||
-        (advertiser.AdvertisementStatus() ==
-         WiFiDirectServiceAdvertisementStatus::Started)) {
+    if (advertiser.AdvertisementStatus() ==
+        WiFiDirectServiceAdvertisementStatus::Created) {
       LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
-      advertiser.PreferredConfigurationMethods().Clear();
+      support_wifi_direct_service = true;
+    } else if (advertiser.AdvertisementStatus() ==
+               WiFiDirectServiceAdvertisementStatus::Started) {
+      LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
       advertiser.Stop();
       support_wifi_direct_service = true;
     } else {
@@ -130,10 +131,10 @@ bool WifiDirectMedium::IsWifiDirectServiceSupported() {
       support_wifi_direct_service = false;
     }
   } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. Exception: "
+    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. Exception: "
                << exception.what();
   } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. WinRT exception: "
+    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. WinRT exception: "
                << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
@@ -382,10 +383,10 @@ bool WifiDirectMedium::StartWifiDirect(
     LOG(ERROR) << "Start WifiDirect GO failed.";
     return false;
   } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. Exception: "
+    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. Exception: "
                << exception.what();
   } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Stop WifiDirect GO failed. WinRT exception: "
+    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. WinRT exception: "
                << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
@@ -420,6 +421,7 @@ bool WifiDirectMedium::StopWifiDirect() {
     }
     medium_status_ &= (~kMediumStatusGOStarted);
     medium_status_ &= (~kMediumStatusConnected);
+    medium_status_ &= (~kMediumStatusAccepting);
     server_socket_ptr_ = nullptr;
     ip_address_local_.clear();
     ip_address_remote_.clear();
