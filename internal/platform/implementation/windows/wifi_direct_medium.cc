@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "internal/platform/implementation/windows/wifi_direct.h"
+
+#include <comutil.h>
+#include <netfw.h>
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -31,7 +35,6 @@
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
 #include "internal/platform/implementation/windows/socket_address.h"
-#include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/wifi_credential.h"
@@ -52,6 +55,7 @@ WifiDirectMedium::WifiDirectMedium() {
     LOG(WARNING) << "Failed to get DispatcherQueue for current thread. "
                     "ConnectAsync might fail if not called from UI thread.";
   }
+  EnableFirewallWfdAspProto();
   is_interface_valid_ = IsWifiDirectServiceSupported();
 }
 
@@ -69,6 +73,99 @@ WifiDirectMedium::~WifiDirectMedium() {
     // in-progress event handlers on the dedicated thread are finished
     // before this object is fully destroyed.
     shutdown_async.get();
+  }
+}
+
+// If Windows Firewall rule "WFD ASP Coordination Protocol (UDP-In)" is not
+// enabled, WifiDirectService GO will fail to create WiFiDirectServiceSession.
+void WifiDirectMedium::EnableFirewallWfdAspProto() {
+  LOG(INFO)
+      << "Enable Windows Firewall rule WFD ASP Coordination Protocol (UDP-In)";
+  HRESULT hr = S_OK;
+  bool com_initialized = false;
+  INetFwPolicy2* pNetFwPolicy2 = nullptr;
+  INetFwRules* pFwRules = nullptr;
+  INetFwRule* pFwRule = nullptr;
+
+  // Define the specific Firewall rule name. Note: Rule names are case-sensitive
+  // in some contexts.
+  BSTR bstrRuleName = SysAllocString(L"WFD ASP Coordination Protocol (UDP-In)");
+
+  // Initialize COM.
+  hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+  if (FAILED(hr)) {
+    if (hr == RPC_E_CHANGED_MODE) {
+      LOG(INFO) << "COM already initialized with a different mode. Proceeding.";
+    } else {
+      LOG(ERROR) << absl::StrFormat("CoInitializeEx failed: 0x%08lx", hr);
+      goto Cleanup;
+    }
+  } else {
+    com_initialized = true;
+  }
+
+  // Create an instance of the firewall policy object.
+  hr = CoCreateInstance(__uuidof(NetFwPolicy2), nullptr, CLSCTX_INPROC_SERVER,
+                        __uuidof(INetFwPolicy2), (void**)&pNetFwPolicy2);
+
+  if (FAILED(hr)) {
+    LOG(ERROR) << "CoCreateInstance for INetFwPolicy2 failed";
+    goto Cleanup;
+  }
+
+  if (pNetFwPolicy2 == nullptr) {
+    LOG(ERROR) << "pNetFwPolicy2 is null";
+    goto Cleanup;
+  }
+
+  // Retrieve the Rules collection.
+  hr = pNetFwPolicy2->get_Rules(&pFwRules);
+  if (FAILED(hr)) {
+    LOG(ERROR) << "Failed to retrieve firewall rules collection";
+    goto Cleanup;
+  }
+
+  if (pFwRules == nullptr) {
+    LOG(ERROR) << "pFwRules is null";
+    goto Cleanup;
+  }
+
+  // Attempt to retrieve the specific rule by name. If the rule does not exist,
+  // this returns HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND).
+  hr = pFwRules->Item(bstrRuleName, &pFwRule);
+  if (FAILED(hr)) {
+    LOG(ERROR)
+        << "Failed to find the rule 'WFD ASP Coordination Protocol (UDP-In)'.";
+    goto Cleanup;
+  }
+
+  // Check if it is currently enabled.
+  VARIANT_BOOL bEnabled;
+  hr = pFwRule->get_Enabled(&bEnabled);
+  if (SUCCEEDED(hr)) {
+    if (bEnabled == VARIANT_TRUE) {
+      LOG(INFO) << "Rule is already enabled.";
+    } else {
+      // Enable the rule.
+      hr = pFwRule->put_Enabled(VARIANT_TRUE);
+      if (FAILED(hr)) {
+        LOG(ERROR) << "Failed to enable the rule";
+      } else {
+        LOG(INFO) << "Successfully enabled 'WFD ASP Coordination Protocol "
+                     "(UDP-In)'.";
+      }
+    }
+  }
+
+Cleanup:
+  // Release resources
+  if (pFwRule != nullptr) pFwRule->Release();
+  if (pFwRules != nullptr) pFwRules->Release();
+  if (pNetFwPolicy2 != nullptr) pNetFwPolicy2->Release();
+  if (bstrRuleName != nullptr) SysFreeString(bstrRuleName);
+
+  if (com_initialized) {
+    CoUninitialize();
   }
 }
 
