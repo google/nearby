@@ -79,7 +79,6 @@ cc_library(
         "p2p_star_pcp_handler.cc",
         "payload_manager.cc",
         "pcp_manager.cc",
-        "reconnect_manager.cc",
         "service_controller_router.cc",
         "webrtc_bwu_handler.cc",
         "webrtc_bwu_handler_stub.cc",
@@ -123,7 +122,6 @@ cc_library(
         "payload_manager.h",
         "pcp_handler.h",
         "pcp_manager.h",
-        "reconnect_manager.h",
         "service_controller.h",
         "service_controller_router.h",
         "service_id_constants.h",
@@ -510,28 +508,6 @@ cc_test(
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "reconnect_manager_test",
-    srcs = [
-        "reconnect_manager_test.cc",
-    ],
-    deps = [
-        ":internal",
-        ":internal_test",
-        "//connections:core_types",
-        "//connections/implementation/mediums",
-        "//internal/platform:base",
-        "//internal/platform:logging",
-        "//internal/platform:test_util",
-        "//internal/platform:types",
-        "//internal/platform/implementation/g3",  # build_cleaner: keep
-        "@com_github_protobuf_matchers//protobuf-matchers",
-        "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
