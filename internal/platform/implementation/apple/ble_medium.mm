@@ -75,7 +75,16 @@ BleMedium::BleMedium(GNCBLEMedium *medium) : medium_(medium) {
 }
 
 // ble_medium.mm
-BleMedium::~BleMedium() { [medium_ stop]; }
+// StopScanning(), StopAdvertising(), and callback_executor_.Shutdown() are called to ensure proper
+// cleanup of resources upon object destruction. This is crucial for preventing leaks, hangs, or
+// crashes if active operations are still in progress when the medium is being torn down, further
+// improving overall stability and reducing flakiness.
+BleMedium::~BleMedium() {
+  StopScanning();
+  StopAdvertising();
+  [medium_ stop];
+  callback_executor_.Shutdown();
+}
 
 std::unique_ptr<api::ble::BleMedium::AdvertisingSession> BleMedium::StartAdvertising(
     const api::ble::BleAdvertisementData &advertising_data,
@@ -173,6 +182,7 @@ void BleMedium::HandleAdvertisementFound(id<GNCPeripheral> peripheral,
   }
 #endif
 
+  absl::MutexLock lock(&scan_callback_mutex_);
   if (scanning_cb_.advertisement_found_cb) {
     scanning_cb_.advertisement_found_cb(unique_id, data);
   }
@@ -185,7 +195,10 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
     const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
     api::ble::BleMedium::ScanningCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
-  scanning_cb_ = std::move(callback);
+  {
+    absl::MutexLock lock(&scan_callback_mutex_);
+    scanning_cb_ = std::move(callback);
+  }
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
@@ -207,6 +220,7 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
       }
       completionHandler:^(NSError *error) {
         blockError = error;
+        absl::MutexLock lock(&scan_callback_mutex_);
         if (scanning_cb_.start_scanning_result) {
           scanning_cb_.start_scanning_result(
               error == nil ? absl::OkStatus()
@@ -218,6 +232,7 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
   dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, kApiTimeoutInSeconds * NSEC_PER_SEC);
   if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
     GNCLoggerError(@"Start scanning operation timed out.");
+    absl::MutexLock lock(&scan_callback_mutex_);
     if (scanning_cb_.start_scanning_result) {
       scanning_cb_.start_scanning_result(absl::DeadlineExceededError("Start scanning timed out"));
     }
@@ -239,7 +254,10 @@ std::unique_ptr<api::ble::BleMedium::ScanningSession> BleMedium::StartScanning(
 bool BleMedium::StartScanning(const Uuid &service_uuid, api::ble::TxPowerLevel tx_power_level,
                               api::ble::BleMedium::ScanCallback callback) {
   CBUUID *serviceUUID = CBUUID128FromCPP(service_uuid);
-  scan_cb_ = std::move(callback);
+  {
+    absl::MutexLock lock(&scan_callback_mutex_);
+    scan_cb_ = std::move(callback);
+  }
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we
@@ -286,7 +304,10 @@ bool BleMedium::StartMultipleServicesScanning(const std::vector<Uuid> &service_u
     [serviceUUIDs addObject:CBUUID128FromCPP(service_uuid)];
   }
 
-  scan_cb_ = std::move(callback);
+  {
+    absl::MutexLock lock(&scan_callback_mutex_);
+    scan_cb_ = std::move(callback);
+  }
 
   // Clear the map of discovered peripherals only when we are starting a new scan. If we cleared the
   // map every time we stopped a scan, we would not be able to connect to peripherals that we

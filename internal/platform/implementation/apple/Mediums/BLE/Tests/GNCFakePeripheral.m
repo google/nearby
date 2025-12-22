@@ -19,6 +19,7 @@
 #import <XCTest/XCTest.h>
 
 #import "internal/platform/implementation/apple/Mediums/BLE/GNCPeripheral.h"
+#import "internal/platform/implementation/apple/Mediums/BLE/Tests/GNCFakeCBL2CAPChannel.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -125,12 +126,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)openL2CAPChannel:(CBL2CAPPSM)PSM {
   [self delayDelegateUsingBlock:^() {
-    CBL2CAPChannel *channel = [[CBL2CAPChannel alloc] init];
+    GNCFakeCBL2CAPChannel *channel = [[GNCFakeCBL2CAPChannel alloc] init];
     if (self.channelInputStream) {
-      [channel setValue:self.channelInputStream forKey:@"inputStream"];
+      channel.inputStream = self.channelInputStream;
     }
     if (self.channelOutputStream) {
-      [channel setValue:self.channelOutputStream forKey:@"outputStream"];
+      channel.outputStream = self.channelOutputStream;
     }
     if (_openL2CAPChannelError) {
       [self.peripheralDelegate peripheral:(CBPeripheral *)self
