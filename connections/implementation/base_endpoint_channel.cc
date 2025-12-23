@@ -227,7 +227,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
         // If encryption is enabled, encode the message.
         packet_meta_data.StartEncryption();
         std::unique_ptr<std::string> encrypted =
-            crypto_context_->EncodeMessageToPeer(std::string(data));
+            crypto_context_->EncodeMessageToPeerNoCopy(std::string(data));
         packet_meta_data.StopEncryption();
         if (!encrypted) {
           LOG(WARNING) << __func__ << ": Failed to encrypt data.";
@@ -497,7 +497,7 @@ std::unique_ptr<std::string> BaseEndpointChannel::EncodeMessageForTests(
     absl::string_view data) {
   MutexLock lock(&crypto_mutex_);
   DCHECK(IsEncryptionEnabledLocked());
-  return crypto_context_->EncodeMessageToPeer(std::string(data));
+  return crypto_context_->EncodeMessageToPeerNoCopy(std::string(data));
 }
 
 }  // namespace connections
