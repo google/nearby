@@ -18,7 +18,9 @@
 #include <optional>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "sharing/internal/api/app_info.h"
+#include "sharing/internal/api/fake_app_info.h"
 
 #include "gmock/gmock.h"
 
@@ -44,6 +46,18 @@ class MockAppInfo : public nearby::api::AppInfo {
   MOCK_METHOD(bool, SetFirstRunDone, (bool value), (override));
 
   MOCK_METHOD(bool, SetActiveFlag, (), (override));
+
+  // Delegates the default actions of the methods to a FakeAppInfo object.
+  // This must be called *before* the custom ON_CALL() statements.
+  void FakeAppVersion(absl::string_view app_version) {
+    fake_.SetAppVersion(app_version);
+    ON_CALL(*this, GetAppVersion).WillByDefault([this]() {
+      return fake_.GetAppVersion();
+    });
+  }
+
+ private:
+  FakeAppInfo fake_;
 };
 
 }  // namespace nearby::sharing::api

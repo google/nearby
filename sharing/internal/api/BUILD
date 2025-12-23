@@ -61,6 +61,7 @@ cc_library(
         "fake_nearby_share_client.cc",
     ],
     hdrs = [
+        "fake_app_info.h",
         "fake_nearby_share_client.h",
         "mock_app_info.h",
         "mock_bluetooth_adapter.h",
