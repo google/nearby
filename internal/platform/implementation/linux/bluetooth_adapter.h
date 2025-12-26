@@ -52,10 +52,10 @@ class BluetoothAdapter : public api::BluetoothAdapter, public sdbus::ProxyInterf
 
   // Synchronously sets the status of the BluetoothAdapter to 'status', and
   // returns true if the operation was a success.
-  bool SetStatus(Status status) = 0;
+  bool SetStatus(Status status) override;
   // Returns true if the BluetoothAdapter's current status is
   // Status::Value::kEnabled.
-  bool IsEnabled() const = 0;
+  [[nodiscard]] bool IsEnabled() const override;
 
   // Scan modes of a BluetoothAdapter, as described at
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode().
@@ -69,28 +69,28 @@ class BluetoothAdapter : public api::BluetoothAdapter, public sdbus::ProxyInterf
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
   //
   // Returns ScanMode::kUnknown on error.
-  ScanMode GetScanMode() const = 0;
+  [[nodiscard]] ScanMode GetScanMode() const override;
   // Synchronously sets the scan mode of the adapter, and returns true if the
   // operation was a success.
-  bool SetScanMode(ScanMode scan_mode) = 0;
+  bool SetScanMode(ScanMode scan_mode) override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
-  std::string GetName() const = 0;
+  [[nodiscard]] std::string GetName() const override;
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
-  bool SetName(absl::string_view name) = 0;
-  bool SetName(absl::string_view name, bool persist) = 0;
+  bool SetName(absl::string_view name) override;
+  bool SetName(absl::string_view name, bool persist) override;
 
   // Returns BT MAC address assigned to this adapter.
   ABSL_DEPRECATED("Use GetAddress() instead.")
-  std::string GetMacAddress() const = 0;
+  [[nodiscard]] std::string GetMacAddress() const override;
 
   // Implementation for migration only.  Once subclasses implement this, the
   // above GetMacAddress() can be removed.
-  MacAddress GetAddress() const {
+  [[nodiscard]] MacAddress GetAddress() const override {
     std::string mac_address = GetMacAddress();
     if (mac_address.empty()) {
-      return MacAddress();
+      return {};
     }
     MacAddress address;
     MacAddress::FromString(mac_address, address);

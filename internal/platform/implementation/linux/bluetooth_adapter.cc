@@ -18,8 +18,6 @@
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 
-#include "third_party/absl/absl/strings/str_format.h"
-
 namespace nearby {
 namespace linux {
   bool BluetoothAdapter::SetStatus(Status status)

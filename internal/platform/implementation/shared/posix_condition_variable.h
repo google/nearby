@@ -30,6 +30,7 @@ class ConditionVariable : public api::ConditionVariable {
 
   void Notify() override;
   Exception Wait() override;
+  Exception Wait(absl::Duration timeout) override;
 
  private:
   Mutex* mutex_;

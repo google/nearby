@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "internal/platform/implementation/shared/posix_condition_variable.h"
+#include "absl/time/time.h"
+#include <cerrno>
 
 namespace nearby {
 namespace posix {
@@ -36,6 +38,21 @@ Exception ConditionVariable::Wait() {
   pthread_cond_wait(&cond_, &(mutex_->mutex_));
 
   return {Exception::kSuccess};
+}
+
+Exception ConditionVariable::Wait(absl::Duration timeout) {
+  // Calculate absolute deadline as timespec for pthread_cond_timedwait.
+  absl::Time deadline = absl::Now() + timeout;
+  int64_t nanos = absl::ToUnixNanos(deadline);
+  timespec ts{};  // zero-initialize to satisfy static analyzers
+  ts.tv_sec = static_cast<time_t>(nanos / 1000000000LL);
+  ts.tv_nsec = static_cast<long>(nanos % 1000000000LL);
+
+  int rc = pthread_cond_timedwait(&cond_, &(mutex_->mutex_), &ts);
+  if (rc == 0) return {Exception::kSuccess};
+  if (rc == ETIMEDOUT) return {Exception::kTimeout};
+  if (rc == EINTR) return {Exception::kInterrupted};
+  return {Exception::kFailed};
 }
 
 }  // namespace posix

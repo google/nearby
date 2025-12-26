@@ -6,6 +6,9 @@ namespace nearby
 {
   namespace linux
   {
+    class Platform: public api::ImplementationPlatform
+    {
+    };
 
   }
 
