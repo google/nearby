@@ -34,7 +34,9 @@
 #include "internal/platform/error_code_params.h"
 #include "internal/platform/error_code_recorder.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/proto/analytics/connections_log.proto.h"
+#include "internal/test/fake_clock.h"
 #include "proto/connections_enums.proto.h"
 
 namespace nearby {
@@ -142,13 +144,25 @@ class FakeEventLogger : public MockEventLogger {
   std::vector<EventType> logged_event_types_;
 };
 
+class AnalyticsRecorderTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  }
+
+  void TearDown() override { MediumEnvironment::Instance().Stop(); }
+
+  FakeClock& GetFakeClock() const {
+    return *MediumEnvironment::Instance().GetSimulatedClock().value();
+  }
+};
+
 // Test if session_was_logged_ is reset by checking if LogSession can take
 // effect again or not.
-TEST(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
+TEST_F(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   analytics_recorder.LogSession();
   analytics_recorder.LogSession();
@@ -160,13 +174,12 @@ TEST(AnalyticsRecorderTest, SessionOnlyLoggedOnceWorks) {
   EXPECT_EQ(event_logger.GetLoggedClientSessionCount(), 1);
 }
 
-TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
+TEST_F(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
@@ -177,24 +190,31 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
       analytics_recorder.BuildAdvertisingMetadataParams();
   advertising_metadata_params->operation_result_with_mediums = {
       operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(50));
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStopAdvertising();
   operation_result.set_medium(BLE);
   advertising_metadata_params->operation_result_with_mediums = {
       operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLUETOOTH},
                                         advertising_metadata_params.get());
 
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 650
         strategy_session {
+          duration_millis: 600
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 100
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -210,6 +230,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
             stop_reason: CLIENT_STOP_ADVERTISING
           }
           advertising_phase {
+            duration_millis: 300
             medium: BLUETOOTH
             advertising_metadata {
               supports_extended_ble_advertisements: false
@@ -229,13 +250,12 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedAdvertisingCalls) {
               (EqualsProto(strategy_session_proto)));
 }
 
-TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
+TEST_F(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
@@ -253,11 +273,16 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
           /*is_extended_advertisement_supported*/ true,
           /*connected_ap_frequency*/ 1, /*is_nfc_available=*/false,
           {operation_result, operation_result2});
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(strategy, /*mediums=*/{BLE, BLUETOOTH},
                                       discovery_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStopDiscovery();
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnEndpointFound(BLUETOOTH);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnEndpointFound(BLE);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
 
   auto discovery_metadata_params2 =
       analytics_recorder.BuildDiscoveryMetadataParams(
@@ -266,20 +291,30 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
           {operation_result});
   analytics_recorder.OnStartDiscovery(strategy, /*mediums=*/{BLUETOOTH},
                                       discovery_metadata_params2.get());
+  GetFakeClock().FastForward(absl::Milliseconds(600));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 2100
         strategy_session {
+          duration_millis: 2000
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 200
             medium: BLE
             medium: BLUETOOTH
-            discovered_endpoint { medium: BLUETOOTH }
-            discovered_endpoint { medium: BLE }
+            discovered_endpoint {
+              medium: BLUETOOTH
+              latency_millis: 500
+            }
+            discovered_endpoint {
+              medium: BLE
+              latency_millis: 900
+            }
             discovery_metadata {
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
@@ -298,6 +333,7 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
             stop_reason: CLIENT_STOP_DISCOVERING
           }
           discovery_phase {
+            duration_millis: 600
             medium: BLUETOOTH
             discovery_metadata {
               supports_extended_ble_advertisements: true
@@ -317,37 +353,49 @@ TEST(AnalyticsRecorderTest, SetFieldsCorrectlyForNestedDiscoveryCalls) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest,
-     OneStrategySessionForMultipleRoundsOfDiscoveryAdvertising) {
+TEST_F(AnalyticsRecorderTest,
+       OneStrategySessionForMultipleRoundsOfDiscoveryAdvertising) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(strategy, mediums,
                                         advertising_metadata_params.get());
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStartDiscovery(strategy, mediums,
                                       discovery_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnStopDiscovery();
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnStartAdvertising(strategy, mediums,
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnStartDiscovery(strategy, mediums,
                                       discovery_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.OnStopDiscovery();
+  GetFakeClock().FastForward(absl::Milliseconds(900));
   analytics_recorder.OnStartDiscovery(strategy, mediums, {});
+  GetFakeClock().FastForward(absl::Milliseconds(1000));
   analytics_recorder.OnStartAdvertising(strategy, mediums,
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(1100));
   analytics_recorder.OnStopDiscovery();
+  GetFakeClock().FastForward(absl::Milliseconds(1200));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(1300));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -358,11 +406,14 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 9100
         strategy_session {
+          duration_millis: 9000
           strategy: P2P_STAR
           role: ADVERTISER
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 700
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -373,6 +424,7 @@ TEST(AnalyticsRecorderTest,
             stop_reason: CLIENT_STOP_DISCOVERING
           }
           discovery_phase {
+            duration_millis: 800
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -383,6 +435,7 @@ TEST(AnalyticsRecorderTest,
             stop_reason: CLIENT_STOP_DISCOVERING
           }
           discovery_phase {
+            duration_millis: 2100
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -393,6 +446,7 @@ TEST(AnalyticsRecorderTest,
             stop_reason: CLIENT_STOP_DISCOVERING
           }
           advertising_phase {
+            duration_millis: 500
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -403,6 +457,7 @@ TEST(AnalyticsRecorderTest,
             stop_reason: CLIENT_STOP_ADVERTISING
           }
           advertising_phase {
+            duration_millis: 600
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -413,6 +468,7 @@ TEST(AnalyticsRecorderTest,
             stop_reason: CLIENT_STOP_ADVERTISING
           }
           advertising_phase {
+            duration_millis: 2300
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -428,7 +484,7 @@ TEST(AnalyticsRecorderTest,
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
+TEST_F(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
   std::string endpoint_id_0 = "endpoint_id_0";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
@@ -436,8 +492,7 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLE);
@@ -448,34 +503,47 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
       analytics_recorder.BuildAdvertisingMetadataParams();
   advertising_metadata_params->operation_result_with_mediums = {
       operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
-
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnRemoteEndpointRejected(endpoint_id_1);
-
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(900));
   analytics_recorder.OnLocalEndpointRejected(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(1000));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_2);
-
+  GetFakeClock().FastForward(absl::Milliseconds(1100));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_3);
+  GetFakeClock().FastForward(absl::Milliseconds(1200));
   analytics_recorder.OnLocalEndpointRejected(endpoint_id_3);
+  GetFakeClock().FastForward(absl::Milliseconds(1300));
   analytics_recorder.OnRemoteEndpointRejected(endpoint_id_3);
-
+  GetFakeClock().FastForward(absl::Milliseconds(1400));
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 10500
         strategy_session {
+          duration_millis: 10400
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 10400
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -490,18 +558,26 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
             }
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
             received_connection_request {
+              duration_millis: 700
+              request_delay_millis: 200
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
             received_connection_request {
+              duration_millis: 1300
+              request_delay_millis: 1400
               local_response: ACCEPTED
               remote_response: REJECTED
             }
             received_connection_request {
+              duration_millis: 1900
+              request_delay_millis: 3500
               local_response: REJECTED
               remote_response: ACCEPTED
             }
             received_connection_request {
+              duration_millis: 2500
+              request_delay_millis: 6500
               local_response: REJECTED
               remote_response: REJECTED
             }
@@ -512,7 +588,7 @@ TEST(AnalyticsRecorderTest, AdvertiserConnectionRequestsWorks) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
+TEST_F(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
   std::string endpoint_id_0 = "endpoint_id_0";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
@@ -520,8 +596,7 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
@@ -531,35 +606,49 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
   discovery_metadata_params->operation_result_with_mediums = {operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH},
                                       discovery_metadata_params.get());
-
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
-
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnConnectionRequestSent(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnRemoteEndpointRejected(endpoint_id_1);
-
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.OnConnectionRequestSent(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(900));
   analytics_recorder.OnLocalEndpointRejected(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(1000));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(1100));
 
   analytics_recorder.OnConnectionRequestSent(endpoint_id_3);
+  GetFakeClock().FastForward(absl::Milliseconds(1200));
   analytics_recorder.OnLocalEndpointRejected(endpoint_id_3);
+  GetFakeClock().FastForward(absl::Milliseconds(1300));
   analytics_recorder.OnRemoteEndpointRejected(endpoint_id_3);
+  GetFakeClock().FastForward(absl::Milliseconds(1400));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 10500
         strategy_session {
+          duration_millis: 10400
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 10400
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -574,18 +663,26 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
             }
             stop_reason: FINISH_SESSION_STOP_DISCOVERING
             sent_connection_request {
+              duration_millis: 700
+              request_delay_millis: 200
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
             sent_connection_request {
+              duration_millis: 1300
+              request_delay_millis: 1400
               local_response: ACCEPTED
               remote_response: REJECTED
             }
             sent_connection_request {
+              duration_millis: 1900
+              request_delay_millis: 3500
               local_response: REJECTED
               remote_response: ACCEPTED
             }
             sent_connection_request {
+              duration_millis: 2500
+              request_delay_millis: 6500
               local_response: REJECTED
               remote_response: REJECTED
             }
@@ -596,16 +693,15 @@ TEST(AnalyticsRecorderTest, DiscoveryConnectionRequestsWorks) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest,
-     AdvertiserUnfinishedConnectionRequestsIncludedAsIgnored) {
+TEST_F(AnalyticsRecorderTest,
+       AdvertiserUnfinishedConnectionRequestsIncludedAsIgnored) {
   std::string endpoint_id_0 = "endpoint_id_0";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
@@ -616,29 +712,39 @@ TEST(AnalyticsRecorderTest,
       analytics_recorder.BuildAdvertisingMetadataParams();
   advertising_metadata_params->operation_result_with_mediums = {
       operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
   // Ignored by local.
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
 
   // Ignored by remote.
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
 
   // Ignored by both.
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 2800
         strategy_session {
+          duration_millis: 2700
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 2700
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -653,14 +759,20 @@ TEST(AnalyticsRecorderTest,
             }
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
             received_connection_request {
+              duration_millis: 2500
+              request_delay_millis: 200
               local_response: IGNORED
               remote_response: ACCEPTED
             }
             received_connection_request {
+              duration_millis: 1800
+              request_delay_millis: 900
               local_response: ACCEPTED
               remote_response: IGNORED
             }
             received_connection_request {
+              duration_millis: 700
+              request_delay_millis: 2000
               local_response: IGNORED
               remote_response: IGNORED
             }
@@ -671,16 +783,15 @@ TEST(AnalyticsRecorderTest,
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest,
-     DiscovererUnfinishedConnectionRequestsIncludedAsIgnored) {
+TEST_F(AnalyticsRecorderTest,
+       DiscovererUnfinishedConnectionRequestsIncludedAsIgnored) {
   std::string endpoint_id_0 = "endpoint_id_0";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
@@ -690,30 +801,40 @@ TEST(AnalyticsRecorderTest,
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
   discovery_metadata_params->operation_result_with_mediums = {operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH},
                                       discovery_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
 
   // Ignored by local.
   analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
 
   // Ignored by remote.
   analytics_recorder.OnConnectionRequestSent(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
 
   // Ignored by both.
   analytics_recorder.OnConnectionRequestSent(endpoint_id_2);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 2800
         strategy_session {
+          duration_millis: 2700
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 2700
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -728,14 +849,20 @@ TEST(AnalyticsRecorderTest,
             }
             stop_reason: FINISH_SESSION_STOP_DISCOVERING
             sent_connection_request {
+              duration_millis: 2500
+              request_delay_millis: 200
               local_response: IGNORED
               remote_response: ACCEPTED
             }
             sent_connection_request {
+              duration_millis: 1800
+              request_delay_millis: 900
               local_response: ACCEPTED
               remote_response: IGNORED
             }
             sent_connection_request {
+              duration_millis: 700
+              request_delay_millis: 2000
               local_response: IGNORED
               remote_response: IGNORED
             }
@@ -746,11 +873,10 @@ TEST(AnalyticsRecorderTest,
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
+TEST_F(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   ConnectionsLog::OperationResultWithMedium operation_result;
   operation_result.set_medium(BLUETOOTH);
@@ -761,6 +887,7 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
       analytics_recorder.BuildAdvertisingMetadataParams();
   advertising_metadata_params->operation_result_with_mediums = {
       operation_result};
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
@@ -769,20 +896,26 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
       std::make_unique<ConnectionAttemptMetadataParams>();
   connections_attempt_metadata_params->operation_result_code =
       OperationResultCode::DETAIL_SUCCESS;
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnIncomingConnectionAttempt(
       INITIAL, BLUETOOTH, RESULT_SUCCESS, absl::Duration{},
       /*connection_token=*/"", connections_attempt_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(400));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 1000
         strategy_session {
+          duration_millis: 900
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 500
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -798,6 +931,7 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
             }
           }
           connection_attempt {
+            duration_millis: 0
             type: INITIAL
             direction: INCOMING
             medium: BLUETOOTH
@@ -827,14 +961,13 @@ TEST(AnalyticsRecorderTest, SuccessfulIncomingConnectionAttempt) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest,
-     FailedConnectionAttemptUpdatesConnectionRequestNotSent) {
+TEST_F(AnalyticsRecorderTest,
+       FailedConnectionAttemptUpdatesConnectionRequestNotSent) {
   std::string endpoint_id = "endpoint_id";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto connections_attempt_metadata_params =
       analytics_recorder.BuildConnectionAttemptMetadataParams(
@@ -849,23 +982,30 @@ TEST(AnalyticsRecorderTest,
           OperationResultCode::CONNECTIVITY_BT_CLIENT_SOCKET_CREATION_FAILURE);
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH},
                                       discovery_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionRequestSent(endpoint_id);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnOutgoingConnectionAttempt(
       endpoint_id, INITIAL, BLUETOOTH, RESULT_ERROR, absl::Duration{},
       /*connection_token=*/"", connections_attempt_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(400));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 1000
         strategy_session {
+          duration_millis: 900
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 900
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -875,11 +1015,14 @@ TEST(AnalyticsRecorderTest,
             }
             stop_reason: FINISH_SESSION_STOP_DISCOVERING
             sent_connection_request {
+              duration_millis: 300
+              request_delay_millis: 200
               local_response: NOT_SENT
               remote_response: NOT_SENT
             }
           }
           connection_attempt {
+            duration_millis: 0
             type: INITIAL
             direction: OUTGOING
             medium: BLUETOOTH
@@ -909,37 +1052,45 @@ TEST(AnalyticsRecorderTest,
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
+TEST_F(AnalyticsRecorderTest,
+       UnfinishedEstablishedConnectionsAddedAsUnfinished) {
   std::string endpoint_id = "endpoint_id";
   std::string connection_token = "connection_token";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, BLUETOOTH, UPGRADED,
       ConnectionsLog::EstablishedConnection::UNKNOWN_SAFE_DISCONNECTION_RESULT);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
                                              connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 1500
         strategy_session {
+          duration_millis: 1400
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 1400
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -950,6 +1101,7 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
           }
           established_connection {
+            duration_millis: 300
             medium: BLUETOOTH
             disconnection_reason: UPGRADED
             connection_token: "connection_token"
@@ -960,6 +1112,7 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
             }
           }
           established_connection {
+            duration_millis: 500
             medium: WIFI_LAN
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
@@ -975,50 +1128,65 @@ TEST(AnalyticsRecorderTest, UnfinishedEstablishedConnectionsAddedAsUnfinished) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
+TEST_F(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
   std::string endpoint_id = "endpoint_id";
   std::int64_t payload_id = 123456789;
   std::string connection_token = "connection_token";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnOutgoingPayloadStarted(
       {endpoint_id}, payload_id, connections::PayloadType::kFile, 50);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, BLUETOOTH, UPGRADED,
       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnConnectionEstablished(endpoint_id, WIFI_LAN,
                                              connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  GetFakeClock().FastForward(absl::Milliseconds(900));
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  GetFakeClock().FastForward(absl::Milliseconds(1000));
   analytics_recorder.OnPayloadChunkSent(endpoint_id, payload_id, 10);
+  GetFakeClock().FastForward(absl::Milliseconds(1100));
   analytics_recorder.OnOutgoingPayloadDone(endpoint_id, payload_id, SUCCESS,
                                            OperationResultCode::DETAIL_SUCCESS);
+  GetFakeClock().FastForward(absl::Milliseconds(1200));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, WIFI_LAN, LOCAL_DISCONNECTION,
       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
+  GetFakeClock().FastForward(absl::Milliseconds(1300));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 9100
         strategy_session {
+          duration_millis: 9000
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 9000
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1029,8 +1197,10 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
           }
           established_connection {
+            duration_millis: 1800
             medium: BLUETOOTH
             sent_payload {
+              duration_millis: 1500
               type: FILE
               total_size_bytes: 50
               num_bytes_transferred: 20
@@ -1050,8 +1220,10 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
             }
           }
           established_connection {
+            duration_millis: 5000
             medium: WIFI_LAN
             sent_payload {
+              duration_millis: 4500
               type: FILE
               total_size_bytes: 50
               num_bytes_transferred: 30
@@ -1076,7 +1248,7 @@ TEST(AnalyticsRecorderTest, OutgoingPayloadUpgraded) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
+TEST_F(AnalyticsRecorderTest, UpgradeAttemptWorks) {
   std::string endpoint_id = "endpoint_id";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
@@ -1084,39 +1256,48 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
 
   analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
                                                INCOMING, connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
   // Error to upgrade.
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnBandwidthUpgradeError(
       endpoint_id, WIFI_LAN_MEDIUM_ERROR, WIFI_LAN_SOCKET_CREATION,
       OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL);
   // Success to upgrade.
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
   // Upgrade is unfinished.
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_2, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 2800
         strategy_session {
+          duration_millis: 2700
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 2700
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1127,6 +1308,7 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
           }
           upgrade_attempt {
+            duration_millis: 700
             direction: INCOMING
             from_medium: BLE
             to_medium: WIFI_LAN
@@ -1139,6 +1321,7 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             }
           }
           upgrade_attempt {
+            duration_millis: 900
             direction: INCOMING
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
@@ -1151,6 +1334,7 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
             }
           }
           upgrade_attempt {
+            duration_millis: 700
             direction: INCOMING
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
@@ -1168,7 +1352,7 @@ TEST(AnalyticsRecorderTest, UpgradeAttemptWorks) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
+TEST_F(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
   std::string endpoint_id = "endpoint_id";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
@@ -1176,34 +1360,42 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartedIncomingConnectionListening(
       connections::Strategy::kP2pStar);
+  GetFakeClock().FastForward(absl::Milliseconds(200));
 
   analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
                                                INCOMING, connection_token);
 
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   // Error to upgrade.
   analytics_recorder.OnBandwidthUpgradeError(
       endpoint_id, WIFI_LAN_MEDIUM_ERROR, WIFI_LAN_SOCKET_CREATION,
       OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   // Success to upgrade.
   analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
 
   analytics_recorder.LogSession();
   // ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 2100
         strategy_session {
+          duration_millis: 2000
           strategy: P2P_STAR
           role: ADVERTISER
           upgrade_attempt {
             direction: INCOMING
+            duration_millis: 700
             from_medium: BLE
             to_medium: WIFI_LAN
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
@@ -1216,6 +1408,7 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
           }
           upgrade_attempt {
             direction: INCOMING
+            duration_millis: 900
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UPGRADE_RESULT_SUCCESS
@@ -1232,14 +1425,14 @@ TEST(AnalyticsRecorderTest, StartListeningForIncomingConnectionsWorks) {
               EqualsProto(strategy_session_proto));
 }
 
-TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
+TEST_F(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{WEB_RTC},
                                       discovery_metadata_params.get());
@@ -1247,7 +1440,9 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   ErrorCodeParams error_code_params = ErrorCodeRecorder::BuildErrorCodeParams(
       WEB_RTC, DISCONNECT, DISCONNECT_NETWORK_FAILED,
       TACHYON_SEND_MESSAGE_STATUS_EXCEPTION, "", "connection_token");
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnErrorCode(error_code_params);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1263,14 +1458,15 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectly) {
   EXPECT_THAT(event_logger.GetErrorCode(), EqualsProto(error_code_proto));
 }
 
-TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
+TEST_F(AnalyticsRecorderTest,
+       SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLUETOOTH},
                                       discovery_metadata_params.get());
@@ -1281,7 +1477,9 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   error_code_params.event = START_DISCOVERING;
   error_code_params.start_discovering_error = START_EXTENDED_DISCOVERING_FAILED;
   error_code_params.connection_token = "connection_token";
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnErrorCode(error_code_params);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1297,14 +1495,14 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForUnknownDescription) {
   EXPECT_THAT(event_logger.GetErrorCode(), EqualsProto(error_code_proto));
 }
 
-TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
+TEST_F(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLUETOOTH},
                                       discovery_metadata_params.get());
@@ -1312,7 +1510,9 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   ErrorCodeParams error_code_params = ErrorCodeRecorder::BuildErrorCodeParams(
       BLUETOOTH, START_DISCOVERING, INVALID_PARAMETER,
       NULL_BLUETOOTH_DEVICE_NAME, "", "connection_token");
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnErrorCode(error_code_params);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1328,12 +1528,12 @@ TEST(AnalyticsRecorderTest, SetErrorCodeFieldsCorrectlyForCommonError) {
   EXPECT_THAT(event_logger.GetErrorCode(), EqualsProto(error_code_proto));
 }
 
-TEST(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   // LogSession to count down client_session_done_latch.
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1341,15 +1541,14 @@ TEST(AnalyticsRecorderTest, CheckIfSessionWasLogged) {
   EXPECT_TRUE(analytics_recorder.IsSessionLogged());
 }
 
-TEST(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
+TEST_F(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
   CountDownLatch client_session_done_latch(0);
   CountDownLatch start_client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   std::vector<EventType> event_types = event_logger.GetLoggedEventTypes();
@@ -1357,16 +1556,16 @@ TEST(AnalyticsRecorderTest, ConstructAnalyticsRecorder) {
   EXPECT_THAT(event_types, Contains(START_CLIENT_SESSION).Times(1));
 }
 
-TEST(AnalyticsRecorderTest,
-     StartClientSessionOnlyLoggedOnceWorksAfterAnalyticsRecorderIsConstructed) {
+TEST_F(
+    AnalyticsRecorderTest,
+    StartClientSessionOnlyLoggedOnceWorksAfterAnalyticsRecorderIsConstructed) {
   CountDownLatch client_session_done_latch(0);
   CountDownLatch start_client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1387,16 +1586,15 @@ TEST(AnalyticsRecorderTest,
               Contains(START_CLIENT_SESSION).Times(1));
 }
 
-TEST(AnalyticsRecorderTest,
-     CanLogStartClientSessionOnceAgainAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       CanLogStartClientSessionOnceAgainAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(0);
   CountDownLatch start_client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch,
                                &start_client_session_done_latch);
 
   // Call the constructor to count down the start_client_session_done_latch.
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
   ASSERT_TRUE(start_client_session_done_latch.Await(kDefaultTimeout).result());
 
   // Log start client session once.
@@ -1427,23 +1625,27 @@ TEST(AnalyticsRecorderTest,
               Contains(START_CLIENT_SESSION).Times(2));
 }
 
-TEST(AnalyticsRecorderTest,
-     ClearcIncomingConnectionRequestsAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       ClearcIncomingConnectionRequestsAfterSessionWasLogged) {
   std::string endpoint_id_0 = "endpoint_id_0";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
 
   // LogSession
   analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
@@ -1451,10 +1653,13 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 1500
         strategy_session {
+          duration_millis: 1400
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 1400
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1464,6 +1669,8 @@ TEST(AnalyticsRecorderTest,
             }
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
             received_connection_request {
+              duration_millis: 700
+              request_delay_millis: 200
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
@@ -1477,6 +1684,7 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1485,9 +1693,13 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
   std::string endpoint_id_1 = "endpoint_id_1";
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnConnectionRequestReceived(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(900));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(1000));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1497,10 +1709,13 @@ TEST(AnalyticsRecorderTest,
   // received_connection_request) will append to the strategy_session)
   ConnectionsLog::ClientSession strategy_session_proto2 = ParseTextProtoOrDie(
       R"pb(
+        duration_millis: 0
         strategy_session {
+          duration_millis: 0
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1509,11 +1724,14 @@ TEST(AnalyticsRecorderTest,
               supports_nfc_technology: false
             }
             received_connection_request {
+              duration_millis: 0
+              request_delay_millis: 0
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
           }
           advertising_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1522,10 +1740,14 @@ TEST(AnalyticsRecorderTest,
               supports_nfc_technology: false
             }
             received_connection_request {
+              duration_millis: 0
+              request_delay_millis: 0
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
             received_connection_request {
+              duration_millis: 0
+              request_delay_millis: 0
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
@@ -1535,24 +1757,28 @@ TEST(AnalyticsRecorderTest,
               Not(EqualsProto(strategy_session_proto2)));
 }
 
-TEST(AnalyticsRecorderTest,
-     ClearcOutgoingConnectionRequestsAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       ClearcOutgoingConnectionRequestsAfterSessionWasLogged) {
   std::string endpoint_id_0 = "endpoint_id_0";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(connections::Strategy::kP2pStar,
                                       /*mediums=*/{BLE, BLUETOOTH},
                                       discovery_metadata_params.get());
 
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionRequestSent(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_0);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
 
   // LogSession
   analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
@@ -1560,10 +1786,13 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 1500
         strategy_session {
+          duration_millis: 1400
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 1400
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -1573,6 +1802,8 @@ TEST(AnalyticsRecorderTest,
             }
             stop_reason: FINISH_SESSION_STOP_DISCOVERING
             sent_connection_request {
+              duration_millis: 700
+              request_delay_millis: 200
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
@@ -1594,9 +1825,13 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
   std::string endpoint_id_1 = "endpoint_id_1";
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnConnectionRequestSent(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   analytics_recorder.OnLocalEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.OnRemoteEndpointAccepted(endpoint_id_1);
+  GetFakeClock().FastForward(absl::Milliseconds(900));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1606,10 +1841,13 @@ TEST(AnalyticsRecorderTest,
   // sent_connection_request) will append to the strategy_session)
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 0
         strategy_session {
+          duration_millis: 0
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -1618,11 +1856,14 @@ TEST(AnalyticsRecorderTest,
               supports_nfc_technology: false
             }
             sent_connection_request {
+              duration_millis: 0
+              request_delay_millis: 0
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
           }
           discovery_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             discovery_metadata {
@@ -1631,10 +1872,14 @@ TEST(AnalyticsRecorderTest,
               supports_nfc_technology: false
             }
             sent_connection_request {
+              duration_millis: 0
+              request_delay_millis: 0
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
             sent_connection_request {
+              duration_millis: 0
+              request_delay_millis: 0
               local_response: ACCEPTED
               remote_response: ACCEPTED
             }
@@ -1644,7 +1889,7 @@ TEST(AnalyticsRecorderTest,
               Not(EqualsProto(strategy_session_proto2)));
 }
 
-TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
   std::vector<Medium> mediums = {BLE, BLUETOOTH};
   std::string endpoint_id = "endpoint_id";
@@ -1652,26 +1897,31 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(strategy, mediums,
                                         advertising_metadata_params.get());
 
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              connection_token);
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   // LogSession
   analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 600
         strategy_session {
+          duration_millis: 500
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 500
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1682,6 +1932,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
             stop_reason: FINISH_SESSION_STOP_ADVERTISING
           }
           established_connection {
+            duration_millis: 300
             medium: BLUETOOTH
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
@@ -1700,6 +1951,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1707,6 +1959,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   // LogSession again
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
@@ -1716,10 +1969,13 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
   // established_connection) will stay there.
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 0
         strategy_session {
+          duration_millis: 0
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1729,6 +1985,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
             }
           }
           advertising_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1738,6 +1995,7 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
             }
           }
           established_connection {
+            duration_millis: 0
             medium: BLUETOOTH
             disconnection_reason: UNFINISHED
             connection_token: "connection_token"
@@ -1753,8 +2011,8 @@ TEST(AnalyticsRecorderTest, ClearcActiveConnectionsAfterSessionWasLogged) {
               Not(EqualsProto(strategy_session_proto2)));
 }
 
-TEST(AnalyticsRecorderTest,
-     ClearBandwidthUpgradeAttemptsAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       ClearBandwidthUpgradeAttemptsAfterSessionWasLogged) {
   std::string endpoint_id = "endpoint_id";
   std::string endpoint_id_1 = "endpoint_id_1";
   std::string endpoint_id_2 = "endpoint_id_2";
@@ -1762,31 +2020,37 @@ TEST(AnalyticsRecorderTest,
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
 
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnBandwidthUpgradeStarted(endpoint_id, BLE, WIFI_LAN,
                                                INCOMING, connection_token);
 
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_1, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
   // - Error to upgrade.
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnBandwidthUpgradeError(
       endpoint_id, WIFI_LAN_MEDIUM_ERROR, WIFI_LAN_SOCKET_CREATION,
       OperationResultCode::CONNECTIVITY_WIFI_LAN_INVALID_CREDENTIAL);
   // - Success to upgrade.
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnBandwidthUpgradeSuccess(endpoint_id_1);
 
   // - Upgrade is unfinished.
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnBandwidthUpgradeStarted(
       endpoint_id_2, BLUETOOTH, WIFI_LAN, INCOMING, connection_token);
 
+  GetFakeClock().FastForward(absl::Milliseconds(700));
   // LogSession
   analytics_recorder.LogSession();  // call ResetClientSessionLoggingResouces
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1796,10 +2060,13 @@ TEST(AnalyticsRecorderTest,
   // bandwidth_upgrade_attempts_) will stay there.
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 2800
         strategy_session {
+          duration_millis: 2700
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 2700
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1811,6 +2078,7 @@ TEST(AnalyticsRecorderTest,
           }
           upgrade_attempt {
             direction: INCOMING
+            duration_millis: 700
             from_medium: BLE
             to_medium: WIFI_LAN
             upgrade_result: WIFI_LAN_MEDIUM_ERROR
@@ -1823,6 +2091,7 @@ TEST(AnalyticsRecorderTest,
           }
           upgrade_attempt {
             direction: INCOMING
+            duration_millis: 900
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UPGRADE_RESULT_SUCCESS
@@ -1835,6 +2104,7 @@ TEST(AnalyticsRecorderTest,
           }
           upgrade_attempt {
             direction: INCOMING
+            duration_millis: 700
             from_medium: BLUETOOTH
             to_medium: WIFI_LAN
             upgrade_result: UNFINISHED_ERROR
@@ -1853,6 +2123,7 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(800));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1860,15 +2131,19 @@ TEST(AnalyticsRecorderTest,
   // LogSession again
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(900));
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 0
         strategy_session {
+          duration_millis: 0
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1878,6 +2153,7 @@ TEST(AnalyticsRecorderTest,
             }
           }
           advertising_phase {
+            duration_millis: 0
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -1930,22 +2206,24 @@ TEST(AnalyticsRecorderTest,
 // Test if current_strategy_ is reset by checking if the same strategy would
 // be logged for different client sessions or not. If yes, it should be logged.
 // Otherwise, not.
-TEST(AnalyticsRecorderTest,
-     CanLogSeparateStartStrategySessionForSameStrategyAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       CanLogSeparateStartStrategySessionForSameStrategyAfterSessionWasLogged) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStopAdvertising();
 
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   // LogSession
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1959,6 +2237,7 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1967,9 +2246,12 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
 
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnStartAdvertising(strategy, /*mediums=*/{BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(700));
 
   analytics_recorder.LogSession();
   ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -1980,32 +2262,36 @@ TEST(AnalyticsRecorderTest,
 
 // Test if current_strategy_session_ is reset. If not, the same strategy session
 // proto will be logged.
-TEST(AnalyticsRecorderTest,
-     NotLogSameStrategySessionProtoAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       NotLogSameStrategySessionProtoAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   // Via OnStartAdvertising, current_strategy_session_is set in
   // UpdateStrategySessionLocked.
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStopAdvertising();
-
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   // LogSession
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 600
         strategy_session {
+          duration_millis: 500
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 200
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -2024,6 +2310,7 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -2033,6 +2320,7 @@ TEST(AnalyticsRecorderTest,
   // strategy_session_proto will be logged.
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.LogSession();
   ASSERT_TRUE(new_client_session_done_latch.Await(kDefaultTimeout).result());
 
@@ -2041,20 +2329,22 @@ TEST(AnalyticsRecorderTest,
 }
 
 // Test if current_advertising_phase_ is reset.
-TEST(AnalyticsRecorderTest,
-     NotLogDuplicateAdvertisingPhaseAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       NotLogDuplicateAdvertisingPhaseAfterSessionWasLogged) {
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(
       connections::Strategy::kP2pStar,
       /*mediums=*/{BLUETOOTH},
       advertising_metadata_params.get());  // set current_advertising_phase_
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   // LogSession
   analytics_recorder.LogSession();
@@ -2062,10 +2352,13 @@ TEST(AnalyticsRecorderTest,
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 600
         strategy_session {
+          duration_millis: 500
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 200
             medium: BLUETOOTH
             advertising_metadata {
               supports_extended_ble_advertisements: false
@@ -2083,6 +2376,7 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -2093,15 +2387,19 @@ TEST(AnalyticsRecorderTest,
   // be logged.
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 0
         strategy_session {
+          duration_millis: 0
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 0
             medium: BLUETOOTH
             advertising_metadata {
               supports_extended_ble_advertisements: false
@@ -2110,6 +2408,7 @@ TEST(AnalyticsRecorderTest,
             }
           }
           advertising_phase {
+            duration_millis: 0
             medium: BLUETOOTH
             advertising_metadata {
               supports_extended_ble_advertisements: false
@@ -2123,37 +2422,45 @@ TEST(AnalyticsRecorderTest,
 }
 
 // Test if current_discovery_phase_ is reset.
-TEST(AnalyticsRecorderTest,
-     NotLogDuplicateDiscoveryPhaseAfterSessionWasLogged) {
+TEST_F(AnalyticsRecorderTest,
+       NotLogDuplicateDiscoveryPhaseAfterSessionWasLogged) {
   connections::Strategy strategy = connections::Strategy::kP2pStar;
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   auto discovery_metadata_params =
       analytics_recorder.BuildDiscoveryMetadataParams(
           /*is_extended_advertisement_supported*/ true,
           /*connected_ap_frequency*/ 1, /*is_nfc_available=*/false);
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartDiscovery(
       strategy, {BLUETOOTH},
       discovery_metadata_params.get());  // set current_discovery_phase_
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStopDiscovery();
+  GetFakeClock().FastForward(absl::Milliseconds(300));
   analytics_recorder.OnEndpointFound(BLUETOOTH);
-
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   // LogSession
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto1 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 1000
         strategy_session {
+          duration_millis: 900
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 200
             medium: BLUETOOTH
-            discovered_endpoint { medium: BLUETOOTH }
+            discovered_endpoint {
+              medium: BLUETOOTH
+              latency_millis: 500
+            }
             discovery_metadata {
               supports_extended_ble_advertisements: true
               connected_ap_frequency: 1
@@ -2170,6 +2477,7 @@ TEST(AnalyticsRecorderTest,
   CountDownLatch new_start_client_session_done_latch(1);
   event_logger.SetStartClientSessionDoneLatchPtr(
       &new_start_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.LogStartSession();
   ASSERT_TRUE(
       new_start_client_session_done_latch.Await(kDefaultTimeout).result());
@@ -2180,15 +2488,19 @@ TEST(AnalyticsRecorderTest,
   // logged.
   CountDownLatch new_client_session_done_latch(1);
   event_logger.SetClientSessionDoneLatch(new_client_session_done_latch);
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.LogSession();
   ASSERT_TRUE(client_session_done_latch.Await(kDefaultTimeout).result());
 
   ConnectionsLog::ClientSession strategy_session_proto2 =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 0
         strategy_session {
+          duration_millis: 0
           strategy: P2P_STAR
           role: DISCOVERER
           discovery_phase {
+            duration_millis: 0
             medium: BLUETOOTH
             discovered_endpoint { medium: BLUETOOTH }
             discovery_metadata {
@@ -2199,6 +2511,7 @@ TEST(AnalyticsRecorderTest,
             stop_reason: CLIENT_STOP_DISCOVERING
           }
           discovery_phase {
+            duration_millis: 0
             medium: BLUETOOTH
             discovery_metadata {
               supports_extended_ble_advertisements: true
@@ -2211,23 +2524,25 @@ TEST(AnalyticsRecorderTest,
               Not(EqualsProto(strategy_session_proto2)));
 }
 
-TEST(AnalyticsRecorderOnConnectionClosedTest,
-     NotAddNewConnectionWithoutCallingOnStartAdvertising) {
+TEST_F(AnalyticsRecorderTest,
+       NotAddNewConnectionWithoutCallingOnStartAdvertising) {
   std::string endpoint_id = "endpoint_id";
 
   CountDownLatch client_session_done_latch(1);
   FakeEventLogger event_logger(client_session_done_latch);
-  AnalyticsRecorder analytics_recorder(&event_logger,
-                                       /*no_record_time_millis=*/true);
+  AnalyticsRecorder analytics_recorder(&event_logger);
 
   // via OnStartAdvertising, current_strategy_session_ is set in
   // UpdateStrategySessionLocked.
   auto advertising_metadata_params =
       analytics_recorder.BuildAdvertisingMetadataParams();
+  GetFakeClock().FastForward(absl::Milliseconds(100));
   analytics_recorder.OnStartAdvertising(connections::Strategy::kP2pStar,
                                         /*mediums=*/{BLE, BLUETOOTH},
                                         advertising_metadata_params.get());
+  GetFakeClock().FastForward(absl::Milliseconds(200));
   analytics_recorder.OnStopAdvertising();
+  GetFakeClock().FastForward(absl::Milliseconds(300));
 
   // LogSession
   analytics_recorder.LogSession();
@@ -2235,10 +2550,13 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   ConnectionsLog::ClientSession strategy_session_proto =
       ParseTextProtoOrDie(R"pb(
+        duration_millis: 600
         strategy_session {
+          duration_millis: 500
           strategy: P2P_STAR
           role: ADVERTISER
           advertising_phase {
+            duration_millis: 200
             medium: BLE
             medium: BLUETOOTH
             advertising_metadata {
@@ -2255,12 +2573,14 @@ TEST(AnalyticsRecorderOnConnectionClosedTest,
 
   // Without calling OnStartAdvertising won't create new
   // current_strategy_session_.
+  GetFakeClock().FastForward(absl::Milliseconds(400));
   analytics_recorder.OnConnectionEstablished(endpoint_id, BLUETOOTH,
                                              /*connection_token=*/"");
+  GetFakeClock().FastForward(absl::Milliseconds(500));
   analytics_recorder.OnConnectionClosed(
       endpoint_id, BLUETOOTH, UPGRADED,
       ConnectionsLog::EstablishedConnection::SAFE_DISCONNECTION);
-
+  GetFakeClock().FastForward(absl::Milliseconds(600));
   analytics_recorder.LogSession();
 
   // The proto won't change.

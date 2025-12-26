@@ -16,6 +16,8 @@
 #define PLATFORM_IMPL_WINDOWS_SYSTEM_CLOCK_H_
 
 #include "internal/platform/implementation/system_clock.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 
 namespace nearby {
 

@@ -68,9 +68,11 @@ cc_test(
         "//internal/platform:base",
         "//internal/platform:error_code_recorder",
         "//internal/platform:logging",
+        "//internal/platform:test_util",
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//internal/proto/analytics:connections_log_cc_proto",
+        "//internal/test",
         "//net/proto2/contrib/parse_proto:parse_text_proto",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
