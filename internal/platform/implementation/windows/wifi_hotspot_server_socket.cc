@@ -40,6 +40,7 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
@@ -108,28 +109,18 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
     return;
   }
   std::vector<ServiceAddress> service_addresses;
-  for (const auto& interface : NetworkInfo::GetNetworkInfo().GetInterfaces()) {
-    if (interface.type == InterfaceType::kWifiHotspot) {
-      LOG(INFO) << "Found Wifi Hotspot interface, index: " << interface.index;
-      for (const auto& ipaddress : interface.ipv6_addresses) {
-        const sockaddr_in6* ipv6_address =
-            reinterpret_cast<const sockaddr_in6*>(&ipaddress);
-        service_addresses.push_back(ServiceAddress{
-            .address = std::vector<char>(ipv6_address->sin6_addr.u.Byte,
-                                         ipv6_address->sin6_addr.u.Byte + 16),
-            .port = static_cast<uint16_t>(GetPort()),
-        });
+  for (const auto& net_interface :
+       NetworkInfo::GetNetworkInfo().GetInterfaces()) {
+    if (net_interface.type == InterfaceType::kWifiHotspot) {
+      LOG(INFO) << "Found Wifi Hotspot interface, index: "
+                << net_interface.index;
+      for (const SocketAddress& ipaddress : net_interface.ipv6_addresses) {
+        service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
       }
-      for (const auto& ipaddress : interface.ipv4_addresses) {
+      for (const SocketAddress& ipaddress : net_interface.ipv4_addresses) {
         const sockaddr_in* ipv4_address =
             reinterpret_cast<const sockaddr_in*>(&ipaddress);
-        service_addresses.push_back(ServiceAddress{
-            .address = {ipv4_address->sin_addr.S_un.S_un_b.s_b1,
-                        ipv4_address->sin_addr.S_un.S_un_b.s_b2,
-                        ipv4_address->sin_addr.S_un.S_un_b.s_b3,
-                        ipv4_address->sin_addr.S_un.S_un_b.s_b4},
-            .port = static_cast<uint16_t>(GetPort()),
-        });
+        service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
       }
       break;
     }

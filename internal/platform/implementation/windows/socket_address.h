@@ -62,9 +62,9 @@ class SocketAddress {
   int family() const { return address_.ss_family; }
 
   // `Returns port in host byte order.
-  int port() const;
+  uint16_t port() const;
   // `port` is in host byte order.
-  bool set_port(int port);
+  bool set_port(uint16_t port);
 
   std::string ToString() const;
 
@@ -98,6 +98,8 @@ class SocketAddress {
   const sockaddr_in6* ipv6_address() const {
     return reinterpret_cast<const sockaddr_in6*>(&address_);
   }
+
+  ServiceAddress ToServiceAddress(uint16_t port = 0) const;
 
  private:
   sockaddr_storage address_;

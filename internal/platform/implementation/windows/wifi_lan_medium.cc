@@ -15,9 +15,10 @@
 #include "internal/platform/implementation/windows/wifi_lan.h"
 
 // Windows headers
-#include <iphlpapi.h>
-#include <windows.h>
+// clang-format off
 #include <winsock2.h>
+#include <iphlpapi.h>
+// clang-format on
 
 // Standard C/C++ headers
 #include <cstdint>
@@ -728,29 +729,16 @@ std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
         net_interface.type != InterfaceType::kEthernet) {
       continue;
     }
-    for (const auto& ipv6_address : net_interface.ipv6_addresses) {
-      SocketAddress address(ipv6_address);
+    for (const SocketAddress& address : net_interface.ipv6_addresses) {
       // Link local addresses cannot be used for upgrade since we can't tell
       // which interface on the remote device the address is valid.
       if (address.IsV6LinkLocal()) {
         continue;
       }
-      ip_addresses.push_back(ServiceAddress{
-          .address =
-              std::vector<char>(address.ipv6_address()->sin6_addr.u.Byte,
-                                address.ipv6_address()->sin6_addr.u.Byte + 16),
-          .port = port,
-      });
+      ip_addresses.push_back(address.ToServiceAddress(port));
     }
-    for (const auto& ipv4address : net_interface.ipv4_addresses) {
-      auto address = reinterpret_cast<const sockaddr_in*>(&ipv4address);
-      ipv4_addresses.push_back(ServiceAddress{
-          .address = {address->sin_addr.S_un.S_un_b.s_b1,
-                      address->sin_addr.S_un.S_un_b.s_b2,
-                      address->sin_addr.S_un.S_un_b.s_b3,
-                      address->sin_addr.S_un.S_un_b.s_b4},
-          .port = port,
-      });
+    for (const SocketAddress& v4_address : net_interface.ipv4_addresses) {
+      ipv4_addresses.push_back(v4_address.ToServiceAddress(port));
     }
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(

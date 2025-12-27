@@ -15,7 +15,6 @@
 #include "internal/platform/implementation/windows/network_info.h"
 
 // clang-format off
-#include <windows.h>
 #include <winsock2.h>
 #include <iphlpapi.h>
 // clang-format on
@@ -31,27 +30,30 @@
 #include "absl/base/no_destructor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/wlan_client.h"
 #include "internal/platform/logging.h"
 
 namespace nearby::windows {
-namespace {
 
-void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
-                           NetworkInfo::InterfaceInfo& net_interface) {
+/* static */
+void NetworkInfo::AddIpUnicastAddresses(
+    IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
+    NetworkInfo::InterfaceInfo& net_interface) {
   while (unicast_addresses != nullptr) {
     sockaddr* address = unicast_addresses->Address.lpSockaddr;
     if (address == nullptr) {
       unicast_addresses = unicast_addresses->Next;
       continue;
     }
-    sockaddr_storage storage;
-    std::memcpy(&storage, address, unicast_addresses->Address.iSockaddrLength);
-    if (address->sa_family == AF_INET) {
-      net_interface.ipv4_addresses.push_back(storage);
-    } else if (address->sa_family == AF_INET6) {
-      net_interface.ipv6_addresses.push_back(storage);
+    SocketAddress socket_address;
+    std::memcpy(socket_address.address(), address,
+                unicast_addresses->Address.iSockaddrLength);
+    if (socket_address.family() == AF_INET) {
+      net_interface.ipv4_addresses.push_back(std::move(socket_address));
+    } else if (socket_address.family() == AF_INET6) {
+      net_interface.ipv6_addresses.push_back(std::move(socket_address));
     }
     unicast_addresses = unicast_addresses->Next;
   }
@@ -59,8 +61,6 @@ void AddIpUnicastAddresses(IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
             << net_interface.ipv4_addresses.size() << " v4 addresses, "
             << net_interface.ipv6_addresses.size() << " v6 addresses.";
 }
-
-}  // namespace
 
 NetworkInfo& NetworkInfo::GetNetworkInfo() {
   static absl::NoDestructor<NetworkInfo> kNetworkInfo;
