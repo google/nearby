@@ -409,7 +409,8 @@ bool WifiHotspotNative::HasAssignedAddress(bool include_ipv6) {
   }
   NET_LUID luid;
   ConvertInterfaceGuidToLuid(&interface_guid, &luid);
-  for (const auto& interface : network_info_.GetInterfaces()) {
+  for (const NetworkInfo::InterfaceInfo& interface :
+       network_info_.GetInterfaces()) {
     if (interface.luid.Value != luid.Value) {
       continue;
     }
@@ -418,13 +419,11 @@ bool WifiHotspotNative::HasAssignedAddress(bool include_ipv6) {
         return true;
       }
     }
-    for (const auto& address : interface.ipv4_addresses) {
-      DCHECK(address.ss_family == AF_INET);
-      const sockaddr_in* ipv4_address =
-          reinterpret_cast<const sockaddr_in*>(&address);
+    for (const SocketAddress& address : interface.ipv4_addresses) {
+      DCHECK_EQ(address.family(), AF_INET);
       // We ignore APIPA addresses since we won't be able to connect using that.
-      if (ipv4_address->sin_addr.S_un.S_un_b.s_b1 != 169 ||
-          ipv4_address->sin_addr.S_un.S_un_b.s_b2 != 254) {
+      if (address.ipv4_address()->sin_addr.S_un.S_un_b.s_b1 != 169 ||
+          address.ipv4_address()->sin_addr.S_un.S_un_b.s_b2 != 254) {
         return true;
       }
     }

@@ -144,12 +144,17 @@ cc_library(
         "network_info.h",
     ],
     compatible_with = ["//buildenv/target:non_prod"],
+    defines = [
+        "_WIN32_WINNT=_WIN32_WINNT_WIN10",
+        "WINVER=_WIN32_WINNT_WIN10",
+    ],
     tags = ["windows"],
     visibility = [
         "//:__subpackages__",
         "//location/nearby:__subpackages__",
     ],
     deps = [
+        ":socket_address",
         ":string_utils",
         ":wlan_client",
         "//internal/platform:logging",
