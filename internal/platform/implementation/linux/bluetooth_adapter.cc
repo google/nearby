@@ -26,7 +26,10 @@ namespace linux {
     {
       Powered(true);
     }
+    else
+    {
       Powered(false);
+    }
     return true;
   }
   bool BluetoothAdapter::IsEnabled() const
@@ -78,7 +81,7 @@ namespace linux {
 
   bool BluetoothAdapter::SetName(absl::string_view name,bool persist)
   {
-    BluetoothAdapter::SetName(name);
+    return BluetoothAdapter::SetName(name);
   }
 
 

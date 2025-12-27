@@ -86,3 +86,48 @@ cc_library(
     ],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "multi_thread_executor_hdrs",
+    hdrs = ["multi_thread_executor.h"],
+    visibility = ["//visibility:public" ],
+    deps = [
+        "//internal/platform/implementation:types"
+    ]
+)
+
+cc_test(
+    name = "bluetooth_adapter_test",
+    srcs = [
+        "bluetooth_adapter_test.cc",
+    ],
+    deps = [
+        ":linux",
+        ":types",
+        "//internal/platform/implementation:platform",
+        "//internal/platform:base",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+        "@sdbus_cpp//:sdbus_cpp",
+        "@sdbus_cpp//:libsystemd",
+    ],
+)
+
+cc_test(
+    name = "multi_thread_executor_test",
+    srcs = [
+        "multi_thread_executor_test.cc",
+    ],
+    deps = [
+        # Depend on the header-only target to pick up the linux header without
+        # pulling system libraries.
+        ":multi_thread_executor_hdrs",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+
+    ],
+)
