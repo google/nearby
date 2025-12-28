@@ -60,3 +60,4 @@ bazel-*
 
 # Devcontainers
 /.devcontainer/
+/connections/walkietalkie/

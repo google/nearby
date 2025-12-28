@@ -1,0 +1,20 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+        "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/">
+    <!-- BlueZ exposes ObjectManager on the root object -->
+    <interface name="org.freedesktop.DBus.ObjectManager">
+
+        <!-- signal InterfacesAdded(object_path, dict<string, dict<string, variant>>) -->
+        <signal name="InterfacesAdded">
+            <arg name="object_path" type="o"/>
+            <arg name="interfaces_and_properties" type="a{sa{sv}}"/>
+        </signal>
+
+        <!-- signal InterfacesRemoved(object_path, array<string>) -->
+        <signal name="InterfacesRemoved">
+            <arg name="object_path" type="o"/>
+            <arg name="interfaces" type="as"/>
+        </signal>
+
+    </interface>
+</node>

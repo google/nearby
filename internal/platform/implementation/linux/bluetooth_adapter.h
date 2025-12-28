@@ -24,6 +24,8 @@
 #include "internal/platform/implementation/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/generated/bluez_adapter_client_glue.h"
 
+#include "internal/platform/mac_address.h"
+#include "internal/platform/implementation/bluetooth_classic.h"
 constexpr uint8_t kAndroidDiscoverableBluetoothNameMaxLength = 37;  // bytes
 
 namespace nearby {
@@ -35,7 +37,7 @@ class BluetoothAdapter : public api::BluetoothAdapter, public sdbus::ProxyInterf
   BluetoothAdapter(sdbus::IConnection& system_bus,
                    const sdbus::ObjectPath& object_path): ProxyInterfaces(
                      system_bus,
-                     "org.bluez.Adap", object_path )
+                     "org.bluez", object_path )
   {
     registerProxy();
   };
@@ -55,7 +57,7 @@ class BluetoothAdapter : public api::BluetoothAdapter, public sdbus::ProxyInterf
   bool SetStatus(Status status) override;
   // Returns true if the BluetoothAdapter's current status is
   // Status::Value::kEnabled.
-  [[nodiscard]] bool IsEnabled() const override;
+  bool IsEnabled() const override;
 
   // Scan modes of a BluetoothAdapter, as described at
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode().
@@ -69,25 +71,25 @@ class BluetoothAdapter : public api::BluetoothAdapter, public sdbus::ProxyInterf
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getScanMode()
   //
   // Returns ScanMode::kUnknown on error.
-  [[nodiscard]] ScanMode GetScanMode() const override;
+  ScanMode GetScanMode() const override;
   // Synchronously sets the scan mode of the adapter, and returns true if the
   // operation was a success.
   bool SetScanMode(ScanMode scan_mode) override;
 
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#getName()
   // Returns an empty string on error
-  [[nodiscard]] std::string GetName() const override;
+  std::string GetName() const override;
   // https://developer.android.com/reference/android/bluetooth/BluetoothAdapter.html#setName(java.lang.String)
   bool SetName(absl::string_view name) override;
   bool SetName(absl::string_view name, bool persist) override;
 
   // Returns BT MAC address assigned to this adapter.
   ABSL_DEPRECATED("Use GetAddress() instead.")
-  [[nodiscard]] std::string GetMacAddress() const override;
+  std::string GetMacAddress() const override;
 
   // Implementation for migration only.  Once subclasses implement this, the
   // above GetMacAddress() can be removed.
-  [[nodiscard]] MacAddress GetAddress() const override {
+  MacAddress GetAddress() const override {
     std::string mac_address = GetMacAddress();
     if (mac_address.empty()) {
       return {};
@@ -98,6 +100,25 @@ class BluetoothAdapter : public api::BluetoothAdapter, public sdbus::ProxyInterf
   }
 };
 
+  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
+  class BluetoothDevice : public api::BluetoothDevice {
+  public:
+    ~BluetoothDevice() override = default;
+
+    // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
+    std::string GetName() const override;
+    std::string GetMacAddress() const override;
+    MacAddress GetAddress() const override;
+    BluetoothAdapter& GetAdapter() { return adapter_; }
+
+  private:
+    // Only BluetoothAdapter may instantiate BluetoothDevice.
+    friend class BluetoothAdapter;
+
+    explicit BluetoothDevice(BluetoothAdapter* adapter);
+
+    BluetoothAdapter& adapter_;
+  };
 }  // namespace linux
 }  // namespace nearby
 

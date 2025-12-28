@@ -113,6 +113,7 @@ std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() { return 
 std::unique_ptr<BluetoothAdapter> ImplementationPlatform::CreateBluetoothAdapter()
 {
   static auto connection =  sdbus::createConnection();
+  connection -> enterEventLoopAsync();
   return std::make_unique<linux::BluetoothAdapter>(*connection, "/org/bluez/hci0");
 }
 std::unique_ptr<BluetoothClassicMedium> ImplementationPlatform::CreateBluetoothClassicMedium(BluetoothAdapter&) { return nullptr; }

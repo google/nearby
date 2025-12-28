@@ -35,7 +35,8 @@ constexpr absl::string_view kName = "Test Radio Name";
 // validations to mirror the Windows test suite.
 
 TEST(BluetoothAdapter, DISABLED_SetStatusReturnsTrue) {
-  auto connection = sdbus::createConnection();
+  auto connection = sdbus::createSystemBusConnection();
+  connection -> enterEventLoopAsync();
   sdbus::ObjectPath object_path{"/org/bluez/hci0"};
   BluetoothAdapter adapter(*connection, object_path);
 
@@ -45,7 +46,8 @@ TEST(BluetoothAdapter, DISABLED_SetStatusReturnsTrue) {
 }
 
 TEST(BluetoothAdapter, DISABLED_SetAndGetName) {
-  auto connection = sdbus::createConnection();
+  auto connection = sdbus::createSystemBusConnection();
+  connection -> enterEventLoopAsync();
   sdbus::ObjectPath object_path{"/org/bluez/hci0"};
   BluetoothAdapter adapter(*connection, object_path);
 
@@ -59,7 +61,8 @@ TEST(BluetoothAdapter, DISABLED_SetAndGetName) {
 }
 
 TEST(BluetoothAdapter, DISABLED_GetMacAddressNotEmpty) {
-  auto connection = sdbus::createConnection();
+  auto connection = sdbus::createSystemBusConnection();
+  connection -> enterEventLoopAsync();
   sdbus::ObjectPath object_path{"/org/bluez/hci0"};
   BluetoothAdapter adapter(*connection, object_path);
 
@@ -67,7 +70,8 @@ TEST(BluetoothAdapter, DISABLED_GetMacAddressNotEmpty) {
 }
 
 TEST(BluetoothAdapter, DISABLED_SetScanModeWhenEnabled) {
-  auto connection = sdbus::createConnection();
+  auto connection = sdbus::createSystemBusConnection();
+  connection -> enterEventLoopAsync();
   sdbus::ObjectPath object_path{"/org/bluez/hci0"};
   BluetoothAdapter adapter(*connection, object_path);
 
