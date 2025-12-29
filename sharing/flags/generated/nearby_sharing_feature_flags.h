@@ -80,9 +80,6 @@ constexpr auto kUnregisterTargetDiscoveryCacheLostExpiryMs =
 // When true, enable alternate BLE service UUID for discovery.
 constexpr auto kUseAlternateServiceUuidForDiscovery =
     flags::Flag<bool>(kConfigPackage, "45683539", false);
-// Show Admin mode warning message in the app
-constexpr auto kShowAdminModeWarning =
-    flags::Flag<bool>(kConfigPackage, "45410558", false);
 // Update track
 constexpr auto kUpdateTrack =
     flags::Flag<absl::string_view>(kConfigPackage, "45409861", "");
@@ -122,7 +119,6 @@ inline absl::btree_map<int, const flags::Flag<bool>&> GetBoolFlags() {
       {45657036, kDeleteUnexpectedReceivedFileFix},
       {45673628, kEnableWifiHotspotForHpRealtekDevices},
       {45683539, kUseAlternateServiceUuidForDiscovery},
-      {45410558, kShowAdminModeWarning},
       {45662570, kEnableBetaLabel},
       {45661130, kEnableConflictBanner},
       {45720206, kEnableFlutterHooks},
