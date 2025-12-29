@@ -14,6 +14,8 @@
 
 #include "internal/platform/implementation/windows/socket_address.h"
 
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "internal/platform/service_address.h"
 
@@ -121,14 +123,6 @@ TEST(SocketAddressTest, SetPort) {
   EXPECT_EQ(address.port(), 9090);
 }
 
-TEST(SocketAddressTest, SetInvalidPort) {
-  SocketAddress address;
-  EXPECT_TRUE(SocketAddress::FromString(address, "127.0.0.1", 8080));
-  EXPECT_FALSE(address.set_port(-1));
-  EXPECT_FALSE(address.set_port(65536));
-  EXPECT_EQ(address.port(), 8080);
-}
-
 TEST(SocketAddressTest, FromBytesIPv4) {
   SocketAddress address;
   char bytes[4] = {192, 168, 1, 1};
@@ -164,6 +158,20 @@ TEST(SocketAddressTest, IPv6LinkLocalFail) {
   EXPECT_FALSE(address.IsV6LinkLocal());
 }
 
+TEST(SocketAddressTest, IPv4LinkLocalSuccess) {
+  SocketAddress address;
+  char bytes[4] = {169, 254, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_TRUE(address.IsV4LinkLocal());
+}
+
+TEST(SocketAddressTest, IPv4LinkLocalFail) {
+  SocketAddress address;
+  char bytes[4] = {192, 168, 1, 1};
+  EXPECT_TRUE(SocketAddress::FromBytes(address, bytes, 8080));
+  EXPECT_FALSE(address.IsV4LinkLocal());
+}
+
 TEST(SocketAddressTest, FromServiceAddressIPv4) {
   SocketAddress address;
   ServiceAddress service_address = {
@@ -196,6 +204,44 @@ TEST(SocketAddressTest, FromServiceAddressInvalidAddress) {
       .port = 8080,
   };
   EXPECT_FALSE(SocketAddress::FromServiceAddress(address, service_address));
+}
+
+TEST(SocketAddressTest, ToServiceAddressIPv4) {
+  SocketAddress address;
+  EXPECT_TRUE(SocketAddress::FromString(address, "192.168.1.1", 8080));
+  ServiceAddress service_address = address.ToServiceAddress();
+  EXPECT_EQ(service_address.address,
+            (std::vector<char>{192, 168, 1, 1}));
+  EXPECT_EQ(service_address.port, 8080);
+}
+
+TEST(SocketAddressTest, ToServiceAddressIPv6) {
+  SocketAddress address;
+  EXPECT_TRUE(SocketAddress::FromString(address, "2001:db8::1", 8080));
+  ServiceAddress service_address = address.ToServiceAddress();
+  EXPECT_EQ(service_address.address,
+            (std::vector<char>{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 1}));
+  EXPECT_EQ(service_address.port, 8080);
+}
+
+TEST(SocketAddressTest, ToServiceAddressIPv4PortOverride) {
+  SocketAddress address;
+  EXPECT_TRUE(SocketAddress::FromString(address, "192.168.1.1", 8080));
+  ServiceAddress service_address = address.ToServiceAddress(9090);
+  EXPECT_EQ(service_address.address,
+            (std::vector<char>{192, 168, 1, 1}));
+  EXPECT_EQ(service_address.port, 9090);
+}
+
+TEST(SocketAddressTest, ToServiceAddressIPv6PortOverride) {
+  SocketAddress address;
+  EXPECT_TRUE(SocketAddress::FromString(address, "2001:db8::1", 8080));
+  ServiceAddress service_address = address.ToServiceAddress(9090);
+  EXPECT_EQ(service_address.address,
+            (std::vector<char>{0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 1}));
+  EXPECT_EQ(service_address.port, 9090);
 }
 
 }  // namespace

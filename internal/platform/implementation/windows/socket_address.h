@@ -62,15 +62,19 @@ class SocketAddress {
   int family() const { return address_.ss_family; }
 
   // `Returns port in host byte order.
-  int port() const;
+  uint16_t port() const;
   // `port` is in host byte order.
-  bool set_port(int port);
+  bool set_port(uint16_t port);
 
   std::string ToString() const;
 
   // Returns true if the address is a link local IPv6 address, ie. FE80::XXXX.
   // Returns false if the address is not IPv6 or is not link local.
   bool IsV6LinkLocal() const;
+
+  // Returns true if the address is a link local IPv4 address, ie. 169.254.X.X.
+  // Returns false if the address is not IPv4 or is not link local.
+  bool IsV4LinkLocal() const;
 
   // Sets the scope id of the address.
   // Returns false if the address is not IPv6.
@@ -98,6 +102,11 @@ class SocketAddress {
   const sockaddr_in6* ipv6_address() const {
     return reinterpret_cast<const sockaddr_in6*>(&address_);
   }
+
+  // Pack this SocketAddress into a ServiceAddress.
+  // If `port` is non-zero, override the port from this SocketAddress with
+  // `port` in the ServiceAddress.
+  ServiceAddress ToServiceAddress(uint16_t port = 0) const;
 
  private:
   sockaddr_storage address_;

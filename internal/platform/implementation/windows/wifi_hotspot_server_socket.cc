@@ -40,6 +40,7 @@
 #include "internal/platform/implementation/windows/wifi_hotspot_server_socket.h"
 #include "internal/platform/implementation/windows/wifi_hotspot_socket.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/service_address.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby::windows {
@@ -61,7 +62,9 @@ std::unique_ptr<api::WifiHotspotSocket> WifiHotspotServerSocket::Accept() {
 
 void WifiHotspotServerSocket::PopulateHotspotCredentials(
     HotspotCredentials& hotspot_credentials) {
-  // Get current IP addresses of the device.
+  bool use_address_candidates = NearbyFlags::GetInstance().GetBoolFlag(
+      platform::config_package_nearby::nearby_platform_feature::
+          kEnableHotspotAddressCandidates);
   int64_t ip_address_max_retries = NearbyFlags::GetInstance().GetInt64Flag(
       platform::config_package_nearby::nearby_platform_feature::
           kWifiHotspotCheckIpMaxRetries);
@@ -69,30 +72,29 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
       NearbyFlags::GetInstance().GetInt64Flag(
           platform::config_package_nearby::nearby_platform_feature::
               kWifiHotspotCheckIpIntervalMillis);
-  VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
-          << ", IP check interval=" << ip_address_retry_interval_millis << "ms";
-  std::string hotspot_ipaddr;
-  for (int i = 0; i < ip_address_max_retries; i++) {
-    hotspot_ipaddr = GetHotspotIpAddress();
-    if (hotspot_ipaddr.empty()) {
-      LOG(WARNING) << "Failed to find Hotspot's IP addr for the try: " << i + 1
-                   << ". Wait " << ip_address_retry_interval_millis
-                   << "ms snd try again";
-      Sleep(ip_address_retry_interval_millis);
-    } else {
-      break;
-    }
-  }
-  if (hotspot_ipaddr.empty()) {
-    LOG(WARNING) << "Failed to start accepting connection without IP "
-                    "addresses configured on computer.";
-    return;
-  }
-  bool use_address_candidates = NearbyFlags::GetInstance().GetBoolFlag(
-    platform::config_package_nearby::nearby_platform_feature::
-        kEnableHotspotAddressCandidates);
-
   if (!use_address_candidates) {
+    // Get current IP addresses of the device.
+    VLOG(1) << "maximum IP check retries=" << ip_address_max_retries
+            << ", IP check interval=" << ip_address_retry_interval_millis
+            << "ms";
+    std::string hotspot_ipaddr;
+    for (int i = 0; i < ip_address_max_retries; i++) {
+      hotspot_ipaddr = GetHotspotIpAddress();
+      if (hotspot_ipaddr.empty()) {
+        LOG(WARNING) << "Failed to find Hotspot's IP addr for the try: "
+                     << i + 1 << ". Wait " << ip_address_retry_interval_millis
+                     << "ms snd try again";
+        Sleep(ip_address_retry_interval_millis);
+      } else {
+        break;
+      }
+    }
+    if (hotspot_ipaddr.empty()) {
+      LOG(WARNING) << "Failed to start accepting connection without IP "
+                      "addresses configured on computer.";
+      return;
+    }
+
     std::vector<char> hotspot_ipaddr_bytes;
     uint32_t address_int = inet_addr(hotspot_ipaddr.c_str());
     if (address_int != INADDR_NONE) {
@@ -108,31 +110,28 @@ void WifiHotspotServerSocket::PopulateHotspotCredentials(
     return;
   }
   std::vector<ServiceAddress> service_addresses;
-  for (const auto& interface : NetworkInfo::GetNetworkInfo().GetInterfaces()) {
-    if (interface.type == InterfaceType::kWifiHotspot) {
-      LOG(INFO) << "Found Wifi Hotspot interface, index: " << interface.index;
-      for (const auto& ipaddress : interface.ipv6_addresses) {
-        const sockaddr_in6* ipv6_address =
-            reinterpret_cast<const sockaddr_in6*>(&ipaddress);
-        service_addresses.push_back(ServiceAddress{
-            .address = std::vector<char>(ipv6_address->sin6_addr.u.Byte,
-                                         ipv6_address->sin6_addr.u.Byte + 16),
-            .port = static_cast<uint16_t>(GetPort()),
-        });
+  for (int i = 0; i < ip_address_max_retries; i++) {
+    for (const auto& net_interface :
+        NetworkInfo::GetNetworkInfo().GetInterfaces()) {
+      if (net_interface.type == InterfaceType::kWifiHotspot) {
+        LOG(INFO) << "Found Wifi Hotspot interface, index: "
+                  << net_interface.index;
+        for (const SocketAddress& ipaddress : net_interface.ipv6_addresses) {
+          service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
+        }
+        for (const SocketAddress& ipaddress : net_interface.ipv4_addresses) {
+          service_addresses.push_back(ipaddress.ToServiceAddress(GetPort()));
+        }
+        break;
       }
-      for (const auto& ipaddress : interface.ipv4_addresses) {
-        const sockaddr_in* ipv4_address =
-            reinterpret_cast<const sockaddr_in*>(&ipaddress);
-        service_addresses.push_back(ServiceAddress{
-            .address = {ipv4_address->sin_addr.S_un.S_un_b.s_b1,
-                        ipv4_address->sin_addr.S_un.S_un_b.s_b2,
-                        ipv4_address->sin_addr.S_un.S_un_b.s_b3,
-                        ipv4_address->sin_addr.S_un.S_un_b.s_b4},
-            .port = static_cast<uint16_t>(GetPort()),
-        });
-      }
+    }
+    if (!service_addresses.empty()) {
       break;
     }
+    LOG(WARNING) << "Failed to find Wifi Hotspot interface. Wait "
+                 << ip_address_retry_interval_millis
+                 << "ms snd try again";
+    Sleep(ip_address_retry_interval_millis);
   }
   hotspot_credentials.SetAddressCandidates(std::move(service_addresses));
 }

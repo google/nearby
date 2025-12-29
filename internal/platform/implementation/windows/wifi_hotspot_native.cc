@@ -38,6 +38,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/platform/implementation/windows/network_info.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/wlan_client.h"
 #include "internal/platform/logging.h"
@@ -409,7 +410,8 @@ bool WifiHotspotNative::HasAssignedAddress(bool include_ipv6) {
   }
   NET_LUID luid;
   ConvertInterfaceGuidToLuid(&interface_guid, &luid);
-  for (const auto& interface : network_info_.GetInterfaces()) {
+  for (const NetworkInfo::InterfaceInfo& interface :
+       network_info_.GetInterfaces()) {
     if (interface.luid.Value != luid.Value) {
       continue;
     }
@@ -418,13 +420,9 @@ bool WifiHotspotNative::HasAssignedAddress(bool include_ipv6) {
         return true;
       }
     }
-    for (const auto& address : interface.ipv4_addresses) {
-      DCHECK(address.ss_family == AF_INET);
-      const sockaddr_in* ipv4_address =
-          reinterpret_cast<const sockaddr_in*>(&address);
-      // We ignore APIPA addresses since we won't be able to connect using that.
-      if (ipv4_address->sin_addr.S_un.S_un_b.s_b1 != 169 ||
-          ipv4_address->sin_addr.S_un.S_un_b.s_b2 != 254) {
+    for (const SocketAddress& address : interface.ipv4_addresses) {
+      // We ignore APIPA addresses since we won't be able to connect using them.
+      if (!address.IsV4LinkLocal()) {
         return true;
       }
     }

@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "absl/types/span.h"
 #include "internal/platform/logging.h"
@@ -122,7 +123,7 @@ bool SocketAddress::FromServiceAddress(SocketAddress& address,
   return FromBytes(address, service_address.address, service_address.port);
 }
 
-int SocketAddress::port() const {
+uint16_t SocketAddress::port() const {
   DCHECK(address_.ss_family == AF_INET || address_.ss_family == AF_INET6);
   if (address_.ss_family == AF_INET) {
     const sockaddr_in* v4_address =
@@ -138,12 +139,8 @@ int SocketAddress::port() const {
   return 0;
 }
 
-bool SocketAddress::set_port(int port) {
+bool SocketAddress::set_port(uint16_t port) {
   DCHECK(address_.ss_family == AF_INET || address_.ss_family == AF_INET6);
-  if (port < 0 || port > 65535) {
-    LOG(ERROR) << "Invalid port: " << port;
-    return false;
-  }
   if (address_.ss_family == AF_INET) {
     sockaddr_in* v4_address = reinterpret_cast<sockaddr_in*>(&address_);
     v4_address->sin_port = htons(port);
@@ -179,9 +176,17 @@ bool SocketAddress::IsV6LinkLocal() const {
   if (address_.ss_family != AF_INET6) {
     return false;
   }
-  const sockaddr_in6* v6_address =
-      reinterpret_cast<const sockaddr_in6*>(&address_);
+  const sockaddr_in6* v6_address = ipv6_address();
   return IN6_IS_ADDR_LINKLOCAL(&v6_address->sin6_addr);
+}
+
+bool SocketAddress::IsV4LinkLocal() const {
+  if (address_.ss_family != AF_INET) {
+    return false;
+  }
+  const sockaddr_in* v4_address = ipv4_address();
+  return (v4_address->sin_addr.S_un.S_un_b.s_b1 == 169 &&
+          v4_address->sin_addr.S_un.S_un_b.s_b2 == 254);
 }
 
 bool SocketAddress::SetScopeId(uint32_t scope_id) {
@@ -192,5 +197,28 @@ bool SocketAddress::SetScopeId(uint32_t scope_id) {
   v6_address->sin6_scope_id = scope_id;
   return true;
 }
+
+ServiceAddress SocketAddress::ToServiceAddress(uint16_t port) const {
+  if (port == 0) {
+    port = this->port();
+  }
+  if (family() == AF_INET) {
+    return ServiceAddress{
+        .address = {ipv4_address()->sin_addr.S_un.S_un_b.s_b1,
+                    ipv4_address()->sin_addr.S_un.S_un_b.s_b2,
+                    ipv4_address()->sin_addr.S_un.S_un_b.s_b3,
+                    ipv4_address()->sin_addr.S_un.S_un_b.s_b4},
+        .port = port,
+    };
+  } else {
+    return ServiceAddress{
+        .address =
+            std::vector<char>(ipv6_address()->sin6_addr.u.Byte,
+                              ipv6_address()->sin6_addr.u.Byte + 16),
+        .port = port,
+    };
+  }
+}
+
 
 }  // namespace nearby::windows

@@ -18,6 +18,8 @@
 // clang-format off
 #include <winsock2.h>
 #include <ifdef.h>
+#include <ws2ipdef.h>
+#include <iphlpapi.h>
 // clang-format on
 
 #include <cstdint>
@@ -25,6 +27,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/wlan_client.h"
 
 namespace nearby::windows {
@@ -46,8 +49,8 @@ class NetworkInfo {
     uint64_t index;
     InterfaceType type;
     NET_LUID luid;
-    std::vector<sockaddr_storage> ipv4_addresses;
-    std::vector<sockaddr_storage> ipv6_addresses;
+    std::vector<SocketAddress> ipv4_addresses;
+    std::vector<SocketAddress> ipv6_addresses;
   };
 
   // Returns the singleton instance of this class.
@@ -63,6 +66,12 @@ class NetworkInfo {
   bool RenewIpv4Address(NET_LUID luid) const;
 
  private:
+  friend class NetworkInfoTest;
+
+  static void AddIpUnicastAddresses(
+      IP_ADAPTER_UNICAST_ADDRESS* unicast_addresses,
+      NetworkInfo::InterfaceInfo& net_interface);
+
   // Lazily initializes the list of wlan interface LUIDs.  If `wifi_luids` is
   // not empty, it is assumed to be populated already.
   void GetWifiLuids(std::vector<ULONG64>& wifi_luids);
