@@ -1,0 +1,121 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"https://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+ <interface name="org.freedesktop.login1.Session">
+  <property name="Id" type="s" access="read">
+  </property>
+  <property name="User" type="(uo)" access="read">
+  </property>
+  <property name="Name" type="s" access="read">
+  </property>
+  <property name="Timestamp" type="t" access="read">
+  </property>
+  <property name="TimestampMonotonic" type="t" access="read">
+  </property>
+  <property name="VTNr" type="u" access="read">
+  </property>
+  <property name="Seat" type="(so)" access="read">
+  </property>
+  <property name="TTY" type="s" access="read">
+  </property>
+  <property name="Display" type="s" access="read">
+  </property>
+  <property name="Remote" type="b" access="read">
+  </property>
+  <property name="RemoteHost" type="s" access="read">
+  </property>
+  <property name="RemoteUser" type="s" access="read">
+  </property>
+  <property name="Service" type="s" access="read">
+  </property>
+  <property name="Desktop" type="s" access="read">
+  </property>
+  <property name="Scope" type="s" access="read">
+  </property>
+  <property name="Leader" type="u" access="read">
+  </property>
+  <property name="Audit" type="u" access="read">
+  </property>
+  <property name="Type" type="s" access="read">
+  </property>
+  <property name="Class" type="s" access="read">
+  </property>
+  <property name="Active" type="b" access="read">
+  </property>
+  <property name="State" type="s" access="read">
+  </property>
+  <property name="IdleHint" type="b" access="read">
+  </property>
+  <property name="IdleSinceHint" type="t" access="read">
+  </property>
+  <property name="IdleSinceHintMonotonic" type="t" access="read">
+  </property>
+  <property name="LockedHint" type="b" access="read">
+  </property>
+  <method name="Terminate">
+  </method>
+  <method name="Activate">
+  </method>
+  <method name="Lock">
+  </method>
+  <method name="Unlock">
+  </method>
+  <method name="SetIdleHint">
+   <arg type="b" name="idle" direction="in"/>
+  </method>
+  <method name="SetLockedHint">
+   <arg type="b" name="locked" direction="in"/>
+  </method>
+  <method name="Kill">
+   <arg type="s" name="who" direction="in"/>
+   <arg type="i" name="signal_number" direction="in"/>
+  </method>
+  <method name="TakeControl">
+   <arg type="b" name="force" direction="in"/>
+  </method>
+  <method name="ReleaseControl">
+  </method>
+  <method name="SetType">
+   <arg type="s" name="type" direction="in"/>
+  </method>
+  <method name="SetDisplay">
+   <arg type="s" name="display" direction="in"/>
+  </method>
+  <method name="SetTTY">
+   <arg type="h" name="tty_fd" direction="in"/>
+  </method>
+  <method name="TakeDevice">
+   <arg type="u" name="major" direction="in"/>
+   <arg type="u" name="minor" direction="in"/>
+   <arg type="h" name="fd" direction="out"/>
+   <arg type="b" name="inactive" direction="out"/>
+  </method>
+  <method name="ReleaseDevice">
+   <arg type="u" name="major" direction="in"/>
+   <arg type="u" name="minor" direction="in"/>
+  </method>
+  <method name="PauseDeviceComplete">
+   <arg type="u" name="major" direction="in"/>
+   <arg type="u" name="minor" direction="in"/>
+  </method>
+  <method name="SetBrightness">
+   <arg type="s" name="subsystem" direction="in"/>
+   <arg type="s" name="name" direction="in"/>
+   <arg type="u" name="brightness" direction="in"/>
+  </method>
+  <signal name="PauseDevice">
+   <arg type="u" name="major"/>
+   <arg type="u" name="minor"/>
+   <arg type="s" name="type"/>
+  </signal>
+  <signal name="ResumeDevice">
+   <arg type="u" name="major"/>
+   <arg type="u" name="minor"/>
+   <arg type="h" name="fd"/>
+  </signal>
+  <signal name="Lock">
+  </signal>
+  <signal name="Unlock">
+  </signal>
+ </interface>
+</node>

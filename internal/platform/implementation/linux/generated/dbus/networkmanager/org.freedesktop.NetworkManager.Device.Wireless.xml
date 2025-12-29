@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node name="/">
+  <!--
+      org.freedesktop.NetworkManager.Device.Wireless:
+      @short_description: Wi-Fi Device.
+
+  -->
+  <interface name="org.freedesktop.NetworkManager.Device.Wireless">
+    <annotation name="org.gtk.GDBus.C.Name" value="DeviceWifi"/>
+
+    <!--
+        GetAccessPoints:
+        @access_points: List of access point object paths.
+
+        DEPRECATED. Get the list of access points visible to this device. Note
+        that this list does not include access points which hide their SSID. To
+        retrieve a list of all access points (including hidden ones) use the
+        GetAllAccessPoints() method.
+    -->
+    <method name="GetAccessPoints">
+      <arg name="access_points" type="ao" direction="out"/>
+      </method>
+
+    <!--
+        GetAllAccessPoints:
+        @access_points: List of access point object paths.
+
+        Get the list of all access points visible to this device, including hidden
+        ones for which the SSID is not yet known.
+    -->
+    <method name="GetAllAccessPoints">
+      <arg name="access_points" type="ao" direction="out"/>
+      </method>
+
+    <!--
+        RequestScan:
+        @options: Options of scan. Currently, 'ssids' option with value of "aay" type is supported.
+
+        Request the device to scan. To know when the scan is finished, use the "PropertiesChanged" signal from "org.freedesktop.DBus.Properties" to listen to changes to the "LastScan" property.
+    -->
+    <method name="RequestScan">
+      <arg name="options" type="a{sv}" direction="in"/>
+      </method>
+
+    <!--
+        HwAddress:
+
+        The active hardware address of the device.
+
+        DEPRECATED. Use the "HwAddress" property in "org.freedesktop.NetworkManager.Device" instead which exists since version NetworkManager 1.24.0.
+    -->
+    <property name="HwAddress" type="s" access="read"/>
+
+    <!--
+        PermHwAddress:
+
+        The permanent hardware address of the device.
+    -->
+    <property name="PermHwAddress" type="s" access="read"/>
+
+    <!--
+        Mode:
+
+        The operating mode of the wireless device.
+
+        Returns: <link linkend="NM80211Mode">NM80211Mode</link>
+    -->
+    <property name="Mode" type="u" access="read"/>
+
+    <!--
+        Bitrate:
+
+        The bit rate currently used by the wireless device, in kilobits/second
+        (Kb/s).
+    -->
+    <property name="Bitrate" type="u" access="read"/>
+
+    <!--
+        AccessPoints:
+
+        List of object paths of access point visible to this wireless device.
+    -->
+    <property name="AccessPoints" type="ao" access="read"/>
+
+    <!--
+        ActiveAccessPoint:
+
+        Object path of the access point currently used by the wireless device.
+    -->
+    <property name="ActiveAccessPoint" type="o" access="read"/>
+
+    <!--
+        WirelessCapabilities:
+
+        The capabilities of the wireless device.
+
+        Returns: <link linkend="NMDeviceWifiCapabilities">NMDeviceWifiCapabilities</link>
+    -->
+    <property name="WirelessCapabilities" type="u" access="read"/>
+
+    <!--
+        LastScan:
+        @since: 1.12
+
+        The timestamp (in CLOCK_BOOTTIME milliseconds) for the last finished network scan.
+        A value of -1 means the device never scanned for access points.
+    -->
+    <property name="LastScan" type="x" access="read"/>
+
+    <!--
+        AccessPointAdded:
+        @access_point: The object path of the newly found access point.
+
+        Emitted when a new access point is found by the device.
+    -->
+    <signal name="AccessPointAdded">
+        <arg name="access_point" type="o"/>
+    </signal>
+
+    <!--
+        AccessPointRemoved:
+        @access_point: The object path of the access point that has disappeared.
+
+        Emitted when an access point disappears from view of the device.
+    -->
+    <signal name="AccessPointRemoved">
+      <arg name="access_point" type="o"/>
+    </signal>
+
+  </interface>
+</node>
