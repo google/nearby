@@ -46,8 +46,8 @@ cc_library(
         ":comm",
         "//internal/platform/implementation:types",
         "@com_google_absl//absl/strings",
-        "@libsystemd//:lib",
-        "@sdbus_cpp//:lib",
+        "@sdbus_cpp//:libsystemd",
+        "@sdbus_cpp//:sdbus_cpp",
     ],
 )
 
@@ -114,8 +114,8 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
-        "@libsystemd//:lib",
-        "@sdbus_cpp//:lib",
+        "@sdbus_cpp//:libsystemd",
+        "@sdbus_cpp//:sdbus_cpp",
     ],
     visibility = ["//visibility:private"],
 )
@@ -212,8 +212,8 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@nlohmann_json//:json",
-        "@libsystemd//:lib",
-        "@sdbus_cpp//:lib",
+        "@sdbus_cpp//:libsystemd",
+        "@sdbus_cpp//:sdbus_cpp",
         "@libcurl//:lib"
     ],
 )
