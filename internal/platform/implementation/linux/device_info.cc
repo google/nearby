@@ -170,7 +170,7 @@ bool DeviceInfo::PreventSleep() {
 
 bool DeviceInfo::AllowSleep() {
   if (!inhibit_fd_.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << "No inhibit lock is acquired at the moment";
     return false;
   }

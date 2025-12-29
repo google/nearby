@@ -104,7 +104,7 @@ std::vector<std::string> ActiveConnection::GetIP4Addresses() {
 
 std::pair<std::optional<ActiveConnection::ActiveConnectionStateReason>, bool>
 ActiveConnection::WaitForConnection(absl::Duration timeout) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Waiting for an update to "
+  LOG(INFO) << __func__ << ": Waiting for an update to "
                        << getObjectPath() << "'s state";
 
   auto state_changed = [this]() {

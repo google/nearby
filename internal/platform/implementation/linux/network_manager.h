@@ -86,7 +86,7 @@ class NetworkManager final
       NM_STATE_CASE_SET(kNMStateConnectedSite);
       NM_STATE_CASE_SET(kNMStateConnectedGlobal);
       default:
-        NEARBY_LOGS(ERROR) << __func__ << "invalid NMState value: " << val
+        LOG(ERROR) << __func__ << "invalid NMState value: " << val
                            << ", setting state to unknown";
         NM_STATE_CASE_SET(kNMStateUnknown);
     }

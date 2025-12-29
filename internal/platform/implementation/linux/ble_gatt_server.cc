@@ -47,7 +47,7 @@ GattServer::CreateCharacteristic(
     service->emitInterfacesAddedSignal(
         {org::bluez::GattService1_adaptor::INTERFACE_NAME});
   } catch (const sdbus::Error& e) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": error emitting InterfacesAdded signal for object path "
         << service->getObjectPath() << " with name '" << e.getName()
@@ -59,7 +59,7 @@ GattServer::CreateCharacteristic(
                                  property)) {
     bluez::GattManager manager(system_bus_, adapter_.GetObjectPath());
     try {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": registering service "
+      LOG(INFO) << __func__ << ": registering service "
                            << service->getObjectPath();
       manager.RegisterApplication("/", {});
     } catch (const sdbus::Error& e) {
@@ -84,7 +84,7 @@ bool GattServer::UpdateCharacteristic(
   {
     absl::ReaderMutexLock lock(&services_mutex_);
     if (services_.count(characteristic.service_uuid) == 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": GATT Service "
+      LOG(ERROR) << __func__ << ": GATT Service "
                          << std::string{characteristic.service_uuid}
                          << " doesn't exist";
       return false;
@@ -93,7 +93,7 @@ bool GattServer::UpdateCharacteristic(
         characteristic.uuid);
   }
   if (chr == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Characteristic "
+    LOG(ERROR) << __func__ << ": Characteristic "
                        << std::string{characteristic.uuid}
                        << " does not exist under service "
                        << std::string{characteristic.service_uuid};
@@ -132,7 +132,7 @@ void GattServer::Stop() {
   bluez::GattManager manager(system_bus_, adapter_.GetObjectPath());
   absl::MutexLock lock(&services_mutex_);
   for (auto& [uuid, service] : services_) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Unregistering service "
+    LOG(INFO) << __func__ << ": Unregistering service "
                          << service->getObjectPath();
     try {
       manager.UnregisterApplication("/");

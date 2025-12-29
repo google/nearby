@@ -32,7 +32,7 @@ void BluetoothPairing::pairing_reply_handler(const sdbus::Error *error) {
     api::BluetoothPairingCallback::PairingError err =
         api::BluetoothPairingCallback::PairingError::kAuthFailed;
 
-    NEARBY_LOGS(ERROR) << __func__ << ": "
+    LOG(ERROR) << __func__ << ": "
                        << "Got error '" << error->getName()
                        << "' with message '" << error->getMessage()
                        << "' while pairing with device "
@@ -63,7 +63,7 @@ BluetoothPairing::BluetoothPairing(
     BluetoothAdapter &adapter, std::shared_ptr<BluetoothDevice> remote_device)
     : device_(std::move(remote_device)),
       device_object_path_(bluez::device_object_path(adapter.GetObjectPath(),
-                                                    device_->GetAddress())),
+                                                    device_->GetAddress().ToString())),
       adapter_(adapter) {}
 
 bool BluetoothPairing::InitiatePairing(

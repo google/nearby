@@ -156,7 +156,7 @@ std::wstring FilePath::CreateOutputFileWithRename(std::wstring path) {
   }
 
   if (count > 0) {
-    NEARBY_LOGS(INFO) << "Renamed " << wstring_to_string(path) << " to "
+    LOG(INFO) << "Renamed " << wstring_to_string(path) << " to "
                       << wstring_to_string(target);
   }
 
@@ -189,14 +189,14 @@ void FilePath::ReplaceInvalidCharacters(std::wstring& path) {
   for (auto& character : path) {
     // If 0 < character < 32, it's illegal, replace it
     if (character > 0 && character < 32) {
-      NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
+      LOG(INFO) << "In path " << wstring_to_string(path)
                         << " replaced \'" << std::string(1, character)
                         << "\' with \'" << std::string(1, kReplacementChar);
       character = kReplacementChar;
     }
     for (auto illegal_character : kIllegalFileCharacters) {
       if (character == illegal_character) {
-        NEARBY_LOGS(INFO) << "In path " << wstring_to_string(path)
+        LOG(INFO) << "In path " << wstring_to_string(path)
                           << " replaced \'" << std::string(1, character)
                           << "\' with \'" << std::string(1, kReplacementChar);
         character = kReplacementChar;

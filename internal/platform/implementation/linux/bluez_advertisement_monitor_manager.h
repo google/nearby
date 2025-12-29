@@ -62,7 +62,7 @@ class AdvertisementMonitorManager final
       return nullptr;
     }
     if (objects.count(adapter.GetObjectPath()) == 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Adapter object no longer exists "
+      LOG(ERROR) << __func__ << ": Adapter object no longer exists "
                          << adapter.GetObjectPath();
       return nullptr;
     }
@@ -70,7 +70,7 @@ class AdvertisementMonitorManager final
     if (objects[adapter.GetObjectPath()].count(
             org::bluez::AdvertisementMonitorManager1_proxy::INTERFACE_NAME) ==
         0) {
-      NEARBY_LOGS(ERROR)
+      LOG(ERROR)
           << __func__ << ": Adapter " << adapter.GetObjectPath()
           << " doesn't provide "
           << org::bluez::AdvertisementMonitorManager1_proxy::INTERFACE_NAME;

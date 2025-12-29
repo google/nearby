@@ -35,8 +35,8 @@ BluetoothDevice::BluetoothDevice(std::shared_ptr<bluez::Device> device)
     DBUS_LOG_PROPERTY_GET_ERROR(device, "Alias", e);
   }
   try {
-    last_known_address_ = device->Address();
-    unique_id_ = BluetoothUtils::ToNumber(last_known_address_);
+    MacAddress::FromString(device -> Address(), last_known_address_);
+    unique_id_ = last_known_address_.address();
   } catch (const sdbus::Error &e) {
     DBUS_LOG_PROPERTY_GET_ERROR(device, "Address", e);
   }
@@ -73,7 +73,7 @@ std::string BluetoothDevice::GetMacAddress() const {
     std::string addr = device->Address();
     {
       absl::MutexLock l(&properties_mutex_);
-      last_known_address_ = addr;
+      MacAddress::FromString(addr, last_known_address_);
     }
     return addr;
   } catch (const sdbus::Error &e) {
@@ -117,20 +117,20 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
   for (auto it = changedProperties.begin(); it != changedProperties.end();
        it++) {
     if (it->first == bluez::DEVICE_PROP_ADDRESS) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+      LOG(INFO) << __func__ << ": " << getObjectPath()
                            << ": Notifying observers about address change";
       std::string address = it->second;
       for (const auto &observer : observers_.GetObservers()) {
         observer->DeviceAddressChanged(*this, address);
       }
     } else if (it->first == bluez::DEVICE_PROP_PAIRED) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+      LOG(INFO) << __func__ << ": " << getObjectPath()
                            << "Notifying observers about paired status change.";
       for (const auto &observer : observers_.GetObservers()) {
         observer->DevicePairedChanged(*this, it->second);
       }
     } else if (it->first == bluez::DEVICE_PROP_CONNECTED) {
-      NEARBY_LOGS(VERBOSE)
+      LOG(INFO)
           << __func__ << ": " << getObjectPath()
           << "Notifying observers about connected status change";
       for (const auto &observer : observers_.GetObservers()) {

@@ -36,7 +36,7 @@ ExceptionOr<ByteArray> InputStream::Read(std::int64_t size) {
     return ExceptionOr(ByteArray());
   }
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": error reading from fd: " << std::strerror(errno);
     return {Exception::kIo};
   }
@@ -58,7 +58,7 @@ Exception OutputStream::Write(const ByteArray &data) {
   while (written < data.size()) {
     ssize_t ret = write(fd_.get(), data.data(), data.size());
     if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": error writing to fd: " << std::strerror(errno);
       return Exception{Exception::kIo};
     }

@@ -186,7 +186,7 @@ void PreferencesManager::Remove(absl::string_view key) {
 // Writes data to storage.
 bool PreferencesManager::Commit() {
   if (!preferences_repository_->SavePreferences(value_)) {
-    NEARBY_LOGS(ERROR) << "Failed to save preference." << std::endl;
+    LOG(ERROR) << "Failed to save preference." << std::endl;
     return false;
   }
   return true;
@@ -194,7 +194,7 @@ bool PreferencesManager::Commit() {
 
 bool PreferencesManager::SetValue(absl::string_view key, const json& value) {
   if (!value_.is_object()) {
-    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+    LOG(ERROR) << "Preferences is no longer an object! value_="
                        << value_.dump(4);
     value_ = json::object();
   }
@@ -211,7 +211,7 @@ template <typename T>
 T PreferencesManager::GetValue(absl::string_view key,
                                const T& default_value) const {
   if (!value_.is_object()) {
-    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+    LOG(ERROR) << "Preferences is no longer an object! value_="
                        << value_.dump(4);
     return default_value;
   }
@@ -227,7 +227,7 @@ template <typename T>
 bool PreferencesManager::SetArrayValue(absl::string_view key,
                                        absl::Span<const T> value) {
   if (!value_.is_object()) {
-    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+    LOG(ERROR) << "Preferences is no longer an object! value_="
                        << value_.dump(4);
     value_ = json::object();
   }
@@ -251,7 +251,7 @@ std::vector<T> PreferencesManager::GetArrayValue(
   std::vector<T> result;
 
   if (!value_.is_object()) {
-    NEARBY_LOGS(ERROR) << "Preferences is no longer an object! value_="
+    LOG(ERROR) << "Preferences is no longer an object! value_="
                        << value_.dump(4);
 
     for (const T& value : default_value) {

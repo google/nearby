@@ -29,7 +29,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/base/observer_list.h"
-#include "internal/platform/implementation/ble_v2.h"
+// #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluez_device.h"
 #include "internal/platform/implementation/linux/dbus.h"
@@ -38,8 +38,10 @@
 namespace nearby {
 namespace linux {
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
-class BluetoothDevice : public api::BluetoothDevice,
-                        public api::ble_v2::BlePeripheral {
+
+  // TODO: This used to inherit from ble_v2::BlePeripheral. Removed that since APIs have now changed
+class BluetoothDevice : public api::BluetoothDevice
+                        {
  public:
   using UniqueId = std::uint64_t;
 
@@ -55,9 +57,9 @@ class BluetoothDevice : public api::BluetoothDevice,
   // Returns BT MAC address assigned to this device.
   std::string GetMacAddress() const override;
 
+  MacAddress GetAddress() const override { return last_known_address_; }
   // BlePeripheral methods
-  std::string GetAddress() const override { return GetMacAddress(); }
-  UniqueId GetUniqueId() const override { return unique_id_; };
+  //UniqueId GetUniqueId() const override { return unique_id_; };
 
   std::optional<std::map<std::string, sdbus::Variant>> ServiceData() {
     auto device = device_.lock();
@@ -123,7 +125,7 @@ class BluetoothDevice : public api::BluetoothDevice,
 
   mutable absl::Mutex properties_mutex_;
   mutable std::string last_known_name_ ABSL_GUARDED_BY(properties_mutex_);
-  mutable std::string last_known_address_ ABSL_GUARDED_BY(properties_mutex_);
+  mutable MacAddress last_known_address_ ABSL_GUARDED_BY(properties_mutex_);
   mutable std::weak_ptr<bluez::Device> device_;
 };
 

@@ -89,8 +89,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::unique_ptr<api::BluetoothPairing> CreatePairing(
       api::BluetoothDevice &remote_device) override;
 
-  api::BluetoothDevice *GetRemoteDevice(
-      const std::string &mac_address) override;
+  api::BluetoothDevice *GetRemoteDevice(MacAddress mac_address) override;
 
   void AddObserver(Observer *observer) override {
     observers_->AddObserver(observer);

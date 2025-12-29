@@ -68,7 +68,7 @@ std::string WifiLanServerSocket::GetIPAddress() const {
     }
   }
 
-  NEARBY_LOGS(ERROR)
+  LOG(ERROR)
       << __func__ << ": Could not find any active IP addresses for this device";
   return std::string();
 }

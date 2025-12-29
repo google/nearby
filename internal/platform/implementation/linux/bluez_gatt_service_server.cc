@@ -38,7 +38,7 @@ bool GattServiceServer::AddCharacteristic(
     chr->emitInterfacesAddedSignal(
         {org::bluez::GattCharacteristic1_adaptor::INTERFACE_NAME});
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": error emitting InterfacesAdded signal for object path "
         << chr->getObjectPath() << " with name '" << e.getName()

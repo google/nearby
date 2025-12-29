@@ -46,7 +46,7 @@ bool ProfileManager::ProfileRegistered(absl::string_view service_uuid) {
 
 void Profile::Release() {
   released_ = true;
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Profile object " << getObjectPath()
+  LOG(INFO) << __func__ << ": Profile object " << getObjectPath()
                        << " has been released";
 }
 
@@ -54,7 +54,7 @@ void Profile::NewConnection(
     const sdbus::ObjectPath &device_object_path, const sdbus::UnixFd &fd,
     const std::map<std::string, sdbus::Variant> &fd_props) {
   if (released_) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": NewConnection called on released object "
                        << getObjectPath();
     throw sdbus::Error("org.bluez.Error.Rejected",
@@ -69,7 +69,7 @@ void Profile::NewConnection(
 
   auto alias = device->GetName();
   auto mac_addr = device->GetAddress();
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  LOG(INFO) << __func__ << ": " << getObjectPath()
                        << ": Connected to " << mac_addr;
 
   FDProperties props(fd_props);
@@ -82,7 +82,7 @@ void Profile::RequestDisconnection(
     const sdbus::ObjectPath &device_object_path) {
   auto device = devices_.get_device_by_path(device_object_path);
   if (device == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
+    LOG(ERROR) << __func__ << ": " << getObjectPath()
                        << ": RequestDisconnection called with a device object "
                           "we don't know about: "
                        << device_object_path;
@@ -90,12 +90,12 @@ void Profile::RequestDisconnection(
   }
 
   auto mac_addr = device->GetMacAddress();
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Disconnection requested for device "
+  LOG(INFO) << __func__ << ": Disconnection requested for device "
                        << device_object_path;
 
   absl::MutexLock l(&connections_lock_);
   if (connections_.count(mac_addr) == 0) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Disconnection requested, but we are not connected to this device";
     return;
@@ -108,7 +108,7 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
                               absl::string_view service_uuid) {
   absl::MutexLock l(&registered_service_uuids_mutex_);
   if (registered_services_.count(std::string(service_uuid)) == 1) {
-    NEARBY_LOGS(WARNING) << __func__ << ": Trying to register profile "
+    LOG(WARNING) << __func__ << ": Trying to register profile "
                          << service_uuid << " which was already registered.";
     return true;
   }
@@ -136,7 +136,7 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
 
   registered_services_.emplace(service_uuid, profile);
 
-  NEARBY_LOGS(INFO) << __func__
+  LOG(INFO) << __func__
                     << ": Registered profile instance for service uuid "
                     << service_uuid;
 
@@ -146,14 +146,14 @@ bool ProfileManager::Register(std::optional<absl::string_view> name,
 void ProfileManager::Unregister(absl::string_view service_uuid) {
   absl::MutexLock l(&registered_service_uuids_mutex_);
   if (registered_services_.count(std::string(service_uuid)) == 0) {
-    NEARBY_LOGS(WARNING)
+    LOG(WARNING)
         << __func__
         << ": attempted to unregister a profile that is not registered";
     return;
   }
 
   auto profile_object_path = bluez::profile_object_path(service_uuid);
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Unregistering profile "
+  LOG(INFO) << __func__ << ": Unregistering profile "
                        << profile_object_path;
 
   try {
@@ -174,7 +174,7 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
   {
     absl::ReaderMutexLock lock(&registered_service_uuids_mutex_);
     if (registered_services_.count(std::string(service_uuid)) == 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Service " << service_uuid
+      LOG(ERROR) << __func__ << ": Service " << service_uuid
                          << " is not registered";
       return std::nullopt;
     }
@@ -190,7 +190,7 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
           profile->connections_lock_.Unlock();
         });
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << profile->getObjectPath()
+  LOG(INFO) << __func__ << ": " << profile->getObjectPath()
                        << ": Attempting to get a FD for service "
                        << service_uuid << " on device " << mac_addr;
 
@@ -204,7 +204,7 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
                                    absl::Condition(&cond));
 
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(VERBOSE)
+    LOG(INFO)
         << __func__ << ": " << profile->getObjectPath() << ": "
         << remote_device.GetMacAddress()
         << ": Cancelled waiting for a new connection on profile "
@@ -236,7 +236,7 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
     profile = registered_services_[std::string(service_uuid)];
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << profile->getObjectPath()
+  LOG(INFO) << __func__ << ": " << profile->getObjectPath()
                        << ": Attempting to get a FD for service "
                        << service_uuid;
 
@@ -257,7 +257,7 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
   profile->connections_lock_.Await(absl::Condition(&cond));
 
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
-    NEARBY_LOGS(VERBOSE)
+    LOG(INFO)
         << __func__ << ": Cancelled waiting for new connections on profile "
         << profile->getObjectPath();
     profile->connections_lock_.Unlock();
@@ -273,7 +273,7 @@ ProfileManager::GetServiceRecordFD(absl::string_view service_uuid,
 
   auto device = devices_.get_device_by_address(mac_addr);
   if (device == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Device " << mac_addr
+    LOG(ERROR) << __func__ << ": Device " << mac_addr
                        << " is no longer available";
     return std::nullopt;
   }

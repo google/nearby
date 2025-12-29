@@ -46,7 +46,7 @@ void AdvertisementMonitor::DeviceFound(const sdbus::ObjectPath &device) {
   for (const auto &[uuid_str, data] : *service_data) {
     auto uuid = UuidFromString(uuid_str);
     if (!uuid.has_value()) {
-      NEARBY_LOGS(ERROR)
+      LOG(ERROR)
           << __func__
           << ": Could not parse UUID string in ServiceData for peripheral "
           << peripheral->getObjectPath();

@@ -61,3 +61,4 @@ bazel-*
 # Devcontainers
 /.devcontainer/
 /connections/walkietalkie/
+/third_party/

@@ -94,12 +94,12 @@ api::WifiInformation &NetworkManagerWifiMedium::GetInformation() {
         information_.ip_address_4_bytes = std::string(addr_bytes, 4);
       }
     } else {
-      NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
+      LOG(ERROR) << __func__ << ": " << getObjectPath()
                          << ": Could not find the Ip4Config object for "
                          << active_access_point->getObjectPath();
     }
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__ << ": " << getObjectPath() << ": Got error '" << e.getName()
         << "' with message '" << e.getMessage()
         << "' while populating network information for access point "
@@ -166,7 +166,7 @@ NetworkManagerWifiMedium::SearchBySSID(absl::string_view ssid,
     return ap;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": " << getObjectPath() << ": SSID " << ssid
+  LOG(INFO) << __func__ << ": " << getObjectPath() << ": SSID " << ssid
                     << " not currently known by device " << getObjectPath()
                     << ", requesting a scan";
 
@@ -194,13 +194,13 @@ NetworkManagerWifiMedium::SearchBySSID(absl::string_view ssid,
   last_scan_lock_.ReaderUnlock();
 
   if (!success) {
-    NEARBY_LOGS(WARNING) << __func__ << ": " << getObjectPath()
+    LOG(WARNING) << __func__ << ": " << getObjectPath()
                          << ": timed out waiting for scan to finish";
   }
 
   ap = SearchBySSIDNoScan(ssid_bytes);
   if (ap == nullptr) {
-    NEARBY_LOGS(WARNING) << __func__ << ": " << getObjectPath()
+    LOG(WARNING) << __func__ << ": " << getObjectPath()
                          << ": Couldn't find SSID " << ssid;
   }
 
@@ -225,14 +225,14 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
     api::WifiAuthType auth_type) {
   auto ap = SearchBySSID(ssid);
   if (ap == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
+    LOG(ERROR) << __func__ << ": " << getObjectPath()
                        << ": Couldn't find SSID " << ssid;
     return api::WifiConnectionStatus::kConnectionFailure;
   }
 
   auto connection_id = NewUuidStr();
   if (!connection_id.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": could not generate a connection UUID";
+    LOG(ERROR) << __func__ << ": could not generate a connection UUID";
     return api::WifiConnectionStatus::kUnknown;
   }
 
@@ -276,13 +276,13 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
     return api::WifiConnectionStatus::kUnknown;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": " << getObjectPath()
+  LOG(INFO) << __func__ << ": " << getObjectPath()
                     << ": Added a new connection at " << connection_path;
   auto active_connection =
       networkmanager::ActiveConnection(system_bus_, active_conn_path);
   auto [reason, timeout] = active_connection.WaitForConnection();
   if (timeout) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__ << ": " << getObjectPath()
         << ": timed out while waiting for connection " << active_conn_path
         << " to be activated, last NMActiveConnectionStateReason: "
@@ -291,7 +291,7 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
   }
 
   if (reason.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath() << ": connection "
+    LOG(ERROR) << __func__ << ": " << getObjectPath() << ": connection "
                        << active_conn_path
                        << " failed to activate, NMActiveConnectionStateReason:"
                        << reason->ToString();
@@ -304,7 +304,7 @@ api::WifiConnectionStatus NetworkManagerWifiMedium::ConnectToNetwork(
       return api::WifiConnectionStatus::kAuthFailure;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": Activated connection " << connection_path;
+  LOG(INFO) << __func__ << ": Activated connection " << connection_path;
   return api::WifiConnectionStatus::kConnected;
 }
 
@@ -330,7 +330,7 @@ NetworkManagerWifiMedium::GetActiveConnection() {
   try {
     active_ap_path = ActiveAccessPoint();
     if (active_ap_path.empty()) {
-      NEARBY_LOGS(ERROR) << __func__ << ": No active access points on "
+      LOG(ERROR) << __func__ << ": No active access points on "
                          << getObjectPath();
       return nullptr;
     }
@@ -344,7 +344,7 @@ NetworkManagerWifiMedium::GetActiveConnection() {
                                                                getObjectPath());
 
   if (conn == nullptr) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Could not find an active connection using the access point "
         << active_ap_path << " and device " << getObjectPath();

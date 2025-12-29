@@ -54,7 +54,7 @@ class GattServiceServer final
         uuid_(service_uuid),
         primary_(true) {
     registerAdaptor();
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Created a "
+    LOG(INFO) << __func__ << ": Created a "
                          << org::bluez::GattService1_adaptor::INTERFACE_NAME
                          << " object at " << getObjectPath();
   }
@@ -62,13 +62,13 @@ class GattServiceServer final
   ~GattServiceServer() {
     absl::MutexLock lock(&characterstics_mutex_);
     for (auto &[_uuid, characteristic] : characteristics_) {
-      NEARBY_LOGS(VERBOSE) << __func__ << ": Removing characteristic "
+      LOG(INFO) << __func__ << ": Removing characteristic "
                            << characteristic->getObjectPath();
       try {
         characteristic->emitInterfacesRemovedSignal(
             {org::bluez::GattCharacteristic1_adaptor::INTERFACE_NAME});
       } catch (const sdbus::Error &e) {
-        NEARBY_LOGS(ERROR)
+        LOG(ERROR)
             << __func__
             << ": error emitting InterfacesRemoved signal for object path "
             << characteristic->getObjectPath() << " with name '" << e.getName()

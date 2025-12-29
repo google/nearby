@@ -47,7 +47,7 @@ NetworkManagerWifiDirectMedium::ListenForService(int port) {
 
   auto ip4addresses = active_connection->GetIP4Addresses();
   if (ip4addresses.empty()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << "Could not find any IPv4 addresses for active connection "
         << active_connection->getObjectPath();
@@ -64,7 +64,7 @@ NetworkManagerWifiDirectMedium::ListenForService(int port) {
 bool NetworkManagerWifiDirectMedium::ConnectWifiDirect(
     WifiDirectCredentials *wifi_direct_credentials) {
   if (wifi_direct_credentials == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": hotspot_credentials cannot be null";
+    LOG(ERROR) << __func__ << ": hotspot_credentials cannot be null";
     return false;
   }
 
@@ -78,7 +78,7 @@ bool NetworkManagerWifiDirectMedium::ConnectWifiDirect(
 
 bool NetworkManagerWifiDirectMedium::DisconnectWifiDirect() {
   if (!ConnectedToWifi()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Not connected to a WiFi hotspot";
+    LOG(ERROR) << __func__ << ": Not connected to a WiFi hotspot";
     return false;
   }
 

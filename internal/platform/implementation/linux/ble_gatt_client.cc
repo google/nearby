@@ -85,7 +85,7 @@ absl::optional<std::string> GattClient::ReadCharacteristic(
     const api::ble_v2::GattCharacteristic &characteristic) {
   absl::ReaderMutexLock lock(&characteristics_mutex_);
   if (characteristics_.count(characteristic) == 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown characteristic '"
+    LOG(ERROR) << __func__ << ": Unknown characteristic '"
                        << absl::Substitute("$0", characteristic) << "'";
     return std::nullopt;
   }
@@ -109,7 +109,7 @@ bool GattClient::WriteCharacteristic(
     absl::string_view value, WriteType type) {
   absl::ReaderMutexLock lock(&characteristics_mutex_);
   if (characteristics_.count(characteristic) == 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown characteristic '"
+    LOG(ERROR) << __func__ << ": Unknown characteristic '"
                        << absl::Substitute("$0", characteristic) << "'";
     return false;
   }
@@ -139,7 +139,7 @@ bool GattClient::SetCharacteristicSubscription(
         on_characteristic_changed_cb) {
   absl::MutexLock lock(&characteristics_mutex_);
   if (characteristics_.count(characteristic) == 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Unknown characteristic '"
+    LOG(ERROR) << __func__ << ": Unknown characteristic '"
                        << absl::Substitute("$0", characteristic) << "'";
     return false;
   }
@@ -295,7 +295,7 @@ BluezGattDiscovery::GetCharacteristic(
   absl::ReaderMutexLock lock(&mutex_);
   auto path_it = discovered_characteristics_.find(key);
   if (path_it == discovered_characteristics_.end()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": No characteristic known for device "
+    LOG(ERROR) << __func__ << ": No characteristic known for device "
                        << device_object_path << " with service "
                        << std::string{service_uuid} << " and UUID "
                        << std::string{characteristic_uuid};
@@ -318,7 +318,7 @@ BluezGattDiscovery::GetSubscribedCharacteristic(
   absl::ReaderMutexLock lock(&mutex_);
   auto path_it = discovered_characteristics_.find(key);
   if (path_it == discovered_characteristics_.end()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": No characteristic known for device "
+    LOG(ERROR) << __func__ << ": No characteristic known for device "
                        << device_object_path << " with service "
                        << std::string{service_uuid} << " and UUID "
                        << std::string{characteristic_uuid};
@@ -338,7 +338,7 @@ BluezGattDiscovery::characteristicProperties(
   const std::string &chr_uuid_str = properties.at("UUID");
   auto chr_uuid = UuidFromString(chr_uuid_str);
   if (!chr_uuid.has_value()) {
-    NEARBY_LOGS(ERROR) << ": Couldn't parse UUID '" << chr_uuid_str
+    LOG(ERROR) << ": Couldn't parse UUID '" << chr_uuid_str
                        << "' in characteristic " << path;
     return std::nullopt;
   }
@@ -355,7 +355,7 @@ BluezGattDiscovery::characteristicProperties(
     const std::string &service_uuid_str = service->UUID();
     auto service_uuid_maybe = UuidFromString(service_uuid_str);
     if (!service_uuid_maybe.has_value()) {
-      NEARBY_LOGS(ERROR) << ": Couldn't parse UUID '" << service_uuid_str
+      LOG(ERROR) << ": Couldn't parse UUID '" << service_uuid_str
                          << "' in service " << service_path;
       return std::nullopt;
     }

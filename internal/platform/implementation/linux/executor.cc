@@ -29,13 +29,13 @@ Executor::Executor(size_t max_concurrency)
 
 void Executor::Execute(Runnable &&runnable) {
   if (shut_down_) {
-    NEARBY_LOGS(VERBOSE) << "Warning: " << __func__
+    LOG(INFO) << "Warning: " << __func__
                          << ": Attempt to execute on a shut down pool.";
     return;
   }
 
   if (runnable == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Runnable was null.";
+    LOG(ERROR) << __func__ << ": Runnable was null.";
     return;
   }
 

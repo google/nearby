@@ -17,7 +17,6 @@
 #include <functional>
 #include <optional>
 
-#include <absl/time/clock.h>
 #include <sdbus-c++/Types.h>
 
 #include "absl/strings/substitute.h"
@@ -62,7 +61,7 @@ void BluetoothDevices::mark_peripheral_lost(
     const sdbus::ObjectPath &device_object_path) {
   absl::ReaderMutexLock lock(&devices_by_path_lock_);
   if (devices_by_path_.count(device_object_path) == 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Device " << device_object_path
+    LOG(ERROR) << __func__ << ": Device " << device_object_path
                        << " doesn't exist";
     return;
   }
@@ -135,14 +134,14 @@ void DeviceWatcher::onInterfacesRemoved(
   if (removed_device_it != interfaces.end()) {
     auto device = devices_->get_device_by_path(object);
     if (device == nullptr) {
-      NEARBY_LOGS(WARNING) << __func__
+      LOG(WARNING) << __func__
                            << ": received InterfacesRemoved for a device "
                               "we don't know about: "
                            << object;
       return;
     }
 
-    NEARBY_LOGS(INFO) << __func__ << ": Device " << object
+    LOG(INFO) << __func__ << ": Device " << object
                       << " has been removed";
     if (discovery_cb_ != nullptr && discovery_cb_->device_lost_cb != nullptr) {
       discovery_cb_->device_lost_cb(*device);
@@ -179,7 +178,7 @@ void DeviceWatcher::notifyExistingDevices() {
       });
 
   for (; device_it != objects.end(); device_it++) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Adding existing device "
+    LOG(INFO) << __func__ << ": Adding existing device "
                          << device_it->first;
     auto device = devices_->add_new_device(device_it->first);
     if (discovery_cb_ != nullptr) {

@@ -29,7 +29,7 @@
 #include "internal/platform/implementation/input_file.h"
 #include "internal/platform/implementation/linux/atomic_boolean.h"
 #include "internal/platform/implementation/linux/atomic_uint32.h"
-#include "internal/platform/implementation/linux/ble_v2_medium.h"
+//#include "internal/platform/implementation/linux/ble_v2_medium.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
 #include "internal/platform/implementation/linux/bluez.h"
@@ -45,13 +45,15 @@
 #include "internal/platform/implementation/linux/wifi_lan.h"
 #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
+
+#include "absl/strings/str_cat.h"
+
 #include "internal/platform/implementation/shared/count_down_latch.h"
 #include "internal/platform/implementation/shared/file.h"
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/payload_id.h"
-#include "log_message.h"
 #include "scheduled_executor.h"
 
 namespace nearby {
@@ -135,7 +137,7 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
   try {
     std::filesystem::create_directories(path.parent_path());
   } catch (std::filesystem::filesystem_error const &err) {
-    NEARBY_LOGS(ERROR) << __func__ << ": error creating directory tree "
+    LOG(ERROR) << __func__ << ": error creating directory tree "
                        << path.parent_path() << ": " << err.what();
   }
 
@@ -144,7 +146,9 @@ std::unique_ptr<OutputFile> ImplementationPlatform::CreateOutputFile(
 
 std::unique_ptr<api::LogMessage> ImplementationPlatform::CreateLogMessage(
     const char *file, int line, LogMessage::Severity severity) {
-  return std::make_unique<linux::LogMessage>(file, line, severity);
+  return nullptr;
+  // Disabled LogMessage
+  // return std::make_unique<linux::LogMessage>(file, line, severity);
 }
 
 std::unique_ptr<api::SubmittableExecutor>
@@ -171,7 +175,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
     auto interfaces = manager.GetManagedObjects();
     for (auto &[object, properties] : interfaces) {
       if (properties.count(org::bluez::Adapter1_proxy::INTERFACE_NAME) == 1) {
-        NEARBY_LOGS(INFO) << __func__ << ": found bluetooth adapter " << object;
+        LOG(INFO) << __func__ << ": found bluetooth adapter " << object;
         return std::make_unique<linux::BluetoothAdapter>(system_bus, object);
       }
     }
@@ -180,7 +184,7 @@ ImplementationPlatform::CreateBluetoothAdapter() {
     return nullptr;
   }
 
-  NEARBY_LOGS(ERROR) << __func__
+  LOG(ERROR) << __func__
                      << ": couldn't find a bluetooth adapter on this system";
   return nullptr;
 }
@@ -199,8 +203,10 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
 
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
-  return std::make_unique<linux::BleV2Medium>(
-      dynamic_cast<linux::BluetoothAdapter &>(adapter));
+  return nullptr;
+  // TODO: Enable BLEv2 once BlueZ support is added.
+  // return std::make_unique<linux::BleV2Medium>(
+  //     dynamic_cast<linux::BluetoothAdapter &>(adapter));
 }
 
 namespace {
@@ -232,7 +238,7 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
       auto device = objects[device_path];
       if (device.count(org::freedesktop::NetworkManager::Device::
                            Wireless_proxy::INTERFACE_NAME) == 1) {
-        NEARBY_LOGS(INFO) << __func__
+        LOG(INFO) << __func__
                           << ": Found a wireless device at :" << device_path;
         return std::make_unique<linux::NetworkManagerWifiMedium>(nm,
                                                                  device_path);
@@ -240,7 +246,7 @@ static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
     }
   }
 
-  NEARBY_LOGS(ERROR) << __func__
+  LOG(ERROR) << __func__
                      << ": couldn't find a wireless device on this system";
   return nullptr;
 }
@@ -266,7 +272,7 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
   auto wifiMedium = createWifiMedium(nm);
 
   if (wifiMedium == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
+    LOG(ERROR) << __func__ << ": Could not create a WiFi medium";
     return nullptr;
   }
 
@@ -281,7 +287,7 @@ ImplementationPlatform::CreateWifiDirectMedium() {
   auto wifiMedium = createWifiMedium(nm);
 
   if (wifiMedium == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Could not create a WiFi medium";
+    LOG(ERROR) << __func__ << ": Could not create a WiFi medium";
     return nullptr;
   }
 
@@ -339,7 +345,7 @@ absl::StatusOr<api::WebResponse> ImplementationPlatform::SendRequest(
   api::WebResponse response;
 
   if (curl_easy_perform(handle) != CURLE_OK) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error performing HTTP request: " << errbuf;
     return absl::Status(absl::StatusCode::kUnknown, errbuf);
   }

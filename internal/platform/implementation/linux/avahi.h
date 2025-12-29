@@ -53,7 +53,7 @@ class EntryGroup final
     registerProxy();
   }
   ~EntryGroup() {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Freeing entry group "
+    LOG(INFO) << __func__ << ": Freeing entry group "
                          << getObjectPath();
 
     try {
@@ -85,7 +85,7 @@ class ServiceBrowser final
     registerProxy();
   }
   ~ServiceBrowser() {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Freeing service browser "
+    LOG(INFO) << __func__ << ": Freeing service browser "
                          << getObjectPath();
 
     try {

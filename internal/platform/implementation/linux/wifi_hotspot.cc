@@ -36,7 +36,7 @@ NetworkManagerWifiHotspotMedium::ConnectToService(
     absl::string_view ip_address, int port,
     CancellationFlag *cancellation_flag) {
   if (!ConnectedToWifi()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Cannot connect to service without an active WiFi hotspot";
     return nullptr;
@@ -44,12 +44,12 @@ NetworkManagerWifiHotspotMedium::ConnectToService(
 
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error opening socket: " << std::strerror(errno);
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
+  LOG(INFO) << __func__ << ": Connecting to " << ip_address << ":"
                        << port;
   struct sockaddr_in addr {};
   addr.sin_addr.s_addr = inet_addr(std::string(ip_address).c_str());
@@ -59,7 +59,7 @@ NetworkManagerWifiHotspotMedium::ConnectToService(
   auto ret =
       connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to socket: "
+    LOG(ERROR) << __func__ << ": Error connecting to socket: "
                        << std::strerror(errno);
     return nullptr;
   }
@@ -70,7 +70,7 @@ NetworkManagerWifiHotspotMedium::ConnectToService(
 std::unique_ptr<api::WifiHotspotServerSocket>
 NetworkManagerWifiHotspotMedium::ListenForService(int port) {
   if (!WifiHotspotActive()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Cannot connect to service without an active WiFi hotspot";
     return nullptr;
@@ -83,7 +83,7 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
 
   auto ip4addresses = active_connection->GetIP4Addresses();
   if (ip4addresses.empty()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << "Could not find any IPv4 addresses for active connection "
         << active_connection->getObjectPath();
@@ -92,7 +92,7 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
 
   auto sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error opening socket: " << std::strerror(errno);
     return nullptr;
   }
@@ -105,18 +105,18 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
   auto ret =
       bind(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error binding to socket: " << std::strerror(errno);
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__ << ": Listening for services on "
+  LOG(INFO) << __func__ << ": Listening for services on "
                        << ip4addresses[0] << ":" << port << " on device "
                        << wireless_device_->getObjectPath();
 
   ret = listen(sock, 0);
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error listening on socket: "
+    LOG(ERROR) << __func__ << ": Error listening on socket: "
                        << std::strerror(errno);
     return nullptr;
   }
@@ -128,7 +128,7 @@ NetworkManagerWifiHotspotMedium::ListenForService(int port) {
 bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
     HotspotCredentials *hotspot_credentials) {
   if (WifiHotspotActive()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": " << wireless_device_->getObjectPath()
+    LOG(ERROR) << __func__ << ": " << wireless_device_->getObjectPath()
                        << ": cannot start WiFi hotspot, a hotspot is already "
                           "active on this device";
     return false;
@@ -142,7 +142,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
 
   auto connection_id = NewUuidStr();
   if (!connection_id.has_value()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": could not generate a connection UUID";
+    LOG(ERROR) << __func__ << ": could not generate a connection UUID";
     return false;
   }
 
@@ -189,7 +189,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
 
   auto [reason, timeout] = active_conn->WaitForConnection();
   if (timeout) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__ << ": "
         << ": timed out while waiting for connection "
         << active_conn->getObjectPath()
@@ -199,7 +199,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
     return false;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": Started a WiFi hotspot on device "
+  LOG(INFO) << __func__ << ": Started a WiFi hotspot on device "
                     << wireless_device_->getObjectPath() << " at "
                     << active_conn->getObjectPath();
   return true;
@@ -207,7 +207,7 @@ bool NetworkManagerWifiHotspotMedium::StartWifiHotspot(
 
 bool NetworkManagerWifiHotspotMedium::StopWifiHotspot() {
   if (!WifiHotspotActive()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__ << ": " << wireless_device_->getObjectPath()
         << ": Cannot stop WiFi hotspot as a WiFi hotspot is not active";
   }
@@ -218,7 +218,7 @@ bool NetworkManagerWifiHotspotMedium::StopWifiHotspot() {
   try {
     active_ap_path = wireless_device_->ActiveAccessPoint();
     if (active_ap_path.empty()) {
-      NEARBY_LOGS(ERROR) << __func__ << ": No active access points on "
+      LOG(ERROR) << __func__ << ": No active access points on "
                          << wireless_device_->getObjectPath();
       return false;
     }
@@ -229,14 +229,14 @@ bool NetworkManagerWifiHotspotMedium::StopWifiHotspot() {
   auto object_manager = networkmanager::ObjectManager(system_bus_);
   auto active_connection = wireless_device_->GetActiveConnection();
   if (active_connection == nullptr) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Could not find an active connection using the access point "
         << active_ap_path;
     return false;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": " << wireless_device_->getObjectPath()
+  LOG(INFO) << __func__ << ": " << wireless_device_->getObjectPath()
                     << ": Deactivating active connection "
                     << active_connection->getObjectPath();
 
@@ -253,7 +253,7 @@ bool NetworkManagerWifiHotspotMedium::StopWifiHotspot() {
 bool NetworkManagerWifiHotspotMedium::ConnectWifiHotspot(
     HotspotCredentials *hotspot_credentials) {
   if (hotspot_credentials == nullptr) {
-    NEARBY_LOGS(ERROR) << __func__ << ": hotspot_credentials cannot be null";
+    LOG(ERROR) << __func__ << ": hotspot_credentials cannot be null";
     return false;
   }
 
@@ -267,7 +267,7 @@ bool NetworkManagerWifiHotspotMedium::ConnectWifiHotspot(
 
 bool NetworkManagerWifiHotspotMedium::DisconnectWifiHotspot() {
   if (!ConnectedToWifi()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Not connected to a WiFi hotspot";
+    LOG(ERROR) << __func__ << ": Not connected to a WiFi hotspot";
     return false;
   }
 

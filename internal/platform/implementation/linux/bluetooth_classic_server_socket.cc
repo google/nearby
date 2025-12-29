@@ -23,18 +23,18 @@ namespace nearby {
 namespace linux {
 std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   if (stopped_.Cancelled()) {
-    NEARBY_LOGS(ERROR) << __func__ << ": server socket has been stopped";
+    LOG(ERROR) << __func__ << ": server socket has been stopped";
     return nullptr;
   }
 
-  NEARBY_LOGS(VERBOSE) << __func__
+  LOG(INFO) << __func__
                        << ": accepting new connections for service uuid "
                        << service_uuid_;
 
   auto pair = profile_manager_.GetServiceRecordFD(service_uuid_, &stopped_);
   if (!pair.has_value()) {
     if (!stopped_.Cancelled())
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": Failed to get a new connection for profile "
                          << service_uuid_;
     return nullptr;
@@ -45,7 +45,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
 }
 
 Exception BluetoothServerSocket::Close() {
-  NEARBY_LOGS(ERROR) << __func__ << ": closing bluetooth server socket";
+  LOG(ERROR) << __func__ << ": closing bluetooth server socket";
   stopped_.Cancel();
   profile_manager_.Unregister(service_uuid_);
 

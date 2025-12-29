@@ -65,7 +65,7 @@ class GattCharacteristicServer final
         confirmed_(false),
         notify_sessions_(0) {
     registerAdaptor();
-    NEARBY_LOGS(VERBOSE)
+    LOG(INFO)
         << __func__ << "Creating a "
         << org::bluez::GattCharacteristic1_adaptor::INTERFACE_NAME
         << " object at " << getObjectPath();

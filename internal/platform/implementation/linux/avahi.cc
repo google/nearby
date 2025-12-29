@@ -25,14 +25,14 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
                                const std::string &type,
                                const std::string &domain,
                                const uint32_t &flags) {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  LOG(INFO) << __func__ << ": " << getObjectPath()
                        << ": Found new item through the ServiceBrowser: "
                        << "interface: " << interface << ", protocol: "
                        << protocol << ", name: '" << name << "', type: '"
                        << type << "', domain: '" << domain
                        << "', flags: " << flags;
   if (flags & kAvahiLookupResultLocal) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Ignoring local service.";
+    LOG(INFO) << __func__ << ": Ignoring local service.";
     return;
   }
 
@@ -51,7 +51,7 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
       auto attr_str = std::string(attr.begin(), attr.end());
       size_t pos = attr_str.find('=');
       if (pos == 0 || pos == std::string::npos || pos == attr_str.size() - 1) {
-        NEARBY_LOGS(WARNING) << " found invalid text attribute: " << attr_str;
+        LOG(WARNING) << " found invalid text attribute: " << attr_str;
 	continue;
       }
 
@@ -68,14 +68,14 @@ void ServiceBrowser::onItemRemove(
     const int32_t &interface, const int32_t &protocol, const std::string &name,
     const std::string &type, const std::string &domain, const uint32_t &flags) {
   // TODO: Can we even resolve removed items?
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  LOG(INFO) << __func__ << ": " << getObjectPath()
                        << ": Item removed through the ServiceBrowser: "
                        << "interface: " << interface << ", protocol: "
                        << protocol << ", name: '" << name << "', type: '"
                        << type << "', domain: '" << domain
                        << "', flags: " << flags;
   if (flags & kAvahiLookupResultLocal) {
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Ignoring local service.";
+    LOG(INFO) << __func__ << ": Ignoring local service.";
     return;
   }
 
@@ -94,7 +94,7 @@ void ServiceBrowser::onItemRemove(
       auto attr_str = std::string(attr.begin(), attr.end());
       size_t pos = attr_str.find('=');
       if (pos == 0 || pos == std::string::npos || pos == attr_str.size() - 1) {
-        NEARBY_LOGS(WARNING) << " found invalid text attribute: " << attr_str;
+        LOG(WARNING) << " found invalid text attribute: " << attr_str;
 	continue;
       }
 
@@ -108,18 +108,18 @@ void ServiceBrowser::onItemRemove(
 }
 
 void ServiceBrowser::onFailure(const std::string &error) {
-  NEARBY_LOGS(ERROR) << __func__ << ": " << getObjectPath()
+  LOG(ERROR) << __func__ << ": " << getObjectPath()
                      << ": ServiceBrowser reported a failure: " << error;
 }
 
 void ServiceBrowser::onAllForNow() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  LOG(INFO) << __func__ << ": " << getObjectPath()
                        << ": notified via ServiceBrowser that all records have "
                           "been added for now";
 }
 
 void ServiceBrowser::onCacheExhausted() {
-  NEARBY_LOGS(VERBOSE) << __func__ << ": " << getObjectPath()
+  LOG(INFO) << __func__ << ": " << getObjectPath()
                        << ": notified via ServiceBrowser of cache exhaustion";
 }
 

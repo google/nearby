@@ -45,7 +45,7 @@ TEST(PreferencesManager, CorruptedConfigFile) {
   std::ofstream output_stream{settingsPath / "preferences.json"};
   output_stream << "CORRUPTED" << std::endl;
 
-  NEARBY_LOGS(INFO) << "Loading preferences from: " << settingsPath.string();
+  LOG(INFO) << "Loading preferences from: " << settingsPath.string();
   EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
             100);
 }
@@ -56,7 +56,7 @@ TEST(PreferencesManager, ValidConfigFile) {
   output_stream << "{\"data\":8, \"name\": \"Valid\"}" << std::endl;
   output_stream.close();
 
-  NEARBY_LOGS(INFO) << "Loading preferences from: " << settingsPath.string();
+  LOG(INFO) << "Loading preferences from: " << settingsPath.string();
   EXPECT_EQ(PreferencesManager(settingsPath.string()).GetInteger("data", 100),
             8);
 }

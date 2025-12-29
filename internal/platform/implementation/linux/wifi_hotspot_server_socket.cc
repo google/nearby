@@ -24,7 +24,7 @@ namespace linux {
 std::string NetworkManagerWifiHotspotServerSocket::GetIPAddress() const {
   auto ip4addresses = active_conn_->GetIP4Addresses();
   if (ip4addresses.empty()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Could not find any IPv4 addresses for active connection "
         << active_conn_->getObjectPath();
@@ -39,7 +39,7 @@ int NetworkManagerWifiHotspotServerSocket::GetPort() const {
   auto ret =
       getsockname(fd_.get(), reinterpret_cast<struct sockaddr *>(&sin), &len);
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": Error getting information for socket "
+    LOG(ERROR) << __func__ << ": Error getting information for socket "
                        << fd_.get() << ": " << std::strerror(errno);
     return 0;
   }
@@ -55,7 +55,7 @@ NetworkManagerWifiHotspotServerSocket::Accept() {
   auto conn =
       accept(fd_.get(), reinterpret_cast<struct sockaddr *>(&addr), &len);
   if (conn < 0) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error accepting incoming connections on socket "
                        << fd_.get() << ": " << std::strerror(errno);
     return nullptr;
@@ -69,7 +69,7 @@ Exception NetworkManagerWifiHotspotServerSocket::Close() {
   shutdown(fd, SHUT_RDWR);
   auto ret = close(fd_.release());
   if (ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error closing socket: " << std::strerror(errno);
     return {Exception::kFailed};
   }

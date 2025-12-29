@@ -42,7 +42,7 @@ bool ThreadPool::Start() {
         if (shut_down_) {
           return;
         }
-        NEARBY_LOGS(WARNING) << __func__ << ": Tried to run a null task.";
+        LOG(WARNING) << __func__ << ": Tried to run a null task.";
         continue;
       }
       task();
@@ -51,11 +51,11 @@ bool ThreadPool::Start() {
 
   absl::MutexLock l(&threads_mutex_);
   if (!threads_.empty()) {
-    NEARBY_LOGS(ERROR) << __func__ << "thread pool is already active";
+    LOG(ERROR) << __func__ << "thread pool is already active";
     return false;
   }
 
-  NEARBY_LOGS(INFO) << __func__ << ": Starting thread pool with "
+  LOG(INFO) << __func__ << ": Starting thread pool with "
                     << max_pool_size_ << " threads";
 
   for (size_t i = 0; i < max_pool_size_; i++) {
@@ -67,14 +67,14 @@ bool ThreadPool::Start() {
 
 bool ThreadPool::Run(Runnable &&task) {
   if (shut_down_) {
-    NEARBY_LOGS(ERROR) << __func__ << "thread pool has shut down";
+    LOG(ERROR) << __func__ << "thread pool has shut down";
     return false;
   }
 
   {
     absl::ReaderMutexLock l(&threads_mutex_);
     if (threads_.empty()) {
-      NEARBY_LOGS(ERROR) << __func__ << ": thread pool is not active";
+      LOG(ERROR) << __func__ << ": thread pool is not active";
       return false;
     }
   }

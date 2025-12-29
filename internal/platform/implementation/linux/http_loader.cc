@@ -438,7 +438,7 @@ absl::Status HttpLoader::ConnectWebServer() {
         request_.body.size()));
 
   } else {
-    NEARBY_LOGS(ERROR) << "Failed to open internet with error "
+    LOG(ERROR) << "Failed to open internet with error "
                        << "Invalid request method: " << request_.method << ".";
     return absl::FailedPreconditionError(
         "Failed to open internet: Invalid request method.");
@@ -446,7 +446,7 @@ absl::Status HttpLoader::ConnectWebServer() {
 
   for (const auto &ret : option_return_codes) {
     if (ret) {
-      NEARBY_LOGS(ERROR) << "Failed to open internet with error "
+      LOG(ERROR) << "Failed to open internet with error "
                          << curl_easy_strerror(ret) << ".";
       return absl::FailedPreconditionError(
           absl::StrCat(curl_easy_strerror(ret)));
@@ -460,7 +460,7 @@ absl::Status HttpLoader::SendRequest() {
   CURLcode ret = curl_easy_perform(curl_);
 
   if (ret != CURLE_OK) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << "Failed to send request to remote web server with error "
         << curl_easy_strerror(ret) << ".";
     return absl::FailedPreconditionError(absl::StrCat(curl_easy_strerror(ret)));
@@ -500,7 +500,7 @@ absl::StatusOr<WebResponse> HttpLoader::ProcessResponse() {
       // Append data to response
       web_response.body.assign(response_strings_, download_size);
     } else {
-      NEARBY_LOGS(ERROR)
+      LOG(ERROR)
           << "Failed to read response from remote web server with error "
           << curl_easy_strerror(ret) << ".";
       return absl::FailedPreconditionError(

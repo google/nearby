@@ -58,7 +58,7 @@ class LEAdvertisement final
  private:
   // Methods
   void Release() override {
-    NEARBY_LOGS(INFO) << __func__
+    LOG(INFO) << __func__
                       << ": LE Advertisement released: " << getObjectPath();
   }
 

@@ -32,7 +32,7 @@ Exception Poller::Ready() {
     auto ret = poll(fds_, 1, -1);
     if (ret < 0) {
       if (errno == EAGAIN) continue;
-      NEARBY_LOGS(ERROR) << __func__ << ": error polling socket for I/O: "
+      LOG(ERROR) << __func__ << ": error polling socket for I/O: "
                          << std::strerror(errno);
       return {Exception::kIo};
     }
@@ -40,11 +40,11 @@ Exception Poller::Ready() {
       return {Exception::kSuccess};
     }
     if ((fds_[0].revents & POLLHUP) != 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": socket disconnected";
+      LOG(ERROR) << __func__ << ": socket disconnected";
       return {Exception::kIo};
     }
     if ((fds_[0].revents & (POLLERR | POLLNVAL)) != 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": an error occured on the socket";
+      LOG(ERROR) << __func__ << ": an error occured on the socket";
       return {Exception::kIo};
     }
   }
@@ -68,7 +68,7 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
     auto bytes_read = read(fd_.get(), &data[total_read], (size - total_read));
     if (bytes_read < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": error reading data on bluetooth socket: "
                          << std::strerror(errno);
       return {Exception::kIo};
@@ -101,7 +101,7 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
         write(fd_.get(), &buf[total_wrote], (data.size() - total_wrote));
     if (wrote < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": error writing data on bluetooth socket: "
                          << std::strerror(errno);
       return {Exception::kIo};

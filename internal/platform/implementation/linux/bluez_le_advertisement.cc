@@ -45,7 +45,7 @@ LEAdvertisement::LEAdvertisement(
 
   registerAdaptor();
 
-  NEARBY_LOGS(VERBOSE) << __func__
+  LOG(INFO) << __func__
                        << ": Created a org.bluez.LEAdvertisement1 instance at "
                        << getObjectPath();
 }

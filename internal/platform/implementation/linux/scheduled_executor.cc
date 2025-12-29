@@ -35,7 +35,7 @@ ScheduledExecutor::ScheduledExecutor()
 std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
     Runnable &&runnable, absl::Duration duration) {
   if (shut_down_) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Attempt to Schedule on a shut down executor.";
 
     return nullptr;
@@ -58,7 +58,7 @@ std::shared_ptr<api::Cancelable> ScheduledExecutor::Schedule(
 
 void ScheduledExecutor::Execute(Runnable &&runnable) {
   if (shut_down_) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Attempt to Execute on a shut down executor.";
     return;
   }
@@ -77,7 +77,7 @@ void ScheduledExecutor::Shutdown() {
     executor_->Shutdown();
     return;
   }
-  NEARBY_LOGS(ERROR) << __func__
+  LOG(ERROR) << __func__
                      << ": Attempt to Shutdown on a shut down executor.";
 }
 }  // namespace linux

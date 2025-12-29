@@ -37,12 +37,12 @@ class TCPSocket {
                                           int port) {
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": Error opening socket: " << std::strerror(errno);
       return std::nullopt;
     }
 
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Connecting to " << ip_address << ":"
+    LOG(INFO) << __func__ << ": Connecting to " << ip_address << ":"
                          << port;
     struct sockaddr_in addr;
     addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
@@ -52,7 +52,7 @@ class TCPSocket {
     auto ret =
         connect(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
     if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Error connecting to socket: "
+      LOG(ERROR) << __func__ << ": Error connecting to socket: "
                          << std::strerror(errno);
       return std::nullopt;
     }
@@ -89,7 +89,7 @@ class TCPServerSocket {
       int port) {
     auto sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": Error opening socket: " << std::strerror(errno);
       return std::nullopt;
     }
@@ -106,14 +106,14 @@ class TCPServerSocket {
     auto ret =
         bind(sock, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
     if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Error binding to socket: "
+      LOG(ERROR) << __func__ << ": Error binding to socket: "
                          << std::strerror(errno);
       return std::nullopt;
     }
 
     ret = listen(sock, 0);
     if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Error listening on socket: "
+      LOG(ERROR) << __func__ << ": Error listening on socket: "
                          << std::strerror(errno);
       return std::nullopt;
     }
@@ -127,7 +127,7 @@ class TCPServerSocket {
     auto conn =
         accept(fd_.get(), reinterpret_cast<struct sockaddr*>(&addr), &len);
     if (conn < 0) {
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": Error accepting incoming connections on socket "
                          << fd_.get() << ": " << std::strerror(errno);
       return std::nullopt;
@@ -141,7 +141,7 @@ class TCPServerSocket {
     shutdown(fd, SHUT_RDWR);
     auto ret = close(fd);
     if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__ << ": Error closing socket " << fd << ": "
+      LOG(ERROR) << __func__ << ": Error closing socket " << fd << ": "
                          << std::strerror(errno);
       return {Exception::kFailed};
     }
@@ -155,7 +155,7 @@ class TCPServerSocket {
     auto ret =
         getsockname(fd_.get(), reinterpret_cast<struct sockaddr*>(&sin), &len);
     if (ret < 0) {
-      NEARBY_LOGS(ERROR) << __func__
+      LOG(ERROR) << __func__
                          << ": Error getting information for socket "
                          << fd_.get() << ": " << std::strerror(errno);
       return 0;

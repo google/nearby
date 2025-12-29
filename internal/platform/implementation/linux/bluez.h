@@ -26,7 +26,7 @@
 
 #define BLUEZ_LOG_METHOD_CALL_ERROR(proxy, method, err)                  \
   do {                                                                   \
-    NEARBY_LOGS(ERROR) << __func__ << ": Got error '" << (err).getName() \
+    LOG(ERROR) << __func__ << ": Got error '" << (err).getName() \
                        << "' with message '" << (err).getMessage()       \
                        << "' while calling " << method << " on object "  \
                        << (proxy)->getObjectPath();                      \

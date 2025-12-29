@@ -60,7 +60,7 @@ class Profile final
         released_(false),
         devices_(devices) {
     registerAdaptor();
-    NEARBY_LOGS(VERBOSE) << __func__ << ": Created a new BlueZ profile at :"
+    LOG(INFO) << __func__ << ": Created a new BlueZ profile at :"
                          << getObjectPath();
   }
   ~Profile() { unregisterAdaptor(); }

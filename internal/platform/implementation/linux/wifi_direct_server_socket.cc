@@ -24,7 +24,7 @@ namespace linux {
 std::string NetworkManagerWifiDirectServerSocket::GetIPAddress() const {
   auto ip4addresses = active_conn_->GetIP4Addresses();
   if (ip4addresses.empty()) {
-    NEARBY_LOGS(ERROR)
+    LOG(ERROR)
         << __func__
         << ": Could not find any IPv4 addresses for active connection "
         << active_conn_->getObjectPath();

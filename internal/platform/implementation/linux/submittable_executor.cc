@@ -30,7 +30,7 @@ bool SubmittableExecutor::DoSubmit(Runnable&& wrapped_callable) {
     return true;
   }
 
-  NEARBY_LOGS(ERROR) << "Error: " << __func__
+  LOG(ERROR) << "Error: " << __func__
                      << ": Attempt to DoSubmit on a shutdown executor.";
 
   return false;
@@ -41,7 +41,7 @@ void SubmittableExecutor::Execute(Runnable&& runnable) {
   if (!shut_down_) {
     executor_->Execute(std::move(runnable));
   } else {
-    NEARBY_LOGS(ERROR) << "Error: " << __func__
+    LOG(ERROR) << "Error: " << __func__
                        << ": Attempt to Execute on a shutdown executor.";
   }
 }
@@ -54,7 +54,7 @@ void SubmittableExecutor::Shutdown() {
     return;
   }
 
-  NEARBY_LOGS(ERROR) << "Error: " << __func__
+  LOG(ERROR) << "Error: " << __func__
                      << ": Attempt to Shutdown on a shutdown executor.";
 }
 

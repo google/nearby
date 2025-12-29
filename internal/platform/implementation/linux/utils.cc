@@ -56,7 +56,7 @@ std::optional<std::string> NewUuidStr() {
   sd_id128_t id;
   char id_cstr[SD_ID128_UUID_STRING_MAX];
   if (auto ret = sd_id128_randomize(&id); ret < 0) {
-    NEARBY_LOGS(ERROR) << __func__ << ": could not generate a random UUID: "
+    LOG(ERROR) << __func__ << ": could not generate a random UUID: "
                        << std::strerror(ret);
     return std::nullopt;
   }

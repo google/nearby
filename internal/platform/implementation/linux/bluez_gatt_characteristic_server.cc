@@ -61,7 +61,7 @@ absl::Status GattCharacteristicServer::NotifyChanged(
                                 {"Value"});
     return absl::OkStatus();
   } catch (const sdbus::Error &e) {
-    NEARBY_LOGS(ERROR) << __func__
+    LOG(ERROR) << __func__
                        << ": Error emitting PropertiesChanged signal on "
                        << getObjectPath() << " with name '" << e.getName()
                        << "' and message '" << e.getMessage() << "'";
