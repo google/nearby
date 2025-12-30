@@ -42,7 +42,7 @@ std::string WifiDirectServerSocket::GetIPAddress() const {
 }
 
 void WifiDirectServerSocket::SetIPAddress(std::string ip_address) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (ip_address.empty()) {
     return;
   }
@@ -50,7 +50,7 @@ void WifiDirectServerSocket::SetIPAddress(std::string ip_address) {
 }
 
 std::unique_ptr<api::WifiDirectSocket> WifiDirectServerSocket::Accept() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   if (server_socket_accepted_connection_) {
     LOG(INFO) << "Server socket has already accepted a connection. Return.";
     return nullptr;
@@ -120,7 +120,7 @@ bool WifiDirectServerSocket::Listen(int port) {
     return false;
   }
   LOG(INFO) << "Notify the server socket is started.";
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   is_listen_started_ = true;
   is_listen_ready_.SignalAll();
 
