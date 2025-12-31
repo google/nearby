@@ -576,8 +576,8 @@ class BasePcpHandler : public PcpHandler,
 
   void ProcessPreConnectionInitiationFailure(
       ClientProxy* client, Medium medium, const std::string& endpoint_id,
-      EndpointChannel* channel, bool is_incoming, bool log_failure,
-      absl::Time start_time, Status status,
+      EndpointChannel* channel, bool is_incoming, absl::Time start_time,
+      Status status,
       location::nearby::proto::connections::OperationResultCode
           operation_result_code,
       Future<Status>* result);

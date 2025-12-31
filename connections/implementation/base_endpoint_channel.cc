@@ -30,7 +30,6 @@
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/offline_frames.h"
 #include "internal/flags/nearby_flags.h"
-#include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/byte_utils.h"
 #include "internal/platform/exception.h"
@@ -50,6 +49,15 @@ using ::location::nearby::proto::connections::Medium::BLE;
 using ::location::nearby::proto::connections::Medium::BLE_L2CAP;
 using DisconnectionReason =
     ::location::nearby::proto::connections::DisconnectionReason;
+
+ExceptionOr<std::int32_t> ReadInt(InputStream* reader) {
+  ExceptionOr<ByteArray> read_bytes = reader->ReadExactly(sizeof(std::int32_t));
+  if (!read_bytes.ok()) {
+    return ExceptionOr<std::int32_t>(read_bytes.exception());
+  }
+  return ExceptionOr<std::int32_t>(
+      byte_utils::BytesToInt(std::move(read_bytes.result())));
+}
 
 Exception WriteInt(OutputStream* writer, std::int32_t value) {
   return writer->Write(byte_utils::IntToBytes(value));
@@ -115,10 +123,10 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
         return ExceptionOr<ByteArray>(read_control_block_bytes.exception());
       }
 
-      read_int = (GetMedium() == BLE_L2CAP) ? ReadPayloadLength()
-                                            : Base64Utils::ReadInt(reader_);
+      read_int =
+          (GetMedium() == BLE_L2CAP) ? ReadPayloadLength() : ReadInt(reader_);
     } else {
-      read_int = Base64Utils::ReadInt(reader_);
+      read_int = ReadInt(reader_);
     }
     if (!read_int.ok()) {
       return ExceptionOr<ByteArray>(read_int.exception());

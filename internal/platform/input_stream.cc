@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 
 #include "internal/platform/byte_array.h"
@@ -55,7 +56,7 @@ ExceptionOr<ByteArray> InputStream::ReadExactly(std::size_t size) {
     const ByteArray& result = read_bytes.result();
 
     if (result.Empty()) {
-      return ExceptionOr<ByteArray>(Exception::kNoData);
+      return ExceptionOr<ByteArray>(Exception::kIo);
     }
     if (current_pos == 0) {
       if (result.size() == size) {
