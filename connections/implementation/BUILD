@@ -315,6 +315,7 @@ cc_test(
         "//connections/implementation/mediums:webrtc_utils",
         "//connections/implementation/proto:offline_wire_formats_cc_proto",
         "//connections/v3:v3_types",
+        "//internal/analytics:mock_event_logger",
         "//internal/flags:nearby_flags",
         "//internal/interop:authentication_status",
         "//internal/interop:authentication_transport_interface",
@@ -324,8 +325,8 @@ cc_test(
         "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
-        "//internal/platform/implementation:comm",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
+        "//internal/proto/analytics:connections_log_cc_proto",
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/base:core_headers",

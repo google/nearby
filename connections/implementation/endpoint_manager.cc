@@ -239,6 +239,10 @@ ExceptionOr<bool> EndpointManager::HandleData(
     ExceptionOr<ByteArray> bytes = endpoint_channel->Read(packet_meta_data);
     if (!bytes.ok()) {
       LOG(INFO) << "Stop reading on read-time exception: " << bytes.exception();
+      // Treat kNoData as kIo.
+      if (bytes.exception() == Exception::kNoData) {
+        return ExceptionOr<bool>(Exception::kIo);
+      }
       return ExceptionOr<bool>(bytes.exception());
     }
     ExceptionOr<OfflineFrame> wrapped_frame = parser::FromBytes(bytes.result());

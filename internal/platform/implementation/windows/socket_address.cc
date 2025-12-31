@@ -210,14 +210,13 @@ ServiceAddress SocketAddress::ToServiceAddress(uint16_t port) const {
                     ipv4_address()->sin_addr.S_un.S_un_b.s_b4},
         .port = port,
     };
-  } else {
-    return ServiceAddress{
-        .address =
-            std::vector<char>(ipv6_address()->sin6_addr.u.Byte,
-                              ipv6_address()->sin6_addr.u.Byte + 16),
-        .port = port,
-    };
   }
+  return ServiceAddress{
+      .address =
+          std::vector<char>(ipv6_address()->sin6_addr.u.Byte,
+                            ipv6_address()->sin6_addr.u.Byte + 16),
+      .port = port,
+  };
 }
 
 
