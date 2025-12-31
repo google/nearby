@@ -30,7 +30,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -42,6 +41,7 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/service_address.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Foundation.Collections.h"
@@ -717,13 +717,16 @@ bool WifiLanMedium::IsConnectableIpAddress(NsdServiceInfo& nsd_service_info,
   return false;
 }
 
-std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
+api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
     const api::WifiLanServerSocket& server_socket) {
   const NetworkInfo& network_info = NetworkInfo::GetNetworkInfo();
   uint16_t port = server_socket.GetPort();
-  std::vector<ServiceAddress> ip_addresses;
+  api::UpgradeAddressInfo result;
   std::vector<ServiceAddress> ipv4_addresses;
-  for (const auto& net_interface : network_info.GetInterfaces()) {
+  for (const NetworkInfo::InterfaceInfo& net_interface :
+       network_info.GetInterfaces()) {
+    bool has_ipv6_address = false;
+    bool has_ipv4_address = false;
     // Only use wifi and ethernet interfaces for upgrade.
     if (net_interface.type != InterfaceType::kWifi &&
         net_interface.type != InterfaceType::kEthernet) {
@@ -735,24 +738,41 @@ std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
       if (address.IsV6LinkLocal()) {
         continue;
       }
-      ip_addresses.push_back(address.ToServiceAddress(port));
+      result.address_candidates.push_back(address.ToServiceAddress(port));
+      has_ipv6_address = true;
     }
     for (const SocketAddress& v4_address : net_interface.ipv4_addresses) {
+      // Link local addresses cannot be used for upgrade since we can't tell
+      // which interface on the remote device the address is valid.
+      if (v4_address.IsV4LinkLocal()) {
+        continue;
+      }
       ipv4_addresses.push_back(v4_address.ToServiceAddress(port));
+      has_ipv4_address = true;
+    }
+    if (has_ipv6_address || has_ipv4_address) {
+      result.num_interfaces++;
+      if (has_ipv6_address && !has_ipv4_address) {
+        result.num_ipv6_only_interfaces++;
+      }
     }
   }
   if (NearbyFlags::GetInstance().GetBoolFlag(
           platform::config_package_nearby::nearby_platform_feature::
               kEnableWifiLanAddressCandidates)) {
     // Append v4 addresses to the end of the list.
-    ip_addresses.insert(ip_addresses.end(), ipv4_addresses.begin(),
-                        ipv4_addresses.end());
-    return ip_addresses;
+    result.address_candidates.insert(result.address_candidates.end(),
+                                     ipv4_addresses.begin(),
+                                     ipv4_addresses.end());
+  } else {
+    // If kEnableWifiLanAddressCandidates is disabled, only return the last v4
+    // address.
+    result.address_candidates.clear();
+    if (!ipv4_addresses.empty()) {
+      result.address_candidates.push_back(ipv4_addresses.back());
+    }
   }
-  if (!ipv4_addresses.empty()) {
-    return {ipv4_addresses.back()};
-  }
-  return {};
+  return result;
 }
 
 }  // namespace nearby::windows

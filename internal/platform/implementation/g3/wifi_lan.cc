@@ -26,6 +26,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -289,12 +290,17 @@ std::unique_ptr<api::WifiLanServerSocket> WifiLanMedium::ListenForService(
   return server_socket;
 }
 
-std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
+api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
     const api::WifiLanServerSocket& server_socket) {
   std::string ip_address = server_socket.GetIPAddress();
-  return {ServiceAddress{
+  return {
+    .num_interfaces = 1,
+    .num_ipv6_only_interfaces = 0,
+    .address_candidates =
+      {ServiceAddress{
       .address = std::vector<char>(ip_address.begin(), ip_address.end()),
-      .port = static_cast<uint16_t>(server_socket.GetPort())}};
+      .port = static_cast<uint16_t>(server_socket.GetPort())}}
+  };
 }
 
 }  // namespace g3

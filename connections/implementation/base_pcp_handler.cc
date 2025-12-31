@@ -75,13 +75,13 @@
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/future.h"
 #include "internal/platform/implementation/system_clock.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/prng.h"
 #include "internal/platform/runnable.h"
-#include "internal/platform/service_address.h"
 #include "internal/platform/wifi.h"
 #include "internal/platform/wifi_lan_connection_info.h"
 #include "proto/connections_enums.pb.h"
@@ -198,17 +198,17 @@ std::vector<ConnectionInfoVariant> BasePcpHandler::GetConnectionInfoFromResult(
       BleConnectionInfo info("", "", "", {});
       connection_infos.push_back(info);
     } else if (medium == location::nearby::proto::connections::WIFI_LAN) {
-      std::vector<ServiceAddress> upgrade_candidates =
+      api::UpgradeAddressInfo upgrade_candidates =
           mediums_->GetWifiLan().GetUpgradeAddressCandidates(
               std::string(service_id));
       // Only use IPv4 address.  IPv4 addresses are always at the end of the
       // list.
       std::vector<char> ip_address;
       int port = 0;
-      if (!upgrade_candidates.empty()) {
-        ip_address = upgrade_candidates.back().address;
+      if (!upgrade_candidates.address_candidates.empty()) {
+        ip_address = upgrade_candidates.address_candidates.back().address;
         if (ip_address.size() == 4) {
-          port = upgrade_candidates.back().port;
+          port = upgrade_candidates.address_candidates.back().port;
         }
       }
       WifiLanConnectionInfo info(
