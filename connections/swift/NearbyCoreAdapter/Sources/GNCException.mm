@@ -48,6 +48,8 @@ NSError *NSErrorFromCppException(Exception exception) {
       return [NSError errorWithDomain:GNCExceptionDomain
                                  code:GNCExceptionIllegalCharacters
                              userInfo:nil];
+    case Exception::kNoData:
+      return [NSError errorWithDomain:GNCExceptionDomain code:GNCExceptionIO userInfo:nil];
   }
 }
 
