@@ -21,19 +21,19 @@ namespace nearby {
 namespace apple {
 
 Exception CountDownLatch::Await() {
-  absl::MutexLock lock(&mutex_, absl::Condition(IsZeroOrNegative, &count_));
+  absl::MutexLock lock(mutex_, absl::Condition(IsZeroOrNegative, &count_));
   return {Exception::kSuccess};
 }
 
 ExceptionOr<bool> CountDownLatch::Await(absl::Duration timeout) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   bool condition = mutex_.AwaitWithTimeout(
       absl::Condition(IsZeroOrNegative, &count_), timeout);
   return ExceptionOr<bool>(condition);
 }
 
 void CountDownLatch::CountDown() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
   count_--;
 }
 
