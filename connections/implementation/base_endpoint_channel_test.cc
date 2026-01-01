@@ -473,11 +473,11 @@ TEST_F(BaseEndpointChannelTest, ReadAfterInputStreamClosed) {
   // Close the output stream before trying to read from the input.
   output->Close();
 
-  // Trying to read should fail gracefully with an kNoData error.
+  // Trying to read should fail gracefully with an IO error.
   ExceptionOr<ByteArray> read_data = test_channel.Read();
 
   ASSERT_FALSE(read_data.ok());
-  EXPECT_EQ(read_data.exception(), Exception::kNoData);
+  ASSERT_TRUE(read_data.GetException().Raised(Exception::kIo));
 }
 
 TEST_F(BaseEndpointChannelTest, ReadUnencryptedFrameOnEncryptedChannel) {

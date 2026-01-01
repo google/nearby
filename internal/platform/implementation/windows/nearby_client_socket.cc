@@ -182,11 +182,9 @@ ExceptionOr<ByteArray> NearbyClientSocket::Read(std::int64_t size) {
       // Successfully read some bytes.
       total_bytes_read += bytes_read;
     } else if (bytes_read == 0) {
-      // The peer has performed a graceful shutdown.  Return any data already
-      // read.
-      buffer.resize(total_bytes_read);
-      LOG(INFO) << "Socket closed by peer, data size: " << buffer.size();
-      return ExceptionOr(ByteArray(std::move(buffer)));
+      // The peer has performed a graceful shutdown.
+      LOG(INFO) << "Socket closed gracefully by peer before all data was read.";
+      return {Exception::kIo};
     } else {  // bytes_read == SOCKET_ERROR
       if (WSAGetLastError() == WSAEINTR) {
         VLOG(1) << "Interrupted while reading from socket.";
