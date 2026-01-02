@@ -18,19 +18,18 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/g3/socket_base.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/service_address.h"
-#include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace g3 {
@@ -209,7 +208,7 @@ class WifiLanMedium : public api::WifiLanMedium {
     return std::nullopt;
   }
 
-  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
       const api::WifiLanServerSocket& server_socket) override;
 
  private:

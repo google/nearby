@@ -175,6 +175,7 @@ cc_test(
         "//internal/platform:mac_address",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:comm",
         "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",

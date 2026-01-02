@@ -30,11 +30,11 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/multi_thread_executor.h"
 #include "internal/platform/mutex.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/service_address.h"
-#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -115,10 +115,7 @@ class WifiLan {
   // Returns the list of ip address candidates that can be used to connect to
   // this device for bandwidth upgrade + port number the service is listening
   // on.
-  // The candidates list is ordered to have IPv6 addresses first, then IPv4.
-  // Both IPv4 and IPv6 adddresses are represented as network order byte
-  // sequence.
-  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
       const std::string& service_id) ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:

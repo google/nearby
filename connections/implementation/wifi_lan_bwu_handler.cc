@@ -29,10 +29,9 @@
 #include "connections/implementation/wifi_lan_endpoint_channel.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/expected.h"
-#include "internal/platform/implementation/wifi_utils.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/service_address.h"
-#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -143,15 +142,19 @@ ByteArray WifiLanBwuHandler::HandleInitializeUpgradedMediumForEndpoint(
   // Address candidates are not populated until StartAcceptingConnections() is
   // called and the server socket is created. Be careful moving this codeblock
   // around.
-  std::vector<ServiceAddress> upgrade_candidates =
+  api::UpgradeAddressInfo upgrade_candidates =
       wifi_lan_medium_.GetUpgradeAddressCandidates(upgrade_service_id);
-  if (upgrade_candidates.empty()) {
+  if (upgrade_candidates.address_candidates.empty()) {
     LOG(INFO) << "WifiLanBwuHandler couldn't initiate the wifi_lan upgrade for "
               << "service " << upgrade_service_id << " and endpoint "
               << endpoint_id << " because there are no available ip addresses.";
     return {};
   }
-  return parser::ForBwuWifiLanPathAvailable(upgrade_candidates);
+  client->GetAnalyticsRecorder().UpdateBwUpgradeNetworkInfo(
+      endpoint_id, upgrade_candidates.num_interfaces,
+      upgrade_candidates.num_ipv6_only_interfaces);
+  return parser::ForBwuWifiLanPathAvailable(
+      upgrade_candidates.address_candidates);
 }
 
 void WifiLanBwuHandler::HandleRevertInitiatorStateForService(
