@@ -71,7 +71,7 @@ cc_library(
   hdrs = glob([
     "include/nlohmann/**/*.hpp",
   ]),
-  includes = ["include"],
+    strip_include_prefix = "include",
   visibility = ["//visibility:public"],
   alwayslink = True,
 )""",

@@ -40,10 +40,10 @@
 #include "internal/platform/implementation/linux/preferences_manager.h"
 #include "internal/platform/implementation/linux/submittable_executor.h"
 #include "internal/platform/implementation/linux/timer.h"
-#include "internal/platform/implementation/linux/wifi_direct.h"
-#include "internal/platform/implementation/linux/wifi_hotspot.h"
-#include "internal/platform/implementation/linux/wifi_lan.h"
-#include "internal/platform/implementation/linux/wifi_medium.h"
+// #include "internal/platform/implementation/linux/wifi_direct.h"
+// #include "internal/platform/implementation/linux/wifi_hotspot.h"
+// #include "internal/platform/implementation/linux/wifi_lan.h"
+// #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
 
 #include "absl/strings/str_cat.h"
@@ -210,89 +210,94 @@ ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
 }
 
 namespace {
-static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
-    std::shared_ptr<linux::networkmanager::NetworkManager> nm) {
-  std::vector<sdbus::ObjectPath> device_paths;
-
-  try {
-    device_paths = nm->GetAllDevices();
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(nm, "GetAllDevices", e);
-    return nullptr;
-  }
-
-  auto manager = linux::networkmanager::ObjectManager(nm->GetConnection());
-
-  std::map<sdbus::ObjectPath,
-           std::map<std::string, std::map<std::string, sdbus::Variant>>>
-      objects;
-  try {
-    objects = manager.GetManagedObjects();
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_METHOD_CALL_ERROR(nm, "GetManagedObjects", e);
-    return nullptr;
-  }
-
-  for (auto &device_path : device_paths) {
-    if (objects.count(device_path) == 1) {
-      auto device = objects[device_path];
-      if (device.count(org::freedesktop::NetworkManager::Device::
-                           Wireless_proxy::INTERFACE_NAME) == 1) {
-        LOG(INFO) << __func__
-                          << ": Found a wireless device at :" << device_path;
-        return std::make_unique<linux::NetworkManagerWifiMedium>(nm,
-                                                                 device_path);
-      }
-    }
-  }
-
-  LOG(ERROR) << __func__
-                     << ": couldn't find a wireless device on this system";
-  return nullptr;
-}
+// static std::unique_ptr<linux::NetworkManagerWifiMedium> createWifiMedium(
+//     std::shared_ptr<linux::networkmanager::NetworkManager> nm) {
+//   return nullptr;
+//   std::vector<sdbus::ObjectPath> device_paths;
+//
+//   try {
+//     device_paths = nm->GetAllDevices();
+//   } catch (const sdbus::Error &e) {
+//     DBUS_LOG_METHOD_CALL_ERROR(nm, "GetAllDevices", e);
+//     return nullptr;
+//   }
+//
+//   auto manager = linux::networkmanager::ObjectManager(nm->GetConnection());
+//
+//   std::map<sdbus::ObjectPath,
+//            std::map<std::string, std::map<std::string, sdbus::Variant>>>
+//       objects;
+//   try {
+//     objects = manager.GetManagedObjects();
+//   } catch (const sdbus::Error &e) {
+//     DBUS_LOG_METHOD_CALL_ERROR(nm, "GetManagedObjects", e);
+//     return nullptr;
+//   }
+//
+//   for (auto &device_path : device_paths) {
+//     if (objects.count(device_path) == 1) {
+//       auto device = objects[device_path];
+//       if (device.count(org::freedesktop::NetworkManager::Device::
+//                            Wireless_proxy::INTERFACE_NAME) == 1) {
+//         LOG(INFO) << __func__
+//                           << ": Found a wireless device at :" << device_path;
+//         return std::make_unique<linux::NetworkManagerWifiMedium>(nm,
+//                                                                  device_path);
+//       }
+//     }
+//   }
+//
+//   LOG(ERROR) << __func__
+//                      << ": couldn't find a wireless device on this system";
+//   return nullptr;
+// }
 }  // namespace
 
 std::unique_ptr<api::WifiMedium> ImplementationPlatform::CreateWifiMedium() {
-  auto nm =
-      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
-  return createWifiMedium(nm);
+  return nullptr;
+  // auto nm =
+  //     std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
+  // return createWifiMedium(nm);
 }
 
 std::unique_ptr<api::WifiLanMedium>
 ImplementationPlatform::CreateWifiLanMedium() {
-  auto nm =
-      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
-  return std::make_unique<linux::WifiLanMedium>(nm);
+  return nullptr;
+  // auto nm =
+  //     std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
+  // return std::make_unique<linux::WifiLanMedium>(nm);
 }
 
 std::unique_ptr<api::WifiHotspotMedium>
 ImplementationPlatform::CreateWifiHotspotMedium() {
-  auto nm =
-      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
-  auto wifiMedium = createWifiMedium(nm);
-
-  if (wifiMedium == nullptr) {
-    LOG(ERROR) << __func__ << ": Could not create a WiFi medium";
-    return nullptr;
-  }
-
-  return std::make_unique<linux::NetworkManagerWifiHotspotMedium>(
-      nm, std::move(wifiMedium));
+  return nullptr;
+  // auto nm =
+  //     std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
+  // auto wifiMedium = createWifiMedium(nm);
+  //
+  // if (wifiMedium == nullptr) {
+  //   LOG(ERROR) << __func__ << ": Could not create a WiFi medium";
+  //   return nullptr;
+  // }
+  //
+  // return std::make_unique<linux::NetworkManagerWifiHotspotMedium>(
+  //     nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::WifiDirectMedium>
 ImplementationPlatform::CreateWifiDirectMedium() {
-  auto nm =
-      std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
-  auto wifiMedium = createWifiMedium(nm);
-
-  if (wifiMedium == nullptr) {
-    LOG(ERROR) << __func__ << ": Could not create a WiFi medium";
-    return nullptr;
-  }
-
-  return std::make_unique<linux::NetworkManagerWifiDirectMedium>(
-      nm, std::move(wifiMedium));
+  return nullptr;
+  // auto nm =
+  //     std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
+  // auto wifiMedium = createWifiMedium(nm);
+  //
+  // if (wifiMedium == nullptr) {
+  //   LOG(ERROR) << __func__ << ": Could not create a WiFi medium";
+  //   return nullptr;
+  // }
+  //
+  // return std::make_unique<linux::NetworkManagerWifiDirectMedium>(
+  //     nm, std::move(wifiMedium));
 }
 
 std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {
@@ -301,6 +306,10 @@ std::unique_ptr<api::Timer> ImplementationPlatform::CreateTimer() {
 
 std::unique_ptr<api::DeviceInfo> ImplementationPlatform::CreateDeviceInfo() {
   return std::make_unique<linux::DeviceInfo>(linux::getSystemBusConnection());
+}
+
+  std::unique_ptr<AwdlMedium> ImplementationPlatform::CreateAwdlMedium() {
+  return nullptr;
 }
 
 absl::StatusOr<api::WebResponse> ImplementationPlatform::SendRequest(

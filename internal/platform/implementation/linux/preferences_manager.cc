@@ -21,8 +21,12 @@
 
 #include "absl/strings/string_view.h"
 #include "internal/platform/implementation/linux/preferences_manager.h"
+
+#include "absl/strings/str_cat.h"
+
 #include "internal/platform/implementation/linux/preferences_repository.h"
 #include "internal/platform/logging.h"
+#include "internal/platform/implementation/platform.h"
 #include "nlohmann/json.hpp"
 #include "nlohmann/json_fwd.hpp"
 
@@ -33,15 +37,15 @@ using json = ::nlohmann::json;
 }  // namespace
 
 PreferencesManager::PreferencesManager(absl::string_view file_path)
-    : api::PreferencesManager(file_path) {
-  std::optional<std::filesystem::path> path =
+    : api::PreferencesManager() {
+  std::optional<FilePath> path =
       nearby::api::ImplementationPlatform::CreateDeviceInfo()
           ->GetLocalAppDataPath();
   if (!path.has_value()) {
-    path = std::filesystem::temp_directory_path();
+    path = FilePath("/tmp");
   }
 
-  std::filesystem::path full_path = *path / std::string(file_path);
+  std::filesystem::path full_path = std::filesystem::path(path->ToString()) / std::string(file_path);
   preferences_repository_ =
       std::make_unique<PreferencesRepository>(full_path.string());
   value_ = preferences_repository_->LoadPreferences();

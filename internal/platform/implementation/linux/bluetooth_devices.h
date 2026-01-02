@@ -65,6 +65,16 @@ class BluetoothDevices final {
       ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
   void cleanup_lost_peripherals() ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
 
+    // DEBUG
+    void dump_devices() ABSL_LOCKS_EXCLUDED(devices_by_path_lock_) {
+      absl::ReaderMutexLock lock(&devices_by_path_lock_);
+      LOG(INFO) << "Dumping BluetoothDevices:";
+      for (const auto& [path, device] : devices_by_path_) {
+        LOG(INFO) << " - Device path: " << path << " , Name: " << device->GetName();
+      }
+    }
+
+
  private:
   std::shared_ptr<sdbus::IConnection> system_bus_;
   ObserverList<api::BluetoothClassicMedium::Observer> &observers_;

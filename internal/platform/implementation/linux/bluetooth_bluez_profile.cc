@@ -33,6 +33,7 @@
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
 #include "internal/platform/logging.h"
+#include "absl/strings/str_cat.h"
 
 namespace nearby {
 namespace linux {
@@ -70,12 +71,20 @@ void Profile::NewConnection(
   auto alias = device->GetName();
   auto mac_addr = device->GetAddress();
   LOG(INFO) << __func__ << ": " << getObjectPath()
-                       << ": Connected to " << mac_addr;
+                       << ": Connected to " << mac_addr.ToString();
 
   FDProperties props(fd_props);
 
-  absl::MutexLock l(&connections_lock_);
-  connections_[mac_addr].push_back(std::pair(fd, props));
+  LOG(INFO) << "PUSH key(GetAddress.ToString)=" << mac_addr.ToString()
+            << " alias=" << alias;
+  LOG(INFO) << "PUSH_ENTER profile=" << this
+          << " mutex=" << &connections_lock_
+          << " obj=" << getObjectPath()
+          << " path=" << device_object_path;
+  {
+    absl::MutexLock l(&connections_lock_);
+    connections_[mac_addr.ToString()].push_back(std::pair(fd, props));
+  }
 }
 
 void Profile::RequestDisconnection(
@@ -100,7 +109,6 @@ void Profile::RequestDisconnection(
         << ": Disconnection requested, but we are not connected to this device";
     return;
   }
-
   connections_.erase(mac_addr);
 }
 
@@ -185,24 +193,35 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
   std::unique_ptr<CancellationFlagListener> cancel_listener;
   if (cancellation_flag != nullptr)
     cancel_listener = std::make_unique<CancellationFlagListener>(
-        cancellation_flag, [&profile]() {
-          profile->connections_lock_.Lock();
-          profile->connections_lock_.Unlock();
-        });
+        cancellation_flag, [profile]() {
+  if (profile->connections_lock_.TryLock()) {
+    profile->connections_lock_.Unlock();
+  }
+}
+);
 
   LOG(INFO) << __func__ << ": " << profile->getObjectPath()
                        << ": Attempting to get a FD for service "
                        << service_uuid << " on device " << mac_addr;
 
+  LOG(INFO) << "WAIT profile=" << profile.get()
+            << " mutex=" << &profile->connections_lock_
+            << " obj=" << profile->getObjectPath()
+            << " key=" << mac_addr;
   auto cond = [mac_addr, profile, cancellation_flag]() {
-    profile->connections_lock_.AssertReaderHeld();
+    profile->connections_lock_.AssertHeld();
+    LOG(INFO) << "connections_lock_ is held by: " << mac_addr;
     return profile->connections_.count(mac_addr) != 0 ||
            (cancellation_flag != nullptr && cancellation_flag->Cancelled());
   };
 
+  // BUG: Race condition. Hangs here
+  LOG(INFO) << "WAIT key(GetMacAddress)=" << mac_addr;
+  LOG(INFO) << "connections_ size" << profile -> connections_.size();
   absl::MutexLock connections_lock(&profile->connections_lock_,
                                    absl::Condition(&cond));
-
+  LOG(INFO) << "WAIT_ACQUIRED "
+            << " map_size=" << profile->connections_.size();
   if (cancellation_flag != nullptr && cancellation_flag->Cancelled()) {
     LOG(INFO)
         << __func__ << ": " << profile->getObjectPath() << ": "
@@ -214,7 +233,9 @@ std::optional<sdbus::UnixFd> ProfileManager::GetServiceRecordFD(
 
   auto [fd, properties] = profile->connections_[mac_addr].back();
   profile->connections_[mac_addr].pop_back();
+
   if (profile->connections_[mac_addr].empty())
+
     profile->connections_.erase(mac_addr);
 
   return std::move(fd);

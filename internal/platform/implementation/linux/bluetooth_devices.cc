@@ -159,6 +159,7 @@ void DeviceWatcher::onInterfacesRemoved(
 }
 
 void DeviceWatcher::notifyExistingDevices() {
+  // NOTE: Existing devices don't get identified as endpoints. They only
   std::map<sdbus::ObjectPath,
            std::map<std::string, std::map<std::string, sdbus::Variant>>>
       objects;
@@ -176,6 +177,7 @@ void DeviceWatcher::notifyExistingDevices() {
                    absl::Substitute("$0/dev_", adapter_object_path_)) == 0 &&
                interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 1;
       });
+
 
   for (; device_it != objects.end(); device_it++) {
     LOG(INFO) << __func__ << ": Adding existing device "

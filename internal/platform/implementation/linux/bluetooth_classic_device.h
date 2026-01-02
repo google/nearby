@@ -40,8 +40,7 @@ namespace linux {
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 
   // TODO: This used to inherit from ble_v2::BlePeripheral. Removed that since APIs have now changed
-class BluetoothDevice : public api::BluetoothDevice
-                        {
+class BluetoothDevice : public api::BluetoothDevice {
  public:
   using UniqueId = std::uint64_t;
 
@@ -49,21 +48,17 @@ class BluetoothDevice : public api::BluetoothDevice
   BluetoothDevice(BluetoothDevice &&) = delete;
   BluetoothDevice &operator=(const BluetoothDevice &) = delete;
   BluetoothDevice &operator=(BluetoothDevice &&) = delete;
+
   explicit BluetoothDevice(std::shared_ptr<bluez::Device> device);
 
-  // BluetoothDevice methods
-  // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html#getName()
   std::string GetName() const override;
-  // Returns BT MAC address assigned to this device.
   std::string GetMacAddress() const override;
 
   MacAddress GetAddress() const override { return last_known_address_; }
-  // BlePeripheral methods
-  //UniqueId GetUniqueId() const override { return unique_id_; };
 
   std::optional<std::map<std::string, sdbus::Variant>> ServiceData() {
-    auto device = device_.lock();
-    if (device == nullptr) return std::nullopt;
+    auto device = device_;
+    if (!device) return std::nullopt;
 
     try {
       return device->ServiceData();
@@ -72,9 +67,10 @@ class BluetoothDevice : public api::BluetoothDevice
       return std::nullopt;
     }
   }
+
   bool Bonded() {
-    auto device = device_.lock();
-    if (device == nullptr) return false;
+    auto device = device_;
+    if (!device) return false;
 
     try {
       return device->Bonded();
@@ -85,8 +81,8 @@ class BluetoothDevice : public api::BluetoothDevice
   }
 
   std::optional<sdbus::PendingAsyncCall> Pair() {
-    auto device = device_.lock();
-    if (device == nullptr) return std::nullopt;
+    auto device = device_;
+    if (!device) return std::nullopt;
 
     try {
       return device->Pair();
@@ -97,8 +93,8 @@ class BluetoothDevice : public api::BluetoothDevice
   }
 
   bool CancelPairing() {
-    auto device = device_.lock();
-    if (device == nullptr) return false;
+    auto device = device_;
+    if (!device) return false;
 
     try {
       device->CancelPairing();
@@ -110,8 +106,8 @@ class BluetoothDevice : public api::BluetoothDevice
   }
 
   void SetPairReplyCallback(absl::AnyInvocable<void(const sdbus::Error *)> cb) {
-    auto device = device_.lock();
-    if (device != nullptr) device->SetPairReplyCallback(std::move(cb));
+    auto device = device_;
+    if (device) device->SetPairReplyCallback(std::move(cb));
   }
 
   bool ConnectToProfile(absl::string_view service_uuid);
@@ -126,7 +122,8 @@ class BluetoothDevice : public api::BluetoothDevice
   mutable absl::Mutex properties_mutex_;
   mutable std::string last_known_name_ ABSL_GUARDED_BY(properties_mutex_);
   mutable MacAddress last_known_address_ ABSL_GUARDED_BY(properties_mutex_);
-  mutable std::weak_ptr<bluez::Device> device_;
+
+  std::shared_ptr<bluez::Device> device_;
 };
 
 class MonitoredBluetoothDevice final

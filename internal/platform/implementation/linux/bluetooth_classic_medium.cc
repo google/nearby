@@ -45,9 +45,9 @@ BluetoothClassicMedium::BluetoothClassicMedium(BluetoothAdapter &adapter)
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
   device_watcher_ = std::make_unique<DeviceWatcher>(
-      *system_bus_, adapter_.GetObjectPath(), devices_,
+      *system_bus_, adapter_.GetObjectPath(), devices_, // BUG: this is getting called with devices_ being a nullptr
       std::make_unique<DiscoveryCallback>(std::move(discovery_callback)),
-      observers_);
+      observers_); // BUG: observers_ is a nullptr
 
   std::map<std::string, sdbus::Variant> filter;
   filter["Transport"] = "auto";
@@ -103,8 +103,9 @@ std::unique_ptr<api::BluetoothSocket> BluetoothClassicMedium::ConnectToService(
     }
   }
 
-  auto address = remote_device.GetMacAddress();
-  auto device = devices_->get_device_by_address(address);
+  // who is passing this here?
+  auto address = remote_device.GetMacAddress(); //BUG: this returns the last known name instead of mac address
+  auto device = devices_->get_device_by_address(address); //BUG: this returns nullptr. WHy? who knows
   if (device == nullptr) {
     LOG(ERROR) << __func__ << ": Device " << address
                        << " is no longer known";

@@ -29,6 +29,7 @@ namespace nearby {
 namespace linux {
 BluetoothDevice::BluetoothDevice(std::shared_ptr<bluez::Device> device)
     : lost_(false), device_(device) {
+  LOG(INFO) << "Created BluetoothDevice for: " << device -> Address();
   try {
     last_known_name_ = device->Alias();
   } catch (const sdbus::Error &e) {
@@ -43,7 +44,7 @@ BluetoothDevice::BluetoothDevice(std::shared_ptr<bluez::Device> device)
 }
 
 std::string BluetoothDevice::GetName() const {
-  auto device = device_.lock();
+  auto device = device_;
   if (device == nullptr) {
     absl::ReaderMutexLock l(&properties_mutex_);
     return last_known_name_;
@@ -63,7 +64,7 @@ std::string BluetoothDevice::GetName() const {
 }
 
 std::string BluetoothDevice::GetMacAddress() const {
-  auto device = device_.lock();
+  auto device = device_;
   if (device == nullptr) {
     absl::ReaderMutexLock l(&properties_mutex_);
     return last_known_name_;
@@ -83,7 +84,7 @@ std::string BluetoothDevice::GetMacAddress() const {
 }
 
 bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
-  auto device = device_.lock();
+  auto device = device_;
   if (device == nullptr) return false;
   try {
     device->ConnectProfile(std::string(service_uuid));
@@ -98,7 +99,7 @@ MonitoredBluetoothDevice::MonitoredBluetoothDevice(
     std::shared_ptr<sdbus::IConnection> system_bus,
     std::shared_ptr<bluez::Device> device,
     ObserverList<api::BluetoothClassicMedium::Observer> &observers)
-    : BluetoothDevice(std::move(device)),
+    : BluetoothDevice(device),
       ProxyInterfaces<sdbus::Properties_proxy>(*system_bus, bluez::SERVICE_DEST,
                                                device->getObjectPath()),
       system_bus_(std::move(system_bus)),
