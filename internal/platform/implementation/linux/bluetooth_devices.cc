@@ -173,6 +173,7 @@ void DeviceWatcher::notifyExistingDevices() {
       std::find_if(objects.begin(), objects.end(), [&](auto entry) {
         auto &[device_path, interfaces] = entry;
 
+
         return device_path.find(
                    absl::Substitute("$0/dev_", adapter_object_path_)) == 0 &&
                interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 1;

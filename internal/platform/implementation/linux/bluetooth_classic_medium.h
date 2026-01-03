@@ -26,6 +26,7 @@
 #include <sdbus-c++/StandardInterfaces.h>
 #include <sdbus-c++/Types.h>
 
+#include "bluez_agent.h"
 #include "internal/base/observer_list.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_adapter.h"
@@ -34,7 +35,7 @@
 
 namespace nearby {
 namespace linux {
-// Container of operations that can be performed over the Bluetooth Classic
+  // Container of operations that can be performed over the Bluetooth Classic
 // medium.
 class BluetoothClassicMedium : public api::BluetoothClassicMedium {
  public:
@@ -106,6 +107,7 @@ class BluetoothClassicMedium : public api::BluetoothClassicMedium {
   std::shared_ptr<BluetoothDevices> devices_;
   std::unique_ptr<DeviceWatcher> device_watcher_;
 
+  std::unique_ptr<AgentManager> agent_manager_;
   std::unique_ptr<ProfileManager> profile_manager_;
 };
 

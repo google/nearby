@@ -41,6 +41,7 @@ std::unique_ptr<api::BluetoothSocket> BluetoothServerSocket::Accept() {
   }
 
   auto [device, fd] = *pair;
+  LOG(INFO) << __func__ << ": accepted incoming connection for service uuid " << service_uuid_;
   return std::make_unique<BluetoothSocket>(device, std::move(fd));
 }
 
