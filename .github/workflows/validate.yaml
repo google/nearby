@@ -27,6 +27,16 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: true
+    - uses: actions/checkout@v3
+      with:
+        repository: protocolbuffers/protobuf
+        ref: v33.2
+        path: my-protobuf
+    - name: install protoc
+      run: brew install protobuf; protoc --version
+    - name: generate nearby proto files
+      run: mkdir new_compiled_proto; protoc --cpp_out=new_compiled_proto connections/implementation/proto/offline_wire_formats.proto internal/proto/analytics/connections_log.proto proto/errorcode/error_code_enums.proto proto/mediums/ble_frames.proto proto/mediums/nfc_frames.proto proto/mediums/web_rtc_signaling_frames.proto proto/connections_enums.proto proto/sharing_enums.proto; ls -lR new_compiled_proto
+#      run: protoc --cpp_out=new_compiled_proto connections/implementation/proto/offline_wire_formats.proto; protoc --cpp_out=new_compiled_proto internal/proto/analytics/connections_log.proto;protoc --cpp_out=new_compiled_proto proto/errorcode/error_code_enums.proto; protoc --cpp_out=new_compiled_proto proto/mediums/ble_frames.proto; protoc --cpp_out=new_compiled_proto proto/mediums/nfc_frames.proto; protoc --cpp_out=new_compiled_proto proto/mediums/web_rtc_signaling_frames.proto; protoc --cpp_out=new_compiled_proto proto/connections_enums.proto; protoc --cpp_out=new_compiled_proto proto/sharing_enums.proto
     - name: Build
       run: swift build
 
@@ -45,12 +55,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Build Connections
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //connections:core
-    - name: Build Presence
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //presence
-    - name: Build Sharing
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/analytics
+    # - name: Build Connections
+    #   run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //connections:core
+    # - name: Build Presence
+    #   run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //presence
+    # - name: Build Sharing
+    #   run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/...
 
   build-rust-linux:
     name: Build Rust on Linux

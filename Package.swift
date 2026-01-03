@@ -105,7 +105,8 @@ let package = Package(
     ),
     .target(
       name: "protobuf",
-      path: "third_party/protobuf/src",
+      // path: "third_party/protobuf/src",
+      path: "my-protobuf/src",
       exclude: [
         "google/protobuf/compiler",
         "google/protobuf/testdata",
@@ -470,7 +471,8 @@ let package = Package(
         "internal/platform/medium_environment.cc",
       ],
       sources: [
-        "compiled_proto",
+        // "compiled_proto",
+        "new_compiled_proto",
         "connections",
         "internal",
         "proto",
@@ -478,7 +480,7 @@ let package = Package(
       publicHeadersPath: "connections",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("new_compiled_proto/"),
         .headerSearchPath("third_party/ukey2/ukey2/"),
         .headerSearchPath("third_party/ukey2/compiled_proto/"),
         .define("NO_WEBRTC"),
@@ -497,7 +499,7 @@ let package = Package(
       publicHeadersPath: "connections/c",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("new_compiled_proto/"),
         .define("NO_WEBRTC"),
       ]
     ),
@@ -510,7 +512,7 @@ let package = Package(
       publicHeadersPath: "connections/swift/NearbyCoreAdapter/Sources/Public",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("new_compiled_proto/"),
         .define("NO_WEBRTC"),
       ]
     ),
