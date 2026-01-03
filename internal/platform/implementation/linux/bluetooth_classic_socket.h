@@ -22,6 +22,7 @@
 #include <sys/poll.h>
 #include <systemd/sd-bus.h>
 
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
@@ -62,7 +63,8 @@ class BluetoothInputStream final : public nearby::InputStream {
   Exception Close() override;
 
  private:
-  sdbus::UnixFd fd_;
+  mutable absl::Mutex fd_mutex_;
+  sdbus::UnixFd fd_ ABSL_GUARDED_BY(fd_mutex_);
 };
 
 class BluetoothOutputStream : public nearby::OutputStream {
@@ -74,7 +76,8 @@ class BluetoothOutputStream : public nearby::OutputStream {
   Exception Close() override;
 
  private:
-  sdbus::UnixFd fd_;
+  mutable absl::Mutex fd_mutex_;
+  sdbus::UnixFd fd_ ABSL_GUARDED_BY(fd_mutex_);
 };
 
 class BluetoothSocket final : public api::BluetoothSocket {

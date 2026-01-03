@@ -51,8 +51,13 @@ Exception Poller::Ready() {
 }
 
 ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
-  if (!fd_.isValid()) return Exception{Exception::kIo};
+  // Check if FD is valid before proceeding
+  {
+    absl::MutexLock lock(&fd_mutex_);
+    if (!fd_.isValid()) return Exception{Exception::kIo};
+  }
 
+  // Create poller while we still have the FD (copy the fd value)
   auto poller = Poller::CreateInputPoller(fd_);
 
   std::string buffer;
@@ -68,9 +73,19 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
     auto bytes_read = read(fd_.get(), &data[total_read], (size - total_read));
     if (bytes_read < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+      if (errno == EBADF) {
+        // FD was closed by another thread
+        LOG(INFO) << __func__ << ": socket was closed during read";
+        return {Exception::kIo};
+      }
       LOG(ERROR) << __func__
                          << ": error reading data on bluetooth socket: "
                          << std::strerror(errno);
+      return {Exception::kIo};
+    }
+    if (bytes_read == 0) {
+      // EOF - socket closed
+      LOG(INFO) << __func__ << ": socket closed (EOF)";
       return {Exception::kIo};
     }
     total_read += bytes_read;
@@ -80,14 +95,20 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
 }
 
 Exception BluetoothInputStream::Close() {
-  if (!fd_.isValid()) return {Exception::kIo};
+  absl::MutexLock lock(&fd_mutex_);
+  if (!fd_.isValid()) return {Exception::kSuccess};  // Already closed
   fd_.reset();
   return {Exception::kSuccess};
 }
 
 Exception BluetoothOutputStream::Write(const ByteArray &data) {
-  if (!fd_.isValid()) return Exception{Exception::kIo};
+  // Check if FD is valid before proceeding
+  {
+    absl::MutexLock lock(&fd_mutex_);
+    if (!fd_.isValid()) return Exception{Exception::kIo};
+  }
 
+  // Create poller while we still have the FD (copy the fd value)
   auto poller = Poller::CreateOutputPoller(fd_);
 
   size_t total_wrote = 0;
@@ -101,6 +122,11 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
         write(fd_.get(), &buf[total_wrote], (data.size() - total_wrote));
     if (wrote < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+      if (errno == EBADF || errno == EPIPE) {
+        // FD was closed by another thread
+        LOG(INFO) << __func__ << ": socket was closed during write";
+        return {Exception::kIo};
+      }
       LOG(ERROR) << __func__
                          << ": error writing data on bluetooth socket: "
                          << std::strerror(errno);
@@ -114,7 +140,8 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
 }
 
 Exception BluetoothOutputStream::Close() {
-  if (!fd_.isValid()) return {Exception::kIo};
+  absl::MutexLock lock(&fd_mutex_);
+  if (!fd_.isValid()) return {Exception::kSuccess};  // Already closed
   fd_.reset();
   return {Exception::kSuccess};
 }
