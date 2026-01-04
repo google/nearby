@@ -34,6 +34,8 @@
 
 namespace nearby {
 namespace linux {
+class BluetoothAdapter;
+
 class BluetoothDevices final {
  public:
   BluetoothDevices(
@@ -97,6 +99,7 @@ class DeviceWatcher final : sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
   DeviceWatcher(
       sdbus::IConnection &system_bus,
       const sdbus::ObjectPath &adapter_object_path,
+      BluetoothAdapter &adapter,
       std::shared_ptr<BluetoothDevices> devices,
       std::unique_ptr<api::BluetoothClassicMedium::DiscoveryCallback>
           discovery_callback,
@@ -104,6 +107,7 @@ class DeviceWatcher final : sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
           observers)
       : ProxyInterfaces(system_bus, "org.bluez", "/"),
         adapter_object_path_(adapter_object_path),
+        adapter_(adapter),
         devices_(std::move(devices)),
         discovery_cb_(std::move(discovery_callback)),
         observers_(std::move(observers)) {
@@ -112,8 +116,9 @@ class DeviceWatcher final : sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
   }
   DeviceWatcher(sdbus::IConnection &system_bus,
                 const sdbus::ObjectPath &adapter_object_path,
+                BluetoothAdapter &adapter,
                 std::shared_ptr<BluetoothDevices> devices)
-      : DeviceWatcher(system_bus, adapter_object_path, std::move(devices),
+      : DeviceWatcher(system_bus, adapter_object_path, adapter, std::move(devices),
                       nullptr, nullptr) {}
   ~DeviceWatcher() { unregisterProxy(); }
 
@@ -128,6 +133,7 @@ class DeviceWatcher final : sdbus::ProxyInterfaces<sdbus::ObjectManager_proxy> {
   void notifyExistingDevices();
 
   sdbus::ObjectPath adapter_object_path_;
+  BluetoothAdapter &adapter_;
   std::shared_ptr<BluetoothDevices> devices_;
   std::shared_ptr<api::BluetoothClassicMedium::DiscoveryCallback> discovery_cb_;
   std::shared_ptr<ObserverList<api::BluetoothClassicMedium::Observer>>

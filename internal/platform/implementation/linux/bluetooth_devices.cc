@@ -21,6 +21,7 @@
 
 #include "absl/strings/substitute.h"
 #include "absl/synchronization/mutex.h"
+#include "internal/platform/implementation/linux/bluetooth_adapter.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
@@ -159,7 +160,6 @@ void DeviceWatcher::onInterfacesRemoved(
 }
 
 void DeviceWatcher::notifyExistingDevices() {
-  // NOTE: Existing devices don't get identified as endpoints. They only
   std::map<sdbus::ObjectPath,
            std::map<std::string, std::map<std::string, sdbus::Variant>>>
       objects;
@@ -169,23 +169,53 @@ void DeviceWatcher::notifyExistingDevices() {
     DBUS_LOG_METHOD_CALL_ERROR(this, "GetManagedObjects", e);
     return;
   }
-  auto device_it =
-      std::find_if(objects.begin(), objects.end(), [&](auto entry) {
-        auto &[device_path, interfaces] = entry;
 
+  std::vector<sdbus::ObjectPath> existing_device_paths;
 
-        return device_path.find(
-                   absl::Substitute("$0/dev_", adapter_object_path_)) == 0 &&
-               interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 1;
-      });
+  for (const auto& [device_path, interfaces] : objects) {
+    if (device_path.find(absl::Substitute("$0/dev_", adapter_object_path_)) == 0 &&
+        interfaces.count(org::bluez::Device1_proxy::INTERFACE_NAME) == 1) {
+      
+      // Don't remove bonded, paired, connected, or trusted devices
+      bool should_skip = false;
+      auto device_interface_it = interfaces.find(org::bluez::Device1_proxy::INTERFACE_NAME);
+      if (device_interface_it != interfaces.end()) {
+        const auto& properties = device_interface_it->second;
+        
+        auto check_bool_property = [&properties](const std::string& prop_name) -> bool {
+          auto it = properties.find(prop_name);
+          if (it != properties.end()) {
+            try {
+              return it->second.get<bool>();
+            } catch (...) {
+              return false;
+            }
+          }
+          return false;
+        };
+        
+        if (check_bool_property("Bonded") || 
+            check_bool_property("Paired") ||
+            check_bool_property("Connected") ||
+            check_bool_property("Trusted")) {
+          should_skip = true;
+          LOG(INFO) << __func__ << ": Skipping device " << device_path 
+                    << " (bonded/paired/connected/trusted)";
+        }
+      }
+      
+      if (!should_skip) {
+        existing_device_paths.push_back(device_path);
+      }
+    }
+  }
 
-
-  for (; device_it != objects.end(); device_it++) {
-    LOG(INFO) << __func__ << ": Adding existing device "
-                         << device_it->first;
-    auto device = devices_->add_new_device(device_it->first);
-    if (discovery_cb_ != nullptr) {
-      device->SetDiscoveryCallback(discovery_cb_);
+  // Remove existing devices - they will be immediately re-discovered
+  // This triggers InterfacesAdded signals which properly invoke discovery callbacks
+  for (const auto& device_path : existing_device_paths) {
+    LOG(INFO) << __func__ << ": Refreshing existing device " << device_path;
+    if (!adapter_.RemoveDeviceByObjectPath(device_path)) {
+      LOG(WARNING) << __func__ << ": Failed to remove device " << device_path;
     }
   }
 }

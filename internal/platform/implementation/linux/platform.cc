@@ -61,27 +61,68 @@ namespace api {
 std::string ImplementationPlatform::GetCustomSavePath(
     const std::string &parent_folder, const std::string &file_name) {
   auto fs = std::filesystem::path(parent_folder);
-  return fs / file_name;
+  return (fs / file_name).string();
 }
 
 std::string ImplementationPlatform::GetDownloadPath(
     const std::string &parent_folder, const std::string &file_name) {
-  auto downloads = std::filesystem::path(getenv("XDG_DOWNLOAD_DIR"));
-
-  return downloads / std::filesystem::path(parent_folder).filename() /
-         std::filesystem::path(file_name).filename();
+  std::filesystem::path downloads;
+  const char* download_dir = getenv("XDG_DOWNLOAD_DIR");
+  
+  if (download_dir != nullptr) {
+    downloads = std::filesystem::path(download_dir);
+  } else {
+    // Fallback to ~/Downloads if XDG_DOWNLOAD_DIR is not set
+    const char* home = getenv("HOME");
+    if (home != nullptr) {
+      downloads = std::filesystem::path(home) / "Downloads";
+    } else {
+      downloads = "/tmp/Downloads";
+    }
+  }
+  
+  return (downloads / std::filesystem::path(parent_folder).filename() /
+          std::filesystem::path(file_name).filename()).string();
 }
 
 std::string ImplementationPlatform::GetDownloadPath(
     const std::string &file_name) {
-  auto downloads = std::filesystem::path(getenv("XDG_DOWNLOAD_DIR"));
-  return downloads / std::filesystem::path(file_name).filename();
+  std::filesystem::path downloads;
+  const char* download_dir = getenv("XDG_DOWNLOAD_DIR");
+  
+  if (download_dir != nullptr) {
+    downloads = std::filesystem::path(download_dir);
+  } else {
+    // Fallback to ~/Downloads if XDG_DOWNLOAD_DIR is not set
+    const char* home = getenv("HOME");
+    if (home != nullptr) {
+      downloads = std::filesystem::path(home) / "Downloads";
+    } else {
+      downloads = "/tmp/Downloads";
+    }
+  }
+  
+  return (downloads / std::filesystem::path(file_name).filename()).string();
 }
 
 std::string ImplementationPlatform::GetAppDataPath(
     const std::string &file_name) {
-  auto state = std::filesystem::path(getenv("XDG_STATE_HOME"));
-  return state / std::filesystem::path(file_name).filename();
+  std::filesystem::path state;
+  const char* state_home = getenv("XDG_STATE_HOME");
+  
+  if (state_home != nullptr) {
+    state = std::filesystem::path(state_home);
+  } else {
+    // Fallback to ~/.local/state if XDG_STATE_HOME is not set
+    const char* home = getenv("HOME");
+    if (home != nullptr) {
+      state = std::filesystem::path(home) / ".local" / "state";
+    } else {
+      state = "/tmp/state";
+    }
+  }
+  
+  return (state / std::filesystem::path(file_name).filename()).string();
 }
 
 OSName ImplementationPlatform::GetCurrentOS() { return OSName::kWindows; }

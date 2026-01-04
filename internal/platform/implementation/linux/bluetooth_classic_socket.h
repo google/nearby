@@ -78,6 +78,10 @@ class BluetoothOutputStream : public nearby::OutputStream {
  private:
   mutable absl::Mutex fd_mutex_;
   sdbus::UnixFd fd_ ABSL_GUARDED_BY(fd_mutex_);
+
+  // For packet sockets, discovered max payload per send/write.
+  // 0 means "unknown", we’ll initialize on first packet write.
+  size_t max_chunk_ ABSL_GUARDED_BY(fd_mutex_) = 0;
 };
 
 class BluetoothSocket final : public api::BluetoothSocket {

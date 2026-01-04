@@ -48,9 +48,9 @@ BluetoothClassicMedium::BluetoothClassicMedium(BluetoothAdapter &adapter)
 bool BluetoothClassicMedium::StartDiscovery(
     DiscoveryCallback discovery_callback) {
   device_watcher_ = std::make_unique<DeviceWatcher>(
-      *system_bus_, adapter_.GetObjectPath(), devices_, // BUG: this is getting called with devices_ being a nullptr
+      *system_bus_, adapter_.GetObjectPath(), adapter_, devices_,
       std::make_unique<DiscoveryCallback>(std::move(discovery_callback)),
-      observers_); // BUG: observers_ is a nullptr
+      observers_);
 
   std::map<std::string, sdbus::Variant> filter;
   filter["Transport"] = "auto";
