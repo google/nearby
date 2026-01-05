@@ -26,7 +26,7 @@
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_medium.h"
 
-#include "bluez_agent.h"
+// #include "bluez_agent.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_server_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_socket.h"
 #include "internal/platform/implementation/linux/bluetooth_pairing.h"
@@ -41,7 +41,7 @@ BluetoothClassicMedium::BluetoothClassicMedium(BluetoothAdapter &adapter)
       devices_(std::make_shared<BluetoothDevices>(
           system_bus_, adapter.GetObjectPath(), *observers_)),
       device_watcher_(nullptr),
-      agent_manager_(std::make_unique<AgentManager>(*system_bus_)),
+      // agent_manager_(std::make_unique<AgentManager>(*system_bus_)),
       profile_manager_(
           std::make_unique<ProfileManager>(*system_bus_, *devices_)) {}
 
@@ -145,15 +145,6 @@ BluetoothClassicMedium::ListenForService(const std::string &service_name,
                                          const std::string &service_uuid) {
   LOG(INFO) << __func__ << ": Creating bluez agent on path: " << "/com/example/bluez_agent" ;
 
-  if (!agent_manager_ -> AgentRegistered("/com/example/bluez_agent"))
-  {
-    if (!agent_manager_ -> Register(std::nullopt, "/com/example/bluez_agent"))
-    {
-      LOG(ERROR) << __func__ << ": Could not register agent " << service_name << " "
-      << service_uuid;
-      return nullptr;
-    }
-  }
   if (!profile_manager_->ProfileRegistered(service_uuid)) {
     if (!profile_manager_->Register(service_name, service_uuid)) {
       LOG(ERROR) << __func__ << ": Could not register profile "

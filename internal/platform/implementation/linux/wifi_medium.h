@@ -28,6 +28,7 @@
 #include <sdbus-c++/Types.h>
 
 #include "absl/synchronization/mutex.h"
+#include "absl/container/flat_hash_map.h"
 #include "internal/platform/implementation/linux/generated/dbus/networkmanager/device_wireless_client.h"
 #include "internal/platform/implementation/linux/network_manager.h"
 #include "internal/platform/implementation/linux/network_manager_access_point.h"

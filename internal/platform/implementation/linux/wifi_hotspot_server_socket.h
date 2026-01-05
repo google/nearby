@@ -15,6 +15,8 @@
 #ifndef PLATFORM_IMPL_LINUX_WIFI_SERVER_SOCKET_H_
 #define PLATFORM_IMPL_LINUX_WIFI_SERVER_SOCKET_H_
 
+#include <atomic>
+
 #include <sdbus-c++/IConnection.h>
 
 #include "internal/platform/implementation/linux/network_manager.h"
@@ -31,7 +33,8 @@ class NetworkManagerWifiHotspotServerSocket
       std::shared_ptr<networkmanager::NetworkManager> network_manager)
       : fd_(socket),
         active_conn_(std::move(active_conn)),
-        network_manager_(std::move(network_manager)) {}
+        network_manager_(std::move(network_manager)),
+        closed_(false) {}
 
   std::string GetIPAddress() const override;
   int GetPort() const override;
@@ -42,6 +45,7 @@ class NetworkManagerWifiHotspotServerSocket
   sdbus::UnixFd fd_;
   std::unique_ptr<networkmanager::ActiveConnection> active_conn_;
   std::shared_ptr<networkmanager::NetworkManager> network_manager_;
+  std::atomic<bool> closed_;
 };
 }  // namespace linux
 }  // namespace nearby

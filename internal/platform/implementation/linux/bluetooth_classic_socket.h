@@ -15,6 +15,7 @@
 #ifndef PLATFORM_IMPL_LINUX_BLUETOOTH_SOCKET_H_
 #define PLATFORM_IMPL_LINUX_BLUETOOTH_SOCKET_H_
 
+#include <atomic>
 #include <memory>
 #include <optional>
 
@@ -43,11 +44,20 @@ class Poller final {
     return Poller(fd, POLLOUT);
   }
 
+  static Poller CreateInputPoller(int fd) { return Poller(fd, POLLIN); }
+
+  static Poller CreateOutputPoller(int fd) { return Poller(fd, POLLOUT); }
+
   Exception Ready();
 
  private:
   Poller(const sdbus::UnixFd &fd, short event) : poll_event_(event) {
     fds_[0].fd = fd.get();
+    fds_[0].events = event;
+  }
+
+  Poller(int fd, short event) : poll_event_(event) {
+    fds_[0].fd = fd;
     fds_[0].events = event;
   }
 
@@ -57,19 +67,21 @@ class Poller final {
 
 class BluetoothInputStream final : public nearby::InputStream {
  public:
-  explicit BluetoothInputStream(sdbus::UnixFd fd) : fd_(std::move(fd)){};
+  explicit BluetoothInputStream(sdbus::UnixFd fd)
+      : fd_(std::move(fd)), fd_raw_(fd_.get()) {}
 
   ExceptionOr<ByteArray> Read(std::int64_t size) override;
   Exception Close() override;
 
  private:
-  mutable absl::Mutex fd_mutex_;
-  sdbus::UnixFd fd_ ABSL_GUARDED_BY(fd_mutex_);
+  sdbus::UnixFd fd_;
+  std::atomic<int> fd_raw_{-1};
 };
 
 class BluetoothOutputStream : public nearby::OutputStream {
  public:
-  explicit BluetoothOutputStream(sdbus::UnixFd fd) : fd_(std::move(fd)){};
+  explicit BluetoothOutputStream(sdbus::UnixFd fd)
+      : fd_(std::move(fd)), fd_raw_(fd_.get()) {}
 
   Exception Write(const ByteArray &data) override;
   Exception Flush() override { return {Exception::kSuccess}; }
@@ -77,7 +89,8 @@ class BluetoothOutputStream : public nearby::OutputStream {
 
  private:
   mutable absl::Mutex fd_mutex_;
-  sdbus::UnixFd fd_ ABSL_GUARDED_BY(fd_mutex_);
+  sdbus::UnixFd fd_;
+  std::atomic<int> fd_raw_{-1};
 
   // For packet sockets, discovered max payload per send/write.
   // 0 means "unknown", we’ll initialize on first packet write.

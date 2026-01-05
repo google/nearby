@@ -82,14 +82,14 @@ Exception Poller::Ready() {
 
 
 ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
-  absl::MutexLock lock(&fd_mutex_);
-  if (!fd_.isValid()) return Exception{Exception::kIo};
+  int fd = fd_raw_.load();
+  if (fd < 0) return Exception{Exception::kIo};
 
-  auto poller = Poller::CreateInputPoller(fd_);
+  auto poller = Poller::CreateInputPoller(fd);
 
   int so_type = 0;
   socklen_t sl = sizeof(so_type);
-  if (::getsockopt(fd_.get(), SOL_SOCKET, SO_TYPE, &so_type, &sl) != 0) {
+  if (::getsockopt(fd, SOL_SOCKET, SO_TYPE, &so_type, &sl) != 0) {
     // If unknown, default to stream-ish behavior.
     so_type = SOCK_STREAM;
   }
@@ -102,13 +102,15 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
   if (packet_based) {
     // Wait for readability
     while (true) {
+      if (fd_raw_.load() != fd) return {Exception::kIo};
       auto result = poller.Ready();
       if (result.Raised()) return result;
+      if (fd_raw_.load() != fd) return {Exception::kIo};
 
       // Peek the next message length without consuming it.
       // For seqpacket/dgram, MSG_TRUNC makes recv() return the *full* message length
       // even if the buffer is smaller.
-      ssize_t msg_len = ::recv(fd_.get(), nullptr, 0, MSG_PEEK | MSG_TRUNC);
+      ssize_t msg_len = ::recv(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC);
       if (msg_len < 0) {
         if (errno == EINTR) continue;
         if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
@@ -137,7 +139,8 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
       // Now read/consume the message. If the message is larger than to_read,
       // the remainder will be discarded by the kernel for seqpacket/dgram.
       // We can detect that and treat it as an error (or choose a different policy).
-      ssize_t n = ::recv(fd_.get(), buffer.data(), to_read, 0);
+      if (fd_raw_.load() != fd) return {Exception::kIo};
+      ssize_t n = ::recv(fd, buffer.data(), to_read, 0);
       if (n < 0) {
         if (errno == EINTR) continue;
         if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
@@ -176,10 +179,12 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
 
   size_t total_read = 0;
   while (total_read < static_cast<size_t>(size)) {
+    if (fd_raw_.load() != fd) return {Exception::kIo};
     auto result = poller.Ready();
     if (result.Raised()) return result;
+    if (fd_raw_.load() != fd) return {Exception::kIo};
 
-    ssize_t bytes_read = ::read(fd_.get(),
+    ssize_t bytes_read = ::read(fd,
                                 data + total_read,
                                 static_cast<size_t>(size) - total_read);
     if (bytes_read < 0) {
@@ -204,23 +209,24 @@ ExceptionOr<ByteArray> BluetoothInputStream::Read(std::int64_t size) {
 }
 
 Exception BluetoothInputStream::Close() {
-  absl::MutexLock lock(&fd_mutex_);
-  if (!fd_.isValid()) return {Exception::kSuccess};  // Already closed
+  int fd = fd_raw_.exchange(-1);
+  if (fd < 0) return {Exception::kSuccess};  // Already closed
+  ::shutdown(fd, SHUT_RDWR);
   fd_.reset();
   return {Exception::kSuccess};
 }
 
 Exception BluetoothOutputStream::Write(const ByteArray &data) {
-  absl::MutexLock lock(&fd_mutex_);
-  if (!fd_.isValid()) return Exception{Exception::kIo};
+  int fd = fd_raw_.load();
+  if (fd < 0) return Exception{Exception::kIo};
 
-  auto poller = Poller::CreateOutputPoller(fd_);
+  auto poller = Poller::CreateOutputPoller(fd);
 
   size_t total_wrote = 0;
 
   int so_type = 0;
   socklen_t sl = sizeof(so_type);
-  if (::getsockopt(fd_.get(), SOL_SOCKET, SO_TYPE, &so_type, &sl) != 0) {
+  if (::getsockopt(fd, SOL_SOCKET, SO_TYPE, &so_type, &sl) != 0) {
     // If we can’t detect, assume stream semantics (no per-message MTU).
     so_type = SOCK_STREAM;
   }
@@ -229,17 +235,23 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
 
   // Initialize a reasonable starting guess for packet-based sockets.
   // This will be refined down on EMSGSIZE.
-  if (packet_based && max_chunk_ == 0) max_chunk_ = 1024;
+  if (packet_based) {
+    absl::MutexLock lock(&fd_mutex_);
+    if (max_chunk_ == 0) max_chunk_ = 1024;
+  }
 
-  LOG(INFO) << "SO_TYPE=" << so_type
-            << (so_type == SOCK_SEQPACKET ? " (SEQPACKET)" :
-                so_type == SOCK_STREAM    ? " (STREAM)" :
-                so_type == SOCK_DGRAM     ? " (DGRAM)" : " (other)")
-            << (packet_based ? absl::StrFormat(" max_chunk=%zu", max_chunk_) : "");
+  size_t max_chunk = 0;
+  if (packet_based) {
+    absl::MutexLock lock(&fd_mutex_);
+    max_chunk = max_chunk_;
+  }
+
 
   while (total_wrote < data.size()) {
+    if (fd_raw_.load() != fd) return {Exception::kIo};
     auto result = poller.Ready();  // should wait for POLLOUT/EPOLLOUT
     if (result.Raised()) return result;
+    if (fd_raw_.load() != fd) return {Exception::kIo};
 
     const char *buf = data.data();
     size_t remaining = data.size() - total_wrote;
@@ -248,11 +260,12 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
     if (packet_based) {
       // For SEQPACKET/DGRAM, one send() == one packet.
       // Cap to discovered “MTU-like” limit to avoid EMSGSIZE.
+      absl::MutexLock lock(&fd_mutex_);
       to_write = std::min(to_write, max_chunk_);
     }
 
     // Prefer send() to avoid SIGPIPE (MSG_NOSIGNAL is Linux).
-    ssize_t wrote = ::send(fd_.get(),
+    ssize_t wrote = ::send(fd,
                            buf + total_wrote,
                            to_write,
 #ifdef MSG_NOSIGNAL
@@ -271,10 +284,14 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
 
       if (errno == EMSGSIZE && packet_based) {
         // Our packet is too large; shrink max_chunk_ and retry.
-        if (max_chunk_ > 1) {
-          max_chunk_ = std::max<size_t>(1, max_chunk_ / 2);
-          LOG(INFO) << __func__ << ": EMSGSIZE; reducing max_chunk_ to " << max_chunk_;
-          continue;  // retry with smaller chunk
+        {
+          absl::MutexLock lock(&fd_mutex_);
+          if (max_chunk_ > 1) {
+            max_chunk_ = std::max<size_t>(1, max_chunk_ / 2);
+            LOG(INFO) << __func__ << ": EMSGSIZE; reducing max_chunk_ to "
+                      << max_chunk_;
+            continue;  // retry with smaller chunk
+          }
         }
         LOG(ERROR) << __func__ << ": EMSGSIZE even at 1 byte";
         return {Exception::kIo};
@@ -304,8 +321,9 @@ Exception BluetoothOutputStream::Write(const ByteArray &data) {
 }
 
 Exception BluetoothOutputStream::Close() {
-  absl::MutexLock lock(&fd_mutex_);
-  if (!fd_.isValid()) return {Exception::kSuccess};  // Already closed
+  int fd = fd_raw_.exchange(-1);
+  if (fd < 0) return {Exception::kSuccess};  // Already closed
+  ::shutdown(fd, SHUT_RDWR);
   fd_.reset();
   return {Exception::kSuccess};
 }

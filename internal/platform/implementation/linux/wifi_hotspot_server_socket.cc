@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 
 #include "internal/platform/implementation/linux/wifi_hotspot_server_socket.h"
@@ -52,22 +53,55 @@ NetworkManagerWifiHotspotServerSocket::Accept() {
   struct sockaddr_in addr {};
   socklen_t len = sizeof(addr);
 
-  auto conn =
-      accept(fd_.get(), reinterpret_cast<struct sockaddr *>(&addr), &len);
-  if (conn < 0) {
-    LOG(ERROR) << __func__
-                       << ": Error accepting incoming connections on socket "
-                       << fd_.get() << ": " << std::strerror(errno);
-    return nullptr;
+  // Poll with timeout to allow checking the closed flag periodically
+  while (!closed_.load()) {
+    struct pollfd pfd;
+    pfd.fd = fd_.get();
+    pfd.events = POLLIN;
+
+    // Poll with 1 second timeout
+    int poll_result = poll(&pfd, 1, 1000);
+    
+    if (poll_result < 0) {
+      if (errno == EINTR) {
+        continue;  // Interrupted, try again
+      }
+      LOG(ERROR) << __func__ << ": Error polling socket " << fd_.get() << ": "
+                 << std::strerror(errno);
+      return nullptr;
+    }
+
+    if (poll_result == 0) {
+      // Timeout - check closed flag and continue
+      continue;
+    }
+
+    // Data available, try to accept
+    auto conn =
+        accept(fd_.get(), reinterpret_cast<struct sockaddr *>(&addr), &len);
+    if (conn < 0) {
+      if (errno == EBADF || errno == EINVAL) {
+        // Socket was closed
+        return nullptr;
+      }
+      LOG(ERROR) << __func__
+                 << ": Error accepting incoming connections on socket "
+                 << fd_.get() << ": " << std::strerror(errno);
+      return nullptr;
+    }
+
+    return std::make_unique<WifiHotspotSocket>(conn);
   }
 
-  return std::make_unique<WifiHotspotSocket>(conn);
+  // Socket was closed
+  return nullptr;
 }
 
 Exception NetworkManagerWifiHotspotServerSocket::Close() {
+  closed_.store(true);
   int fd = fd_.release();
   shutdown(fd, SHUT_RDWR);
-  auto ret = close(fd_.release());
+  auto ret = close(fd);
   if (ret < 0) {
     LOG(ERROR) << __func__
                        << ": Error closing socket: " << std::strerror(errno);
