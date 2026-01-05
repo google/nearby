@@ -24,9 +24,12 @@ jobs:
     name: Build Swift
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: sync repo
+      uses: actions/checkout@v6
       with:
         submodules: true
+    - name: setup protobuf
+      uses: ./.github/actions/swift-protobuf
     - name: Build
       run: swift build
 
@@ -34,9 +37,11 @@ jobs:
     name: Test Swift
     runs-on: macOS-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: true
+    - name: setup protobuf
+      uses: ./.github/actions/swift-protobuf
     - name: Test
       run: swift test
 
@@ -44,21 +49,20 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Build Connections
       run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //connections:core
     - name: Build Presence
       run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --copt='-DGITHUB_BUILD' //presence
     - name: Build Sharing
-      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/... //sharing/analytics
+      run: CC=clang-16 CXX=clang-16++ bazel build --proto_compiler=@com_github_protobuf_prebuilt//:protoc --verbose_failures --copt='-DGITHUB_BUILD' //sharing/proto/...
 
   build-rust-linux:
     name: Build Rust on Linux
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
     - name: Build FPP
       run:  cargo build --manifest-path presence/fpp/fpp/Cargo.toml
-  

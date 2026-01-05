@@ -1,0 +1,43 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'Setup protobuf for swift build'
+description: 'Composite action to setup protobuf for swift build'
+runs:
+  using: "composite"
+  steps:
+  - name: sync protobuf repo
+    uses: actions/checkout@v6
+    with:
+      repository: protocolbuffers/protobuf
+      ref: v33.2
+      path: google-protobuf
+  - name: install protoc
+    run: |
+      brew install protobuf
+      protoc --version
+    shell: bash
+  - name: generate nearby proto bindings
+    run: |
+      mkdir protoc_out
+      protoc --cpp_out=protoc_out connections/implementation/proto/offline_wire_formats.proto internal/proto/analytics/connections_log.proto internal/proto/credential.proto internal/proto/local_credential.proto internal/proto/metadata.proto proto/errorcode/error_code_enums.proto proto/mediums/ble_frames.proto proto/mediums/multiplex_frames.proto proto/mediums/nfc_frames.proto proto/mediums/web_rtc_signaling_frames.proto proto/connections_enums.proto proto/sharing_enums.proto sharing/proto/analytics/nearby_sharing_log.proto
+      ls -lR protoc_out
+    shell: bash
+  - name: generate ukey2 proto bindings
+    run: |
+      cd third_party/ukey2
+      mkdir protoc_out
+      protoc --cpp_out=protoc_out --proto_path=ukey2 ukey2/src/main/proto/device_to_device_messages.proto ukey2/src/main/proto/securegcm.proto ukey2/src/main/proto/securemessage.proto ukey2/src/main/proto/ukey.proto
+      ls -lR protoc_out
+    shell: bash
