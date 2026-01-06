@@ -101,6 +101,7 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo &nsd_service_info) {
 
   auto entry_group =
       std::make_unique<avahi::EntryGroup>(*system_bus_, entry_group_path);
+  LOG(INFO) << __func__ << ": Adding avahi service with service type: " << nsd_service_info.GetServiceType();
 
   try {
     entry_group->AddService(
@@ -161,7 +162,7 @@ bool WifiLanMedium::StartDiscovery(
     LOG(INFO)
         << __func__
         << ": Created a new org.freedesktop.Avahi.ServiceBrowser object at "
-        << browser_object_path;
+        << browser_object_path << " for service_type: " << service_type;
 
     absl::MutexLock l(&service_browsers_mutex_);
     service_browsers_.emplace(

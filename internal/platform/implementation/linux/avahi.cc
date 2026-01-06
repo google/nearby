@@ -46,7 +46,7 @@ void ServiceBrowser::onItemNew(const int32_t &interface,
     info.SetServiceName(r_name);
     info.SetIPAddress(r_address);
     info.SetPort(r_port);
-    info.SetServiceType(r_type);
+    info.SetServiceType(r_type + "."); // discovery callback expects an extra period at t
     for (auto &attr : r_txt) {
       auto attr_str = std::string(attr.begin(), attr.end());
       size_t pos = attr_str.find('=');

@@ -155,7 +155,10 @@ bool WifiLanMedium::StartDiscovery(const std::string& service_id,
     service_type_to_services_map_.insert(
         {service_type, absl::flat_hash_set<std::string>()});
   }
-
+  LOG(INFO)<< " : Before calling Start discovery";
+  for (const auto& [key, value] : service_type_to_callback_map_) {
+    LOG(INFO) << "key=" << key << " value=" << value;
+  }
   bool success = impl_->StartDiscovery(service_type, std::move(api_callback));
   if (!success) {
     // If failed, then revert back the insertion.

@@ -42,7 +42,7 @@
 #include "internal/platform/implementation/linux/timer.h"
 // #include "internal/platform/implementation/linux/wifi_direct.h"
 // #include "internal/platform/implementation/linux/wifi_hotspot.h"
-// #include "internal/platform/implementation/linux/wifi_lan.h"
+#include "internal/platform/implementation/linux/wifi_lan.h"
 // #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
 
@@ -305,10 +305,9 @@ std::unique_ptr<api::WifiMedium> ImplementationPlatform::CreateWifiMedium() {
 
 std::unique_ptr<api::WifiLanMedium>
 ImplementationPlatform::CreateWifiLanMedium() {
-  return nullptr;
-  // auto nm =
-  //     std::make_shared<linux::networkmanager::NetworkManager>(linux::getSystemBusConnection());
-  // return std::make_unique<linux::WifiLanMedium>(nm);
+  auto nm = std::make_shared<linux::networkmanager::NetworkManager>(
+      linux::getSystemBusConnection());
+  return std::make_unique<linux::WifiLanMedium>(nm);
 }
 
 std::unique_ptr<api::WifiHotspotMedium>
