@@ -200,6 +200,48 @@ cc_library(
 )
 
 cc_library(
+    name = "registry_accessor",
+    hdrs = ["registry_accessor.h"],
+    tags = ["windows"],
+)
+
+cc_library(
+    name = "registry",
+    srcs = [
+        "registry.cc",
+    ],
+    hdrs = [
+        "registry.h",
+    ],
+    linkopts = [
+        "shlwapi.lib",
+    ],
+    tags = ["windows"],
+    visibility = [
+        "//internal/platform/implementation/windows:__subpackages__",
+        "//location/nearby:__subpackages__",
+        "//sharing/internal/impl/windows:__subpackages__",
+    ],
+    deps = [
+        ":registry_accessor",
+        "//internal/platform:logging",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "mock_registry_accessor",
+    testonly = True,
+    hdrs = ["mock_registry_accessor.h"],
+    tags = ["windows"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":registry_accessor",
+    ],
+)
+
+cc_library(
     name = "windows",
     srcs = [
         "ble.cc",
@@ -560,6 +602,21 @@ cc_test(
     deps = [
         ":socket_address",
         ":windows",
+        "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "registry_test",
+    size = "small",
+    timeout = "short",
+    srcs = [
+        "registry_test.cc",
+    ],
+    deps = [
+        ":mock_registry_accessor",
+        ":registry",
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_googletest//:gtest_main",
     ],
