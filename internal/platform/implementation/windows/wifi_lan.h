@@ -27,7 +27,6 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
 // Nearby connections headers
 #include "absl/base/nullability.h"
@@ -38,10 +37,10 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/optional.h"
-#include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/cancelable.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/nearby_server_socket.h"
@@ -52,7 +51,6 @@
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/service_address.h"
-#include "internal/platform/wifi_credential.h"
 
 // WinRT headers
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Devices.Enumeration.h"
@@ -185,7 +183,7 @@ class WifiLanMedium : public api::WifiLanMedium {
     return absl::nullopt;
   }
 
-  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
       const api::WifiLanServerSocket& server_socket) override;
 
  private:

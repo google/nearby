@@ -19,11 +19,11 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/types/optional.h"
 #include "gmock/gmock.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/nsd_service_info.h"
 #include "internal/platform/service_address.h"
@@ -55,7 +55,7 @@ class MockWifiLanMedium : public api::WifiLanMedium {
               (int port), (override));
   MOCK_METHOD((absl::optional<std::pair<std::int32_t, std::int32_t>>),
               GetDynamicPortRange, (), (override));
-  MOCK_METHOD(std::vector<ServiceAddress>, GetUpgradeAddressCandidates,
+  MOCK_METHOD(api::UpgradeAddressInfo, GetUpgradeAddressCandidates,
               (const api::WifiLanServerSocket& server_socket), (override));
 };
 

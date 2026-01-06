@@ -17,10 +17,10 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
 #include "internal/platform/nsd_service_info.h"
@@ -159,9 +159,7 @@ class WifiLanMedium {
   // this device for bandwidth upgrade.
   // `server_socket` is the socket that is currently listening for service
   // requests.
-  // Returned adddress list is sorted so IPv6 addresses are first.  Both IPv4
-  // and IPv6 addresses are represented as network order byte sequence.
-  virtual std::vector<ServiceAddress> GetUpgradeAddressCandidates(
+  virtual UpgradeAddressInfo GetUpgradeAddressCandidates(
       const WifiLanServerSocket& server_socket) = 0;
 };
 

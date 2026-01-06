@@ -777,6 +777,24 @@ void AnalyticsRecorder::OnBandwidthUpgradeStarted(
       {endpoint_id, std::move(bandwidth_upgrade_attempt)});
 }
 
+void AnalyticsRecorder::UpdateBwUpgradeNetworkInfo(
+    const std::string& endpoint_id, int num_interfaces,
+    int num_ipv6_only_interfaces) {
+  MutexLock lock(&mutex_);
+  if (!CanRecordAnalyticsLocked("UpdateBwUpgradeNetworkInfo")) {
+    return;
+  }
+  auto it = bandwidth_upgrade_attempts_.find(endpoint_id);
+  if (it == bandwidth_upgrade_attempts_.end()) {
+    return;
+  }
+  ConnectionsLog::BandwidthUpgradeAttempt* bandwidth_upgrade_attempt =
+      it->second.get();
+  bandwidth_upgrade_attempt->set_num_interfaces(num_interfaces);
+  bandwidth_upgrade_attempt->set_num_ipv6_only_interfaces(
+      num_ipv6_only_interfaces);
+}
+
 void AnalyticsRecorder::OnBandwidthUpgradeError(
     const std::string& endpoint_id, BandwidthUpgradeResult result,
     BandwidthUpgradeErrorStage error_stage,

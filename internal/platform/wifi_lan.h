@@ -19,9 +19,10 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
 #include "internal/platform/blocking_queue_stream.h"
@@ -29,6 +30,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/listeners.h"
@@ -189,8 +191,6 @@ class WifiLanServerSocket final {
 // Container of operations that can be performed over the WifiLan medium.
 class WifiLanMedium {
  public:
-  using Platform = api::ImplementationPlatform;
-
   struct DiscoveredServiceCallback {
     absl::AnyInvocable<void(NsdServiceInfo service_info,
                             const std::string& service_type)>
@@ -206,7 +206,7 @@ class WifiLanMedium {
     DiscoveredServiceCallback medium_callback;
   };
 
-  WifiLanMedium() : impl_(Platform::CreateWifiLanMedium()) {}
+  WifiLanMedium() : impl_(api::ImplementationPlatform::CreateWifiLanMedium()) {}
   ~WifiLanMedium() = default;
 
   // Starts WifiLan advertising.
@@ -274,9 +274,7 @@ class WifiLanMedium {
   // this device for bandwidth upgrade.
   // `server_socket` is the socket that is currently listening for service
   // requests.
-  // Returned adddress list is sorted so IPv6 addresses are first.  Both IPv4
-  // and IPv6 addresses are represented as network order byte sequence.
-  std::vector<ServiceAddress> GetUpgradeAddressCandidates(
+  api::UpgradeAddressInfo GetUpgradeAddressCandidates(
       const WifiLanServerSocket& server_socket);
 
  private:

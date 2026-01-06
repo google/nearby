@@ -28,6 +28,7 @@
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/nsd_service_info.h"
@@ -76,15 +77,16 @@ TEST_P(WifiLanTest, AdvertiseSameServiceNameReusesPort) {
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(std::string(kServiceInfoName));
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  std::vector<ServiceAddress> addresses =
+  api::UpgradeAddressInfo addresses_info =
       wifi_lan_server.GetUpgradeAddressCandidates(service_id);
   wifi_lan_server.StopAdvertising(service_id);
   wifi_lan_server.StopAcceptingConnections(service_id);
 
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  std::vector<ServiceAddress> addresses2 =
+  api::UpgradeAddressInfo addresses_info2 =
       wifi_lan_server.GetUpgradeAddressCandidates(service_id);
-  EXPECT_EQ(addresses.back().port, addresses2.back().port);
+  EXPECT_EQ(addresses_info.address_candidates.back().port,
+            addresses_info2.address_candidates.back().port);
   env_.Stop();
 }
 
@@ -100,16 +102,17 @@ TEST_P(WifiLanTest, AdvertiseDifferentServiceNameUsesDifferentPort) {
   NsdServiceInfo nsd_service_info;
   nsd_service_info.SetServiceName(std::string(kServiceInfoName));
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  std::vector<ServiceAddress> addresses =
+  api::UpgradeAddressInfo addresses_info =
       wifi_lan_server.GetUpgradeAddressCandidates(service_id);
   wifi_lan_server.StopAdvertising(service_id);
   wifi_lan_server.StopAcceptingConnections(service_id);
 
   nsd_service_info.SetServiceName("ServiceInfoName2");
   wifi_lan_server.StartAdvertising(service_id, nsd_service_info, {});
-  std::vector<ServiceAddress> addresses2 =
+  api::UpgradeAddressInfo addresses_info2 =
       wifi_lan_server.GetUpgradeAddressCandidates(service_id);
-  EXPECT_NE(addresses.back().port, addresses2.back().port);
+  EXPECT_NE(addresses_info.address_candidates.back().port,
+            addresses_info2.address_candidates.back().port);
   env_.Stop();
 }
 
@@ -320,14 +323,14 @@ TEST_P(WifiLanTest, CanConnectWithIpAddressAndPort) {
         accept_latch.CountDown();
       }));
 
-  std::vector<ServiceAddress> server_candidates =
+  api::UpgradeAddressInfo server_address_info =
       wifi_lan_server.GetUpgradeAddressCandidates(service_id);
-  ASSERT_FALSE(server_candidates.empty());
-  ASSERT_NE(server_candidates.back().port, 0);
+  ASSERT_FALSE(server_address_info.address_candidates.empty());
+  ASSERT_NE(server_address_info.address_candidates.back().port, 0);
 
   CancellationFlag flag;
-  ErrorOr<WifiLanSocket> socket_for_client_result =
-      wifi_lan_client.Connect(service_id, server_candidates.front(), &flag);
+  ErrorOr<WifiLanSocket> socket_for_client_result = wifi_lan_client.Connect(
+      service_id, server_address_info.address_candidates.front(), &flag);
   EXPECT_TRUE(accept_latch.Await(kWaitDuration).result());
   EXPECT_TRUE(wifi_lan_server.StopAcceptingConnections(service_id));
   EXPECT_TRUE(wifi_lan_server.StopAdvertising(service_id));

@@ -26,15 +26,21 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/mediums/mediums.h"
+#include "connections/strategy.h"
+#include "internal/analytics/mock_event_logger.h"
+#include "internal/analytics/sharing_log_matchers.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/platform.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/medium_environment.h"
 #include "internal/platform/mock_input_stream.h"
 #include "internal/platform/mock_output_stream.h"
 #include "internal/platform/mock_wifi_lan_medium.h"
 #include "internal/platform/mock_wifi_lan_server_socket.h"
 #include "internal/platform/mock_wifi_lan_socket.h"
 #include "internal/platform/service_address.h"
+#include "internal/proto/analytics/connections_log.pb.h"
 
 namespace nearby {
 
@@ -42,14 +48,18 @@ MockWifiLanMedium* wifi_lan_medium = nullptr;
 
 namespace connections {
 namespace {
+using ::location::nearby::analytics::proto::ConnectionsLog;
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
 using ::location::nearby::connections::OfflineFrame;
 using ::location::nearby::connections::V1Frame;
+using ::location::nearby::proto::connections::EventType;
 using ::location::nearby::proto::connections::OperationResultCode;
+using ::nearby::analytics::HasEventType;
 using ::testing::_;
 using ::testing::ByMove;
 using ::protobuf_matchers::EqualsProto;
 using ::testing::InSequence;
+using ::testing::Matcher;
 using ::testing::MockFunction;
 using ::testing::Return;
 using ::testing::ReturnRef;
@@ -70,11 +80,12 @@ class WifiLanBwuHandlerTest : public ::testing::Test {
                     std::unique_ptr<BwuHandler::IncomingSocketConnection>)>
       incoming_connection_callback_;
   WifiLanBwuHandler handler_;
+  nearby::analytics::MockEventLogger mock_event_logger_;
 };
 
 TEST_F(WifiLanBwuHandlerTest,
        CreateUpgradedEndpointChannel_EmptyPathInfo_Fails) {
-  ClientProxy client;
+  ClientProxy client(&mock_event_logger_);
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
   // Create an empty wifi_lan_socket.
   path_info.mutable_wifi_lan_socket();
@@ -88,7 +99,7 @@ TEST_F(WifiLanBwuHandlerTest,
 };
 
 TEST_F(WifiLanBwuHandlerTest, CreateUpgradedEndpointChannel_IpAddress_Success) {
-  ClientProxy client;
+  ClientProxy client(&mock_event_logger_);
   client.AddCancellationFlag(std::string(kEndpointId));
   MockInputStream input_stream;
   MockOutputStream output_stream;
@@ -100,10 +111,12 @@ TEST_F(WifiLanBwuHandlerTest, CreateUpgradedEndpointChannel_IpAddress_Success) {
   EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
       .WillRepeatedly(Return(true));
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(ServiceAddress{
-                  .address = {kIpv4Address.begin(), kIpv4Address.end()},
-                  .port = 8080,
-              }, _))
+              ConnectToService(
+                  ServiceAddress{
+                      .address = {kIpv4Address.begin(), kIpv4Address.end()},
+                      .port = 8080,
+                  },
+                  _))
       .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
 
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
@@ -119,7 +132,7 @@ TEST_F(WifiLanBwuHandlerTest, CreateUpgradedEndpointChannel_IpAddress_Success) {
 
 TEST_F(WifiLanBwuHandlerTest,
        CreateUpgradedEndpointChannel_AddressCandidates_FirstCandidate_Success) {
-  ClientProxy client;
+  ClientProxy client(&mock_event_logger_);
   client.AddCancellationFlag(std::string(kEndpointId));
   MockInputStream input_stream;
   MockOutputStream output_stream;
@@ -131,10 +144,12 @@ TEST_F(WifiLanBwuHandlerTest,
   EXPECT_CALL(*wifi_lan_medium, IsNetworkConnected())
       .WillRepeatedly(Return(true));
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(ServiceAddress{
-                  .address = {kIpv6Address.begin(), kIpv6Address.end()},
-                  .port = 8080,
-              }, _))
+              ConnectToService(
+                  ServiceAddress{
+                      .address = {kIpv6Address.begin(), kIpv6Address.end()},
+                      .port = 8080,
+                  },
+                  _))
       .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
 
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
@@ -156,7 +171,7 @@ TEST_F(WifiLanBwuHandlerTest,
 
 TEST_F(WifiLanBwuHandlerTest,
        CreateUpgradedEndpointChannel_AddressCandidates_FirstCandidate_Fails) {
-  ClientProxy client;
+  ClientProxy client(&mock_event_logger_);
   client.AddCancellationFlag(std::string(kEndpointId));
   MockInputStream input_stream;
   MockOutputStream output_stream;
@@ -169,16 +184,20 @@ TEST_F(WifiLanBwuHandlerTest,
       .WillRepeatedly(Return(true));
   InSequence seq;
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(ServiceAddress{
-                  .address = {kIpv6Address.begin(), kIpv6Address.end()},
-                  .port = 8080,
-              }, _))
+              ConnectToService(
+                  ServiceAddress{
+                      .address = {kIpv6Address.begin(), kIpv6Address.end()},
+                      .port = 8080,
+                  },
+                  _))
       .WillOnce(Return(ByMove(nullptr)));
   EXPECT_CALL(*wifi_lan_medium,
-              ConnectToService(ServiceAddress{
-                  .address = {kIpv4Address.begin(), kIpv4Address.end()},
-                  .port = 8080,
-              }, _))
+              ConnectToService(
+                  ServiceAddress{
+                      .address = {kIpv4Address.begin(), kIpv4Address.end()},
+                      .port = 8080,
+                  },
+                  _))
       .WillOnce(Return(ByMove(std::move(wifi_lan_socket))));
 
   BandwidthUpgradeNegotiationFrame::UpgradePathInfo path_info;
@@ -199,7 +218,19 @@ TEST_F(WifiLanBwuHandlerTest,
 };
 
 TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
-  ClientProxy client;
+  MediumEnvironment::Instance().Start({.use_simulated_clock = true});
+  ClientProxy client(&mock_event_logger_);
+  client.GetAnalyticsRecorder().OnStartAdvertising(
+      Strategy::kP2pPointToPoint,
+      {location::nearby::proto::connections::Medium::BLUETOOTH},
+      /*advertising_metadata_params=*/nullptr);
+  client.GetAnalyticsRecorder().OnBandwidthUpgradeStarted(
+      std::string(kEndpointId),
+      location::nearby::proto::connections::Medium::BLUETOOTH,
+      location::nearby::proto::connections::Medium::WIFI_LAN,
+      location::nearby::proto::connections::ConnectionAttemptDirection::
+          OUTGOING,
+      /*connection_token=*/"");
   client.AddCancellationFlag(std::string(kEndpointId));
   auto wifi_lan_server_socket = std::make_unique<MockWifiLanServerSocket>();
   EXPECT_CALL(*wifi_lan_server_socket, GetPort()).WillRepeatedly(Return(8080));
@@ -208,10 +239,14 @@ TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   EXPECT_CALL(*wifi_lan_medium, ListenForService(_))
       .WillOnce(Return(ByMove(std::move(wifi_lan_server_socket))));
   EXPECT_CALL(*wifi_lan_medium, GetUpgradeAddressCandidates(_))
-      .WillOnce(Return(std::vector<ServiceAddress>{
-          {std::vector<char>{kIpv6Address.begin(), kIpv6Address.end()}, 8080},
-          {std::vector<char>{kIpv4Address.begin(), kIpv4Address.end()},
-           8888}}));
+      .WillOnce(Return(api::UpgradeAddressInfo{
+          .num_interfaces = 1,
+          .num_ipv6_only_interfaces = 1,
+          .address_candidates = {
+              {std::vector<char>{kIpv6Address.begin(), kIpv6Address.end()},
+               8080},
+              {std::vector<char>{kIpv4Address.begin(), kIpv4Address.end()},
+               8888}}}));
   OfflineFrame expected_frame;
   expected_frame.set_version(OfflineFrame::V1);
   expected_frame.mutable_v1()->set_type(V1Frame::BANDWIDTH_UPGRADE_NEGOTIATION);
@@ -243,6 +278,70 @@ TEST_F(WifiLanBwuHandlerTest, InitializeUpgradedMediumForEndpoint_Success) {
   OfflineFrame result_frame;
   EXPECT_TRUE(result_frame.ParseFromString(std::string(result)));
   EXPECT_THAT(result_frame, EqualsProto(expected_frame));
+
+  constexpr absl::string_view kClientSessionLog = R"pb(
+    event_type: CLIENT_SESSION
+    client_session { duration_millis: 0 }
+    version: "v1.5.0"
+  )pb";
+  constexpr absl::string_view kExpectedUpgradeLog = R"pb(
+    event_type: CLIENT_SESSION
+    client_session {
+      duration_millis: 0
+      strategy_session {
+        duration_millis: 0
+        strategy: P2P_POINT_TO_POINT
+        role: ADVERTISER
+        advertising_phase {
+          duration_millis: 0
+          medium: BLUETOOTH
+          advertising_metadata {
+            supports_extended_ble_advertisements: false
+            connected_ap_frequency: 0
+            supports_nfc_technology: false
+          }
+          stop_reason: FINISH_SESSION_STOP_ADVERTISING
+        }
+        upgrade_attempt {
+          direction: OUTGOING
+          duration_millis: 0
+          from_medium: BLUETOOTH
+          to_medium: WIFI_LAN
+          upgrade_result: UNFINISHED_ERROR
+          error_stage: UPGRADE_UNFINISHED
+          connection_token: ""
+          operation_result {
+            result_category: CATEGORY_DEVICE_STATE_ERROR
+            result_code: DEVICE_STATE_ERROR_UNFINISHED_UPGRADE_ATTEMPTS
+          }
+          num_interfaces: 1
+          num_ipv6_only_interfaces: 1
+        }
+      }
+    }
+    version: "v1.5.0"
+  )pb";
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const ConnectionsLog&>(
+                  HasEventType(EventType::STOP_STRATEGY_SESSION))))
+      .Times(1);
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const ConnectionsLog&>(
+                  HasEventType(EventType::STOP_CLIENT_SESSION))))
+      .Times(3);
+  EXPECT_CALL(mock_event_logger_,
+              Log(Matcher<const ConnectionsLog&>(
+                  HasEventType(EventType::START_CLIENT_SESSION))))
+      .Times(3);
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const ConnectionsLog&>(EqualsProto(kClientSessionLog))))
+      .Times(2);
+  EXPECT_CALL(
+      mock_event_logger_,
+      Log(Matcher<const ConnectionsLog&>(EqualsProto(kExpectedUpgradeLog))));
+  // Flush pending logs.
+  client.GetAnalyticsRecorder().LogSession();
 }
 
 }  // namespace

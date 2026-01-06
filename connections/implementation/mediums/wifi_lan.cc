@@ -30,6 +30,7 @@
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/expected.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_utils.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
@@ -37,7 +38,6 @@
 #include "internal/platform/service_address.h"
 #include "internal/platform/socket.h"
 #include "internal/platform/types.h"
-#include "internal/platform/wifi_credential.h"
 #include "internal/platform/wifi_lan.h"
 
 namespace nearby {
@@ -612,7 +612,7 @@ ExceptionOr<WifiLanSocket> WifiLan::CreateOutgoingMultiplexSocketLocked(
   return ExceptionOr<WifiLanSocket>(Exception::kFailed);
 }
 
-std::vector<ServiceAddress> WifiLan::GetUpgradeAddressCandidates(
+api::UpgradeAddressInfo WifiLan::GetUpgradeAddressCandidates(
     const std::string& service_id) {
   MutexLock lock(&mutex_);
   const auto& it = server_sockets_.find(service_id);

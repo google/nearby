@@ -556,6 +556,13 @@ message ConnectionsLog {
     // The supported service.
     optional location.nearby.proto.connections.SupportedService
         supported_service = 11;
+
+    // The number of network interfaces on the device for the upgrade medium
+    // that can be used for bandwidth upgrade.
+    optional int32 num_interfaces = 12;
+    // The number of network interfaces on the device for the upgrade medium
+    // that can be used for bandwidth upgrade and are IPv6 only.
+    optional int32 num_ipv6_only_interfaces = 13;
   }
 
   // Next Id: 22

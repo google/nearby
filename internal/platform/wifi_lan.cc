@@ -17,10 +17,10 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "internal/platform/cancellation_flag.h"
+#include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/mutex_lock.h"
 #include "internal/platform/nsd_service_info.h"
@@ -201,7 +201,7 @@ WifiLanSocket WifiLanMedium::ConnectToService(
       impl_->ConnectToService(service_address, cancellation_flag));
 }
 
-std::vector<ServiceAddress> WifiLanMedium::GetUpgradeAddressCandidates(
+api::UpgradeAddressInfo WifiLanMedium::GetUpgradeAddressCandidates(
     const WifiLanServerSocket& server_socket) {
   return impl_->GetUpgradeAddressCandidates(server_socket.GetImpl());
 }

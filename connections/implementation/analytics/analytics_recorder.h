@@ -198,6 +198,10 @@ class AnalyticsRecorder {
       location::nearby::proto::connections::ConnectionAttemptDirection
           direction,
       const std::string& connection_token) ABSL_LOCKS_EXCLUDED(mutex_);
+  void UpdateBwUpgradeNetworkInfo(const std::string& endpoint_id,
+                                  int num_interfaces,
+                                  int num_ipv6_only_interfaces)
+      ABSL_LOCKS_EXCLUDED(mutex_);
   void OnBandwidthUpgradeError(
       const std::string& endpoint_id,
       location::nearby::proto::connections::BandwidthUpgradeResult result,
