@@ -615,16 +615,14 @@ void RegisterIntelCallback(
 void DeregisterIntelCallback(HINSTANCE murocApiDllHandle,
                              MurocDefs::INTEL_EVENT_CALLBACK fnCallback) {
   DEREGISTERINTELCB deregisterIntelCBFunc = nullptr;
-  DWORD dwError = ERROR_SUCCESS;
 
   deregisterIntelCBFunc = (DEREGISTERINTELCB)GetProcAddress(
       murocApiDllHandle, "DeregisterIntelCallback");
 
   if (deregisterIntelCBFunc == nullptr) {
-    dwError = GetLastError();
     LOG(INFO)
-        << "GetProcAddress of DeregisterIntelCallback API failed with error: ",
-        dwError;
+        << "GetProcAddress of DeregisterIntelCallback API failed with error: "
+        << GetLastError();
     return;
   }
 

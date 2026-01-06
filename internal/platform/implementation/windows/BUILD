@@ -268,15 +268,10 @@ cc_library(
         "wifi_lan.h",
         "wifi_lan_mdns.h",
     ],
-    # This is the temporary solution to solve compilation error of Win32 WFDxxx() related API.
-    # WFD API is only support after _WIN32_WINNT_WIN8, but the current lexan _WIN32_WINNT is set to _WIN32_WINNT_WIN7
     copts = [
         "-DNO_INTEL_PIE",
         "-D_WIN32_WINNT=_WIN32_WINNT_WIN10 -DWINVER=_WIN32_WINNT_WIN10",
-        "-Wno-unused-variable",
-        "-Wno-unused-value",
     ],
-    defines = ["_SILENCE_CLANG_COROUTINE_MESSAGE"],
     tags = ["windows"],
     visibility = [
         "//chrome/chromeos/assistant/data_migration/lib:__pkg__",

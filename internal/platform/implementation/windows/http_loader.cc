@@ -329,7 +329,7 @@ absl::StatusOr<WebResponse> HttpLoader::ProcessResponse() {
   web_response.status_text = status_text.value();
   auto headers = QueryResponseHeaders(request_handle_);
   if (!headers.ok()) {
-    headers.status();
+    return headers.status();
   }
   web_response.headers = *headers;
 
