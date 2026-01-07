@@ -43,6 +43,10 @@ std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
   NSString *name = NSHost.currentHost.localizedName;
   const char *cName = (const char *)[name cStringUsingEncoding:NSUTF8StringEncoding];
   return std::string(cName);
+#elif TARGET_OS_VISION
+  NSString *name = UIDevice.currentDevice.name;
+  const char *cName = (const char *)[name cStringUsingEncoding:NSUTF8StringEncoding];
+  return std::string(cName);
 #else
   return std::nullopt;
 #endif
@@ -64,6 +68,8 @@ api::DeviceInfo::DeviceType DeviceInfo::GetDeviceType() const {
   return api::DeviceInfo::DeviceType::kUnknown;
 #elif TARGET_OS_OSX
   return api::DeviceInfo::DeviceType::kLaptop;
+#elif TARGET_OS_VISION
+  return api::DeviceInfo::DeviceType::kHeadset;
 #else
   return api::DeviceInfo::DeviceType::kUnknown;
 #endif
@@ -74,6 +80,8 @@ api::DeviceInfo::OsType DeviceInfo::GetOsType() const {
   return api::DeviceInfo::OsType::kMacOS;
 #elif TARGET_OS_IPHONE
   return api::DeviceInfo::OsType::kIos;
+#elif TARGET_OS_VISION
+  return api::DeviceInfo::OsType::kVisionOS;
 #else
   return api::DeviceInfo::OsType::kUnknown;
 #endif
