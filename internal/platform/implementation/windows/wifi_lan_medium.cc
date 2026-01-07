@@ -48,6 +48,7 @@
 #include "internal/platform/implementation/windows/generated/winrt/Windows.Networking.Connectivity.h"
 #include "internal/platform/implementation/windows/nearby_client_socket.h"
 #include "internal/platform/implementation/windows/network_info.h"
+#include "internal/platform/implementation/windows/registry.h"
 #include "internal/platform/implementation/windows/socket_address.h"
 #include "internal/platform/implementation/windows/string_utils.h"
 #include "internal/platform/implementation/windows/utils.h"
@@ -56,6 +57,7 @@
 
 namespace nearby::windows {
 namespace {
+using ::nearby::platform::windows::Registry;
 using ::winrt::fire_and_forget;
 using ::winrt::Windows::Devices::Enumeration::DeviceInformation;
 using ::winrt::Windows::Devices::Enumeration::DeviceInformationKind;
@@ -74,6 +76,9 @@ constexpr absl::string_view kMdnsDeviceSelectorFormat =
     "55e86ada0e54}\" "
     "AND System.Devices.Dnssd.ServiceName:=\"%s\" AND "
     "System.Devices.Dnssd.Domain:=\"local\"";
+
+constexpr absl::string_view kDisableMdnsAdvertisingRegistryValue =
+    "disable_mdns_advertising";
 
 constexpr absl::Duration kConnectTimeout = absl::Milliseconds(500);
 
@@ -191,6 +196,14 @@ bool WifiLanMedium::StartAdvertising(const NsdServiceInfo& nsd_service_info) {
     return false;
   }
   service_name_ = nsd_service_info.GetServiceName();
+  if (Registry::ReadDword(Registry::Hive::kCurrentUser,
+                          Registry::Key::kNearbyShareFlags,
+                          std::string(kDisableMdnsAdvertisingRegistryValue))
+          .value_or(0) != 0) {
+    LOG(INFO) << "MDNS advertising is disabled by registry.";
+    medium_status_ |= kMediumStatusAdvertising;
+    return true;
+  }
   if (wifi_lan_mdns_.StartMdnsService(
           service_name_, nsd_service_info.GetServiceType(),
           nsd_service_info.GetPort(), nsd_service_info.GetTxtRecords())) {

@@ -327,6 +327,7 @@ cc_library(
     deps = [
         ":crypto",  # build_cleaner: keep
         ":network_info",
+        ":registry",
         ":scoped_wlan_memory",
         ":socket_address",
         ":string_utils",
