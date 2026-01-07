@@ -283,7 +283,7 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
 
 std::unique_ptr<WifiDirectMedium>
 ImplementationPlatform::CreateWifiDirectMedium() {
-  return std::make_unique<windows::WifiDirectMedium>();
+  return nullptr;
 }
 
 // TODO(b/261663238) replace with real implementation.
