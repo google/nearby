@@ -242,6 +242,7 @@ class WifiDirectMedium : public api::WifiDirectMedium {
   // Discoverer is connected with the WifiDirect
   bool IsConnected() { return (medium_status_ & kMediumStatusConnected) != 0; }
 
+  void EnableFirewallWfdAspProto();
   // Converts WiFiDirectServiceConfigurationMethod enum to a string.
   static std::string ConfigMethodToString(
       WiFiDirectServiceConfigurationMethod config_method);
