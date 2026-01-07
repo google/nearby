@@ -29,9 +29,7 @@
 #include "internal/platform/exception.h"
 #include "internal/platform/service_address.h"
 
-namespace nearby {
-namespace connections {
-namespace parser {
+namespace nearby::connections::parser {
 namespace {
 
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
@@ -45,7 +43,6 @@ constexpr int kNonce = 1234;
 constexpr bool kSupports5ghz = true;
 constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
 constexpr int kApFrequency = 2412;
-constexpr absl::string_view kIp4Bytes = {"8xqT"};
 constexpr int kStatusAccepted = 0;
 constexpr absl::string_view kSsid = "ssid";
 constexpr absl::string_view kPassword = "password";
@@ -75,7 +72,6 @@ class OfflineFramesConnectionRequestTest : public testing::Test {
                                   kSupports5ghz,
                                   std::string(kBssid),
                                   kApFrequency,
-                                  std::string(kIp4Bytes),
                                   std::vector<Medium, std::allocator<Medium>>(
                                       kMediums.begin(), kMediums.end()),
                                   kKeepAliveIntervalMillis,
@@ -838,6 +834,4 @@ TEST(OfflineFramesValidatorTest,
 }
 
 }  // namespace
-}  // namespace parser
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections::parser

@@ -22,9 +22,12 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "connections/advertising_options.h"
 #include "connections/connection_options.h"
 #include "connections/discovery_options.h"
@@ -49,17 +52,11 @@
 #include "internal/platform/implementation/preferences_manager.h"
 #include "internal/platform/mac_address.h"
 #include "internal/platform/mutex.h"
-// Prefer using absl:: versions of a set and a map; they tend to be more
-// efficient: implementation is using open-addressing hash tables.
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-#include "absl/types/span.h"
 #include "internal/platform/os_name.h"
 #include "internal/platform/scheduled_executor.h"
 #include "internal/proto/analytics/connections_log.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 // ClientProxy is tracking state of client's connection, and serves as
 // a proxy for notifications sent to this client.
@@ -200,8 +197,6 @@ class ClientProxy final {
   std::string GetBssid(const std::string& endpoint_id) const;
   // Returns WIFI Frequency for this endpoint.
   std::int32_t GetApFrequency(const std::string& endpoint_id) const;
-  // Returns IP Address in 4 bytes format for this endpoint.
-  std::string GetIPAddress(const std::string& endpoint_id) const;
   // Returns true if it's safe to send payloads to this endpoint.
   bool IsConnectedToEndpoint(const std::string& endpoint_id) const;
   // Returns all endpoints that can safely be sent payloads.
@@ -568,7 +563,6 @@ class ClientProxy final {
   bool is_dct_enabled_ = false;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_INTERNAL_CLIENT_PROXY_H_

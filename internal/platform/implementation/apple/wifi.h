@@ -56,34 +56,6 @@ class WifiMedium : public api::WifiMedium {
    */
   api::WifiInformation& GetInformation() override { return information_; }
 
-  /**
-   * @brief Initiates a Wi-Fi network scan.
-   *
-   * @param scan_result_callback A reference to a ScanResultCallback object that
-   * will receive the scan results.
-   */
-  bool Scan(const ScanResultCallback& scan_result_callback) override {
-    return false;
-  }
-
-  /**
-   * @brief Attempts to connect to a Wi-Fi network.
-   *
-   * @param ssid The SSID (network name) of the Wi-Fi network to connect to.
-   * @param password The password for the Wi-Fi network. If the network is open
-   * (no password), this parameter should be an empty string.
-   * @param auth_type The authentication type of the Wi-Fi network (e.g.,
-   * WPA2-PSK, Open).
-   *
-   * @note If the password is an empty string, it is assumed that the network is
-   * open (no password) or unknown.
-   */
-  api::WifiConnectionStatus ConnectToNetwork(
-      absl::string_view ssid, absl::string_view password,
-      api::WifiAuthType auth_type) override {
-    return api::WifiConnectionStatus::kUnknown;
-  }
-
  private:
   api::WifiCapability capability_ = {};
   api::WifiInformation information_ = {};

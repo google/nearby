@@ -33,9 +33,7 @@
 #include "internal/platform/mac_address.h"
 #include "internal/platform/service_address.h"
 
-namespace nearby {
-namespace connections {
-namespace parser {
+namespace nearby::connections::parser {
 namespace {
 
 using ExceptionOrOfflineFrame =
@@ -112,8 +110,8 @@ ByteArray ForConnectionRequestConnections(
   if (!connection_info.bssid.empty())
     medium_metadata->set_bssid(connection_info.bssid);
   medium_metadata->set_ap_frequency(connection_info.ap_frequency);
-  if (!connection_info.ip_address.empty())
-    medium_metadata->set_ip_address(connection_info.ip_address);
+  // Do not set ip_address in metadata since we don't know which interface or
+  // address family will be used for connection.
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kEnableDynamicRoleSwitch) &&
@@ -171,8 +169,8 @@ ByteArray ForConnectionRequestPresence(
   if (!connection_info.bssid.empty())
     medium_metadata->set_bssid(connection_info.bssid);
   medium_metadata->set_ap_frequency(connection_info.ap_frequency);
-  if (!connection_info.ip_address.empty())
-    medium_metadata->set_ip_address(connection_info.ip_address);
+  // Do not set ip_address in metadata since we don't know which interface or
+  // address family will be used for connection.
   if (!connection_info.supported_mediums.empty()) {
     for (const auto& medium : connection_info.supported_mediums) {
       connection_request->add_mediums(MediumToConnectionRequestMedium(medium));
@@ -777,6 +775,4 @@ std::vector<WifiDirectAuthType> MediumMetadataWFDAuthTypesToWFDAuthTypes(
   return result;
 }
 
-}  // namespace parser
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections::parser

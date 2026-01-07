@@ -86,8 +86,7 @@
 #include "internal/platform/wifi_lan_connection_info.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 namespace {
 constexpr int kEndpointCancelAlarmTimeout = 10;
@@ -868,7 +867,6 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
     api::WifiInformation& wifi_info = mediums_->GetWifi().GetInformation();
     connection_info.bssid = wifi_info.bssid;
     connection_info.ap_frequency = wifi_info.ap_frequency;
-    connection_info.ip_address = wifi_info.ip_address_4_bytes;
     if (NearbyFlags::GetInstance().GetBoolFlag(
             config_package_nearby::nearby_connections_feature::
                 kEnableDynamicRoleSwitch) &&
@@ -882,9 +880,7 @@ ConnectionInfo BasePcpHandler::FillConnectionInfo(
     LOG(INFO) << "Query for WIFI information: is_supports_5_ghz="
               << connection_info.supports_5_ghz
               << "; bssid=" << connection_info.bssid
-              << "; ap_frequency=" << connection_info.ap_frequency
-              << "Mhz; ip_address in bytes format="
-              << absl::BytesToHexString(connection_info.ip_address);
+              << "; ap_frequency=" << connection_info.ap_frequency << "Mhz";
   }
   connection_info.supported_mediums =
       GetSupportedConnectionMediumsByPriority(connection_options);
@@ -1444,15 +1440,13 @@ Exception BasePcpHandler::WriteConnectionRequestFrame(
   PresenceDevice presence_device_frame;
   switch (device_type) {
     case NearbyDevice::kConnectionsDevice:
-      if (connections_device_frame.ParseFromString(
-              std::string(device_proto_bytes))) {  // NOLINT
+      if (connections_device_frame.ParseFromString(device_proto_bytes)) {
         return endpoint_channel->Write(parser::ForConnectionRequestConnections(
             connections_device_frame, conection_info));
       }
       return {Exception::kInvalidProtocolBuffer};
     case NearbyDevice::kPresenceDevice:
-      if (presence_device_frame.ParseFromString(
-              std::string(device_proto_bytes))) {  // NOLINT
+      if (presence_device_frame.ParseFromString(device_proto_bytes)) {
         return endpoint_channel->Write(parser::ForConnectionRequestPresence(
             presence_device_frame, conection_info));
       }
@@ -2089,7 +2083,6 @@ Exception BasePcpHandler::OnIncomingConnection(
   connection_info.supports_5_ghz = medium_metadata.supports_5_ghz();
   connection_info.bssid = medium_metadata.bssid();
   connection_info.ap_frequency = medium_metadata.ap_frequency();
-  connection_info.ip_address = medium_metadata.ip_address();
   if (medium_metadata.has_medium_role()) {
     connection_info.medium_role.emplace(medium_metadata.medium_role());
   }
@@ -2099,9 +2092,7 @@ Exception BasePcpHandler::OnIncomingConnection(
         << "'s WIFI information: is_supports_5_ghz="
         << connection_info.supports_5_ghz << "; bssid=" << connection_info.bssid
         << "; ap_frequency=" << connection_info.ap_frequency
-        << "Mhz; ip_address in bytes format="
-        << absl::BytesToHexString(connection_info.ip_address)
-        << "; support_wifi_direct_group_owner="
+        << "Mhz; support_wifi_direct_group_owner="
         << medium_metadata.medium_role().support_wifi_direct_group_owner()
         << "; support_wifi_direct_group_client="
         << medium_metadata.medium_role().support_wifi_direct_group_client()
@@ -2123,9 +2114,7 @@ Exception BasePcpHandler::OnIncomingConnection(
               << connection_info.supports_5_ghz
               << "; bssid=" << connection_info.bssid
               << "; ap_frequency=" << connection_info.ap_frequency
-              << "Mhz; ip_address in bytes format="
-              << absl::BytesToHexString(connection_info.ip_address)
-              << "; has no mediumRole";
+              << "Mhz; has no mediumRole";
   }
   connection_info.supported_wifi_direct_auth_types =
       parser::MediumMetadataWFDAuthTypesToWFDAuthTypes(medium_metadata);
@@ -2644,5 +2633,4 @@ void BasePcpHandler::PendingConnectionInfo::LocalEndpointRejectedConnection(
   client->LocalEndpointRejectedConnection(endpoint_id);
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

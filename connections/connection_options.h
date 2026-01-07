@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #ifndef CORE_CONNECTION_OPTIONS_H_
 #define CORE_CONNECTION_OPTIONS_H_
 #include <string>
@@ -22,8 +23,7 @@
 #include "internal/platform/mac_address.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 struct ConnectionInfo {
   std::string local_endpoint_id;
@@ -32,7 +32,6 @@ struct ConnectionInfo {
   bool supports_5_ghz = false;
   std::string bssid;
   std::int32_t ap_frequency = -1;
-  std::string ip_address;
   std::vector<location::nearby::proto::connections::Medium> supported_mediums;
   std::int32_t keep_alive_interval_millis;
   std::int32_t keep_alive_timeout_millis;
@@ -65,7 +64,6 @@ struct ConnectionOptions : public OptionsBase {
   ConnectionInfo connection_info;
 };
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
 
 #endif  // CORE_CONNECTION_OPTIONS_H_

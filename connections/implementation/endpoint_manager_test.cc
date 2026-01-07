@@ -46,8 +46,7 @@
 #include "internal/test/fake_single_thread_executor.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 namespace {
 
 using ::fuzztest::Filter;
@@ -277,7 +276,6 @@ TEST_F(EndpointManagerTest, RegisterFrameProcessorWorks) {
       false /*supports_5_ghz*/,
       "" /*bssid*/,
       2412 /*ap_frequency*/,
-      "8xqT" /*ip_address in 4 bytes format*/,
       std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
@@ -463,7 +461,6 @@ TEST_F(EndpointManagerTest, TryDecrypt) {
       false /*supports_5_ghz*/,
       "" /*bssid*/,
       2412 /*ap_frequency*/,
-      "8xqT" /*ip_address in 4 bytes format*/,
       std::vector<Medium>{Medium::BLE} /*supported_mediums*/,
       0 /*keep_alive_interval_millis*/,
       0 /*keep_alive_timeout_millis*/};
@@ -529,5 +526,4 @@ TEST_F(EndpointManagerTest, DisconnectEndpointDuringDestruction) {
 }
 
 }  // namespace
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections

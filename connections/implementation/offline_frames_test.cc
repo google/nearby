@@ -32,9 +32,7 @@
 #include "internal/platform/mac_address.h"
 #include "internal/platform/service_address.h"
 
-namespace nearby {
-namespace connections {
-namespace parser {
+namespace nearby::connections::parser {
 namespace {
 
 using ::location::nearby::connections::BandwidthUpgradeNegotiationFrame;
@@ -56,7 +54,6 @@ constexpr int kNonce = 1234;
 constexpr bool kSupports5ghz = true;
 constexpr absl::string_view kBssid{"FF:FF:FF:FF:FF:FF"};
 constexpr int kApFrequency = 2412;
-constexpr absl::string_view kIp4Bytes = {"8xqT"};
 constexpr std::array<Medium, 11> kMediums = {
     Medium::MDNS, Medium::BLUETOOTH,   Medium::WIFI_HOTSPOT,
     Medium::BLE,  Medium::WIFI_LAN,    Medium::WIFI_AWARE,
@@ -116,7 +113,6 @@ TEST(OfflineFramesTest, CanGenerateLegacyConnectionRequest) {
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
         >
         mediums: MDNS
@@ -141,7 +137,6 @@ TEST(OfflineFramesTest, CanGenerateLegacyConnectionRequest) {
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
@@ -171,7 +166,6 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
           medium_role: < support_wifi_hotspot_client: true >
         >
@@ -209,7 +203,6 @@ TEST(OfflineFramesTest, CanGenerateConnectionsConnectionRequest) {
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
@@ -237,7 +230,6 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
         >
         mediums: MDNS
@@ -267,7 +259,6 @@ TEST(OfflineFramesTest, CanGeneratePresenceConnectionRequest) {
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
@@ -300,7 +291,6 @@ TEST(OfflineFramesTest,
         medium_metadata: <
           supports_5_ghz: true
           bssid: "FF:FF:FF:FF:FF:FF"
-          ip_address: "8xqT"
           ap_frequency: 2412
           supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PIN
           supported_wifi_direct_auth_types: WIFI_DIRECT_WITH_PASSWORD
@@ -332,7 +322,6 @@ TEST(OfflineFramesTest,
                                  kSupports5ghz,
                                  std::string(kBssid),
                                  kApFrequency,
-                                 std::string(kIp4Bytes),
                                  std::vector<Medium, std::allocator<Medium>>(
                                      kMediums.begin(), kMediums.end()),
                                  kKeepAliveIntervalMillis,
@@ -851,6 +840,4 @@ TEST(OfflineFramesTest, MediumMetadataWFDAuthTypesToWFDAuthTypes) {
 }
 
 }  // namespace
-}  // namespace parser
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections::parser

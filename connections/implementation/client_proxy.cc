@@ -74,8 +74,7 @@
 #include "internal/platform/prng.h"
 #include "proto/connections_enums.pb.h"
 
-namespace nearby {
-namespace connections {
+namespace nearby::connections {
 
 namespace {
 using ::location::nearby::analytics::proto::ConnectionsLog;
@@ -709,16 +708,6 @@ std::int32_t ClientProxy::GetApFrequency(const std::string& endpoint_id) const {
     return item->first.connection_options.connection_info.ap_frequency;
   }
   return -1;
-}
-
-std::string ClientProxy::GetIPAddress(const std::string& endpoint_id) const {
-  MutexLock lock(&mutex_);
-
-  const ConnectionPair* item = LookupConnection(endpoint_id);
-  if (item != nullptr) {
-    return item->first.connection_options.connection_info.ip_address;
-  }
-  return {};
 }
 
 bool ClientProxy::IsConnectedToEndpoint(const std::string& endpoint_id) const {
@@ -1507,5 +1496,4 @@ std::string ClientProxy::Dump() {
   return sstream.str();
 }
 
-}  // namespace connections
-}  // namespace nearby
+}  // namespace nearby::connections
