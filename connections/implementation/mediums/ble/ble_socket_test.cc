@@ -77,11 +77,11 @@ class FakeInputStream : public InputStream {
 
 class FakeOutputStream : public OutputStream {
  public:
-  Exception Write(const ByteArray& data) override {
+  Exception Write(absl::string_view data) override {
     if (exception_on_write_) {
       return {Exception::kIo};
     }
-    absl::StrAppend(&buffer_, std::string(data));
+    absl::StrAppend(&buffer_, data);
     return {Exception::kSuccess};
   }
   Exception Flush() override { return {Exception::kSuccess}; }
@@ -283,7 +283,7 @@ TEST_F(BleSocketBleMediumTest, WritePayloadLengthSucceedsIfCalledAfterWrite) {
       config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
       true);
   constexpr int kPayloadLength = 12345;
-  ByteArray payload("payload");
+  absl::string_view payload = "payload";
   EXPECT_TRUE(socket_->WritePayloadLength(kPayloadLength).Ok());
   EXPECT_TRUE(socket_->GetOutputStream().Write(payload).Ok());
   EXPECT_TRUE(socket_->WritePayloadLength(kPayloadLength).Ok());
@@ -498,7 +498,7 @@ TEST_F(BleL2capSocketBleMediumTest,
       config_package_nearby::nearby_connections_feature::kRefactorBleL2cap,
       true);
   constexpr int kPayloadLength = 12345;
-  ByteArray payload("payload");
+  absl::string_view payload = "payload";
   EXPECT_TRUE(socket_->WritePayloadLength(kPayloadLength).Ok());
   EXPECT_TRUE(socket_->GetOutputStream().Write(payload).Ok());
   EXPECT_TRUE(socket_->WritePayloadLength(kPayloadLength).Ok());

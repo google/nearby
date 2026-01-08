@@ -15,9 +15,11 @@
 #ifndef CORE_INTERNAL_INTERNAL_PAYLOAD_H_
 #define CORE_INTERNAL_INTERNAL_PAYLOAD_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/proto/offline_wire_formats.pb.h"
 #include "connections/payload.h"
@@ -82,14 +84,11 @@ class InternalPayload {
   // Adds the next chunk that comprises the Payload to which this object is
   // bound.
   //
-  // <p>Used when we are trying to reconstruct a Payload that lives on the
-  // other side of a hard boundary (like the other side of a Binder, or another
-  // device altogether), one byte blob at a time.
+  // Used when we are trying to reconstruct a Payload that lives on the
+  // other side of a hard boundary (like another device), one chunk at a time.
   //
-  // @param chunk The next chunk; this being null signals that this is the last
-  // chunk, which will typically be used as a trigger to perform whatever state
-  // cleanup may be required by the concrete implementation.
-  virtual Exception AttachNextChunk(const ByteArray& chunk) = 0;
+  // `chunk` is the next chunk.
+  virtual Exception AttachNextChunk(absl::string_view chunk) = 0;
 
   // Skips current stream pointer to the offset.
   //

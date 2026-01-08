@@ -22,6 +22,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 #include "connections/implementation/mediums/ble/ble_packet.h"
@@ -49,7 +50,7 @@ ExceptionOr<ByteArray> BleInputStream::Read(std::int64_t size) {
 
 Exception BleInputStream::Close() { return source_.Close(); }
 
-Exception BleOutputStream::Write(const ByteArray& data) {
+Exception BleOutputStream::Write(absl::string_view data) {
   if (NearbyFlags::GetInstance().GetBoolFlag(
           config_package_nearby::nearby_connections_feature::
               kRefactorBleL2cap)) {
@@ -59,7 +60,7 @@ Exception BleOutputStream::Write(const ByteArray& data) {
     // Prepend the packet length to the data.
     std::string packet_str =
         absl::StrCat(std::string(byte_utils::IntToBytes(payload_length_)),
-                     std::string(data));
+                     data);
     payload_length_ = 0;
 
     // Prepend the service id hash to the data with the payload length.
@@ -69,7 +70,8 @@ Exception BleOutputStream::Write(const ByteArray& data) {
     if (!ble_packet_status_or.ok()) {
       return {Exception::kFailed};
     }
-    return source_.Write(ByteArray(ble_packet_status_or.value()));
+    return source_.Write(
+        ByteArray(ble_packet_status_or.value()).AsStringView());
   } else {
     return source_.Write(data);
   }
@@ -80,7 +82,7 @@ Exception BleOutputStream::Flush() { return source_.Flush(); }
 Exception BleOutputStream::Close() { return source_.Close(); }
 
 Exception BleOutputStream::WriteControlPacket(const ByteArray& data) {
-  return source_.Write(data);
+  return source_.Write(data.AsStringView());
 }
 
 Exception BleOutputStream::WritePayloadLength(int payload_length) {

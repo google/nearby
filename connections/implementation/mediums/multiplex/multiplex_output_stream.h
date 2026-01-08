@@ -20,6 +20,7 @@
 
 #include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/array_blocking_queue.h"
 #include "internal/platform/atomic_boolean.h"
 #include "internal/platform/byte_array.h"
@@ -174,7 +175,7 @@ class MultiplexOutputStream {
     }
 
     // Writes the data to the physical output stream.
-    Exception Write(const ByteArray& data) override;
+    Exception Write(absl::string_view data) override;
     // Flushes the physical output stream.
     Exception Flush() override;
     // Closes the virtual output stream.

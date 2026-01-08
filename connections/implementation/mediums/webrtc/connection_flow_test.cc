@@ -15,11 +15,11 @@
 #include "connections/implementation/mediums/webrtc/connection_flow.h"
 
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/mediums/webrtc/data_channel_listener.h"
 #include "connections/implementation/mediums/webrtc/local_ice_candidate_listener.h"
@@ -130,13 +130,12 @@ TEST_F(ConnectionFlowTest, SuccessfulOfferAnswerFlow) {
   EXPECT_TRUE(answerer_socket.ok());
 
   // Send message on data channel
-  const char message[] = "Test";
-  offerer_socket.result().GetImpl().GetOutputStream().Write(
-      ByteArray(message, 4));
+  absl::string_view message = "Test";
+  offerer_socket.result().GetImpl().GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_message =
       answerer_socket.result().GetImpl().GetInputStream().Read(4);
   EXPECT_TRUE(received_message.ok());
-  EXPECT_EQ(received_message.result(), ByteArray{message});
+  EXPECT_EQ(received_message.result(), ByteArray{message.data()});
 }
 
 TEST_F(ConnectionFlowTest, CreateAnswerBeforeOfferReceived) {
@@ -338,8 +337,8 @@ TEST_F(ConnectionFlowTest, TerminateAnswerer) {
   latch.Await();
 
   // Send message on data channel
-  std::string message = "Test";
-  offerer_socket.result().GetOutputStream().Write(ByteArray{message});
+  absl::string_view message = "Test";
+  offerer_socket.result().GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_message =
       answerer_socket.result().GetInputStream().Read(4);
   EXPECT_TRUE(received_message.GetResult().Empty());
@@ -429,8 +428,8 @@ TEST_F(ConnectionFlowTest, TerminateOfferer) {
   latch.Await();
 
   // Send message on data channel
-  std::string message = "Test";
-  offerer_socket.result().GetOutputStream().Write(ByteArray{message});
+  absl::string_view message = "Test";
+  offerer_socket.result().GetOutputStream().Write(message);
   ExceptionOr<ByteArray> received_message =
       answerer_socket.result().GetInputStream().Read(4);
   EXPECT_TRUE(received_message.GetResult().Empty());

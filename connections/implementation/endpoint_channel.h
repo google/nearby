@@ -20,6 +20,7 @@
 #include <string>
 
 #include "securegcm/d2d_connection_context_v1.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/analytics/packet_meta_data.h"
@@ -45,7 +46,7 @@ class EndpointChannel {
   virtual Exception Write(const ByteArray& data) = 0;  // throws Exception::IO
 
   virtual Exception Write(
-      const ByteArray& data,
+      absl::string_view data,
       PacketMetaData& packet_meta_data) = 0;  // throws Exception::IO
   // Closes this EndpointChannel, without tracking the closure in analytics.
 

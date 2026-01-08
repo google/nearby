@@ -14,6 +14,7 @@
 
 #include "internal/platform/implementation/shared/file.h"
 
+#include <cstdint>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -22,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
+#include "internal/platform/exception.h"
 
 namespace nearby {
 namespace shared {
@@ -117,14 +119,14 @@ TEST_F(FileTest, IOFile_CloseInput) {
 
 TEST_F(FileTest, IOFile_NonExistentPathOutput) {
   auto io_file = shared::IOFile::CreateOutputFile("/not/a/valid/path.txt");
-  ByteArray bytes("a", 1);
+  absl::string_view bytes("a", 1);
   EXPECT_TRUE(io_file->Write(bytes).Raised(Exception::kIo));
 }
 
 TEST_F(FileTest, IOFile_Write) {
   auto io_file_output = shared::IOFile::CreateOutputFile(path_);
-  ByteArray bytes1("a");
-  ByteArray bytes2("bc");
+  absl::string_view bytes1("a");
+  absl::string_view bytes2("bc");
   EXPECT_EQ(io_file_output->Write(bytes1), Exception{Exception::kSuccess});
   EXPECT_EQ(io_file_output->Write(bytes2), Exception{Exception::kSuccess});
   auto io_file_input =
@@ -135,7 +137,7 @@ TEST_F(FileTest, IOFile_Write) {
 TEST_F(FileTest, IOFile_CloseOutput) {
   auto io_file = shared::IOFile::CreateOutputFile(path_);
   io_file->Close();
-  ByteArray bytes("a");
+  absl::string_view bytes("a");
   EXPECT_EQ(io_file->Write(bytes), Exception{Exception::kIo});
 }
 

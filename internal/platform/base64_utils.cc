@@ -48,20 +48,20 @@ std::int32_t Base64Utils::BytesToInt(const ByteArray& bytes) {
   const char* int_bytes = bytes.data();
 
   std::int32_t result = 0;
-  result |= (static_cast<std::int32_t>(int_bytes[0]) & 0x0FF) << 24;
-  result |= (static_cast<std::int32_t>(int_bytes[1]) & 0x0FF) << 16;
-  result |= (static_cast<std::int32_t>(int_bytes[2]) & 0x0FF) << 8;
-  result |= (static_cast<std::int32_t>(int_bytes[3]) & 0x0FF);
+  result |= (static_cast<std::int32_t>(int_bytes[0]) & 0xFF) << 24;
+  result |= (static_cast<std::int32_t>(int_bytes[1]) & 0xFF) << 16;
+  result |= (static_cast<std::int32_t>(int_bytes[2]) & 0xFF) << 8;
+  result |= (static_cast<std::int32_t>(int_bytes[3]) & 0xFF);
 
   return result;
 }
 
 ByteArray Base64Utils::IntToBytes(std::int32_t value) {
   char int_bytes[sizeof(std::int32_t)];
-  int_bytes[0] = static_cast<char>((value >> 24) & 0x0FF);
-  int_bytes[1] = static_cast<char>((value >> 16) & 0x0FF);
-  int_bytes[2] = static_cast<char>((value >> 8) & 0x0FF);
-  int_bytes[3] = static_cast<char>((value) & 0x0FF);
+  int_bytes[0] = static_cast<char>((value >> 24) & 0xFF);
+  int_bytes[1] = static_cast<char>((value >> 16) & 0xFF);
+  int_bytes[2] = static_cast<char>((value >> 8) & 0xFF);
+  int_bytes[3] = static_cast<char>((value) & 0xFF);
 
   return ByteArray(int_bytes, sizeof(int_bytes));
 }
@@ -71,12 +71,15 @@ ExceptionOr<std::int32_t> Base64Utils::ReadInt(InputStream* reader) {
   if (!read_bytes.ok()) {
     return ExceptionOr<std::int32_t>(read_bytes.exception());
   }
-  return ExceptionOr<std::int32_t>(
-      BytesToInt(std::move(read_bytes.result())));
+  return ExceptionOr<std::int32_t>(BytesToInt(std::move(read_bytes.result())));
 }
 
 Exception Base64Utils::WriteInt(OutputStream* writer, std::int32_t value) {
-  return writer->Write(IntToBytes(value));
+  std::string bytes = {static_cast<char>((value >> 24) & 0xFF),
+                       static_cast<char>((value >> 16) & 0xFF),
+                       static_cast<char>((value >> 8) & 0xFF),
+                       static_cast<char>((value) & 0xFF)};
+  return writer->Write(bytes);
 }
 
 }  // namespace nearby

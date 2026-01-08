@@ -32,7 +32,6 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/byte_utils.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
@@ -52,7 +51,7 @@ using DisconnectionReason =
     ::location::nearby::proto::connections::DisconnectionReason;
 
 Exception WriteInt(OutputStream* writer, std::int32_t value) {
-  return writer->Write(byte_utils::IntToBytes(value));
+  return Base64Utils::WriteInt(writer, value);
 }
 
 }  // namespace
@@ -193,10 +192,10 @@ ExceptionOr<ByteArray> BaseEndpointChannel::Read(
 
 Exception BaseEndpointChannel::Write(const ByteArray& data) {
   PacketMetaData packet_meta_data;
-  return Write(data, packet_meta_data);
+  return Write(data.AsStringView(), packet_meta_data);
 }
 
-Exception BaseEndpointChannel::Write(const ByteArray& data,
+Exception BaseEndpointChannel::Write(absl::string_view data,
                                      PacketMetaData& packet_meta_data) {
   {
     MutexLock pause_lock(&is_paused_mutex_);
@@ -205,8 +204,9 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
     }
   }
 
-  ByteArray encrypted_data;
-  const ByteArray* data_to_write = &data;
+  absl::string_view  data_to_write = data;
+  // Make sure encrypted message is value until end of function.
+  std::unique_ptr<std::string> encrypted;
   {
     // Holding both mutexes is necessary to prevent the keep alive and payload
     // threads from writing encrypted messages out of order which causes a
@@ -218,19 +218,17 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
       if (IsEncryptionEnabledLocked()) {
         // If encryption is enabled, encode the message.
         packet_meta_data.StartEncryption();
-        std::unique_ptr<std::string> encrypted =
-            crypto_context_->EncodeMessageToPeer(std::string(data));
+        encrypted = crypto_context_->EncodeMessageToPeer(data);
         packet_meta_data.StopEncryption();
         if (!encrypted) {
           LOG(WARNING) << __func__ << ": Failed to encrypt data.";
           return {Exception::kIo};
         }
-        encrypted_data = ByteArray(std::move(*encrypted));
-        data_to_write = &encrypted_data;
+        data_to_write = *encrypted;
       }
     }
 
-    size_t data_size = data_to_write->size();
+    size_t data_size = data_to_write.size();
     if (data_size < 0 || data_size > max_allowed_read_bytes_) {
       LOG(WARNING) << __func__
                    << ": Write an invalid number of bytes: " << data_size;
@@ -252,7 +250,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
                    << ": Failed to write header: " << write_exception.value;
       return write_exception;
     }
-    write_exception = writer_->Write(*data_to_write);
+    write_exception = writer_->Write(data_to_write);
     if (write_exception.Raised()) {
       LOG(WARNING) << __func__
                    << ": Failed to write data: " << write_exception.value;
@@ -489,7 +487,7 @@ std::unique_ptr<std::string> BaseEndpointChannel::EncodeMessageForTests(
     absl::string_view data) {
   MutexLock lock(&crypto_mutex_);
   DCHECK(IsEncryptionEnabledLocked());
-  return crypto_context_->EncodeMessageToPeer(std::string(data));
+  return crypto_context_->EncodeMessageToPeer(data);
 }
 
 }  // namespace connections

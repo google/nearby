@@ -21,6 +21,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/webrtc_peer_id.h"
 #include "connections/implementation/mediums/webrtc_socket.h"
 #include "internal/platform/byte_array.h"
@@ -77,7 +78,7 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message xyz");
+  absl::string_view message("message xyz");
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
@@ -105,7 +106,7 @@ TEST_P(WebRtcTest, ConnectBothDevices_ShutdownSignaling_SendData) {
   ExceptionOr<ByteArray> received_msg =
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
-  EXPECT_EQ(message, received_msg.result());
+  EXPECT_EQ(message, received_msg.result().AsStringView());
   env_.Stop();
 }
 
@@ -119,7 +120,7 @@ TEST_P(WebRtcTest, CanCancelConnect) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message");
+  absl::string_view message("message");
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
@@ -146,7 +147,7 @@ TEST_P(WebRtcTest, CanCancelConnect) {
     ExceptionOr<ByteArray> received_msg =
         receiver_socket.GetInputStream().Read(/*size=*/32);
     ASSERT_TRUE(received_msg.ok());
-    EXPECT_EQ(message, received_msg.result());
+    EXPECT_EQ(message, received_msg.result().AsStringView());
 
     receiver_socket.Close();
   } else {
@@ -267,7 +268,7 @@ TEST_P(WebRtcTest, ConnectTwice) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message xyz");
+  absl::string_view message("message xyz");
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
@@ -307,7 +308,7 @@ TEST_P(WebRtcTest, ConnectTwice) {
   ExceptionOr<ByteArray> received_msg =
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
-  EXPECT_EQ(message, received_msg.result());
+  EXPECT_EQ(message, received_msg.result().AsStringView());
 
   receiver_socket.Close();
   env_.Stop();
@@ -324,7 +325,6 @@ TEST_P(WebRtcTest, ConnectBothDevicesAndAbort) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message xyz");
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
@@ -360,7 +360,7 @@ TEST_P(WebRtcTest, ConnectBothDevicesAndSendData) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message");
+  absl::string_view message("message");
 
   receiver.StartAcceptingConnections(
       service_id, self_id, location_hint,
@@ -385,7 +385,7 @@ TEST_P(WebRtcTest, ConnectBothDevicesAndSendData) {
   ExceptionOr<ByteArray> received_msg =
       receiver_socket.GetInputStream().Read(/*size=*/32);
   ASSERT_TRUE(received_msg.ok());
-  EXPECT_EQ(message, received_msg.result());
+  EXPECT_EQ(message, received_msg.result().AsStringView());
 
   receiver_socket.Close();
   env_.Stop();
@@ -461,7 +461,6 @@ TEST_P(WebRtcTest, CancelDuringConnect) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message");
 
   CancellationFlag receiver_flag;
   std::unique_ptr<WebRtc> receiver = std::make_unique<TestWebRtc>(
@@ -518,7 +517,6 @@ TEST_P(WebRtcTest, CancelBeforeConnect) {
   const std::string service_id("NearbySharing");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message");
 
   CancellationFlag receiver_flag;
   std::unique_ptr<WebRtc> receiver = std::make_unique<TestWebRtc>(
@@ -566,7 +564,6 @@ TEST_P(WebRtcTest, CancelDuringConnect_MultipleConnect) {
   const std::string ph_service_id("PhoneHub");
   LocationHint location_hint;
   Future<bool> connected;
-  ByteArray message("message xyz");
 
   CancellationFlag receiver_flag;
   std::unique_ptr<WebRtc> receiver = std::make_unique<TestWebRtc>(

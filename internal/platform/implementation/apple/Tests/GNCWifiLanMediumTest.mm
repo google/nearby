@@ -143,7 +143,7 @@
 
   // Test output stream.
   nearby::OutputStream& outputStream = clientSocket->GetOutputStream();
-  nearby::ByteArray writeData("write data");
+  absl::string_view writeData("write data");
   XCTAssertTrue(outputStream.Write(writeData).Ok());
   XCTAssertEqualObjects(fakeSocket.writtenData,
                         [@"write data" dataUsingEncoding:NSUTF8StringEncoding]);

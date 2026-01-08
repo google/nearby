@@ -26,6 +26,8 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -46,19 +48,19 @@ TEST(PipeTest, ConstructorDestructorWorks) {
 
 TEST(PipeTest, SimpleWriteRead) {
   auto [input_stream, output_stream] = CreatePipe();
-  std::string data("ABCD");
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
+  absl::string_view data("ABCD");
+  EXPECT_TRUE(output_stream->Write(data).Ok());
 
   ExceptionOr<ByteArray> read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
-  EXPECT_EQ(data, std::string(read_data.result()));
+  EXPECT_EQ(data, read_data.result().AsStringView());
 }
 
 TEST(PipeTest, WriteEndClosedBeforeRead) {
   auto [input_stream, output_stream] = CreatePipe();
 
-  std::string data("ABCD");
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
+  absl::string_view data("ABCD");
+  EXPECT_TRUE(output_stream->Write(data).Ok());
 
   // Close the write end before the read end has even begun reading.
   EXPECT_TRUE(output_stream->Close().Ok());
@@ -66,7 +68,7 @@ TEST(PipeTest, WriteEndClosedBeforeRead) {
   // We should still be able to read what was written.
   ExceptionOr<ByteArray> read_data = input_stream->Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
-  EXPECT_EQ(data, std::string(read_data.result()));
+  EXPECT_EQ(data, read_data.result().AsStringView());
 
   // And after that, we should get our indication that all the data that could
   // ever be read, has already been read.
@@ -81,29 +83,29 @@ TEST(PipeTest, ReadEndClosedBeforeWrite) {
   // Close the read end before the write end has even begun writing.
   EXPECT_TRUE(input_stream->Close().Ok());
 
-  std::string data("ABCD");
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Raised(Exception::kIo));
+  absl::string_view data("ABCD");
+  EXPECT_TRUE(output_stream->Write(data).Raised(Exception::kIo));
 }
 
 TEST(PipeTest, SizedReadMoreThanFirstChunkSize) {
   auto [input_stream, output_stream] = CreatePipe();
 
-  std::string data("ABCD");
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
+  absl::string_view data("ABCD");
+  EXPECT_TRUE(output_stream->Write(data).Ok());
 
   // Even though we ask for double of what's there in the first chunk, we should
   // get back only what's there in that first chunk, and that's alright.
   ExceptionOr<ByteArray> read_data = input_stream->Read(data.size() * 2);
   EXPECT_TRUE(read_data.ok());
-  EXPECT_EQ(data, std::string(read_data.result()));
+  EXPECT_EQ(data, read_data.result().AsStringView());
 }
 
 TEST(PipeTest, SizedReadLessThanFirstChunkSize) {
   auto [input_stream, output_stream] = CreatePipe();
   std::string data_first_part("ABCD");
   std::string data_second_part("EFGHIJ");
-  std::string data = data_first_part + data_second_part;
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
+  std::string combined_data = data_first_part + data_second_part;
+  EXPECT_TRUE(output_stream->Write(combined_data).Ok());
 
   // When we ask for less than what's there in the first chunk, we should get
   // back exactly what we asked for, with the remainder still being available
@@ -134,8 +136,8 @@ TEST(PipeTest, WriteAfterOutputStreamClosed) {
 
   output_stream->Close();
 
-  std::string data("ABCD");
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Raised(Exception::kIo));
+  absl::string_view data("ABCD");
+  EXPECT_TRUE(output_stream->Write(data).Raised(Exception::kIo));
 }
 
 TEST(PipeTest, RepeatedClose) {
@@ -216,7 +218,7 @@ TEST(PipeTest, ReadBlockedUntilWrite) {
 
   // State shared between this thread (the writer) and reader_thread.
   CrossThreadBool ok_for_read_to_unblock = false;
-  std::string data("ABCD");
+  absl::string_view data("ABCD");
 
   // Kick off reader_thread.
   Thread reader_thread;
@@ -232,7 +234,7 @@ TEST(PipeTest, ReadBlockedUntilWrite) {
   ok_for_read_to_unblock = true;
 
   // Perform the actual write.
-  EXPECT_TRUE(output_stream->Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_stream->Write(data).Ok());
 
   // And wait for reader_thread to finish.
   reader_thread.Join();
@@ -273,7 +275,7 @@ TEST(PipeTest, ConcurrentWriteAndRead) {
     void operator()() {
       for (auto& chunk : chunks_) {
         RandomSleep();  // Random pauses before each write.
-        EXPECT_TRUE(output_stream_->Write(ByteArray(chunk)).Ok());
+        EXPECT_TRUE(output_stream_->Write(chunk).Ok());
       }
 
       RandomSleep();  // A random pause before closing the writer end.
