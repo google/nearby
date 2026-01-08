@@ -23,9 +23,11 @@
 #include "connections/implementation/bwu_handler.h"
 #include "connections/implementation/client_proxy.h"
 #include "connections/implementation/endpoint_channel.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
 #include "connections/implementation/mediums/mediums.h"
 #include "connections/implementation/offline_frames.h"
 #include "connections/implementation/wifi_direct_bwu_handler.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
@@ -50,7 +52,13 @@ constexpr absl::string_view kEndpointID{"WifiDirect_GO"};
 
 class WifiDirectTest : public testing::Test {
  protected:
-  WifiDirectTest() { env_.Start(); }
+  WifiDirectTest() {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        connections::config_package_nearby::nearby_connections_feature::
+            kEnableWifiDirect,
+        true);
+    env_.Start();
+  }
   ~WifiDirectTest() override { env_.Stop(); }
 
   MediumEnvironment& env_{MediumEnvironment::Instance()};

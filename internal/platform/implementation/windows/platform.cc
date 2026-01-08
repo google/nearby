@@ -58,6 +58,7 @@
 #include "internal/platform/implementation/submittable_executor.h"
 #include "internal/platform/implementation/wifi.h"
 #include "internal/platform/implementation/wifi_lan.h"
+#include "internal/platform/implementation/wifi_hotspot.h"
 #include "internal/platform/implementation/windows/atomic_boolean.h"
 #include "internal/platform/implementation/windows/atomic_reference.h"
 #include "internal/platform/implementation/windows/ble.h"
@@ -283,7 +284,7 @@ ImplementationPlatform::CreateWifiHotspotMedium() {
 
 std::unique_ptr<WifiDirectMedium>
 ImplementationPlatform::CreateWifiDirectMedium() {
-  return nullptr;
+  return std::make_unique<windows::WifiDirectMedium>();
 }
 
 // TODO(b/261663238) replace with real implementation.

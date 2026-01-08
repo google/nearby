@@ -21,6 +21,8 @@
 #include "gtest/gtest.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
@@ -72,6 +74,10 @@ TEST(WifiDirectCredentialsTest, SetGetPin) {
 class WifiDirectMediumTest : public testing::TestWithParam<FeatureFlags> {
  protected:
   WifiDirectMediumTest() {
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        connections::config_package_nearby::nearby_connections_feature::
+            kEnableWifiDirect,
+        true);
     env_.Stop();
     env_.Start();
   }

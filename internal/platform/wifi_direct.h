@@ -24,6 +24,8 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/platform.h"
@@ -156,7 +158,12 @@ class WifiDirectMedium {
   using WifiDirectAuthType =
       ::location::nearby::proto::connections::WifiDirectAuthType;
 
-  WifiDirectMedium() : impl_(Platform::CreateWifiDirectMedium()) {}
+  WifiDirectMedium()
+      : impl_(NearbyFlags::GetInstance().GetBoolFlag(
+                  connections::config_package_nearby::
+                      nearby_connections_feature::kEnableWifiDirect)
+                  ? Platform::CreateWifiDirectMedium()
+                  : nullptr) {}
   ~WifiDirectMedium() = default;
 
   // Returns a new WifiDirectSocket by ip address and port.

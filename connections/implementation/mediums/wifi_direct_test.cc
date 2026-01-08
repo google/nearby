@@ -20,6 +20,8 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
+#include "connections/implementation/flags/nearby_connections_feature_flags.h"
+#include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/expected.h"
 #include "internal/platform/feature_flags.h"
@@ -52,6 +54,10 @@ class WifiDirectTest : public testing::TestWithParam<FeatureFlags> {
  protected:
   WifiDirectTest() {
     env_.Stop();
+    NearbyFlags::GetInstance().OverrideBoolFlagValue(
+        connections::config_package_nearby::nearby_connections_feature::
+            kEnableWifiDirect,
+        true);
     env_.Start();
   }
   ~WifiDirectTest() override { env_.Stop(); }
