@@ -43,7 +43,7 @@ class IOFile final : public api::InputFile, public api::OutputFile {
   std::int64_t GetTotalSize() const override { return total_size_; }
   Exception Close() override;
 
-  Exception Write(const ByteArray& data) override;
+  Exception Write(absl::string_view data) override;
 
   absl::Time GetLastModifiedTime() const override;
   void SetLastModifiedTime(absl::Time last_modified_time) override;

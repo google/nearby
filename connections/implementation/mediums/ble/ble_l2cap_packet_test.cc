@@ -15,7 +15,6 @@
 #include "connections/implementation/mediums/ble/ble_l2cap_packet.h"
 
 #include <string>
-#include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
@@ -203,7 +202,7 @@ TEST(BleL2capPacketTest, CreateFromBytesWithInvalidLengthAdvertisement) {
 TEST(BleL2capPacketTest, CreateFromStreamFailsReadCommand) {
   auto [input, output] = nearby::CreatePipe();
 
-  output->Write(ByteArray{});
+  output->Write("");
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -216,7 +215,7 @@ TEST(BleL2capPacketTest, CreateFromStreamRequestAdvertisement) {
       BleL2capPacket::ByteArrayForRequestAdvertisement(std::string(kServiceID));
   ASSERT_TRUE(byte_array.ok());
 
-  output->Write(*byte_array);
+  output->Write(byte_array->AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -233,7 +232,7 @@ TEST(BleL2capPacketTest, CreateFromStreamZeroDataLength) {
           1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
       std::string("\x00\x00", 2));
 
-  output->Write(ByteArray{std::move(out)});
+  output->Write(out);
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -248,7 +247,7 @@ TEST(BleL2capPacketTest,
           1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
       std::string("\x00\x01", 2));
 
-  output->Write(ByteArray{std::move(out)});
+  output->Write(out);
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -262,7 +261,7 @@ TEST(BleL2capPacketTest, CreateFromStreamFailsReadServiceIdHash) {
           1, static_cast<char>(BleL2capPacket::Command::kRequestAdvertisement)),
       std::string("\x00\x03", 2));
 
-  output->Write(ByteArray{std::move(out)});
+  output->Write(out);
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -273,7 +272,7 @@ TEST(BleL2capPacketTest, CreateFromStreamRequestAdvertisementFinish) {
   auto [input, output] = nearby::CreatePipe();
   auto byte_array = BleL2capPacket::ByteArrayForRequestAdvertisementFinish();
 
-  output->Write(byte_array);
+  output->Write(byte_array.AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -288,7 +287,7 @@ TEST(BleL2capPacketTest, CreateFromStreamResponseAdvertisement) {
       BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
   ASSERT_TRUE(byte_array.ok());
 
-  output->Write(*byte_array);
+  output->Write(byte_array->AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -306,7 +305,7 @@ TEST(BleL2capPacketTest,
                          BleL2capPacket::Command::kResponseAdvertisement)),
       "\xFF\xFF");
 
-  output->Write(ByteArray{std::move(out)});
+  output->Write(out);
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -320,7 +319,7 @@ TEST(BleL2capPacketTest, CreateFromStreamFailsReadAdvertisement) {
                          BleL2capPacket::Command::kResponseAdvertisement)),
       std::string("\x00\x0a", 2));
 
-  output->Write(ByteArray{std::move(out)});
+  output->Write(out);
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -334,7 +333,7 @@ TEST(BleL2capPacketTest, CreateFromStreamResponseLargeAdvertisement) {
       BleL2capPacket::ByteArrayForResponseAdvertisement(advertisement);
   ASSERT_TRUE(byte_array.ok());
 
-  output->Write(*byte_array);
+  output->Write(byte_array->AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -348,7 +347,7 @@ TEST(BleL2capPacketTest, CreateFromStreamServiceIdNotFound) {
   auto [input, output] = nearby::CreatePipe();
   auto byte_array = BleL2capPacket::ByteArrayForServiceIdNotFound();
 
-  output->Write(byte_array);
+  output->Write(byte_array.AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -360,7 +359,7 @@ TEST(BleL2capPacketTest, CreateFromStreamRequestDataConnection) {
   auto [input, output] = nearby::CreatePipe();
   auto byte_array = BleL2capPacket::ByteArrayForRequestDataConnection();
 
-  output->Write(byte_array);
+  output->Write(byte_array.AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -372,7 +371,7 @@ TEST(BleL2capPacketTest, CreateFromStreamDataConnectionReady) {
   auto [input, output] = nearby::CreatePipe();
   auto byte_array = BleL2capPacket::ByteArrayForDataConnectionReady();
 
-  output->Write(byte_array);
+  output->Write(byte_array.AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -384,7 +383,7 @@ TEST(BleL2capPacketTest, CreateFromStreamDataConnectionFailure) {
   auto [input, output] = nearby::CreatePipe();
   auto byte_array = BleL2capPacket::ByteArrayForDataConnectionFailure();
 
-  output->Write(byte_array);
+  output->Write(byte_array.AsStringView());
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);
@@ -396,7 +395,7 @@ TEST(BleL2capPacketTest, CreateFromStreamUnsupportedCommand) {
   auto [input, output] = nearby::CreatePipe();
   std::string out = absl::StrCat(std::string(1, static_cast<char>(0XFF)));
 
-  output->Write(ByteArray{std::move(out)});
+  output->Write(out);
   output->Close();
 
   auto ble_l2cap_packet = BleL2capPacket::CreateFromStream(*input);

@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "connections/implementation/internal_payload.h"
@@ -73,7 +74,7 @@ class BytesInternalPayload : public InternalPayload {
   }
 
   // Does nothing.
-  Exception AttachNextChunk(const ByteArray& chunk) override {
+  Exception AttachNextChunk(absl::string_view chunk) override {
     return {Exception::kSuccess};
   }
 
@@ -127,7 +128,7 @@ class OutgoingStreamInternalPayload : public InternalPayload {
     return scoped_bytes_read;
   }
 
-  Exception AttachNextChunk(const ByteArray& chunk) override {
+  Exception AttachNextChunk(absl::string_view chunk) override {
     return {Exception::kIo};
   }
 
@@ -171,8 +172,8 @@ class IncomingStreamInternalPayload : public InternalPayload {
 
   ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    if (chunk.Empty()) {
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    if (chunk.empty()) {
       LOG(INFO) << "Received null last chunk for incoming payload " << this
                 << ", closing OutputStream.";
       Close();
@@ -229,7 +230,7 @@ class OutgoingFileInternalPayload : public InternalPayload {
     return bytes;
   }
 
-  Exception AttachNextChunk(const ByteArray& chunk) override {
+  Exception AttachNextChunk(absl::string_view chunk) override {
     return {Exception::kIo};
   }
 
@@ -285,8 +286,8 @@ class IncomingFileInternalPayload : public InternalPayload {
 
   ByteArray DetachNextChunk(int chunk_size) override { return {}; }
 
-  Exception AttachNextChunk(const ByteArray& chunk) override {
-    if (chunk.Empty()) {
+  Exception AttachNextChunk(absl::string_view chunk) override {
+    if (chunk.empty()) {
       // Received null last chunk for incoming payload.
       Close();
       return {Exception::kSuccess};

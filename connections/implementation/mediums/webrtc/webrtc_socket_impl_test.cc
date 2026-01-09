@@ -20,6 +20,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "webrtc/api/data_channel_interface.h"
@@ -97,7 +98,7 @@ TEST(WebRtcSocketTest, ReadMultipleMessages) {
 }
 
 TEST(WebRtcSocketTest, WriteToSocket) {
-  const ByteArray kMessage{"Message"};
+  absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
@@ -108,7 +109,7 @@ TEST(WebRtcSocketTest, WriteToSocket) {
 }
 
 TEST(WebRtcSocketTest, SendDataBiggerThanMax) {
-  const ByteArray kMessage{kMaxDataSize + 1};
+  std::string kMessage(kMaxDataSize + 1, '0');
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
@@ -119,7 +120,7 @@ TEST(WebRtcSocketTest, SendDataBiggerThanMax) {
 }
 
 TEST(WebRtcSocketTest, WriteToDataChannelFails) {
-  ByteArray kMessage{"Message"};
+  absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
@@ -156,7 +157,7 @@ TEST(WebRtcSocketTest, Close) {
 }
 
 TEST(WebRtcSocketTest, WriteOnClosedChannel) {
-  ByteArray kMessage{"Message"};
+  absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);
@@ -168,7 +169,7 @@ TEST(WebRtcSocketTest, WriteOnClosedChannel) {
 }
 
 TEST(WebRtcSocketTest, ReadFromClosedChannel) {
-  ByteArray kMessage{"Message"};
+  absl::string_view kMessage{"Message"};
   webrtc::scoped_refptr<MockDataChannel> mock_data_channel(
       new MockDataChannel());
   WebRtcSocket webrtc_socket(kSocketName, mock_data_channel);

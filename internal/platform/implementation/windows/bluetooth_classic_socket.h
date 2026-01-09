@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/bluetooth_classic.h"
@@ -92,7 +93,7 @@ class BluetoothSocket : public api::BluetoothSocket {
         ::winrt::Windows::Storage::Streams::IOutputStream stream);
     ~BluetoothOutputStream() override = default;
 
-    Exception Write(const ByteArray& data) override;
+    Exception Write(absl::string_view data) override;
     Exception Flush() override;
 
     Exception Close() override;

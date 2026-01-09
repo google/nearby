@@ -246,13 +246,12 @@ void MultiplexOutputStream::MultiplexWriter::StartWriting() {
 void MultiplexOutputStream::MultiplexWriter::Write(
     EnqueuedFrame& enqueued_frame) {
   MutexLock lock(&writer_mutex_);
-  if (!physical_writer_
-           ->Write(Base64Utils::IntToBytes(enqueued_frame.data_.size()))
+  if (!Base64Utils::WriteInt(physical_writer_, enqueued_frame.data_.size())
            .Ok()) {
     enqueued_frame.future_->SetException({Exception::kIo});
     return;
   };
-  if (!physical_writer_->Write(enqueued_frame.data_).Ok()) {
+  if (!physical_writer_->Write(enqueued_frame.data_.AsStringView()).Ok()) {
     enqueued_frame.future_->SetException({Exception::kIo});
     return;
   };
@@ -301,7 +300,7 @@ MultiplexOutputStream::VirtualOutputStream::VirtualOutputStream(
       multiplex_output_stream_(multiplex_output_stream) {}
 
 Exception MultiplexOutputStream::VirtualOutputStream::Write(
-    const ByteArray& data) {
+    absl::string_view data) {
   if (is_closed_.Get()) {
     LOG(WARNING) << "Failed to write data because the VirtualOutputStream for "
                  << service_id_ << " closed";

@@ -104,7 +104,7 @@ BleL2capOutputStream::~BleL2capOutputStream() {
   NSCAssert(!connection_, @"BleL2capOutputStream not closed before destruction");
 }
 
-Exception BleL2capOutputStream::Write(const ByteArray &data) {
+Exception BleL2capOutputStream::Write(absl::string_view data) {
   [condition_ lock];
   if (!connection_) {
     [condition_ unlock];

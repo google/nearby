@@ -250,7 +250,7 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
       bt_b_->ListenForService(service_name, service_uuid);
   ASSERT_TRUE(server_socket.IsValid());
   {
-    ByteArray data("data");
+    absl::string_view data("data");
     CancellationFlag flag;
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;
@@ -268,7 +268,7 @@ TEST_F(BluetoothClassicMediumTest, SendData) {
           socket_b.GetInputStream().Read(data.size());
       ASSERT_EQ(result.exception(), Exception::kSuccess);
       ASSERT_TRUE(result.ok());
-      EXPECT_EQ(result.GetResult(), data);
+      EXPECT_EQ(result.GetResult().AsStringView(), data);
     });
   }
   server_socket.Close();
@@ -297,7 +297,7 @@ TEST_F(BluetoothClassicMediumTest, IoOnClosedSocketReturnsEmpty) {
       bt_b_->ListenForService(service_name, service_uuid);
   ASSERT_TRUE(server_socket.IsValid());
   {
-    ByteArray data("data");
+    absl::string_view data("data");
     CancellationFlag flag;
     SingleThreadExecutor server_executor;
     SingleThreadExecutor client_executor;

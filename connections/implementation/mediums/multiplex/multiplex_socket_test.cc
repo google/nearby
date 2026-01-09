@@ -199,8 +199,8 @@ TEST(MultiplexSocketTest, CreateIncomingSocketSuccess) {
             });
     auto& writer = socket->writer_1_;
     LOG(INFO) << "writer_1_ Write start";
-    writer->Write(Base64Utils::IntToBytes(connection_req_frame.size()));
-    writer->Write(connection_req_frame);
+    Base64Utils::WriteInt(writer.get(), connection_req_frame.size());
+    writer->Write(connection_req_frame.AsStringView());
     writer->Flush();
     LOG(INFO) << "writer_1_ Write end";
   });
@@ -269,8 +269,8 @@ TEST(MultiplexSocketTest, CreateIncomingVirtualSocketSuccess) {
         std::string(SERVICE_ID_2), "J7frzSmHK-VBTHjCKpf4ew");
     auto& writer = socket->writer_1_;
     LOG(INFO) << "writer_1_ Write start";
-    writer->Write(Base64Utils::IntToBytes(connection_req_frame.size()));
-    writer->Write(connection_req_frame);
+    Base64Utils::WriteInt(writer.get(), connection_req_frame.size());
+    writer->Write(connection_req_frame.AsStringView());
     writer->Flush();
     LOG(INFO) << "writer_1_ Write end";
   });
@@ -414,8 +414,8 @@ TEST(MultiplexSocketTest, EstablishVirtualSocket_RemoteAccepted) {
                             ConnectionResponseFrame::CONNECTION_ACCEPTED);
   auto& writer = fake_socket_ptr->writer_1_;
   LOG(INFO) << "writer_1_ Write start";
-  writer->Write(Base64Utils::IntToBytes(connection_response_frame.size()));
-  writer->Write(connection_response_frame);
+  Base64Utils::WriteInt(writer.get(), connection_response_frame.size());
+  writer->Write(connection_response_frame.AsStringView());
   writer->Flush();
   LOG(INFO) << "writer_1_ Write end";
   absl::SleepFor(absl::Milliseconds(100));
@@ -427,17 +427,17 @@ TEST(MultiplexSocketTest, EstablishVirtualSocket_RemoteAccepted) {
   LOG(INFO) << "Send Data frame on virtual socket for SERVICE_ID_2.";
   ByteArray data_frame =
       ForData(std::string(SERVICE_ID_2), service_id_hash_salt,
-              /*should_pass_salt=*/true, ByteArray("data"));
-  writer->Write(Base64Utils::IntToBytes(data_frame.size()));
-  writer->Write(data_frame);
+              /*should_pass_salt=*/true, absl::string_view("data"));
+  Base64Utils::WriteInt(writer.get(), data_frame.size());
+  writer->Write(data_frame.AsStringView());
   writer->Flush();
   absl::SleepFor(absl::Milliseconds(100));
 
   LOG(INFO) << "Send disconnection frame on virtual socket for SERVICE_ID_2.";
   ByteArray disconnect_frame =
       ForDisconnection(std::string(SERVICE_ID_2), service_id_hash_salt);
-  writer->Write(Base64Utils::IntToBytes(disconnect_frame.size()));
-  writer->Write(disconnect_frame);
+  Base64Utils::WriteInt(writer.get(), disconnect_frame.size());
+  writer->Write(disconnect_frame.AsStringView());
   writer->Flush();
   absl::SleepFor(absl::Milliseconds(100));
   EXPECT_EQ(multiplex_socket->GetVirtualSocketCount(), 1);

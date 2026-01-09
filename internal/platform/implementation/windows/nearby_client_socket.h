@@ -21,6 +21,7 @@
 #include <cstdint>
 
 #include "absl/base/nullability.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -45,7 +46,7 @@ class NearbyClientSocket {
   bool Connect(const SocketAddress& server_address, absl::Duration timeout);
   ExceptionOr<ByteArray> Read(std::int64_t size);
   ExceptionOr<size_t> Skip(size_t offset);
-  Exception Write(const ByteArray& data);
+  Exception Write(absl::string_view data);
   Exception Flush();
   Exception Close();
 
@@ -80,7 +81,7 @@ class SocketOutputStream : public OutputStream {
       : client_socket_(client_socket) {}
   ~SocketOutputStream() override = default;
 
-  Exception Write(const ByteArray& data) override {
+  Exception Write(absl::string_view data) override {
     return client_socket_->Write(data);
   }
   Exception Flush() override { return client_socket_->Flush(); }

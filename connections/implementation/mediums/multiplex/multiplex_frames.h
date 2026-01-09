@@ -18,6 +18,7 @@
 
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "proto/mediums/multiplex_frames.pb.h"
@@ -88,7 +89,7 @@ ByteArray ForDisconnection(const std::string& service_id,
 // @param data The data to send.
 ByteArray ForData(const std::string& service_id,
                   const std::string& service_id_hash_salt,
-                  bool should_pass_salt, const ByteArray& data);
+                  bool should_pass_salt, absl::string_view data);
 
 ExceptionOr<location::nearby::mediums::MultiplexFrame> FromBytes(
     const ByteArray& multiplex_frame_bytes);

@@ -70,7 +70,7 @@ class BleOutputStream : public OutputStream {
   // Write the provided bytes to the output stream.
   //
   // Returns Exception::kIo on error, otherwise Exception::kSuccess.
-  Exception Write(const ByteArray &data) override;
+  Exception Write(absl::string_view data) override;
 
   // no-op
   //

@@ -17,6 +17,7 @@
 #include <tuple>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
@@ -32,7 +33,7 @@ namespace connections {
 namespace mediums {
 
 // OutputStreamImpl
-Exception WebRtcSocket::OutputStreamImpl::Write(const ByteArray& data) {
+Exception WebRtcSocket::OutputStreamImpl::Write(absl::string_view data) {
   if (data.size() > kMaxDataSize) {
     LOG(WARNING) << "Sending data larger than 1MB";
     return {Exception::kIo};
@@ -45,7 +46,7 @@ Exception WebRtcSocket::OutputStreamImpl::Write(const ByteArray& data) {
     return {Exception::kIo};
   }
 
-  if (!socket_->SendMessage(data)) {
+  if (!socket_->SendMessage(ByteArray::FromStringView(data))) {
     LOG(INFO) << "Unable to write data to socket.";
     return {Exception::kIo};
   }
@@ -135,7 +136,7 @@ void WebRtcSocket::OnMessage(const webrtc::DataBuffer& buffer) {
   // we don't block signaling.
   OffloadFromSignalingThread(
       [this, buffer = ByteArray(buffer.data.data<char>(), buffer.size())] {
-        if (!pipe_output_->Write(buffer).Ok()) {
+        if (!pipe_output_->Write(buffer.AsStringView()).Ok()) {
           Close();
           return;
         }

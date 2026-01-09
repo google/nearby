@@ -53,7 +53,7 @@ Exception WifiLanInputStream::Close() {
 
 WifiLanOutputStream::WifiLanOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-Exception WifiLanOutputStream::Write(const ByteArray& data) {
+Exception WifiLanOutputStream::Write(absl::string_view data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {

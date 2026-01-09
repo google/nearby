@@ -150,7 +150,7 @@ TEST(MultiplexFrameTest, CanGenerateDisconnection) {
 }
 
 TEST(MultiplexFrameTest, CanGenerateData) {
-  ByteArray data("abcdefghijklmnopqrstuvwxyz");
+  absl::string_view data = "abcdefghijklmnopqrstuvwxyz";
   ByteArray bytes =
       ForData(std::string(kServiceId_1), "1234", true, data);
   auto response = FromBytes(bytes);

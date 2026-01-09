@@ -173,7 +173,7 @@ TEST_F(MultiplexOutputStreamTest, CreateVirtualStream_SendData) {
       multiplex_output_stream_->CreateVirtualOutputStream(
           std::string(kServiceId_1), std::string(kSalt_1));
 
-  const ByteArray data("abcdefghijklmnopqrstuvwxyz");
+  absl::string_view data = "abcdefghijklmnopqrstuvwxyz";
   virtual_output_stream->Write(data);
   virtual_output_stream->Flush();
   auto frame_data = ReadFrame();
@@ -199,8 +199,8 @@ TEST_F(MultiplexOutputStreamTest, CreateTwoVirtualStreams_SendData) {
       multiplex_output_stream_->CreateVirtualOutputStreamForFirstVirtualSocket(
           std::string(kServiceId_2), std::string(kSalt_2));
 
-  const ByteArray data_1("abcdefg");
-  const ByteArray data_2("hijklmn");
+  absl::string_view data_1("abcdefg");
+  absl::string_view data_2("hijklmn");
   MultiThreadExecutor executor(2);
   CountDownLatch latch(2);
   executor.Execute([&virtual_output_stream_1, &latch, &data_1]() {

@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/payload_id.h"
 
@@ -72,7 +73,7 @@ OutputFile& OutputFile::operator=(OutputFile&&) = default;
 bool OutputFile::IsValid() const { return impl_ != nullptr; }
 // Writes all data from ByteArray object to the underlying stream.
 // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-Exception OutputFile::Write(const ByteArray& data) {
+Exception OutputFile::Write(absl::string_view data) {
   return impl_->Write(data);
 }
 

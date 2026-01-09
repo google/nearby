@@ -18,12 +18,9 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
-#include <cstdint>
 #include <string>
 #include <utility>
 
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
 namespace nearby {
@@ -32,6 +29,10 @@ class ByteArray {
  public:
   using iterator = std::string::iterator;
   using const_iterator = std::string::const_iterator;
+
+  static ByteArray FromStringView(absl::string_view source) {
+    return ByteArray(source.data(), source.size());
+  }
 
   // Create an empty ByteArray
   ByteArray() = default;

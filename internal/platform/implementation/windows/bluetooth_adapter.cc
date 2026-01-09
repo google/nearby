@@ -389,9 +389,7 @@ void BluetoothAdapter::StoreRadioNames(absl::string_view original_radio_name,
     VLOG(1) << __func__
             << ": saved settings: " << encoded_local_settings.dump();
 
-    ByteArray data(encoded_local_settings.dump());
-
-    settings_file->Write(data);
+    settings_file->Write(encoded_local_settings.dump());
     settings_file->Close();
   } catch (const winrt::hresult_error &ex) {
     LOG(ERROR) << __func__ << ": exception:" << ex.code() << ": "
