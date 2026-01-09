@@ -88,13 +88,13 @@ let package = Package(
       sources: [
         "ukey2/src/securemessage/src/securemessage",
         "ukey2/src/main/cpp/src/securegcm",
-        "protoc_out",
+        "ukey2/protoc_out",
       ],
       publicHeadersPath: "include",
       cSettings: [
         .headerSearchPath("ukey2/"),
-        .headerSearchPath("protoc_out/"),
-        .headerSearchPath("protoc_out/src/main/"),
+        .headerSearchPath("ukey2/protoc_out/"),
+        .headerSearchPath("ukey2/protoc_out/src/main/"),
       ]
     ),
     .target(
@@ -560,7 +560,7 @@ let package = Package(
         .headerSearchPath("./"),
         .headerSearchPath("protoc_out/"),
         .headerSearchPath("third_party/ukey2/ukey2/"),
-        .headerSearchPath("third_party/ukey2/protoc_out/"),
+        .headerSearchPath("third_party/ukey2/ukey2/protoc_out/"),
         .define("NO_WEBRTC"),
       ]
     ),

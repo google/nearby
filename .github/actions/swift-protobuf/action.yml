@@ -36,8 +36,9 @@ runs:
     shell: bash
   - name: generate ukey2 proto bindings
     run: |
-      cd third_party/ukey2
+      cd third_party/ukey2/ukey2
       mkdir protoc_out
-      protoc --cpp_out=protoc_out --proto_path=ukey2 --proto_path=ukey2/src/main/proto ukey2/src/main/proto/device_to_device_messages.proto ukey2/src/main/proto/securegcm.proto ukey2/src/main/proto/securemessage.proto ukey2/src/main/proto/ukey.proto
+      protoc --cpp_out=protoc_out --proto_path=. --proto_path=src/main/proto src/main/proto/device_to_device_messages.proto
+      protoc --cpp_out=protoc_out src/main/proto/securegcm.proto src/main/proto/securemessage.proto src/main/proto/ukey.proto
       ls -lR protoc_out
     shell: bash
