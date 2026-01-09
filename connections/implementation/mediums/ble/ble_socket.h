@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/ble.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -98,11 +99,11 @@ class BleOutputStream : public OutputStream {
    * The resulting serialized `BlePacket` is then written to the `source_`
    * stream.
    *
-   * @param data The raw `ByteArray` payload to write to the stream.
+   * @param data The raw `absl::string_view` payload to write to the stream.
    * @return `Exception::kSuccess` if the write operation succeeds, or an
    *         exception code indicating the type of error.
    */
-  Exception Write(const ByteArray& data) override;
+  Exception Write(absl::string_view data) override;
 
   Exception Flush() override;
   Exception Close() override;

@@ -61,7 +61,7 @@ Exception WifiHotspotInputStream::Close() {
 
 WifiHotspotOutputStream::WifiHotspotOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-Exception WifiHotspotOutputStream::Write(const ByteArray& data) {
+Exception WifiHotspotOutputStream::Write(absl::string_view data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {

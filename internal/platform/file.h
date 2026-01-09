@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
@@ -84,9 +85,9 @@ class OutputFile final {
 
   bool IsValid() const;
 
-  // Writes all data from ByteArray object to the underlying stream.
+  // Writes all data from string_view object to the underlying stream.
   // Returns Exception::kIo on error, Exception::kSuccess otherwise.
-  Exception Write(const ByteArray& data);
+  Exception Write(absl::string_view data);
 
   // Disallows further writes to the file and frees system resources,
   // associated with it.

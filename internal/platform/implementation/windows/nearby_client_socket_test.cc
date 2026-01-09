@@ -132,7 +132,7 @@ TEST(NearbyClientSocketTest, Write) {
                                 /*addrlen=*/&peer_address_length);
   EXPECT_NE(accept_socket, INVALID_SOCKET);
 
-  EXPECT_TRUE(client_socket.Write(ByteArray("hello")).Ok());
+  EXPECT_TRUE(client_socket.Write("hello").Ok());
   std::string buffer;
   buffer.resize(5);
   EXPECT_EQ(recv(accept_socket, buffer.data(), 5, 0), 5);

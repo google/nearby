@@ -15,6 +15,8 @@
 #ifndef PLATFORM_BASE_OUTPUT_STREAM_H_
 #define PLATFORM_BASE_OUTPUT_STREAM_H_
 
+#include "absl/base/attributes.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 
@@ -27,9 +29,12 @@ class OutputStream {
  public:
   virtual ~OutputStream() = default;
 
-  virtual Exception Write(const ByteArray& data) = 0;  // throws Exception::kIo
+  virtual Exception Write(absl::string_view data) = 0;  // throws Exception::kIo
   virtual Exception Flush() = 0;                       // throws Exception::kIo
   virtual Exception Close() = 0;                       // throws Exception::kIo
+
+  ABSL_DEPRECATED("Use the absl::string_view overload instead.")
+  Exception Write(const ByteArray& data) { return Write(data.AsStringView()); }
 };
 
 }  // namespace nearby

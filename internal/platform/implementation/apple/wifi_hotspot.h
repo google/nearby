@@ -55,7 +55,7 @@ class WifiHotspotOutputStream : public OutputStream {
   explicit WifiHotspotOutputStream(GNCNWFrameworkSocket* socket);
   ~WifiHotspotOutputStream() override = default;
 
-  Exception Write(const ByteArray& data) override;
+  Exception Write(absl::string_view data) override;
   Exception Flush() override;
   Exception Close() override;
 

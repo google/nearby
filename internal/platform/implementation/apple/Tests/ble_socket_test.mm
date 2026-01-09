@@ -124,7 +124,7 @@
 
 - (void)testBleOutputStreamWrite {
   nearby::apple::BleOutputStream &outputStream = _socket->GetOutputStream();
-  nearby::ByteArray data("test");
+  absl::string_view data("test");
   XCTAssertEqual(outputStream.Write(data).value, nearby::Exception::kSuccess);
 }
 

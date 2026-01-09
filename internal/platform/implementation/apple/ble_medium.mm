@@ -631,7 +631,7 @@ std::unique_ptr<api::ble::BleSocket> BleMedium::Connect(
 
   if (!GNCFeatureFlags.refactorBleL2capEnabled) {
     // Send the (empty) intro packet, which the BLE advertiser is expecting.
-    socket->GetOutputStream().Write(ByteArray());
+    socket->GetOutputStream().Write("");
   }
   return std::move(socket);
 }

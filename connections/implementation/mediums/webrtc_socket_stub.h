@@ -35,7 +35,7 @@ class FakeInputStream : public InputStream {
 
 class FakeOutputStream : public OutputStream {
  public:
-  Exception Write(const ByteArray& data) override {
+  Exception Write(absl::string_view data) override {
     return {Exception::kSuccess};
   }
   Exception Flush() override { return {Exception::kSuccess}; }

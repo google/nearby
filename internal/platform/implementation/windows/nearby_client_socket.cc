@@ -22,6 +22,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
@@ -217,7 +218,7 @@ ExceptionOr<size_t> NearbyClientSocket::Skip(size_t offset) {
   return {Exception::kIo};
 }
 
-Exception NearbyClientSocket::Write(const ByteArray& data) {
+Exception NearbyClientSocket::Write(absl::string_view data) {
   if (socket_ == INVALID_SOCKET) {
     LOG(WARNING) << "Trying to write to an invalid socket.";
     return {Exception::kIo};

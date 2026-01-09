@@ -32,7 +32,6 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
-#include "internal/platform/byte_utils.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
@@ -52,7 +51,7 @@ using DisconnectionReason =
     ::location::nearby::proto::connections::DisconnectionReason;
 
 Exception WriteInt(OutputStream* writer, std::int32_t value) {
-  return writer->Write(byte_utils::IntToBytes(value));
+  return Base64Utils::WriteInt(writer, value);
 }
 
 }  // namespace
@@ -252,7 +251,7 @@ Exception BaseEndpointChannel::Write(const ByteArray& data,
                    << ": Failed to write header: " << write_exception.value;
       return write_exception;
     }
-    write_exception = writer_->Write(*data_to_write);
+    write_exception = writer_->Write(data_to_write->AsStringView());
     if (write_exception.Raised()) {
       LOG(WARNING) << __func__
                    << ": Failed to write data: " << write_exception.value;

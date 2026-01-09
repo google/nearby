@@ -53,7 +53,7 @@ Exception AwdlInputStream::Close() {
 
 AwdlOutputStream::AwdlOutputStream(GNCNWFrameworkSocket* socket) : socket_(socket) {}
 
-Exception AwdlOutputStream::Write(const ByteArray& data) {
+Exception AwdlOutputStream::Write(absl::string_view data) {
   NSError* error = nil;
   BOOL result = [socket_ write:[NSData dataWithBytes:data.data() length:data.size()] error:&error];
   if (!result) {

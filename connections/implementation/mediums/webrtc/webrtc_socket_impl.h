@@ -19,6 +19,7 @@
 #include <string>
 #include <memory>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/listeners.h"
@@ -84,7 +85,7 @@ class WebRtcSocket : public Socket, public webrtc::DataChannelObserver {
     OutputStreamImpl& operator=(const OutputStreamImpl& other) = delete;
 
     // OutputStream:
-    Exception Write(const ByteArray& data) override;
+    Exception Write(absl::string_view data) override;
     Exception Flush() override;
     Exception Close() override;
 

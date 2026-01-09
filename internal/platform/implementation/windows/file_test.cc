@@ -161,7 +161,7 @@ TEST(IOFileTest, OutputFileAlreadyExists) {
   ASSERT_NE(output_file, nullptr);
 
   EXPECT_EQ(output_file->GetTotalSize(), 0);
-  ExceptionOr<ByteArray> write_result = output_file->Write(ByteArray("test"));
+  ExceptionOr<ByteArray> write_result = output_file->Write("test");
   EXPECT_FALSE(write_result.ok());
   EXPECT_TRUE(write_result.GetException().Raised(Exception::kIo));
 
@@ -173,9 +173,9 @@ TEST(IOFileTest, OutputFileWrite) {
   std::unique_ptr<IOFile> output_file = IOFile::CreateOutputFile(temp_file);
   ASSERT_NE(output_file, nullptr);
 
-  ExceptionOr<ByteArray> write_result = output_file->Write(ByteArray("test1"));
+  ExceptionOr<ByteArray> write_result = output_file->Write("test1");
   EXPECT_TRUE(write_result.ok());
-  write_result = output_file->Write(ByteArray("test2"));
+  write_result = output_file->Write("test2");
   EXPECT_TRUE(write_result.ok());
   EXPECT_TRUE(output_file->Close().Ok());
 

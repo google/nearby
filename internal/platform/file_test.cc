@@ -46,7 +46,7 @@ TEST_F(FileTest, ConstructorDestructorWorks) {
   // Create an output file and write to it.
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  output_file.Write(ByteArray(data));
+  output_file.Write(data);
   output_file.Close();
 
   // Create an input file and read from it.
@@ -64,7 +64,7 @@ TEST_F(FileTest, SimpleWriteRead) {
   // Write to file.
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_file.Write(data).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   // Read from file.
@@ -82,7 +82,7 @@ TEST_F(FileTest, WriteThenCloseThenRead) {
   // Write and close.
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_file.Write(data).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   // Re-open and read.
@@ -115,7 +115,7 @@ TEST_F(FileTest, ReadExactly) {
 
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_file.Write(data).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   InputFile input_file(file_path.ToString());
@@ -132,7 +132,7 @@ TEST_F(FileTest, ReadTooMuch) {
 
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(output_file.Write(data).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   InputFile input_file(file_path.ToString());
@@ -150,7 +150,7 @@ TEST_F(FileTest, Skip) {
 
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(full_data)).Ok());
+  EXPECT_TRUE(output_file.Write(full_data).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   InputFile input_file(file_path.ToString());
@@ -172,8 +172,8 @@ TEST_F(FileTest, MultipleWrites) {
 
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(data1)).Ok());
-  EXPECT_TRUE(output_file.Write(ByteArray(data2)).Ok());
+  EXPECT_TRUE(output_file.Write(data1).Ok());
+  EXPECT_TRUE(output_file.Write(data2).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   InputFile input_file(file_path.ToString());
@@ -205,7 +205,7 @@ TEST_F(FileTest, WriteLargeFile) {
 
   OutputFile output_file(file_path.ToString());
   ASSERT_TRUE(output_file.IsValid());
-  EXPECT_TRUE(output_file.Write(ByteArray(large_data)).Ok());
+  EXPECT_TRUE(output_file.Write(large_data).Ok());
   EXPECT_TRUE(output_file.Close().Ok());
 
   InputFile input_file(file_path.ToString());

@@ -20,6 +20,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "internal/flags/nearby_flags.h"
@@ -246,7 +247,8 @@ BluetoothSocket::BluetoothOutputStream::BluetoothOutputStream(
   winrt_output_stream_ = stream;
 }
 
-Exception BluetoothSocket::BluetoothOutputStream::Write(const ByteArray& data) {
+Exception BluetoothSocket::BluetoothOutputStream::Write(
+    absl::string_view data) {
   try {
     if (data.size() > write_buffer_.Capacity()) {
       LOG(WARNING) << __func__

@@ -16,7 +16,7 @@
 #define THIRD_PARTY_NEARBY_INTERNAL_PLATFORM_MOCK_OUTPUT_STREAM_H_
 
 #include "gmock/gmock.h"
-#include "internal/platform/byte_array.h"
+#include "absl/strings/string_view.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/output_stream.h"
 
@@ -24,7 +24,7 @@ namespace nearby {
 
 class MockOutputStream : public OutputStream {
  public:
-  MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
+  MOCK_METHOD(Exception, Write, (absl::string_view data), (override));
   MOCK_METHOD(Exception, Flush, (), (override));
   MOCK_METHOD(Exception, Close, (), (override));
 };

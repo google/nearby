@@ -16,10 +16,10 @@
 
 #include <cstdint>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/output_stream.h"
 
 namespace nearby {
@@ -32,38 +32,26 @@ OutputStream& BleSocket::GetOutputStream() { return output_stream_; }
 Exception BleSocket::Close() { return {Exception::kSuccess}; }
 
 bool BleSocket::Connect() {
-  // TODO(b/271031645): implement BLE socket using weave
-  VLOG(1) << __func__ << ": Connect to BLE peripheral";
   return false;
 }
 
 ExceptionOr<ByteArray> BleSocket::BleInputStream::Read(std::int64_t size) {
-  // TODO(b/271031645): implement BLE socket using weave
-  VLOG(1) << __func__ << ": Read data size=" << size;
   return ExceptionOr<ByteArray>(Exception::kIo);
 }
 
 Exception BleSocket::BleInputStream::Close() {
-  // TODO(b/271031645): implement BLE socket using weave
-  VLOG(1) << __func__ << ": Close BLE input stream.";
   return {Exception::kSuccess};
 }
 
-Exception BleSocket::BleOutputStream::Write(const ByteArray& data) {
-  // TODO(b/271031645): implement BLE socket using weave
-  VLOG(1) << __func__ << ": Write data size=" << data.size();
+Exception BleSocket::BleOutputStream::Write(absl::string_view data) {
   return {Exception::kIo};
 }
 
 Exception BleSocket::BleOutputStream::Flush() {
-  // TODO(b/271031645): implement BLE socket using weave
-  LOG(INFO) << __func__ << ": Flush is called.";
   return {Exception::kSuccess};
 }
 
 Exception BleSocket::BleOutputStream::Close() {
-  // TODO(b/271031645): implement BLE socket using weave
-  LOG(INFO) << __func__ << ": close is called.";
   return {Exception::kSuccess};
 }
 

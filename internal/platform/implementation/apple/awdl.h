@@ -51,7 +51,7 @@ class AwdlOutputStream : public OutputStream {
   explicit AwdlOutputStream(GNCNWFrameworkSocket* socket);
   ~AwdlOutputStream() override = default;
 
-  Exception Write(const ByteArray& data) override;
+  Exception Write(absl::string_view data) override;
   Exception Flush() override;
   Exception Close() override;
 

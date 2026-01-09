@@ -31,6 +31,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -221,10 +222,9 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
 
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
   // The first write to the output stream will send the first PAYLOAD_TRANSFER
   // packet with payload info and message data.
-  tx->Write(message);
+  tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -233,22 +233,22 @@ TEST_P(PayloadManagerTest, CanSendStreamPayload) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result, message);
+  EXPECT_EQ(result.AsStringView(), kMessage);
   LOG(INFO) << "Packet 1 handled.";
 
-  tx->Write(message);
+  tx->Write(kMessage);
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= 2 * message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= 2 * kMessage.size();
       },
       kProgressTimeout));
   ByteArray result2 = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result2, message);
+  EXPECT_EQ(result2.AsStringView(), kMessage);
   LOG(INFO) << "Packet 2 handled.";
 
   rx.Close();
@@ -266,8 +266,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
-  tx->Write(message);
+  tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -276,12 +275,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result, message);
+  EXPECT_EQ(result.AsStringView(), kMessage);
   LOG(INFO) << "Packet 1 handled.";
 
   EXPECT_EQ(user_a.CancelPayload(), Status{Status::kSuccess});
@@ -291,7 +290,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnReceiverSide) {
   // Once cancel is handled, write will fail.
   int count = 0;
   while (true) {
-    if (!tx->Write(message).Ok()) break;
+    if (!tx->Write(kMessage).Ok()) break;
     SystemClock::Sleep(kDefaultTimeout);
     count++;
   }
@@ -319,8 +318,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
-  tx->Write(message);
+  tx->Write(kMessage);
 
   user_b.SendPayload(Payload(std::move(input)));
   ASSERT_TRUE(payload_latch_.Await(kDefaultTimeout).result());
@@ -329,12 +327,12 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size();
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size();
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result, message);
+  EXPECT_EQ(result.AsStringView(), kMessage);
   LOG(INFO) << "Packet 1 handled.";
 
   EXPECT_EQ(user_b.CancelPayload(), Status{Status::kSuccess});
@@ -344,7 +342,7 @@ TEST_P(PayloadManagerTest, CanCancelPayloadOnSenderSide) {
   // Once cancel is handled, write will fail.
   int count = 0;
   while (true) {
-    if (!tx->Write(message).Ok()) break;
+    if (!tx->Write(kMessage).Ok()) break;
     SystemClock::Sleep(kDefaultTimeout);
     count++;
   }
@@ -373,10 +371,9 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   ASSERT_TRUE(SetupConnection(user_a, user_b));
   auto [input, tx] = CreatePipe();
   user_a.ExpectPayload(payload_latch_);
-  const ByteArray message{std::string(kMessage)};
   // The first write to the output stream will send the first PAYLOAD_TRANSFER
   // packet with payload info and message data.
-  tx->Write(message);
+  tx->Write(kMessage);
 
   Payload payload(std::move(input));
   payload.SetOffset(kOffset);
@@ -387,22 +384,22 @@ TEST_P(PayloadManagerTest, SendPayloadWithSkip_StreamPayload) {
   LOG(INFO) << "Stream extracted.";
 
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= message.size() - kOffset;
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= kMessage.size() - kOffset;
       },
       kProgressTimeout));
   ByteArray result = rx.Read(kChunkSize).result();
   EXPECT_EQ(result, ByteArray("sage"));
   LOG(INFO) << "Packet 1 handled.";
 
-  tx->Write(message);
+  tx->Write(kMessage);
   EXPECT_TRUE(user_a.WaitForProgress(
-      [&message](const PayloadProgressInfo& info) {
-        return info.bytes_transferred >= 2 * message.size() - kOffset;
+      [](const PayloadProgressInfo& info) {
+        return info.bytes_transferred >= 2 * kMessage.size() - kOffset;
       },
       kProgressTimeout));
   ByteArray result2 = rx.Read(kChunkSize).result();
-  EXPECT_EQ(result2, message);
+  EXPECT_EQ(result2.AsStringView(), kMessage);
   LOG(INFO) << "Packet 2 handled.";
 
   rx.Close();
@@ -417,8 +414,7 @@ TEST_P(PayloadManagerTest, OfflineFrame_BeforeConnected_ShouldDrop) {
   env_.Start();
   PayloadSimulationUser user(kDeviceB, GetParam());
   auto [input, tx] = CreatePipe();
-  const ByteArray message{std::string(kMessage)};
-  tx->Write(message);
+  tx->Write(kMessage);
   Payload payload(std::move(input));
   user.ReceivePayload(std::move(payload), "1234");
   ASSERT_EQ(user.GetPayload().AsStream(), nullptr);

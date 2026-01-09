@@ -167,7 +167,7 @@ Exception IOFile::Close() {
   return {Exception::kSuccess};
 }
 
-Exception IOFile::Write(const ByteArray& data) {
+Exception IOFile::Write(absl::string_view data) {
   if (file_ == INVALID_HANDLE_VALUE) {
     return {Exception::kIo};
   }

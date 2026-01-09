@@ -16,6 +16,11 @@
 #define CORE_INTERNAL_MEDIUMS_BLE_BLOOM_FILTER_H_
 
 #include <bitset>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "internal/platform/byte_array.h"

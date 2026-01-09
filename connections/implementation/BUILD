@@ -504,6 +504,7 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
         "@com_google_absl//absl/strings",
@@ -531,6 +532,7 @@ cc_test(
         "//internal/platform:logging",
         "//internal/platform:test_util",
         "//internal/platform:types",
+        "//internal/platform/implementation:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "//proto:connections_enums_cc_proto",
         "@com_github_protobuf_matchers//protobuf-matchers",
@@ -574,6 +576,7 @@ cc_test(
         "//internal/platform:types",
         "//internal/platform/implementation/g3",  # build_cleaner: keep
         "@com_github_protobuf_matchers//protobuf-matchers",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )

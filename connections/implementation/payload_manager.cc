@@ -1415,7 +1415,7 @@ void PayloadManager::ProcessDataPacket(
 
   packet_meta_data.StartFileIo();
   if (pending_payload->GetInternalPayload()
-          ->AttachNextChunk(ByteArray(std::move(*payload_chunk.mutable_body())))
+          ->AttachNextChunk(payload_chunk.body())
           .Raised()) {
     LOG(ERROR) << "ProcessDataPacket: [data: error] endpoint_id="
                << from_endpoint_id

@@ -21,6 +21,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "internal/platform/implementation/upgrade_address_info.h"
 #include "internal/platform/implementation/wifi_lan.h"
 #include "internal/platform/nsd_service_info.h"
@@ -56,7 +57,7 @@ class WifiLanOutputStream : public OutputStream {
   explicit WifiLanOutputStream(GNCNWFrameworkSocket* socket);
   ~WifiLanOutputStream() override = default;
 
-  Exception Write(const ByteArray& data) override;
+  Exception Write(absl::string_view data) override;
   Exception Flush() override;
   Exception Close() override;
 

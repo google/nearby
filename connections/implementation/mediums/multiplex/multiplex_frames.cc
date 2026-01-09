@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "connections/implementation/mediums/utils.h"
 #include "internal/platform/base64_utils.h"
 #include "internal/platform/byte_array.h"
@@ -121,7 +122,7 @@ ByteArray ForDisconnection(const std::string& service_id,
 
 ByteArray ForData(const std::string& service_id,
                   const std::string& service_id_hash_salt,
-                  bool should_pass_salt, const ByteArray& data) {
+                  bool should_pass_salt, absl::string_view data) {
   MultiplexFrame frame;
 
   frame.set_frame_type(MultiplexFrame::DATA_FRAME);
@@ -133,7 +134,7 @@ ByteArray ForData(const std::string& service_id,
   }
 
   auto* data_frame = frame.mutable_data_frame();
-  data_frame->set_data(std::string(std::move(data)));
+  data_frame->set_data(data);
 
   return ToBytes(std::move(frame));
 }
