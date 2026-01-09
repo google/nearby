@@ -94,7 +94,7 @@ let package = Package(
       cSettings: [
         .headerSearchPath("ukey2/"),
         .headerSearchPath("ukey2/protoc_out/"),
-        .headerSearchPath("ukey2/protoc_out/src/main/"),
+        .headerSearchPath("ukey2/protoc_out/src/main/proto"),
       ]
     ),
     .target(
