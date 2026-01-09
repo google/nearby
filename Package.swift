@@ -561,6 +561,7 @@ let package = Package(
         .headerSearchPath("protoc_out/"),
         .headerSearchPath("third_party/ukey2/ukey2/"),
         .headerSearchPath("third_party/ukey2/ukey2/protoc_out/"),
+        .headerSearchPath("third_party/ukey2/ukey2/protoc_out/src/main/proto"),
         .define("NO_WEBRTC"),
       ]
     ),
