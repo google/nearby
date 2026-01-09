@@ -19,17 +19,12 @@
 #include <optional>
 #include <string>
 
-#include "gmock/gmock.h"
-#include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/clock.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/cancellation_flag.h"
-#include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
 #include "internal/platform/input_stream.h"
-#include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/single_thread_executor.h"
@@ -51,7 +46,6 @@ constexpr FeatureFlags kTestCases[] = {
 
 constexpr absl::string_view kSsid = "Direct-357a2d8c";
 constexpr absl::string_view kPassword = "b592f7d3";
-constexpr int kFrequency = 2412;
 constexpr absl::string_view kData = "ABCD";
 constexpr const size_t kChunkSize = 10;
 
@@ -175,15 +169,14 @@ TEST_P(WifiHotspotMediumTest, CanStartHotspotThatOtherConnect) {
   EXPECT_TRUE(socket_b.IsValid());
   InputStream& in_stream = socket_a.GetInputStream();
   OutputStream& out_stream = socket_b.GetOutputStream();
-  std::string data(kData);
-  EXPECT_TRUE(out_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(out_stream.Write(kData).Ok());
   ExceptionOr<ByteArray> read_data = in_stream.Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
-  EXPECT_EQ(std::string(read_data.result()), data);
+  EXPECT_EQ(read_data.result().AsStringView(), kData);
 
   socket_a.Close();
   socket_b.Close();
-  EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
+  EXPECT_FALSE(out_stream.Write(kData).Ok());
   read_data = in_stream.Read(kChunkSize);
   EXPECT_TRUE(read_data.GetResult().Empty());
 

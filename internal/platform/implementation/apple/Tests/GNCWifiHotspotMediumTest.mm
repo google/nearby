@@ -130,9 +130,9 @@ const char kIPAddress[] = "192.168.1.2";
       _hotspotMedium->ConnectToService(_service_address, &cancellationFlag);
   GNCFakeNWFrameworkSocket *fakeSocket = _fakeNWFramework.sockets.firstObject;
   NSData *data = [@"TestData" dataUsingEncoding:NSUTF8StringEncoding];
-  nearby::ByteArray byteArray(reinterpret_cast<const char *>(data.bytes), data.length);
+  absl::string_view data_str(reinterpret_cast<const char *>(data.bytes), data.length);
 
-  nearby::Exception writeResult = socket->GetOutputStream().Write(byteArray);
+  nearby::Exception writeResult = socket->GetOutputStream().Write(data_str);
 
   XCTAssertTrue(writeResult.Ok());
   XCTAssertEqualObjects(fakeSocket.writtenData, data);

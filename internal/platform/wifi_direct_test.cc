@@ -183,15 +183,14 @@ TEST_P(WifiDirectMediumTest, CanStartDirectGOThatOtherCanConnect) {
   EXPECT_TRUE(socket_b.IsValid());
   InputStream& in_stream = socket_a.GetInputStream();
   OutputStream& out_stream = socket_b.GetOutputStream();
-  std::string data(kData);
-  EXPECT_TRUE(out_stream.Write(ByteArray(data)).Ok());
+  EXPECT_TRUE(out_stream.Write(kData).Ok());
   ExceptionOr<ByteArray> read_data = in_stream.Read(kChunkSize);
   EXPECT_TRUE(read_data.ok());
-  EXPECT_EQ(std::string(read_data.result()), data);
+  EXPECT_EQ(read_data.result().AsStringView(), kData);
 
   socket_a.Close();
   socket_b.Close();
-  EXPECT_FALSE(out_stream.Write(ByteArray(data)).Ok());
+  EXPECT_FALSE(out_stream.Write(kData).Ok());
   read_data = in_stream.Read(kChunkSize);
   EXPECT_TRUE(read_data.GetResult().Empty());
 

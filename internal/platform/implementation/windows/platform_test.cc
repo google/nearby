@@ -28,7 +28,7 @@ TEST(PlatformTest, CreateOutputFileWithUnixPathSeparator) {
   std::unique_ptr<OutputFile> output_file =
       ImplementationPlatform::CreateOutputFile("C:\\tmp\\path1/path2\\x.txt");
   EXPECT_NE(output_file, nullptr);
-  EXPECT_TRUE(output_file->Write(ByteArray("test")).Ok());
+  EXPECT_TRUE(output_file->Write("test").Ok());
 }
 
 TEST(PlatformTest, GetAppDataPath) {

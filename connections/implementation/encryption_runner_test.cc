@@ -53,12 +53,12 @@ class FakeEndpointChannel : public EndpointChannel {
   }
   Exception Write(const ByteArray& data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
-    return out_ ? out_->Write(data) : Exception{Exception::kIo};
+    return out_ ? out_->Write(data.AsStringView()) : Exception{Exception::kIo};
   }
   Exception Write(const ByteArray& data,
                   PacketMetaData& packet_meta_data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
-    return out_ ? out_->Write(data) : Exception{Exception::kIo};
+    return out_ ? out_->Write(data.AsStringView()) : Exception{Exception::kIo};
   }
   void Close() override {
     if (in_) in_->Close();

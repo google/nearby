@@ -82,7 +82,8 @@ std::function<void()> MakeDataPump(
       if (monitor) {
         monitor(read_response.result());
       }
-      auto write_response = output->Write(read_response.result());
+      auto write_response =
+          output->Write(read_response.result().AsStringView());
       if (write_response.Raised()) {
         LOG(INFO) << "Peer writer closed on '" << label << "'";
         input->Close();

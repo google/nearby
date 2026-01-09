@@ -38,6 +38,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/medium_environment.h"
@@ -335,19 +336,18 @@ TEST_P(OfflineServiceControllerTest, CanSendStreamPayload) {
   OfflineSimulationUser user_b(kDeviceB, GetParam());
   user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-  ByteArray message(std::string{kMessage});
   auto [input, tx] = CreatePipe();
   user_a.SendPayload(Payload(std::move(input)));
-  tx->Write(message);
+  tx->Write(kMessage);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_b.GetPayload().AsStream();
   ASSERT_TRUE(user_b.WaitForProgress(
-      [size = message.size()](const PayloadProgressInfo& info) -> bool {
+      [size = kMessage.size()](const PayloadProgressInfo& info) -> bool {
         return info.bytes_transferred >= size;
       },
       kLongTimeout));
-  EXPECT_EQ(rx.Read(kChunkSize).result(), message);
+  EXPECT_EQ(rx.Read(kChunkSize).result().AsStringView(), kMessage);
   user_a.Stop();
   user_b.Stop();
   env_.Stop();
@@ -359,23 +359,22 @@ TEST_P(OfflineServiceControllerTest, CanCancelStreamPayload) {
   OfflineSimulationUser user_b(kDeviceB, GetParam());
   user_b.ExpectPayload(payload_latch_);
   ASSERT_TRUE(SetupConnection(user_a, user_b));
-  ByteArray message(std::string{kMessage});
   auto [input, tx] = CreatePipe();
   user_a.SendPayload(Payload(std::move(input)));
-  tx->Write(message);
+  tx->Write(kMessage);
   EXPECT_TRUE(payload_latch_.Await(kLongTimeout));
   ASSERT_NE(user_b.GetPayload().AsStream(), nullptr);
   InputStream& rx = *user_b.GetPayload().AsStream();
   ASSERT_TRUE(user_b.WaitForProgress(
-      [size = message.size()](const PayloadProgressInfo& info) -> bool {
+      [size = kMessage.size()](const PayloadProgressInfo& info) -> bool {
         return info.bytes_transferred >= size;
       },
       kLongTimeout));
-  EXPECT_EQ(rx.Read(kChunkSize).result(), message);
+  EXPECT_EQ(rx.Read(kChunkSize).result().AsStringView(), kMessage);
   user_b.CancelPayload();
   absl::Time start_time = SystemClock::ElapsedRealtime();
   while (true) {
-    if (!tx->Write(message).Ok()) break;
+    if (!tx->Write(kMessage).Ok()) break;
     absl::Duration run_time = SystemClock::ElapsedRealtime() - start_time;
     if (run_time >= kLongTimeout) {
       EXPECT_LT(run_time, kLongTimeout);
