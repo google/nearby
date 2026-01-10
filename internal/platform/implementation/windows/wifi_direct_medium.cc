@@ -27,6 +27,7 @@
 #include "internal/flags/nearby_flags.h"
 #include "internal/platform/cancellation_flag.h"
 #include "internal/platform/cancellation_flag_listener.h"
+#include "internal/platform/count_down_latch.h"
 #include "internal/platform/feature_flags.h"
 #include "internal/platform/flags/nearby_platform_feature_flags.h"
 #include "internal/platform/implementation/wifi_direct.h"
@@ -34,12 +35,15 @@
 #include "internal/platform/implementation/windows/wifi_direct.h"
 #include "internal/platform/logging.h"
 #include "internal/platform/prng.h"
+#include "internal/platform/single_thread_executor.h"
 #include "internal/platform/wifi_credential.h"
 
 namespace nearby {
 namespace windows {
 namespace {
 constexpr int kWaitingForConnectionTimeoutSeconds = 90;  // seconds
+constexpr absl::Duration kStartWifiDirectAdvertiserTimeout =
+    absl::Milliseconds(100);
 }  // namespace
 
 WifiDirectMedium::WifiDirectMedium() {
@@ -109,33 +113,56 @@ bool WifiDirectMedium::IsWifiDirectServiceSupported() {
   advertiser.PreferredConfigurationMethods().Append(config_method);
 
   try {
-    advertiser.Start();
-    LOG(INFO) << "Start WifiDirect GO Status: "
-              << (int)advertiser.AdvertisementStatus();
-    if (advertiser.AdvertisementStatus() ==
-        WiFiDirectServiceAdvertisementStatus::Created) {
-      LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
-      support_wifi_direct_service = true;
-    } else if (advertiser.AdvertisementStatus() ==
-               WiFiDirectServiceAdvertisementStatus::Started) {
-      LOG(INFO) << "WinRT WiFiDirectService is supported on this device.";
-      advertiser.Stop();
-      support_wifi_direct_service = true;
-    } else {
-      if (advertiser.AdvertisementStatus() ==
-          WiFiDirectServiceAdvertisementStatus::Aborted) {
-        LOG(INFO) << "Failed to start WifiDirect GO with error code: "
-                  << (int)advertiser.ServiceError();
+    // From test, if Wifi Chip supports WiFiDirectService, it normally takes
+    // less than 30ms to start WifiDirect GO. If it doesn't support,
+    // advertiser.Start() call can sometimes hang for 1-minute, refer to
+    // b/474141859. To avoid NC wait for long time, we add
+    // kStartWifiDirectAdvertiserTimeout(100ms) for
+    // this advertiser.Start() call.
+    auto latch = std::make_shared<CountDownLatch>(1);
+    SingleThreadExecutor executor;
+    executor.Execute([advertiser, latch]() {
+      try {
+        advertiser.Start();
+      } catch (std::exception exception) {
+        LOG(ERROR) << "Start WifiDirect GO failed. Exception: "
+                   << exception.what();
+      } catch (const winrt::hresult_error& error) {
+        LOG(ERROR) << "Start WifiDirect GO failed. WinRT exception: "
+                   << error.code() << ": " << winrt::to_string(error.message());
+      } catch (...) {
+        LOG(ERROR) << "Start WifiDirect GO failed. Unknown exeption.";
       }
-      LOG(INFO) << "WinRT WiFiDirectService is not supported on this device.";
+      latch->CountDown();
+    });
+
+    if (latch->Await(kStartWifiDirectAdvertiserTimeout).result()) {
+      LOG(INFO) << "Start WifiDirect GO Status: "
+                << (int)advertiser.AdvertisementStatus();
+      if (advertiser.AdvertisementStatus() ==
+          WiFiDirectServiceAdvertisementStatus::Created) {
+        LOG(INFO) << "WinRT WiFiDirectService can be created and supported on "
+                     "this device.";
+        support_wifi_direct_service = true;
+      } else if (advertiser.AdvertisementStatus() ==
+                 WiFiDirectServiceAdvertisementStatus::Started) {
+        LOG(INFO) << "WinRT WiFiDirectService can be started and supported on "
+                     "this device.";
+        advertiser.Stop();
+        support_wifi_direct_service = true;
+      } else {
+        if (advertiser.AdvertisementStatus() ==
+            WiFiDirectServiceAdvertisementStatus::Aborted) {
+          LOG(INFO) << "Failed to start WifiDirect GO with error code: "
+                    << (int)advertiser.ServiceError();
+        }
+        LOG(INFO) << "WinRT WiFiDirectService is not supported on this device.";
+        support_wifi_direct_service = false;
+      }
+    } else {
+      LOG(INFO) << "Start WifiDirect GO timed out.";
       support_wifi_direct_service = false;
     }
-  } catch (std::exception exception) {
-    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. Exception: "
-               << exception.what();
-  } catch (const winrt::hresult_error& error) {
-    LOG(ERROR) << __func__ << ": Start WifiDirect GO failed. WinRT exception: "
-               << error.code() << ": " << winrt::to_string(error.message());
   } catch (...) {
     LOG(ERROR) << __func__ << ": Unknown exeption.";
   }
