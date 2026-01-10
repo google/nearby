@@ -51,8 +51,10 @@ class RootObjectManager final
     : public sdbus::AdaptorInterfaces<sdbus::ObjectManager_adaptor,
                                       sdbus::Properties_adaptor> {
  public:
+  // only used in ble advertisement monitoring for now.
+  // TODO: Remove hardcodinged va
   explicit RootObjectManager(sdbus::IConnection &system_bus)
-      : AdaptorInterfaces(system_bus, "/") {
+      : AdaptorInterfaces(system_bus, "/com/google/nearby/medium/ble/advertisement/monitor") {
     registerAdaptor();
   }
   ~RootObjectManager() { unregisterAdaptor(); }

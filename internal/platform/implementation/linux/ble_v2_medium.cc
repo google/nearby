@@ -53,10 +53,10 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
   if (adv_monitor_manager_) {
     LOG(INFO)
         << __func__
-        << ": Registering path / with AdvertisementMonitorManager at "
+        << ": Registering path /com/google/nearby/medium/ble/advertisement/monitor with AdvertisementMonitorManager at "
         << adv_monitor_manager_->getObjectPath();
     try {
-      adv_monitor_manager_->RegisterMonitor("/");
+      adv_monitor_manager_->RegisterMonitor("/com/google/nearby/medium/ble/advertisement/monitor");
     } catch (const sdbus::Error &e) {
       DBUS_LOG_METHOD_CALL_ERROR(adv_monitor_manager_, "RegisterMonitor", e);
     }
@@ -251,6 +251,7 @@ bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
 bool BleV2Medium::StartLEDiscovery() {
   std::map<std::string, sdbus::Variant> filter;
   filter["Transport"] = "auto";
+  filter["DuplicateData"] = true;
   auto &adapter = adapter_.GetBluezAdapterObject();
 
   try {
@@ -310,8 +311,12 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
       *system_bus_, service_uuid, tx_power_level, "or_patterns", devices_,
       std::move(callback));
   try {
+    // why is this emitted?
     monitor->emitInterfacesAddedSignal(
         {org::bluez::AdvertisementMonitor1_adaptor::INTERFACE_NAME});
+
+    // adv_monitor_manager_ -> RegisterMonitor(monitor -> getObjectPath());
+    LOG(INFO)<< __func__ << ": Registered advertisement monitor with path " << monitor -> getObjectPath();
   } catch (const sdbus::Error &e) {
     LOG(ERROR)
         << __func__

@@ -53,6 +53,7 @@ class AdvertisementMonitor final
   // Methods
   void Release() override {}
   void Activate() override {
+    LOG(INFO) <<__func__ << ": bluez advertisement monitor activated at path: " << getObjectPath();
     if (start_scanning_result_callback_ != nullptr) {
       start_scanning_result_callback_(absl::OkStatus());
     }
@@ -63,9 +64,9 @@ class AdvertisementMonitor final
 
   // Properties
   std::string Type() override { return type_; };
-  int16_t RSSILowThreshold() override { return 0; };
+  int16_t RSSILowThreshold() override { return 127; };
   int16_t RSSIHighThreshold() override {
-    return bluez::TxPowerLevelDbm(tx_power_level_);
+    return 127;
   }
   uint16_t RSSISamplingPeriod() override {
     // The Windows implementation uses a sampling interval of 2 seconds.
@@ -77,7 +78,8 @@ class AdvertisementMonitor final
     return {{0,
              0x16,
              {static_cast<uint8_t>(service_id_data[3] & 0xFF),
-              static_cast<uint8_t>(service_id_data[2] & 0xFF)}}};
+              static_cast<uint8_t>(service_id_data[2] & 0xFF)}
+    }};
   };
 
   std::shared_ptr<BluetoothDevices> devices_;
