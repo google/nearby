@@ -20,9 +20,11 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/linux/ble_gatt_client.h"
-#include "internal/platform/implementation/linux/ble_gatt_server.h"
+// #include "internal/platform/implementation/linux/ble_gatt_client.h"
+// #include "internal/platform/implementation/linux/ble_gatt_server.h"
 #include "internal/platform/implementation/linux/ble_v2_medium.h"
+
+#include "ble_gatt_server.h"
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
@@ -40,7 +42,7 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
       adapter_(adapter),
       devices_(std::make_unique<BluetoothDevices>(
           system_bus_, adapter_.GetObjectPath(), observers_)),
-      gatt_discovery_(std::make_shared<BluezGattDiscovery>(system_bus_)),
+      // gatt_discovery_(std::make_shared<BluezGattDiscovery>(system_bus_)),
       root_object_manager_(std::make_unique<RootObjectManager>(*system_bus_)),
       adv_monitor_manager_(
           bluez::AdvertisementMonitorManager::
@@ -59,12 +61,15 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
       DBUS_LOG_METHOD_CALL_ERROR(adv_monitor_manager_, "RegisterMonitor", e);
     }
   }
-  if (gatt_discovery_->InitializeKnownServices()) {
-    LOG(ERROR) << __func__
-                       << ": Could not initialize known GATT services";
-  }
+  // if (gatt_discovery_->InitializeKnownServices()) {
+  //   LOG(ERROR) << __func__
+  //                      << ": Could not initialize known GATT services";
+  // }
 }
 
+  // sync api
+  // called twice. Once with extended regular advertisement ( when IsExtendedAdvertisementsAvailable() == true )
+  // and another for GATT-backed header advertisement for legacy devices
 bool BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData &advertising_data,
     api::ble_v2::AdvertiseParameters advertise_set_parameters) {
@@ -80,24 +85,20 @@ bool BleV2Medium::StartAdvertising(
     return false;
   }
 
-  absl::MutexLock lock(&cur_adv_mutex_);
-  if (cur_adv_ != nullptr) {
-    LOG(ERROR) << __func__
-                       << "Advertising is already enabled for this medium.";
-    return false;
-  }
+  absl::MutexLock l (&advs_mutex_);
+  advs_.push_front(bluez::LEAdvertisement::CreateLEAdvertisement(
+      *system_bus_, advertising_data, advertise_set_parameters));
+  auto it = advs_.begin();
 
-  cur_adv_ = bluez::LEAdvertisement::CreateLEAdvertisement(
-      *system_bus_, advertising_data, advertise_set_parameters);
 
-  LOG(INFO) << __func__ << ": Registering advertisement "
-                    << cur_adv_->getObjectPath() << " on bluetooth adapter "
+  LOG(INFO) << __func__ << ": Registering advertisement, is_extended: " << advertising_data.is_extended_advertisement
+                  << " " << (*it) -> getObjectPath() << " on bluetooth adapter "
                     << adapter_.GetObjectPath();
 
   try {
-    adv_manager_->RegisterAdvertisement(cur_adv_->getObjectPath(), {});
+    adv_manager_->RegisterAdvertisement((*it)->getObjectPath(), {});
   } catch (const sdbus::Error &e) {
-    cur_adv_ = nullptr;
+    advs_.erase(it);
     DBUS_LOG_METHOD_CALL_ERROR(adv_manager_, "RegisterAdvertisement", e);
     return false;
   }
@@ -106,25 +107,23 @@ bool BleV2Medium::StartAdvertising(
 }
 
 bool BleV2Medium::StopAdvertising() {
-  absl::MutexLock lock(&cur_adv_mutex_);
-  if (cur_adv_ == nullptr) {
-    LOG(ERROR) << __func__ << ": Advertising is not enabled.";
-    return false;
-  }
-  LOG(INFO) << __func__ << "Unregistering advertisement object "
-                       << cur_adv_->getObjectPath();
-
+  absl::MutexLock l(&advs_mutex_);
   try {
-    adv_manager_->UnregisterAdvertisement(cur_adv_->getObjectPath());
+    for (auto& adv: advs_)
+    {
+      adv_manager_->UnregisterAdvertisement(adv->getObjectPath());
+    }
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(adv_manager_, "UnregisterAdvertisement", e);
     return false;
   }
 
-  cur_adv_ = nullptr;
+  advs_.clear();
   return true;
 }
 
+  //async api
+  // this doesn't run. wonder why
 std::unique_ptr<api::ble_v2::BleMedium::AdvertisingSession>
 BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData &advertising_data,
@@ -201,26 +200,42 @@ BleV2Medium::StartAdvertising(
     advs_.erase(adv_it);
     return absl::OkStatus();
   };
-
   return std::make_unique<api::ble_v2::BleMedium::AdvertisingSession>(
       api::ble_v2::BleMedium::AdvertisingSession{std::move(stop_adv)});
 }
 
 std::unique_ptr<api::ble_v2::GattServer> BleV2Medium::StartGattServer(
     api::ble_v2::ServerGattConnectionCallback callback) {
-  return std::make_unique<GattServer>(*system_bus_, adapter_, devices_,
-                                      std::move(callback));
+  (void)callback;
+
+  return std::make_unique<GattServer>(
+  *system_bus_, adapter_, devices_,std::move(callback)
+  );
 }
 
 std::unique_ptr<api::ble_v2::GattClient> BleV2Medium::ConnectToGattServer(
-    api::ble_v2::BlePeripheral &peripheral,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
     api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::ClientGattConnectionCallback callback) {
-  auto path = bluez::device_object_path(adapter_.GetObjectPath(),
-                                        peripheral.GetAddress());
+  (void)peripheral_id;
+  (void)tx_power_level;
+  (void)callback;
+  LOG(WARNING) << __func__
+               << ": GATT client connection is not supported on Linux yet.";
+  return nullptr;
+}
 
-  return std::make_unique<GattClient>(system_bus_, path, gatt_discovery_,
-                                      std::move(callback.disconnected_cb));
+std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
+    const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+    CancellationFlag *cancellation_flag) {
+  (void)service_id;
+  (void)tx_power_level;
+  (void)peripheral_id;
+  (void)cancellation_flag;
+  LOG(WARNING) << __func__
+               << ": BLE socket connection is not supported on Linux yet.";
+  return nullptr;
 }
 
 bool BleV2Medium::IsExtendedAdvertisementsAvailable() {
@@ -305,9 +320,8 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
         << "' and message '" << e.getMessage() << "'";
     return false;
   }
-
   auto device_watcher = std::make_unique<DeviceWatcher>(
-      *system_bus_, adapter_.GetObjectPath(), devices_);
+      *system_bus_, adapter_.GetObjectPath(), adapter_, devices_);
   if (!StartLEDiscovery()) {
     LOG(ERROR) << __func__
                        << ": Could not start LE discovery on adapter "
@@ -325,6 +339,7 @@ bool BleV2Medium::StartScanning(const Uuid &service_uuid,
     }
     return false;
   }
+  LOG(INFO) << __func__ << " :Started monitoring for service UUID: " << std::string(service_uuid);
 
   active_adv_monitors_[service_uuid] =
       std::make_pair(std::move(monitor), std::move(device_watcher));
@@ -348,7 +363,7 @@ bool BleV2Medium::StopScanning() {
   LOG(INFO) << __func__ << ": Stopping discovery for adapter "
                        << adapter.getObjectPath();
   try {
-    adapter.StopDiscovery();
+    adapter.StopDiscovery(); // this will stop bluetooth classic discovery as well. do we want this?
   } catch (const sdbus::Error &e) {
     DBUS_LOG_METHOD_CALL_ERROR(&adapter, "StopDiscovery", e);
   }
@@ -403,7 +418,7 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
   }
 
   auto device_watcher = std::make_unique<DeviceWatcher>(
-      *system_bus_, adapter_.GetObjectPath(), devices_);
+      *system_bus_, adapter_.GetObjectPath(),adapter_, devices_);
   if (!StartLEDiscovery()) {
     LOG(ERROR) << __func__
                        << ": Could not start LE discovery on adapter "
@@ -461,20 +476,69 @@ BleV2Medium::StartScanning(const Uuid &service_uuid,
       }});
 }
 
-bool BleV2Medium::GetRemotePeripheral(const std::string &mac_address,
-                                      GetRemotePeripheralCallback callback) {
-  auto device = devices_->get_device_by_address(mac_address);
-  if (device == nullptr) return false;
-  callback(*device);
+std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
+    const std::string &service_id) {
+  LOG(INFO) << __func__ << ": Opening BLE server socket for service "
+            << service_id;
+  return std::make_unique<BleV2ServerSocket>();
+}
+
+std::unique_ptr<api::ble_v2::BleL2capServerSocket>
+BleV2Medium::OpenL2capServerSocket(const std::string &service_id) {
+  LOG(WARNING) << __func__ << ": L2CAP server sockets not implemented on Linux";
+  return nullptr;
+}
+
+// std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
+//     const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
+//     api::ble_v2::BlePeripheral &peripheral,
+//     CancellationFlag *cancellation_flag) {
+//   LOG(WARNING) << __func__ << ": BLE socket connections not implemented on Linux";
+//   return nullptr;
+// }
+
+std::unique_ptr<api::ble_v2::BleL2capSocket> BleV2Medium::ConnectOverL2cap(
+    int psm, const std::string &service_id,
+    api::ble_v2::TxPowerLevel tx_power_level,
+    api::ble_v2::BlePeripheral::UniqueId peripheral_id,
+    CancellationFlag *cancellation_flag) {
+  LOG(WARNING) << __func__ << ": L2CAP socket connections not implemented on Linux";
+  return nullptr;
+}
+
+bool BleV2Medium::StartMultipleServicesScanning(
+    const std::vector<Uuid> &service_uuids,
+    api::ble_v2::TxPowerLevel tx_power_level, ScanCallback callback) {
+  LOG(WARNING) << __func__
+               << ": Multiple services scanning not implemented on Linux. "
+               << "Use single service scanning instead.";
+  return false;
+}
+
+bool BleV2Medium::PauseMediumScanning() {
+  LOG(INFO) << __func__ << ": Pause scanning not implemented, returning success";
   return true;
 }
 
-bool BleV2Medium::GetRemotePeripheral(api::ble_v2::BlePeripheral::UniqueId id,
-                                      GetRemotePeripheralCallback callback) {
-  auto device = devices_->get_device_by_unique_id(id);
-  if (device == nullptr) return false;
-  callback(*device);
+bool BleV2Medium::ResumeMediumScanning() {
+  LOG(INFO) << __func__ << ": Resume scanning not implemented, returning success";
   return true;
 }
+
+void BleV2Medium::AddAlternateUuidForService(uint16_t uuid,
+                                             const std::string &service_id) {
+  LOG(INFO) << __func__ << ": Alternate UUID mapping not implemented. UUID: "
+            << uuid << ", service_id: " << service_id;
+}
+
+std::optional<api::ble_v2::BlePeripheral::UniqueId>
+BleV2Medium::RetrieveBlePeripheralIdFromNativeId(
+    const std::string &ble_peripheral_native_id) {
+  LOG(WARNING) << __func__
+               << ": Retrieval from native ID not implemented. Native ID: "
+               << ble_peripheral_native_id;
+  return std::nullopt;
+}
+
 }  // namespace linux
 }  // namespace nearby

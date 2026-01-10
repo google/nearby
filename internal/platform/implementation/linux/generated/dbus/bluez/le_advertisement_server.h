@@ -28,6 +28,7 @@ protected:
         object_.registerProperty("ManufacturerData").onInterface(INTERFACE_NAME).withGetter([this](){ return this->ManufacturerData(); });
         object_.registerProperty("SolicitUUIDs").onInterface(INTERFACE_NAME).withGetter([this](){ return this->SolicitUUIDs(); });
         object_.registerProperty("ServiceData").onInterface(INTERFACE_NAME).withGetter([this](){ return this->ServiceData(); });
+        object_.registerProperty("ScanResponseServiceData").onInterface(INTERFACE_NAME).withGetter([this](){ return this->ScanResponseServiceData(); });
         object_.registerProperty("Includes").onInterface(INTERFACE_NAME).withGetter([this](){ return this->Includes(); });
         object_.registerProperty("LocalName").onInterface(INTERFACE_NAME).withGetter([this](){ return this->LocalName(); });
         object_.registerProperty("Duration").onInterface(INTERFACE_NAME).withGetter([this](){ return this->Duration(); });
@@ -48,6 +49,7 @@ private:
     virtual std::map<std::string, sdbus::Variant> ManufacturerData() = 0;
     virtual std::vector<std::string> SolicitUUIDs() = 0;
     virtual std::map<std::string, sdbus::Variant> ServiceData() = 0;
+    virtual std::map<std::string, sdbus::Variant> ScanResponseServiceData() = 0;
     virtual std::vector<std::string> Includes() = 0;
     virtual std::string LocalName() = 0;
     virtual uint16_t Duration() = 0;

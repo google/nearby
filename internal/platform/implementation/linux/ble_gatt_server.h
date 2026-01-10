@@ -16,6 +16,7 @@
 #define PLATFORM_IMPL_LINUX_API_BLE_GATT_SERVER_H_
 
 #include <memory>
+#include <regex>
 
 #include <sdbus-c++/IConnection.h>
 
@@ -35,7 +36,9 @@ namespace linux {
 class LocalBlePeripheral : public api::ble_v2::BlePeripheral {
  public:
   explicit LocalBlePeripheral(BluetoothAdapter& adapter) : adapter_(adapter) {
-    unique_id_ = BluetoothUtils::ToNumber(adapter_.GetMacAddress());
+    // temp fix till everything transitions to GGetAddress()
+    unique_id_ = std::stoull(std::regex_replace(adapter_.GetMacAddress(),
+      std::regex("[:\\-]"), ""), nullptr, 16);
   }
 
   std::string GetAddress() const override { return adapter_.GetMacAddress(); }
@@ -64,9 +67,6 @@ class GattServer : public api::ble_v2::GattServer {
             std::move(server_cb))) {}
   ~GattServer() override = default;
 
-  api::ble_v2::BlePeripheral& GetBlePeripheral() override {
-    return local_peripheral_;
-  }
   absl::optional<api::ble_v2::GattCharacteristic> CreateCharacteristic(
       const Uuid& service_uuid, const Uuid& characteristic_uuid,
       api::ble_v2::GattCharacteristic::Permission permission,

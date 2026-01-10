@@ -93,38 +93,39 @@ void GattCharacteristicServer::ReadValue(
     return;
   }
   auto characteristic = characteristic_;
-  server_cb_->on_characteristic_read_cb(
-      *device, characteristic, static_cast<int>(offset),
-      [result = std::move(result),
-       this](absl::StatusOr<absl::string_view> data) {
-        const auto &status = data.status();
-        if (status.ok()) {
-          auto str = data.value();
-          std::vector<uint8_t> bytes(str.size());
-          for (auto i = 0; i < str.size(); i++) {
-            bytes[i] = str[i];
-          }
-          result.returnResults(bytes);
-
-          absl::MutexLock lock(&cached_value_mutex_);
-          cached_value_ = bytes;
-        } else if (absl::IsPermissionDenied(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.NotPermitted",
-                                          std::string(status.message())));
-        } else if (absl::IsUnauthenticated(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.NotAuthorized",
-                                          std::string(status.message())));
-        } else if (absl::IsOutOfRange(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.InvalidOffset",
-                                          std::string(status.message())));
-        } else if (absl::IsUnimplemented(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.NotSupported",
-                                          std::string(status.message())));
-        } else {
-          result.returnError(sdbus::Error("org.bluez.Error.Failed",
-                                          std::string(status.message())));
-        }
-      });
+  // TODO: enable the callback
+  // server_cb_->on_characteristic_read_cb(
+  //     *device, characteristic, static_cast<int>(offset),
+  //     [result = std::move(result),
+  //      this](absl::StatusOr<absl::string_view> data) {
+  //       const auto &status = data.status();
+  //       if (status.ok()) {
+  //         auto str = data.value();
+  //         std::vector<uint8_t> bytes(str.size());
+  //         for (auto i = 0; i < str.size(); i++) {
+  //           bytes[i] = str[i];
+  //         }
+  //         result.returnResults(bytes);
+  //
+  //         absl::MutexLock lock(&cached_value_mutex_);
+  //         cached_value_ = bytes;
+  //       } else if (absl::IsPermissionDenied(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.NotPermitted",
+  //                                         std::string(status.message())));
+  //       } else if (absl::IsUnauthenticated(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.NotAuthorized",
+  //                                         std::string(status.message())));
+  //       } else if (absl::IsOutOfRange(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.InvalidOffset",
+  //                                         std::string(status.message())));
+  //       } else if (absl::IsUnimplemented(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.NotSupported",
+  //                                         std::string(status.message())));
+  //       } else {
+  //         result.returnError(sdbus::Error("org.bluez.Error.Failed",
+  //                                         std::string(status.message())));
+  //       }
+  //     });
 }
 
 void GattCharacteristicServer::WriteValue(
@@ -144,29 +145,30 @@ void GattCharacteristicServer::WriteValue(
   std::string data(value.begin(), value.end());
   auto characteristic = characteristic_;
 
+  // TODO: enable the callback
   // TODO: Support writes without response.
-  server_cb_->on_characteristic_write_cb(
-      *device, characteristic, static_cast<int>(offset), data,
-      [result = std::move(result)](absl::Status status) {
-        if (status.ok()) {
-          result.returnResults();
-        } else if (absl::IsPermissionDenied(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.NotPermitted",
-                                          std::string(status.message())));
-        } else if (absl::IsUnauthenticated(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.NotAuthorized",
-                                          std::string(status.message())));
-        } else if (absl::IsOutOfRange(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.InvalidOffset",
-                                          std::string(status.message())));
-        } else if (absl::IsUnimplemented(status)) {
-          result.returnError(sdbus::Error("org.bluez.Error.NotSupported",
-                                          std::string(status.message())));
-        } else {
-          result.returnError(sdbus::Error("org.bluez.Error.Failed",
-                                          std::string(status.message())));
-        }
-      });
+  // server_cb_->on_characteristic_write_cb(
+  //     *device, characteristic, static_cast<int>(offset), data,
+  //     [result = std::move(result)](absl::Status status) {
+  //       if (status.ok()) {
+  //         result.returnResults();
+  //       } else if (absl::IsPermissionDenied(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.NotPermitted",
+  //                                         std::string(status.message())));
+  //       } else if (absl::IsUnauthenticated(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.NotAuthorized",
+  //                                         std::string(status.message())));
+  //       } else if (absl::IsOutOfRange(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.InvalidOffset",
+  //                                         std::string(status.message())));
+  //       } else if (absl::IsUnimplemented(status)) {
+  //         result.returnError(sdbus::Error("org.bluez.Error.NotSupported",
+  //                                         std::string(status.message())));
+  //       } else {
+  //         result.returnError(sdbus::Error("org.bluez.Error.Failed",
+  //                                         std::string(status.message())));
+  //       }
+  //     });
 }
 
 void GattCharacteristicServer::StartNotify() {

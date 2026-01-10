@@ -68,9 +68,9 @@ int16_t TxPowerLevelDbm(api::ble_v2::TxPowerLevel level) {
     case api::ble_v2::TxPowerLevel::kLow:
       return 0;
     case api::ble_v2::TxPowerLevel::kMedium:
-      return 3;
+      return 5;
     case api::ble_v2::TxPowerLevel::kHigh:
-      return 6;
+      return 10;  // Increased from 6 to 10 dBm (maximum for most adapters)
   }
 }
 

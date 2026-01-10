@@ -62,7 +62,7 @@ class LEAdvertisement final
                       << ": LE Advertisement released: " << getObjectPath();
   }
 
-  // Properties
+  // Properties  
   std::string Type() override { return "peripheral"; }
   std::vector<std::string> ServiceUUIDs() override { return service_uuids_; }
   std::map<std::string, sdbus::Variant> ManufacturerData() override {
@@ -72,7 +72,12 @@ class LEAdvertisement final
   std::map<std::string, sdbus::Variant> ServiceData() override {
     return service_data_;
   }
-  std::vector<std::string> Includes() override { return {}; }
+  std::map<std::string, sdbus::Variant> ScanResponseServiceData() override {
+    return {};
+  }
+  std::vector<std::string> Includes() override {
+    return {};
+  }
   std::string LocalName() override { return {}; }
   uint16_t Duration() override { return 0; }
   uint16_t Timeout() override { return 0; }

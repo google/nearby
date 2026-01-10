@@ -39,7 +39,6 @@ namespace nearby {
 namespace linux {
 // https://developer.android.com/reference/android/bluetooth/BluetoothDevice.html.
 
-  // TODO: This used to inherit from ble_v2::BlePeripheral. Removed that since APIs have now changed
 class BluetoothDevice : public api::BluetoothDevice {
  public:
   using UniqueId = std::uint64_t;

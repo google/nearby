@@ -57,7 +57,7 @@ void AdvertisementMonitor::DeviceFound(const sdbus::ObjectPath &device) {
     adv_data.service_data.emplace(*uuid,
                                   std::string(bytes.begin(), bytes.end()));
   }
-  scan_callback_.advertisement_found_cb(*peripheral, adv_data);
+  // scan_callback_.advertisement_found_cb(*peripheral, adv_data);
 }
 
 void AdvertisementMonitor::DeviceLost(const sdbus::ObjectPath &device) {

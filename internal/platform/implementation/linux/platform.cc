@@ -46,6 +46,7 @@
 // #include "internal/platform/implementation/linux/wifi_medium.h"
 #include "internal/platform/implementation/platform.h"
 
+#include "ble_v2_medium.h"
 #include "absl/strings/str_cat.h"
 
 #include "internal/platform/implementation/shared/count_down_latch.h"
@@ -246,10 +247,10 @@ std::unique_ptr<BleMedium> ImplementationPlatform::CreateBleMedium(
 
 std::unique_ptr<api::ble_v2::BleMedium>
 ImplementationPlatform::CreateBleV2Medium(api::BluetoothAdapter &adapter) {
-  return nullptr;
+  // return nullptr;
   // TODO: Enable BLEv2 once BlueZ support is added.
-  // return std::make_unique<linux::BleV2Medium>(
-  //     dynamic_cast<linux::BluetoothAdapter &>(adapter));
+  return std::make_unique<linux::BleV2Medium>(
+      dynamic_cast<linux::BluetoothAdapter &>(adapter));
 }
 
 namespace {

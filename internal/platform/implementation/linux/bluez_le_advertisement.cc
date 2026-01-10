@@ -23,6 +23,14 @@
 namespace nearby {
 namespace linux {
 namespace bluez {
+  std::string BytesToHexString(const std::vector<uint8_t>& bytes) {
+    std::ostringstream oss;
+    oss << std::hex << std::setfill('0');
+    for (uint8_t b : bytes) {
+      oss << std::setw(2) << static_cast<int>(b);
+    }
+    return oss.str();
+  }
 LEAdvertisement::LEAdvertisement(
     sdbus::IConnection& system_bus, sdbus::ObjectPath path,
     const api::ble_v2::BleAdvertisementData& advertising_data,
@@ -36,11 +44,15 @@ LEAdvertisement::LEAdvertisement(
     const auto* bytes = data.data();
 
     service_uuids_.push_back(uuid_string);
+    // service_uuids_.push_back("0000FE2C-0000-1000-8000-00805F9B34FB");
+    // service_uuids_.push_back("0000FE2C-0000-1000-8000-00805F9B34FB");
     for (size_t i = 0; i < data.size(); i++) {
       data_bytes[i] = bytes[i];
     }
-
+    // LOG(INFO)<< __func__ << ": " << uuid_string;
+    // LOG(INFO)<< __func__ << ": " << BytesToHexString(data_bytes);
     service_data_.insert({uuid_string, std::move(data_bytes)});
+    // service_data_.insert({"0000FE2C-0000-1000-8000-00805F9B34FB", std::move(data_bytes)});
   }
 
   registerAdaptor();
