@@ -50,13 +50,7 @@ class BluetoothDevices final {
       ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);
   std::shared_ptr<BluetoothDevice> get_device_by_address(const std::string &);
   std::shared_ptr<BluetoothDevice> get_device_by_unique_id(
-      api::ble_v2::BlePeripheral::UniqueId id) {
-      // TODO: Should probably remove BlePeripheral stuff from here but we can keep it since we can convert to/from
-      // uint64_t
-      MacAddress tmp;
-      MacAddress::FromUint64(id, tmp);
-    return get_device_by_address(tmp.ToString());
-  }
+      api::ble_v2::BlePeripheral::UniqueId id);
 
   std::shared_ptr<MonitoredBluetoothDevice> add_new_device(sdbus::ObjectPath)
       ABSL_LOCKS_EXCLUDED(devices_by_path_lock_);

@@ -83,6 +83,18 @@ std::string BluetoothDevice::GetMacAddress() const {
   }
 }
 
+std::string BluetoothDevice::GetAddressType() const {
+  auto device = device_;
+  if (device == nullptr) return "public";
+
+  try {
+    return device->AddressType();
+  } catch (const sdbus::Error& e) {
+    DBUS_LOG_PROPERTY_GET_ERROR(device, "AddressType", e);
+    return "public";
+  }
+}
+
 bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
   auto device = device_;
   if (device == nullptr) return false;

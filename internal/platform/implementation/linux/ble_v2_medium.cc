@@ -13,8 +13,13 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <cerrno>
+#include <cstring>
 
+#include <sys/socket.h>
+#include <unistd.h>
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Types.h>
 
@@ -28,6 +33,8 @@
 #include "internal/platform/implementation/linux/bluetooth_classic_device.h"
 #include "internal/platform/implementation/linux/bluetooth_devices.h"
 #include "internal/platform/implementation/linux/bluez.h"
+#include "internal/platform/mac_address.h"
+#include "absl/types/span.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor.h"
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor_manager.h"
 #include "internal/platform/implementation/linux/bluez_le_advertisement.h"
@@ -234,12 +241,8 @@ std::unique_ptr<api::ble_v2::BleSocket> BleV2Medium::Connect(
     const std::string &service_id, api::ble_v2::TxPowerLevel tx_power_level,
     api::ble_v2::BlePeripheral::UniqueId peripheral_id,
     CancellationFlag *cancellation_flag) {
-  (void)service_id;
-  (void)tx_power_level;
-  (void)peripheral_id;
-  (void)cancellation_flag;
-  LOG(WARNING) << __func__
-               << ": BLE socket connection is not supported on Linux yet.";
+  auto device = devices_ -> get_device_by_unique_id(peripheral_id);
+  LOG(INFO) << __func__ << ": Resolved device with address " << device -> GetMacAddress();
   return nullptr;
 }
 
@@ -490,7 +493,7 @@ std::unique_ptr<api::ble_v2::BleServerSocket> BleV2Medium::OpenServerSocket(
     const std::string &service_id) {
   LOG(INFO) << __func__ << ": Opening BLE server socket for service "
             << service_id;
-  return std::make_unique<BleV2ServerSocket>();
+  return std::make_unique<BleV2ServerSocket>(service_id);
 }
 
 std::unique_ptr<api::ble_v2::BleL2capServerSocket>

@@ -43,7 +43,22 @@ std::shared_ptr<BluetoothDevice> BluetoothDevices::get_device_by_path(
 
   return devices_by_path_[device_object_path];
 }
+std::shared_ptr<BluetoothDevice> BluetoothDevices::get_device_by_unique_id(
+  api::ble_v2::BlePeripheral::UniqueId id)
+{
+  // converting from stoull to mac again
+  id &= 0x0000FFFFFFFFFFFFULL; // keep 48 bits
+  std::ostringstream oss;
+  oss << std::hex << std::setfill('0') << std::setw(12) << id;
+  std::string hex = oss.str(); // e.g. "aabbccddeeff"
 
+  std::string mac;
+  for (int i = 0; i < 6; ++i) {
+    if (i) mac.push_back(':');
+    mac.append(hex.substr(i * 2, 2));
+  }
+  return get_device_by_address(mac);
+}
 std::shared_ptr<BluetoothDevice> BluetoothDevices::get_device_by_address(
     const std::string &addr) {
   auto device_object_path =

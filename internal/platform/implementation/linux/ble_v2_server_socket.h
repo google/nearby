@@ -15,27 +15,42 @@
 #ifndef PLATFORM_IMPL_LINUX_API_BLE_V2_SERVER_SOCKET_H_
 #define PLATFORM_IMPL_LINUX_API_BLE_V2_SERVER_SOCKET_H_
 
-#include "absl/synchronization/notification.h"
+#include <deque>
+#include <memory>
+#include <string>
+
+#include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/ble_v2.h"
+#include "internal/platform/implementation/linux/ble_v2_socket.h"
 
 namespace nearby {
 namespace linux {
+
 class BleV2ServerSocket final : public api::ble_v2::BleServerSocket {
  public:
-  std::unique_ptr<api::ble_v2::BleSocket> Accept() override {
-    stopped_.WaitForNotification();
-    return nullptr;
-  }
+  explicit BleV2ServerSocket(const std::string& service_id)
+      : service_id_(service_id) {}
+  ~BleV2ServerSocket() override = default;
 
-  Exception Close() override {
-    if (stopped_.HasBeenNotified()) return {Exception::kIo};
-    stopped_.Notify();
-    return {Exception::kSuccess};
-  }
+  std::unique_ptr<api::ble_v2::BleSocket> Accept() override
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  Exception Close() override ABSL_LOCKS_EXCLUDED(mutex_);
+
+  void AddPendingSocket(std::unique_ptr<BleV2Socket> socket)
+      ABSL_LOCKS_EXCLUDED(mutex_);
+
+  std::string GetServiceId() const { return service_id_; }
 
  private:
-  absl::Notification stopped_;
+  std::string service_id_;
+  absl::Mutex mutex_;
+  absl::CondVar cond_;
+  bool closed_ ABSL_GUARDED_BY(mutex_) = false;
+  std::deque<std::unique_ptr<BleV2Socket>> pending_sockets_
+      ABSL_GUARDED_BY(mutex_);
 };
+
 }  // namespace linux
 }  // namespace nearby
 

@@ -52,6 +52,7 @@ class BluetoothDevice : public api::BluetoothDevice {
 
   std::string GetName() const override;
   std::string GetMacAddress() const override;
+  std::string GetAddressType() const;
 
   MacAddress GetAddress() const override { return last_known_address_; }
 
