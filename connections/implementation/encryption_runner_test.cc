@@ -16,9 +16,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/client_proxy.h"
@@ -26,6 +28,7 @@
 #include "internal/platform/byte_array.h"
 #include "internal/platform/count_down_latch.h"
 #include "internal/platform/exception.h"
+#include "internal/platform/implementation/system_clock.h"
 #include "internal/platform/input_stream.h"
 #include "internal/platform/output_stream.h"
 #include "internal/platform/pipe.h"
@@ -55,10 +58,10 @@ class FakeEndpointChannel : public EndpointChannel {
     write_timestamp_ = SystemClock::ElapsedRealtime();
     return out_ ? out_->Write(data.AsStringView()) : Exception{Exception::kIo};
   }
-  Exception Write(const ByteArray& data,
+  Exception Write(absl::string_view data,
                   PacketMetaData& packet_meta_data) override {
     write_timestamp_ = SystemClock::ElapsedRealtime();
-    return out_ ? out_->Write(data.AsStringView()) : Exception{Exception::kIo};
+    return out_ ? out_->Write(data) : Exception{Exception::kIo};
   }
   void Close() override {
     if (in_) in_->Close();

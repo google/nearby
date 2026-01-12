@@ -14,7 +14,6 @@
 
 #include "connections/implementation/endpoint_manager.h"
 
-#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -25,6 +24,7 @@
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
 #include "testing/fuzzing/fuzztest.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -70,7 +70,7 @@ class MockEndpointChannel : public EndpointChannel {
               (override));
   MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
   MOCK_METHOD(Exception, Write,
-              (const ByteArray& data, PacketMetaData& packet_meta_data),
+              (absl::string_view data, PacketMetaData& packet_meta_data),
               (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(void, Close, (DisconnectionReason reason), (override));

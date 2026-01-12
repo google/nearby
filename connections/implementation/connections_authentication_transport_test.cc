@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "protobuf-matchers/protocol-buffer-matchers.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "connections/implementation/analytics/analytics_recorder.h"
 #include "connections/implementation/endpoint_channel.h"
@@ -40,7 +41,7 @@ class MockEndpointChannel : public EndpointChannel {
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (), (override));
   MOCK_METHOD(ExceptionOr<ByteArray>, Read, (PacketMetaData&), (override));
   MOCK_METHOD(Exception, Write, (const ByteArray& data), (override));
-  MOCK_METHOD(Exception, Write, (const ByteArray&, PacketMetaData&),
+  MOCK_METHOD(Exception, Write, (absl::string_view data, PacketMetaData&),
               (override));
   MOCK_METHOD(void, Close, (), (override));
   MOCK_METHOD(

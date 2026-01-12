@@ -960,7 +960,8 @@ std::vector<std::string> EndpointManager::SendTransferFrameBytes(
       continue;
     }
 
-    Exception write_exception = channel->Write(bytes, packet_meta_data);
+    Exception write_exception =
+        channel->Write(bytes.AsStringView(), packet_meta_data);
     if (!write_exception.Ok()) {
       failed_endpoint_ids.push_back(endpoint_id);
       LOG(INFO) << "Failed to send packet; endpoint_id=" << endpoint_id;
