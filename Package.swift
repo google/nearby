@@ -70,17 +70,23 @@ let package = Package(
           moduleAliases: ["NearbySSL": "openssl_grpc"]),
       ],
       path: "third_party/ukey2",
-      exclude: ["ukey2/src/main/cpp/src/securegcm/ukey2_shell.cc"],
+      exclude: [
+        "ukey2/src/main/cpp/src/securegcm/ukey2_shell.cc",
+        "compiled_proto/src/main/proto/passwordless_auth_payloads.pb.cc",
+        "compiled_proto/src/main/proto/passwordless_auth_payloads.pb.h",
+        "compiled_proto/src/main/proto/proximity_payloads.pb.cc",
+        "compiled_proto/src/main/proto/proximity_payloads.pb.h",
+      ],
       sources: [
         "ukey2/src/securemessage/src/securemessage",
         "ukey2/src/main/cpp/src/securegcm",
-        "ukey2/protoc_out",
+        "compiled_proto",
       ],
-      publicHeadersPath: "include",
+      publicHeadersPath: ".",
       cSettings: [
         .headerSearchPath("ukey2/"),
-        .headerSearchPath("ukey2/protoc_out/"),
-        .headerSearchPath("ukey2/protoc_out/src/main/proto"),
+        .headerSearchPath("compiled_proto/"),
+        .headerSearchPath("compiled_proto/src/main/proto"),
       ]
     ),
     .target(
@@ -94,7 +100,7 @@ let package = Package(
       dependencies: [
         .product(name: "abseil", package: "abseil-cpp-SwiftPM"),
       ],
-      path: "google-protobuf/third_party/utf8_range",
+      path: "third_party/protobuf/third_party/utf8_range",
       sources: [
         "utf8_validity.h",
         "utf8_range.h",
@@ -110,7 +116,7 @@ let package = Package(
       dependencies: [
         "protobuf-utf8",
       ],
-      path: "google-protobuf/src",
+      path: "third_party/protobuf/src",
       exclude: [
         "google/protobuf/bridge",
         "google/protobuf/compiler",
@@ -533,9 +539,17 @@ let package = Package(
         "internal/platform/implementation/apple/webrtc.mm",
         // This breaks the build, but seems to work fine without it?
         "internal/platform/medium_environment.cc",
+        "compiled_proto/connections/cpp/implementation/proto",
+        "compiled_proto/presence/proto",
+        "compiled_proto/internal/proto/analytics/experiments_log.pb.h",
+        "compiled_proto/internal/proto/analytics/experiments_log.pb.cc",
+        "compiled_proto/internal/proto/analytics/fast_pair_log.pb.h",
+        "compiled_proto/internal/proto/analytics/fast_pair_log.pb.cc",
+        "compiled_proto/proto/fast_pair_enums.pb.cc",
+        "compiled_proto/proto/fast_pair_enums.pb.h",
       ],
       sources: [
-        "protoc_out",
+        "compiled_proto",
         "connections",
         "internal",
         "proto",
@@ -543,10 +557,10 @@ let package = Package(
       publicHeadersPath: "connections",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("protoc_out/"),
+        .headerSearchPath("compiled_proto/"),
         .headerSearchPath("third_party/ukey2/ukey2/"),
-        .headerSearchPath("third_party/ukey2/ukey2/protoc_out/"),
-        .headerSearchPath("third_party/ukey2/ukey2/protoc_out/src/main/proto"),
+        .headerSearchPath("third_party/ukey2/compiled_proto/"),
+        .headerSearchPath("third_party/ukey2/compiled_proto/src/main/proto"),
         .define("NO_WEBRTC"),
       ]
     ),
@@ -563,7 +577,7 @@ let package = Package(
       publicHeadersPath: "connections/c",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("protoc_out/"),
+        .headerSearchPath("compiled_proto/"),
         .define("NO_WEBRTC"),
       ]
     ),
@@ -576,7 +590,7 @@ let package = Package(
       publicHeadersPath: "connections/swift/NearbyCoreAdapter/Sources/Public",
       cSettings: [
         .headerSearchPath("./"),
-        .headerSearchPath("protoc_out/"),
+        .headerSearchPath("compiled_proto/"),
         .define("NO_WEBRTC"),
       ]
     ),
