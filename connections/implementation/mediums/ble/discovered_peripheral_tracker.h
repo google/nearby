@@ -257,17 +257,6 @@ class DiscoveredPeripheralTracker {
       const BleAdvertisementHeader& advertisement_header)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  // Fetches advertisement from BLE medium if advertisement header is read in
-  // AdvertisementData.
-  //
-  // advertisement_fetcher : a fetcher passed from BLE medium to read the
-  // advertisement from BLE characteristics by GATT server.
-  std::vector<const ByteArray*> FetchRawAdvertisements(
-      BlePeripheral peripheral,
-      const BleAdvertisementHeader& advertisement_header,
-      AdvertisementFetcher advertisement_fetcher)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
   void FetchRawAdvertisementsInThread(
       BlePeripheral peripheral,
       const BleAdvertisementHeader& advertisement_header,
@@ -306,7 +295,6 @@ class DiscoveredPeripheralTracker {
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Mutex mutex_;
-  bool is_fetching_in_thread_ = false;
   bool is_read_gatt_for_extended_advertisement_enabled_ = true;
   bool is_extended_advertisement_available_;
 

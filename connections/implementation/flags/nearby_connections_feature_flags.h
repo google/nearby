@@ -91,9 +91,6 @@ constexpr auto kEnablePayloadManagerToSkipChunkUpdate =
 // Enable/Disable payload-received-ack feature.
 constexpr auto kEnablePayloadReceivedAck =
     flags::Flag<bool>(kConfigPackage, "45425840", false);
-// Enable/Disable GATT query for extended advertisement.
-constexpr auto kEnableReadGattForExtendedAdvertisement =
-    flags::Flag<bool>(kConfigPackage, "45718229", false);
 // Enable/Disable safe-to-disconnect feature.
 constexpr auto kEnableSafeToDisconnect =
     flags::Flag<bool>(kConfigPackage, "45425789", false);
@@ -123,10 +120,6 @@ constexpr auto kRefactorBleL2cap =
 // 4. auto-resume  5. non-distance-constraint-recovery 6. payload_ack
 constexpr auto kSafeToDisconnectVersion =
     flags::Flag<int64_t>(kConfigPackage, "45425841", 0);
-// When true, use stable endpoint ID.
-constexpr auto kUseStableEndpointId =
-    flags::Flag<bool>(kConfigPackage, "45639298", false);
-
 }  // namespace nearby_connections_feature
 }  // namespace config_package_nearby
 }  // namespace connections

@@ -639,13 +639,6 @@ class BasePcpHandler : public PcpHandler,
   void StripOutUnavailableMediums(AdvertisingOptions& advertising_options);
   void StripOutUnavailableMediums(DiscoveryOptions& discovery_options);
 
-  // The endpoint id in high visibility mode is stable for 30 seconds, while in
-  // low visibility mode it always rotates. We assume a client is trying to
-  // rotate endpoint id when the advertising options is "low power" (3P) or
-  // "disable Bluetooth classic" (1P).
-  bool ShouldEnterHighVisibilityMode(
-      const AdvertisingOptions& advertising_options);
-
   // Below cases should enter stable endpoint id mode:
   // 1. When use stable endpoint id returns true.
   // 2. When low power returns false.

@@ -65,29 +65,13 @@ constexpr absl::Duration kAdvertisementHeaderExpiry = absl::Seconds(15);
 
 DiscoveredPeripheralTracker::DiscoveredPeripheralTracker(
     bool is_extended_advertisement_available)
-    : is_fetching_in_thread_(true),
-      is_read_gatt_for_extended_advertisement_enabled_(
-          NearbyFlags::GetInstance().GetBoolFlag(
-              config_package_nearby::nearby_connections_feature::
-                  kEnableReadGattForExtendedAdvertisement)),
-      is_extended_advertisement_available_(
+    : is_extended_advertisement_available_(
           is_extended_advertisement_available) {
-  LOG(INFO) << __func__ << ": fetch GATT in thread: " << is_fetching_in_thread_
-            << ", read GATT for extended advertisement: "
-            << is_read_gatt_for_extended_advertisement_enabled_;
-  if (is_fetching_in_thread_) {
-    executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
-    if (is_read_gatt_for_extended_advertisement_enabled_) {
-      executor_->Execute([this]() { GattFetchingLoop(); });
-    }
-  }
+  executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
+  executor_->Execute([this]() { GattFetchingLoop(); });
 }
 
-DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() {
-  if (is_fetching_in_thread_) {
-    Shutdown();
-  }
-}
+DiscoveredPeripheralTracker::~DiscoveredPeripheralTracker() { Shutdown(); }
 
 void DiscoveredPeripheralTracker::Shutdown() {
   if (shutting_down_.Set(true)) {
@@ -99,10 +83,8 @@ void DiscoveredPeripheralTracker::Shutdown() {
     executor_to_shutdown = std::move(executor_);
   }
 
-  if (is_read_gatt_for_extended_advertisement_enabled_) {
-    MutexLock lock(&task_mutex_);
-    cond_.Notify();
-  }
+  MutexLock lock(&task_mutex_);
+  cond_.Notify();
 
   if (executor_to_shutdown != nullptr) {
     executor_to_shutdown->Shutdown();
@@ -334,21 +316,16 @@ bool DiscoveredPeripheralTracker::IsSkippableGattAdvertisement(
   BleAdvertisementHeader advertisement_header(
       ExtractAdvertisementHeaderBytes(advertisement_data));
 
-  if (is_read_gatt_for_extended_advertisement_enabled_) {
-    if (!advertisement_header.IsValid()) {
-      return false;
-    }
-
-    if (advertisement_header.IsSupportExtendedAdvertisement() &&
-        (SystemClock::ElapsedRealtime() - medium_start_scanning_time_) <
-            kExtendedAdvertisementHeaderDelay) {
-      return true;
-    }
+  if (!advertisement_header.IsValid()) {
     return false;
-  } else {
-    return advertisement_header.IsValid() &&
-           advertisement_header.IsSupportExtendedAdvertisement();
   }
+
+  if (advertisement_header.IsSupportExtendedAdvertisement() &&
+      (SystemClock::ElapsedRealtime() - medium_start_scanning_time_) <
+          kExtendedAdvertisementHeaderDelay) {
+    return true;
+  }
+  return false;
 }
 
 void DiscoveredPeripheralTracker::ClearGattAdvertisement(
@@ -765,78 +742,55 @@ void DiscoveredPeripheralTracker::HandleAdvertisementHeader(
     }
   }
 
-  // Determine whether or not we need to read a fresh GATT advertisement.
-  if (is_fetching_in_thread_) {
-    VLOG(1) << ": Handle GATT advertisement header with hash "
-            << absl::BytesToHexString(
-                   advertisement_header.GetAdvertisementHash().AsStringView())
-            << " in thread";
+  VLOG(1) << ": Handle GATT advertisement header with hash "
+          << absl::BytesToHexString(
+                 advertisement_header.GetAdvertisementHash().AsStringView())
+          << " in thread";
 
-    if (executor_ == nullptr) {
-      // The situation happens when flag value changed
-      executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
-    }
-
-    if (!ShouldReadRawAdvertisementFromServer(advertisement_header)) {
-      UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
-      return;
-    }
-
-    if (is_read_gatt_for_extended_advertisement_enabled_) {
-      MutexLock lock(&task_mutex_);
-      if (advertisement_header.IsSupportExtendedAdvertisement() &&
-          is_extended_advertisement_available_) {
-        for (auto& item : gatt_extended_fetch_tasks_) {
-          if (item.advertisement_header == advertisement_header) {
-            item.scheduled_time = SystemClock::ElapsedRealtime();
-            UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
-            return;
-          }
-        }
-
-        gatt_extended_fetch_tasks_.push_back({
-            .peripheral = peripheral,
-            .advertisement_header = advertisement_header,
-            .advertisement_fetcher = std::move(advertisement_fetcher),
-            .scheduled_time = SystemClock::ElapsedRealtime(),
-        });
-      } else {
-        for (auto& item : gatt_fetch_tasks_) {
-          if (item.advertisement_header == advertisement_header) {
-            item.scheduled_time = SystemClock::ElapsedRealtime();
-            UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
-            return;
-          }
-        }
-
-        gatt_fetch_tasks_.push_back({
-            .peripheral = peripheral,
-            .advertisement_header = advertisement_header,
-            .advertisement_fetcher = std::move(advertisement_fetcher),
-            .scheduled_time = SystemClock::ElapsedRealtime(),
-        });
-      }
-      cond_.Notify();
-    } else {
-      executor_->Execute(
-          [this, peripheral, advertisement_header,
-           advertisement_fetcher = std::move(advertisement_fetcher)]() mutable {
-            FetchRawAdvertisementsInThread(peripheral, advertisement_header,
-                                           std::move(advertisement_fetcher));
-          });
-    }
-  } else {
-    if (ShouldReadRawAdvertisementFromServer(advertisement_header)) {
-      std::vector<const ByteArray*> gatt_advertisement_bytes_list =
-          FetchRawAdvertisements(peripheral, advertisement_header,
-                                 std::move(advertisement_fetcher));
-      if (!gatt_advertisement_bytes_list.empty()) {
-        HandleRawGattAdvertisements(peripheral, advertisement_header,
-                                    gatt_advertisement_bytes_list,
-                                    /*service_uuid=*/{});
-      }
-    }
+  if (executor_ == nullptr) {
+    // The situation happens when flag value changed
+    executor_ = std::make_unique<MultiThreadExecutor>(kGattThreadCount);
   }
+
+  if (!ShouldReadRawAdvertisementFromServer(advertisement_header)) {
+    UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
+    return;
+  }
+
+  MutexLock lock(&task_mutex_);
+  if (advertisement_header.IsSupportExtendedAdvertisement() &&
+      is_extended_advertisement_available_) {
+    for (auto& item : gatt_extended_fetch_tasks_) {
+      if (item.advertisement_header == advertisement_header) {
+        item.scheduled_time = SystemClock::ElapsedRealtime();
+        UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
+        return;
+      }
+    }
+
+    gatt_extended_fetch_tasks_.push_back({
+        .peripheral = peripheral,
+        .advertisement_header = advertisement_header,
+        .advertisement_fetcher = std::move(advertisement_fetcher),
+        .scheduled_time = SystemClock::ElapsedRealtime(),
+    });
+  } else {
+    for (auto& item : gatt_fetch_tasks_) {
+      if (item.advertisement_header == advertisement_header) {
+        item.scheduled_time = SystemClock::ElapsedRealtime();
+        UpdateCommonStateForFoundBleAdvertisement(advertisement_header);
+        return;
+      }
+    }
+
+    gatt_fetch_tasks_.push_back({
+        .peripheral = peripheral,
+        .advertisement_header = advertisement_header,
+        .advertisement_fetcher = std::move(advertisement_fetcher),
+        .scheduled_time = SystemClock::ElapsedRealtime(),
+    });
+  }
+  cond_.Notify();
 
   // Regardless of whether or not we read a new GATT advertisement, the maps
   // should now be up-to-date. With this information, do some general
@@ -924,29 +878,6 @@ bool DiscoveredPeripheralTracker::ShouldReadRawAdvertisementFromServer(
             << ", but we do not know whether or not to retry reading "
                "its GATT advertisement. Caller should retry to be safe.";
   return true;
-}
-
-std::vector<const ByteArray*>
-DiscoveredPeripheralTracker::FetchRawAdvertisements(
-    BlePeripheral peripheral,
-    const BleAdvertisementHeader& advertisement_header,
-    AdvertisementFetcher advertisement_fetcher) {
-  // Fetch the raw GATT advertisements and store the results.
-  auto& result = advertisement_read_results_[advertisement_header];
-  if (result == nullptr) {
-    result = std::make_unique<mediums::AdvertisementReadResult>();
-  }
-
-  std::vector<std::string> service_ids;
-  std::transform(service_id_infos_.begin(), service_id_infos_.end(),
-                 std::back_inserter(service_ids),
-                 [](auto& kv) { return kv.first; });
-  advertisement_fetcher(peripheral, advertisement_header.GetNumSlots(),
-                        advertisement_header.GetPsm(), service_ids, *result);
-
-  // Take those results and return all the advertisements we were able to
-  // read.
-  return result->GetAdvertisements();
 }
 
 void DiscoveredPeripheralTracker::FetchRawAdvertisementsInThread(
