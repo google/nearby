@@ -54,18 +54,24 @@ GattServer::CreateCharacteristic(
         << "' and message '" << e.getMessage() << "'";
     return std::nullopt;
   }
+  auto profile = std::make_unique<bluez::GattProfile> (system_bus_, bluez::gatt_profile_object_path(
+    std::string(service_uuid)), std::string(service_uuid));
+  profile -> emitInterfacesAddedSignal();
 
   if (service->AddCharacteristic(service_uuid, characteristic_uuid, permission,
                                  property)) {
-    bluez::GattManager manager(system_bus_, adapter_.GetObjectPath());
-    try {
-      LOG(INFO) << __func__ << ": registering service "
-                           << service->getObjectPath();
-      manager.RegisterApplication("/", {});
-    } catch (const sdbus::Error& e) {
-      DBUS_LOG_METHOD_CALL_ERROR(&manager, "RegisterApplication", e);
-      return std::nullopt;
-    }
+  try {
+    LOG(INFO)<< __func__ << ": Registering service on gattmanager";
+    gatt_manager_ -> RegisterApplication(gatt_service_root_object_manager -> getObjectPath(), {});
+  } catch (const sdbus::Error& e) {
+    LOG(ERROR)
+        << __func__
+        << ": error calling RegisterAplication for GattManager with object path "
+        << gatt_manager_->getObjectPath() << " with name '" << e.getName()
+        << "' and message '" << e.getMessage() << "'";
+    return std::nullopt;
+  }
+
 
     services_.insert({service_uuid, std::move(service)});
 

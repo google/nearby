@@ -116,7 +116,8 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
   }
 
   for (auto it = changedProperties.begin(); it != changedProperties.end();
-       it++) {
+       it++)
+  {
     if (it->first == bluez::DEVICE_PROP_ADDRESS) {
       LOG(INFO) << __func__ << ": " << getObjectPath()
                            << ": Notifying observers about address change";
@@ -124,6 +125,7 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
       for (const auto &observer : observers_.GetObservers()) {
         observer->DeviceAddressChanged(*this, address);
       }
+
     } else if (it->first == bluez::DEVICE_PROP_PAIRED) {
       LOG(INFO) << __func__ << ": " << getObjectPath()
                            << "Notifying observers about paired status change.";
@@ -137,7 +139,9 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
       for (const auto &observer : observers_.GetObservers()) {
         observer->DeviceConnectedStateChanged(*this, it->second);
       }
-    } else if (it->first == bluez::DEVICE_NAME) {
+    } else if ( it -> first == "ServicesResolved"){
+      LOG(INFO) << ": ServicesResolved";
+  }else if (it->first == bluez::DEVICE_NAME) {
       auto callback = GetDiscoveryCallback();
       if (callback != nullptr && callback->device_name_changed_cb != nullptr)
         callback->device_name_changed_cb(*this);

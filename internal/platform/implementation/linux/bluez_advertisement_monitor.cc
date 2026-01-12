@@ -1,4 +1,7 @@
 #include "internal/platform/implementation/linux/bluez_advertisement_monitor.h"
+
+#include <regex>
+
 #include "internal/platform/byte_array.h"
 #include "internal/platform/implementation/ble_v2.h"
 #include "internal/platform/implementation/linux/dbus.h"
@@ -57,7 +60,9 @@ void AdvertisementMonitor::DeviceFound(const sdbus::ObjectPath &device) {
     adv_data.service_data.emplace(*uuid,
                                   std::string(bytes.begin(), bytes.end()));
   }
-  // scan_callback_.advertisement_found_cb(*peripheral, adv_data);
+  auto id = std::stoull(std::regex_replace(peripheral->GetMacAddress(),
+      std::regex("[:\\-]"), ""), nullptr, 16);
+  scan_callback_.advertisement_found_cb(id, adv_data);
 }
 
 void AdvertisementMonitor::DeviceLost(const sdbus::ObjectPath &device) {

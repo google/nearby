@@ -20,6 +20,8 @@
 
 #include <sdbus-c++/IConnection.h>
 
+#include "bluez_gatt_manager.h"
+#include "bluez_gatt_profile.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/optional.h"
@@ -63,6 +65,8 @@ class GattServer : public api::ble_v2::GattServer {
         devices_(std::move(devices)),
         adapter_(adapter),
         local_peripheral_(adapter_),
+        gatt_service_root_object_manager(std::make_unique<RootObjectManager>(system_bus_, "/com/google/nearby/medium/ble/gatt")),
+        gatt_manager_(std::make_unique<bluez::GattManager>(system_bus_, adapter_.GetObjectPath())),
         server_cb_(std::make_shared<api::ble_v2::ServerGattConnectionCallback>(
             std::move(server_cb))) {}
   ~GattServer() override = default;
@@ -85,6 +89,11 @@ class GattServer : public api::ble_v2::GattServer {
   BluetoothAdapter adapter_;
   LocalBlePeripheral local_peripheral_;
 
+  std::unique_ptr<RootObjectManager> gatt_service_root_object_manager;
+  absl::Mutex profiles_mutex_;
+  absl::flat_hash_map<Uuid, std::unique_ptr<bluez::GattProfile>> gatt_profiles_;
+    ABSL_GUARDED_BY(profiles_mutex_)
+  std::unique_ptr<bluez::GattManager> gatt_manager_;
   std::shared_ptr<api::ble_v2::ServerGattConnectionCallback> server_cb_;
   absl::Mutex services_mutex_;
   absl::flat_hash_map<Uuid, std::unique_ptr<bluez::GattServiceServer>> services_

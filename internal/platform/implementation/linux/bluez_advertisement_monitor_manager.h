@@ -31,10 +31,11 @@ class AdvertisementMonitorManager final
           org::bluez::AdvertisementMonitorManager1_proxy> {
  private:
   friend std::unique_ptr<AdvertisementMonitorManager>
-  std::make_unique<AdvertisementMonitorManager>(sdbus::IConnection &,
-                                                const BluetoothAdapter &);
-  AdvertisementMonitorManager(sdbus::IConnection &system_bus,
-                              const BluetoothAdapter &adapter)
+  std::make_unique<AdvertisementMonitorManager>(
+      sdbus::IConnection &, const ::nearby::linux::BluetoothAdapter &);
+  AdvertisementMonitorManager(
+      sdbus::IConnection &system_bus,
+      const ::nearby::linux::BluetoothAdapter &adapter)
       : ProxyInterfaces(system_bus, "org.bluez", adapter.GetObjectPath()) {
     registerProxy();
   }
@@ -49,8 +50,9 @@ class AdvertisementMonitorManager final
   ~AdvertisementMonitorManager() { unregisterProxy(); }
 
   static std::unique_ptr<AdvertisementMonitorManager>
-  DiscoverAdvertisementMonitorManager(sdbus::IConnection &system_bus,
-                                      const BluetoothAdapter &adapter) {
+  DiscoverAdvertisementMonitorManager(
+      sdbus::IConnection &system_bus,
+      const ::nearby::linux::BluetoothAdapter &adapter) {
     bluez::BluezObjectManager manager(system_bus);
     std::map<sdbus::ObjectPath,
              std::map<std::string, std::map<std::string, sdbus::Variant>>>

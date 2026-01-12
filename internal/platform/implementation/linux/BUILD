@@ -76,6 +76,7 @@ cc_library(
 #        "bluez_gatt_characteristic_client.h",
         "bluez_gatt_characteristic_server.h",
         "bluez_gatt_manager.h",
+        "bluez_gatt_profile.h",
 #        "bluez_gatt_service_client.h",
         "bluez_gatt_service_server.h",
         "bluez_le_advertisement.h",

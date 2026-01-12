@@ -35,7 +35,13 @@ sdbus::ObjectPath profile_object_path(absl::string_view service_uuid) {
       absl::StrReplaceAll(service_uuid, {{"-", "_"}}));
 }
 
-sdbus::ObjectPath adapter_object_path(absl::string_view name) {
+  sdbus::ObjectPath gatt_profile_object_path(absl::string_view service_uuid) {
+  return absl::Substitute(
+    "$0/profile_$1",
+      NEARBY_BLE_GATT_PROFILE_PATH_ROOT,
+      absl::StrReplaceAll(service_uuid, {{"-", "_"}}));
+}
+  sdbus::ObjectPath adapter_object_path(absl::string_view name) {
   return absl::Substitute("/org/bluez/$0", name);
 }
 

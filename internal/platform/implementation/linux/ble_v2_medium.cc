@@ -43,7 +43,7 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
       devices_(std::make_unique<BluetoothDevices>(
           system_bus_, adapter_.GetObjectPath(), observers_)),
       // gatt_discovery_(std::make_shared<BluezGattDiscovery>(system_bus_)),
-      root_object_manager_(std::make_unique<RootObjectManager>(*system_bus_)),
+      root_object_manager_(std::make_unique<RootObjectManager>(*system_bus_, "/com/google/nearby/medium/ble/advertisement/monitor")),
       adv_monitor_manager_(
           bluez::AdvertisementMonitorManager::
               DiscoverAdvertisementMonitorManager(*system_bus_, adapter_)),
@@ -56,7 +56,7 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
         << ": Registering path /com/google/nearby/medium/ble/advertisement/monitor with AdvertisementMonitorManager at "
         << adv_monitor_manager_->getObjectPath();
     try {
-      adv_monitor_manager_->RegisterMonitor("/com/google/nearby/medium/ble/advertisement/monitor");
+      adv_monitor_manager_->RegisterMonitor(root_object_manager_->getObjectPath());
     } catch (const sdbus::Error &e) {
       DBUS_LOG_METHOD_CALL_ERROR(adv_monitor_manager_, "RegisterMonitor", e);
     }
@@ -73,6 +73,11 @@ BleV2Medium::BleV2Medium(BluetoothAdapter &adapter)
 bool BleV2Medium::StartAdvertising(
     const api::ble_v2::BleAdvertisementData &advertising_data,
     api::ble_v2::AdvertiseParameters advertise_set_parameters) {
+  if (!advertising_data.is_extended_advertisement)
+  {
+    // can't send two LE advertisements at the same
+    return true;
+  }
   if (!adapter_.IsEnabled()) {
     LOG(WARNING) << "BLE cannot start advertising because the "
                             "bluetooth adapter is not enabled.";
