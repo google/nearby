@@ -1006,6 +1006,9 @@ enum CloudCreateSharingResult {
   CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_COUNT = 8;
   // The request contains more than 10GB of files.
   CLOUD_CREATE_SHARING_RESULT_FILE_LIMIT_EXCEED_SIZE = 9;
+  // The request was successful but this device cannot be notified for receiver
+  // updates.
+  CLOUD_CREATE_SHARING_RESULT_SUCCESS_NO_NOTIFICATION = 10;
 }
 // LINT.ThenChange(
 //     //depot/google3/java/com/google/android/gmscore/integ/modules/nearby/src/com/google/android/gms/nearby/sharing/cloud/data/CreateSharingRequestResultStatus.kt
