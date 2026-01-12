@@ -24,8 +24,6 @@
 #include "internal/platform/pending_job_registry.h"
 #include "internal/platform/runnable.h"
 
-#define SET_THREAD_STATUS(NAME)
-
 namespace nearby {
 namespace {
 absl::Duration kMinReportedStartDelay = absl::Seconds(5);
@@ -44,7 +42,6 @@ MonitoredRunnable::MonitoredRunnable(const std::string& name,
 }
 
 void MonitoredRunnable::operator()() {
-  SET_THREAD_STATUS(name_.c_str());
   absl::Time start_time = SystemClock::ElapsedRealtime();
   absl::Duration start_delay = start_time - post_time_;
   if (start_delay >= kMinReportedStartDelay) {
