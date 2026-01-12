@@ -196,16 +196,8 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   Endpoint StartAdvertising(
       ClientProxy* client, ConnectionListener listener,
       AdvertisingOptions advertising_options = AdvertisingOptions{}) {
-    if (NearbyFlags::GetInstance().GetBoolFlag(
-            connections::config_package_nearby::nearby_connections_feature::
-                kUseStableEndpointId)) {
-      if (ShouldEnterStableEndpointIdMode(advertising_options)) {
-        client->EnterStableEndpointIdMode();
-      }
-    } else {
-      if (ShouldEnterHighVisibilityMode(advertising_options)) {
-        client->EnterHighVisibilityMode();
-      }
+    if (ShouldEnterStableEndpointIdMode(advertising_options)) {
+      client->EnterStableEndpointIdMode();
     }
     Endpoint endpoint{
         .info = ByteArray{"advertising endpoint name"},
@@ -367,13 +359,6 @@ class ClientProxyTest : public ::testing::TestWithParam<FeatureFlags::Flags> {
   void OnPayloadProgress(ClientProxy* client, const Endpoint& endpoint) {
     EXPECT_CALL(mock_discovery_payload_.payload_progress_cb, Call).Times(1);
     client->OnPayloadProgress(endpoint.id, {});
-  }
-
-  void EnableUseStableEndpointIdFeature() {
-    NearbyFlags::GetInstance().OverrideBoolFlagValue(
-        connections::config_package_nearby::nearby_connections_feature::
-            kUseStableEndpointId,
-        true);
   }
 
   ClientProxy* client1() { return client1_.get(); }
@@ -575,7 +560,6 @@ TEST_F(ClientProxyTest, DumpString) {
       "Nearby Connections State\n"
       "  Client ID: %d\n"
       "  Local Endpoint ID: %s\n"
-      "  High Visibility Mode: false\n"
       "  Is Advertising: false\n"
       "  Is Discovering: false\n"
       "  Advertising Service ID: \n"
@@ -826,7 +810,6 @@ TEST_F(ClientProxyTest,
 
 TEST_F(ClientProxyTest,
        RotateWhenLowVizAdvertisementAfterHighVizAndStableAdvertisement) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -867,7 +850,6 @@ TEST_F(ClientProxyTest,
 TEST_F(
     ClientProxyTest,
     NoRotateWhenLowVizStableAdvertisementAfterHighVizAndStableAdvertisement) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -911,7 +893,6 @@ TEST_F(
 TEST_F(
     ClientProxyTest,
     NoRotateWhenAdvertisementHasConnectionAfterStableAdvertisementForAWhile) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -958,7 +939,6 @@ TEST_F(
 }
 
 TEST_F(ClientProxyTest, RotateWhenLowVizAdvertisementAfterDisconnection) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -1001,7 +981,6 @@ TEST_F(ClientProxyTest, RotateWhenLowVizAdvertisementAfterDisconnection) {
 
 TEST_F(ClientProxyTest,
        NoRotateWhenLowVizAndStableAdvertisementAfterDisconnection) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -1046,7 +1025,6 @@ TEST_F(ClientProxyTest,
 }
 
 TEST_F(ClientProxyTest, RotateWhenAdvertisementAfterDisconnectionForAWhile) {
-  EnableUseStableEndpointIdFeature();
   BooleanMediumSelector booleanMediumSelector;
   booleanMediumSelector.bluetooth = true;
 
@@ -1624,9 +1602,6 @@ TEST_F(ClientProxyTest, TestRemoteMultiplexSocketBitmask) {
 
 TEST_F(ClientProxyTest, SaveClientInfoFromPreferences) {
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
-      true);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableNearbyConnectionsPreferences,
       true);
@@ -1643,18 +1618,12 @@ TEST_F(ClientProxyTest, SaveClientInfoFromPreferences) {
   // The new client should load the same endpoint ID.
   EXPECT_EQ(client1()->GetLocalEndpointId(), endpoint_id);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
-      false);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableNearbyConnectionsPreferences,
       false);
 }
 
 TEST_F(ClientProxyTest, NotLoadClientInfoFromPreferencesOnExpired) {
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
-      true);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableNearbyConnectionsPreferences,
@@ -1673,9 +1642,6 @@ TEST_F(ClientProxyTest, NotLoadClientInfoFromPreferencesOnExpired) {
 
   // The new client should load the same endpoint ID.
   EXPECT_NE(client1()->GetLocalEndpointId(), endpoint_id);
-  NearbyFlags::GetInstance().OverrideBoolFlagValue(
-      config_package_nearby::nearby_connections_feature::kUseStableEndpointId,
-      false);
   NearbyFlags::GetInstance().OverrideBoolFlagValue(
       config_package_nearby::nearby_connections_feature::
           kEnableNearbyConnectionsPreferences,
