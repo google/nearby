@@ -56,7 +56,6 @@ class Payload {
 
   // Constructors for outgoing payloads.
   explicit Payload(ByteArray&& bytes);
-  explicit Payload(const ByteArray& bytes);
 
   // InputFile is just "a pointer to a file on your disc", a wrapper around a
   // file name or file descriptor. It has no understanding that Nearby is going
@@ -72,8 +71,6 @@ class Payload {
 
   explicit Payload(std::string parent_folder, std::string file_name,
                    InputFile file);
-
-  explicit Payload(std::unique_ptr<InputStream> stream);
 
   // Constructors for incoming payloads.
   Payload(Id id, ByteArray&& bytes);

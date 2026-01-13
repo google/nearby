@@ -59,19 +59,13 @@ Payload::Payload() : type_(PayloadType::kUnknown), content_(std::monostate()) {}
 
 // Constructors for outgoing payloads.
 Payload::Payload(ByteArray&& bytes)
-    : type_(PayloadType::kBytes), content_(bytes) {}
-
-Payload::Payload(const ByteArray& bytes)
-    : type_(PayloadType::kBytes), content_(bytes) {}
+    : type_(PayloadType::kBytes), content_(std::move(bytes)) {}
 
 Payload::Payload(std::string parent_folder, std::string file_name,
                  InputFile input_file) {
   Id id = std::hash<std::string>()(input_file.GetFilePath());
   InitFilePayload(id, parent_folder, file_name, std::move(input_file));
 }
-
-Payload::Payload(std::unique_ptr<InputStream> stream)
-    : type_(PayloadType::kStream), content_(std::move(stream)) {}
 
 // Constructors for incoming payloads.
 Payload::Payload(Id id, ByteArray&& bytes)
