@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef NO_WEBRTC
+
 #include "internal/platform/implementation/apple/webrtc.h"
 
 #import <Foundation/Foundation.h>
@@ -95,3 +97,5 @@ std::unique_ptr<api::WebRtcSignalingMessenger> WebRtcMedium::GetSignalingMesseng
 }
 
 }  // namespace nearby::apple
+
+#endif  // #ifndef NO_WEBRTC
