@@ -52,20 +52,6 @@ let package = Package(
     // Targets are the basic building blocks of a package. A target can define a module or a test suite.
     // Targets can depend on other targets in this package, and on products in packages this package depends on.
     .target(
-      name: "google-toolbox-for-mac",
-      path: "third_party/google-toolbox-for-mac",
-      exclude: [
-        "google-toolbox-for-mac/AppKit",
-        "google-toolbox-for-mac/UnitTesting",
-      ],
-      sources: ["google-toolbox-for-mac/Foundation/GTMLogger.m"],
-      publicHeadersPath: "include",
-      cSettings: [
-        .headerSearchPath("google-toolbox-for-mac/"),
-        .unsafeFlags(["-fno-objc-arc"]),
-      ]
-    ),
-    .target(
       name: "smhasher",
       path: "third_party/smhasher",
       sources: ["smhasher/src/MurmurHash3.cpp"],
@@ -306,7 +292,6 @@ let package = Package(
     .target(
       name: "NearbyCommon",
       dependencies: [
-        "google-toolbox-for-mac",
         "json",
         "smhasher",
         "ukey2",
