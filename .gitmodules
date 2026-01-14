@@ -7,10 +7,6 @@
 [submodule "third_party/smhasher/smhasher"]
 	path = third_party/smhasher/smhasher
 	url = https://github.com/aappleby/smhasher
-[submodule "third_party/securemessage/securemessage"]
-	path = third_party/securemessage/securemessage
-	url = https://github.com/google/securemessage.git
-	branch = master
 [submodule "third_party/json/json"]
 	path = third_party/json/json
 	url = https://github.com/nlohmann/json
