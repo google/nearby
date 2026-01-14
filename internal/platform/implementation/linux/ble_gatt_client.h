@@ -76,7 +76,7 @@ class BluezGattDiscovery final : public bluez::BluezObjectManager {
  private:
   std::optional<std::tuple<Uuid, Uuid, sdbus::ObjectPath>>
   characteristicProperties(
-      const sdbus::ObjectPath &path,
+      const sdbus::ObjectPath &char_path,
       const std::map<std::string, sdbus::Variant> &properties)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

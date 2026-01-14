@@ -61,7 +61,9 @@ GattServer::CreateCharacteristic(
   if (service->AddCharacteristic(service_uuid, characteristic_uuid, permission,
                                  property)) {
   try {
-    LOG(INFO)<< __func__ << ": Registering service on gattmanager";
+    LOG(INFO)<< __func__ << ": Registering service on gattmanager with characteristic_uuid: "
+          << std::string(characteristic_uuid) << " and service_uuid: " << std::string(service_uuid);
+
     gatt_manager_ -> RegisterApplication(gatt_service_root_object_manager -> getObjectPath(), {});
   } catch (const sdbus::Error& e) {
     LOG(ERROR)
@@ -74,6 +76,7 @@ GattServer::CreateCharacteristic(
 
 
     services_.insert({service_uuid, std::move(service)});
+
 
     api::ble_v2::GattCharacteristic characteristic{
         characteristic_uuid, service_uuid, permission, property};

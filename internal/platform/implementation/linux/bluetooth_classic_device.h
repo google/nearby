@@ -111,9 +111,11 @@ class BluetoothDevice : public api::BluetoothDevice {
   }
 
   bool ConnectToProfile(absl::string_view service_uuid);
+  bool Connect();
   void MarkLost() { lost_ = true; }
   void UnmarkLost() { lost_ = false; }
   bool Lost() const { return lost_; }
+  sdbus::ObjectPath GetObjectPath() {return device_->getObjectPath();}
 
  private:
   UniqueId unique_id_;

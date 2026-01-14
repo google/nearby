@@ -107,7 +107,18 @@ bool BluetoothDevice::ConnectToProfile(absl::string_view service_uuid) {
   }
 }
 
-MonitoredBluetoothDevice::MonitoredBluetoothDevice(
+  bool BluetoothDevice::Connect() {
+  auto device = device_;
+  if (device == nullptr) return false;
+  try {
+    device->Connect();
+    return true;
+  } catch (const sdbus::Error &e) {
+    DBUS_LOG_METHOD_CALL_ERROR(device, "Connect", e);
+    return false;
+  }
+}
+  MonitoredBluetoothDevice::MonitoredBluetoothDevice(
     std::shared_ptr<sdbus::IConnection> system_bus,
     std::shared_ptr<bluez::Device> device,
     ObserverList<api::BluetoothClassicMedium::Observer> &observers)
@@ -152,7 +163,7 @@ void MonitoredBluetoothDevice::onPropertiesChanged(
         observer->DeviceConnectedStateChanged(*this, it->second);
       }
     } else if ( it -> first == "ServicesResolved"){
-      LOG(INFO) << ": ServicesResolved";
+      LOG(INFO) << ": ServicesResolved :" << std::string(it->second);
   }else if (it->first == bluez::DEVICE_NAME) {
       auto callback = GetDiscoveryCallback();
       if (callback != nullptr && callback->device_name_changed_cb != nullptr)

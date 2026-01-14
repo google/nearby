@@ -219,19 +219,28 @@ bool BluezGattDiscovery::InitializeKnownServices() {
                    org::bluez::GattCharacteristic1_proxy::INTERFACE_NAME) == 1;
       });
 
-  for (; chr_it != objects.cend(); chr_it++) {
-    const auto &[path, ifaces] = *chr_it;
-    const auto &properties =
-        ifaces.at(org::bluez::GattCharacteristic1_proxy::INTERFACE_NAME);
-    auto maybe_props = characteristicProperties(path, properties);
-    if (!maybe_props.has_value()) continue;
-    auto [chr_uuid, service_uuid, device_path] = *maybe_props;
+for (; chr_it != objects.cend(); ++chr_it) {
+  const auto& [path, ifaces] = *chr_it;
 
-    discovered_characteristics_.emplace(
-        std::make_tuple(chr_uuid, service_uuid, device_path), path);
-    characteristics_properties_.emplace(
-        path, std::make_tuple(chr_uuid, service_uuid, device_path));
+  auto iface_it = ifaces.find(org::bluez::GattCharacteristic1_proxy::INTERFACE_NAME);
+  if (iface_it == ifaces.end()) {
+    // Not a GattCharacteristic1 object (or interfaces map incomplete) -> skip
+    continue;
   }
+
+  const auto& properties = iface_it->second;
+
+  auto maybe_props = characteristicProperties(path, properties);
+  if (!maybe_props.has_value()) continue;
+
+  auto [chr_uuid, service_uuid, device_path] = *maybe_props;
+
+  discovered_characteristics_.emplace(
+      std::make_tuple(chr_uuid, service_uuid, device_path), path);
+
+  characteristics_properties_.emplace(
+      path, std::make_tuple(chr_uuid, service_uuid, device_path));
+}
 
   return true;
 }
@@ -282,6 +291,8 @@ bool BluezGattDiscovery::DiscoverServiceAndCharacteristics(
   };
 
   absl::ReaderMutexLock lock(&mutex_, absl::Condition(&discovered));
+
+  LOG(INFO) << __func__ << ": Finished discovering gatt services and characteristics";
   return !cancel.Cancelled();
 }
 
@@ -331,7 +342,7 @@ BluezGattDiscovery::GetSubscribedCharacteristic(
 
 std::optional<std::tuple<Uuid, Uuid, sdbus::ObjectPath>>
 BluezGattDiscovery::characteristicProperties(
-    const sdbus::ObjectPath &path,
+    const sdbus::ObjectPath &char_path,
     const std::map<std::string, sdbus::Variant> &properties) {
   mutex_.AssertHeld();
 
@@ -339,31 +350,41 @@ BluezGattDiscovery::characteristicProperties(
   auto chr_uuid = UuidFromString(chr_uuid_str);
   if (!chr_uuid.has_value()) {
     LOG(ERROR) << ": Couldn't parse UUID '" << chr_uuid_str
-                       << "' in characteristic " << path;
+                       << "' in characteristic " << char_path;
     return std::nullopt;
   }
 
   const sdbus::ObjectPath &service_path = properties.at("Service");
   if (cached_services_.count(service_path) == 0) {
     cached_services_.emplace(
-        path, std::make_unique<GattServiceClient>(system_bus_, path));
+        service_path, std::make_unique<GattServiceClient>(system_bus_, service_path));
   }
 
-  auto &service = cached_services_.at(service_path);
-  nearby::Uuid service_uuid;
-  try {
-    const std::string &service_uuid_str = service->UUID();
-    auto service_uuid_maybe = UuidFromString(service_uuid_str);
-    if (!service_uuid_maybe.has_value()) {
-      LOG(ERROR) << ": Couldn't parse UUID '" << service_uuid_str
-                         << "' in service " << service_path;
-      return std::nullopt;
-    }
-    service_uuid = *service_uuid_maybe;
-  } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(service, "UUID", e);
+auto it = cached_services_.find(service_path);
+if (it == cached_services_.end() || it->second == nullptr) {
+  LOG(ERROR) << ": cached_services_ missing service " << service_path
+             << " (from characteristic " << char_path << ")";
+  return std::nullopt;
+}
+
+  LOG(INFO) << ": Found service path " << service_path
+             << " (from characteristic " << char_path << ")";
+  auto* service = it->second.get();  // service is GattServiceClient*
+nearby::Uuid service_uuid;
+try {
+  std::string service_uuid_str = service->UUID();  // copy (safe)
+  auto service_uuid_maybe = UuidFromString(service_uuid_str);
+
+  if (!service_uuid_maybe.has_value()) {
+    LOG(ERROR) << ": Couldn't parse UUID '" << service_uuid_str
+               << "' in service " << service_path;
     return std::nullopt;
   }
+  service_uuid = *service_uuid_maybe;
+} catch (const sdbus::Error &e) {
+  DBUS_LOG_PROPERTY_GET_ERROR(service, "UUID", e);
+  return std::nullopt;
+}
 
   sdbus::ObjectPath device_path;
   try {
@@ -417,7 +438,14 @@ void BluezGattDiscovery::onInterfacesRemoved(
   if (chr_it != end) {
     absl::MutexLock lock(&mutex_);
     {
-      auto &props = characteristics_properties_.at(objectPath);
+    auto it = characteristics_properties_.find(objectPath);
+      if (it == characteristics_properties_.end()) {
+        // Not tracked / already removed / never added.
+        // return;  // or just `break;` / `continue;` depending on your context
+        return;
+      }
+
+      auto &props = it->second;
       discovered_characteristics_.erase(props);
     }
     characteristics_properties_.erase(objectPath);
