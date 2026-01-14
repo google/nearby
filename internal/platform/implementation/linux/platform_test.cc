@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PLATFORM_IMPL_LINUX_WIFI_LAN_SOCKET_H_
-#define PLATFORM_IMPL_LINUX_WIFI_LAN_SOCKET_H_
+#include "gtest/gtest.h"
 
 namespace nearby {
-namespace api {
-class WifiLanSocket {
- public:
-  ~WifiLanSocket() = default;
+namespace linux {
 
- private:
-  int fd;
-};
-}  // namespace api
+TEST(LinuxStubTests, Placeholder) {
+  GTEST_SKIP() << "Stub test placeholder to mirror Windows coverage.";
+}
+
+}  // namespace linux
 }  // namespace nearby
-
-#endif

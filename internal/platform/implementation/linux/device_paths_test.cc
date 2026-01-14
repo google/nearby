@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,22 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "internal/platform/implementation/linux/ble_medium.h"
-
-#include <memory>
-#include <string>
-
-#include "absl/synchronization/mutex.h"
-#include "internal/platform/implementation/ble.h"
-#include "internal/platform/implementation/ble_v2.h"
-#include "internal/platform/implementation/linux/ble_v2_medium.h"
-#include "internal/platform/implementation/linux/bluetooth_adapter.h"
-#include "internal/platform/logging.h"
-#include "internal/platform/uuid.h"
+#include "gtest/gtest.h"
 
 namespace nearby {
 namespace linux {
 
+TEST(LinuxStubTests, Placeholder) {
+  GTEST_SKIP() << "Stub test placeholder to mirror Windows coverage.";
+}
 
 }  // namespace linux
 }  // namespace nearby

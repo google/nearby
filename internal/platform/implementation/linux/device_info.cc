@@ -24,7 +24,6 @@
 
 #include "absl/synchronization/mutex.h"
 #include "internal/platform/implementation/device_info.h"
-#include "internal/platform/implementation/linux/avahi.h"
 #include "internal/platform/implementation/linux/dbus.h"
 #include "internal/platform/implementation/linux/device_info.h"
 #include "internal/platform/logging.h"
@@ -64,11 +63,11 @@ DeviceInfo::DeviceInfo(std::shared_ptr<sdbus::IConnection> system_bus)
       login_manager_(std::make_unique<LoginManager>(*system_bus_)) {}
 
 std::optional<std::string> DeviceInfo::GetOsDeviceName() const {
-  avahi::Server avahi(*system_bus_);
+  Hostnamed hostnamed(*system_bus_);
   try {
-    return avahi.GetHostNameFqdn();
+    return hostnamed.Hostname();
   } catch (const sdbus::Error &e) {
-    DBUS_LOG_PROPERTY_GET_ERROR(&avahi, "GetHostNameFqdn", e);
+    DBUS_LOG_PROPERTY_GET_ERROR(&hostnamed, "GetHostNameFqdn", e);
     return std::nullopt;
   }
 }
