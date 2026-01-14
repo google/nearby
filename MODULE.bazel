@@ -10,6 +10,12 @@ bazel_dep(name = "protobuf", version = "32.0", repo_name = "com_google_protobuf"
 bazel_dep(name = "googletest", version = "1.17.0", repo_name = "com_google_googletest")
 bazel_dep(name = "boringssl", version = "0.0.0-20240126-22d349c")
 
+#bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
+#git_override(
+#         module_name = "hedron_compile_commands",
+#         remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
+#         commit = "02d15621b528efd877f5d5657c4b738523a0eb17",
+#         )
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 git_repository(
@@ -62,24 +68,7 @@ cc_library(
     strip_prefix = "smhasher-master",
     urls = ["https://github.com/aappleby/smhasher/archive/master.zip"],
 )
-
-http_archive(
-    name = "nlohmann_json",
-    build_file_content = """
-cc_library(
-  name = "json",
-  hdrs = glob([
-    "include/nlohmann/**/*.hpp",
-  ]),
-    strip_include_prefix = "include",
-  visibility = ["//visibility:public"],
-  alwayslink = True,
-)""",
-    strip_prefix = "json-3.10.5",
-    urls = [
-        "https://github.com/nlohmann/json/archive/refs/tags/v3.10.5.tar.gz",
-    ],
-)
+bazel_dep(name = "nlohmann_json", version = "3.12.0.bcr.1")
 
 # ----------------------------------------------
 # Nisaba: Script processing library from Google:
