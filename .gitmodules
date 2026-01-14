@@ -26,10 +26,6 @@
 	path = third_party/securemessage/securemessage
 	url = https://github.com/google/securemessage.git
 	branch = master
-[submodule "third_party/google-toolbox-for-mac/google-toolbox-for-mac"]
-	path = third_party/google-toolbox-for-mac/google-toolbox-for-mac
-	url = https://github.com/google/google-toolbox-for-mac.git
-	branch = main
 [submodule "third_party/mbedtls"]
 	path = third_party/mbedtls
 	url = https://github.com/ARMmbed/mbedtls
