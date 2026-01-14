@@ -2,10 +2,6 @@
 	path = third_party/protobuf
 	url = https://github.com/protocolbuffers/protobuf
 	branch = 3.19.x
-[submodule "third_party/absl"]
-	path = third_party/absl
-	url = https://github.com/abseil/abseil-cpp
-	branch = master
 [submodule "third_party/ukey2/ukey2"]
 	path = third_party/ukey2/ukey2
 	url = https://github.com/google/ukey2
